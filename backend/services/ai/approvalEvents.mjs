@@ -43,6 +43,20 @@ export const APPROVAL_EVENTS = Object.freeze({
 
 const VALID = new Set(Object.values(APPROVAL_EVENTS));
 
+/** Where each event leaves the operation, for the audit row's own column. */
+const CONFIRMATION_STATE_BY_EVENT = Object.freeze({
+  [APPROVAL_EVENTS.MINTED]: 'pending',
+  [APPROVAL_EVENTS.READ_BACK]: 'pending',
+  [APPROVAL_EVENTS.CONFIRMED]: 'confirmed',
+  [APPROVAL_EVENTS.CONSUMED]: 'confirmed',
+  [APPROVAL_EVENTS.ALREADY_CONFIRMED]: 'confirmed',
+  [APPROVAL_EVENTS.RENDER_MISMATCH]: 'rejected',
+  [APPROVAL_EVENTS.TIER_SPOOF]: 'rejected',
+  [APPROVAL_EVENTS.BURNED]: 'confirmed',
+  [APPROVAL_EVENTS.CANCELLED]: 'cancelled',
+  [APPROVAL_EVENTS.EXPIRED]: 'expired',
+});
+
 export function isApprovalEvent(name) {
   return VALID.has(name);
 }
@@ -79,7 +93,11 @@ export async function recordApprovalEvent({
     targetClientId,
     destructive,
     requiresConfirmation: true,
-    confirmationState: 'pending',
+    // F-10 (GLM 5.3 round 1): this was hardcoded 'pending' for EVERY event, so
+    // consumed/burned/expired/cancelled rows all claimed to be awaiting a
+    // decision. An audit row that lies is worse than an absent one — any later
+    // query on the column returns garbage with full confidence.
+    confirmationState: CONFIRMATION_STATE_BY_EVENT[event] ?? 'pending',
     operationId,
     outcome: approvalOutcomeToken(event),
     errorCode,

@@ -58,6 +58,13 @@ export function digestSubject(op) {
     description: op?.description ?? null,
     affectedCount: op?.affectedCount ?? 0,
     params: op?.params ?? null,
+    // F-12 (GLM 5.3 round 1): the operation can carry its client binding
+    // TOP-LEVEL (pending confirmations set `clientId` on the record, not only
+    // inside params), and `kind` decides which lane consumes it. The single
+    // field this entire program is about was outside the proof; the sheet even
+    // reads `params.clientId ?? operation.clientId` to render the chip.
+    clientId: op?.clientId ?? null,
+    kind: op?.kind ?? null,
   };
 }
 
@@ -68,7 +75,15 @@ export function renderDigestOf(op) {
 
 /** Constant-time compare of two hex digests; false on any shape problem. */
 export function digestMatches(a, b) {
+  // Exactly 64 hex chars, both sides (finding F-22, GLM 5.3 round 1).
+  //
+  // The length-equality check alone was a booby trap: Buffer.from(hex) DROPS a
+  // trailing odd nibble, so 'abc' and 'abd' both parse to <ab> and compared
+  // equal. Unreachable today — sha256 is always 64 — but a future shorter or
+  // truncated digest would have inherited a comparator that ignores its last
+  // character.
+  const HEX64 = /^[0-9a-f]{64}$/i;
   if (typeof a !== 'string' || typeof b !== 'string') return false;
-  if (a.length !== b.length || !/^[0-9a-f]+$/i.test(a) || !/^[0-9a-f]+$/i.test(b)) return false;
+  if (!HEX64.test(a) || !HEX64.test(b)) return false;
   return crypto.timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
 }

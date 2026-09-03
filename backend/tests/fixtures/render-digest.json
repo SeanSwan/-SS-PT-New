@@ -1,5 +1,5 @@
 {
-  "note": "SHARED CONTRACT: backend services/ai/renderDigest.mjs and frontend src/utils/renderDigest.ts must produce these EXACT values. Ops are stored AS THEY ARRIVE OVER THE WIRE (JSON round-tripped) — an earlier version hashed an in-memory object containing , a value that cannot survive JSON and which the client therefore could never reproduce. Regenerate ONLY on a deliberate contract change.",
+  "note": "SHARED CONTRACT: backend services/ai/renderDigest.mjs and frontend src/utils/renderDigest.ts must produce these EXACT values. Ops are stored AS THEY ARRIVE OVER THE WIRE (JSON round-tripped) — an earlier version hashed an in-memory object containing , a value that cannot survive JSON and which the client therefore could never reproduce. Regenerate ONLY on a deliberate contract change. | Regenerated 2026-09-03: the subject gained clientId and kind (finding F-12) — the operation can carry its client binding top-level, and that is the one field this program is about.",
   "algorithm": "sha256(canonicalJson({id,commandType,type,description,affectedCount,params}))",
   "cases": [
     {
@@ -15,8 +15,8 @@
           "clientId": 61
         }
       },
-      "canonical": "{\"affectedCount\":1,\"commandType\":\"cancel_session\",\"description\":\"Cancel session 184\",\"id\":\"op-1\",\"params\":{\"clientId\":61,\"sessionId\":184},\"type\":\"DELETE\"}",
-      "digest": "088647db525033db340fc3d456876d4c5cfcd9612e8ac929a340ec3bfbaf933d"
+      "canonical": "{\"affectedCount\":1,\"clientId\":null,\"commandType\":\"cancel_session\",\"description\":\"Cancel session 184\",\"id\":\"op-1\",\"kind\":null,\"params\":{\"clientId\":61,\"sessionId\":184},\"type\":\"DELETE\"}",
+      "digest": "d1bcc8fd6ed52bc4f6c8642a7d0f06e1f144519bc2d36a74e15604b4ad2c6982"
     },
     {
       "name": "key order must not matter",
@@ -31,8 +31,8 @@
         "commandType": "cancel_session",
         "id": "op-1"
       },
-      "canonical": "{\"affectedCount\":1,\"commandType\":\"cancel_session\",\"description\":\"Cancel session 184\",\"id\":\"op-1\",\"params\":{\"clientId\":61,\"sessionId\":184},\"type\":\"DELETE\"}",
-      "digest": "088647db525033db340fc3d456876d4c5cfcd9612e8ac929a340ec3bfbaf933d"
+      "canonical": "{\"affectedCount\":1,\"clientId\":null,\"commandType\":\"cancel_session\",\"description\":\"Cancel session 184\",\"id\":\"op-1\",\"kind\":null,\"params\":{\"clientId\":61,\"sessionId\":184},\"type\":\"DELETE\"}",
+      "digest": "d1bcc8fd6ed52bc4f6c8642a7d0f06e1f144519bc2d36a74e15604b4ad2c6982"
     },
     {
       "name": "nested object + array order IS meaning",
@@ -56,8 +56,8 @@
           }
         }
       },
-      "canonical": "{\"affectedCount\":3,\"commandType\":\"delete_post\",\"description\":\"Remove post\",\"id\":\"op-2\",\"params\":{\"meta\":{\"a\":{\"deep\":true},\"z\":1},\"postId\":9,\"tags\":[\"b\",\"a\"]},\"type\":\"DELETE\"}",
-      "digest": "fbd78b29a2c04410d24feed31439dbfedd34008a035774e3fd86ea445fd2c588"
+      "canonical": "{\"affectedCount\":3,\"clientId\":null,\"commandType\":\"delete_post\",\"description\":\"Remove post\",\"id\":\"op-2\",\"kind\":null,\"params\":{\"meta\":{\"a\":{\"deep\":true},\"z\":1},\"postId\":9,\"tags\":[\"b\",\"a\"]},\"type\":\"DELETE\"}",
+      "digest": "03e5c24fd5ca9c8f24305eef9ac4efb8404f38b63f7479daf4ad86dd6a454e33"
     },
     {
       "name": "explicit nulls survive",
@@ -71,8 +71,8 @@
           "a": null
         }
       },
-      "canonical": "{\"affectedCount\":0,\"commandType\":null,\"description\":\"Update\",\"id\":\"op-3\",\"params\":{\"a\":null},\"type\":\"UPDATE\"}",
-      "digest": "c2bb6fa5d5b337f54ea77e3a0cfafa24df90983cb8dba9414248f5f0f2a4acf5"
+      "canonical": "{\"affectedCount\":0,\"clientId\":null,\"commandType\":null,\"description\":\"Update\",\"id\":\"op-3\",\"kind\":null,\"params\":{\"a\":null},\"type\":\"UPDATE\"}",
+      "digest": "ca30fcb4f090b174d69208e0d9389c1ceb6e56da8215b4d8f1f0a543d79eae27"
     },
     {
       "name": "unicode + quotes + newline survive",
@@ -87,16 +87,16 @@
           "note": "line\nbreak"
         }
       },
-      "canonical": "{\"affectedCount\":1,\"commandType\":\"notify_client\",\"description\":\"Notify — \\\"quoted\\\" · emoji swan\",\"id\":\"op-4\",\"params\":{\"clientId\":7,\"note\":\"line\\nbreak\"},\"type\":\"UPDATE\"}",
-      "digest": "81f434bfd7808c2aacfcd434b153e50c43b17af73b1029a5f8ad5d566370aaa6"
+      "canonical": "{\"affectedCount\":1,\"clientId\":null,\"commandType\":\"notify_client\",\"description\":\"Notify — \\\"quoted\\\" · emoji swan\",\"id\":\"op-4\",\"kind\":null,\"params\":{\"clientId\":7,\"note\":\"line\\nbreak\"},\"type\":\"UPDATE\"}",
+      "digest": "7e2d8119702ff0c545c40143fed940646c3ced35f4dd0ff62bef0fe1cc7adee2"
     },
     {
       "name": "missing fields default",
       "op": {
         "id": "op-5"
       },
-      "canonical": "{\"affectedCount\":0,\"commandType\":null,\"description\":null,\"id\":\"op-5\",\"params\":null,\"type\":null}",
-      "digest": "1a15dbcb4e82ce18cf442b9ac62698dc976b19387b3ef65d15b4f75a5081df85"
+      "canonical": "{\"affectedCount\":0,\"clientId\":null,\"commandType\":null,\"description\":null,\"id\":\"op-5\",\"kind\":null,\"params\":null,\"type\":null}",
+      "digest": "2c1b53730cbee64e8a166f0dba1b018f609b4f1530de6b64736bd26276249538"
     },
     {
       "name": "expiresAt and signature are ignored",
@@ -112,8 +112,8 @@
         "expiresAt": "2026-01-01T00:00:00.000Z",
         "signature": "deadbeef"
       },
-      "canonical": "{\"affectedCount\":1,\"commandType\":\"lock_client\",\"description\":\"Lock\",\"id\":\"op-6\",\"params\":{\"clientId\":3},\"type\":\"UPDATE\"}",
-      "digest": "47e200d7a3dd8b6305ba72afdbfce1103165e108608293f42eaf9b3fd2139981"
+      "canonical": "{\"affectedCount\":1,\"clientId\":null,\"commandType\":\"lock_client\",\"description\":\"Lock\",\"id\":\"op-6\",\"kind\":null,\"params\":{\"clientId\":3},\"type\":\"UPDATE\"}",
+      "digest": "e1caa1e438baaab2f89f571c2663dff3cc31d5be0184eeb3a5c1e51ca165ab12"
     }
   ]
 }

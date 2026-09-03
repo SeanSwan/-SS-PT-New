@@ -166,7 +166,20 @@ describe('route wiring regression', () => {
   });
 
   it('audits cancellations', () => {
-    expect(ROUTES_SRC).toMatch(/outcome:\s*'cancelled'/);
+    /**
+     * This is a source-text tripwire, and it is worth saying what that means:
+     * it proves a symbol appears in a file, never that a request produces a row.
+     * It broke — correctly — when /cancel moved from a bare `outcome:
+     * 'cancelled'` to the namespaced `approval:cancelled` event, because the
+     * bare outcome sat OUTSIDE the `approval:` prefix the funnel reads by, so
+     * cancellations were invisible to the very metric they belong to.
+     *
+     * The behavioural proof now lives in approvalCancelEvent.test.mjs, which
+     * drives the mounted handler. This stays as the cheap check that the wiring
+     * is still present at all, pointed at the symbol that now carries it.
+     */
+    expect(ROUTES_SRC).toMatch(/APPROVAL_EVENTS\.CANCELLED/);
+    expect(ROUTES_SRC).toMatch(/recordApprovalEvent\(/);
   });
 });
 

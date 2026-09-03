@@ -60,8 +60,11 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
     if (sheet.canConfirm) confirmRef.current?.focus();
   }, [sheet.canConfirm]);
   useEffect(() => {
-    if (['burned', 'expired', 'mismatch'].includes(sheet.state)) recoverRef.current?.focus();
-  }, [sheet.state]);
+    // Focus whatever terminal control actually rendered — re-issue when the
+    // state permits one, the acknowledgement otherwise. Keying this on a second
+    // hardcoded state list was how the two lists drifted apart in the first place.
+    if (sheet.guidance) recoverRef.current?.focus();
+  }, [sheet.state, sheet.guidance]);
 
   // Escape cancels. It must NEVER confirm — the cheapest key on the keyboard
   // cannot be the one that executes something destructive.
@@ -80,7 +83,22 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
   }, [sheet]);
 
   const op = sheet.operation;
-  const terminalRecoverable = ['burned', 'expired', 'mismatch', 'unavailable'].includes(sheet.state);
+  /**
+   * F-04 (GLM 5.3 round 1) — THE LIVE DEFECT THIS FILE HAD.
+   *
+   * `terminalRecoverable` was a hardcoded list that INCLUDED `burned`, so the
+   * sheet offered "Re-issue this request" on the one state that means "your
+   * approval was consumed but the result never came back — it may have gone
+   * through." Inviting a repeat there is how a cancelled session gets cancelled
+   * twice, or a notification sent twice, from a UI that looked helpful.
+   * `TERMINAL_GUIDANCE` was written to encode exactly that distinction and had
+   * no consumer; a policy nothing reads is not a policy. It decides now, and
+   * `confirmed_elsewhere` — which the hardcoded list never knew about — is
+   * handled by construction rather than by remembering to add it.
+   */
+  const guidance = sheet.guidance;
+  const terminalRecoverable = guidance?.allowReissue === true;
+  const terminalBlocked = Boolean(guidance) && guidance?.allowReissue === false && sheet.state !== 'done';
 
   return (
     <Sheet
@@ -135,7 +153,15 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
       {/* One live region for the whole sheet: state changes and errors are
           announced once, in the order they happen. */}
       <StatusLine role="status" aria-live="polite" data-testid="sheet-status">
-        {sheet.error || STATE_TEXT[sheet.state]}
+        {/*
+          * Terminal guidance outranks BOTH the generic state label and the raw
+          * server error. "Done." tells an operator nothing about whether they
+          * may safely try again, and a server string like "refused" tells them
+          * even less — while the guidance is the one sentence that says whether
+          * the action may already have run. On a terminal state that sentence is
+          * the whole message; elsewhere the error still speaks.
+          */}
+        {guidance?.text || sheet.error || STATE_TEXT[sheet.state]}
       </StatusLine>
 
       <Actions>
@@ -144,7 +170,11 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
             <ConfirmButton
               ref={confirmRef}
               type="button"
-              onClick={() => void sheet.confirm()}
+              // F-03: the confirm declares HOW it happened. A pointer or a
+              // keyboard activation of a real control is physical; a voice
+              // surface calls sheet.confirm('voice') and is refused on an
+              // identity-crossing act, client-side and again at the server.
+              onClick={() => void sheet.confirm('tap')}
               disabled={!sheet.canConfirm}
               data-testid="confirm-button"
             >
@@ -164,6 +194,17 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
             data-testid="reissue-button"
           >
             Re-issue this request
+          </SecondaryButton>
+        )}
+
+        {terminalBlocked && (
+          <SecondaryButton
+            ref={recoverRef}
+            type="button"
+            onClick={() => onCancel?.()}
+            data-testid="acknowledge-button"
+          >
+            Close — check history first
           </SecondaryButton>
         )}
       </Actions>

@@ -101,6 +101,20 @@ export async function prepareDestructiveOperation({
   actorRole = null,   // card 1.0: audit rows require a role; null is skipped, not faked
   description,
   affectedRecords = [],
+  /**
+   * F-12: the client this operation is bound to, TOP-LEVEL. It was reachable
+   * only inside `params`, so a caller reading `operation.clientId` — which the
+   * confirmation sheet does, to render the chip — got undefined and rendered
+   * "no client" over an operation that had one.
+   */
+  clientId = null,
+  /**
+   * F-03: the M3 verdict, decided HERE because this is where the spoken-name /
+   * selection evidence exists, and enforced at /confirm because that is where
+   * the channel is declared. Splitting it that way is the point: the surface
+   * that could be fooled is not the surface that decides.
+   */
+  requiresPhysicalConfirm = false,
 }) {
   // 0.4a (was V3 DELETE-only): EVERY destructive type requires explicit scope.
   // An unscoped UPDATE or DEACTIVATE with `params: {}` is the same mass-mutation
@@ -148,6 +162,8 @@ export async function prepareDestructiveOperation({
     // 0.4a: deep copy — a shallow spread shared nested references with caller
     // state, so post-mint mutation of a nested object bypassed the signature.
     params: structuredClone(commandParams),
+    clientId: Number.isSafeInteger(Number(clientId)) && Number(clientId) > 0 ? Number(clientId) : null,
+    requiresPhysicalConfirm: Boolean(requiresPhysicalConfirm),
     affectedRecords: affectedRecords.slice(0, 10), // Max 10 in preview
     affectedCount: affectedRecords.length,
     createdBy: userId,
@@ -183,6 +199,7 @@ export async function prepareDestructiveOperation({
     affectedCount: operation.affectedCount,
     expiresAt: operation.expiresAt,
     requiresConfirmation: true,
+    requiresPhysicalConfirm: operation.requiresPhysicalConfirm,
   };
 }
 

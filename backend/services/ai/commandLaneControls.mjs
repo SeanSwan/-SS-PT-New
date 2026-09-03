@@ -62,7 +62,8 @@ export function describeLaneControls() {
 }
 
 /**
- * Write/destructive commands on/off. Default ON; only 'false' disables.
+ * Write/destructive commands on/off. Default ON; any recognised "off" disables
+ * (false / 0 / no / off, trimmed and case-insensitive — see parsesAsDisabled).
  * A command counts as a write when its registry entry declares
  * `destructive: true` OR `requiresConfirmation: true` (per the V1 spec,
  * reads never require confirmation).

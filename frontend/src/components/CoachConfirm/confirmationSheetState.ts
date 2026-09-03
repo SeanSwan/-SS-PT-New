@@ -31,7 +31,7 @@
 
 export type SheetState =
   | 'loading' | 'arming' | 'ready' | 'submitting'
-  | 'done' | 'burned' | 'expired' | 'mismatch' | 'unavailable';
+  | 'done' | 'burned' | 'expired' | 'mismatch' | 'unavailable' | 'confirmed_elsewhere';
 
 export type Tier = 'fire_and_forget' | 'read_back' | 'deliberate' | 'refusal';
 
@@ -98,14 +98,57 @@ export function nextState(state: SheetState, event: SheetEvent, input?: SheetInp
       if (event.type === 'confirmed') return 'done';
       if (event.type === 'server_refused') {
         if (event.code === 'render_mismatch' || event.code === 'render_digest_required') return 'mismatch';
-        if (event.code === 'expired') return 'expired';
+        if (event.code === 'expired' || event.code === 'not_found') return 'expired';
+        // F-02 (GLM 5.3 round 1): `already_confirmed` used to fall through to
+        // `burned`, whose prescribed exit is a RE-MINT of the same frozen
+        // params. Two sheets on one operation is a SUPPORTED configuration —
+        // the Command Center and a surface dock can both hold it — so the
+        // loser of a double-confirm was told the destructive write had not
+        // happened when it had, and invited to run it again. Duplicate
+        // destructive execution, offered by the recovery path.
+        if (event.code === 'already_confirmed') return 'confirmed_elsewhere';
+        // F-04: a lost RESPONSE (gym-floor Wi-Fi) is indistinguishable from a
+        // failed execution, and the operation may well have run. `burned` no
+        // longer means "safe to re-issue" — see BURNED_GUIDANCE.
         return 'burned';
       }
       return state;
     default:
-      return state; // done | burned | expired | mismatch | unavailable are terminal
+      return state; // done | burned | expired | mismatch | unavailable |
+                    // confirmed_elsewhere are terminal
   }
 }
+
+/**
+ * What the operator should DO in each terminal state. This is not copy — it is
+ * the safety property. `burned` and `confirmed_elsewhere` both mean the
+ * operation may ALREADY HAVE EXECUTED, so neither may ever advise re-issuing:
+ * the recovery path for an ambiguous destructive write must not be "do it
+ * again" (findings F-02 and F-04).
+ */
+export const TERMINAL_GUIDANCE: Record<string, { text: string; allowReissue: boolean }> = {
+  done: { text: 'Done.', allowReissue: false },
+  expired: {
+    text: 'This approval expired before it was used. Nothing happened — you can ask again.',
+    allowReissue: true,
+  },
+  mismatch: {
+    text: 'What you approved no longer matches the pending action. Re-open it and check before confirming.',
+    allowReissue: true,
+  },
+  unavailable: {
+    text: 'This approval is no longer available. Nothing happened — you can ask again.',
+    allowReissue: true,
+  },
+  confirmed_elsewhere: {
+    text: 'This action was already confirmed and has run. Check the history before doing anything else — do not repeat it.',
+    allowReissue: false,
+  },
+  burned: {
+    text: 'Your approval was used but the result never came back. It may have gone through. Check the history before re-issuing.',
+    allowReissue: false,
+  },
+};
 
 /** Is the confirm control interactive right now? */
 export function canConfirm(state: SheetState): boolean {
@@ -125,6 +168,18 @@ export function allowedConfirmChannels(input: SheetInput): Array<'tap' | 'keyboa
 }
 
 /**
+ * The enforcement point for the above (finding F-03).
+ *
+ * `allowedConfirmChannels` was exported, documented as the M3 channel split, and
+ * called by NOTHING — a guard that only a comment enforced. Every confirm now
+ * declares its channel and passes through here, and the channel travels to the
+ * server so the ceremony is not purely client-side courtesy.
+ */
+export function channelPermitted(input: SheetInput, channel: 'tap' | 'keyboard' | 'voice'): boolean {
+  return allowedConfirmChannels(input).includes(channel);
+}
+
+/**
  * The spoken nonce for a deliberate confirmation, derived from the operation id.
  *
  * A bare "yes" is satisfiable by background speech, a television, or another
@@ -133,15 +188,28 @@ export function allowedConfirmChannels(input: SheetInput): Array<'tap' | 'keyboa
  * to be stored or transported.
  */
 export function spokenNonce(operationId: string): string {
-  const hex = (operationId || '').replace(/[^0-9a-f]/gi, '');
-  const a = parseInt(hex.slice(0, 1) || '0', 16) % 10;
-  const b = parseInt(hex.slice(1, 2) || '0', 16) % 10;
-  return `${a}-${b}`;
+  // THREE digits, derived from BYTE pairs (finding F-07, GLM 5.3 round 1).
+  //
+  // The first version took two nibbles mod 10 — a 100-value space, biased
+  // (0–5 at 2/16, 6–9 at 1/16) — and matched them as a substring ANYWHERE in
+  // the transcript. A trainer reading back a set ("one eighty-five, four sets,
+  // eight reps") emits a digit stream in which some adjacent pair matches the
+  // displayed nonce at a percent-level rate. A confirmation that fires when the
+  // human did not decide is the purest form of the habituation bug.
+  const hex = (operationId || '').replace(/[^0-9a-f]/gi, '').padEnd(6, '0');
+  const digits = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) % 10);
+  return digits.join('-');
 }
 
+/**
+ * Number words only. The first version also mapped `to→2`, `too→2`, `for→4`,
+ * `oh→0` and `ate→8` — homophones of the commonest function words in English
+ * speech, which turn ordinary sentences into digit streams (F-07). A trainer
+ * saying "confirm and then go to four" should never satisfy a nonce.
+ */
 const WORDS: Record<string, string> = {
-  zero: '0', oh: '0', one: '1', two: '2', to: '2', too: '2', three: '3', four: '4', for: '4',
-  five: '5', six: '6', seven: '7', eight: '8', ate: '8', nine: '9',
+  zero: '0', one: '1', two: '2', three: '3', four: '4',
+  five: '5', six: '6', seven: '7', eight: '8', nine: '9',
 };
 
 /**
@@ -151,15 +219,23 @@ const WORDS: Record<string, string> = {
  * bare "yes", and never accepts the WRONG digits.
  */
 export function nonceSatisfied(transcript: string, operationId: string): boolean {
-  const want = spokenNonce(operationId).split('-');
-  const digits = (transcript || '')
-    .toLowerCase()
+  // ANCHORED to the word "confirm" and matched at the END of the utterance
+  // (F-07). Free-floating substring matching over a digit stream is how a
+  // set read-back accidentally confirms a destructive action.
+  const want = spokenNonce(operationId).split('').filter((c) => c !== '-');
+  const lowered = (transcript || '').toLowerCase();
+  const anchor = lowered.lastIndexOf('confirm');
+  if (anchor < 0) return false;
+
+  const digits = lowered
+    .slice(anchor + 'confirm'.length)
     .split(/[^a-z0-9]+/)
-    .map((tok) => (/^\d$/.test(tok) ? tok : WORDS[tok] ?? (/^\d+$/.test(tok) ? tok : null)))
+    .map((tok) => (/^\d+$/.test(tok) ? tok : (WORDS[tok] ?? null)))
     .filter((d): d is string => d !== null)
     .flatMap((d) => d.split(''));
-  for (let i = 0; i + want.length <= digits.length; i += 1) {
-    if (want.every((d, j) => digits[i + j] === d)) return true;
-  }
-  return false;
+
+  // The digits must be the LAST thing said, in order — not merely present.
+  if (digits.length < want.length) return false;
+  const tail = digits.slice(digits.length - want.length);
+  return want.every((d, i) => tail[i] === d);
 }

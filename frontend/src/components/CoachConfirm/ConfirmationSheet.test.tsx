@@ -133,4 +133,69 @@ describe('ConfirmationSheet', () => {
     await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('unavailable'));
     expect(screen.queryByTestId('confirm-button')).toBeNull();
   });
+
+  /**
+   * TERMINAL EXITS — the sheet must never invite a repeat of something that may
+   * already have run.
+   *
+   * These exist because the guidance module encoding this distinction had NO
+   * consumer: the component carried its own hardcoded list of "recoverable"
+   * states which INCLUDED `burned`, so the one state meaning "your approval was
+   * consumed and the result never came back" offered a friendly "Re-issue this
+   * request" button. Two independent policies, one of them wrong, and nothing
+   * comparing them. The component now asks the guidance module, and these
+   * assertions are what stop the hardcoded list from growing back.
+   */
+  async function driveToRefusal(code: string) {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    post.mockRejectedValue({ response: { data: { code, error: 'refused' } } });
+    render(<ConfirmationSheet operationId={OP_ID} input={input()} lockedClientId={61} />);
+    await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('arming'));
+    await act(async () => { vi.advanceTimersByTime(3000); });
+    await waitFor(() => expect(screen.getByTestId('confirm-button').hasAttribute('disabled')).toBe(false));
+    await user.click(screen.getByTestId('confirm-button'));
+    return user;
+  }
+
+  it('a BURNED approval offers no re-issue — it may already have run', async () => {
+    await driveToRefusal('downstream_failed');
+
+    await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('burned'));
+    expect(screen.queryByTestId('reissue-button')).toBeNull();
+    expect(screen.getByTestId('acknowledge-button')).toBeTruthy();
+    expect(screen.getByTestId('sheet-status').textContent).toMatch(/check the history/i);
+  });
+
+  it('an ALREADY-CONFIRMED approval offers no re-issue either', async () => {
+    await driveToRefusal('already_confirmed');
+
+    await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('confirmed_elsewhere'));
+    expect(screen.queryByTestId('reissue-button')).toBeNull();
+    expect(screen.getByTestId('sheet-status').textContent).toMatch(/do not repeat it/i);
+  });
+
+  it('an EXPIRED approval DOES offer re-issue — nothing happened, so asking again is safe', async () => {
+    await driveToRefusal('expired');
+
+    await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('expired'));
+    expect(screen.getByTestId('reissue-button')).toBeTruthy();
+    expect(screen.queryByTestId('acknowledge-button')).toBeNull();
+  });
+
+  it('the confirm control declares a physical channel to the server', async () => {
+    // F-03: without a declared channel the server treats the confirmation as
+    // unproven and refuses anything identity-crossing, so a surface that omits
+    // this is not merely impolite — it is broken for the case that matters.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<ConfirmationSheet operationId={OP_ID} input={input()} lockedClientId={61} />);
+    await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('arming'));
+    await act(async () => { vi.advanceTimersByTime(3000); });
+    await waitFor(() => expect(screen.getByTestId('confirm-button').hasAttribute('disabled')).toBe(false));
+    await user.click(screen.getByTestId('confirm-button'));
+
+    await waitFor(() => expect(post).toHaveBeenCalled());
+    expect(post.mock.calls[0][1]).toMatchObject({ confirmChannel: 'tap' });
+  });
 });

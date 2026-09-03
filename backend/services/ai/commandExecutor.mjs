@@ -473,6 +473,31 @@ async function stepResolveClient(ctx) {
   const clientId = selectedClientId || paramsClientId;
   const clientRef = selectedClientId ? null : (ctx.intent.clientRef || ctx.options.selectedClientName);
 
+  /**
+   * THE WRONG-CLIENT SEAM (finding F-05a, GLM 5.3 round 1, 2026-09-03).
+   *
+   * When a selection exists, `clientRef` above is deliberately null — the
+   * SELECTION wins for dispatch, which is right and is C0.5's law. But the name
+   * the operator actually SPOKE was then discarded WITHOUT COMPARISON, so
+   * "cancel Jordan's session" while Kayla is selected executed on Kayla,
+   * silently, with no alarm anywhere. That is the exact catastrophe this whole
+   * program exists to prevent, and card 1.2's "pre-collapse pair" did not reach
+   * it: by the time stepConfirmation runs, `ctx.resolvedClient.id` and
+   * `params.clientId` are the SAME value — this step injects one into the other
+   * — so comparing them compares a number with itself.
+   *
+   * The two identities that actually differ are the SELECTION and the SPOKEN
+   * NAME. We record both here, resolving the spoken name only in the narrow
+   * case where it can disagree (a selection AND a name are both present), so
+   * the tier can escalate on a real mismatch instead of on a tautology.
+   */
+  ctx.clientIdentity = {
+    lockedClientId: selectedClientId || null,
+    spokenRef: ctx.intent.clientRef || null,
+    spokenClientId: null,
+    comparable: false,
+  };
+
   if (clientId) {
     // Direct ID provided — use it
     ctx.resolvedClient = { id: clientId };
@@ -503,6 +528,30 @@ async function stepResolveClient(ctx) {
   }
 
   ctx.resolvedClient = resolved;
+
+  // F-05a: with a selection active the spoken name was never looked up, so a
+  // mismatch could not be seen. Resolve it now — ONLY in that narrow case — and
+  // record the id beside the locked one. Failure to resolve is not an error
+  // here: an unresolvable name is already handled by the normal path, and this
+  // lookup exists solely to feed the tier.
+  if (selectedClientId && ctx.intent.clientRef) {
+    try {
+      const spoken = await resolveClient(
+        ctx.intent.clientRef,
+        sequelize,
+        { trainerId: ctx.user.role === 'trainer' ? ctx.user.id : undefined },
+      );
+      ctx.clientIdentity.spokenClientId = spoken?.resolved?.id ?? null;
+      ctx.clientIdentity.comparable = ctx.clientIdentity.spokenClientId !== null;
+    } catch (err) {
+      // An unresolvable spoken name leaves `comparable: false`, and the tier
+      // treats "a name was spoken that we could not place" as its own
+      // escalation — never as agreement.
+      logger.warn('[CommandExecutor] spoken-name resolution failed (tier input only)', {
+        commandType: ctx.command?.type, error: err?.message,
+      });
+    }
+  }
 
   // Inject resolved clientId into params
   if (resolved && ctx.intent.params) {
@@ -559,11 +608,24 @@ async function stepDebateRouting(ctx) {
  * response carries the tier in both modes so the sheet (card 1.3) can render it.
  */
 function resolveTierForCommand(ctx) {
+  // F-05a: prefer the identity pair captured at resolution time (the SELECTION
+  // vs the SPOKEN NAME — the two things that can actually disagree). Fall back
+  // to the params/resolvedClient pair for callers that never ran
+  // stepResolveClient, where it is still the best available signal.
+  const identity = ctx.clientIdentity;
   const pair = resolveCommandClientPair(ctx.intent?.params || {}, ctx);
+  const lockedClientId = identity ? identity.lockedClientId : pair.locked;
+  const targetClientId = identity
+    ? (identity.spokenClientId ?? (identity.spokenRef && !identity.lockedClientId ? pair.target : null))
+    : pair.target;
+
   const verdict = resolveVoiceConfirmationTier(ctx.command, ctx.intent?.params || {}, {
     actorRole: ctx.user?.role ?? null,
-    lockedClientId: pair.locked,
-    targetClientId: pair.target,
+    lockedClientId,
+    targetClientId,
+    // A name was spoken but could not be placed: never silence, never a
+    // tautological match — its own escalation reason.
+    unplaceableSpokenRef: Boolean(identity?.spokenRef && identity.lockedClientId && !identity.comparable),
     inputMode: ctx.routeContext?.inputMode ?? 'text',
   });
   return { verdict, pair };
@@ -599,7 +661,13 @@ async function stepConfirmation(ctx) {
     logger.info('[CommandExecutor] tier refusal', {
       command: ctx.command.type, reasons: verdict.reasons, mode: tierMode(),
     });
-    if (tierMode() === 'enforce') {
+    // F-01 (GLM 5.3 round 1): a REFUSAL short-circuits in BOTH modes. `observe`
+    // exists to soften CEREMONY (deliberate tier, physical flag) while its
+    // distribution is measured against real traffic — it must never soften
+    // AUTHORIZATION, or "confirmation is not authorization" becomes
+    // "authorization is a rollout flag". The distribution is still measurable:
+    // the refusal is counted at the refusal, not at a mint that should not exist.
+    {
       ctx.result = {
         type: 'refused',
         command: ctx.command.type,
@@ -644,6 +712,10 @@ async function stepConfirmation(ctx) {
       userId: ctx.user.id,
       description: `${ctx.command.description}${ctx.resolvedClient ? ` for ${ctx.resolvedClient.firstName || 'Client #' + ctx.resolvedClient.id}` : ''}`,
       affectedRecords: ctx.resolvedClient ? [{ id: ctx.resolvedClient.id, name: `${ctx.resolvedClient.firstName} ${ctx.resolvedClient.lastName || ''}`.trim() }] : [],
+      clientId: ctx.resolvedClient?.id ?? null,
+      // F-03: `verdict` is already in hand from the tier resolution above; the
+      // M3 rule was computed and then thrown away.
+      requiresPhysicalConfirm: Boolean(verdict.physical),
     });
 
     ctx.pendingOperation = pending;
@@ -670,6 +742,7 @@ async function stepConfirmation(ctx) {
     userId: ctx.user.id,
     description: `${ctx.command.description}${clientName ? ` for ${clientName}` : ''}`,
     frontendEvent: isConfirmedFrontendDispatch ? ctx.command.frontendEvent : null,
+    requiresPhysicalConfirm: Boolean(verdict.physical),
   });
 
   ctx.result = {

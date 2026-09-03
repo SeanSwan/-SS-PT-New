@@ -68,6 +68,17 @@ export function signOperation(op) {
     createdBy: op.createdBy,
     // 0.4a: the fields the approver READS are bound to the signature too.
     description: op.description,
+    /**
+     * F-03 (GLM 5.3 round 1): the M3 channel split — a voice confirmation may
+     * not authorize an identity-crossing act — was decided at mint and then
+     * enforced by NOTHING but a comment. It is now stamped on the operation and
+     * checked at /confirm, which means it is a security decision travelling in
+     * a store an attacker who reached the store could edit. So it is signed.
+     * Unset on older operations, where JSON.stringify drops the key and the
+     * payload is byte-identical to before — no signature break on in-flight ops.
+     */
+    requiresPhysicalConfirm: op.requiresPhysicalConfirm,
+    clientId: op.clientId,
     affectedHash: hashAffectedPreview(op.affectedRecords ?? [], op.affectedCount ?? 0),
   });
   return crypto.createHmac('sha256', getOperationSecret()).update(payload).digest('hex');
@@ -89,6 +100,8 @@ export function signPendingConfirmation(op) {
     clientId: op.clientId,
     createdBy: op.createdBy,
     description: op.description,
+    /** F-03: the M3 verdict is a security decision, so it is signed too. */
+    requiresPhysicalConfirm: op.requiresPhysicalConfirm,
   });
   return crypto.createHmac('sha256', getOperationSecret()).update(payload).digest('hex');
 }

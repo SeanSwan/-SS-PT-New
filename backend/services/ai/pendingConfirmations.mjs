@@ -31,7 +31,10 @@ const store = () => getPendingOperationStore();
  * @param {string} [params.frontendEvent] - Browser event for confirmed frontend dispatches
  * @returns {Promise<{ operationId: string, description: string, expiresAt: string }>}
  */
-export async function preparePendingConfirmation({ commandType, params, clientId, userId, actorRole = null, description, frontendEvent = null }) {
+export async function preparePendingConfirmation({
+  commandType, params, clientId, userId, actorRole = null, description,
+  frontendEvent = null, requiresPhysicalConfirm = false,
+}) {
   const userCount = await countPendingForUser(userId);
   if (userCount >= MAX_PENDING_PER_USER) {
     throw new Error(`Too many pending operations (${userCount}). Please confirm or cancel existing operations first.`);
@@ -50,6 +53,8 @@ export async function preparePendingConfirmation({ commandType, params, clientId
     params: baseParams,
     frontendEvent,
     clientId: scopedClientId,
+    /** F-03: see operationSigning — decided at mint, enforced at /confirm. */
+    requiresPhysicalConfirm: Boolean(requiresPhysicalConfirm),
     createdBy: userId,
     description,
     createdAt: new Date().toISOString(),
@@ -77,7 +82,10 @@ export async function preparePendingConfirmation({ commandType, params, clientId
     targetClientId: scopedClientId, destructive: false,
   });
 
-  return { operationId: opId, description, expiresAt: operation.expiresAt };
+  return {
+    operationId: opId, description, expiresAt: operation.expiresAt,
+    requiresPhysicalConfirm: operation.requiresPhysicalConfirm,
+  };
 }
 
 /**

@@ -93,6 +93,36 @@ describe('approval lane — tamper rejection (S2 seam)', () => {
     expect(result.error).toMatch(/signature invalid|tampering/i);
   });
 
+  it('A23: DOWNGRADING requiresPhysicalConfirm is rejected — the M3 rule is signed', async () => {
+    // The M3 verdict is decided at mint and enforced at /confirm, which means it
+    // travels through the store as data. Data an attacker can reach is data an
+    // attacker can edit, and editing THIS field turns an act that demanded a tap
+    // into one a misheard "yes" can authorize — the exact failure the rule
+    // exists to prevent. So the flag is inside the HMAC payload, and flipping it
+    // must destroy the operation rather than quietly relax it.
+    setPendingOperationStore(tamperingStore((op) => { op.requiresPhysicalConfirm = false; }));
+
+    const pending = await mint(OWNER, { requiresPhysicalConfirm: true });
+    const result = await verifyAndRetrieveOperation(pending.operationId, OWNER);
+
+    expect(result.verified).toBe(false);
+    expect(result.error).toMatch(/signature invalid|tampering/i);
+  });
+
+  it('A24: tampering with the top-level clientId is rejected', async () => {
+    // `clientId` was moved to the top level so the confirmation sheet could read
+    // the binding it renders in the chip, and so the render digest could cover
+    // it. A field the approver READS is a field the signature must bind, or the
+    // read-back proves only that the client and server agree about a lie.
+    setPendingOperationStore(tamperingStore((op) => { op.clientId = 999; }));
+
+    const pending = await mint(OWNER, { clientId: 42 });
+    const result = await verifyAndRetrieveOperation(pending.operationId, OWNER);
+
+    expect(result.verified).toBe(false);
+    expect(result.error).toMatch(/signature invalid|tampering/i);
+  });
+
   it('A17: tampering with createdBy is rejected (ownership cannot be reassigned)', async () => {
     setPendingOperationStore(tamperingStore((op) => { op.createdBy = ATTACKER; }));
 

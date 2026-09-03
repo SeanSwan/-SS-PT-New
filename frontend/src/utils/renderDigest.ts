@@ -28,6 +28,8 @@ export interface DigestSubjectSource {
   description?: string | null;
   affectedCount?: number | null;
   params?: unknown;
+  clientId?: number | null;
+  kind?: string | null;
 }
 
 export function canonicalJson(value: unknown): string {
@@ -52,6 +54,12 @@ export function digestSubject(op: DigestSubjectSource | null | undefined) {
     description: op?.description ?? null,
     affectedCount: op?.affectedCount ?? 0,
     params: op?.params ?? null,
+    // F-12 (GLM 5.3 round 1): the operation can carry its client binding
+    // TOP-LEVEL — this file's own consumer reads `params.clientId ??
+    // operation.clientId` to render the chip — so the one field this program is
+    // about sat outside the proof. Mirrors the backend subject exactly.
+    clientId: op?.clientId ?? null,
+    kind: op?.kind ?? null,
   };
 }
 

@@ -40,7 +40,14 @@ export interface CoachIntentBarProps {
   /** Unsynced intents from the C2 projection — the one live token when collapsed. */
   pendingCount?: number;
   listening?: boolean;
-  onSubmit: (text: string) => void;
+  /**
+   * F-17 (GLM 5.3) / F-20 (flash): a picked row submits its exact `type`.
+   * Submitting the row's DESCRIPTION sent natural language back through the
+   * fuzzy classifier — the operator chose precisely and the lane re-guessed,
+   * where "Cancel next session" can land on a sibling command. Free text still
+   * flows as text; only an explicitly PICKED row carries its type.
+   */
+  onSubmit: (text: string, picked?: { type: string }) => void;
   onVoice?: () => void;
   onPickClient?: () => void;
   placeholder?: string;
@@ -85,11 +92,11 @@ export const CoachIntentBar: React.FC<CoachIntentBarProps> = ({
 
   useEffect(() => { setActiveRow(0); }, [text]);
 
-  const submit = useCallback((value: string) => {
+  const submit = useCallback((value: string, picked?: LaneCommand) => {
     const trimmed = value.trim();
     if (!trimmed) return;
     setText('');
-    onSubmit(trimmed);
+    onSubmit(trimmed, picked ? { type: picked.type } : undefined);
   }, [onSubmit]);
 
   const onKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -101,9 +108,15 @@ export const CoachIntentBar: React.FC<CoachIntentBarProps> = ({
       setActiveRow((i) => Math.max(i - 1, 0));
     } else if (e.key === 'Enter') {
       // IME guard: an in-flight composition must not submit a half-typed phrase.
-      if ((e.nativeEvent as unknown as { isComposing?: boolean }).isComposing) return;
+      // Safari's terminating Enter can arrive with isComposing === false and
+      // keyCode 229 (F-18 / flash F-19), so both signals are checked — a
+      // Japanese or Chinese speaker otherwise sends a fragment of their word to
+      // the command lane.
+      const native = e.nativeEvent as unknown as { isComposing?: boolean; keyCode?: number };
+      if (native.isComposing || native.keyCode === 229) return;
       e.preventDefault();
-      submit(matches[activeRow]?.description ?? text);
+      const picked = matches[activeRow];
+      submit(picked?.description ?? text, picked);
     } else if (e.key === 'Escape') {
       setText('');
     }
@@ -116,17 +129,18 @@ export const CoachIntentBar: React.FC<CoachIntentBarProps> = ({
   return (
     <LaneWrap data-testid="coach-intent-bar">
       {matches.length > 0 && (
-        <Results role="listbox" aria-label="Swan Coach suggestions">
+        <Results id="coach-lane-results" role="listbox" aria-label="Swan Coach suggestions">
           <GroupLabel aria-hidden="true">Suggested</GroupLabel>
           {matches.map((c, i) => (
             <ResultRow
               key={c.type}
+              id={`coach-lane-row-${c.type}`}
               $active={i === activeRow}
               role="option"
               aria-selected={i === activeRow}
               data-testid={`lane-row-${c.type}`}
               onMouseEnter={() => setActiveRow(i)}
-              onClick={() => submit(c.description)}
+              onClick={() => submit(c.description, c)}
             >
               <RowText>
                 <strong>{c.description}</strong>
@@ -152,6 +166,13 @@ export const CoachIntentBar: React.FC<CoachIntentBarProps> = ({
           {chipLabel}
         </ClientChip>
 
+        {/*
+          * F-19 / flash F-18: the results rendered role="listbox" with
+          * aria-selected options, but the INPUT carried none of the combobox
+          * contract — so arrow-key movement changed nothing a screen reader
+          * could observe. The pattern was decorative for exactly the users who
+          * depend on it.
+          */}
         <LaneInput
           ref={inputRef}
           value={text}
@@ -159,6 +180,11 @@ export const CoachIntentBar: React.FC<CoachIntentBarProps> = ({
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           aria-label="Ask or act"
+          role="combobox"
+          aria-expanded={matches.length > 0}
+          aria-controls="coach-lane-results"
+          aria-autocomplete="list"
+          aria-activedescendant={matches.length ? `coach-lane-row-${matches[activeRow]?.type}` : undefined}
           data-testid="lane-input"
         />
 

@@ -56,7 +56,11 @@ describe('CoachIntentBar — the dock', () => {
     const input = screen.getByTestId('lane-input');
     await user.type(input, 'cancel');
     await user.keyboard('{Enter}');
-    expect(onSubmit).toHaveBeenCalledWith('Cancel a session');
+    // F-17 (GLM 5.3) / F-20 (flash): a PICKED row now carries its exact `type`
+    // alongside the text, so the lane never sends an operator's precise choice
+    // back through the fuzzy classifier. Asserting the type is the point of the
+    // finding — asserting only the text would pass with the defect restored.
+    expect(onSubmit).toHaveBeenCalledWith('Cancel a session', { type: 'cancel_session' });
     expect((input as HTMLInputElement).value).toBe('');
   });
 
@@ -65,7 +69,8 @@ describe('CoachIntentBar — the dock', () => {
     const { onSubmit } = setup();
     await user.type(screen.getByTestId('lane-input'), 'bench four sets of ten at one eighty five');
     await user.keyboard('{Enter}');
-    expect(onSubmit).toHaveBeenCalledWith('bench four sets of ten at one eighty five');
+    // Free speech carries NO type — nothing was picked, so nothing is claimed.
+    expect(onSubmit).toHaveBeenCalledWith('bench four sets of ten at one eighty five', undefined);
   });
 
   it('arrow keys move the selection', async () => {
@@ -73,7 +78,7 @@ describe('CoachIntentBar — the dock', () => {
     const { onSubmit } = setup();
     await user.type(screen.getByTestId('lane-input'), 'review');
     await user.keyboard('{ArrowDown}{Enter}');
-    expect(onSubmit).toHaveBeenCalledWith('Review goals');
+    expect(onSubmit).toHaveBeenCalledWith('Review goals', { type: 'view_goals' });
   });
 });
 

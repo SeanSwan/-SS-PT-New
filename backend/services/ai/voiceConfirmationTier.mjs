@@ -36,13 +36,19 @@
  *
  * PURE + DEPENDENCY-FREE so it is directly testable.
  *
- * ⚠ STATUS: DELIBERATELY UNCONSUMED (Rule 27 = dormant), as of 2026-07-25.
- *   Nothing calls this yet, and that is intentional rather than an oversight.
- *   Wiring it into the live dispatcher today would gate commands behind a
- *   spoken confirmation that no surface can yet collect — it would BREAK the
- *   command lane, not protect it. The tier contract has to exist BEFORE the
- *   voice surface so each surface consumes one rule instead of inventing its
- *   own; the consumer is the voice/intent-bar slice.
+ * ✅ STATUS: CONSUMED as of 2026-09-02 (blueprint v2 card 1.2).
+ *   `commandExecutor.stepConfirmation` resolves this for every command via
+ *   `resolveTierForCommand`, and the verdict travels in the
+ *   `confirmation_required` envelope for ConfirmationSheet to render.
+ *   `APPROVAL_TIER_MODE` (observe | enforce) governs how much of the verdict
+ *   GATES; a REFUSAL short-circuits in both modes.
+ *
+ *   The block below used to read "DELIBERATELY UNCONSUMED … nothing calls this
+ *   yet" and stayed that way for a full session after the wiring landed
+ *   (finding F-15, GLM 5.3 round 1). The file that lectures the repo about
+ *   unlabeled dormancy was itself mislabeled — in the direction that matters,
+ *   since anyone trusting the label skips testing a live, authorization-adjacent
+ *   path. A status line is a claim about the present and rots like any other.
  *
  *   Labeled explicitly because this program has already lost weeks to an
  *   unlabeled dormant file: `eval/coachCommandCenterGoldenScenarios.mjs` was
@@ -143,6 +149,15 @@ export function resolveVoiceConfirmationTier(command = {}, params = {}, ctx = {}
     identityCrossing.push('unlocked_target');
   }
 
+  // A name was spoken while a DIFFERENT client is selected, and we could not
+  // place the name (F-05a). The selection will win for dispatch; the operator
+  // must see that their words and their selection disagreed.
+  if (ctx.unplaceableSpokenRef === true) {
+    tier = escalate(tier, TIER_DELIBERATE);
+    reasons.push('unplaceable_spoken_ref');
+    identityCrossing.push('unplaceable_spoken_ref');
+  }
+
   // A command that NEEDS a client but has none resolved must not proceed
   // silently — unattributed is the shape a wrong-client write takes.
   if (command.requiresClientRef === true && targetClientId === null && lockedClientId === null) {
@@ -152,7 +167,15 @@ export function resolveVoiceConfirmationTier(command = {}, params = {}, ctx = {}
 
   // Trainer-only command reached by a client — a client joking "delete the
   // workout" into a propped-up phone is not hypothetical.
-  const roleRequired = Array.isArray(command.roleRequired) ? command.roleRequired : null;
+  // flash F-09: `Array.isArray(x) ? x : null` silently NULLED a string-typed
+  // roleRequired ('trainer'), so the refusal never fired for such a command —
+  // across 19 registries this needed exactly one offender to go quiet. No
+  // registry uses the string shape today (verified 2026-09-03), which is why
+  // this is latent rather than live; normalising costs nothing and removes the
+  // trapdoor. commandRegistryRoleShape.test.mjs pins the array shape too.
+  const roleRequired = Array.isArray(command.roleRequired)
+    ? command.roleRequired
+    : (typeof command.roleRequired === 'string' ? [command.roleRequired] : null);
   if (roleRequired && ctx.actorRole && !roleRequired.includes(ctx.actorRole)) {
     tier = escalate(tier, TIER_REFUSAL);   // FF20: refuse, never negotiate
     reasons.push('role_not_permitted');
@@ -177,8 +200,16 @@ export function resolveVoiceConfirmationTier(command = {}, params = {}, ctx = {}
   // "yes" is produced by the same channel that produced the mistake. Text and UI
   // input keep the ordinary spoken/tap ceremony: over-escalation is its own bug
   // (a confirmation that always fires equals no confirmation).
-  const physical = ctx.inputMode === 'voice' && identityCrossing.length > 0 && tier !== TIER_REFUSAL;
-  if (physical) reasons.push('voice_identity_crossing');
+  // flash F-08 — POLARITY. This read `inputMode === 'voice'`, so ANY surface
+  // that forgot the field (or named it `channel`/`source`) turned an
+  // identity-crossing voice write into a merely-spoken confirmation, and a
+  // client could claim 'text' to shed the requirement on demand — the exact
+  // fail-open inversion commandLaneControls.mjs was rewritten to teach against.
+  // Unknown provenance now counts AS voice for this decision: when we cannot
+  // prove the safer channel, we require the safer channel.
+  const knownSafeChannel = ctx.inputMode === 'text' || ctx.inputMode === 'ui';
+  const physical = !knownSafeChannel && identityCrossing.length > 0 && tier !== TIER_REFUSAL;
+  if (physical) reasons.push(ctx.inputMode === 'voice' ? 'voice_identity_crossing' : 'unproven_channel_identity_crossing');
 
   return {
     tier,

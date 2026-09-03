@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import AiCommandAuditLog from '../../models/AiCommandAuditLog.mjs';
+import { recordCommandAudit } from '../../services/ai/commandAudit.mjs';
 import { classifyIntent } from '../../services/ai/intentClassifier.mjs';
 import { getCommand } from '../../services/ai/commandRegistry/index.mjs';
 import { dispatch, hasDispatcher } from '../../services/ai/commandDispatcher.mjs';
@@ -23,6 +24,30 @@ import { COMMAND_WRITES_PAUSED_MESSAGE } from '../../services/ai/commandLaneCont
 vi.mock('../../models/AiCommandAuditLog.mjs', () => ({
   default: { create: vi.fn() },
 }));
+/**
+ * Observe the audit at `recordCommandAudit`, not at the model.
+ *
+ * WHY THIS MOVED. These assertions used to read `AiCommandAuditLog.create`
+ * calls. Card 1.0 gave the lane a second audit writer (`recordApprovalEvent`),
+ * and with two callers the mocked model stopped being a reliable seam: vitest
+ * resolved the `await import()` inside commandAudit.mjs to the MOCK for one
+ * call and to the REAL Sequelize model for the next — the real one then tried
+ * to reach Postgres, failed SASL auth, and was swallowed by the writer's
+ * deliberate best-effort catch. The row vanished from the test's view while the
+ * pipeline was in fact still asking for it (verified by probing the writer:
+ * one module instance, same import specifier, two different resolutions).
+ *
+ * That mattered beyond a red test: a mock the code can silently escape reports
+ * "no row was written" identically whether the pipeline stopped writing or the
+ * test stopped watching. `recordCommandAudit` is a single statically-imported
+ * binding, so it cannot split that way, and it carries exactly the fields these
+ * assertions care about. Production is unaffected — one module registry, one
+ * real model, both writes land.
+ */
+vi.mock('../../services/ai/commandAudit.mjs', async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, recordCommandAudit: vi.fn(async () => true) };
+});
 vi.mock('../../services/ai/intentClassifier.mjs', () => ({
   classifyIntent: vi.fn(),
 }));
@@ -47,6 +72,7 @@ vi.mock('../../services/ai/clientResolver.mjs', () => ({
 }));
 
 const createMock = vi.mocked(AiCommandAuditLog.create);
+const auditMock = vi.mocked(recordCommandAudit);
 const classifyMock = vi.mocked(classifyIntent);
 const getCommandMock = vi.mocked(getCommand);
 const dispatchMock = vi.mocked(dispatch);
@@ -109,6 +135,7 @@ beforeEach(() => {
   }
   createMock.mockReset();
   createMock.mockResolvedValue({});
+  auditMock.mockClear();
   classifyMock.mockReset();
   getCommandMock.mockReset();
   dispatchMock.mockReset();
@@ -133,7 +160,10 @@ afterEach(() => {
   }
 });
 
-const lastAuditRow = () => createMock.mock.calls.at(-1)?.[0];
+/** The audit entry the pipeline itself submitted, located by outcome. */
+const auditRowWithOutcome = (outcome) =>
+  auditMock.mock.calls.map((c) => c?.[0]).find((r) => r?.outcome === outcome);
+const lastAuditRow = () => auditMock.mock.calls.at(-1)?.[0];
 const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 function primeIntent(commandType, command) {
@@ -185,9 +215,12 @@ describe('write kill switch (pipeline)', () => {
     expect(ctx.result?.type).toBe('confirmation_required');
 
     await flushAsync();
-    const row = lastAuditRow();
+    const row = auditRowWithOutcome('confirmation_required');
     expect(row?.outcome).toBe('confirmation_required');
     expect(row?.confirmationState).toBe('pending');
+    // The approval funnel's other half must ALSO be there — a mint with no
+    // `minted` event is the half-funnel that reads as complete (card 1.0).
+    expect(auditRowWithOutcome('approval:minted')).toBeTruthy();
   });
 });
 

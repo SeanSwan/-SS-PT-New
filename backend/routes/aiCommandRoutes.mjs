@@ -445,7 +445,9 @@ router.get('/pending/:operationId', protect, aiCommandLaneKillSwitch, aiCommandR
     void recordApprovalEvent({
       event: APPROVAL_EVENTS.READ_BACK, userId: req.user.id, userRole: req.user.role,
       commandType: operation.commandType ?? null, operationId: operation.id,
-      destructive: operation.kind !== 'pending_confirmed',
+      // F-09: was `operation.kind !== 'pending_confirmed'` — a heuristic
+      // standing in for a field the record already carries.
+      destructive: Boolean(operation.destructive ?? (operation.kind !== 'pending_confirmed')),
     });
     res.json({ success: true, operation });
   } catch (err) {
@@ -456,7 +458,7 @@ router.get('/pending/:operationId', protect, aiCommandLaneKillSwitch, aiCommandR
 
 router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
   try {
-    const { operationId, renderedDigest } = req.body;
+    const { operationId, renderedDigest, confirmChannel } = req.body;
 
     if (!operationId) {
       return res.status(400).json({
@@ -474,8 +476,11 @@ router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
     // digest that is PRESENT and WRONG is always refused — accepting a known-bad
     // digest would make the check theatre.
     const digestMode = process.env.APPROVAL_RENDER_DIGEST === 'enforce' ? 'enforce' : 'observe';
+    // One read serves both the render proof and the channel split below; two
+    // peeks meant two store round-trips per confirmation for the same record.
+    const { found, operation: peeked } = await peekOperation(operationId, req.user.id);
     if (renderedDigest !== undefined && renderedDigest !== null) {
-      const { found, operation: stored } = await peekOperation(operationId, req.user.id);
+      const stored = peeked;
       // SELF-REVIEW FIX (Opus, 2026-09-02): an operation that EXPIRED between
       // render and confirm was reported as `render_mismatch` — "what you approved
       // does not match" — which sends the operator hunting for a discrepancy that
@@ -512,6 +517,44 @@ router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
         code: 'render_digest_required',
         error: 'This confirmation is missing its render proof. Re-open the operation and confirm again.',
       });
+    }
+
+    /**
+     * M3 CHANNEL SPLIT — enforced (F-03, GLM 5.3 round 1).
+     *
+     * The rule "the mishearing channel cannot authorize an identity-crossing
+     * act" existed as an exported client helper that nothing called, plus a
+     * comment. Both halves are now real: the mint stamped
+     * `requiresPhysicalConfirm` (signed), and this refuses a voice-declared
+     * confirmation of such an operation.
+     *
+     * HONEST SCOPE — read this before describing the guarantee. `confirmChannel`
+     * is the CLIENT'S WORD. A hostile client omits it or says 'tap' and passes.
+     * What this closes is the ACCIDENTAL path, which is the one the incident
+     * actually took: ambient speech, a misheard "yes", a surface that never knew
+     * the rule. Making it unforgeable needs a second factor the audio channel
+     * cannot produce (card 4.2), and until that lands nobody may call this
+     * authentication. It is a seatbelt, not a lock.
+     *
+     * A MISSING channel is treated as unproven, not as safe: an operation that
+     * requires physical confirmation is refused unless the caller positively
+     * declares a non-voice channel. Fail-closed, so a surface that has not been
+     * taught the contract cannot confirm by silence.
+     */
+    if (peeked?.requiresPhysicalConfirm) {
+      const declared = typeof confirmChannel === 'string' ? confirmChannel : null;
+      if (declared !== 'tap' && declared !== 'keyboard') {
+        void recordApprovalEvent({
+          event: APPROVAL_EVENTS.TIER_SPOOF, userId: req.user.id, userRole: req.user.role,
+          operationId, commandType: peeked?.commandType ?? null,
+          errorCode: 'physical_confirm_required',
+        });
+        return res.status(400).json({
+          success: false,
+          code: 'physical_confirm_required',
+          error: 'This action affects a different client than the one you have open. Tap to confirm — saying so is not enough.',
+        });
+      }
     }
 
     const result = await executeConfirmedOperation(operationId, req.user, sequelize);
@@ -556,12 +599,20 @@ router.post('/cancel', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, a
 
     const cancelled = await cancelOperation(operationId, req.user.id, req.user?.role ?? null);
     if (cancelled) {
-      recordCommandAudit({
+      /**
+       * F-11 (GLM 5.3 round 1): this wrote a bare `cancelled` outcome while
+       * every other lifecycle point wrote `approval:*`. The approval funnel
+       * reads by prefix, so cancellations — the denominator that says how often
+       * operators back out — were invisible to it, and the funnel looked
+       * complete while missing an entire exit. The write was also a floating
+       * promise; `void` marks the best-effort contract deliberately rather than
+       * leaving an unhandled rejection to chance.
+       */
+      void recordApprovalEvent({
+        event: APPROVAL_EVENTS.CANCELLED,
         userId: req.user.id,
         userRole: req.user.role,
-        confirmationState: 'cancelled',
         operationId,
-        outcome: 'cancelled',
       });
     }
     res.json({
@@ -657,6 +708,13 @@ router.get('/health', protect, async (req, res) => {
     // the env string they think they set — and needs to know whether approvals
     // are durable, because an in-process store silently voids them on deploy.
     controls: describeLaneControls(),
+    // F-06: a control that defaults to advisory and is invisible in /health is a
+    // rollout plan, not a control. An incident commander must be able to see
+    // whether proof-of-render and the tier are ENFORCING or merely counting.
+    approvalModes: {
+      renderDigest: process.env.APPROVAL_RENDER_DIGEST === 'enforce' ? 'enforce' : 'observe',
+      tier: process.env.APPROVAL_TIER_MODE === 'enforce' ? 'enforce' : 'observe',
+    },
     approvalStore: getPendingOperationStore().kind,
     approvalStoreDurable: Boolean(getPendingOperationStore().durable),
     status: allCommands.length > 0 ? 'operational' : 'no_commands_registered',

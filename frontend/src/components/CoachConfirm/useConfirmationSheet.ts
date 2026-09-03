@@ -8,13 +8,15 @@
  * divergence card 1.1 closed — the server injects a clientId at mint, so what the
  * user asked and what the server will execute are different objects.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import apiService from '../../services/api.service';
 import { renderDigestOf } from '../../utils/renderDigest';
 import {
-  armDelayMs, canConfirm, initialStateAfterRead, nextState,
+  armDelayMs, canConfirm, channelPermitted, initialStateAfterRead, nextState,
+  TERMINAL_GUIDANCE,
   type SheetEvent, type SheetInput, type SheetState,
 } from './confirmationSheetState';
+import { resolveIntentBarState } from '../CoachIntentBar/intentBarState';
 
 export interface StoredOperation {
   id: string;
@@ -27,6 +29,8 @@ export interface StoredOperation {
   affectedCount?: number;
   expiresAt?: string;
   clientId?: number | null;
+  /** Server-declared: this command has no inverse (flash F-21). */
+  irreversible?: boolean;
 }
 
 export interface ConfirmationSheetOptions {
@@ -38,7 +42,8 @@ export interface ConfirmationSheetOptions {
   onCancel?: () => void;
 }
 
-const IRREVERSIBLE_UNTIL_CARD_4_2 = new Set(['notify_client', 'delete_post', 'export_client_list']);
+/** Fallback only — the server's `irreversible` on the stored op is the truth. */
+const IRREVERSIBLE_FALLBACK = new Set(['notify_client', 'delete_post', 'export_client_list']);
 
 export function useConfirmationSheet({
   operationId, input, lockedClientId = null, onDone, onCancel,
@@ -49,9 +54,24 @@ export function useConfirmationSheet({
   const [error, setError] = useState<string | null>(null);
   const armTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /**
+   * F-13 (GLM 5.3) / F-12 (flash): every effect below keyed on the `input`
+   * OBJECT. A parent passing an inline literal — the natural way to call this —
+   * re-created it each render, so the read effect re-fetched on every render and,
+   * far worse, the arming effect's cleanup restarted the timer FROM FULL. A
+   * periodically re-rendering parent could hold the confirm control dead
+   * indefinitely, or flap the operation mid-ceremony. The primitives below are
+   * the actual inputs; the object is just their envelope.
+   */
+  const { tier, isDestructive, affectedCount, physical, irreversible } = input;
+  const stableInput = useMemo<SheetInput>(
+    () => ({ tier, isDestructive, affectedCount, physical, irreversible }),
+    [tier, isDestructive, affectedCount, physical, irreversible],
+  );
+
   const send = useCallback((event: SheetEvent) => {
-    setState((current) => nextState(current, event, input));
-  }, [input]);
+    setState((current) => nextState(current, event, stableInput));
+  }, [stableInput]);
 
   // ── read-back ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -66,7 +86,7 @@ export function useConfirmationSheet({
         // The digest is computed from what we RENDER, so it must be computed
         // from `stored` — never from the request that produced it.
         setDigest(await renderDigestOf(stored));
-        if (!cancelled) send({ type: 'read_ok', input });
+        if (!cancelled) send({ type: 'read_ok', input: stableInput });
       } catch {
         if (!cancelled) {
           setError('This approval is no longer available. Re-issue the request.');
@@ -75,24 +95,42 @@ export function useConfirmationSheet({
       }
     })();
     return () => { cancelled = true; };
-  }, [operationId, input, send]);
+  }, [operationId, stableInput, send]);
 
   // ── arming ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (state !== 'arming') return undefined;
-    const ms = armDelayMs(input);
+    const ms = armDelayMs(stableInput);
     armTimer.current = setTimeout(() => send({ type: 'armed' }), ms);
     return () => { if (armTimer.current) clearTimeout(armTimer.current); };
-  }, [state, input, send]);
+  }, [state, stableInput, send]);
 
   // ── confirm ──────────────────────────────────────────────────────────────
-  const confirm = useCallback(async () => {
+  /**
+   * @param channel how the human actually confirmed. F-03: `allowedConfirmChannels`
+   *   was exported, documented as the M3 split, and called by NOTHING — a guard
+   *   only a comment enforced. Now every confirm declares its channel, the split
+   *   is checked HERE, and the channel travels to the server so the ceremony is
+   *   not purely client-side courtesy.
+   *
+   *   HONEST SCOPE (flash F-06): the channel is the client's word. A hostile
+   *   client can claim 'tap'. This closes the ACCIDENTAL path — ambient audio,
+   *   a misheard yes, a surface that forgot the rule — not a deliberate forgery,
+   *   which needs a second factor the audio channel cannot produce. Do not
+   *   describe it as more than that.
+   */
+  const confirm = useCallback(async (channel: 'tap' | 'keyboard' | 'voice' = 'tap') => {
     if (!canConfirm(state)) return;
+    if (!channelPermitted(stableInput, channel)) {
+      setError('This action needs a tap to confirm — say-so is not enough when it crosses clients.');
+      return;
+    }
     send({ type: 'confirm' });
     try {
       const res = await apiService.post('/api/ai-command/confirm', {
         operationId,
         renderedDigest: digest,
+        confirmChannel: channel,
       });
       const body = res?.data;
       if (body?.success === false) {
@@ -108,24 +146,32 @@ export function useConfirmationSheet({
       setError(message || 'That confirmation could not be completed.');
       send({ type: 'server_refused', code: code || 'downstream_failed' });
     }
-  }, [state, send, operationId, digest, onDone]);
+  }, [state, send, operationId, digest, onDone, stableInput]);
 
   const cancel = useCallback(async () => {
+    // F-14 (GLM 5.3) / F-23 (flash): the state machine refuses `cancel` while
+    // submitting, but the hook cancelled anyway — POSTing /cancel for an
+    // operation mid-consume. The server's atomic delete bounds the damage (one
+    // side wins), yet the client could still land in `burned` guidance for an
+    // operation that executed. Cancel only from states where nothing is in
+    // flight.
+    if (!['loading', 'arming', 'ready'].includes(state)) return;
     try { await apiService.post('/api/ai-command/cancel', { operationId }); } catch { /* best effort */ }
     send({ type: 'cancel' });
     onCancel?.();
-  }, [operationId, send, onCancel]);
+  }, [state, operationId, send, onCancel]);
 
   /**
-   * The chip alarms when the operation acts on someone other than the locked
-   * client, OR when a target is named with nothing locked (the F16g case the
-   * server also escalates). Mirrors intentBarState's rule so the two surfaces
-   * cannot disagree about what "cross-client" means.
+   * flash F-16: this rule was hand-rolled here while ALSO living in the server
+   * tier and in intentBarState — the four-registry drift re-created at the
+   * interaction layer, in a file whose header mocks exactly that. The comment
+   * claimed the surfaces "cannot disagree"; nothing enforced it. Now the one
+   * shared module decides, and the SERVER's verdict wins when it has spoken.
    */
   const targetClientId = (operation?.params?.clientId as number | undefined)
     ?? operation?.clientId ?? null;
-  const chipAlarm = targetClientId !== null
-    && (lockedClientId === null || Number(lockedClientId) !== Number(targetClientId));
+  const barState = resolveIntentBarState({ lockedClientId, targetClientId });
+  const chipAlarm = input.physical || barState.identityCrossing;
 
   return {
     state,
@@ -137,7 +183,18 @@ export function useConfirmationSheet({
     armDelayMs: armDelayMs(input),
     chipAlarm,
     targetClientId,
-    irreversible: input.irreversible
-      || IRREVERSIBLE_UNTIL_CARD_4_2.has(operation?.commandType ?? ''),
+    /**
+     * flash F-21: a client-side string set duplicating a fact the server
+     * registry owns drifts, and the drift shows up as an irreversible action
+     * with NO badge before the confirm. The stored operation is now the source;
+     * the local set remains only as a fallback for operations minted before the
+     * server carried the flag, and is named so it cannot be mistaken for truth.
+     */
+    irreversible: Boolean(
+      operation?.irreversible
+      ?? (input.irreversible || IRREVERSIBLE_FALLBACK.has(operation?.commandType ?? '')),
+    ),
+    /** Terminal guidance — never invites repeating an action that may have run. */
+    guidance: TERMINAL_GUIDANCE[state] ?? null,
   };
 }
