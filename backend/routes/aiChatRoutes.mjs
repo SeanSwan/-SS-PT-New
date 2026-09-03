@@ -61,7 +61,7 @@ import {
   sanitizeAiChatMetadataForClient,
   sanitizeAiFailoverTrace,
 } from '../services/aiChatService.mjs';
-import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
+import { transcribeAudio, isAudioFile, checkAndRecordTranscription, getFileExt } from '../services/voiceTranscriptionService.mjs';
 import { stripIdentityFromMessage, stripIdentityFromResponse } from '../services/aiPrivacyService.mjs';
 import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from '../services/ai/contextEngine/clientAccess.mjs';
 import {
@@ -910,7 +910,10 @@ router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), async (re
 
     logger.info('[AI Chat] Transcription request', {
       userId: req.user?.id,
-      filename: req.file.originalname,
+      // RULE 8: the upload filename is user-supplied and routinely carries client
+      // PII ("sarah-jones-knee-injury.m4a"). Log the extension, not the name —
+      // mimetype and size already cover every diagnostic use this line had.
+      fileExt: getFileExt(req.file.originalname),
       size: req.file.size,
       mimetype: req.file.mimetype,
       remaining,
@@ -983,11 +986,13 @@ router.post('/tts', aiRateLimiter, async (req, res) => {
       voice: voiceName,
     });
 
+    // Key in a HEADER, not the query string — a URL is logged by proxies, CDNs
+    // and error handlers, so `?key=` leaks a live credential into unaudited places.
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify({
           contents: [{
             parts: [{ text: text.slice(0, 5000) }],

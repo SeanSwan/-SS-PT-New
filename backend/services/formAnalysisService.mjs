@@ -90,11 +90,15 @@ x=0 left, x=1 right, y=0 top, y=1 bottom (normalized 0-1).
 Include all 17 COCO keypoints visible with confidence > 0.3.
 If not a fitness photo, set overallScore to null.`;
 
+    // The key travels in a HEADER, never the query string: URLs are logged by
+    // proxies, CDNs, error handlers and APM traces, so `?key=` puts a live
+    // credential into places nobody audits. Matches the pattern already used by
+    // workoutLogParserService, voiceTranscriptionService and aiChatService.
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey },
         body: JSON.stringify({
           contents: [{ parts: [
             { text: prompt },

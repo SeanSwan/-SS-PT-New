@@ -193,11 +193,13 @@ router.post('/generate-badge', protect, adminOnly, async (req, res) => {
 
     // Use Gemini Flash image generation model
     const model = 'gemini-2.0-flash-exp';
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    // Key in a HEADER, not the query string — a URL is logged by proxies, CDNs
+    // and error handlers, so `?key=` leaks a live credential into unaudited places.
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         contents: [{
           parts: [{ text: prompt }],

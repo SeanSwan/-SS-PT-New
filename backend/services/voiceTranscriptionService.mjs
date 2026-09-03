@@ -170,7 +170,11 @@ export async function transcribeAudio(buffer, filename) {
     }
 
     logger.info('[VoiceTranscription] Transcription complete', {
-      filename,
+      // RULE 8: the filename is USER-SUPPLIED and routinely carries client PII —
+      // a trainer uploads "sarah-jones-knee-injury.m4a" and that name plus a
+      // medical hint lands in production logs forever. This function only ever
+      // needed the EXTENSION (getMimeType), so only the extension is logged.
+      fileExt: getFileExt(filename),
       model,
       audioSizeKB: Math.round(buffer.length / 1024),
       transcriptLength: transcript.length,
@@ -228,6 +232,28 @@ export async function extractText(buffer, mimetype) {
  */
 export function isAudioFile(mimetype) {
   return mimetype?.startsWith('audio/') || false;
+}
+
+/**
+ * The only non-PII part of a user-supplied filename. Returns a short, bounded
+ * token safe to log; anything unexpected collapses to 'unknown' rather than
+ * echoing user input back into the log line this exists to keep clean.
+ */
+export function getFileExt(filename) {
+  const name = String(filename ?? '');
+  // The dot is REQUIRED. Without it, `split('.').pop()` returns the whole
+  // filename — so a dotless upload named "sarah" would have logged "sarah",
+  // echoing the exact identifier this function exists to suppress. Caught by
+  // its own smoke test; a plausible-looking regex is not a substitute for
+  // running the PII-shaped input through it.
+  // The dot must be at index > 0, not merely present: a dotfile like ".sarah"
+  // has a leading dot and no basename, so `dot >= 0` alone returned "sarah" —
+  // the same echo-the-identifier bug one layer down. Found on the second
+  // hostile pass, after the first fix was already written and tested.
+  const dot = name.lastIndexOf('.');
+  if (dot < 1) return 'unknown';
+  const ext = name.slice(dot + 1).toLowerCase();
+  return /^[a-z0-9]{1,8}$/.test(ext) ? ext : 'unknown';
 }
 
 function getMimeType(filename) {
