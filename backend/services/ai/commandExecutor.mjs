@@ -564,6 +564,7 @@ async function stepConfirmation(ctx) {
   // For destructive ops, prepare HMAC-signed operation
   if (ctx.command.destructive) {
     const pending = await prepareDestructiveOperation({
+      actorRole: ctx.user?.role ?? null,
       type: ctx.command.method === 'DELETE' ? 'DELETE' : 'UPDATE',
       endpoint: ctx.command.endpoint,
       commandParams: ctx.intent.params,
@@ -987,7 +988,7 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   }
 
   // ── Path 2: Destructive HMAC-signed operation ─────────────────────────────
-  const { verified, operation, error } = await verifyAndRetrieveOperation(operationId, user.id);
+  const { verified, operation, error } = await verifyAndRetrieveOperation(operationId, user.id, user?.role ?? null);
 
   if (!verified) {
     auditConfirm('failed', { errorCode: 'verification_failed', destructive: true });

@@ -452,7 +452,7 @@ router.post('/cancel', protect, async (req, res) => {
       return res.status(400).json({ success: false, error: 'operationId is required' });
     }
 
-    const cancelled = await cancelOperation(operationId, req.user.id);
+    const cancelled = await cancelOperation(operationId, req.user.id, req.user?.role ?? null);
     if (cancelled) {
       recordCommandAudit({
         userId: req.user.id,

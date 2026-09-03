@@ -30,6 +30,7 @@
 import crypto from 'crypto';
 import logger from '../../utils/logger.mjs';
 import { getPendingOperationStore } from './pendingOperationStore.mjs';
+import { recordApprovalEvent, APPROVAL_EVENTS } from './approvalEvents.mjs';
 import {
   assertOperationSigningKey,
   signOperation,
@@ -97,6 +98,7 @@ export async function prepareDestructiveOperation({
   commandParams,
   commandType,      // exec-substrate-v9: command-lane type (e.g. 'cancel_session'); HMAC-signed
   userId,
+  actorRole = null,   // card 1.0: audit rows require a role; null is skipped, not faked
   description,
   affectedRecords = [],
 }) {
@@ -166,6 +168,12 @@ export async function prepareDestructiveOperation({
     userId,
     expiresAt: operation.expiresAt,
   });
+  // Card 1.0: countable lifecycle. Best-effort by inheritance — never awaited
+  // into the user's critical path beyond the audit writer's own contract.
+  void recordApprovalEvent({
+    event: APPROVAL_EVENTS.MINTED, userId, userRole: actorRole,
+    commandType: commandType ?? null, operationId: opId, destructive: true,
+  });
 
   return {
     operationId: opId,
@@ -187,7 +195,7 @@ export async function prepareDestructiveOperation({
  * @param {number} userId - ID of user confirming (must match creator)
  * @returns {Promise<{ verified: boolean, operation: Object|null, error: string|null }>}
  */
-export async function verifyAndRetrieveOperation(operationId, userId) {
+export async function verifyAndRetrieveOperation(operationId, userId, actorRole = null) {
   const operation = await store().get(operationId);
 
   if (!operation || operation.kind === 'pending_confirmed') {
@@ -197,6 +205,10 @@ export async function verifyAndRetrieveOperation(operationId, userId) {
   // Check expiration
   if (new Date(operation.expiresAt).getTime() < Date.now()) {
     await store().delete(operationId);
+    void recordApprovalEvent({
+      event: APPROVAL_EVENTS.EXPIRED, userId, userRole: actorRole,
+      commandType: operation.commandType, operationId, destructive: true,
+    });
     return { verified: false, operation: null, error: 'Operation expired (120s). Please re-issue the command.' };
   }
 
@@ -230,9 +242,17 @@ export async function verifyAndRetrieveOperation(operationId, userId) {
   // Two racing confirms both pass the checks above; exactly one delete returns true.
   const consumed = await store().delete(operationId);
   if (!consumed) {
+    void recordApprovalEvent({
+      event: APPROVAL_EVENTS.ALREADY_CONFIRMED, userId, userRole: actorRole,
+      commandType: operation.commandType, operationId, destructive: true,
+    });
     return { verified: false, operation: null, error: 'Operation was already confirmed. It only executes once.' };
   }
 
+  void recordApprovalEvent({
+    event: APPROVAL_EVENTS.CONSUMED, userId, userRole: actorRole,
+    commandType: operation.commandType, operationId, destructive: true,
+  });
   return { verified: true, operation, error: null };
 }
 
@@ -243,13 +263,19 @@ export async function verifyAndRetrieveOperation(operationId, userId) {
  * @param {number} userId
  * @returns {Promise<boolean>}
  */
-export async function cancelOperation(operationId, userId) {
+export async function cancelOperation(operationId, userId, actorRole = null) {
   const operation = await store().get(operationId);
   if (!operation) return false;
   if (operation.createdBy !== userId) return false;
 
   const removed = await store().delete(operationId);
-  if (removed) logger.info('[DestructiveOps] Operation cancelled', { opId: operationId, userId });
+  if (removed) {
+    logger.info('[DestructiveOps] Operation cancelled', { opId: operationId, userId });
+    void recordApprovalEvent({
+      event: APPROVAL_EVENTS.CANCELLED, userId, userRole: actorRole,
+      commandType: operation.commandType, operationId,
+    });
+  }
   return removed;
 }
 
