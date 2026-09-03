@@ -1,58 +1,22 @@
 /**
  * ============================================================================
  * FILE: supportIssueConstants.mjs
- * PURPOSE: Canonical Report Room workflow vocabulary shared by validation,
- *          models, services, and UI contracts.
- * AUTHOR: Codex GPT-5 | LAST MODIFIED: 2026-07-16
+ * PURPOSE: Re-export shim. The Report Room vocabulary now lives in
+ *          @swan/schemas, beside the validation schema that consumes it, so the
+ *          backend and the frontend form share ONE definition (SWA-225 EX-5).
+ *
+ * This file stays so its existing importers — SupportIssue.mjs,
+ * SupportIssueEvent.mjs, supportIssueRoutes.mjs, adminSupportIssueRoutes.mjs —
+ * keep working unchanged. New code should import from '@swan/schemas' directly.
+ *
+ * ORIGINAL AUTHOR: Codex GPT-5 | MOVED TO SHARED PACKAGE: 2026-09-03
  * ============================================================================
  */
-export const SUPPORT_ISSUE_CATEGORIES = Object.freeze([
-  "bug",
-  "error",
-  "access",
-  "billing",
-  "workout",
-  "account",
-  "performance",
-  "usability",
-  "content",
-  "other",
-]);
-
-export const SUPPORT_ISSUE_SEVERITIES = Object.freeze([
-  "critical",
-  "high",
-  "medium",
-  "low",
-]);
-
-export const SUPPORT_ISSUE_STATUSES = Object.freeze([
-  "new",
-  "triaged",
-  "in_progress",
-  "waiting_on_reporter",
-  "resolved",
-  "closed",
-  "duplicate",
-]);
-
-export const SUPPORT_ISSUE_SOURCES = Object.freeze([
-  "text",
-  "voice",
-  "swan_coach",
-  "error_boundary",
-]);
-
-export const SUPPORT_EVENT_TYPES = Object.freeze([
-  "created",
-  "reporter_reply",
-  "owner_reply",
-  "internal_note",
-  "triage_updated",
-  "resolved",
-  "closed",
-  "reopened",
-  "marked_duplicate",
-]);
-
-export const SUPPORT_EVENT_VISIBILITIES = Object.freeze(["reporter", "owner"]);
+export {
+  SUPPORT_ISSUE_CATEGORIES,
+  SUPPORT_ISSUE_SEVERITIES,
+  SUPPORT_ISSUE_STATUSES,
+  SUPPORT_ISSUE_SOURCES,
+  SUPPORT_EVENT_TYPES,
+  SUPPORT_EVENT_VISIBILITIES,
+} from '@swan/schemas';
