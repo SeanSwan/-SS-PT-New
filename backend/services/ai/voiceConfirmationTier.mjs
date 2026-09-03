@@ -55,9 +55,20 @@
 export const TIER_FIRE_AND_FORGET = 'fire_and_forget';
 export const TIER_READ_BACK = 'read_back';
 export const TIER_DELIBERATE = 'deliberate';
+/**
+ * REFUSAL outranks deliberate — card 1.2 / finding FF20 (GLM 5.3-flash).
+ *
+ * `role_not_permitted` used to escalate to DELIBERATE, i.e. "requires an explicit
+ * spoken yes". That is a category error: an authorization failure became a
+ * NEGOTIATION. A client who says "delete the workout" must not be walked into a
+ * confirmation flow for a command they may never run — rendering "say yes to
+ * cancel the session" at them teaches every actor that gates are persuadable.
+ * Confirmation is not authorization.
+ */
+export const TIER_REFUSAL = 'refusal';
 
 /** Ordered weakest → strictest. Index is the escalation rank. */
-export const TIER_ORDER = [TIER_FIRE_AND_FORGET, TIER_READ_BACK, TIER_DELIBERATE];
+export const TIER_ORDER = [TIER_FIRE_AND_FORGET, TIER_READ_BACK, TIER_DELIBERATE, TIER_REFUSAL];
 
 /** Return the stricter of two tiers. Never de-escalates. */
 export function escalate(a, b) {
@@ -111,12 +122,25 @@ export function resolveVoiceConfirmationTier(command = {}, params = {}, ctx = {}
   // catastrophic case — a misheard pronoun writing to the wrong record — so it
   // is never silent, regardless of how harmless the command looks.
   const { lockedClientId = null, targetClientId = null } = ctx;
+  const identityCrossing = [];
   if (
     lockedClientId !== null && targetClientId !== null
     && Number(lockedClientId) !== Number(targetClientId)
   ) {
     tier = escalate(tier, TIER_DELIBERATE);
     reasons.push('cross_client');
+    identityCrossing.push('cross_client');
+  }
+
+  // THE BETWEEN-CASE — card 1.2 / finding F16g (GLM 5.3). `cross_client` needs
+  // BOTH ids; `unresolved_client` needs BOTH null. An utterance that NAMES a
+  // client while nothing is locked ("cancel Jordan's session" with no selection)
+  // satisfies neither and escalated to nothing — yet it is exactly the
+  // misheard-name case, arriving without a lock to compare against.
+  if (targetClientId !== null && lockedClientId === null) {
+    tier = escalate(tier, TIER_DELIBERATE);
+    reasons.push('unlocked_target');
+    identityCrossing.push('unlocked_target');
   }
 
   // A command that NEEDS a client but has none resolved must not proceed
@@ -130,7 +154,7 @@ export function resolveVoiceConfirmationTier(command = {}, params = {}, ctx = {}
   // workout" into a propped-up phone is not hypothetical.
   const roleRequired = Array.isArray(command.roleRequired) ? command.roleRequired : null;
   if (roleRequired && ctx.actorRole && !roleRequired.includes(ctx.actorRole)) {
-    tier = escalate(tier, TIER_DELIBERATE);
+    tier = escalate(tier, TIER_REFUSAL);   // FF20: refuse, never negotiate
     reasons.push('role_not_permitted');
   }
 
@@ -147,10 +171,21 @@ export function resolveVoiceConfirmationTier(command = {}, params = {}, ctx = {}
     reasons.push('clinical_slots');
   }
 
+  // CHANNEL-SPLIT (mechanism M3): the ears that misheard the command must not be
+  // the ears that authorize it. An identity-crossing WRITE arriving by voice
+  // demands a PHYSICAL confirm — a tap, or a typed digit — because a spoken
+  // "yes" is produced by the same channel that produced the mistake. Text and UI
+  // input keep the ordinary spoken/tap ceremony: over-escalation is its own bug
+  // (a confirmation that always fires equals no confirmation).
+  const physical = ctx.inputMode === 'voice' && identityCrossing.length > 0 && tier !== TIER_REFUSAL;
+  if (physical) reasons.push('voice_identity_crossing');
+
   return {
     tier,
     reasons,
-    requiresSpokenYes: tier === TIER_DELIBERATE,
+    // A refusal is not a confirmation: it collects nothing, spoken or otherwise.
+    requiresSpokenYes: tier === TIER_DELIBERATE && !physical,
+    physical,
     readBackSlots,
   };
 }

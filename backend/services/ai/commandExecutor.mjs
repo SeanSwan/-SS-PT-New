@@ -36,6 +36,11 @@ import { dispatch, hasDispatcher } from './commandDispatcher.mjs';
 import { getManualOnlyCommand } from './commandManualOnlyPolicy.mjs';
 import { areCommandWritesEnabled, COMMAND_WRITES_PAUSED_MESSAGE } from './commandLaneControls.mjs';
 import { recordCommandAudit } from './commandAudit.mjs';
+import { resolveCommandClientPair } from './dispatchers/clientScope.mjs';
+import { resolveVoiceConfirmationTier, TIER_REFUSAL } from './voiceConfirmationTier.mjs';
+
+/** observe (default) computes + records; enforce also gates. */
+const tierMode = () => (process.env.APPROVAL_TIER_MODE === 'enforce' ? 'enforce' : 'observe');
 
 const COMMAND_PIPELINE_FAILED_MESSAGE = 'Swan Coach command lane failed. No data was changed.';
 const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confirmed operation. No data was changed.';
@@ -536,11 +541,65 @@ async function stepDebateRouting(ctx) {
   return ctx;
 }
 /** Step 8: Handle destructive operations (prepare confirmation) */
+/**
+ * Card 1.2 — the confirmation tier is resolved HERE, server-side, from the
+ * PRE-COLLAPSE client pair. Two properties this placement buys:
+ *
+ *   1. It cannot be spoofed. A `tier` in the request body is ignored (and
+ *      audited) — a client that could name its own tier could name
+ *      fire_and_forget for a destructive cross-client write.
+ *   2. `cross_client` is reachable. resolveCommandClientId collapses the
+ *      selected and the classifier-extracted client into one value; a tier
+ *      computed from post-collapse values compares a number with itself and the
+ *      alarm can never fire (FF19). resolveCommandClientPair keeps both.
+ *
+ * MODE: `observe` (default) computes and RECORDS the tier without changing what
+ * gates — so the distribution can be read against real traffic before anything
+ * is gated on it. `enforce` additionally short-circuits a REFUSAL tier. The
+ * response carries the tier in both modes so the sheet (card 1.3) can render it.
+ */
+function resolveTierForCommand(ctx) {
+  const pair = resolveCommandClientPair(ctx.intent?.params || {}, ctx);
+  const verdict = resolveVoiceConfirmationTier(ctx.command, ctx.intent?.params || {}, {
+    actorRole: ctx.user?.role ?? null,
+    lockedClientId: pair.locked,
+    targetClientId: pair.target,
+    inputMode: ctx.routeContext?.inputMode ?? 'text',
+  });
+  return { verdict, pair };
+}
+
 async function stepConfirmation(ctx) {
   ctx.stage = 'confirmation';
   if (!ctx.command) return ctx;
-  if (!ctx.command.destructive && !ctx.command.requiresConfirmation) return ctx;
 
+  // Tier resolution runs for EVERY command, not only confirmable ones: a refusal
+  // (role_not_permitted) must be reachable on a command that would otherwise
+  // have executed silently.
+  const { verdict } = resolveTierForCommand(ctx);
+  ctx.confirmationTier = verdict;
+
+  if (verdict.tier === TIER_REFUSAL) {
+    // FF20: an authorization failure is a REFUSAL, never a confirmation prompt.
+    // Confirmation is not authorization — rendering "say yes" at an actor who
+    // may never run the command teaches that gates are persuadable.
+    logger.info('[CommandExecutor] tier refusal', {
+      command: ctx.command.type, reasons: verdict.reasons, mode: tierMode(),
+    });
+    if (tierMode() === 'enforce') {
+      ctx.result = {
+        type: 'refused',
+        command: ctx.command.type,
+        code: 'role_not_permitted',
+        reasons: verdict.reasons,
+        message: `"${ctx.command.description}" is not available for your role. No data was changed.`,
+      };
+      ctx.skipRemainingSteps = true;
+      return ctx;
+    }
+  }
+
+  if (!ctx.command.destructive && !ctx.command.requiresConfirmation) return ctx;
   // Never mint confirmation operations for commands that cannot actually run.
   // Frontend-dispatch commands are the exception: /confirm returns a typed
   // browser event, and the browser performs the explicit UI action.

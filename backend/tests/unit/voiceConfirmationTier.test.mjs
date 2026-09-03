@@ -13,7 +13,7 @@ import {
   TIER_READ_BACK,
   escalate,
   resolveVoiceConfirmationTier as resolveTier,
-} from '../../services/ai/voiceConfirmationTier.mjs';
+  TIER_REFUSAL,} from '../../services/ai/voiceConfirmationTier.mjs';
 
 const cmd = (over = {}) => ({
   destructive: false,
@@ -84,11 +84,63 @@ describe('deliberate', () => {
     expect(r.reasons).toContain('unresolved_client');
   });
 
-  it('escalates a trainer-only command reached by a client', () => {
+  it('REFUSES a trainer-only command reached by a client — it does not negotiate', () => {
     // A client joking "delete the workout" into a propped-up phone.
+    //
+    // CONTRACT CHANGE (card 1.2, finding FF20 — GLM 5.3-flash, 2026-09-01). This
+    // case previously asserted TIER_DELIBERATE, i.e. "requires an explicit spoken
+    // yes". That is a category error: an authorization failure became a
+    // negotiation, and the confirmation UI would have rendered "say yes to cancel
+    // the session" at an actor who may never run it — teaching every actor that
+    // gates are persuadable. Confirmation is not authorization.
     const r = resolveTier(cmd({ roleRequired: ['admin', 'trainer'] }), {}, { actorRole: 'client', lockedClientId: 42, targetClientId: 42 });
-    expect(r.tier).toBe(TIER_DELIBERATE);
+    expect(r.tier).toBe(TIER_REFUSAL);
     expect(r.reasons).toContain('role_not_permitted');
+    // A refusal collects nothing — no spoken yes, no physical tap.
+    expect(r.requiresSpokenYes).toBe(false);
+    expect(r.physical).toBe(false);
+  });
+
+  it('a refusal outranks every other escalation — a destructive command a client may not run is REFUSED, not confirmed', () => {
+    const r = resolveTier(
+      cmd({ destructive: true, requiresConfirmation: true, roleRequired: ['admin'] }),
+      { weight: 185 },
+      { actorRole: 'client', lockedClientId: 42, targetClientId: 99, inputMode: 'voice' },
+    );
+    expect(r.tier).toBe(TIER_REFUSAL);
+    expect(r.requiresSpokenYes).toBe(false);
+  });
+});
+
+describe('the named-but-unlocked hole (F16g) and channel split (M3)', () => {
+  it('a target named while NOTHING is locked escalates to deliberate', () => {
+    // Neither cross_client (needs both ids) nor unresolved_client (needs both
+    // null) fired for this shape before card 1.2 — yet it is precisely the
+    // misheard-name case, arriving without a lock to compare against.
+    const r = resolveTier(cmd({}), { clientId: 47 }, { lockedClientId: null, targetClientId: 47 });
+    expect(r.tier).toBe(TIER_DELIBERATE);
+    expect(r.reasons).toContain('unlocked_target');
+  });
+
+  it('an identity-crossing write BY VOICE demands a physical confirm', () => {
+    const r = resolveTier(cmd({}), {}, { lockedClientId: 42, targetClientId: 47, inputMode: 'voice' });
+    expect(r.tier).toBe(TIER_DELIBERATE);
+    expect(r.physical).toBe(true);
+    expect(r.requiresSpokenYes).toBe(false);   // the mishearing channel cannot authorize
+    expect(r.reasons).toContain('voice_identity_crossing');
+  });
+
+  it('the SAME command by text keeps the ordinary ceremony — over-escalation is its own bug', () => {
+    const r = resolveTier(cmd({}), {}, { lockedClientId: 42, targetClientId: 47, inputMode: 'text' });
+    expect(r.tier).toBe(TIER_DELIBERATE);
+    expect(r.physical).toBe(false);
+    expect(r.requiresSpokenYes).toBe(true);
+  });
+
+  it('voice on a NON-crossing command does not demand a physical confirm', () => {
+    const r = resolveTier(cmd({ destructive: true }), {}, { lockedClientId: 42, targetClientId: 42, inputMode: 'voice' });
+    expect(r.physical).toBe(false);
+    expect(r.requiresSpokenYes).toBe(true);
   });
 });
 

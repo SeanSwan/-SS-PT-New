@@ -88,7 +88,12 @@ export const normalizePreviousContext = (value) => {
     : trimmed;
 };
 
-const ROUTE_CONTEXT_KEYS = ['source', 'intent', 'surface'];
+// `inputMode` (card 1.2) tells the tier resolver WHICH CHANNEL produced the
+// utterance, so an identity-crossing write by voice can demand a physical
+// confirm (M3). It is a hint about provenance, never about authority: the tier
+// itself is computed server-side, and a `tier` field in the body is ignored and
+// audited (see stepConfirmation).
+const ROUTE_CONTEXT_KEYS = ['source', 'intent', 'surface', 'inputMode'];
 const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
 const ISO_DATE_PREFIX_PATTERN = /^\d{4}-\d{2}-\d{2}/;
 
@@ -212,6 +217,14 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
       return res.status(503).json(IDENTITY_REDACTION_UNAVAILABLE_RESPONSE);
     }
 
+    // Card 1.2: a `tier` in the request body is IGNORED — the server resolves it
+    // from the pre-collapse client pair. Recorded because naming your own tier is
+    // the shape of an attack on the ceremony, not a client bug.
+    if (req.body?.tier !== undefined || routeContext?.tier !== undefined) {
+      void recordApprovalEvent({
+        event: APPROVAL_EVENTS.TIER_SPOOF, userId: req.user.id, userRole: req.user.role,
+      });
+    }
     const normalizedRouteContext = normalizeRouteContext(routeContext);
     const contextEnvelope = await buildCommandContextEnvelope({
       actor: user,
@@ -369,6 +382,13 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
         client: ctx.resolvedClient,
         details: ctx.result.details || null,
         isDestructive: ctx.result.isDestructive ?? ctx.command?.destructive ?? false,
+        // Card 1.2: the SERVER's tier verdict travels with the envelope so the
+        // sheet renders the ceremony the server actually resolved — a client
+        // that computed its own could soften a deliberate write into a silent one.
+        tier: ctx.confirmationTier?.tier ?? null,
+        tierReasons: ctx.confirmationTier?.reasons ?? [],
+        physical: ctx.confirmationTier?.physical ?? false,
+        readBackSlots: ctx.confirmationTier?.readBackSlots ?? [],
         timing: ctx.metadata.timing,
       });
     }
