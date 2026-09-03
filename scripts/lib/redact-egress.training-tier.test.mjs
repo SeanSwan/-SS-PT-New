@@ -68,7 +68,14 @@ test('a path outside the allowlist cannot arm, even with the allowlist set', () 
 
 test('traversal cannot launder a blocked path through an allowed prefix', () => {
   withAllowlist('docs/pub', () => {
-    assert.throws(() => armTrainingTierEgress(['docs/pub/../../backend/models/User.mjs']), /contains "\.\."/);
+    // ASSERTION UPDATED 2026-09-03 (MUSE-5): still refused, but the gate now resolves
+    // the path before matching, so it reports the RESOLVED target rather than
+    // complaining about the "..". Asserting the resolved name is the stronger
+    // property — it proves canonicalisation actually ran, which the old message did not.
+    assert.throws(
+      () => armTrainingTierEgress(['docs/pub/../../backend/models/User.mjs']),
+      /REFUSED.*backend\/models\/User\.mjs/s,
+    );
   });
 });
 
@@ -105,10 +112,13 @@ test('an expired arming does not authorise a later call', () => {
   });
 });
 
-test('a malformed body or url is not turned into a crash', () => {
+test('a malformed body is not turned into a crash when nothing is suspicious', () => {
   assert.doesNotThrow(() => assertTrainingTierArmed(OR, 'not json'));
   assert.doesNotThrow(() => assertTrainingTierArmed(OR, JSON.stringify({ messages: [] })));
-  assert.doesNotThrow(() => assertTrainingTierArmed('not a url', CONTRIB));
+  // ASSERTION REMOVED 2026-09-03 (MUSE-4b): this test used to also assert
+  // `assertTrainingTierArmed('not a url', CONTRIB)` does NOT throw. That assertion
+  // encoded the fail-open bug — an unparseable URL skipped the entire check on a
+  // training-tier body. The correct behaviour is now asserted in MUSE-4b.
 });
 
 test('the transport itself refuses an unarmed contributor call — not just the helper', async () => {
@@ -128,6 +138,78 @@ test('the transport lets an armed, cleared contributor call through', async () =
     const spy = async () => { reached = true; return new Response('{}'); };
     await fetchForEgress(OR, { method: 'POST', body: CONTRIB }, { quiet: true, fetchImpl: spy });
     assert.equal(reached, true, 'a properly armed call must not be blocked');
+  });
+});
+
+/* ---------------------------------------------------------------------------
+ * Defects found 2026-09-03 by Muse Spark 1.3 reviewing this gate (SWA-236).
+ * Each was real and reachable in the shipped code. Kept as named regressions so
+ * a future edit cannot quietly reopen them.
+ * ------------------------------------------------------------------------- */
+
+test('MUSE-3a: a VARIANT suffix cannot smuggle the training tier past the check', () => {
+  // OpenRouter appends ":free" / ":online" / ":extended" after a model id, and the
+  // request still routes to the same contributor weights.
+  assert.equal(isTrainingTierModel('meta/muse-spark-1.3-contributor:free'), true);
+  assert.equal(isTrainingTierModel('META/MUSE-SPARK-1.3-CONTRIBUTOR:NITRO'), true);
+  assert.throws(
+    () => assertTrainingTierArmed(OR, JSON.stringify({ model: 'meta/muse-spark-1.3-contributor:free' })),
+    /REFUSED/,
+  );
+  // The variant strip must not turn an unrelated model into a false positive.
+  assert.equal(isTrainingTierModel('meta/muse-spark-1.3:free'), false);
+});
+
+test('MUSE-3b: the training tier hidden in the `models` FALLBACK array is caught', () => {
+  // A safe primary with the training tier in the fallback list is a request that
+  // may well be served by the training tier.
+  const body = JSON.stringify({
+    model: 'meta/muse-spark-1.3',
+    models: ['meta/muse-spark-1.3-contributor'],
+  });
+  assert.throws(() => assertTrainingTierArmed(OR, body), /REFUSED/);
+  // A fallback list with no training tier in it stays allowed.
+  assert.doesNotThrow(() => assertTrainingTierArmed(
+    OR,
+    JSON.stringify({ model: 'meta/muse-spark-1.3', models: ['moonshotai/kimi-k3'] }),
+  ));
+});
+
+test('MUSE-4: an UNPARSEABLE body fails CLOSED when it smells of the training tier', () => {
+  // The old `catch { return }` allowed anything it could not parse — the single
+  // fail-open branch in a gate whose whole premise is that this tier has no undo.
+  assert.throws(
+    () => assertTrainingTierArmed(OR, 'not-json but model=meta/muse-spark-1.3-contributor here'),
+    /REFUSED/,
+  );
+  // An unparseable body with no such marker is still allowed: the gate guards one
+  // specific tier, it is not a general-purpose egress veto.
+  assert.doesNotThrow(() => assertTrainingTierArmed(OR, 'not-json and nothing suspicious'));
+});
+
+test('MUSE-4b: an unparseable URL is no longer a reason to allow', () => {
+  // The host only ever appeared in the error text, yet a URL that failed to parse
+  // used to skip the entire check.
+  assert.throws(() => assertTrainingTierArmed('api/v1/chat/completions', CONTRIB), /REFUSED/);
+  assert.throws(() => assertTrainingTierArmed(undefined, CONTRIB), /REFUSED/);
+});
+
+test('MUSE-5: the GATE canonicalises paths itself, not the caller', () => {
+  withAllowlist('docs/pub', () => {
+    // An absolute path pointing outside the repo must be rejected by the gate even
+    // though the caller passed no repo-relative string at all.
+    assert.throws(
+      () => armTrainingTierEgress([process.platform === 'win32' ? 'C:/Windows/System32/drivers/etc/hosts' : '/etc/hosts']),
+      /outside the repo|not cleared|contains "\.\."/,
+    );
+  });
+});
+
+test('MUSE-5b: an explicit root makes the gate\'s own resolution observable', () => {
+  withAllowlist('pub', () => {
+    // Resolution happens against `root`, so the same string clears here and not there.
+    assert.doesNotThrow(() => armTrainingTierEgress(['pub/notes.md'], { root: process.cwd() }));
+    assert.throws(() => armTrainingTierEgress(['elsewhere/notes.md'], { root: process.cwd() }), /not cleared/);
   });
 });
 

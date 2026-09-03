@@ -23,8 +23,8 @@
  * spend-guard hook (.claude/skills/spend-guard) still governs. Full rationale,
  * proof log and the local lane: docs/ai-workflow/AI-HANDOFF/MUSE-SEAT-2026-09-02.md
  */
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { redactForEgress, fetchForEgress, armTrainingTierEgress } from './lib/redact-egress.mjs';
 
 const ROOT = process.cwd();
@@ -116,19 +116,6 @@ function assertSafeInputPath(path, label) {
   if (!existsSync(path)) throw new Error(`${label} not found: ${path}`);
 }
 
-/**
- * Repo-relative, forward-slashed — the shape the allowlist is written in.
- * realpathSync first: a symlink or Windows junction inside an allowlisted
- * directory would otherwise satisfy the prefix check while the bytes actually
- * read come from a blocked target. This repo lost a 29MB corpus to a junction
- * assumed inert (2026-08-31), so the allowlist sees the REAL path, never an alias.
- */
-function repoRelative(path) {
-  const abs = resolve(ROOT, path);
-  let real = abs;
-  try { real = realpathSync(abs); } catch { /* missing paths are rejected upstream */ }
-  return relative(ROOT, real).replace(/\\/g, '/');
-}
 
 function sanitizeOutboundText(value) {
   return redactForEgress(String(value ?? '')).text;
@@ -219,9 +206,11 @@ async function main() {
 
   // Arm BEFORE the key is loaded so a refusal costs nothing. Every path whose
   // bytes are in the prompt must be named, or the socket gate refuses the call.
+  // Paths go over RAW: the gate canonicalises them itself (realpath, off-root and
+  // traversal rejection) so the invariant does not depend on this caller getting
+  // it right — which is the whole point of the control living in the gate.
   if (tier.trainsOnYourData) {
-    const sources = [options.document, options.seed].filter(Boolean).map(repoRelative);
-    armTrainingTierEgress(sources);
+    armTrainingTierEgress([options.document, options.seed].filter(Boolean));
   }
 
   const apiKey = loadOpenRouterKey();
