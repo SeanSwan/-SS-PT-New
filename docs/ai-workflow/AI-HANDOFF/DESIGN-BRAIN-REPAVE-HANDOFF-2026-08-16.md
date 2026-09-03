@@ -199,7 +199,7 @@ The three unfixed rot classes in §5, plus the "is this happening elsewhere" que
 ## 9. HOW TO WORK IN THIS TREE
 
 - **Work in `C:/tmp/swan-repave`** (worktree on `claude/design-brain-repave-20260816`, cut from `origin/main`).
-- **Do NOT work in the main tree** (`c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT`). It is on `wip/comms-notifications-2026-07-05`, **~1,948 commits behind origin/main, and missing 9 design-brain files.** Editing the brain there forks the design system a second time. Its pre-commit hook is also from May and missing three guards that exist on main.
+- **Do NOT work in the main tree** (`<REPO>`). It is on `wip/comms-notifications-2026-07-05`, **~1,948 commits behind origin/main, and missing 9 design-brain files.** Editing the brain there forks the design system a second time. Its pre-commit hook is also from May and missing three guards that exist on main.
 - The pre-commit hook **refuses to certify** when brain files differ between working tree and index. Stage before committing; that is deliberate.
 - Commit per slice, push at batch end (Rule 70). Nothing here is deploy-linked — Render deploys from `main`, and this branch is not merged.
 - Emit a Hermes memo at substantial closes (`.ai-workflow/hermes-inbox/pending/`) with a literal `## Mistakes I made` heading — a Stop hook blocks without it. Secret-scan it.

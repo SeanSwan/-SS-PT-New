@@ -161,7 +161,7 @@ If Sean's review classifies a line as private-context, that line moves into the 
 
 | File / directory | Tracked? | IP | Context |
 |---|---|---|---|
-| `AI-Village-Documentation/hermes-village-prompts/latest/{security-threat-modeling,operational-reliability-deployment,fix-instructions,debate-log,agent-safety-prompt-injection-resistance,14-code-quality-debate}.md` | UNTRACKED (0 tracked in dir) | `192.168.50.83` | 5090 Windows machine LAN IP, `BigotSmasher@192.168.50.83` SSH user@host |
+| `AI-Village-Documentation/hermes-village-prompts/latest/{security-threat-modeling,operational-reliability-deployment,fix-instructions,debate-log,agent-safety-prompt-injection-resistance,14-code-quality-debate}.md` | UNTRACKED (0 tracked in dir) | `192.168.50.83` | 5090 Windows machine LAN IP, `<OPERATOR>@192.168.50.83` SSH user@host |
 | `AI-Village-Documentation/hermes-village-prompts/archive/2026-04-18T07-11-40/` | UNTRACKED (0 tracked in dir) | `192.168.50.83` | Earlier Village archive with same content |
 | `AI-Village-Documentation/validation-prompts/archive/2026-04-19T17-06-41/{full-report,09-document-quality,01-technical-accuracy}.md` | UNTRACKED (0 tracked in dir) | `192.168.50.232` and `192.168.50.83` | Hermes remote-coding-bridge plan review surfacing both Pi + Windows IPs (audit acknowledged the leak; the audit doc itself contains the leak) |
 | `AI-Village-Documentation/validation-prompts/archive/2026-04-22T21-46-49/full-report.md` | UNTRACKED | `192.168.x.x` (placeholder syntax) | Same low-risk pattern as the tracked entry, but this copy isn't tracked. |

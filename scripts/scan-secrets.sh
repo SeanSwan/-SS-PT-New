@@ -54,6 +54,38 @@ PATTERNS=(
   "ssh-private-key|-----BEGIN OPENSSH PRIVATE KEY-----"
 )
 
+# --- Operator identity (Rule 8) --------------------------------------------------------
+# The patterns above catch secret VALUES. They do not catch WHO AND WHERE, and that is the
+# class that actually leaked: on 2026-08-22 a review packet reached six external vendors
+# carrying the operator's Windows username inside filesystem paths, after a secret scan had
+# run and reported no matches — correctly, because it had no rule for this class at all.
+# Cleaning the affected documents buys nothing without a gate; the count was still growing
+# while it was being measured.
+#
+# The username is NEVER written into this file — hardcoding it here would make this file the
+# leak. It is derived from $USERPROFILE/$HOME at scan time. If it cannot be derived, or is a
+# common word that would fire on ordinary prose, the identity rule is SKIPPED: a scanner that
+# blocks every commit gets disabled, which is worse than one that misses this class.
+#
+# To clear a hit, rewrite the path rather than allowlisting it: <REPO>/… , <HOME>/… , <OPERATOR>.
+_OPERATOR_HOME="${USERPROFILE:-$HOME}"
+_OPERATOR_NAME="$(basename "${_OPERATOR_HOME:-}" 2>/dev/null || true)"
+case "$(printf '%s' "${_OPERATOR_NAME:-}" | tr '[:upper:]' '[:lower:]')" in
+  ''|admin|administrator|user|users|root|dev|developer|test|guest|owner|default|public|home|desktop|server|local|localhost|ubuntu|runner|node|docker|system|pi|me|main|app|build) _OPERATOR_NAME="" ;;
+esac
+if [[ -n "$_OPERATOR_NAME" && ${#_OPERATOR_NAME} -ge 3 ]]; then
+  _OPERATOR_ESC="$(printf '%s' "$_OPERATOR_NAME" | sed 's/[][\.^$*+?(){}|\\/]/\\&/g')"
+  # Separator class is [^A-Za-z0-9], not [\/]: it covers backslash, forward slash AND the
+  # hyphen form used by Claude scratchpad keys (c--Users-<name>-Desktop-…), which a
+  # slash-only class silently misses.
+  PATTERNS+=("operator-identity|(Users|home)[^A-Za-z0-9]+${_OPERATOR_ESC}|(^|[^A-Za-z0-9_-])${_OPERATOR_ESC}@")
+fi
+# Windows 8.3 short-form home dirs (a Users dir shortened to six chars, tilde, digit) leak the
+# same account without spelling the name, so this rule is machine-independent and always on.
+# NOTE: this comment deliberately does not spell that shape out — doing so makes this file
+# trip its own rule.
+PATTERNS+=("operator-identity-8dot3|Users[^A-Za-z0-9]+[A-Za-z0-9]{6}~[0-9]")
+
 COMBINED_REGEX=""
 FAST_COMBINED_REGEX=""
 for entry in "${PATTERNS[@]}"; do

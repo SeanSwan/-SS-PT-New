@@ -65,7 +65,7 @@ Trainer-led B2B2C training OS. **Core loop:** log the workout → save the diary
 
 **4.9 Loop bounds (the autonomous-build contract):** ≤3 hostile-review rounds per slice; convergence = zero NEW blockers/majors introduced by the slice; pre-existing baseline failures (currently ~4 vitest fails; full-repo tsc needs `NODE_OPTIONS=--max-old-space-size=8192`) are disclosed per Rule 56, never "fixed" in-slice (Rule 52). Escalate to Sean: on round 4, on any money/auth scope expansion, or on a failed deploy. **After every push:** Render deploy health + `migrate:status` (when schema changed) + one smoke of the changed caller path BEFORE the next slice; on failure HALT the loop and forward-revert (never force-push). Slice close = Rule 60 next-slice line; workstream close = Rule 48 audit record + Rule 57 dual-tier summary + Hermes learning packet (Rule 68).
 
-**4.10 Coordination:** lane files live ONLY in the primary checkout — read/write `C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/.ai-workflow/coordination/` by absolute path from any worktree. Build in isolated worktrees off current origin/main; explicit-path commits; no `git add -A`.
+**4.10 Coordination:** lane files live ONLY in the primary checkout — read/write `<REPO>/.ai-workflow/coordination/` by absolute path from any worktree. Build in isolated worktrees off current origin/main; explicit-path commits; no `git add -A`.
 
 **4.11 Flag mechanism map:** backend behavior → env-var middleware (PLAUD pattern, default off, fail-closed); UI surfaces → `FeatureAccessContext`/config flags; pure refactors flag-exempt but need tests + a named revert plan. Env-flag changes on Render restart the service — plan accordingly.
 

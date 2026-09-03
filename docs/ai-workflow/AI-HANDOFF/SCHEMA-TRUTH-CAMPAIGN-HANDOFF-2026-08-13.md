@@ -64,7 +64,7 @@ Also open on this issue: 9 unregistered-family indexes (registry unification), 7
 
 - **Worktree:** `C:/tmp/ss-qa-harness-slice0` — work here. Rebase onto `origin/main` before pushing; push = deploy (Render, paid plan).
 - **QA container:** `docker compose -f docker-compose.qa.yml up -d` → `node scripts/qa/qa-db.mjs bootstrap` → `assert`. Port **15433** loopback (55433 is Windows-reserved; 5432 is dev PG). Schema: `node scripts/qa/qa-schema.mjs rebuild|verify` (writes `.qa-schema-manifest.json`). Rehearse EVERY prod-bound statement here first.
-- **Prod (read-only) audit:** from worktree `backend/`: `node --env-file="c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/.env" scripts/audit-schema-drift.mjs --out c:/tmp/prod-drift.json`
+- **Prod (read-only) audit:** from worktree `backend/`: `node --env-file="<REPO>/.env" scripts/audit-schema-drift.mjs --out c:/tmp/prod-drift.json`
 - **Prod ad-hoc read-only queries:** same env-file pattern, import `database.mjs` via `pathToFileURL` — never print the credential, never `SELECT` secrets.
 - **Linear:** `node scripts/linear-cli.mjs whoami|list|search|create|comment` — ALWAYS `search` before `create`; bodies via `--body-file`. If MCP tools are absent, this CLI is the path — never report the board blocked.
 - **Boot behavior (verified):** prod boot runs additive `createMissingTables` (hardcoded list) + `addMissingColumns` (hardcoded list); mutative ALTER is OFF (`STARTUP_SCHEMA_ALTER`, keep it off — 2026-08-04 review comment in `productionDatabaseSync.mjs:339` is the best doc in the repo).

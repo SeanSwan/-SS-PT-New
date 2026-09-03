@@ -58,7 +58,7 @@ supersedes: none
 | C:/tmp/sspt-unified-brain-20260715 | codex/unified-brain-20260715 | 2026-07-16 | 0 |
 | C:/tmp/sspt-workout-design-lab-25views-20260710 | codex/workout-design-lab-25views-20260710 | 2026-07-10 | 0 |
 | C:/tmp/sspt-workout-design-lab-release | codex/workout-design-lab-release | 2026-07-10 | 0 |
-| C:/Users/BigotSmasher/.hermes/runner-repo | DETACHED | 2026-07-11 | 0 |
+| <HOME>/.hermes/runner-repo | DETACHED | 2026-07-11 | 0 |
 
 ## MERGED but DIRTY or MISSING-DIR — ambiguous, do not touch without per-tree review (41)
 | worktree | branch | last commit | state | dirty files |
@@ -108,7 +108,7 @@ supersedes: none
 ## UNMERGED — keep / review for unshipped work (23)
 | worktree | branch | last commit | state | dirty files |
 |---|---|---|---|---|
-| C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT | wip/comms-notifications-2026-07-05 | 2026-07-20 | exists | 1104 |
+| <REPO> | wip/comms-notifications-2026-07-05 | 2026-07-20 | exists | 1104 |
 | C:/tmp/ss-apex | feat/apex-dashboard-redesign | 2026-07-10 | exists | 0 |
 | C:/tmp/ss-coach-cc-20260716 | claude/coach-command-center-rebuild-20260716 | 2026-07-17 | exists | 1 |
 | C:/tmp/ss-coach-cc-v2-20260717 | claude/codex-findings-20260717 | 2026-07-17 | exists | 0 |
@@ -129,5 +129,5 @@ supersedes: none
 | C:/tmp/sspt-nutrition-staged-review-20260625-01 | DETACHED | 2026-06-22 | exists | 108 |
 | C:/tmp/sspt-planhome-20260711 | claude/client-plan-home-2026-07-11 | 2026-07-11 | exists | 1196 |
 | C:/tmp/sspt-speed-to-lead-email-20260716 | claude/speed-to-lead-email | 2026-07-16 | exists | 0 |
-| C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/.claude/worktrees/unified-world-gallery-2026-07-16 | worktree-unified-world-gallery-2026-07-16 | 2026-07-17 | exists | 1 |
-| C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/mobbin-governance | codex/mobbin-governance-loop-20260719 | 2026-07-19 | exists | 0 |
+| <REPO>/.claude/worktrees/unified-world-gallery-2026-07-16 | worktree-unified-world-gallery-2026-07-16 | 2026-07-17 | exists | 1 |
+| <REPO>/tmp/worktrees/mobbin-governance | codex/mobbin-governance-loop-20260719 | 2026-07-19 | exists | 0 |

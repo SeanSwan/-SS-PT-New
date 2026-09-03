@@ -77,7 +77,7 @@ Before the history rewrite, a stash was created to preserve Sean's uncommitted w
 Sean created a full folder-level backup BEFORE the history rewrite at:
 
 ```
-C:\Users\BigotSmasher\Videos\SS-PT
+<HOME>\Videos\SS-PT
 ```
 
 Contains pre-purge state including the old `settings.local.json` if needed for any reason (which it should not be — all creds rotated).

@@ -1,7 +1,7 @@
 # Tencent Hy3 - Design Inspiration
 
 **Reviewer:** `tencent/hy3` (high)
-**Document:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/eae22129-148b-43db-b548-76f52a346a75/scratchpad/authz-review-packet.md
+**Document:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/eae22129-148b-43db-b548-76f52a346a75/scratchpad/authz-review-packet.md
 **Seed:** (none)
 **Tokens:** 18822 in / 20420 out | **Cost:** ~$0.0133 | **Wall:** 167.9s | **finish_reason:** stop
 

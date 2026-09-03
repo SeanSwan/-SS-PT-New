@@ -22,7 +22,7 @@ CLAUDE.md                                          # Project rules, palette, sta
 
 ### 2. Memory Index (Project Context)
 ```
-C:\Users\BigotSmasher\.claude\projects\c--Users-BigotSmasher-Desktop-quick-pt-SS-PT\memory\MEMORY.md
+<HOME>\.claude\projects\<SCRATCH-KEY>\memory\MEMORY.md
 ```
 
 ### 3. The Fix Plan Under Review

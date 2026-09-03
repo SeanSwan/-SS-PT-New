@@ -16,7 +16,7 @@ supersedes: none
 ## 1. Read this first — the environment trap that cost this session
 
 **The work lives in a git worktree at `c:/tmp/ss-cart-role-20260816`, NOT in the
-main repo at `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT`.**
+main repo at `<REPO>`.**
 
 Consequences you must know before running anything:
 
@@ -31,7 +31,7 @@ missing, because I ran a consult script from the worktree, got
 before believing a negative.** Presence check that never exposes a value:
 
 ```bash
-cd c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+cd <REPO>
 grep -c '^OPENROUTER_API_KEY=' .env     # returns a COUNT, never the value
 ```
 
@@ -230,7 +230,7 @@ unproven because it has not happened.
 **From the main repo, not the worktree** (see §1).
 
 ```bash
-cd c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+cd <REPO>
 
 # GLM-5.3 — subscription, no spend cap needed
 node scripts/consult-glm.mjs --document <packet.md> --out <out.md>

@@ -81,7 +81,7 @@ call needs `--confirm-spend` and is capped at $3.
 **this worktree**. A relative path silently fails to find the file. Use an **absolute** path:
 
 ```
-cd c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+cd <REPO>
 node scripts/consult-kimi.mjs \
   --document "C:/tmp/ss-qa-harness-slice0/<packet>.md" \
   --remit "<remit>" --effort high \

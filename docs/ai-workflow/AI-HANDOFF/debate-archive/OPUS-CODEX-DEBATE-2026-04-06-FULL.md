@@ -33,7 +33,7 @@ CLAUDE.md
 
 **Memory Index (Project Context — who Sean is, what the project does, all decisions made):**
 ```
-C:\Users\BigotSmasher\.claude\projects\c--Users-BigotSmasher-Desktop-quick-pt-SS-PT\memory\MEMORY.md
+<HOME>\.claude\projects\<SCRATCH-KEY>\memory\MEMORY.md
 ```
 
 **The Fix Plan Under Debate:**

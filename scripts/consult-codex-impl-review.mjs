@@ -11,6 +11,7 @@
  *
  * Output: docs/ai-workflow/AI-HANDOFF/PHASE-5-CODEX-IMPL-REVIEW-2026-05-04.md
  */
+import { fetchRedacted } from './lib/egress-fetch.mjs';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -246,7 +247,7 @@ Claude's findings — verify each one independently against the actual code.`;
 console.log(`[codex-impl] prompt: ${prompt.length} chars`);
 const t0 = Date.now();
 
-const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+const res = await fetchRedacted('https://openrouter.ai/api/v1/chat/completions', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

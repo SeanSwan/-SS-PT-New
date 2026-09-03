@@ -19,7 +19,7 @@ panel_round_2: reviewed the 5-reflex subset AGAINST THE REAL SOUL.md (round 1 ne
 # What was applied (final text, all seats folded)
 
 Appended to `~/hermes2/.hermes/SOUL.md` — the tree the launcher proves live
-(`~/.local/bin/hermes` exports `HERMES_HOME=/home/bigotsmasher/hermes2/.hermes`).
+(`~/.local/bin/hermes` exports `HERMES_HOME=<HOME>/hermes2/.hermes`).
 Ten reflexes replacing the five-reflex draft:
 
 1. Positive control before any absence claim (absence without control = UNPROVEN).

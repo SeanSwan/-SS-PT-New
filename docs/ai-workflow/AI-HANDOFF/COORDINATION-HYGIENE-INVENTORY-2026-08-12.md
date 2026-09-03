@@ -143,7 +143,7 @@ yields only the paths.
 
 ---
 
-MAIN TREE: C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+MAIN TREE: <REPO>
 TOTAL WORKTREES: 187  (main + 186 linked)
 
 ## 6. Per-worktree tables (state at inventory time, BEFORE the step-4 removal)
@@ -228,7 +228,7 @@ TOTAL WORKTREES: 187  (main + 186 linked)
 | `tmp/ss-launch-audit-lane2-20260803` | integrate/launch-audit-20260803 | 0 | 0 | 2026-08-05 |
 | `tmp/ss-waiver-v4-20260804` | claude/waiver-overhaul-20260804 | 0 | 0 | 2026-08-05 |
 | `tmp/ss-launch-audit-lane1-20260803` | claude/lateral-probe-20260805 | 0 | 0 | 2026-08-10 |
-| `Users/BigotSmasher/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/45b0249b-52ad-45d9-b9bc-f9ecd285bdc1/scratchpad/main-audit` | feat/swa-138-ops-wave-final | 0 | 0 | 2026-08-10 |
+| `Users/<OPERATOR>/AppData/Local/Temp/claude/<SCRATCH-KEY>/45b0249b-52ad-45d9-b9bc-f9ecd285bdc1/scratchpad/main-audit` | feat/swa-138-ops-wave-final | 0 | 0 | 2026-08-10 |
 | `tmp/ss-creator-local-video` | claude/creator-schema-hold-20260811 | 0 | 0 | 2026-08-12 |
 
 ## B. MERGED-DIRTY — 42 (merged, but hold UNCOMMITTED files that would be LOST)
@@ -242,7 +242,7 @@ TOTAL WORKTREES: 187  (main + 186 linked)
 | `tmp/ss-trainer-dash` | fix/trainer-dashboard-pixel | 0 | 133 | 2026-07-25 |
 | `tmp/sspt-swan-lens-direction-a-release-20260801` | codex/swan-lens-direction-a-release-20260801 | 0 | 87 | 2026-08-01 |
 | `tmp/sspt-nutrition-origin-main-20260625` | codex/nutrition-aaa-release-20260625 | 0 | 53 | 2026-06-25 |
-| `Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/coach-hive-ui-20260809` | codex/coach-hive-ui-20260809 | 0 | 53 | 2026-08-06 |
+| `Users/<OPERATOR>/Desktop/quick-pt/SS-PT/tmp/worktrees/coach-hive-ui-20260809` | codex/coach-hive-ui-20260809 | 0 | 53 | 2026-08-06 |
 | `tmp/sspt-swan-lens-runner-audit-20260801` | codex/swan-lens-runner-audit-20260801 | 0 | 51 | 2026-08-01 |
 | `tmp/sspt-nutrition-staged-replay-20260626` | codex/nutrition-staged-replay-20260626 | 0 | 47 | 2026-06-25 |
 | `tmp/sspt-hermes-privacy-router-20260731` | codex/hermes-privacy-router-20260731 | 0 | 45 | 2026-07-31 |
@@ -291,8 +291,8 @@ TOTAL WORKTREES: 187  (main + 186 linked)
 | `tmp/ss-coach-audit` | claude/swancoach-operator-blueprint-20260722 | 5 | 3 | 2026-07-22 |
 | `tmp/sspt-mobbin-resume-proof-20260719` | codex/mobbin-resume-proof-20260719 | 5 | 0 | 2026-07-19 |
 | `tmp/sspt-qwen-kimi-privacy-20260726` | codex/qwen-kimi-privacy-review-20260726 | 5 | 0 | 2026-07-26 |
-| `Users/BigotSmasher/Desktop/quick-pt/SS-PT/.claude/worktrees/unified-world-gallery-2026-07-16` | worktree-unified-world-gallery-2026-07-16 | 5 | 1 | 2026-07-17 |
-| `Users/BigotSmasher/Desktop/quick-pt/SS-PT-context-gateway` | feat/swan-context-gateway | 5 | 1 | 2026-07-29 |
+| `Users/<OPERATOR>/Desktop/quick-pt/SS-PT/.claude/worktrees/unified-world-gallery-2026-07-16` | worktree-unified-world-gallery-2026-07-16 | 5 | 1 | 2026-07-17 |
+| `Users/<OPERATOR>/Desktop/quick-pt/SS-PT-context-gateway` | feat/swan-context-gateway | 5 | 1 | 2026-07-29 |
 | `tmp/ss-swan-collect-20260812` | claude/swan-collect-scout-20260812 | 4 | 0 | 2026-08-12 |
 | `tmp/ss-apex` | feat/apex-dashboard-redesign | 3 | 0 | 2026-07-10 |
 | `tmp/ss-qa-harness-slice0` | claude/qa-harness-slice0-20260811 | 3 | 1 | 2026-08-12 |
@@ -302,7 +302,7 @@ TOTAL WORKTREES: 187  (main + 186 linked)
 | `tmp/sspt-cortex-p1` | codex/cortex-phase1 | 2 | 6 | 2026-07-14 |
 | `tmp/sspt-opus-then-kimi-20260725` | codex/opus-then-kimi-review-20260725 | 2 | 5 | 2026-07-26 |
 | `tmp/sspt-planhome-20260711` | claude/client-plan-home-2026-07-11 | 2 | 1196 | 2026-07-11 |
-| `Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/mobbin-governance` | codex/mobbin-governance-loop-20260719 | 2 | 0 | 2026-07-19 |
+| `Users/<OPERATOR>/Desktop/quick-pt/SS-PT/tmp/worktrees/mobbin-governance` | codex/mobbin-governance-loop-20260719 | 2 | 0 | 2026-07-19 |
 | `tmp/ss-bootcamp-s2-reintegrate-20260802` | claude/bootcamp-s2-reintegrate-20260802 | 1 | 0 | 2026-08-02 |
 | `tmp/ss-coach-cc-20260716` | claude/coach-command-center-rebuild-20260716 | 1 | 1 | 2026-07-17 |
 | `tmp/ss-coach-cc-v2-20260717` | claude/codex-findings-20260717 | 1 | 0 | 2026-07-17 |
@@ -346,9 +346,9 @@ TOTAL WORKTREES: 187  (main + 186 linked)
 | `tmp/sspt-render-hostile-20260718` | (detached) | — | 0 | 2026-07-18 |
 | `tmp/sspt-render-postreview-20260719` | (detached) | — | 0 | 2026-07-19 |
 | `tmp/sspt-style-lens-village-20260711` | (detached) | — | 4 | 2026-07-11 |
-| `Users/BigotSmasher/.hermes/runner-repo` | (detached) | — | 0 | 2026-07-29 |
-| `Users/BigotSmasher/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/99b24a8a-bf2c-4b79-8876-0c48f5596d3c/scratchpad/main-audit` | (detached) | — | 0 | 2026-08-04 |
-| `Users/BigotSmasher/AppData/Local/Temp/lane4-baseline` | (detached) | — | 0 | 2026-08-02 |
+| `Users/<OPERATOR>/.hermes/runner-repo` | (detached) | — | 0 | 2026-07-29 |
+| `Users/<OPERATOR>/AppData/Local/Temp/claude/<SCRATCH-KEY>/99b24a8a-bf2c-4b79-8876-0c48f5596d3c/scratchpad/main-audit` | (detached) | — | 0 | 2026-08-04 |
+| `Users/<OPERATOR>/AppData/Local/Temp/lane4-baseline` | (detached) | — | 0 | 2026-08-02 |
 ## Group B — merged worktrees holding UNCOMMITTED files (42)
 
 `modified` = tracked edits that would be lost. `untracked` = new files that would be lost.
@@ -364,7 +364,7 @@ Both are destroyed by `git worktree remove --force`. Neither is recoverable from
 | `tmp/ss-trainer-dash` | fix/trainer-dashboard-pixel | 133 | 69 | 64 | frontend(102) backend(28) (root)(2) | 2026-07-25 |
 | `tmp/sspt-swan-lens-direction-a-release-20260801` | codex/swan-lens-direction-a-release-20260801 | 87 | 60 | 27 | frontend(64) scripts(18) docs(3) | 2026-08-01 |
 | `tmp/sspt-nutrition-origin-main-20260625` | codex/nutrition-aaa-release-20260625 | 53 | 53 | 0 | frontend(36) backend(17) | 2026-06-25 |
-| `Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/coach-hive-ui-20260809` | codex/coach-hive-ui-20260809 | 53 | 30 | 23 | backend(21) frontend(21) docs(9) | 2026-08-06 |
+| `Users/<OPERATOR>/Desktop/quick-pt/SS-PT/tmp/worktrees/coach-hive-ui-20260809` | codex/coach-hive-ui-20260809 | 53 | 30 | 23 | backend(21) frontend(21) docs(9) | 2026-08-06 |
 | `tmp/sspt-swan-lens-runner-audit-20260801` | codex/swan-lens-runner-audit-20260801 | 51 | 51 | 0 | frontend(47) docs(2) ai-workflow(1) | 2026-08-01 |
 | `tmp/sspt-nutrition-staged-replay-20260626` | codex/nutrition-staged-replay-20260626 | 47 | 47 | 0 | frontend(32) backend(15) | 2026-06-25 |
 | `tmp/sspt-hermes-privacy-router-20260731` | codex/hermes-privacy-router-20260731 | 45 | 6 | 39 | scripts(38) docs(6) ocs(1) | 2026-07-31 |

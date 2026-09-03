@@ -28,7 +28,7 @@ runtime paths while preserving them for restoration if needed.
 Generated captures, logs, temp files, root-level orphan drafts, and Playwright MCP
 captures were moved to:
 
-`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/.swan/archive/cleanup-2026-05-12/`
+`<REPO>/.swan/archive/cleanup-2026-05-12/`
 
 That folder is intentionally gitignored. It preserves local recovery copies while
 keeping regenerated logs, screenshots, and potentially sensitive browser-capture

@@ -3,8 +3,10 @@
 # Intended for Windows Startup or Task Scheduler; writes logs under LOCALAPPDATA.
 
 param(
-  [string]$SwanRepoRoot = "C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT",
-  [string]$ApplaudRepoRoot = "C:\Users\BigotSmasher\Desktop\quick-pt\applaud",
+  # Defaults derive from this script's own location (it lives at <repo>\scripts\launchers),
+  # so the launcher works on any checkout, on any machine. Pass -SwanRepoRoot to override.
+  [string]$SwanRepoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..')),
+  [string]$ApplaudRepoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\..\applaud')),
   [switch]$SkipApplaudPoller,
   [switch]$SkipSwanUploader,
   [switch]$Visible

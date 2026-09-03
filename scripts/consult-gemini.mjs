@@ -29,6 +29,7 @@
 // Preflight: blocks execution if MODEL_VERSIONS.md has unverified TODO markers
 // or if required env vars are missing. Side-effect import runs BEFORE this
 // module body, so registry + .env are guaranteed ready below.
+import { fetchRedacted } from './lib/egress-fetch.mjs';
 import './lib/preflight.mjs';
 import { getModelIdOrThrow } from './lib/model-registry.mjs';
 
@@ -93,7 +94,7 @@ async function callGemini(prompt, opts = {}) {
     body.tools = [{ googleSearch: {} }];
   }
 
-  const res = await fetch(url, {
+  const res = await fetchRedacted(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

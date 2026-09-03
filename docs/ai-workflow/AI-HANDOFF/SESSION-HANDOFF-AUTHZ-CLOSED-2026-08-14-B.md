@@ -307,9 +307,9 @@ lets the next agent re-run the bypass grep without a rebuild. Delete it freely.
 (`.gitignore:462` and `:493`) and machine-local to the main tree.** If you are reading this from
 `C:/tmp/ss-qa-harness-slice0`, the relative paths will not resolve. Absolute locations:
 
-- Hermes inbox memo — `C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/.ai-workflow/hermes-inbox/pending/2026-08-14T183000Z-security-the-reader-that-clears-everything.md`
+- Hermes inbox memo — `<REPO>/.ai-workflow/hermes-inbox/pending/2026-08-14T183000Z-security-the-reader-that-clears-everything.md`
 - Review exchange with the sibling session (my REVISE verdict, the withdrawn attribution, and the
-  handover of defects C/D/E) — `C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/.ai-workflow/coordination/review-queue.md`
+  handover of defects C/D/E) — `<REPO>/.ai-workflow/coordination/review-queue.md`
 
 **Consequence worth internalising:** if this branch is ever pushed and picked up on another machine,
 **both of those artifacts vanish.** Everything load-bearing was therefore committed into

@@ -2,7 +2,7 @@
 
 > **Purpose:** Set up a new machine (laptop) with the EXACT same Claude Code + AI Village environment as the office desktop.
 > **Last updated:** 2026-03-20
-> **Source machine:** Desktop (BigotSmasher)
+> **Source machine:** Desktop (<OPERATOR>)
 
 ---
 
@@ -77,7 +77,7 @@ node scripts/validation-orchestrator.mjs --files CLAUDE.md
 
 Claude Code stores memory in a per-project directory. On the office desktop this is:
 ```
-C:\Users\BigotSmasher\.claude\projects\c--Users-BigotSmasher-Desktop-quick-pt-SS-PT\memory\
+<HOME>\.claude\projects\<SCRATCH-KEY>\memory\
 ```
 
 On your laptop, the path will be different based on your username and where you cloned the repo. Claude Code auto-creates this directory structure when you first open the project. The directory name is derived from the absolute path to the repo, with path separators replaced by dashes.
