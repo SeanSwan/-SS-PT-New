@@ -64,6 +64,10 @@ export const WORKOUT_SESSIONS_API_PATH = '/api/workout/sessions';
  */
 export const WORKOUT_PAGE_SIZE = 50;
 
+/* KNOWN LIMIT: offset pagination's boundary moves both ways — inserts repeat a
+ * row (deduped below), deletions SKIP one (invisible to dedupe). Cursor
+ * pagination is the real fix; see workoutsPagination.contract.test.ts. */
+
 const getTopExerciseName = (categories: CategoryData[]): string => {
   let topExercise = '';
   let topCount = 0;
@@ -151,13 +155,22 @@ const WorkoutsTab: React.FC = () => {
       // and this request shifts every row down, so page 2 can legitimately repeat
       // a row already on screen. Merging blind gives duplicate React keys and
       // feeds calcStreak the same day twice. Dedupe by id, first occurrence wins.
-      const seen = new Set(sessions.map((s) => s.id).filter((id) => id !== undefined));
-      const merged = [
-        ...sessions,
+      // String-keyed, because an id can serialise as 2 or "2" across responses
+      // and a mixed-type Set silently fails to match. Rows are checked as they
+      // are added, so duplicates WITHIN one page are caught too — checking only
+      // against the previous window let a repeated row through.
+      const merged = [...sessions];
+      const seen = new Set(
+        sessions.map((s) => (s.id === undefined ? null : String(s.id))).filter(Boolean),
+      );
+      for (const row of older) {
         // A row with no id cannot be matched, so it is KEPT: dropping a workout
-        // we merely failed to identify would be a worse bug than showing it twice.
-        ...older.filter((s) => s.id === undefined || !seen.has(s.id)),
-      ];
+        // we merely failed to identify is worse than showing it twice.
+        const key = row.id === undefined ? null : String(row.id);
+        if (key !== null && seen.has(key)) continue;
+        if (key !== null) seen.add(key);
+        merged.push(row);
+      }
       setSessions(merged);
       setNextPage((p) => p + 1);
       setHasMore(Boolean(response.data?.data?.hasMore));

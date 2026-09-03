@@ -61,7 +61,10 @@ describe('cart error observability', () => {
     expect(source).toMatch(/message:\s*scrubErrorText\(error\?\.message\)/);
     // The boundary is the point: the whole metadata object is scrubbed, so a
     // field a future author adds cannot bypass the scrub by being forgotten.
-    expect(source).toMatch(/logger\.error\(message, scrubLogMeta\(\{/);
+    // The message ARGUMENT is scrubbed too now (GLM round 3, finding 2): a
+    // literal today, but "by construction" has to survive the first author
+    // who interpolates a value into it.
+    expect(source).toMatch(/logger\.error\(scrubErrorText\(message\) \?\? message, scrubLogMeta\(\{/);
     expect(source).toMatch(/parentMessage:\s*scrubErrorText\(/);
     expect(source).toMatch(/stack:[\s\S]{0,240}scrubErrorText\(/);
   });

@@ -97,7 +97,10 @@ const toCartErrorMetadata = (error, fallbackCode = 'cart_internal_error') => ({
  * remembered. (GLM 5.3 hostile round 2, ONE THING.)
  */
 const logCartError = (message, error, req, metadata = {}) => {
-  logger.error(message, scrubLogMeta({
+  // The MESSAGE is scrubbed too. It is a literal at every current call site, but
+  // "scrubs by construction" has to mean the whole call, or the first author who
+  // interpolates a value into it walks straight past the boundary.
+  logger.error(scrubErrorText(message) ?? message, scrubLogMeta({
     userId: req?.authUserId,
     ...metadata,
     ...toCartErrorMetadata(error)

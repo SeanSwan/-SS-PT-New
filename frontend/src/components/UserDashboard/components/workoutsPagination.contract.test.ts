@@ -13,6 +13,21 @@ const dir = 'src/components/UserDashboard/components';
 const tab = readFileSync(resolve(process.cwd(), `${dir}/WorkoutsTab.tsx`), 'utf8');
 const charts = readFileSync(resolve(process.cwd(), `${dir}/WorkoutsTabCharts.tsx`), 'utf8');
 
+/*
+ * KNOWN LIMIT — offset pagination has a moving boundary in BOTH directions.
+ *
+ * A workout logged between two pages shifts rows DOWN, so a page can repeat a
+ * row already on screen; the merge dedupes that by id (proven in
+ * workoutsExtensionFailure.test.tsx). A workout DELETED between two pages shifts
+ * rows UP, so a page can SKIP one — and a skip is invisible to dedupe, because
+ * the row simply never arrives.
+ *
+ * Keyset/cursor pagination — ask for rows before a known timestamp+id rather
+ * than for "page N" — is the actual fix, and it needs a backend change.
+ * Deletions are rare on this surface, so the dedupe ships now and the cursor is
+ * recorded here as the follow-up rather than pretended away.
+ * (GLM 5.3 hostile round 3, MISSED.)
+ */
 describe('workouts pagination', () => {
   it('the hard 200-row fetch is gone', () => {
     expect(tab).not.toMatch(/limit:\s*200/);
@@ -28,7 +43,10 @@ describe('workouts pagination', () => {
     // The append is now id-deduped (GLM round 2 finding 5: the offset boundary
     // moves, so page 2 can repeat a row already on screen). Behaviour is proven
     // in workoutsExtensionFailure.test.tsx; this pins that it still APPENDS.
-    expect(tab).toMatch(/const merged = \[[\s\S]{0,400}\.\.\.sessions,/);
+    // The merge is a dedupe LOOP now (ids can repeat across pages and can
+    // serialise as 2 or "2"); it still starts from the existing window.
+    expect(tab).toMatch(/const merged = \[\.\.\.sessions\];/);
+    expect(tab).toMatch(/merged\.push\(row\);/);
     expect(tab).toMatch(/setCategories\(transformWorkoutLogs\(merged\)\)/);
     expect(tab).toMatch(/setStreak\(merged\.length === 0 \? 0 : calcStreak\(merged\)\)/);
   });

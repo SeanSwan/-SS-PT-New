@@ -122,3 +122,61 @@ describe('scrubLogMeta', () => {
     expect(scrubLogMeta(undefined)).toBeUndefined();
   });
 });
+
+describe('scrubErrorText — round 3: one rule must not cancel another', () => {
+  it('KEEPS a REAL composite constraint name (44 chars — longer than the token rule)', () => {
+    // GLM round 3 blocker 1. The opaque-token rule ate any 40-char run, so the
+    // identifier the quoted rule had just preserved was redacted a line later.
+    // The old test passed only because its fixture was a short 15-char name.
+    const name = 'workout_sessions_user_id_completed_at_unique';
+    expect(name.length).toBeGreaterThan(40);
+    const out = scrubErrorText(`duplicate key value violates unique constraint "${name}"`);
+    expect(out).toContain(`"${name}"`);
+    expect(out).not.toContain('<redacted-token>');
+  });
+
+  it('REDACTS an identifier-shaped USER VALUE (the carve-out must not re-admit PII)', () => {
+    // GLM round 3 blocker 2: usernames are identifier-shaped.
+    for (const value of ['sean-connor', 'bobby_o_shea']) {
+      const out = scrubErrorText(`invalid input syntax for type uuid: "${value}"`);
+      expect(out).not.toContain(value);
+      expect(out).toContain('"<redacted>"');
+    }
+  });
+
+  it('keeps a date — an invalid date IS the diagnosis', () => {
+    const out = scrubErrorText('invalid date 2024-01-15 for column started_at');
+    expect(out).toContain('2024-01-15');
+  });
+
+  it('never cuts a redaction marker in half at the length cap', () => {
+    const out = scrubErrorText(`${'word '.repeat(90)}someone@example.com trailing`);
+    expect(out.length).toBeLessThanOrEqual(SCRUB_MAX_LENGTH);
+    expect(out).not.toMatch(/<redacted[a-z-]*$/);
+  });
+});
+
+describe('scrubLogMeta — round 3', () => {
+  it('keeps an Error usable instead of flattening it to {}', () => {
+    const err = new Error('failed for someone@example.com');
+    const out = scrubLogMeta({ error: err });
+    expect(out.error.name).toBe('Error');
+    expect(out.error.message).toContain('<redacted-email>');
+    expect(out.error.message).not.toContain('someone@example.com');
+    expect(typeof out.error.stack).toBe('string');
+  });
+
+  it('renders a Date rather than dropping it', () => {
+    const out = scrubLogMeta({ when: new Date('2024-01-15T00:00:00Z') });
+    expect(out.when).toBe('2024-01-15T00:00:00.000Z');
+  });
+
+  it('walks arrays and Maps', () => {
+    const out = scrubLogMeta({
+      list: ['a@b.co'],
+      map: new Map([['k', 'c@d.co']]),
+    });
+    expect(out.list[0]).toContain('<redacted-email>');
+    expect(out.map.k).toContain('<redacted-email>');
+  });
+});

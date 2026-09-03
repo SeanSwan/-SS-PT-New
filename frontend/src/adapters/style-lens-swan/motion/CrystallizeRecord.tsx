@@ -42,10 +42,13 @@ export interface CrystallizeRecordProps {
   testId?: string;
 }
 
+/** ONE definition of the query: the helper and the subscription must not drift. */
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
 /** Fail-closed reduced-motion read: matchMedia absent or throwing → reduce. */
 const prefersReducedMotion = (): boolean => {
   try {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return window.matchMedia(REDUCED_MOTION_QUERY).matches;
   } catch {
     return true;
   }
@@ -144,13 +147,20 @@ const CrystallizeRecord: React.FC<CrystallizeRecordProps> = ({
   useEffect(() => {
     let query: MediaQueryList;
     try {
-      query = window.matchMedia('(prefers-reduced-motion: reduce)');
+      query = window.matchMedia(REDUCED_MOTION_QUERY);
     } catch {
       return undefined;
     }
     const onChange = () => setReduced(query.matches);
-    query.addEventListener?.('change', onChange);
-    return () => query.removeEventListener?.('change', onChange);
+    // Safari <= 14 only has the deprecated addListener. Attaching nothing there
+    // would silently freeze the preference at its mount-time value — the exact
+    // staleness this subscription exists to remove.
+    if (typeof query.addEventListener === 'function') {
+      query.addEventListener('change', onChange);
+      return () => query.removeEventListener('change', onChange);
+    }
+    query.addListener?.(onChange);
+    return () => query.removeListener?.(onChange);
   }, []);
 
   const effectivePhase: CrystallizeRecordPhase = reduced ? 'resting' : phase;
