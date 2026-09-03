@@ -194,6 +194,46 @@ describe('the M3 verdict reaches the stored operation', () => {
     expect(ctx.confirmationTier.reasons).not.toContain('cross_client');
   });
 
+  it('a routeContext with NO inputMode is UNPROVEN, not assumed safe', async () => {
+    /**
+     * The second half of the inert-M3 bug. Repairing the property path was not
+     * enough: no caller sent `inputMode` at all, so a `?? 'text'` default kept
+     * answering "safe channel" for every request. A default that supplies the
+     * permissive answer turns "nobody told us" into "we checked".
+     *
+     * This is the shape every real caller had on the day the bug was found, so
+     * it is the case most worth pinning.
+     */
+    primeIntent(SAFE_WRITE, { clientId: 61 });
+
+    const ctx = await executeCommandPipeline("log Jordan's workout", TRAINER, {
+      selectedClientId: 61,
+      sequelize: SEQUELIZE,
+      routeContext: { source: 'coach-command-center', intent: null },
+    });
+    const stored = await storedOperationFrom(ctx);
+
+    expect(stored.requiresPhysicalConfirm).toBe(true);
+    expect(ctx.confirmationTier.reasons).toContain('unproven_channel_identity_crossing');
+    // Not the voice reason — we do not know it was voice, only that we cannot
+    // show it was safe. The audit trail must not claim more than that.
+    expect(ctx.confirmationTier.reasons).not.toContain('voice_identity_crossing');
+  });
+
+  it('a declared UI channel is safe — the typed lane is not collateral damage', async () => {
+    primeIntent(SAFE_WRITE, { clientId: 61 });
+
+    const ctx = await executeCommandPipeline("log Jordan's workout", TRAINER, {
+      selectedClientId: 61,
+      sequelize: SEQUELIZE,
+      routeContext: { inputMode: 'ui' },
+    });
+    const stored = await storedOperationFrom(ctx);
+
+    expect(stored.requiresPhysicalConfirm).toBe(false);
+    expect(ctx.confirmationTier.reasons).toContain('cross_client');
+  });
+
   it('the stamped operation also carries its client binding top-level (F-12)', async () => {
     primeIntent(DESTRUCTIVE, { clientId: 61, sessionId: 184 });
 

@@ -204,3 +204,46 @@ describe('useCoachCommand frontend dispatch bridge', () => {
     });
   });
 });
+
+describe('useCoachCommand — channel declaration (M3)', () => {
+  beforeEach(() => {
+    vi.mocked(apiService.post).mockReset();
+    vi.mocked(apiService.post).mockResolvedValue({ data: { success: true, type: 'executed' } });
+  });
+
+  /**
+   * The server can no longer assume a safe channel. It used to default a
+   * missing `inputMode` to 'text', which meant the M3 voice rule answered
+   * "safe" for every request ever made — no caller sent the field at all. The
+   * absence now travels, and callers declare instead. This hook IS the typed
+   * lane, so it declares 'text'; if it silently stopped, every command from it
+   * would start being treated as an unproven channel and identity-crossing work
+   * would demand a physical confirm the operator cannot understand.
+   */
+  it('declares inputMode "text" by default — this hook is the typed lane', async () => {
+    const { result } = renderHook(() => useCoachCommand());
+    await act(async () => { await result.current.executeCommand('log a workout'); });
+
+    const [, body] = vi.mocked(apiService.post).mock.calls[0];
+    expect((body as { routeContext?: Record<string, unknown> }).routeContext)
+      .toMatchObject({ inputMode: 'text' });
+  });
+
+  it('lets a voice surface declare "voice" without losing its other tokens', async () => {
+    const { result } = renderHook(() => useCoachCommand());
+    await act(async () => {
+      await result.current.executeCommand('log a workout', {
+        inputMode: 'voice',
+        surface: 'coach-dock',
+        routeContext: { source: 'coach-command-center' },
+      });
+    });
+
+    const [, body] = vi.mocked(apiService.post).mock.calls[0];
+    expect((body as { routeContext?: Record<string, unknown> }).routeContext).toMatchObject({
+      inputMode: 'voice',
+      surface: 'coach-dock',
+      source: 'coach-command-center',
+    });
+  });
+});

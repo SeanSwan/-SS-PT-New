@@ -647,7 +647,28 @@ function resolveTierForCommand(ctx) {
      * bypasses this line. A unit test of a function cannot see a caller reading
      * the wrong property; only a test that drives the pipeline can.
      */
-    inputMode: ctx.options?.routeContext?.inputMode ?? 'text',
+    /**
+     * NO DEFAULT — and that is the second half of the fix.
+     *
+     * Repairing the property path above was necessary and not sufficient: NO
+     * caller in the repo sends `inputMode` (buildCommandRouteContext ships
+     * `source` and `intent`; the dock ships `surface`), so `?? 'text'` still
+     * produced 'text' on every request and `physical` was still never true. A
+     * default that assumes the SAFE answer turns "nobody told us" into "we
+     * checked", which is the same lie the missing property was telling, one
+     * level up.
+     *
+     * flash F-08 already established the polarity — the tier treats anything
+     * that is not a known-safe channel as unproven, and carries a distinct
+     * `unproven_channel_identity_crossing` reason for it. That reason was
+     * unreachable while this line manufactured 'text'. Passing the absence
+     * through makes it reachable.
+     *
+     * Callers declare instead: useCoachCommand sends 'text' for the typed lane,
+     * so existing surfaces are unchanged, and a surface that forgets to declare
+     * gets the cautious treatment rather than the convenient one.
+     */
+    inputMode: ctx.options?.routeContext?.inputMode ?? null,
   });
   return { verdict, pair };
 }

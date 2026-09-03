@@ -102,6 +102,15 @@ export function useCoachCommand() {
       selectedClientId?: number | null;
       previousContext?: string;
       routeContext?: Record<string, unknown> | null;
+      /**
+       * Which channel produced this utterance. Defaults to 'text' because this
+       * hook IS the typed lane; a voice surface passes 'voice' and the server's
+       * M3 rule then demands a physical confirm for anything crossing client
+       * identity. Declared here rather than defaulted server-side: the server
+       * cannot know, and a server-side default of 'text' is what kept that rule
+       * inert (it silently answered "safe" for every caller that never spoke).
+       */
+      inputMode?: 'text' | 'voice' | 'ui';
       /** Active surface for intent disambiguation (planner / logger / CC-3 dock surfaces). */
       surface?: 'workout-planner' | 'workout-logger' | 'bootcamp-builder' | 'pain-chart';
     },
@@ -114,9 +123,11 @@ export function useCoachCommand() {
         previousContext: opts?.previousContext ?? undefined,
         // Surface rides the existing allowlisted routeContext token channel
         // (aiCommandRoutes normalizeRouteContext → intent surface remap).
-        routeContext: opts?.surface
-          ? { ...(opts?.routeContext ?? {}), surface: opts.surface }
-          : opts?.routeContext ?? undefined,
+        routeContext: {
+          ...(opts?.routeContext ?? {}),
+          ...(opts?.surface ? { surface: opts.surface } : {}),
+          inputMode: opts?.inputMode ?? 'text',
+        },
       });
       const data = res.data;
 
