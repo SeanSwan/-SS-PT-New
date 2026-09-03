@@ -20,13 +20,13 @@
  */
 
 import express from 'express';
-import Stripe from 'stripe';
 import { Op } from 'sequelize';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import Subscription from '../models/Subscription.mjs';
 import sequelize from '../database.mjs';
 import { TIER_DEFINITIONS as CATALOG_TIERS } from '../config/tierCatalog.mjs';
 import logger from '../utils/logger.mjs';
+import { getStripeClient } from '../utils/stripeClient.mjs';
 import {
   buildStripeIdempotencyKey,
   buildWindowedStripeIdempotencyKey,
@@ -38,7 +38,7 @@ const router = express.Router();
 let stripe = null;
 const getStripe = () => {
   if (!stripe && process.env.STRIPE_SECRET_KEY) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
+    stripe = getStripeClient();
   }
   return stripe;
 };

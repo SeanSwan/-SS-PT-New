@@ -34,7 +34,6 @@
 
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { requireAdmin } from '../middleware/adminMiddleware.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
@@ -48,6 +47,7 @@ import CartItem from '../models/CartItem.mjs';
 import User from '../models/User.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
+import { getStripeClient } from '../utils/stripeClient.mjs';
 import {
   completeFulfillmentItem,
   getAdminFulfillmentQueue,
@@ -70,12 +70,7 @@ function sendInternalError(res, message) {
 let stripeClient = null;
 if (isStripeEnabled()) {
   try {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16',
-      telemetry: false,
-      maxNetworkRetries: 3,
-      timeout: 10000
-    });
+    stripeClient = getStripeClient();
     logger.info('💳 AdminOrdersRoutes: Stripe client initialized successfully');
   } catch (error) {
     logger.error(`❌ AdminOrdersRoutes: Failed to initialize Stripe client: ${error.message}`);

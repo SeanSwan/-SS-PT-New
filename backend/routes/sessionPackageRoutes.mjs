@@ -1,6 +1,5 @@
 // backend/routes/sessionPackageRoutes.mjs
 import express from 'express';
-import Stripe from 'stripe';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { resolvePriceVisibility, isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
@@ -9,6 +8,7 @@ import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
 import { getStorefrontSessionCredits } from '../services/SessionGrantService.mjs';
 import sessionPackageManualGrantRoutes from './sessionPackageManualGrantRoutes.mjs';
+import { getStripeClient } from '../utils/stripeClient.mjs';
 import {
   SESSION_PACKAGE_CHECKOUT_SOURCE,
   fulfillSessionPackageCheckoutSession,
@@ -45,9 +45,7 @@ function isPurchasableSessionPackage(sessionPackage) {
 let stripeClient = null;
 if (isStripeEnabled()) {
   try {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16' // Use a fixed, recent API version
-    });
+    stripeClient = getStripeClient();
     logger.info('Stripe client initialized successfully in sessionPackageRoutes.');
   } catch (error) {
       logger.error(`Failed to initialize Stripe in sessionPackageRoutes: ${error.message}`);

@@ -22,7 +22,6 @@
  * SwanStudios Payment Strategy Pattern Implementation
  */
 
-import Stripe from 'stripe';
 import ShoppingCart from '../../../models/ShoppingCart.mjs';
 import CartItem from '../../../models/CartItem.mjs';
 import StorefrontItem from '../../../models/StorefrontItem.mjs';

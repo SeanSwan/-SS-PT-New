@@ -61,6 +61,7 @@ import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretG
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import archiver from 'archiver';
 import { GetObjectCommand } from '@aws-sdk/client-s3';
+import { getLegacyDefaultStripeClient } from '../utils/stripeClient.mjs';
 
 const router = express.Router();
 
@@ -769,8 +770,10 @@ router.post('/purchase-credits', requireGalleryAccess, async (req, res) => {
       return res.status(503).json({ success: false, error: 'Payment processing not configured' });
     }
 
-    const { default: Stripe } = await import('stripe');
-    const stripe = new Stripe(stripeKey);
+    const stripe = getLegacyDefaultStripeClient();
+    if (!stripe) {
+      return res.status(503).json({ success: false, error: 'Payment processing not configured' });
+    }
 
     const pricing = CREDIT_PRICING[pkg];
     const visitorId = req.galleryAccess.visitorId;
@@ -856,8 +859,10 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
         return res.status(503).json({ success: false, error: 'Payment processing not configured' });
       }
 
-      const { default: Stripe } = await import('stripe');
-      const stripe = new Stripe(stripeKey);
+      const stripe = getLegacyDefaultStripeClient();
+      if (!stripe) {
+        return res.status(503).json({ success: false, error: 'Payment processing not configured' });
+      }
       const idempotencyKey = buildWindowedStripeIdempotencyKey(
         `gallery-donation:${visitorId}:${eventId}:stripe`,
         {
@@ -905,8 +910,10 @@ router.post('/donation', requireGalleryAccess, async (req, res) => {
         return res.status(503).json({ success: false, error: 'Payment processing not configured' });
       }
 
-      const { default: Stripe } = await import('stripe');
-      const stripe = new Stripe(stripeKey);
+      const stripe = getLegacyDefaultStripeClient();
+      if (!stripe) {
+        return res.status(503).json({ success: false, error: 'Payment processing not configured' });
+      }
       const idempotencyKey = buildWindowedStripeIdempotencyKey(
         `gallery-donation:${visitorId}:${eventId}:venmo`,
         {
@@ -1486,8 +1493,10 @@ router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
       return res.status(503).json({ success: false, error: 'Payment processing not configured' });
     }
 
-    const { default: Stripe } = await import('stripe');
-    const stripe = new Stripe(stripeKey);
+    const stripe = getLegacyDefaultStripeClient();
+    if (!stripe) {
+      return res.status(503).json({ success: false, error: 'Payment processing not configured' });
+    }
 
     const frontendUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com';
     const gallerySlug = req.galleryAccess.slug || '';
@@ -1579,8 +1588,10 @@ router.post('/vip-activate', requireGalleryAccess, async (req, res) => {
       return res.status(503).json({ success: false, error: 'Payment processing not configured' });
     }
 
-    const { default: Stripe } = await import('stripe');
-    const stripe = new Stripe(stripeKey);
+    const stripe = getLegacyDefaultStripeClient();
+    if (!stripe) {
+      return res.status(503).json({ success: false, error: 'Payment processing not configured' });
+    }
     const session = await stripe.checkout.sessions.retrieve(validation.sessionId);
 
     if (session.payment_status !== 'paid') {
@@ -1773,8 +1784,10 @@ router.post('/print-order', requireGalleryAccess, async (req, res) => {
       return res.status(503).json({ success: false, error: 'Payment processing not configured' });
     }
 
-    const { default: Stripe } = await import('stripe');
-    const stripe = new Stripe(stripeKey);
+    const stripe = getLegacyDefaultStripeClient();
+    if (!stripe) {
+      return res.status(503).json({ success: false, error: 'Payment processing not configured' });
+    }
 
     const baseUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com';
     const printAttemptKey = buildGalleryPrintAttemptKey({
