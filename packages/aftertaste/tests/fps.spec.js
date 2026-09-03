@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { admitted, admittedType, immortal } from './helpers.js';
 
 /**
  * The FPS slice, end to end in a real browser (Sean's call: shoot like Overwatch/BF6).

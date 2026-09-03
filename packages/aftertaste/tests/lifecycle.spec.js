@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { admitted, admittedType, immortal } from './helpers.js';
 
 /**
  * The lifecycle, end to end in a real browser: a killed enemy TOPPLES instead of popping, the
@@ -13,11 +14,18 @@ test('a kill topples a corpse: dying on the board, excluded from Remaining, gone
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas')).toBeVisible({ timeout: 20_000 });
   // Wait past fair-spawn: the machine must mature an enemy before it can be shot at all.
-  await page.waitForFunction(() => window.__swanEnemyPos?.[0]?.state === 'alive', null, { timeout: 20_000 });
+  await admitted(page);
 
   // A stationary tester in a ROOM (S6a) gets reached and killed, and `over` short-circuits tick()
   // — which is what ages a corpse off the board. Death is not under test here.
-  await page.evaluate(() => window.__swanGameStore.setState({ hp: 99999 }));
+  await page.evaluate(() => {
+    const store = window.__swanGameStore;
+    // FREEZE THE INTAKE. This test counts what holds the wave open, and the director keeps
+    // admitting monsters while it counts — "Remaining: 2" became "Remaining: 3" because a new
+    // arrival walked in mid-assertion. Spending the budget stops the intake without touching the
+    // lifecycle, which is the actual subject here.
+    store.setState({ hp: 99999, director: { ...store.getState().director, budgetLeft: 0 } });
+  });
 
   const remainingBefore = await page.getByTestId('hud-left').textContent();
 

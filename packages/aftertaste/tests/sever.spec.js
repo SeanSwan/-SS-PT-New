@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { admitted, admittedType, immortal, place } from './helpers.js';
 
 /**
  * D3 acceptance: the head actually comes OFF. Unit tests prove the locational maths and the sever
@@ -12,9 +13,18 @@ test('a headshot decapitates: one shot kills, the head mesh vanishes, debris pop
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas')).toBeVisible({ timeout: 20_000 });
   await page.waitForFunction(
-    () => window.__swanScene && window.__swanEnemyPos?.some((e) => e.state === 'alive' && e.type === 'fryling'),
-    null, { timeout: 20_000 },
+    () => window.__swanScene, null, { timeout: 20_000 },
   );
+  await place(page, ['fryling']);
+  // WAIT FOR THE MESH BEFORE SHOOTING IT. `place` puts the monster in the store instantly, but its
+  // GLB mounts a frame or two later — and the corpse ages off in about a second. Shoot too early
+  // and the head mesh only appears after the body is gone, so "the head is hidden" can never be
+  // observed on a working game. The model has to exist before the claim about it can be made.
+  await page.waitForFunction(() => {
+    let heads = 0;
+    window.__swanScene.traverse((o) => { if (o.name === 'part:head') heads += 1; });
+    return heads >= 1;
+  }, null, { timeout: 25_000 });
 
   // A stationary tester in a ROOM (S6a) gets reached and killed, and `over` short-circuits tick()
   // — which is what ages corpses off the board and drains debris. Death is not under test here.
@@ -46,16 +56,32 @@ test('a headshot decapitates: one shot kills, the head mesh vanishes, debris pop
   expect(result.kills).toBe(1);
   expect(result.debris, 'the severed head became debris').toBeGreaterThanOrEqual(1);
 
-  // The HEAD MESH is gone from that monster while its body still topples — and the debris
-  // renders as scene objects.
+  // The store's sever is the fact; the hidden mesh is the rendering of it. Waiting for the FACT
+  // first means a slow frame cannot be mistaken for a sever that did not happen.
+  await page.waitForFunction(
+    () => window.__swanGameStore.getState().enemies.some((e) => (e.severed ?? []).includes('head')),
+    null, { timeout: 20_000 },
+  );
+  // TWO DECAYING STATES MUST NOT BE REQUIRED TO OVERLAP. The corpse ages off in ~1s and the gibs
+  // in 4s, so demanding "a hidden head AND a gib in the same instant" is a one-second window that
+  // a busy machine misses — and a passing game then reads as a broken sever. Each fact is observed
+  // where it actually lives, and the head is read in the SAME evaluate that confirms the corpse is
+  // still there.
+  const head = await page.waitForFunction(() => {
+    const store = window.__swanGameStore.getState();
+    const corpse = store.enemies.find((e) => (e.severed ?? []).includes('head'));
+    if (!corpse) return false;
+    let hidden = 0;
+    window.__swanScene.traverse((o) => { if (o.name === 'part:head' && o.visible === false) hidden += 1; });
+    return hidden >= 1 ? { hidden } : false;
+  }, null, { timeout: 25_000 }).then((h) => h.jsonValue());
+  expect(head.hidden, 'the head mesh is hidden on the decapitated monster').toBeGreaterThanOrEqual(1);
+
   await page.waitForFunction(() => {
-    let hiddenHeads = 0; let gibs = 0;
-    window.__swanScene.traverse((o) => {
-      if (o.name === 'part:head' && o.visible === false) hiddenHeads += 1;
-      if (o.parent?.parent?.name === 'debris' && o.isMesh) gibs += 1;
-    });
-    return hiddenHeads >= 1 && gibs >= 1;
-  }, null, { timeout: 5_000 });
+    let gibs = 0;
+    window.__swanScene.traverse((o) => { if (o.parent?.parent?.name === 'debris' && o.isMesh) gibs += 1; });
+    return gibs >= 1;
+  }, null, { timeout: 25_000 });
 
   // The floor cleans itself: debris drains after its TTL. DRIVEN, not raced — waiting in wall time
   // for a game-clock TTL fails whenever the machine is busy, and a working drain then reads as a

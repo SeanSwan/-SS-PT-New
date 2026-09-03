@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { admitted, admittedType, immortal } from './helpers.js';
 
 /** S6a in the browser: the walls the player can see are the walls the player cannot cross. */
 

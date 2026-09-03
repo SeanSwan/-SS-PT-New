@@ -85,7 +85,7 @@ export default function Enemies() {
     }
 
     if (typeof window !== 'undefined') {
-      window.__swanEnemyPos = list.map((e) => ({ x: e.x, z: e.z, hp: e.hp, state: e.state, type: e.type }));
+      window.__swanEnemyPos = list.map((e) => ({ x: e.x, z: e.z, hp: e.hp, state: e.state, type: e.type, outside: Boolean(e.outside) }));
       // Test seam: how many skinned meshes each type renders. Browser specs asserting mesh counts
       // used to hardcode which types were parted, and went red every time the cast grew — the
       // count belongs to the data, so the seam exposes the data.

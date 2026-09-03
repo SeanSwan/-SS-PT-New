@@ -39,10 +39,12 @@ export const MELEE_COOLDOWN = 0.4;
 export const MELEE_KNOCKBACK = 1.4;
 import { waveSize, spawnRing, tickRound, PLAYER_HP, inTouchRange } from '../systems/waves.js';
 import { stepLifecycle, can, holdsWave } from '../systems/lifecycle.js';
-import { PART_DAMAGE } from '../enemies/partsData.js';
+import { PART_DAMAGE, PARTS } from '../enemies/partsData.js';
 import { ROSTER } from '../enemies/roster.js';
 import { awardForShot, awardForRound } from '../systems/economy.js';
-import { startRoom, roomAt, visibleRooms } from '../world/rooms.js';
+import { startRoom, roomAt, visibleRooms, ROOMS } from '../world/rooms.js';
+import { freshWindow, stepWindow, releaseIfClimbing, startRound as roundResetWindow, PANELS } from '../systems/windows.js';
+import { freshRound, stepDirector, roundOver } from '../systems/director.js';
 
 /** Seconds a severed part's debris tumbles before fading off the floor — T4 default. */
 export const DEBRIS_TTL = 4;
@@ -94,6 +96,11 @@ export const useGameStore = create((set, get) => ({
   room: startRoom(),
   /** Doors bought this run — permanent, which is what makes opening one a commitment. */
   openDoors: [],
+  /** The barricades, by id. THE bottleneck (S6b): a horde becomes a stream you can lose. */
+  windows: Object.fromEntries((ROOMS[startRoom()]?.windows ?? []).map((w) => [w.id, freshWindow(w.id)])),
+  /** The one round machine: budget owed, queues per window, release cadence. */
+  director: freshRound(1, 0),
+  roundStartedAt: 0,
   invulnUntil: 0,
   /** Bumped by reset(); the trigger holsters the gun when it sees a new value (F6). */
   runId: 0,
@@ -130,7 +137,11 @@ export const useGameStore = create((set, get) => ({
     // exist — which is what makes a shotgun's eight pellets affordable at wave 15.
     const { room, openDoors } = get();
     const reachable = room ? visibleRooms(room, new Set(openDoors)) : null;
-    const targets = enemies.filter((e) => can(e, 'canBeShot')
+    // OUTSIDE IS BEHIND A WALL (S6b). A queued arrival stands at its window on the far side of the
+    // barricade: shooting it would be shooting through masonry, and — worse — it would soak the
+    // bullet meant for the monster actually in the room with you, because it shares the window's
+    // coordinates. Found by a store test whose headshot kept landing on a queued bystander.
+    const targets = enemies.filter((e) => can(e, 'canBeShot') && !e.outside
       && (!reachable || reachable.has(roomAt(e.x, e.z) ?? room)));
     const hit = hitscan(origin, dir, targets);
     // THE BULLET IS VISIBLE, hit or miss: a hit tracer stops at the monster, a miss flies to max
@@ -278,6 +289,84 @@ export const useGameStore = create((set, get) => ({
     const r = tickRound({ hp: s.hp, wave: s.wave }, player, stepped, elapsed);
 
     const patch = {};
+
+    // ---- WINDOWS + DIRECTOR (S6b) -------------------------------------------------------------
+    // The ring spawner is retired here: arrivals wait OUTSIDE at a window and are admitted one at
+    // a time. This block is the only place that creates enemies during a round.
+    const windowIds = Object.keys(s.windows);
+    if (windowIds.length) {
+      const windows = { ...s.windows };
+      let windowsChanged = false;
+      let enemies = patch.enemies ?? stepped;
+      let enemiesChanged = Boolean(patch.enemies);
+
+      // Step every window against whichever waiting mob is at its head.
+      for (const id of windowIds) {
+        const waiting = enemies.find((e) => e.atWindow === id && e.outside);
+        const { window: nextW, event } = stepWindow(windows[id], waiting?.id ?? null, elapsed);
+        if (nextW !== windows[id]) { windows[id] = nextW; windowsChanged = true; }
+        if (event === 'enter' && waiting) {
+          // Through: the mob stops being a queued arrival and becomes a monster in the room.
+          const opening = (ROOMS[s.room]?.windows ?? []).find((w) => w.id === id);
+          const step = 1.4; // one stride clear of the frame, so nobody is born inside masonry
+          enemies = enemies.map((e) => (e.id === waiting.id
+            ? {
+              ...e,
+              outside: false,
+              atWindow: null,
+              state: 'alive',
+              stateSince: elapsed,
+              x: (opening?.at.x ?? e.x) + (opening?.facing === 'east' ? -step : opening?.facing === 'west' ? step : 0),
+              z: (opening?.at.z ?? e.z) + (opening?.facing === 'south' ? -step : opening?.facing === 'north' ? step : 0),
+            }
+            : e));
+          enemiesChanged = true;
+        }
+      }
+
+      // A climber that died frees its slot — killing it buys the opening back, not the panels.
+      for (const id of windowIds) {
+        const holder = windows[id].climbing;
+        if (holder && !enemies.some((e) => e.id === holder && e.state !== 'dying')) {
+          const freed = releaseIfClimbing(windows[id], holder);
+          if (freed !== windows[id]) { windows[id] = freed; windowsChanged = true; }
+        }
+      }
+
+      // The director releases the next arrival on its cadence.
+      const dir = stepDirector(s.director, windowIds, elapsed);
+      if (dir.spawn) {
+        const spec = ROSTER[dir.spawn.type];
+        const at = (ROOMS[s.room]?.windows ?? []).find((w) => w.id === dir.spawn.windowId);
+        const queueDepth = enemies.filter((e) => e.outside && e.atWindow === dir.spawn.windowId).length;
+        for (let b = 0; b < dir.spawn.batch; b++) {
+          enemies = enemies.concat([{
+            id: `w${s.wave}-${dir.spawn.windowId}-${elapsed.toFixed(2)}-${b}-${Math.random().toString(36).slice(2, 6)}`,
+            type: dir.spawn.type,
+            // Parked at the opening until the window admits them. `outside` is what keeps a
+            // queued mob from being shot through a wall or counted as pressure inside the room.
+            // A QUEUE IS A LINE, not a pile: each arrival stands a little further out from the
+            // opening than the last. Stacked on one point they are visually one monster, and any
+            // ray that reaches the window hits an arbitrary member of the stack.
+            x: (at?.at.x ?? 0) + (queueDepth + b) * (at?.facing === 'east' ? 1.1 : at?.facing === 'west' ? -1.1 : 0),
+            z: (at?.at.z ?? 0) + (queueDepth + b) * (at?.facing === 'south' ? 1.1 : at?.facing === 'north' ? -1.1 : 0)
+              + (at?.facing === 'east' || at?.facing === 'west' ? (b - (dir.spawn.batch - 1) / 2) * 0.7 : 0),
+            outside: true,
+            atWindow: dir.spawn.windowId,
+            hp: spec.hp,
+            aimRadius: spec.aimRadius * (spec.renderHeight ?? 1),
+            renderScale: spec.renderHeight ?? 1,
+            ...(PARTS[dir.spawn.type] ? { parts: PARTS[dir.spawn.type] } : {}),
+            state: 'spawning',
+            stateSince: elapsed,
+          }]);
+          enemiesChanged = true;
+        }
+      }
+      if (dir !== s.director) patch.director = dir;
+      if (windowsChanged) patch.windows = windows;
+      if (enemiesChanged) patch.enemies = enemies;
+    }
     if (changed) patch.enemies = stepped;
     // Debris fades when its TTL ends — decoration cleans itself up (T4 default: 4s).
     if (s.debris.length && s.debris.some((d) => elapsed - d.bornAt >= DEBRIS_TTL)) {
@@ -296,7 +385,16 @@ export const useGameStore = create((set, get) => ({
     }
     // Expire it here rather than in the HUD: one clock owns the truth, and the HUD only draws.
     if (s.feverUntil > 0 && elapsed >= s.feverUntil) patch.feverUntil = 0;
-    if (r.cleared) {
+    // THE ROUND ENDS WHEN THE DIRECTOR SAYS SO — one machine, not two counters. tickRound's
+    // `cleared` still means "the board is empty", but an empty board mid-round is just a player
+    // who is winning; the round is over when the budget is spent AND nothing holds it open (or the
+    // grace forgives a straggler).
+    const holdingNow = (patch.enemies ?? stepped).filter(holdsWave).length;
+    const dirNow = patch.director ?? s.director;
+    const cleared = windowIds.length
+      ? roundOver(dirNow, holdingNow, elapsed, s.roundStartedAt, windowIds.length)
+      : r.cleared;
+    if (cleared) {
       patch.wave = r.wave;
       patch.points = s.points + awardForRound(s.wave);
       patch.lastAward = awardForRound(s.wave);
@@ -305,10 +403,21 @@ export const useGameStore = create((set, get) => ({
       // spawn the next wave a full sprint behind wherever you have kited to. Corpses still mid-
       // topple SURVIVE the respawn — the lifecycle removes them when their death clip ends;
       // replacing the whole array would make kills pop instead of fall.
-      patch.enemies = [
-        ...stepped.filter((e) => e.state === 'dying'),
-        ...spawnRing(waveSize(r.wave), SPAWN_RADIUS, r.wave, player, elapsed, s.room),
-      ];
+      if (windowIds.length) {
+        // A new round: the director gets a fresh budget, the windows keep their DAMAGE and only
+        // reset what repairs pay for. Nobody is spawned here — the director will release them.
+        patch.director = freshRound(r.wave, elapsed);
+        patch.roundStartedAt = elapsed;
+        patch.windows = Object.fromEntries(
+          Object.entries(patch.windows ?? s.windows).map(([id, w]) => [id, roundResetWindow(w)]),
+        );
+        patch.enemies = (patch.enemies ?? stepped).filter((e) => e.state === 'dying');
+      } else {
+        patch.enemies = [
+          ...stepped.filter((e) => e.state === 'dying'),
+          ...spawnRing(waveSize(r.wave), SPAWN_RADIUS, r.wave, player, elapsed, s.room),
+        ];
+      }
     }
     if (Object.keys(patch).length) set(patch);
 
@@ -326,7 +435,10 @@ export const useGameStore = create((set, get) => ({
     // The player does not teleport home on a restart, so the fresh wave rings THEM.
     const centre = usePlayerStore.getState().position;
     set({
-      enemies: spawnRing(waveSize(1), SPAWN_RADIUS, 1, centre, clockNow, startRoom()),
+      enemies: [],
+      windows: Object.fromEntries((ROOMS[startRoom()]?.windows ?? []).map((w) => [w.id, freshWindow(w.id)])),
+      director: freshRound(1, clockNow),
+      roundStartedAt: clockNow,
       kills: 0, points: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0, feverUntil: 0,
       room: startRoom(), openDoors: [],
       lastAward: 0, lastAwardAt: -1,

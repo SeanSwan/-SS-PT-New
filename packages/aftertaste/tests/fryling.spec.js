@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { admitted, admittedType, immortal } from './helpers.js';
 import { ROSTER } from '../src/enemies/roster.js';
 
 /**

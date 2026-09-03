@@ -31,9 +31,42 @@ const tick = (player, t) => useGameStore.getState().tick(player, t);
 /** A monotonic clock: the game's clock never rewinds, so neither does the tests'. */
 let T = 0;
 
-/** Mature the freshly spawned flock into `alive` (far from the player, so nobody attacks). */
+/**
+ * TEST-DELTA (S6b): there is no flock at t=0 any more. The ring spawner is retired — arrivals wait
+ * OUTSIDE at a window and are admitted one at a time, which is the whole point of the slice. So
+ * "mature" now means "run the clock until the room actually has monsters in it", by stepping the
+ * real director and the real windows rather than by conjuring a board.
+ *
+ * Stepped in small slices because both machines are cadence-driven: one big jump would release a
+ * single arrival and tear a single panel, exactly as it should.
+ */
+function admit(want = 1, limit = 400) {
+  for (let i = 0; i < limit; i++) {
+    tick(FAR, T += 0.25);
+    const inside = useGameStore.getState().enemies.filter((e) => !e.outside && e.state === 'alive');
+    if (inside.length >= want) return inside;
+  }
+  throw new Error(`only ${useGameStore.getState().enemies.filter((e) => !e.outside).length} got inside`);
+}
+
+/** Kept for the tests whose subject is the lifecycle rather than the way in. */
 function mature() {
-  tick(FAR, T += 10);
+  admit(1);
+}
+
+/**
+ * Admit until a monster of THIS type is inside and alive. Wave composition is a cycle, so a test
+ * that needs a fryling has to wait for the fryling — reading whoever arrived first and asserting
+ * fryling behaviour on a Regular is how a correct game fails a test.
+ */
+function admitType(type, limit = 900) {
+  for (let i = 0; i < limit; i++) {
+    tick(FAR, T += 0.25);
+    const found = useGameStore.getState().enemies
+      .find((e) => e.type === type && !e.outside && e.state === 'alive');
+    if (found) return found;
+  }
+  throw new Error(`no ${type} was admitted`);
 }
 
 /**
@@ -43,6 +76,7 @@ function mature() {
  * as the lifecycle boundary tests — it bit twice in one session.)
  */
 function landStrike() {
+  admit(1);
   onPlayer(); tick(ORIGIN, T += 10);                   // 10s later: mercy long expired, spawns matured
   onPlayer(); tick(ORIGIN, T += 0.016);                // in range → attacking
   onPlayer(); tick(ORIGIN, T += ATTACK_WINDUP + 0.01); // comfortably past the wind-up → strike lands
@@ -51,15 +85,22 @@ function landStrike() {
 
 test.beforeEach(() => useGameStore.getState().reset());
 
-test('a fresh round is wave 1, full hp, not over, with enemies on the board', () => {
+test('a fresh round is wave 1, full hp, not over — and the board starts EMPTY (S6b)', () => {
   const s = useGameStore.getState();
   assert.equal(s.hp, PLAYER_HP);
   assert.equal(s.wave, 1);
   assert.equal(s.over, false);
-  assert.ok(s.enemies.length > 0);
+  // TEST-DELTA (S6b): a round no longer BEGINS with a flock. The director owes bodies and the
+  // windows admit them over time — an empty first frame is the mechanic, not a missing wave.
+  assert.equal(s.enemies.length, 0, 'nobody is inside yet');
+  assert.ok(s.director.budgetLeft > 0, 'the round owes monsters');
+  assert.ok(Object.keys(s.windows).length > 0, 'and has windows to send them through');
+  // They do arrive.
+  assert.ok(admit(1).length >= 1);
 });
 
 test('spawn protection: an enemy ON the player deals nothing until it matures and winds up', () => {
+  admit(1);
   onPlayer();
   tick(ORIGIN, T += 0.016);
   assert.equal(useGameStore.getState().hp, PLAYER_HP, 'a spawning enemy cannot hurt you');
@@ -100,13 +141,18 @@ test('once the round is over, ticking changes nothing', () => {
   assert.equal(after.wave, before.wave);
 });
 
-test('clearing the board really does advance the wave, and the next one is bigger', () => {
-  const first = useGameStore.getState().enemies.length;
+test('the round advances when the DIRECTOR is spent, not when the board happens to be empty', () => {
+  // TEST-DELTA (S6b): an empty board mid-round is just a player who is winning. The round ends
+  // when the budget is spent AND nothing holds it open — one machine, never two counters.
   useGameStore.setState({ enemies: [] });
   tick(FAR, T += 1);
+  assert.equal(useGameStore.getState().wave, 1, 'an empty board alone does NOT advance the wave');
+
+  useGameStore.setState({ enemies: [], director: { ...useGameStore.getState().director, budgetLeft: 0 } });
+  tick(FAR, T += 1);
   const s = useGameStore.getState();
-  assert.equal(s.wave, 2);
-  assert.ok(s.enemies.length > first, `wave 2 (${s.enemies.length}) must exceed wave 1 (${first})`);
+  assert.equal(s.wave, 2, 'budget spent + nothing holding = next round');
+  assert.ok(s.director.budgetLeft > 0, 'and the new round owes more than the last');
 });
 
 test('reset restores a full, playable round', () => {
@@ -117,7 +163,11 @@ test('reset restores a full, playable round', () => {
   assert.equal(s.wave, 1);
   assert.equal(s.kills, 0);
   assert.equal(s.over, false);
-  assert.ok(s.enemies.length > 0, 'reset must respawn a wave, not leave an empty board');
+  // TEST-DELTA (S6b): a reset re-arms the MACHINES rather than conjuring a board.
+  assert.equal(s.enemies.length, 0);
+  assert.ok(s.director.budgetLeft > 0, 'the new run owes monsters');
+  assert.ok(Object.values(s.windows).every((w) => w.panels === 5), 'and its barricades are whole');
+  assert.ok(admit(1).length >= 1, 'and they arrive');
 });
 
 // --- shoot(): the FPS trigger's seam into the world -------------------------------------------
@@ -128,29 +178,39 @@ const shotAt = (enemy) => useGameStore.getState().shoot(
 );
 
 test('a connected shot damages exactly the enemy under the ray', () => {
-  // TEST-DELTA (S2): enemies[0] is now the PARTED regular, and a straight-down ray lands on its
-  // HEAD part (×2) — correct behaviour, wrong fixture for a plain-damage claim. Target a partless
-  // type so this test keeps asserting base damage; part multipliers have their own tests.
-  mature();
+  // TEST-DELTA (S2/S6b): the claim here is BASE damage, so the fixture needs a face that survives
+  // one bullet — the grease-fly has 1 hp, so "hp - 1" was 0 and the shot killed it, which is a
+  // different (and separately tested) claim. A body shot on the 3-hp Regular is the honest fixture;
+  // the shot is aimed at the BODY capsule so the headshot multiplier is not in play.
+  const target = admitType('regular');
   const s = useGameStore.getState();
-  const target = s.enemies.find((e) => e.type === 'grease-fly');
   const others = s.enemies.filter((e) => e.id !== target.id).map((e) => e.hp);
-  assert.equal(shotAt(target), true);
+  const body = target.parts.find((pp) => pp.tag === 'body').hitShape;
+  const bodyY = ((body.a[1] + body.b[1]) / 2) * (target.renderScale ?? 1);
+  assert.equal(useGameStore.getState().shoot(
+    { x: target.x, y: bodyY, z: target.z - 10 }, { x: 0, y: 0, z: 1 },
+  ), true);
   const after = useGameStore.getState().enemies;
   assert.equal(after.find((e) => e.id === target.id).hp, target.hp - 1);
   assert.deepEqual(after.filter((e) => e.id !== target.id).map((e) => e.hp), others, 'bystanders untouched');
 });
 
 test('a SPAWNING enemy cannot be shot — fair-spawn cuts both ways', () => {
-  // No mature(): the flock is still materialising.
-  const target = useGameStore.getState().enemies[0];
+  // TEST-DELTA (S6b): arrivals are born OUTSIDE at a window and spend their spawn window there,
+  // so this waits for one to exist rather than reading a board that is empty on frame one.
+  let target = null;
+  for (let i = 0; i < 60 && !target; i++) {
+    tick(FAR, T += 0.25);
+    target = useGameStore.getState().enemies.find((e) => e.state === 'spawning');
+  }
+  assert.ok(target, 'an arrival exists');
   assert.equal(shotAt(target), false);
-  assert.equal(useGameStore.getState().enemies[0].hp, target.hp);
+  assert.equal(useGameStore.getState().enemies.find((e) => e.id === target.id).hp, target.hp);
 });
 
 test('the killing shot starts the death: corpse on the board, kill scored, wave not held open', () => {
   mature();
-  const target = useGameStore.getState().enemies[0];
+  const target = admit(1)[0];
   shotAt(target);
   shotAt(target);
   const s = useGameStore.getState();
@@ -162,7 +222,7 @@ test('the killing shot starts the death: corpse on the board, kill scored, wave 
 
 test('a corpse cannot be shot again, and the ray passes through it', () => {
   mature();
-  const target = useGameStore.getState().enemies[0];
+  const target = admit(1)[0];
   shotAt(target);
   shotAt(target);
   const killsAfter = useGameStore.getState().kills;
@@ -172,7 +232,7 @@ test('a corpse cannot be shot again, and the ray passes through it', () => {
 
 test('the corpse leaves the board when its death clip ends', () => {
   mature();
-  const target = useGameStore.getState().enemies[0];
+  const target = admit(1)[0];
   shotAt(target);
   shotAt(target);
   const board = useGameStore.getState().enemies.length;
@@ -207,7 +267,7 @@ test('a miss changes nothing and reports false', () => {
 
 test('hitmarker timestamps: every hit stamps lastHitAt; only a kill stamps lastKillAt to match', () => {
   mature();
-  const target = useGameStore.getState().enemies[0];
+  const target = admit(1)[0];
   shotAt(target);
   let s = useGameStore.getState();
   assert.equal(s.lastHitAt, T);
@@ -218,15 +278,20 @@ test('hitmarker timestamps: every hit stamps lastHitAt; only a kill stamps lastK
 });
 
 test('spawn maturity is time-based, not tick-count-based', () => {
-  // One tick just before the window closes: still spawning. One just after: alive.
-  const spawnedAt = T + 10;
+  // TEST-DELTA (S6b): a reset leaves an EMPTY board — arrivals are released by the director over
+  // time — so this waits for one to be born, remembers when, and ages THAT one across the boundary.
   useGameStore.getState().reset();
-  tick(FAR, T = spawnedAt); // reset stamps at the PREVIOUS clock; this tick re-ages from there
-  useGameStore.getState().reset(); // stamp precisely at spawnedAt
-  tick(FAR, spawnedAt + SPAWN_SECONDS - 0.05);
-  assert.equal(useGameStore.getState().enemies[0].state, 'spawning');
-  tick(FAR, T = spawnedAt + SPAWN_SECONDS + 0.05);
-  assert.equal(useGameStore.getState().enemies[0].state, 'alive');
+  let born = null;
+  for (let i = 0; i < 60 && !born; i++) {
+    tick(FAR, T += 0.25);
+    born = useGameStore.getState().enemies.find((e) => e.state === 'spawning');
+  }
+  assert.ok(born, 'an arrival exists');
+  const find = () => useGameStore.getState().enemies.find((e) => e.id === born.id);
+  tick(FAR, born.stateSince + SPAWN_SECONDS - 0.05);
+  assert.equal(find().state, 'spawning');
+  tick(FAR, T = born.stateSince + SPAWN_SECONDS + 0.05);
+  assert.equal(find().state, 'alive');
 });
 
 test('the dead do not shoot: shoot() is a no-op once the round is over (GLM-5.3 finding 1)', () => {
@@ -254,7 +319,7 @@ const headShotAt = (enemy) => {
 
 test('a headshot one-shots a full-hp fryling: x2 damage, onSever kill, corpse missing its head', () => {
   mature();
-  const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
+  const target = admitType('fryling');
   assert.ok(target?.parts, 'precondition: wave-1 frylings carry parts');
   assert.equal(headShotAt(target), true);
   const s = useGameStore.getState();
@@ -266,7 +331,7 @@ test('a headshot one-shots a full-hp fryling: x2 damage, onSever kill, corpse mi
 
 test('a body shot deals normal damage and severs nothing', () => {
   mature();
-  const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
+  const target = admitType('fryling');
   // TEST-DELTA (S3 re-sculpt): the fryling's new silhouette puts its head over the centre line,
   // so the old straight-down ray now pierces the HEAD first (entry-ordered hitscan, working as
   // designed). A body shot must be aimed at the body: fire horizontally at the body capsule's own
@@ -285,7 +350,7 @@ test('a body shot deals normal damage and severs nothing', () => {
 
 test('a sever spawns debris; debris lives in its own array, never among enemies', () => {
   mature();
-  const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
+  const target = admitType('fryling');
   headShotAt(target);
   const s = useGameStore.getState();
   assert.ok(s.debris.length >= 1, 'the severed head became debris');
@@ -295,7 +360,7 @@ test('a sever spawns debris; debris lives in its own array, never among enemies'
 
 test('debris expires after its TTL and a fresh round starts with none', () => {
   mature();
-  const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
+  const target = admitType('fryling');
   headShotAt(target);
   assert.ok(useGameStore.getState().debris.length >= 1);
   tick(FAR, T += DEBRIS_TTL + 0.1);
@@ -359,7 +424,7 @@ test('every shot records a tracer segment (miss included), and tracers drain fas
 
 test('a body shot pays NOTHING; the kill pays; the sever pays on top', () => {
   mature();
-  const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
+  const target = admitType('fryling');
   const body = target.parts.find((p) => p.tag === 'body').hitShape;
   const bodyY = (body.a[1] + body.b[1]) / 2 * (target.renderScale ?? 1);
   const before = useGameStore.getState().points;
@@ -374,13 +439,20 @@ test('a body shot pays NOTHING; the kill pays; the sever pays on top', () => {
 });
 
 test('clearing a round pays a bonus that scales with the round', () => {
+  // TEST-DELTA (S6b): a round ends when the DIRECTOR is spent, not when the board is empty — so
+  // clearing a round in a test means spending the budget as well as the board.
+  const clearRound = () => {
+    useGameStore.setState({
+      enemies: [],
+      director: { ...useGameStore.getState().director, budgetLeft: 0 },
+    });
+    tick(FAR, T += 1);
+  };
   const first = useGameStore.getState().points;
-  useGameStore.setState({ enemies: [] });
-  tick(FAR, T += 1);
+  clearRound();
   const afterWave1 = useGameStore.getState().points;
   assert.ok(afterWave1 > first, 'surviving wave 1 paid');
-  useGameStore.setState({ enemies: [] });
-  tick(FAR, T += 1);
+  clearRound();
   const afterWave2 = useGameStore.getState().points;
   assert.ok(afterWave2 - afterWave1 > afterWave1 - first, 'wave 2 pays more than wave 1');
 });
@@ -401,7 +473,7 @@ test('F1: a PUNCH kill pays the kill award — the fist is not a free door out o
   // A one-hp face dies to a single punch, so the award is exact rather than "more than before".
   // grease-fly, not crumb-roach: beforeEach resets to WAVE 1 and the roach only unlocks at wave 2.
   // (My fixture was wrong, not the game — the first draft asserted a face that cannot be on the board.)
-  const roach = useGameStore.getState().enemies.find((e) => e.type === 'grease-fly' && e.state === 'alive');
+  const roach = admitType('grease-fly');
   assert.ok(roach, 'a one-hp face must be on the wave-1 board for this fixture');
   roach.x = 0; roach.z = -1.2;                       // directly in front (yaw 0 faces -z)
   const before = useGameStore.getState().points;
@@ -414,7 +486,7 @@ test('F1: a PUNCH kill pays the kill award — the fist is not a free door out o
 
 test('F1: a punch that only WOUNDS pays nothing — results pay, contact does not', async () => {
   mature();
-  const tough = useGameStore.getState().enemies.find((e) => e.type === 'regular' && e.state === 'alive');
+  const tough = admitType('regular');
   tough.x = 0; tough.z = -1.2;
   const before = useGameStore.getState().points;
   useGameStore.setState({ meleeReadyAt: -1 });

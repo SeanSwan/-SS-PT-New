@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { admitted, admittedType, immortal } from './helpers.js';
 
 /**
  * Slice 3 acceptance, in the browser: the enemies actually close in on the player.
@@ -15,7 +16,7 @@ test('enemies close in on the player, and nothing throws', async ({ page }) => {
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas')).toBeVisible({ timeout: 20_000 });
-  await page.waitForFunction(() => window.__swanEnemyPos?.length > 0, null, { timeout: 20_000 });
+  await admitted(page);
 
   const read = () => page.evaluate(() => ({
     player: window.__swanPlayerPos,
@@ -48,7 +49,7 @@ test('enemies close in on the player, and nothing throws', async ({ page }) => {
 test('the player is faster than the enemies, measured, not assumed', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas')).toBeVisible({ timeout: 20_000 });
-  await page.waitForFunction(() => window.__swanEnemyPos?.length > 0, null, { timeout: 20_000 });
+  await admitted(page);
 
   // This used to hold S and assert the nearest enemy got further away. That was only true while
   // every enemy spawned on one side; Slice 5 spawns them on a RING around the player, so running

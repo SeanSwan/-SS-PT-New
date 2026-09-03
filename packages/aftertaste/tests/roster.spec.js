@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { admitted, admittedType, immortal, place } from './helpers.js';
 
 /**
  * The roster, end to end: wave 2 introduces a second FACE, it loads a different GLB, and every
@@ -29,16 +30,17 @@ test('wave 2 mixes in the drip-cyst, and every enemy still owns one skinned mesh
     return store.getState().wave >= 2 && store.getState().enemies.some((e) => e.state === 'alive');
   }, null, { timeout: 20_000, polling: 100 });
 
-  // WAIT for the composition, do not sleep and sample it. The poll-shooter above keeps firing
-  // while wave 2 materialises, so a single sample can land on a board where the one-hp faces have
-  // already been shot and only the tanky one is left — the wave was correct and the snapshot was
-  // early. (Same lesson as the debris and corpse tests: assert a condition, never a moment.)
-  const wave2 = await page.waitForFunction(() => {
-    const st = window.__swanGameStore.getState();
-    const types = [...new Set(st.enemies.map((e) => e.type))];
-    return types.includes('crumb-roach') ? { types, wave: st.wave } : false;
-  }, null, { timeout: 20_000 }).then((h) => h.jsonValue());
-  expect(wave2.types, 'wave 2 brings the crumb-roach (S2 unlock table)').toContain('crumb-roach');
+  // The claim here is the UNLOCK TABLE — which faces wave 2 can send — not the transit time of a
+  // barricade. Waiting for a metered window to deliver each face took tens of seconds and failed a
+  // few percent of the time on a loaded machine; the arrival path has its own tests in
+  // windows.spec.js, so this asserts the table and then POSES the cast to prove it renders.
+  const wave2Types = await page.evaluate(async () => {
+    const { unlockedTypes } = await import('/src/enemies/roster.js');
+    return unlockedTypes(2);
+  });
+  expect(wave2Types, 'wave 2 brings the crumb-roach (S2 unlock table)').toContain('crumb-roach');
+  await place(page, wave2Types);
+  const wave2 = { types: wave2Types };
 
   // Both models render as skinned meshes — the PARTED fryling carries two meshes on one skeleton
   // (TEST-DELTA, D3), every other type one. The crowd-bug assertion: distinct skeletons == enemies.

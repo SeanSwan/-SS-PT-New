@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { admitted, admittedType, immortal } from './helpers.js';
 
 /**
  * The feel pack (playtest 2: "I wanna see bullets... run, jump, punch"), end to end. Unit tests
@@ -8,9 +9,10 @@ const boot = async (page) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas')).toBeVisible({ timeout: 20_000 });
   await page.waitForFunction(
-    () => window.__swanLook && window.__swanScene && window.__swanEnemyPos?.length > 0,
+    () => window.__swanLook && window.__swanScene,
     null, { timeout: 20_000 },
   );
+  await admitted(page);
   await page.locator('canvas').click(); // focus + arm
 };
 
@@ -58,20 +60,28 @@ test('SHIFT sprints: measured ground speed rises by the sprint multiplier', asyn
   // TEST-DELTA (S6a): a speed measurement needs RUNWAY, and the room is 24x20 with a counter in
   // the middle of it. Measured from the origin the sprint ran out of floor mid-sample and read as
   // barely faster than a walk. Start in a corner and run the long axis.
+  // READ THE SPEED, do not estimate it. Distance-over-time needs clear runway, a settled ramp and
+  // an untroubled frame rate — three assumptions that each broke once as the game grew walls and
+  // furniture. The player already publishes its own measured ground speed every frame; sampling
+  // THAT is a direct reading of the thing under test.
   const speed = async (sprint) => page.evaluate(async (s) => {
     window.__swanAim.yaw = 0;
-    window.__swanTeleport?.({ x: -10, z: 7 });
-    await new Promise((r) => setTimeout(r, 120));
+    window.__swanTeleport?.({ x: -10.5, z: 7 });
+    await new Promise((r) => setTimeout(r, 150));
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyD', bubbles: true }));
     if (s) window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ShiftLeft', bubbles: true }));
-    await new Promise((r) => setTimeout(r, 350)); // past the accel ramp
-    const a = { ...window.__swanPlayerPos };
-    await new Promise((r) => setTimeout(r, 400));
-    const b = { ...window.__swanPlayerPos };
+    // Sample the published speed across a stretch and take the PEAK: a slow frame can depress an
+    // average, but it cannot invent speed the player never had.
+    let peak = 0;
+    const until = performance.now() + 900;
+    while (performance.now() < until) {
+      peak = Math.max(peak, window.__swanPlayerPos.speed ?? 0);
+      await new Promise((r) => requestAnimationFrame(r));
+    }
     window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyD', bubbles: true }));
     if (s) window.dispatchEvent(new KeyboardEvent('keyup', { code: 'ShiftLeft', bubbles: true }));
-    await new Promise((r) => setTimeout(r, 250)); // decel to rest between measurements
-    return Math.hypot(b.x - a.x, b.z - a.z) / 0.4;
+    await new Promise((r) => setTimeout(r, 250));
+    return peak;
   }, sprint);
   const walk = await speed(false);
   const run = await speed(true);
@@ -81,7 +91,7 @@ test('SHIFT sprints: measured ground speed rises by the sprint multiplier', asyn
 
 test('F PUNCHES: an adjacent enemy takes damage and is shoved', async ({ page }) => {
   await boot(page);
-  await page.waitForFunction(() => window.__swanEnemyPos?.some((e) => e.state === 'alive'), null, { timeout: 10_000 });
+  await admitted(page);
   const result = await page.evaluate(() => {
     const store = window.__swanGameStore;
     const p = window.__swanPlayerPos;
