@@ -197,6 +197,31 @@ const AdminOverviewPanel: React.FC = () => {
     <BentoWrapper>
       <BentoFull><WidgetErrorBoundary name="Signal bar"><AdminSignalBar /></WidgetErrorBoundary></BentoFull>
       <BentoFull><WidgetErrorBoundary name="Quick actions"><AdminQuickActions actions={quickActions} /></WidgetErrorBoundary></BentoFull>
+      <AdminOverviewSection
+        id="admin-queues"
+        eyebrow="Work Queues"
+        title="Action required — every card is a task"
+        lead="Intakes, waivers, payments, cancellations, and measurement checks. These are not dismissible: they clear by being DONE."
+      >
+        <BentoThird><WidgetErrorBoundary name="Orientation intake"><OrientationIntakeWidget /></WidgetErrorBoundary></BentoThird>
+        <BentoThird><WidgetErrorBoundary name="Waiver summary"><WaiverSummaryWidget /></WidgetErrorBoundary></BentoThird>
+        <BentoThird><WidgetErrorBoundary name="Pending payments"><PendingPaymentsWidget /></WidgetErrorBoundary></BentoThird>
+        <BentoHalf><WidgetErrorBoundary name="Cancelled sessions"><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Upcoming check-ins"><UpcomingChecksWidget /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Renewal risk"><RenewalRiskWidget /></WidgetErrorBoundary></BentoHalf>
+      </AdminOverviewSection>
+      <AdminOverviewSection
+        id="admin-operations"
+        eyebrow="Client and Trainer Operations"
+        title="Coaching workflow health"
+        lead="Compliance, automated check-ins, session tracking, live signups, and the activity pulse — who needs intervention now."
+      >
+        <BentoHalf><WidgetErrorBoundary name="Client compliance"><ClientComplianceDashboard /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Automated check-ins"><AutomatedCheckInsWidget /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Session tracking"><SessionTrackingWidget /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Signup monitoring"><RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} /></WidgetErrorBoundary></BentoHalf>
+        <BentoThird><WidgetErrorBoundary name="Recent activity"><RecentActivityFeed /></WidgetErrorBoundary></BentoThird>
+      </AdminOverviewSection>
       <BentoFull>
         <WidgetErrorBoundary name="Admin Assistant">
           <AITerminalPanel
@@ -215,19 +240,6 @@ const AdminOverviewPanel: React.FC = () => {
         lead="Business Intelligence Alerts carry persisted read-state: ack, clear, and archive stick per admin. Work queues live below — alerts inform, queues demand."
       >
         <BentoFull><WidgetErrorBoundary name="Business Intelligence alerts"><ContactNotifications autoRefresh={true} showActions={true} /></WidgetErrorBoundary></BentoFull>
-      </AdminOverviewSection>
-      <AdminOverviewSection
-        id="admin-queues"
-        eyebrow="Work Queues"
-        title="Action required — every card is a task"
-        lead="Intakes, waivers, payments, cancellations, and measurement checks. These are not dismissible: they clear by being DONE."
-      >
-        <BentoThird><WidgetErrorBoundary name="Orientation intake"><OrientationIntakeWidget /></WidgetErrorBoundary></BentoThird>
-        <BentoThird><WidgetErrorBoundary name="Waiver summary"><WaiverSummaryWidget /></WidgetErrorBoundary></BentoThird>
-        <BentoThird><WidgetErrorBoundary name="Pending payments"><PendingPaymentsWidget /></WidgetErrorBoundary></BentoThird>
-        <BentoHalf><WidgetErrorBoundary name="Cancelled sessions"><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></WidgetErrorBoundary></BentoHalf>
-        <BentoHalf><WidgetErrorBoundary name="Upcoming check-ins"><UpcomingChecksWidget /></WidgetErrorBoundary></BentoHalf>
-        <BentoHalf><WidgetErrorBoundary name="Renewal risk"><RenewalRiskWidget /></WidgetErrorBoundary></BentoHalf>
       </AdminOverviewSection>
       <AdminOverviewSection
         id="admin-business-lens"
@@ -253,18 +265,6 @@ const AdminOverviewPanel: React.FC = () => {
         <BentoHalf><WidgetErrorBoundary name="Session reconciliation"><SessionReconciliationWidget /></WidgetErrorBoundary></BentoHalf>
         <BentoHalf><WidgetErrorBoundary name="Session liability"><SessionLiabilityWidget /></WidgetErrorBoundary></BentoHalf>
         <BentoHalf><WidgetErrorBoundary name="AI spend"><AiSpendWidget /></WidgetErrorBoundary></BentoHalf>
-      </AdminOverviewSection>
-      <AdminOverviewSection
-        id="admin-operations"
-        eyebrow="Client and Trainer Operations"
-        title="Coaching workflow health"
-        lead="Compliance, automated check-ins, session tracking, live signups, and the activity pulse — who needs intervention now."
-      >
-        <BentoHalf><WidgetErrorBoundary name="Client compliance"><ClientComplianceDashboard /></WidgetErrorBoundary></BentoHalf>
-        <BentoHalf><WidgetErrorBoundary name="Automated check-ins"><AutomatedCheckInsWidget /></WidgetErrorBoundary></BentoHalf>
-        <BentoHalf><WidgetErrorBoundary name="Session tracking"><SessionTrackingWidget /></WidgetErrorBoundary></BentoHalf>
-        <BentoHalf><WidgetErrorBoundary name="Signup monitoring"><RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} /></WidgetErrorBoundary></BentoHalf>
-        <BentoThird><WidgetErrorBoundary name="Recent activity"><RecentActivityFeed /></WidgetErrorBoundary></BentoThird>
       </AdminOverviewSection>
       <AdminOverviewSection
         id="admin-ops-intelligence"
