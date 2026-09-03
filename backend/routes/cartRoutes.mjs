@@ -62,9 +62,25 @@ const sendInternalError = (res, message) => res.status(500).json({
   error: INTERNAL_ERROR
 });
 
+/**
+ * Diagnostic metadata for a cart failure.
+ *
+ * `message`/`stack`/`pgCode`/`parent` were added 2026-09-03: every cart throw
+ * collapses to a generic 500 via sendInternalError, and this logger previously
+ * recorded only name+code — so a production 500 named its class and nothing
+ * else, and no cause could be read from the logs. Stack is capped at 6 frames
+ * (enough to name the throwing module, short enough not to flood the log).
+ * IDs and error text only — never request bodies, tokens, or user records.
+ */
 const toCartErrorMetadata = (error, fallbackCode = 'cart_internal_error') => ({
   errorName: error?.name || 'Error',
-  errorCode: error?.code || error?.type || fallbackCode
+  errorCode: error?.code || error?.type || fallbackCode,
+  message: error?.message || null,
+  pgCode: error?.original?.code || error?.parent?.code || null,
+  parentMessage: error?.parent?.message || error?.original?.message || null,
+  stack: typeof error?.stack === 'string'
+    ? error.stack.split(String.fromCharCode(10)).slice(0, 6).map((line) => line.trim()).join(' | ')
+    : null
 });
 
 const logCartError = (message, error, req, metadata = {}) => {
