@@ -181,6 +181,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   // the tab (verified live 2026-09-02, 350+ request pairs in one page view).
   const sessionsRef = useRef<WorkoutSession[]>([]);
   useEffect(() => { sessionsRef.current = sessions; }, [sessions]);
+  // Same reason as sessionsRef: the load effect must key on the user's IDENTITY,
+  // not the user OBJECT. AuthContextProvider calls setUser(refreshedUser) on
+  // every token refresh, so an object-keyed effect refetched sessions + analytics
+  // once per refresh forever. The effect reads the object through this ref.
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
+  const userId = user?.id;
   const [sessionAnalytics, setSessionAnalytics] = useState<SessionAnalytics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -351,7 +358,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [clearTimerInterval, tabId, user]);
 
   const fetchSessions = useCallback(async (limit: number = 10): Promise<void> => {
-    if (!isAuthenticated || !user) return;
+    // Identity via ref, not closure: this callback is keyed on userId so its
+    // identity stays stable across token refreshes (see userRef).
+    const activeUser = userRef.current;
+    if (!isAuthenticated || !activeUser) return;
 
     setLoading(true);
     try {
@@ -364,15 +374,16 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     } catch (error) {
       logger.warn('Failed to fetch sessions from backend, using local storage');
-      const localSessions = JSON.parse(localStorage.getItem(`sessions_${user.id}`) || '[]');
+      const localSessions = JSON.parse(localStorage.getItem(`sessions_${activeUser.id}`) || '[]');
       setSessions(localSessions.slice(0, limit));
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, userId]);
 
   const fetchSessionAnalytics = useCallback(async (): Promise<void> => {
-    if (!isAuthenticated || !user) return;
+    const activeUser = userRef.current;
+    if (!isAuthenticated || !activeUser) return;
 
     try {
       const response = await apiService.get('/api/sessions/analytics');
@@ -397,7 +408,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       };
       setSessionAnalytics(basicAnalytics);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, userId]);
 
   // Session notification helper
   const showSessionNotification = useCallback((message: string, type: 'success' | 'info' | 'warning' | 'error' = 'info') => {
@@ -453,12 +464,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [clearTimerInterval]);
   // Load session data when user logs in
   useEffect(() => {
-    if (isAuthenticated && user) {
+    const activeUser = userRef.current;
+    if (isAuthenticated && activeUser) {
       fetchSessions(10); // Load last 10 sessions
       fetchSessionAnalytics();
 
       // Check for any active session from localStorage
-      const savedSession = localStorage.getItem(`activeSession_${user.id}`);
+      const savedSession = localStorage.getItem(`activeSession_${activeUser.id}`);
       if (savedSession) {
         try {
           const parsedSession = JSON.parse(savedSession);
@@ -473,11 +485,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
           }
         } catch (error) {
           console.error('Error loading saved session:', error);
-          localStorage.removeItem(`activeSession_${user.id}`);
+          localStorage.removeItem(`activeSession_${activeUser.id}`);
         }
       }
     }
-  }, [fetchSessionAnalytics, fetchSessions, isAuthenticated, startTimer, user]);
+  }, [fetchSessionAnalytics, fetchSessions, isAuthenticated, startTimer, userId]);
 
   // Session Management Functions
   const startSession = useCallback(async (workoutPlanId?: string, title?: string): Promise<WorkoutSession> => {

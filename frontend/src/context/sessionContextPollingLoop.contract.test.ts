@@ -34,4 +34,23 @@ describe('SessionContext polling-loop contract', () => {
     expect(offenders).toEqual(['}, [sessions]);']);
     expect(source).toContain('useEffect(() => { sessionsRef.current = sessions; }, [sessions]);');
   });
+
+  it('the load effect keys on user IDENTITY, not the user object (G6)', () => {
+    // AuthContextProvider calls setUser(refreshedUser) on every token refresh.
+    // An object-keyed effect refetched sessions + analytics once per refresh —
+    // bounded, but permanent waste against the paid Render Postgres.
+    expect(source).toMatch(/startTimer, userId\]\);/);
+    expect(source).not.toMatch(/startTimer, user\]\);/);
+  });
+
+  it('the fetch callbacks read identity through userRef, not a stale closure', () => {
+    // They are keyed on userId now, so their bodies must not close over `user`.
+    expect(source).toMatch(/const userRef = useRef\(user\)/);
+    const fetchStart = source.indexOf('const fetchSessions = useCallback');
+    const analyticsEnd = source.indexOf('// Session notification helper');
+    const body = source.slice(fetchStart, analyticsEnd);
+    expect(body).not.toMatch(/!isAuthenticated \|\| !user/);
+    expect(body).toMatch(/userRef\.current/);
+  });
 });
+

@@ -4,7 +4,7 @@
  * DATA: authenticated user -> weekly recap + personal records + 12 chart grid.
  */
 
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Dumbbell, TrendingUp, Zap } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
@@ -14,6 +14,7 @@ import {
 } from '../../../../hooks/gamification/useGamificationData';
 import { useSubscription } from '../../../../hooks/useSubscription';
 import CrystallineLockOverlay from '../../../Shared/CrystallineLockOverlay';
+import ErrorCard from '../../../ui/ErrorCard';
 import {
   Card,
   CardTitle,
@@ -77,6 +78,14 @@ const ClientProgressDashboardPage: React.FC = () => {
   // as "0 PRs" — zero is a real number that means "no records yet".
   const [personalRecordsError, setPersonalRecordsError] = useState(false);
 
+  // Retry nonces: bumping one re-runs its loader effect. The load lives in the
+  // effect (it owns the isMounted guard); the button owns only the nonce, so a
+  // retry can never race a stale unmounted response. (Blueprint v2 S3 / D2.)
+  const [weeklyRecapAttempt, setWeeklyRecapAttempt] = useState(0);
+  const [personalRecordsAttempt, setPersonalRecordsAttempt] = useState(0);
+  const retryWeeklyRecap = useCallback(() => setWeeklyRecapAttempt((n) => n + 1), []);
+  const retryPersonalRecords = useCallback(() => setPersonalRecordsAttempt((n) => n + 1), []);
+
   useEffect(() => {
     let isMounted = true; const cleanup = () => { isMounted = false; };
     setWeeklyRecapSettled(false);
@@ -108,7 +117,7 @@ const ClientProgressDashboardPage: React.FC = () => {
       });
 
     return cleanup;
-  }, [authAxios, user?.id]);
+  }, [authAxios, user?.id, weeklyRecapAttempt]);
 
   useEffect(() => {
     if (!authAxios || !user?.id) return;
@@ -121,7 +130,7 @@ const ClientProgressDashboardPage: React.FC = () => {
         setPersonalRecords(normalizeClientPersonalRecords(records));
       })
       .catch(() => { setPersonalRecords([]); setPersonalRecordsError(true); });
-  }, [authAxios, user?.id]);
+  }, [authAxios, user?.id, personalRecordsAttempt]);
 
   const p = profile.data;
   const {
@@ -222,6 +231,8 @@ const ClientProgressDashboardPage: React.FC = () => {
         <WeeklyRecapCard
           hasRecap={Boolean(weeklyRecap)}
           settled={weeklyRecapSettled}
+          error={weeklyRecapError}
+          onRetry={retryWeeklyRecap}
           weekWorkouts={weekWorkouts}
           weekBonuses={weekBonuses}
           weekXp={weekXp}
@@ -229,9 +240,15 @@ const ClientProgressDashboardPage: React.FC = () => {
         />
       </SplitRow>
 
-      {personalRecords.length > 0 && (
+      {personalRecordsError ? (
+        <ErrorCard
+          message="We couldn't load your personal records."
+          onRetry={retryPersonalRecords}
+          testId="pr-error"
+        />
+      ) : personalRecords.length > 0 ? (
         <PersonalRecordsCard records={personalRecords} />
-      )}
+      ) : null}
 
       <WeeklyRingsCard />
 

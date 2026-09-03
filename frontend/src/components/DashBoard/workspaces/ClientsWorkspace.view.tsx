@@ -39,7 +39,7 @@ import {
   HubContainer,
   LoadingPulse,
 } from './ClientsWorkspace.styles';
-import ErrorNote from '../../ui/ErrorNote';
+import ErrorCard from '../../ui/ErrorCard';
 import ClientsWorkspaceLensFrame from './ClientsWorkspaceLensFrame';
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 import ClientCreationHandoffPanel from './clients-team/ClientCreationHandoffPanel';
@@ -83,6 +83,9 @@ interface ClientsWorkspaceViewProps {
   loading: boolean;
   /** Honest-state: true when the roster fetch failed (never shown as "no clients"). */
   loadError?: boolean;
+  /** Re-runs the roster fetch. A roster that failed must offer a way back
+   *  (Blueprint v2 S3 / D2) — a static note left the trainer stranded. */
+  onRetryLoad?: () => void;
   manualCreateOpen: boolean;
   manualCreateTrainers: AssignableTrainer[];
   creationHandoff: ManualClientCreationHandoff | null;
@@ -266,9 +269,11 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
     <ClientsWorkspaceLensFrame>
     <HubContainer>
       {props.loadError && !props.loading && (
-        <ErrorNote>
-          Couldn&apos;t load your client roster. Check your connection and reload the page.
-        </ErrorNote>
+        <ErrorCard
+          message="We couldn't load your client roster."
+          onRetry={props.onRetryLoad}
+          testId="roster-error"
+        />
       )}
       <ClientsWorkspaceTopBar
         clients={props.clients}

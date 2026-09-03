@@ -10,6 +10,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Calendar, Trophy } from 'lucide-react';
+import ErrorCard from '../../../ui/ErrorCard';
 import {
   Card,
   CardTitle,
@@ -30,6 +31,10 @@ import type { PersonalRecordView } from './ClientProgressDashboardPage.records';
 interface WeeklyRecapCardProps {
   hasRecap: boolean;
   settled: boolean;
+  /** The fetch FAILED. Distinct from "settled with no recap" — a failure must
+   *  never render as an empty week (Blueprint v2 S3 / D2). */
+  error?: boolean;
+  onRetry?: () => void;
   weekWorkouts: number;
   weekBonuses: number;
   weekXp: number;
@@ -39,6 +44,8 @@ interface WeeklyRecapCardProps {
 export const WeeklyRecapCard: React.FC<WeeklyRecapCardProps> = ({
   hasRecap,
   settled,
+  error = false,
+  onRetry,
   weekWorkouts,
   weekBonuses,
   weekXp,
@@ -46,7 +53,13 @@ export const WeeklyRecapCard: React.FC<WeeklyRecapCardProps> = ({
 }) => (
   <Card>
     <CardTitle><Calendar size={16} /> This Week</CardTitle>
-    {hasRecap ? (
+    {error ? (
+      <ErrorCard
+        message="We couldn't load this week's recap."
+        onRetry={onRetry}
+        testId="recap-error"
+      />
+    ) : hasRecap ? (
       <RecapGrid>
         <RecapItem>
           <RecapValue>{weekWorkouts}</RecapValue>
