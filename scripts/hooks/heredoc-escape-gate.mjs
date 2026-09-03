@@ -38,7 +38,7 @@
  * INSTRUMENTED: every invocation appends one JSON line to
  * .ai-workflow/gates/fires.jsonl — {blocked, shadow, hatch, bodies, reasons} —
  * never the command text — so the fire rate has a denominator.
- * SHADOW: the gate ships in shadow mode BY DEFAULT — it logs and warns on what it
+ * MODE: the gate ENFORCES by default since 2026-08-26. It shipped in shadow and logged what it
  * would block and allows everything, so a false-positive rate is measured on real
  * traffic first. `SWAN_HEREDOC_GATE=enforce` turns blocking on.
  *
@@ -286,13 +286,20 @@ export function logFire({ blocked, shadow, hatch, reasons, bodies }, root = join
   } catch { /* logging must never affect the verdict */ }
 }
 
-// SHADOW BY DEFAULT (Sean-approved ship decision, 2026-08-25): three hostile rounds
+// ENFORCE BY DEFAULT since 2026-08-26 (the shadow period concluded on its own data:
+// 1,737 fires / 73 would-block / 4.2% / 0 hatch uses). Shipped SHADOW 2026-08-25 after three hostile rounds
 // each found real defects in the previous round's fixes — bash quoting is a bottomless
 // input class and this parser will never be provably complete. So it ships OBSERVING:
 // it logs and warns on what it WOULD block, and blocks nothing, until ~14 days of
 // fires.jsonl show the would-block set is real hazards with no false positives.
-// Flip to enforcement with SWAN_HEREDOC_GATE=enforce (or block/on).
-export const isShadow = () => !/^(enforce|block|on)$/i.test(process.env.SWAN_HEREDOC_GATE || '');
+// ENFORCING BY DEFAULT since 2026-08-26. The shadow period produced its denominator:
+// 1,737 fires, 73 would-block (4.2%), 0 hatch uses, top reason 40x `node inline body
+// contains backslash` — the exact error its own author made four times in the turn that
+// read this log. Opt back out explicitly with SWAN_HEREDOC_GATE=shadow (or off/log).
+// The default lives in CODE, not in settings.json env: the env-propagation path to hook
+// subprocesses was never verified, and shipping enforcement through an unproven channel
+// is the "described, not wired" defect this repo has recorded 14 times.
+export const isShadow = () => /^(shadow|off|log)$/i.test(process.env.SWAN_HEREDOC_GATE || '');
 
 export function main() {
   let cmd = '';

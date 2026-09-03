@@ -1,106 +1,26 @@
----
-title: "The Deterministic Turn — full session handoff + hostile-review work order"
-date: 2026-08-25
-author: Fable 5 (claude-fable-5)
-status: open
-decision: "Re-found the agent operating system on deterministic tools; demote prose rules and memory-shaped artifacts to the fallback tier they belong in."
-supersedes: none
-expires_if: "the six-seat panel returns and its fixes ship — then mark superseded and point at the successor"
----
+# PANEL PACKET — THE DETERMINISTIC TURN
 
-# THE DETERMINISTIC TURN
+## READ THIS FIRST — operating conditions for your review
 
-**What this is:** the complete carry-forward for a session that (a) mined two months of
-agent reports for recurring failures and converted the worst into mechanical gates, and
-(b) then received two industry transcripts — Theo Browne on memory systems, and Uncle
-Bob Martin on agentic engineering — that independently argue the same thesis from the
-outside and challenge parts of what we built.
+**You CANNOT read files. You have no repository access, no tools, and no ability to
+fetch anything. Everything you need is in this packet.** Do not plan to inspect code, do
+not ask for a file, and do not spend reasoning budget on retrieval you cannot perform. If
+a claim here is unverifiable from the packet alone, say so explicitly and reason from what
+is given.
 
-**Who reads this:** the next agent, cold, with no access to the originating chat.
-Everything needed is here. Read it end to end before touching anything.
+**Answer the COMPLETE brief across every angle.** Do not narrow to your specialty, do not
+narrow to design, and do not assume another seat covers an angle you were also asked
+about. Every seat answers everything.
 
-**The one-sentence thesis you are inheriting:**
-> Prose rules degrade; deterministic tools do not. Every duty an agent must remember is
-> a duty that will eventually be dropped. The work is to move as much of our operating
-> system as possible *down* the ladder — from "a rule the model must recall" to "a check
-> that cannot be forgotten" to, best of all, "a shape where the mistake is impossible."
+**Dissent is mandatory and is the highest-value thing you can produce.** This packet was
+written by the agent that did the work; it has a stake in its own framing being right.
+Attack it. A reply that agrees with everything is a reply that was not worth its cost.
 
----
-
-## PART 1 — WHERE WE CAME FROM (the session narrative)
-
-### 1.1 The originating ask
-
-Sean, angry and specific: *"I was just trying to figure out what were the main issues my
-AIs were always having over the past month… so that we could create skills or whatever is
-needed via the agents.md and the Claude.md as well as the soul.md for Hermes… I want the
-cleanest agent so that when I'm coding, it just happens naturally… least errors, least
-bugs, least mess ups. I'm seeing Opus 5 all day make mistakes, and give me bugs. For every
-bug it fixes, it adds one… I don't want no more bugs… I am not taking three steps forward
-and two steps back every time I code."*
-
-### 1.2 What the corpus mining found
-
-Source: 1,291 agent reports across ~2 months (Hermes learning corpus + inbox memos +
-handoff docs). Output doc: `docs/ai-workflow/AI-HANDOFF/AI-WEAKEST-LINKS-REVIEW-2026-08-25.md`.
-
-**Twelve failure families. The headline numbers, which are the empirical backbone of
-everything below:**
-
-| Family | Volume | Recurrence AFTER being written up |
-|---|---|---|
-| Narrow-read → broad-claim | — | **88%** |
-| Shell / escaping | 123 bullets, 19 ledger rows | **63%** |
-| Instrument-trust (green ≠ working) | — | **68%** |
-| `$?` after a pipeline | 44 hits | the single most-recurring *mechanism* |
-| **All families, aggregate** | — | **48% recurred after documentation** |
-
-Two derived facts that shaped every decision since:
-
-1. **266 near-misses were caught by hooks that already existed.** Gates work.
-2. **48% of documented errors recurred anyway.** Prose does not hold.
-
-> This is, independently, Uncle Bob's "the models treat rules as *guidelines*" —
-> measured, in our own repo, before we ever saw his interview.
-
-### 1.3 What shipped in response (all merged to `main`)
-
-| PR | SHA | What |
-|---|---|---|
-| #72 | `732843e39` | The weakest-links gates: heredoc-escape gate (**shadow-by-default**), rulebook-review-guard + `.githooks/commit-msg`, spend-ledger hardening, drift-check probe 10 (dead CI), `sweep.mjs`, `instrument-check` skill |
-| #76 | `4f08630e7` | SOUL-panel fold + `gates-fire-report.mjs` (the shadow-period instrument) + drift probe 11 (rulebook bypass) + hook-classify canonical-idiom resolver |
-| #77 | `d4c5ca0b6` | Learning packet: mandatory Mistakes section + error→fix→repeat ledger |
-| #78 | `cc2659deb` | R3 fold: shared trailer test, ancestry-anchored probe, loud fail-open |
-| #79 | `92e16d0ac` | R4 fold: organic readiness floor, prose-proof trailer, basename parity |
-| #80 | `4f628cdeb` | **The narrative-cut prune** (13 rules, −6.04%) + constitution-guard depth/breadth bounds |
-
-**Hermes side (WSL, `~/hermes2/.hermes/` — launcher-proven live tree):**
-- `SOUL.md` 49 → 111 lines: `## Mandatory verification reflexes`, **10 reflexes**.
-- `protocols/seat-calibration-2026-08.md` created (dated facts evicted from identity).
-- Two-tree split-brain untangled: refs repointed, orphan `~/.hermes/` stamped with
-  `README-STALE-TREE.md` + first-line pointers in its own SOUL/PROTOCOL-INDEX. Nothing deleted.
-
-### 1.4 How it was reviewed (and why that matters to you)
-
-Every slice ran an adversarial dry-loop with free + paid seats until two consecutive
-clean rounds. **Total: 12 review rounds across two loops.**
-
-- **Gate loop (heredoc):** 3 rounds, never dry — terminated deliberately by shipping in
-  SHADOW mode. Rationale: bash quoting is a bottomless input class; a parser will never
-  be provably complete, so ship it observing, gather real fire data, enforce later.
-- **Prune loop:** 6 rounds to CLEAN×2 (r5 91/91/89, r6 92/92/90 unanimous zero-findings).
-
-**The pattern that repeated five times and is the most transferable lesson of the session:**
-
-> **The fold is the next round's primary attack surface, and the axis you did not name is
-> where it breaks.** Depth bounded → breadth unbounded. Breadth bounded → numerator
-> gameable by growth. Numerator clipped → denominator dilutable. Denominator capped →
-> **the cap itself set on the wrong side of my own arithmetic.** The loop only ran dry
-> when the fix finally had no unnamed axis left.
-
-Two seats caught that last one *independently, from arithmetic alone* — they read the
-comment that said "the attack is ~13,230" and checked it against the constant set to
-15,000. The author had written the number down and never done the comparison.
+**Context:** SwanStudios is a production personal-training SaaS (React 18 + TypeScript +
+styled-components; Node/Express/Sequelize/PostgreSQL). Its AI operating system is a
+~164KB constitution of 84 numbered rules, ~105 skill directories, a Hermes learning
+corpus, and a set of deterministic git/shell hooks. One human owner (Sean) directs a
+fleet of agents. Two industry transcripts have just challenged core parts of this design.
 
 ---
 
@@ -283,40 +203,10 @@ or keep as-is with evidence. **This changes how Sean works. He decides.**
 
 ---
 
-## PART 5 — THE PANEL (the next agent's first action)
 
-**Sean's explicit instruction:** hostile review by **Ox Alpha, Grok 4.6, HY3, Kimi K3,
-GLM 5.3, and DeepSeek V4** — *then* do the fixes and upgrades to `CLAUDE.md`,
-`AGENTS.md`, and `SOUL.md` with all this context in mind. Authorized; Rule 16's spend
-gate is satisfied by that instruction, but **disclose worst-case spend before running.**
+---
 
-### 5.1 Seats — all six verified reachable on 2026-08-25
-
-| Seat | Command | Cost |
-|---|---|---|
-| GLM 5.3 | `node scripts/consult-glm.mjs --document <pkt> --out <o> --remit "<full-spectrum>"` | free (`ZAI_API_KEY`) |
-| Ox Alpha | `SWAN_GROK_MODEL=stealth/ox-alpha node scripts/consult-grok.mjs …` | free (429-prone; retry w/ 60–90s backoff) |
-| Grok 4.6 | `node scripts/consult-grok.mjs …` | ~$0.20–0.30 |
-| DeepSeek V4 Pro | `SWAN_GROK_MODEL=deepseek/deepseek-v4-pro node scripts/consult-grok.mjs …` | paid, verify price first |
-| Kimi K3 | `node scripts/consult-kimi.mjs … --cap-usd 3 --confirm-spend` | ~$0.03–0.05 |
-| HY3 | `node scripts/consult-hy3-design.mjs …` | paid |
-
-### 5.2 Non-negotiable protocol (learned the hard way this session)
-
-1. **Rule 82 full-spectrum.** Every seat answers the COMPLETE brief across all angles.
-   **`consult-kimi.mjs` and `consult-hy3-design.mjs` default to NARROW, SwanStudios-branded
-   remits — you MUST pass an explicit `--remit` or you silently reintroduce lensing.**
-2. **The packet must say "You CANNOT read files."** Grok once burned 10.7k reasoning
-   tokens planning to read files it cannot reach and returned one sentence.
-3. **Seat identity is proven, not assumed.** Check the `**Served:**` header on every
-   paid reply. Pre-2026-08-24 "Ox" rows in this repo were actually Grok (fixed seat bug).
-4. **The egress gate will block a packet containing env-var dumps or paths that look like
-   secrets.** It correctly blocked one this session before it reached a stealth seat.
-   Redact and re-run; never bypass.
-5. **Dry-loop to CLEAN×2.** Fold findings, re-run, and remember: *your fold is the next
-   round's attack surface.* Give each round a vantage not yet tried.
-6. **Exit codes:** `75` = transient (429/5xx) → back off and retry. Do not read a
-   `consult` exit status through a pipe (the exit-status gate will block you anyway).
+# THE ORIGINAL SEAT BRIEF
 
 ### 5.3 The brief to hand the seats
 
@@ -360,54 +250,105 @@ numbers), and Part 4 (the proposed slices). Ask each for:
 
 ---
 
-## PART 6 — TRAPS AND LESSONS FROM THIS SESSION
-
-Read these; they are the cheapest thing in this document.
-
-1. **`cmd | tail && git push`** — the pipe ate a blocked commit's exit code and pushed an
-   empty branch. This is corpus mechanism #1, committed live *while pruning the rulebook
-   that documents it.* Use `${PIPESTATUS[0]}`, `set -o pipefail`, or run the command bare.
-2. **Hand-retyping prose for exact-match edits fails on invisible bytes** (curly quotes,
-   em dashes). 7 of 15 edits missed. Switch to anchored-regex surgery **with an
-   exactly-once match assertion per pattern, and abort the whole run if any pattern misses.**
-3. **A test appended after a hand-rolled runner's `process.exit` is dead code that reads
-   as green.** Know the runner before adding to it.
-4. **A two-branch guard where every test exercises one branch is a one-branch guard with
-   decorations.** Construct the test so *only* the untested branch can produce the pass.
-5. **When a constant guards against a computed threat, assert the relation.** Writing
-   "the attack is ~13,230" and then setting the cap to 15,000 is a defect two seats found
-   from arithmetic alone.
-6. **Validate the instrument before believing a negative.** Git-Bash converts
-   `/mnt/c/...` paths when passed as an argument (use `wsl.exe bash -lc "…"`); `MSYS_NO_PATHCONV=1`
-   for `<rev>:<path>`; a missing output file with exit 0 means the real status was eaten.
-7. **Never unstage another agent's files while `index.lock` is live.** Stale 0-byte locks
-   with no git process can be cleared; a 90-second-old lock with two live git processes cannot.
-8. **`git commit --only` on an untracked file fails** — `git add` first, then `--only`
-   still isolates. And `--only` rebuilds mode bits from the working tree, silently
-   dropping a `chmod +x` on a hook.
 
 ---
 
-## PART 7 — STANDING SEAN-OWED (carry forward, remind every session)
+# THE QUESTIONS — answer ALL of these
 
-- 🚨 **Rotate the Render API key** — exposed 2026-08-12, only Sean can revoke at Render.
-- 🔴 **GitHub Actions billing** — every CI run in this repo's history is `startup_failure`
-  (account-level, `github.com/settings/billing`). **Consequence for this work: every gate
-  we ship is client-side only.** Server-side enforcement is unavailable until this clears.
-- 📧 **DMARC record** in Namecheap (SWA-13) — gates nurture-arming + booking emails.
-- 🌲 **Hermes orphan tree** `~/.hermes/` — untangled and stamped, nothing deleted.
-  Removing it is Sean's call under the no-blind-cleanup law.
+## Q1 — Which of the five challenges in §3.2 are REAL?
 
----
+For each of the five, rule: **real defect** / **cargo-cult adoption of an outside opinion
+that does not fit this repo** / **partially real, with this specific caveat**. Give your
+reasoning, not just a verdict. An outside expert's opinion is not automatically correct
+for a context they have never seen.
 
-## PART 8 — DEFINITION OF DONE FOR THE NEXT AGENT
+## Q2 — Rank the six slices (A–F) by value-per-effort. What is MISSING from the list?
 
-1. Read this document end to end. Do not re-derive its facts.
-2. Build the panel packet from Parts 2–4. Disclose worst-case spend. Run all six seats.
-3. Fold findings to **CLEAN×2**, with a fresh vantage each round.
-4. Ship the surviving work to `CLAUDE.md` / `AGENTS.md` / `SOUL.md` **as gates wherever a
-   gate is possible** — the success metric is *prose retired into mechanism*, not prose added.
-5. Mark this document `status: superseded` and point it at its successor when done.
-   **A handoff that outlives its own truth becomes the stale-plan-file problem it warns about.**
+The missing item matters more than the ranking. What would you add that nobody proposed?
 
-**Tracking:** SWA-196.
+## Q3 — Slice A classification criteria
+
+Propose the *criteria* for sorting 84 rules into L1 (architecturally eliminable) /
+L2 (gate-able) / L3 (genuinely prose-only value) / L4 (dead). Not the buckets — the
+decision procedure that a different agent could apply to rule #57 and get the same answer
+this agent would.
+
+## Q4 — ADVERSARIAL: what does the ladder COST us?
+
+Where would retiring a prose rule into a gate actually *lose* something a gate cannot
+capture? Name a specific rule class where prose is genuinely superior to mechanism.
+
+## Q5 — THE SPEC-DRIVEN CONFLICT (Sean's explicit instruction — first-class question)
+
+Three of our rules mandate planning before code:
+- **Rule 15:** recursive planning before ANY implementation — "NO code without a plan."
+- **Rule 64:** `grill-me` — an exhaustive pre-build interview, one question at a time,
+  checkpointed to a durable brainstorm doc.
+- **Rule 68:** "Fable writes a plan so complete a worker-bot executes it verbatim with
+  **ZERO further questions**." Plans are persisted in-repo.
+
+Bob Martin tried exactly this and calls it *"always a disaster"* — the waterfall trap
+returning. His specs are **ephemeral and not persisted**; his shape is agile: small
+slice, feedback, reorganize.
+
+**Which of these three genuinely fall to that critique, and which survive — and why?**
+Verdict plus reasoning on each of the three, separately. Sean arbitrates the final call,
+but he wants the argument on the record.
+
+## Q6 — ATTACK the proposed resolution
+
+The working answer is **"keep the interview, kill the blueprint, keep the checks"**:
+
+- **(a)** `grill-me` survives *because it extracts VALUES, not implementation steps.*
+  Bob's own cut is "impose human VALUES on agents, not human DISCIPLINE" — values transfer
+  to an agent and stay true for years; disciplines are built around human limitations
+  agents do not share, and decay into guidelines (measured: 48% recurrence in this repo).
+- **(b)** Rule 15 becomes **plan-depth proportional to reversibility.** A reversible UI
+  slice gets a paragraph; a migration, billing or auth change gets the full treatment.
+- **(c)** Rule 68 **inverts**: the expensive model's output becomes **the acceptance check,
+  not the plan.** Rationale — a check is deterministic so it cannot be softened; it lives
+  outside the context window so it cannot be lost-in-the-middle; it fails loudly instead
+  of rotting silently; and a worker-bot pointed at a failing check with freedom over the
+  *how* will out-perform one following steps written by someone who could not see the code.
+
+**Where does this break?** Attack each of (a), (b), (c). Is the values/disciplines
+distinction actually crisp enough to sort real rules by, or does it collapse under
+examination? Is (c) too clever — are there whole classes of work where an acceptance check
+cannot be written in advance, making the "plan" genuinely irreplaceable?
+
+## Q7 — Is a VALUES CORPUS the right Direction layer, or the next write-only artifact?
+
+`grill-me` has just been made domain-independent (explicitly not owned by the design
+router), given a seven-tier ladder (function → intent → priority → refusal → taste →
+precedent → transfer), and given a durable output: `SWAN-VALUES-CORPUS.md`, a short
+standing document promoted to ONLY by tier-7 "should this apply everywhere?" answers.
+
+The stated theory: tier 7 compounds — every yes permanently removes a future question.
+
+**But this repo has 491 pending inbox memos (207 over a week old) and 1,607 handoff docs
+(308 untouched in 30 days).** It is demonstrably good at *writing* durable artifacts and
+bad at *draining* them.
+
+- Is a values corpus genuinely different in kind, or is it artifact #1,608?
+- **What structurally makes a document get READ rather than merely written?** Be concrete.
+- What is the right size cap, and what is the eviction rule?
+- Is seeding it from *observed* values (rather than values Sean confirmed at tier 7) a
+  reasonable bootstrap or a corruption of the corpus at birth?
+
+## Q8 — VALUES vs DISCIPLINES, applied to our actual rulebook
+
+Bob: values transfer to agents; disciplines do not. Sort our rule *classes*:
+
+- Which are **values** → keep, compress, front-load (examples in the repo: zero PII to
+  LLMs, care-first, trainer-indispensability, least-clicks, dark-first, no-yoga language,
+  credential phrasing)?
+- Which are **disciplines** → retire into gates, or delete (examples: mandated report
+  shapes, closeout ceremony ordering, forbidden-phrase lists, dual-tier summary format,
+  memo/packet emission requirements)?
+
+Where is the line genuinely ambiguous, and what do you do with those?
+
+## Q9 — DISSENT (mandatory)
+
+**Where is this packet's own framing wrong?** What has the author assumed that a
+disinterested reader would not grant? Name at least one thing.
