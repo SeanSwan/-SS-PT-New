@@ -180,3 +180,36 @@ describe('scrubLogMeta — round 3', () => {
     expect(out.map.k).toContain('<redacted-email>');
   });
 });
+
+describe('scrubErrorText — round 4: the sentinel must not eat real numbers', () => {
+  it('leaves plain digits alone when a preserved span is also present', () => {
+    // GLM Flash round 4, NEW 1. The restore pattern is built from the sentinel
+    // constants; if those ever became empty strings it would degrade to a bare
+    // digit match and rewrite every number in the message. None of the earlier
+    // scrub tests contained a digit outside a sentinel, so that would have
+    // shipped green.
+    const out = scrubErrorText('error 500 on constraint "users_email_key" at 2024-01-15');
+    expect(out).toContain('500');
+    expect(out).toContain('"users_email_key"');
+    expect(out).toContain('2024-01-15');
+  });
+
+  it('keeps error codes next to a redacted value', () => {
+    const out = scrubErrorText('code 42703 for "not an identifier"');
+    expect(out).toContain('42703');
+    expect(out).toContain('"<redacted>"');
+  });
+
+  it('emits no raw control character', () => {
+    const out = scrubErrorText('constraint "orders_pkey" failed at 2024-01-15 for a@b.co');
+    // eslint-disable-next-line no-control-regex
+    expect(out).not.toMatch(/[\u0000-\u0008]/);
+  });
+});
+
+describe('scrubLogMeta — round 4', () => {
+  it('does not throw on an invalid Date inside the error path', () => {
+    const out = scrubLogMeta({ when: new Date('nonsense') });
+    expect(out.when).toBe('<invalid-date>');
+  });
+});

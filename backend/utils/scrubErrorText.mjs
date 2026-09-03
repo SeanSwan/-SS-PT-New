@@ -46,9 +46,17 @@ const SEPARATED_DIGITS = /(?:\+?\d[\d\s().-]{5,}\d)/g;
 
 const digitCount = (text) => (text.match(/\d/g) || []).length;
 
-/** Sentinels carry no characters the later rules can match. */
-const OPEN = '';
-const CLOSE = '';
+/**
+ * Sentinels carry no characters the later rules can match.
+ *
+ * Written as ESCAPES, deliberately. As literal control characters they were
+ * invisible in every diff and review, and if any tool stripped them the
+ * restore pattern below would collapse to a bare digit match and rewrite
+ * every number in the message — an error code silently replaced by a
+ * preserved span. The escape form cannot be lost silently.
+ */
+const OPEN = '\u0001';
+const CLOSE = '\u0002';
 
 /**
  * @param {unknown} text
@@ -123,7 +131,11 @@ export function scrubErrorText(text) {
 export function scrubLogMeta(meta) {
   if (typeof meta === 'string') return scrubErrorText(meta);
   if (!meta || typeof meta !== 'object') return meta;
-  if (meta instanceof Date) return meta.toISOString();
+  // An invalid Date throws on toISOString, and this runs INSIDE error
+  // logging: a scrubber that can throw turns one failure into two.
+  if (meta instanceof Date) {
+    return Number.isNaN(meta.getTime()) ? '<invalid-date>' : meta.toISOString();
+  }
   if (meta instanceof Error) {
     return {
       name: meta.name,

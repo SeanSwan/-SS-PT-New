@@ -63,13 +63,23 @@ describe('workoutController.getWorkoutSessions', () => {
     getWorkoutSessionsServiceMock.mockResolvedValue([]);
   });
 
+  /*
+   * RE-ANCHORED 2026-09-03 (Blueprint v2 S8). The controller now asks the
+   * service for limit+1 rows and slices the extra one off, so it can report
+   * `hasMore` without a COUNT over a table that grows for the life of every
+   * membership. These tests are about OFFSET TRANSLATION — page N with a given
+   * page size lands at the right offset — and that intent is unchanged; the
+   * probe row is an implementation detail of the same request, so the limit
+   * assertion follows it rather than being deleted.
+   */
   it('translates page=1 + limit=10 into offset=0', async () => {
     const { req, res } = makeReqRes({ page: '1', limit: '10' });
     await getWorkoutSessions(req, res);
     expect(getWorkoutSessionsServiceMock).toHaveBeenCalledTimes(1);
     const [userIdArg, optsArg] = getWorkoutSessionsServiceMock.mock.calls[0];
     expect(userIdArg).toBe(7);
-    expect(optsArg.limit).toBe(10);
+    // limit+1: the requested page size plus the hasMore probe row.
+    expect(optsArg.limit).toBe(11);
     expect(optsArg.offset).toBe(0);
   });
 
@@ -84,7 +94,7 @@ describe('workoutController.getWorkoutSessions', () => {
     const { req, res } = makeReqRes({ page: '3', limit: '50' });
     await getWorkoutSessions(req, res);
     const [, optsArg] = getWorkoutSessionsServiceMock.mock.calls[0];
-    expect(optsArg.limit).toBe(50);
+    expect(optsArg.limit).toBe(51);
     expect(optsArg.offset).toBe(100);
   });
 

@@ -38,7 +38,13 @@ describe('workout sessions envelope', () => {
 
   it('the backend still reports `hasMore` — the field that gates Load-older', () => {
     if (!controller) return;
-    expect(controller).toMatch(/hasMore/);
+    // Pinned INSIDE the response envelope, not merely present in the file: a
+    // bare /hasMore/ also matches a comment or a local, so the rename this test
+    // exists to catch could still ship green.
+    const call = controller.slice(controller.indexOf('successResponse(res, {'));
+    const envelope = call.slice(0, call.indexOf('});'));
+    expect(envelope).toMatch(/\bsessions\b/);
+    expect(envelope).toMatch(/\bhasMore\b/);
   });
 
   it('the extractor reads the key the backend actually sends', () => {
