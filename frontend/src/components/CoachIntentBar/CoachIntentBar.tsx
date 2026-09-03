@@ -55,6 +55,47 @@ export interface CoachIntentBarProps {
 
 const MAX_ROWS = 5;
 
+/**
+ * F-20 (GLM 5.3 round 1) — ONE owner for the Cmd+K shortcut.
+ *
+ * Every mounted bar registered its own `window` keydown listener, so with two
+ * on screen — a dock plus a page-level bar, which the layout permits — one
+ * keystroke ran two handlers, each calling `preventDefault` and each focusing
+ * its own input. Which one won depended on mount order, and the operator got a
+ * shortcut that lands somewhere different depending on what else the route
+ * happened to render. A global shortcut is global state and needs an owner.
+ *
+ * The MOST RECENTLY mounted bar owns it, because that is the one drawn on top;
+ * when it unmounts the previous owner takes the shortcut back rather than
+ * leaving the app with a dead Cmd+K.
+ */
+const focusStack: Array<() => void> = [];
+let shortcutBound = false;
+
+function onGlobalShortcut(e: KeyboardEvent) {
+  if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'k') return;
+  const focusTopmost = focusStack.at(-1);
+  if (!focusTopmost) return;
+  e.preventDefault();
+  focusTopmost();
+}
+
+function claimShortcut(focus: () => void) {
+  focusStack.push(focus);
+  if (!shortcutBound) {
+    window.addEventListener('keydown', onGlobalShortcut);
+    shortcutBound = true;
+  }
+  return () => {
+    const i = focusStack.lastIndexOf(focus);
+    if (i !== -1) focusStack.splice(i, 1);
+    if (focusStack.length === 0 && shortcutBound) {
+      window.removeEventListener('keydown', onGlobalShortcut);
+      shortcutBound = false;
+    }
+  };
+}
+
 export const CoachIntentBar: React.FC<CoachIntentBarProps> = ({
   commands, lockedClientId, targetClientId = null, pathname = null,
   pendingCount = 0, listening = false, onSubmit, onVoice, onPickClient,
@@ -71,16 +112,7 @@ export const CoachIntentBar: React.FC<CoachIntentBarProps> = ({
 
   // Cmd/Ctrl+K FOCUSES the bar. It deliberately opens nothing: a modal here
   // would be the mode switch this shape exists to avoid.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        inputRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  useEffect(() => claimShortcut(() => inputRef.current?.focus()), []);
 
   const matches = useMemo(() => {
     const q = text.trim().toLowerCase();

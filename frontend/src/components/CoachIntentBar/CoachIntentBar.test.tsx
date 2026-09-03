@@ -128,4 +128,65 @@ describe('voice and keyboard reach the SAME object', () => {
     await user.click(mic);
     expect(onVoice).toHaveBeenCalled();
   });
+
+  /**
+   * F-20: Cmd+K is global state, so it needs exactly one owner. Two bars on
+   * screen previously meant two `window` keydown listeners, each calling
+   * preventDefault and each focusing its own input.
+   *
+   * NOTE ON WHAT THIS ASSERTS, because the obvious test does not work. Checking
+   * "the topmost bar receives focus" PASSES with the defect present: both
+   * handlers run, and the later-registered one focuses last, so the end state
+   * looks identical. The first version of this test did exactly that and went
+   * green against the restored bug. The observable difference is the number of
+   * registrations, so that is what is measured.
+   */
+  it('mounting N bars registers ONE keydown listener, not N', async () => {
+    const add = vi.spyOn(window, 'addEventListener');
+    const user = userEvent.setup();
+    render(
+      <>
+        <CoachIntentBar commands={commands} lockedClientId={7} onSubmit={vi.fn()} />
+        <CoachIntentBar commands={commands} lockedClientId={7} onSubmit={vi.fn()} />
+        <CoachIntentBar commands={commands} lockedClientId={7} onSubmit={vi.fn()} />
+      </>,
+    );
+
+    const keydownRegistrations = add.mock.calls.filter(([type]) => type === 'keydown');
+    expect(keydownRegistrations).toHaveLength(1);
+
+    // And the one owner focuses the topmost bar — the one drawn on top.
+    const inputs = screen.getAllByTestId('lane-input');
+    await user.keyboard('{Meta>}k{/Meta}');
+    expect(document.activeElement).toBe(inputs[2]);
+    add.mockRestore();
+  });
+
+  it('unmounting the topmost bar hands the shortcut back rather than killing it', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <>
+        <CoachIntentBar commands={commands} lockedClientId={7} onSubmit={vi.fn()} />
+        <CoachIntentBar commands={commands} lockedClientId={7} onSubmit={vi.fn()} />
+      </>,
+    );
+    rerender(<><CoachIntentBar commands={commands} lockedClientId={7} onSubmit={vi.fn()} /></>);
+
+    const remaining = screen.getAllByTestId('lane-input');
+    expect(remaining).toHaveLength(1);
+
+    await user.keyboard('{Meta>}k{/Meta}');
+    expect(document.activeElement).toBe(remaining[0]);
+  });
+
+  it('the last bar to unmount removes the listener — no leak across mounts', () => {
+    const remove = vi.spyOn(window, 'removeEventListener');
+    const { unmount } = render(
+      <CoachIntentBar commands={commands} lockedClientId={7} onSubmit={vi.fn()} />,
+    );
+    unmount();
+
+    expect(remove.mock.calls.filter(([type]) => type === 'keydown')).toHaveLength(1);
+    remove.mockRestore();
+  });
 });
