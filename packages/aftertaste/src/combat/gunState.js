@@ -4,10 +4,30 @@
  * raw — the HUD reads a coarse spread fraction via the store's shots). Pure functions do the
  * math so node tests need no browser.
  */
-import { WEAPONS, DEFAULT_WEAPON, RECOIL_RESET } from './weapons.js';
+import { WEAPONS, DEFAULT_WEAPON, RECOIL_RESET, SWAP_SECONDS, SPRINT_OUT_SECONDS } from './weapons.js';
 
+/**
+ * TWO GUNS, ONE PAIR OF HANDS (S5).
+ *
+ * You carry two and hold one. That limit is what makes a wall-buy a DECISION — with unlimited
+ * slots every purchase is strictly good and the economy's spend side collapses into shopping.
+ * Ammo is per-slot, because a swap that refilled your magazine would make swapping a reload.
+ */
 export const gun = {
   weaponId: DEFAULT_WEAPON,
+  /** The two carried weapons; `slot` says which is in your hands. */
+  slots: [DEFAULT_WEAPON, null],
+  slot: 0,
+  /** Per-slot ammo, so each gun remembers its own magazine across swaps. */
+  ammo: [
+    { mag: WEAPONS[DEFAULT_WEAPON].mag, reserveAmmo: WEAPONS[DEFAULT_WEAPON].reserve },
+    null,
+  ],
+  /** Clock times: the gun is mid-swap until now >= swapUntil; it cannot fire until sprintOutUntil. */
+  swapUntil: 0,
+  sprintOutUntil: 0,
+  /** Semi-auto bookkeeping: a held trigger fires once and waits for a fresh press. */
+  firedThisPress: false,
   spread: WEAPONS[DEFAULT_WEAPON].spread.base,
   burstIndex: 0,
   lastShotAt: -Infinity,
@@ -23,8 +43,70 @@ export const weaponOf = (g) => WEAPONS[g.weaponId];
 // Pure delta-returning functions, same shape as the spread math: callers spread the result over
 // their own gun object, so node tests never need the live singleton.
 
-/** Can the trigger do anything right now? Empty mags and mid-reload guns say no. */
-export const canFire = (g, now) => g.mag > 0 && now >= (g.reloadingUntil ?? 0);
+/**
+ * Can the trigger do anything right now? Every reason a gun refuses, in ONE place — empty
+ * magazine, mid-reload, mid-swap, still coming out of a sprint, and (for a semi) a trigger that
+ * has not been released since the last shot. Scattering these across the frame loop is how two of
+ * them quietly disagree.
+ */
+export const canFire = (g, now) => g.mag > 0
+  && now >= (g.reloadingUntil ?? 0)
+  && now >= (g.swapUntil ?? 0)
+  && now >= (g.sprintOutUntil ?? 0)
+  && !(weaponOf(g).fireMode === 'semi' && g.firedThisPress);
+
+/** Begin a swap to the other slot. A no-op when the other hand is empty — one gun cannot swap. */
+export function startSwap(g, now) {
+  const other = 1 - g.slot;
+  if (!g.slots[other]) return {};
+  return { swapUntil: now + SWAP_SECONDS, pendingSlot: other };
+}
+
+/**
+ * Land a swap: the other weapon is now in your hands, with ITS magazine, at ITS base spread.
+ * Stowing the current gun banks its ammo — a gun you come back to is the gun you left.
+ */
+export function finishSwap(g) {
+  const to = g.pendingSlot;
+  const ammo = [...g.ammo];
+  ammo[g.slot] = { mag: g.mag, reserveAmmo: g.reserveAmmo };
+  const incoming = ammo[to] ?? { mag: WEAPONS[g.slots[to]].mag, reserveAmmo: WEAPONS[g.slots[to]].reserve };
+  return {
+    slot: to,
+    pendingSlot: null,
+    // Clear the timer the swap set. Leaving a stale past timestamp behind means "am I mid-swap?"
+    // has two possible answers depending on whether the reader compares to `now` or to zero — and
+    // a state machine with two truths is the bug, even when both currently agree.
+    swapUntil: 0,
+    weaponId: g.slots[to],
+    ammo,
+    mag: incoming.mag,
+    reserveAmmo: incoming.reserveAmmo,
+    spread: WEAPONS[g.slots[to]].spread.base,
+    burstIndex: 0,
+    reloadingUntil: 0,
+    ads: false,
+  };
+}
+
+/** Put a weapon into a slot (a wall-buy, or the dev keys). Buying a third replaces what you hold. */
+export function equip(g, weaponId, now) {
+  // An id nobody declared is a caller bug, not a new gun. Refusing beats corrupting the hands with
+  // an undefined weapon whose every stat read is a crash three frames later.
+  if (!WEAPONS[weaponId]) return {};
+  const target = g.slots[1] == null && g.slots[0] !== weaponId ? 1 : g.slot;
+  const slots = [...g.slots]; slots[target] = weaponId;
+  const ammo = [...g.ammo]; ammo[target] = { mag: WEAPONS[weaponId].mag, reserveAmmo: WEAPONS[weaponId].reserve };
+  const holding = target === g.slot;
+  return {
+    slots, ammo,
+    ...(holding ? {
+      weaponId, mag: WEAPONS[weaponId].mag, reserveAmmo: WEAPONS[weaponId].reserve,
+      spread: WEAPONS[weaponId].spread.base, burstIndex: 0, reloadingUntil: 0,
+    } : {}),
+    swapUntil: now + (holding ? SWAP_SECONDS : 0),
+  };
+}
 
 /** One shot's ammo cost. Firing an empty gun is a no-op — the dry click is the caller's feedback. */
 export const ammoAfterShot = (g) => ({ mag: Math.max(0, g.mag - 1) });
@@ -125,6 +207,9 @@ export function applySpread(dir, cone, rand = Math.random) {
  */
 export function holster(g = gun) {
   const w = WEAPONS[g.weaponId];
+  g.swapUntil = 0;
+  g.sprintOutUntil = 0;
+  g.firedThisPress = false;
   g.ads = false;
   g.spread = w.spread.base;
   g.burstIndex = 0;

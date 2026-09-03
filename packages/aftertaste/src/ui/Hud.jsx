@@ -13,6 +13,7 @@ import { useEffect, useRef } from 'react';
 import { useGameStore } from '../state/store.js';
 import { holdsWave } from '../systems/lifecycle.js';
 import { gun, weaponOf, currentCone } from '../combat/gunState.js';
+import { WEAPONS } from '../combat/weapons.js';
 
 /**
  * TEACHING NOTE — THE CROSSHAIR IS HTML TOO:
@@ -91,9 +92,14 @@ export default function Hud() {
       // Ammo lives outside React for the same reason the crosshair does — it changes at fire rate.
       const a = ammoRef.current;
       if (a) {
-        a.textContent = gun.reloadingUntil > 0
-          ? `${weaponOf(gun).name.split(' (')[0]} — RELOADING…`
-          : `${weaponOf(gun).name.split(' (')[0]}  ${gun.mag} / ${gun.reserveAmmo}`;
+        const nameOf = (id) => (id ? WEAPONS[id].name.split(' (')[0] : '—');
+        const stowed = gun.slots?.[1 - gun.slot];
+        const active = gun.reloadingUntil > 0
+          ? `${nameOf(gun.weaponId)} — RELOADING…`
+          : `${nameOf(gun.weaponId)}  ${gun.mag} / ${gun.reserveAmmo}`;
+        // The stowed gun is shown DIM: the carry limit is only a decision if you can see the
+        // thing you would be giving up.
+        a.textContent = stowed ? `${active}     [Q] ${nameOf(stowed)}` : active;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -122,7 +128,7 @@ export default function Hud() {
         )}
         <span ref={ammoRef} data-testid="hud-ammo" style={{ fontVariantNumeric: 'tabular-nums' }} />
         <span style={{ opacity: 0.6 }}>
-          click to take aim &middot; WASD &middot; SHIFT run &middot; SPACE jump &middot; F punch &middot; R reload &middot; RMB aim &middot; hold LMB to fire
+          click to take aim &middot; WASD &middot; SHIFT run &middot; SPACE jump &middot; F punch &middot; R reload &middot; Q swap &middot; RMB aim &middot; hold LMB to fire
         </span>
       </div>
 

@@ -14,6 +14,25 @@ const boot = async (page) => {
   await page.locator('canvas').click(); // focus + arm
 };
 
+/**
+ * TEST-DELTA (S5): the starter is now a SEMI-AUTO pistol, so "hold the trigger and watch a stream"
+ * stopped being true of the default gun. Every test below that is about AUTOMATIC-fire behaviour —
+ * bloom, the spread cap, draining a magazine — equips the rifle first. What they assert did not
+ * change; which gun demonstrates it did.
+ */
+const equipAuto = async (page) => {
+  // Digit2 puts the rifle in the EMPTY hand — it does not put it in yours (equip() fills a free
+  // slot before it replaces the one you hold). So take it out: press 2, then Q. The first draft of
+  // this helper waited for `weaponId === 'fry-rifle'` after only pressing 2 and timed out forever,
+  // which was the test being wrong about its own API, not the game.
+  await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit2', bubbles: true })));
+  await page.waitForFunction(() => window.__swanGun.slots.includes('fry-rifle'), null, { timeout: 5_000 });
+  if (await page.evaluate(() => window.__swanGun.weaponId !== 'fry-rifle')) {
+    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ', bubbles: true })));
+  }
+  await page.waitForFunction(() => window.__swanGun.weaponId === 'fry-rifle' && window.__swanGun.swapUntil === 0, null, { timeout: 5_000 });
+};
+
 test('SPACE jumps: the player leaves the ground and comes back down', async ({ page }) => {
   await boot(page);
   const flight = await page.evaluate(async () => {
@@ -77,6 +96,7 @@ test('F PUNCHES: an adjacent enemy takes damage and is shoved', async ({ page })
 
 test('firing draws a tracer streak in the scene and blooms the crosshair', async ({ page }) => {
   await boot(page);
+  await equipAuto(page);
   await page.mouse.move(640, 400);
   await page.mouse.down();
   // The crosshair reads the real cone now, so this asserts a MEASURED bloom rather than a magic
@@ -94,6 +114,7 @@ test('firing draws a tracer streak in the scene and blooms the crosshair', async
 
 test('the spread has a LIMIT: a long hold stops opening, and letting go closes it', async ({ page }) => {
   await boot(page);
+  await equipAuto(page);
   // Standing still while holding the trigger is how you get eaten, and death freezes the gun
   // mid-bloom. Survival is not what is under test, so it is removed as a variable rather than left
   // to luck — this test failed once inside the full suite and its artifacts were gone before the
@@ -121,6 +142,7 @@ test('the spread has a LIMIT: a long hold stops opening, and letting go closes i
 
 test('AMMO: firing drains the mag on the HUD, R reloads it, and an empty mag reloads itself', async ({ page }) => {
   await boot(page);
+  await equipAuto(page);
   await page.evaluate(() => window.__swanGameStore.setState({ hp: 99999 }));
   const full = await page.evaluate(() => window.__swanGun.mag);
 
@@ -152,6 +174,7 @@ test('AMMO: firing drains the mag on the HUD, R reloads it, and an empty mag rel
 
 test('death holsters the gun: the cone closes and the burst resets before you go again', async ({ page }) => {
   await boot(page);
+  await equipAuto(page);
   await page.mouse.move(640, 400);
   await page.mouse.down();
   await page.waitForFunction(() => window.__swanGun.spread >= 0.035, null, { timeout: 15_000 });
@@ -172,7 +195,10 @@ test('right-click AIMS DOWN SIGHTS: the view zooms in and the cone tightens; rel
 
   await canvas.dispatchEvent('mousedown', { button: 2 });
   await page.waitForTimeout(700); // the FOV is eased, never snapped
-  const ads = await page.evaluate(() => ({ fov: window.__swanCamera.fov, ads: window.__swanGun.ads }));
+  const ads = await page.evaluate(async () => {
+    const { WEAPONS } = await import('/src/combat/weapons.js');
+    return { fov: window.__swanCamera.fov, ads: window.__swanGun.ads, want: WEAPONS[window.__swanGun.weaponId].zoomFov };
+  });
 
   await page.evaluate(() => document.dispatchEvent(new MouseEvent('mouseup', { button: 2, bubbles: true })));
   await page.waitForTimeout(700);
@@ -180,7 +206,10 @@ test('right-click AIMS DOWN SIGHTS: the view zooms in and the cone tightens; rel
 
   expect(hipFov).toBeGreaterThan(70);
   expect(ads.ads, 'holding RMB is aiming').toBe(true);
-  expect(ads.fov, `zoomed in from ${hipFov}`).toBeLessThan(60);
+  // Against the WEAPON's declared zoom, not a hardcoded 60 — the starter changed in S5 and a magic
+  // number would have to be re-chosen every time the roster does.
+  expect(ads.fov, `zoomed in from ${hipFov} toward ${ads.want}`).toBeLessThan(hipFov - 5);
+  expect(ads.fov).toBeLessThanOrEqual(ads.want + 1);
   expect(back.ads).toBe(false);
   expect(back.fov, 'released back to hip-fire FOV').toBeGreaterThan(70);
 });
@@ -231,4 +260,54 @@ test('POINTS: killing pays, the HUD counts it, and a body plink pays nothing', a
   });
   expect(result.after, 'a severing kill paid').toBeGreaterThan(result.before);
   await expect(page.getByTestId('hud-points')).not.toContainText('Points: 0');
+});
+
+test('S5: you START with the pistol, Q swaps to the other gun, and the HUD shows both', async ({ page }) => {
+  await boot(page);
+  await expect(page.getByTestId('hud-ammo')).toContainText('Sidearm 9');
+
+  // Dev key 2 puts the rifle in the empty hand (wall-buys arrive in S7).
+  await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit2', bubbles: true })));
+  await expect(page.getByTestId('hud-ammo')).toContainText('Fry Rifle', { timeout: 3_000 });
+
+  // Q swaps back to the pistol, and the stowed gun stays visible.
+  await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ', bubbles: true })));
+  await expect(page.getByTestId('hud-ammo')).toContainText('Sidearm 9', { timeout: 3_000 });
+  await expect(page.getByTestId('hud-ammo')).toContainText('[Q]');
+});
+
+test('S5: the SEMI fires once per press — a held trigger is one bullet', async ({ page }) => {
+  await boot(page);
+  await page.evaluate(() => { window.__swanShotsFired = 0; window.__swanGameStore.setState({ hp: 99999 }); });
+  await page.mouse.move(640, 400);
+  await page.mouse.down();
+  await page.waitForTimeout(1200);                    // long enough for ~5 auto shots
+  const held = await page.evaluate(() => window.__swanShotsFired);
+  await page.mouse.up();
+  expect(held, 'holding a semi-auto fires exactly one round').toBe(1);
+
+  // Releasing and pressing again fires the next one.
+  await page.mouse.down(); await page.waitForTimeout(300); await page.mouse.up();
+  const after = await page.evaluate(() => window.__swanShotsFired);
+  expect(after, 'a fresh press fires again').toBe(2);
+});
+
+test('S5: sprinting drops ADS and costs a beat before the gun answers', async ({ page }) => {
+  await boot(page);
+  await page.locator('canvas').dispatchEvent('mousedown', { button: 2 });
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.__swanGun.ads), 'aiming').toBe(true);
+
+  // Break into a sprint while aimed: the sights drop and a sprint-out timer is armed.
+  await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ShiftLeft', bubbles: true })));
+  await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', bubbles: true })));
+  await page.waitForFunction(() => window.__swanGun.ads === false, null, { timeout: 3_000 });
+  const armed = await page.evaluate(() => window.__swanGun.sprintOutUntil > 0);
+  expect(armed, 'the sprint-out beat is armed').toBe(true);
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent('keyup', { code: 'ShiftLeft', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW', bubbles: true }));
+    document.dispatchEvent(new MouseEvent('mouseup', { button: 2, bubbles: true }));
+  });
 });

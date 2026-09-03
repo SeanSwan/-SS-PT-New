@@ -22,6 +22,26 @@
 export const RECOIL_RESET = 0.35; // seconds without firing before the pattern restarts
 
 export const WEAPONS = {
+  // THE STARTER (S5). Sean named the 9mm first among the real classes; it takes the starter slot
+  // because a starting gun's job is to teach aim, not to carry a run — accurate, honest, and weak
+  // enough that the first wall-buy is a real relief. Semi-auto: every shot is a decision.
+  'sidearm-9': {
+    name: 'Sidearm 9 (working name)',
+    damage: 1,
+    fireInterval: 0.22,   // ~270 rpm ceiling; the trigger finger is the real limit
+    fireMode: 'semi',
+    mag: 12,
+    reserve: 60,
+    reloadSeconds: 1.2,
+    // A small, fast-settling pop: two firm kicks, then almost nothing. A pistol you can hold on
+    // target if you pace it — the exact opposite grammar to the rifle's climb.
+    recoilPattern: [[0.008, 0.000], [0.007, 0.001], [0.004, -0.001], [0.003, 0.001]],
+    recoilLoop: [2, 3],
+    spread: { base: 0.002, perShot: 0.004, max: 0.018, recovery: 0.14, adsScale: 0.30 },
+    zoomFov: 60,
+    adsSensitivity: 0.7,
+    tracer: '#ffe9a8',
+  },
   'fry-rifle': {
     name: 'Fry Rifle (working name)',
     damage: 1,
@@ -45,4 +65,14 @@ export const WEAPONS = {
   },
 };
 
-export const DEFAULT_WEAPON = 'fry-rifle';
+// You start with the pistol. The rifle becomes a wall-buy when wall-buys exist (S7); until then
+// the dev keys 1/2 put it in your hands for testing.
+export const DEFAULT_WEAPON = 'sidearm-9';
+
+/** How long after breaking into a sprint before the gun can fire (S5 / G2). Sprinting is a
+ *  commitment: the shooters Sean named all make you pay a beat to come out of it, which is what
+ *  turns "always sprint" into a decision. */
+export const SPRINT_OUT_SECONDS = 0.2;
+
+/** How long swapping weapons takes. Long enough to be a choice, short enough not to be a punish. */
+export const SWAP_SECONDS = 0.45;

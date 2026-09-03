@@ -16,6 +16,7 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useKeyboard } from './useKeyboard.js';
+import { gun } from '../combat/gunState.js';
 import { stepV } from './movement.js';
 import { aim } from './aim.js';
 import { usePlayerStore } from '../state/store.js';
@@ -28,7 +29,7 @@ export default function Player() {
   const setPosition = usePlayerStore((s) => s.setPosition);
 
   useFrame((_state, delta) => {
-    const next = stepV(body.current, keys.current, delta, aim.yaw);
+    const next = stepV(body.current, keys.current, delta, aim.yaw, gun.ads);
     body.current = next;
     // Publish EVERY frame, moving or not — the __swanPlayerPos seam must exist from frame one.
     // (A "publish only on change" optimisation here broke seven browser tests at once.) The

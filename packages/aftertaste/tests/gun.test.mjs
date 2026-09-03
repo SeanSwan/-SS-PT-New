@@ -159,3 +159,77 @@ test('F6: holster puts everything back — cone, burst, sights, magazine', async
     { spread: w.spread.base, burstIndex: 0, ads: false, mag: w.mag, reserveAmmo: w.reserve, reloadingUntil: 0 },
   );
 });
+
+// ---- S5: two guns, one pair of hands -----------------------------------------------------------
+const { startSwap, finishSwap, equip } = await import('../src/combat/gunState.js');
+const { SWAP_SECONDS, SPRINT_OUT_SECONDS } = await import('../src/combat/weapons.js');
+
+const carrying = (over = {}) => ({
+  weaponId: 'sidearm-9', slots: ['sidearm-9', 'fry-rifle'], slot: 0,
+  ammo: [{ mag: 12, reserveAmmo: 60 }, { mag: 24, reserveAmmo: 120 }],
+  spread: WEAPONS['sidearm-9'].spread.base, burstIndex: 0, lastShotAt: -Infinity, ads: false,
+  mag: 12, reserveAmmo: 60, reloadingUntil: 0, swapUntil: 0, sprintOutUntil: 0, firedThisPress: false,
+  ...over,
+});
+
+test('S5: the starter is the 9mm, and it is semi-auto', () => {
+  assert.equal(DEFAULT_WEAPON, 'sidearm-9');
+  assert.equal(WEAPONS['sidearm-9'].fireMode, 'semi');
+  assert.equal(WEAPONS['fry-rifle'].fireMode, 'auto');
+});
+
+test('S5: a SEMI fires once per press — a held trigger is one bullet, not a stream', () => {
+  const g = carrying();
+  assert.equal(canFire(g, 10), true, 'the first press fires');
+  const after = { ...g, firedThisPress: true };
+  assert.equal(canFire(after, 10.5), false, 'still held: nothing, however long you wait');
+  assert.equal(canFire({ ...after, firedThisPress: false }, 10.5), true, 'released and pressed again: fires');
+  // The rifle does not care — an auto weapon ignores the flag entirely.
+  const auto = carrying({ weaponId: 'fry-rifle', firedThisPress: true });
+  assert.equal(canFire(auto, 10.5), true, 'auto keeps firing while held');
+});
+
+test('S5: a swap takes TIME, moves the whole gun, and banks the magazine you stowed', () => {
+  let g = carrying({ mag: 5 });                      // pistol half-empty in your hands
+  g = { ...g, ...startSwap(g, 10) };
+  assert.equal(g.swapUntil, 10 + SWAP_SECONDS);
+  assert.equal(canFire(g, 10.1), false, 'you cannot shoot mid-swap');
+  g = { ...g, ...finishSwap(g) };
+  assert.equal(g.weaponId, 'fry-rifle', 'the other gun is in your hands');
+  assert.equal(g.mag, 24, 'with ITS magazine');
+  assert.equal(g.ammo[0].mag, 5, 'and the pistol kept its 5 rounds for when you come back');
+  assert.equal(g.spread, WEAPONS['fry-rifle'].spread.base, 'a fresh gun starts at its own base cone');
+});
+
+test('S5: one gun cannot swap — an empty second hand is a no-op, not a soft-lock', () => {
+  const alone = carrying({ slots: ['sidearm-9', null], ammo: [{ mag: 12, reserveAmmo: 60 }, null] });
+  assert.deepEqual(startSwap(alone, 10), {});
+  assert.equal(canFire(alone, 10), true, 'and the gun still works');
+});
+
+test('S5: equipping fills the empty hand; a THIRD gun replaces the one you are holding', () => {
+  const alone = carrying({ slots: ['sidearm-9', null], ammo: [{ mag: 12, reserveAmmo: 60 }, null] });
+  const two = { ...alone, ...equip(alone, 'fry-rifle', 10) };
+  assert.deepEqual(two.slots, ['sidearm-9', 'fry-rifle'], 'the empty hand took it');
+  assert.equal(two.weaponId, 'sidearm-9', 'and you are still holding what you held');
+
+  // A full pair, both hands the pistol, buying the rifle: it replaces the one you HOLD.
+  const full = carrying({ slots: ['sidearm-9', 'sidearm-9'], ammo: [{ mag: 12, reserveAmmo: 60 }, { mag: 12, reserveAmmo: 60 }] });
+  const swapped = { ...full, ...equip(full, 'fry-rifle', 10) };
+  assert.equal(swapped.slots[full.slot], 'fry-rifle', 'a full pair replaces the ACTIVE gun');
+  assert.equal(swapped.slots[1], 'sidearm-9', 'the stowed gun is safe');
+  assert.deepEqual(equip(full, 'not-a-gun', 10), {}, 'an unknown id is refused, never equipped');
+});
+
+test('S5: coming out of a sprint costs a beat before the gun answers', () => {
+  const g = carrying({ sprintOutUntil: 10 + SPRINT_OUT_SECONDS });
+  assert.equal(canFire(g, 10.1), false, 'still leaving the sprint');
+  assert.equal(canFire(g, 10 + SPRINT_OUT_SECONDS + 0.01), true, 'then it fires');
+  assert.ok(SPRINT_OUT_SECONDS > 0 && SPRINT_OUT_SECONDS < 0.5, 'a beat, not a punishment');
+});
+
+test('S5: holster clears every new refusal too — a fresh run has no invisible locks', async () => {
+  const { holster } = await import('../src/combat/gunState.js');
+  const g = holster(carrying({ swapUntil: 99, sprintOutUntil: 99, firedThisPress: true }));
+  assert.equal(canFire(g, 0), true, 'a holstered gun can always fire again');
+});

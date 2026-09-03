@@ -136,3 +136,23 @@ test('air control exists but is reduced — you steer a jump, you do not telepor
   const a = Math.hypot(airborne.vx, airborne.vz);
   assert.ok(a > 0 && a < g, `air accel ${a} < ground accel ${g}`);
 });
+
+// ---- F4/S5: aiming costs movement, and you cannot sprint down the sights ------------------------
+test('F4: ADS slows the walk, and sprint cannot survive it', async () => {
+  const { stepV, ADS_MULT, SPEED, SPRINT_MULT } = await import('../src/player/movement.js');
+  const run = (keys, ads) => {
+    let s = { x: 0, z: 0, y: 0, vx: 0, vz: 0, vy: 0 };
+    for (let i = 0; i < 200; i++) s = stepV(s, keys, 1 / 60, 0, ads); // settle to terminal speed
+    return Math.hypot(s.vx, s.vz);
+  };
+  const walk = run({ forward: true }, false);
+  const aimed = run({ forward: true }, true);
+  const sprint = run({ forward: true, sprint: true }, false);
+  const sprintAimed = run({ forward: true, sprint: true }, true);
+
+  assert.ok(Math.abs(aimed / walk - ADS_MULT) < 0.02, `ADS walk ratio ${(aimed / walk).toFixed(2)}`);
+  assert.ok(sprint > walk, 'sprint is still faster than a walk');
+  assert.ok(Math.abs(sprintAimed - aimed) < 1e-6,
+    'holding sprint while aimed gives the AIMED speed — the two are mutually exclusive');
+  assert.ok(aimed < walk && aimed < sprint, 'aiming is the slowest way to move');
+});

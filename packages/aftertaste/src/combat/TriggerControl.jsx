@@ -14,7 +14,9 @@ import { FRAME_ORDER } from '../systems/frameOrder.js';
 import {
   gun, weaponOf, recoilKick, spreadAfterShot, spreadAfterRest, currentCone, applySpread,
   canFire, ammoAfterShot, needsReload, startReload, finishReload, recoverDelay, holster,
+  startSwap, finishSwap, equip,
 } from './gunState.js';
+import { SPRINT_OUT_SECONDS } from './weapons.js';
 
 /** One scratch vector, reused every shot — allocating in a frame loop feeds the garbage collector. */
 const _dirScratch = new Vector3();
@@ -43,6 +45,9 @@ function TriggerControl() {
   const armedAt = useRef(0);
   const wantReload = useRef(false);
   const seenRun = useRef(useGameStore.getState().runId);
+  const wantSwap = useRef(false);
+  const wantEquip = useRef(null);
+  const wasSprinting = useRef(false);
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -53,13 +58,14 @@ function TriggerControl() {
       if (e.button === 2) { gun.ads = true; return; }
       if (e.button !== 0) return;
       held.current = true;
+      gun.firedThisPress = false; // a NEW press: a semi is allowed exactly one shot from here
       // An unlocked click is (also) the aim-grab — give the lock a beat before the gun believes it.
       armedAt.current = document.pointerLockElement === canvas ? 0 : performance.now() / 1000 + ARM_SECONDS;
     };
     const noMenu = (e) => e.preventDefault(); // right-click belongs to the sights, not the browser menu
     canvas.addEventListener('contextmenu', noMenu);
     const up = (e) => {
-      if (e.button === 0) held.current = false;
+      if (e.button === 0) { held.current = false; gun.firedThisPress = false; }
       if (e.button === 2) gun.ads = false;
     };
     // THE PUNCH IS F. A key event, not a held state: one swing per press, and `repeat` is what stops
@@ -76,6 +82,10 @@ function TriggerControl() {
       // are different epochs: a reloadingUntil stamped from the wrong one is hours in the future
       // and the gun never finishes reloading. Same intent-vs-act split as the trigger itself.
       if (e.code === 'KeyR') wantReload.current = true;
+      if (e.code === 'KeyQ') wantSwap.current = true;
+      // Dev keys until wall-buys exist (S7): put a specific gun in your hands to test its feel.
+      if (e.code === 'Digit1') wantEquip.current = 'sidearm-9';
+      if (e.code === 'Digit2') wantEquip.current = 'fry-rifle';
     };
     // The keyboard has cleared its keys on window blur since Slice 2; the mouse path never did.
     // Alt-tab while firing left `held` true FOREVER (the mouseup lands on the other window), and
@@ -112,10 +122,22 @@ function TriggerControl() {
     // The cone shrinks back on its own once you stop shooting — the reward for firing in bursts.
     if (now - gun.lastShotAt > recoverDelay(gun)) gun.spread = spreadAfterRest(gun, delta);
 
+    // --- Sprint-out (S5/G2): leaving a sprint costs a beat before the gun answers ---
+    const sprintingNow = usePlayerStore.getState().position.sprinting ?? false;
+    if (wasSprinting.current && !sprintingNow) gun.sprintOutUntil = now + SPRINT_OUT_SECONDS;
+    if (sprintingNow) { gun.ads = false; gun.sprintOutUntil = now + SPRINT_OUT_SECONDS; }
+    wasSprinting.current = sprintingNow;
+
+    // --- Swap + dev equip (S5) ---
+    if (wantEquip.current) { Object.assign(gun, equip(gun, wantEquip.current, now)); wantEquip.current = null; }
+    if (wantSwap.current) { wantSwap.current = false; if (gun.swapUntil <= now) Object.assign(gun, startSwap(gun, now)); }
+    if (gun.swapUntil > now) return;            // hands are busy
+    if (gun.pendingSlot != null) Object.assign(gun, finishSwap(gun));
+
     // --- Ammo/reload state (Beyond-Zombies S1) ---
     if (wantReload.current) {
       wantReload.current = false;
-      if (gun.reloadingUntil === 0) Object.assign(gun, startReload(gun, now));
+      if (gun.reloadingUntil === 0) { gun.ads = false; Object.assign(gun, startReload(gun, now)); }
     }
     if (gun.reloadingUntil > 0) {
       // Sprinting holsters the ram-rod: the reload cancels with the mag exactly as it was —
@@ -136,6 +158,7 @@ function TriggerControl() {
     if (now - lastShot.current < weaponOf(gun).fireInterval) return;
     lastShot.current = now;
     Object.assign(gun, ammoAfterShot(gun));
+    gun.firedThisPress = true; // a semi now waits for the trigger to be released
 
     // The bullet leaves inside the CONE, not down the exact crosshair ray. The cone is knowable
     // (it blooms per shot and is hard-capped — Sean: "make sure this spread has a limit, so it's
