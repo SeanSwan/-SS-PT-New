@@ -213,3 +213,44 @@ describe('scrubLogMeta — round 4', () => {
     expect(out.when).toBe('<invalid-date>');
   });
 });
+
+describe('scrubErrorText — round 5: adversarial input', () => {
+  it('strips control characters a caller smuggled into the message', () => {
+    // Postgres echoes request input into its messages, so a caller can put a
+    // literal sentinel byte in. The round-4 test asserted no raw control char in
+    // the OUTPUT but only ever fed clean input — the invariant was claimed, not
+    // enforced. (GLM 5.3 round 5, finding 1.)
+    const smuggled = `bad \u0001 0 \u0002 value for "orders_pkey"`;
+    const out = scrubErrorText(smuggled);
+    // eslint-disable-next-line no-control-regex
+    expect(out).not.toMatch(/[\u0000-\u0008]/);
+    expect(out).toContain('"orders_pkey"');
+  });
+
+  it('a smuggled sentinel cannot forge a preserved span', () => {
+    const forged = `\u00010\u0002 and "sean-connor"`;
+    const out = scrubErrorText(forged);
+    expect(out).not.toContain('sean-connor');
+    // eslint-disable-next-line no-control-regex
+    expect(out).not.toMatch(/[\u0000-\u0008]/);
+  });
+});
+
+describe('scrubLogMeta — round 5: cycles', () => {
+  it('does not blow the stack on a self-referencing object', () => {
+    // Same failure class as the invalid-Date guard: a RangeError raised inside
+    // the error-logging path. (GLM 5.3 round 5, MISSED 1.)
+    const meta = { name: 'cart', detail: 'failed for someone@example.com' };
+    meta.self = meta;
+    const out = scrubLogMeta(meta);
+    expect(out.detail).toContain('<redacted-email>');
+    expect(out.self).toBe('<circular>');
+  });
+
+  it('survives a cycle through an array', () => {
+    const inner = { label: 'x' };
+    const meta = { rows: [inner] };
+    inner.parent = meta;
+    expect(() => scrubLogMeta(meta)).not.toThrow();
+  });
+});

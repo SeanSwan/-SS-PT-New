@@ -65,6 +65,16 @@ const CLOSE = '\u0002';
 export function scrubErrorText(text) {
   if (typeof text !== 'string' || text.length === 0) return null;
 
+  // PASS 0 — strip control characters from the INPUT.
+  //
+  // Postgres echoes request input back inside its messages, so a caller can put
+  // a literal \u0001 into an error message. It is not a leak — the redaction
+  // rules scan inside such a span regardless — but it mis-pairs the sentinel
+  // restore and leaves raw control bytes in the log, which is exactly what the
+  // "emits no raw control character" test claims cannot happen. The claim is now
+  // true for adversarial input, not only for the inputs the suite feeds it.
+  const clean = text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
+
   // PASS 1 — lift out the spans that must SURVIVE, replacing them with sentinels.
   //
   // Order matters and this is why: the opaque-token rule below eats any 40-char
@@ -73,7 +83,7 @@ export function scrubErrorText(text) {
   // name would undo the whole point of preserving it — one rule silently
   // cancelling another. Lifting them out first makes the two rules independent.
   const preserved = [];
-  let working = text.replace(/"([^"]{0,200})"/g, (match, inner) => {
+  let working = clean.replace(/"([^"]{0,200})"/g, (match, inner) => {
     if (!PG_OBJECT_NAME.test(inner)) return '"<redacted>"';
     preserved.push(match);
     return `${OPEN}${preserved.length - 1}${CLOSE}`;
@@ -128,9 +138,14 @@ export function scrubErrorText(text) {
  * @param {unknown} meta
  * @returns {unknown}
  */
-export function scrubLogMeta(meta) {
+export function scrubLogMeta(meta, seen = new WeakSet()) {
   if (typeof meta === 'string') return scrubErrorText(meta);
   if (!meta || typeof meta !== 'object') return meta;
+  // A self-referencing metadata object would recurse until the stack gave out —
+  // a RangeError raised INSIDE error logging, which is the failure class the
+  // invalid-Date guard above exists to prevent. Mark the cycle and move on.
+  if (seen.has(meta)) return '<circular>';
+  seen.add(meta);
   // An invalid Date throws on toISOString, and this runs INSIDE error
   // logging: a scrubber that can throw turns one failure into two.
   if (meta instanceof Date) {
@@ -143,12 +158,12 @@ export function scrubLogMeta(meta) {
       stack: scrubErrorText(meta.stack),
     };
   }
-  if (meta instanceof Map) return scrubLogMeta(Object.fromEntries(meta));
-  if (meta instanceof Set) return [...meta].map(scrubLogMeta);
-  if (Array.isArray(meta)) return meta.map(scrubLogMeta);
+  if (meta instanceof Map) return scrubLogMeta(Object.fromEntries(meta), seen);
+  if (meta instanceof Set) return [...meta].map((item) => scrubLogMeta(item, seen));
+  if (Array.isArray(meta)) return meta.map((item) => scrubLogMeta(item, seen));
 
   const out = {};
-  for (const [key, value] of Object.entries(meta)) out[key] = scrubLogMeta(value);
+  for (const [key, value] of Object.entries(meta)) out[key] = scrubLogMeta(value, seen);
   return out;
 }
 

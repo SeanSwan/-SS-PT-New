@@ -76,3 +76,26 @@ describe('GET /api/workout/sessions pagination', () => {
     expect(res.body.data.limit).toBeNull();
   });
 });
+
+describe('GET /api/workout/sessions — the cap boundary', () => {
+  it('probes MAX_PAGE_SIZE + 1 at the cap, so hasMore still works there', async () => {
+    // GLM 5.3 round 5, MISSED 3: if the page-size cap were applied AFTER the +1,
+    // or if the service re-clamped, the probe row would vanish at the cap and a
+    // member with more than MAX rows could never reach the rest of their
+    // history. Verified: parseSessionListQuery clamps to 100, the +1 is applied
+    // after, and workoutService passes `limit` straight to findAll. This pins
+    // that chain — a future service-side clamp fails here instead of silently
+    // truncating someone's training history.
+    const res = await call({ limit: '100' }, rows(101));
+    expect(getWorkoutSessions).toHaveBeenCalledWith(7, expect.objectContaining({ limit: 101 }));
+    expect(res.body.data.hasMore).toBe(true);
+    expect(res.body.data.sessions).toHaveLength(100);
+  });
+
+  it('clamps an over-cap request and still probes one past the clamp', async () => {
+    const res = await call({ limit: '5000' }, rows(101));
+    const [, opts] = getWorkoutSessions.mock.calls[0];
+    expect(opts.limit).toBe(101);
+    expect(res.body.data.sessions).toHaveLength(100);
+  });
+});

@@ -247,6 +247,13 @@ export async function getWorkoutSessions(req, res) {
     // existing consumer is untouched. Without it a paginated client cannot tell
     // "that is all of it" from "the window ended here", and a truncated history
     // reads as a complete one (Blueprint v2 S8 / D7).
+    // The +1 is applied AFTER parseSessionListQuery has clamped to
+    // MAX_PAGE_SIZE, so at the cap the service is asked for MAX+1 rows. That is
+    // deliberate and safe TODAY because workoutService.getWorkoutSessions passes
+    // `limit` straight to findAll without re-clamping. If a service-side clamp
+    // is ever added, the probe row would be dropped and `hasMore` would report
+    // false at the cap — a member with more than MAX rows could never reach the
+    // rest of their history. The boundary is pinned by a test.
     const requestedLimit = parsed.value.limit;
     const probeLimit = typeof requestedLimit === 'number' ? requestedLimit + 1 : undefined;
 
