@@ -573,6 +573,33 @@ export const initializeServer = async (app) => {
     logger.info('🗄️  Running critical database preflight (pre-listen)...');
     logger.info('Running critical config preflight (pre-listen)...');
     assertAdminAccessCode();
+
+    // S1 (blueprint 0.3): the destructive-approval signing key is REQUIRED —
+    // PRE-LISTEN, beside assertAdminAccessCode, so a keyless deploy fails HERE
+    // with the remedy in the message and never serves a request. (Fable 5.1
+    // hostile pass 2026-09-02: the 5.0 placement was inside the NON-CRITICAL
+    // background block, whose catch logs "Server continues running" — the gate
+    // was decorative and the closeout claim "fails before listen" was false.)
+    {
+      const { assertOperationSigningKey } = await import('../services/ai/destructiveOperations.mjs');
+      assertOperationSigningKey();
+    }
+
+    // 0.4b: durable approval store, explicit opt-in, fail-CLOSED on the flag —
+    // also PRE-LISTEN for the same reason: an operator who asked for redis must
+    // never be served by the in-process store while believing the P0 is fixed.
+    if (process.env.APPROVAL_STORE === 'redis') {
+      try {
+        const { installRedisPendingOperationStore } = await import('../services/ai/redisPendingOperationStore.mjs');
+        await installRedisPendingOperationStore();
+        logger.info('[Startup] Destructive-approval store: REDIS (durable, multi-instance)');
+      } catch (redisStoreErr) {
+        throw new Error(
+          `APPROVAL_STORE=redis was requested but the Redis approval store could not be installed: ${redisStoreErr.message}. `
+          + 'Fix REDIS_URL / connectivity, or unset APPROVAL_STORE to boot with the in-process store (single-instance only).'
+        );
+      }
+    }
     await criticalDatabasePreflight(sequelize);
 
     logger.info('📁 Creating required directories...');
@@ -641,36 +668,6 @@ export const initializeServer = async (app) => {
           startCheckoutReconciliationSweeper();
         } catch (reconcileErr) {
           logger.warn(`Checkout reconciliation sweeper failed to start: ${reconcileErr.message}`);
-        }
-
-        // S1 (blueprint 0.3, 2026-09-02): the destructive-approval signing key is
-        // REQUIRED. Deliberately OUTSIDE any try/catch — a deploy without
-        // OPERATION_SIGNING_KEY must fail HERE, at boot, with the remedy in the
-        // message, not silently mint per-process random keys that void every
-        // approval on restart (the standing P0). A swallowed throw here would be
-        // exactly the fail-open wrapper this class of guard keeps growing.
-        {
-          const { assertOperationSigningKey } = await import('../services/ai/destructiveOperations.mjs');
-          assertOperationSigningKey();
-        }
-
-        // 0.4b: install the durable approval store when explicitly opted in.
-        // Opt-in (APPROVAL_STORE=redis) rather than auto-on-REDIS_URL so a config
-        // typo can never silently change approval semantics; flipping it is a
-        // deliberate operator action. Fail CLOSED on the flag: if redis was ASKED
-        // for and cannot install, booting in-process would silently restore the P0
-        // while the operator believes it fixed — refuse to boot instead.
-        if (process.env.APPROVAL_STORE === 'redis') {
-          try {
-            const { installRedisPendingOperationStore } = await import('../services/ai/redisPendingOperationStore.mjs');
-            await installRedisPendingOperationStore();
-            logger.info('[Startup] Destructive-approval store: REDIS (durable, multi-instance)');
-          } catch (redisStoreErr) {
-            throw new Error(
-              `APPROVAL_STORE=redis was requested but the Redis approval store could not be installed: ${redisStoreErr.message}. `
-              + 'Fix REDIS_URL / connectivity, or unset APPROVAL_STORE to boot with the in-process store (single-instance only).'
-            );
-          }
         }
 
         try {

@@ -48,6 +48,13 @@ const MAX_AI_BULK_DELETE = 50;
 const OPERATION_TTL_SECONDS = 120;
 const MAX_PENDING_PER_USER = 5;
 
+/** Scope = one named entity (`id` / any `*Id`) or a bounded dateRange, non-empty. */
+export function hasExplicitScope(params) {
+  if (!params || typeof params !== 'object') return false;
+  return Object.entries(params).some(([k, v]) =>
+    (k === 'id' || k === 'dateRange' || /Id$/.test(k)) && v !== null && v !== undefined && v !== '');
+}
+
 // The pending-approval store lives behind an injectable seam (pendingOperationStore.mjs).
 // Contract audited 2026-09-02 across all call sites in this module: get / set / delete /
 // countForUser (all async), plus entries() for the in-process expiry sweep only.
@@ -96,15 +103,14 @@ export async function prepareDestructiveOperation({
   // 0.4a (was V3 DELETE-only): EVERY destructive type requires explicit scope.
   // An unscoped UPDATE or DEACTIVATE with `params: {}` is the same mass-mutation
   // hazard as an unscoped DELETE — the scope law is about blast radius, not verb.
-  if (
-    !commandParams.id
-    && !commandParams.clientId
-    && !commandParams.userId
-    && !commandParams.sessionId
-    && !commandParams.dateRange
-  ) {
+  // "Scoped" = names ONE entity: `id`, any `*Id` key (planId, postId, permissionId,
+  // sessionId, clientId...), or a bounded `dateRange`. The 5.0 draft hardcoded five
+  // key names and would have refused delete_workout_plan / delete_post /
+  // revoke_trainer_permission at mint (Fable 5.1 hostile pass, 2026-09-02);
+  // tests/unit/destructiveScopeLawRegistry.test.mjs now locks the law to the registry.
+  if (!hasExplicitScope(commandParams)) {
     throw new Error(
-      `CRITICAL: ${type} requires explicit scope (id, clientId, userId, sessionId, or dateRange). Unscoped destructive operations are blocked.`
+      `CRITICAL: ${type} requires explicit scope (an entity id such as clientId/planId/postId, or a dateRange). Unscoped destructive operations are blocked.`
     );
   }
 
