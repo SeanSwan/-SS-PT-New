@@ -37,9 +37,22 @@ So requirement 4 ("more data about the artist") is **already satisfiable offline
 - Any "four images on hover" therefore comes from the live URL, cached at most ephemerally, never committed.
 - This is a Sean-only surface. It cannot become a SwanStudios product surface without a licensing answer.
 
+## Sean's image-sourcing decision (2026-09-03, mid-session)
+
+> "I'm probably gonna have to have Qwen on my Hermes go ahead and scrape the photos and stuff off the site itself so we can take that information and use that… and this is gonna be for my own private use."
+
+Recorded as the owner's decision. It resolves open question 1 in a specific direction, and that changes the architecture for the better:
+
+- **Local images beat hot-linking** on every axis that matters here — a 9.5k-cell grid scrolls without 9.5k third-party requests, hover-reveals four frames instantly, and the Atlas works with the laptop offline. Hot-linking would have made the surface's responsiveness hostage to someone else's CDN.
+- The posture is unchanged from the corpus already in the repo: **Sean-only, loopback-only, never redistributed, never committed to a synced remote, and never reachable by a partner/client memory** (the existing OWN-MATERIAL LAW already forbids the last one and it leaked once before the fix).
+- Practical asks for whoever runs the scrape: rate-limit and identify the agent politely; store under `sources/midlibrary/images/<slug>/` keyed by the slug already in `all_styles.json` so the Atlas joins on it with no new index; keep the source URL alongside each file so every tile can still credit and link back; add the image directory to that repo's ignore rules so a future `git add -A` cannot publish it.
+- The Atlas should degrade to the remote URL (or a placeholder tile) for any slug whose local image is missing, so a partial scrape still renders.
+
+Note this is a private research/reference archive on Sean's own machine — the same footing as the text corpus already there. Nothing in the Atlas design distributes it, and the surface must not become a SwanStudios product feature without a separate licensing answer.
+
 ## Open questions for the hostile review to attack
 
-1. Is hot-linking 9.5k thumbnails from midlibrary.io acceptable and performant, or does the Atlas need an offline thumbnail strategy — and if so, what makes that lawful?
+1. ~~Hot-link vs offline~~ — RESOLVED by the owner above (local scrape, private use). Residual for the review: what does the Atlas render for a slug whose image is missing, and how is the image directory kept out of any future sync?
 2. Three.js on a 9,521-cell grid: does it earn its place, or is it decoration that costs scroll performance? What exactly is the 3D *for*?
 3. Random mode must be "smart, not word salad." What is the actual generative contract — does it draw from Sean's evidence-tier taste, from the style catalog, or both, and what forbids an incoherent pairing?
 4. Does the Taste app's AI belong as an adapted Swan Coach, or is that the wrong parent (Coach is a fitness-domain agent with its own command surface and permissions)?
