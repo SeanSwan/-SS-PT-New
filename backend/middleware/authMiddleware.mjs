@@ -959,24 +959,45 @@ export const requireOwnershipOrTrainer = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: AI Action Authorization Matrix
-// PURPOSE: Role-based action whitelist for AI assistant actions
-// WHY: AI Village CRITICAL — prevents AI prompt injection from escalating privileges
+// SECTION: AI Action Authorization — WHERE IT ACTUALLY LIVES
+//
+// `AI_ACTION_PERMISSIONS` and `isAIActionAllowed` used to sit here, labelled
+// "AI Village CRITICAL — prevents AI prompt injection from escalating privileges".
+// They were removed 2026-08-23 because NOTHING CALLED THEM. The only references in
+// the entire repo were the definitions themselves and one test's vi.mock stub, and
+// their action vocabulary (fill_own_forms / read_client_data / ...) never mapped to
+// any of the ~139 command types the AI lane actually dispatches. It was a parallel
+// design that was drafted and never wired.
+//
+// It was deleted rather than wired because a dead control is worse than an absent
+// one: it answers "is this defended?" with a confident yes, and the next reviewer
+// stops looking.
+//
+// CORRECTION (GLM-5.3 hostile review, 2026-08-24). An earlier version of this note
+// said the deletion was safe because "the first gate already covers it". That was
+// wrong and is worth stating plainly, because the distinction matters:
+//   - stepRBAC answers WHO is calling. An injected instruction riding an already
+//     authenticated admin session satisfies it trivially.
+//   - The deleted matrix was shaped to answer WHAT the lane may be made to do.
+// RBAC does not cover that. The honest position is not "covered elsewhere" but
+// "this control never ran, so deleting it removes nothing that was protecting you" —
+// and action-shape containment currently rests on the intent classifier, the
+// capability gate, per-dispatcher scoping, and the not_wired default, none of which
+// were designed as an anti-injection boundary. If you want that boundary, build it
+// in the command lane against the real ~139 command types, with tests.
+//
+// AI action authorization is enforced, just not here:
+//   - Role gate         backend/services/ai/commandExecutor.mjs  (stepRBAC)
+//                       command.roleRequired vs the caller's role.
+//   - Capability gate   stepCapabilityGate -> authorizeCommandCapability
+//   - Client scoping    middleware/verifyClientAccess.mjs (assertAssignmentOrAdmin)
+//                       plus per-dispatcher scoping, e.g. dispatchListActiveClients
+//                       joins ClientTrainerAssignment for trainers.
+//   - Destructive ops   services/ai/destructiveOperations.mjs — single-use,
+//                       120s TTL, ownership check, HMAC-signed payload.
+//   - Transport         routes/aiCommandRoutes.mjs:154 — protect, kill switch,
+//                       rate limiter, audit, PII sanitizer.
+//
+// If a second, action-verb-shaped gate is ever wanted, add it there and give it
+// tests — do not restore a matrix nothing calls.
 // ─────────────────────────────────────────────────────────────
-export const AI_ACTION_PERMISSIONS = {
-  user: ['fill_own_forms', 'read_own_data', 'read_own_charts'],
-  client: ['fill_own_forms', 'read_own_data', 'read_own_charts'],
-  trainer: ['fill_own_forms', 'fill_client_forms', 'read_client_data', 'read_client_charts', 'draft_email', 'draft_sms'],
-  admin: ['fill_own_forms', 'fill_any_forms', 'read_all_data', 'read_all_charts', 'draft_email', 'draft_sms']
-};
-
-/**
- * Check if a user role is authorized for a specific AI action.
- * @param {string} role - User role (user, client, trainer, admin)
- * @param {string} action - AI action to check
- * @returns {boolean}
- */
-export const isAIActionAllowed = (role, action) => {
-  const allowed = AI_ACTION_PERMISSIONS[role] || AI_ACTION_PERMISSIONS.user;
-  return allowed.includes(action);
-};

@@ -22,6 +22,8 @@ import { getCommand } from './commandRegistry/index.mjs';
 import { createCommandErrorOutcome } from './commandOutcomeContract.mjs';
 import { authorizeCommandCapability } from './commandCapabilityPolicy.mjs';
 import { resolveClient } from './clientResolver.mjs';
+import { toPositiveInteger } from './positiveInteger.mjs';
+import { assertAssignmentOrAdmin } from '../../middleware/verifyClientAccess.mjs';
 import { rehydrateResponse } from './deIdentifier.mjs';
 import {
   prepareDestructiveOperation,
@@ -39,6 +41,10 @@ import { recordCommandAudit } from './commandAudit.mjs';
 
 const COMMAND_PIPELINE_FAILED_MESSAGE = 'Swan Coach command lane failed. No data was changed.';
 const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confirmed operation. No data was changed.';
+
+// Deliberately says nothing about WHICH permission is gone. A caller whose access was just
+// revoked is the one person who should not be told whether it was the role or the client.
+export const CONFIRM_NO_LONGER_PERMITTED_MESSAGE = 'You no longer have permission to complete that operation. No data was changed. Please re-issue the command if you believe this is wrong.';
 const CLASSIFIER_FAILURE_CODES = new Set(['PARSE_FAIL', 'CLASSIFICATION_FAILED']);
 
 function setTypedPipelineError(ctx, code) {
@@ -116,20 +122,6 @@ function createContext(rawInput, user, options = {}) {
 }
 
 const CLIENT_ID_VALIDATION_SENTINEL = 1;
-
-const toPositiveInteger = (value) => {
-  if (typeof value === 'number') {
-    return Number.isSafeInteger(value) && value > 0 ? value : null;
-  }
-
-  if (typeof value !== 'string') return null;
-
-  const trimmed = value.trim();
-  if (!/^[1-9]\d*$/.test(trimmed)) return null;
-
-  const parsed = Number(trimmed);
-  return Number.isSafeInteger(parsed) ? parsed : null;
-};
 
 const debateTypeForCommandType = (commandType) => (
   typeof commandType === 'string' ? DEBATE_TYPE_BY_COMMAND[commandType] || null : null
@@ -390,6 +382,19 @@ async function stepCapabilityGate(ctx) {
   return ctx;
 }
 
+/**
+ * Roles whose client scope `resolveClient` itself decides: a trainer is restricted to
+ * active assignments, an admin is deliberately unrestricted as the superset role.
+ *
+ * Every OTHER role resolves only itself. That used to be expressed as a ternary on the
+ * resolver call — `trainerId: role === 'trainer' ? user.id : undefined` — which reads as
+ * "trainers are scoped" but MEANS "every role except trainer is unscoped". `view_xp_streaks`
+ * permits a `client` caller, requires a client ref, and is not self-service, so a client
+ * could resolve any active client by id and read their gamification profile. Naming the
+ * scoped roles makes the fall-through case explicit instead of implied.
+ */
+const RESOLVER_SCOPED_ROLES = new Set(['admin', 'trainer']);
+
 /** Step 6: Resolve client reference if needed */
 async function stepResolveClient(ctx) {
   ctx.stage = 'resolve_client';
@@ -409,8 +414,43 @@ async function stepResolveClient(ctx) {
 
   const selectedClientId = toPositiveInteger(ctx.options.selectedClientId);
   const paramsClientId = toPositiveInteger(ctx.intent.params?.clientId);
-  const clientId = selectedClientId || paramsClientId;
-  const clientRef = selectedClientId ? null : (ctx.intent.clientRef || ctx.options.selectedClientName);
+  let clientId = selectedClientId || paramsClientId;
+  let clientRef = selectedClientId ? null : (ctx.intent.clientRef || ctx.options.selectedClientName);
+
+  if (!RESOLVER_SCOPED_ROLES.has(ctx.user.role)) {
+    // An unscoped role may only ever be its own client. Asking for someone else by id is
+    // refused outright rather than silently retargeted, so the caller is not told about a
+    // record they may not see and is not misled about whose data they received. A name
+    // reference is replaced by self for the same reason it is for a self-service command:
+    // there is no one else in scope for it to mean.
+    const selfId = toPositiveInteger(ctx.user.id);
+    if (clientId && clientId !== selfId) {
+      ctx.error = 'You can only run this on your own record.';
+      return ctx;
+    }
+    if (!selfId) {
+      ctx.error = 'You can only run this on your own record.';
+      return ctx;
+    }
+    // Pin the target to self and then fall THROUGH to the ordinary resolver, rather than
+    // fabricating a client record here. An earlier draft built `resolvedClient` from
+    // `ctx.user` directly and so skipped every predicate the scoped path enforces — most
+    // importantly `"isActive" = true`, which meant a deactivated account could still act
+    // on itself while a trainer could not act on it. Two layers disagreeing about who
+    // counts as a client is the same class of defect this whole slice exists to remove.
+    clientId = selfId;
+    clientRef = null;
+  }
+
+  // A trainer whose own id will not parse cannot be scoped to their own clients, and a
+  // caller who cannot be scoped must not be served unscoped. The non-privileged branch above
+  // already refuses on an unusable `selfId`; this is the same rule for the role that has the
+  // most to reach. The resolver now fail-closes on this too — both, because the lane should
+  // not depend on a shared helper's internals for its own safety.
+  if (ctx.user.role === 'trainer' && !toPositiveInteger(ctx.user.id)) {
+    ctx.error = 'No accessible active client found with that ID.';
+    return ctx;
+  }
 
   if (clientId) {
     // Direct ID provided — use it
@@ -512,6 +552,11 @@ async function stepConfirmation(ctx) {
       endpoint: ctx.command.endpoint,
       commandParams: ctx.intent.params,
       commandType: ctx.command.type,   // exec-substrate-v9: signed in HMAC payload
+      // The client this operation was AUTHORIZED against, recorded so redemption can
+      // re-check the same one. Reading it back out of `params` instead is what a panel
+      // caught: `delete_workout_plan` carries its target in `params.planId` and has no
+      // `params.clientId`, so the destructive lane's client re-check silently did nothing.
+      clientId: ctx.resolvedClient?.id ?? null,
       userId: ctx.user.id,
       description: `${ctx.command.description}${ctx.resolvedClient ? ` for ${ctx.resolvedClient.firstName || 'Client #' + ctx.resolvedClient.id}` : ''}`,
       affectedRecords: ctx.resolvedClient ? [{ id: ctx.resolvedClient.id, name: `${ctx.resolvedClient.firstName} ${ctx.resolvedClient.lastName || ''}`.trim() }] : [],
@@ -780,6 +825,102 @@ function outcomeFromPipelineCtx(ctx) {
  *   message: string,
  * }>}
  */
+/**
+ * Re-authorize a confirmed operation at the moment of its EFFECT.
+ *
+ * A pending operation is authorized once, in the pipeline, then parked for up to 120
+ * seconds. Redemption verified ownership, expiry and (destructively) an HMAC signature —
+ * none of which notice that the caller's role was revoked, or that the client was
+ * transferred to another trainer, inside that window. The signature proves the operation
+ * was not tampered with; it says nothing about who may run it now, because it was signed
+ * when the caller still could.
+ *
+ * The check is against the CURRENT role rather than the minted one. The operation never
+ * recorded what it was minted under, and that is the wrong question anyway: what matters
+ * is whether this caller may do this now.
+ *
+ * It re-runs the IDENTITY gates — role, and access to the operation's client — and
+ * deliberately not the capability gate. `authorizeCommandCapability` answers a different
+ * question: whether the browser surface that sent the request is in a state that permits
+ * the command. At redemption there is no context envelope to answer it with, and a
+ * surface's state is not a permission that gets revoked from a person. An earlier draft of
+ * this comment claimed to ask "what every other gate in this lane asks", which was an
+ * overclaim a review caught: capability is one of those gates and it is not re-run.
+ *
+ * Note on ordering: retrieval is single-use and deletes the operation, so a denial here
+ * also consumes it. That is the safe direction — a denied caller cannot retry — at the
+ * cost of a re-issue if the assignment lookup fails transiently.
+ *
+ * @returns {string|null} a denial reason for the audit log, or null when still permitted
+ */
+async function confirmLaneDenialReason(operation, user) {
+  const commandType = operation?.commandType || null;
+  // A STORED operation with no command type is a malformed record, not an absent input.
+  // Skipping the checks for it — the earlier reading — meant an operation could pass the
+  // gate having had nothing checked at all. That it also could not reach a dispatcher was
+  // an argument, not an assertion, and it depended on code this function cannot see.
+  if (!commandType) return 'malformed_operation';
+
+  const command = getCommand(commandType);
+  const required = Array.isArray(command?.roleRequired) ? command.roleRequired : null;
+  if (!required) {
+    // Unknown to the registry: there is no roleRequired to check against. If the type can
+    // still reach a dispatcher, refuse — "cannot tell" must not mean "allow". If it cannot,
+    // leave the lane's honest `not_wired` answer intact rather than replacing it with a
+    // permission error that would be false: nothing can execute either way.
+    return hasDispatcher(commandType) ? 'unregistered_command' : null;
+  }
+  if (!required.includes(user.role)) return 'role_revoked';
+
+  // One canonical target, read from the operation rather than from a params field. The two
+  // lanes previously read different sources, and `params.clientId` is absent on exactly the
+  // commands that matter most (`delete_workout_plan` carries `planId`), so the check ran on
+  // null. Where params ALSO name a client, the two must agree: a gate that authorizes one
+  // id while dispatch acts on another authorizes nothing.
+  const clientId = operation.clientId ?? null;
+  const paramsClientId = operation.params?.clientId ?? null;
+  if (clientId != null && paramsClientId != null && Number(clientId) !== Number(paramsClientId)) {
+    return 'target_mismatch';
+  }
+  if (clientId == null && paramsClientId != null) return 'target_mismatch';
+
+  // A command the PIPELINE resolves a client for must arrive with one recorded. If it does
+  // not, the mint is broken and this gate cannot authorize what it cannot see — so it says
+  // so instead of returning "permitted" by falling off the end.
+  //
+  // The converse is the honest limit, and it is not a bug: a command with NO client concept
+  // at the pipeline level (`requiresClientRef: false` — `delete_workout_plan` is the live
+  // example, it carries a `planId`) records no client, and this gate has nothing to check.
+  // Ownership for those lives in the handler, which is why `dispatchDeleteWorkoutPlan` now
+  // calls `assertAssignmentOrAdmin` itself. A panel called that arrangement incidental. It
+  // is not incidental any more — it is the stated division of labour, and the handler-side
+  // half is asserted in `aiCommandPlanArchiveOwnership.contract.test.mjs`.
+  if (clientId == null && command.requiresClientRef === true) return 'missing_client_target';
+
+  if (clientId != null) {
+    // A denial caused by the lookup FAILING is recorded separately from a denial caused by
+    // the answer being no. Both refuse — that is not negotiable — but during an incident the
+    // two mean opposite things: one is a revoked user being correctly stopped, the other is
+    // the database being unhealthy and every caller being stopped with them. A forensics
+    // trail that cannot tell them apart turns an outage into a false access-abuse signal.
+    //
+    // HONEST LIMIT, found by review 2026-08-26: `assertAssignmentOrAdmin` catches its own
+    // failures and returns false, so today a database outage arrives here as a plain "no"
+    // and IS audited as a revocation. This catch is therefore unreachable through the
+    // current authorizer — it is defence in depth against one that stops swallowing, and
+    // the distinction it draws is real only for such an authorizer. Closing the conflation
+    // properly means changing shared middleware the REST routes also depend on, which is a
+    // separate decision; claiming the distinction works today would be false.
+    try {
+      const permitted = await assertAssignmentOrAdmin(user.id, user.role, clientId);
+      if (!permitted) return 'client_access_revoked';
+    } catch {
+      return 'client_access_check_failed';
+    }
+  }
+  return null;
+}
+
 export async function executeConfirmedOperation(operationId, user, sequelize) {
   // Audit helper for the confirm lane — best-effort, never throws.
   const auditConfirm = (outcome, extras = {}) => {
@@ -804,6 +945,16 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   const ndResult = retrievePendingConfirmation(operationId, user.id);
   if (ndResult.verified) {
     const { operation } = ndResult;
+    const ndDenial = await confirmLaneDenialReason(operation, user);
+    if (ndDenial) {
+      auditConfirm('denied', {
+        commandType: operation.commandType,
+        targetClientId: operation.clientId ?? null,
+        requiresConfirmation: true,
+        errorCode: ndDenial,
+      });
+      return { success: false, type: 'error', message: CONFIRM_NO_LONGER_PERMITTED_MESSAGE };
+    }
     if (operation.frontendEvent) {
       auditConfirm('success', {
         commandType: operation.commandType,
@@ -943,7 +1094,22 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   // stores the command-lane dispatcher key signed into the pending operation.
   const commandType = operation.commandType || null;
   if (commandType && hasDispatcher(commandType)) {
-    const clientId = operation.params?.clientId ?? null;
+    // ONE canonical source in both lanes: the client the operation was authorized against
+    // at mint, not whatever a params field happens to hold. `params.clientId` was the
+    // earlier reading and it is absent on exactly the commands that matter most —
+    // `delete_workout_plan` carries `planId` — so the check quietly ran on `null`.
+    const clientId = operation.clientId ?? null;
+    const denial = await confirmLaneDenialReason(operation, user);
+    if (denial) {
+      auditConfirm('denied', {
+        commandType,
+        targetClientId: clientId,
+        destructive: true,
+        requiresConfirmation: true,
+        errorCode: denial,
+      });
+      return { success: false, type: 'error', message: CONFIRM_NO_LONGER_PERMITTED_MESSAGE };
+    }
     try {
       const result = await dispatch(commandType, operation.params, {
         user,

@@ -228,5 +228,85 @@ t('REGRESSION: a nonexistent --file path still refuses to report CLEAN (exit 2)'
   } finally { s.cleanup(); }
 });
 
+// ---- X3: during a merge, "added" is measured against origin/main ----------
+// `git diff --cached` is against HEAD, and during a merge HEAD is the PRE-merge tip — so
+// every line carried in from origin/main reads as newly added by this commit. Blocking on
+// those is blocking on already-deployed inherited debt, which is the exact case that made
+// this gate --added-only rather than --strict (Rule 34).
+
+/** A REAL merge: origin/main carries a file with an undefined token; this branch diverges
+ *  without touching it. `git update-ref MERGE_HEAD` is refused as a pseudoref, so the merge
+ *  is actually performed — and the fixture ASSERTS that it happened, because a fixture that
+ *  silently fails to merge quietly tests the non-merge path instead and proves nothing. */
+function mergeSandbox() {
+  const s = sandbox();
+  const head = () => execFileSync('git', ['rev-parse', 'HEAD'], { cwd: s.dir, encoding: 'utf8' }).trim();
+  const base = head();
+  const rel = s.file('carried.ts', 'export const a = `var(--never-defined, #fff);`;\n');
+  s.git('add', rel);
+  s.git('commit', '-q', '-m', 'main adds a file carrying inherited token debt');
+  s.git('update-ref', 'refs/remotes/origin/main', head());
+  s.git('checkout', '-q', '-b', 'side', base);
+  writeFileSync(join(s.dir, 'unrelated.txt'), 'side\n');
+  s.git('add', 'unrelated.txt');
+  s.git('commit', '-q', '-m', 'side');
+  spawnSync('git', ['merge', '--no-commit', '--no-ff', 'refs/remotes/origin/main'], { cwd: s.dir, encoding: 'utf8' });
+  const merging = spawnSync('git', ['rev-parse', '-q', '--verify', 'MERGE_HEAD'], { cwd: s.dir, encoding: 'utf8' });
+  assert.equal(merging.status, 0, 'fixture must leave a REAL merge in progress');
+  return { s, rel };
+}
+
+t('X3: a verbatim carry from origin/main during a merge does NOT block', () => {
+  const { s, rel } = mergeSandbox();
+  try {
+    const r = s.run(['--added-only', '--file', rel]);
+    assert.equal(r.code, 0, `carried inherited debt must not block a merge: ${r.out}`);
+    assert.match(r.out, /added lines measured against origin\/main/);
+  } finally { s.cleanup(); }
+});
+
+t('X3 does NOT blanket-pass: a token the MERGE itself adds still blocks', () => {
+  const { s, rel } = mergeSandbox();
+  try {
+    s.append('carried.ts', 'export const b = `var(--authored-by-the-merge, #000);`;\n');
+    s.git('add', rel);
+    const r = s.run(['--added-only', '--file', rel]);
+    assert.equal(r.code, 1, `a token this merge authored must still block: ${r.out}`);
+    assert.match(r.out, /--authored-by-the-merge/);
+    const blocking = r.out.slice(r.out.indexOf('BLOCKING'));
+    assert.doesNotMatch(blocking, /--never-defined/, 'the carried token must not be in the BLOCKING list');
+  } finally { s.cleanup(); }
+});
+
+t('X3 FAILS CLOSED: merge in progress but origin/main missing => baseline stays HEAD', () => {
+  const { s, rel } = mergeSandbox();
+  try {
+    s.git('update-ref', '-d', 'refs/remotes/origin/main');
+    const r = s.run(['--added-only', '--file', rel]);
+    assert.equal(r.code, 1, 'without origin/main the HEAD baseline must judge the carry as added');
+    assert.doesNotMatch(r.out, /measured against origin\/main/);
+  } finally { s.cleanup(); }
+});
+
+// ---- A5: the diff must FAIL CLOSED, never silently report zero added lines ----
+// The catch here used to swallow every git failure into `diff = ''`, which means the file
+// contributes no added lines and is never judged — a guard reporting green on work it never
+// looked at. The call also had no maxBuffer, so Node's 1 MiB default turned a large diff into
+// exactly that silent pass, and basing the diff on origin/main made large diffs MORE likely.
+// (GLM 5.3 + Flash, R8, A5 — independently reported, verified: no maxBuffer existed anywhere.)
+t('A5 FAILS CLOSED: a git diff that errors BLOCKS instead of reporting clean', () => {
+  // running outside a git repo makes `git diff` exit non-zero — the cheapest real throw
+  const d = mkdtempSync(join(tmpdir(), 'tokreg-nogit-'));
+  try {
+    mkdirSync(join(d, 'frontend', 'src', 'styles'), { recursive: true });
+    writeFileSync(join(d, 'frontend', 'src', 'styles', 'theme.css'), ':root{--a:#fff;}');
+    writeFileSync(join(d, 'frontend', 'src', 'x.ts'), 'export const a = `var(--never, #fff);`;');
+    const r = spawnSync('node', [SCRIPT, '--added-only', '--file', 'frontend/src/x.ts'], { cwd: d, encoding: 'utf8' });
+    const out = `${r.stdout}${r.stderr}`;
+    assert.equal(r.status, 1, `an unreadable diff must BLOCK, not pass: ${out}`);
+    assert.match(out, /could not diff/);
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
 console.log(`\ntoken-registry-check: ${pass} passed, ${fail.length} failed`);
 if (fail.length) process.exit(1);

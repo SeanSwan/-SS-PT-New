@@ -14,6 +14,14 @@
  * G6  ADVISORY (warns, never blocks): file over the 300-line cap (Rule 4)
  *       G6 opt-out: `swan-guard-allow-long-file` anywhere in the file; vendored paths skipped.
  *
+ * X1  MERGE VERBATIM-CARRY EXEMPTION (added 2026-08-27). During a merge (MERGE_HEAD
+ *     present), a staged path whose blob is byte-identical to that path's blob in
+ *     origin/main is skipped and logged with both OIDs. A merge stages what it carries;
+ *     judging carried bytes enforces nothing (they are already on main and deployed) and
+ *     makes origin/main unmergeable into any branch while main holds one violation.
+ *     Cannot launder: editing a file changes its blob and re-enters the checked set.
+ *     Fails CLOSED — unresolvable MERGE_HEAD or origin/main means no exemption.
+ *
  * Usage: node scripts/hooks/frontend-guards.mjs --staged   (from .githooks/pre-commit)
  *        node scripts/hooks/frontend-guards.mjs --file <path>...   (self-test / spot check)
  * Exit 0 = clean · 1 = violations (one FAIL: line each, actionable) · 2 = usage error.
@@ -34,7 +42,20 @@ const FRONTEND_RE = /^frontend\/src\/.+\.(tsx?|jsx?|css)$/;
 
 function stagedFiles() {
   const out = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR'], { encoding: 'utf8' });
-  return out.split('\n').filter((f) => FRONTEND_RE.test(f));
+  const names = out.split('\n');
+  // X1b — SELECTION must be merge-aware, not just the exemption. `git diff --cached` is
+  // index-vs-HEAD, so during a merge a path whose resolution equals THIS BRANCH's pre-merge
+  // copy is not listed at all — even though the merge just discarded main's version of it.
+  // Concretely: main FIXED a G5 violation, the merge resolves by keeping the branch's old
+  // file, and the fix is silently reverted with the guard never looking. G5 is the
+  // production-outage class (error #12 at mount), so that is not a style regression.
+  // Found by attacking X1 rather than by testing it, alongside the same hole in the
+  // constitution guard. FAILS CLOSED: outside a merge, selection is exactly as before.
+  if (MERGE_IN_PROGRESS) {
+    const vsMain = gitOut(['diff', '--cached', '--name-only', '--diff-filter=ACMR', 'origin/main']);
+    if (vsMain !== null) for (const f of vsMain.split('\n')) if (!names.includes(f)) names.push(f);
+  }
+  return names.filter((f) => FRONTEND_RE.test(f));
 }
 
 function stagedContent(file) {
@@ -42,9 +63,132 @@ function stagedContent(file) {
   return execFileSync('git', ['show', `:${file}`], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
 }
 
+// --- merge verbatim-carry exemption (X1) ------------------------------------
+// A merge commit STAGES every path it brings in, including paths it did not author.
+// Judging those enforces nothing — the bytes are already on the default branch and
+// already deployed — while the side effect is severe: origin/main can never be merged
+// into ANY branch while main carries a single G1-G5 violation anywhere.
+//
+// Exempt ONLY a verbatim carry: MERGE_HEAD present AND the staged blob byte-identical
+// to that path's blob in origin/main's tree. This cannot launder a violation. Editing a
+// file to smuggle one changes its blob, which drops it straight back into the checked
+// set; anchoring to origin/main (not to a merge parent) means exempted bytes must
+// already be on the default branch, so a poison branch has nothing to offer; and
+// requiring MERGE_HEAD closes the squash path.
+//
+// FAILS CLOSED: if MERGE_HEAD or origin/main cannot be resolved, nothing is exempt.
+//
+// Rule 34 (pre-existing debt is not this commit's blocker) is the same principle G6
+// already applies to the 300-line cap; its absence for G1-G5 was a coverage gap, not a
+// deliberate stance. Filed after it blocked a zero-conflict sync merge on 2026-08-27.
+function gitOut(args) {
+  try {
+    // MSYS_NO_PATHCONV: `<rev>:<path>` is the documented Git-Bash path-conversion trap
+    // in this repo — it returns a false negative silently, which here would mean
+    // "not a verbatim carry", i.e. it fails closed even if the pin were dropped.
+    return execFileSync('git', args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      env: { ...process.env, MSYS_NO_PATHCONV: '1' },
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+// `git merge --squash` stages every carried byte and writes NO MERGE_HEAD, only SQUASH_MSG.
+// Keyed on MERGE_HEAD alone, a squash-sync of main got zero relief and every carried
+// violation was billed to this commit. Verified against real git. (Flash, R8, finding 2.)
+// ADOPTION GATE (X4) - merge-mode is only valid when this operation is ADOPTING main.
+// Merging a feature branch INTO main is the mirror case: HEAD is ahead of origin/main, the
+// merge never touches main, and anchoring to it counts main's own unpushed lines as newly
+// added (false blocks) while pointing the baseline at a ref the merge is not adopting.
+// Test: does the thing being merged CONTAIN current main? If yes, main-anchored logic is
+// valid. If no, fall back to the pre-X behaviour, which was correct for that direction.
+// A squash records no source, so the nearest honest proxy is 'HEAD does not already
+// contain main'. FAILS CLOSED: any unresolvable ref means no merge-mode.
+// (GLM 5.3, R8/B2.)
+const ADOPTS_MAIN = (() => {
+  if (gitOut(['rev-parse', '-q', '--verify', 'origin/main']) === null) return false;
+  if (gitOut(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null) {
+    return gitOut(['merge-base', '--is-ancestor', 'origin/main', 'MERGE_HEAD']) !== null;
+  }
+  const dir = gitOut(['rev-parse', '--git-dir']);
+  if (dir && existsSync(`${dir}/SQUASH_MSG`)) {
+    return gitOut(['merge-base', '--is-ancestor', 'origin/main', 'HEAD']) === null;
+  }
+  return false;
+})();
+const MERGE_IN_PROGRESS = ADOPTS_MAIN && (() => {
+  if (gitOut(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null) return true;
+  const dir = gitOut(['rev-parse', '--git-dir']);
+  return Boolean(dir) && existsSync(`${dir}/SQUASH_MSG`);
+})();
+
+// Paths git recorded as CONFLICTED in this merge. A conflict means a human or agent CHOSE a
+// side, and choosing main's side is not the same act as carrying main's bytes untouched — even
+// though the resulting blob is byte-identical and so indistinguishable to the OID predicate.
+// The case that matters: main holds a G5 violation, THIS BRANCH FIXED IT, the conflict is
+// resolved to main's side, and the fix is silently reverted with the guard exempting the file.
+// So: a conflicted path is never exempt, whatever its OID says.
+//
+// MERGE_MSG records these as COMMENTED lines ("# Conflicts:" then "#\t<path>"), not the bare
+// "Conflicts:" a first reading assumed — verified against a real conflicted merge before use.
+// Read via `git rev-parse --git-dir`, never a literal `.git/`: in a WORKTREE the gitdir lives
+// elsewhere and the literal path silently reports "no conflicts", which would fail OPEN.
+// (GLM 5.3, hostile round 8, A1.)
+const CONFLICTED = (() => {
+  if (!MERGE_IN_PROGRESS) return new Set();
+  const dir = gitOut(['rev-parse', '--git-dir']);
+  if (!dir) return null; // unknown => treat every path as conflicted (fail CLOSED)
+  let text = '';
+  try {
+    text = readFileSync(`${dir}/MERGE_MSG`, 'utf8');
+  } catch {
+    // git writes MERGE_MSG for EVERY merge, conflicted or clean — verified, not assumed.
+    // So during a merge its absence is an anomaly, not "no conflicts", and reading it as the
+    // latter would silently exempt every path. Unknown => fail CLOSED.
+    return null;
+  }
+  const out = new Set();
+  let inBlock = false;
+  for (const line of text.split('\n')) {
+    if (/^#\s*Conflicts:/.test(line)) { inBlock = true; continue; }
+    if (!inBlock) continue;
+    const m = /^#\s+(.+?)\s*$/.exec(line);
+    if (m) out.add(m[1]); else if (line.trim() === '' || !line.startsWith('#')) inBlock = false;
+  }
+  return out;
+})();
+
+function verbatimCarryFrom(file) {
+  if (!MERGE_IN_PROGRESS) return null;
+  // fail CLOSED: null means we could not determine the conflict set
+  if (CONFLICTED === null || CONFLICTED.has(file)) return null;
+  const staged = (gitOut(['ls-files', '-s', '--', file]) || '').match(/^\d+\s+([0-9a-f]{40})\s/);
+  const main = gitOut(['rev-parse', `origin/main:${file}`]);
+  if (!staged || !main || staged[1] !== main) return null;
+  return { staged: staged[1], main };
+}
+
+const exempted = [];
+function checkedStagedFiles() {
+  return stagedFiles().filter((f) => {
+    const carry = verbatimCarryFrom(f);
+    if (!carry) return true;
+    exempted.push(`  X1 verbatim-carry exempt — ${f} — staged ${carry.staged} == origin/main ${carry.main}`);
+    return false;
+  });
+}
+
 const targets = STAGED
-  ? stagedFiles().map((f) => ({ file: f, text: stagedContent(f) }))
+  ? checkedStagedFiles().map((f) => ({ file: f, text: stagedContent(f) }))
   : fileArgs.filter((f) => existsSync(f)).map((f) => ({ file: f, text: readFileSync(f, 'utf8') }));
+
+if (exempted.length) {
+  console.error(`[frontend-guards] ${exempted.length} path(s) exempt as verbatim carries from origin/main during a merge:`);
+  exempted.forEach((e) => console.error(e));
+}
 
 const GALAXY = /#0a0a1a|#00FFFF|#7851A9/i;
 const MUI = /from\s+['"]@mui\/|require\(\s*['"]@mui\//;

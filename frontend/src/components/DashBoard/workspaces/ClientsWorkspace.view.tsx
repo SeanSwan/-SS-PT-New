@@ -40,6 +40,7 @@ import {
   LoadingPulse,
 } from './ClientsWorkspace.styles';
 import ErrorNote from '../../ui/ErrorNote';
+import LiveRegion from '../../ui/LiveRegion';
 import ClientsWorkspaceLensFrame from './ClientsWorkspaceLensFrame';
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 import ClientCreationHandoffPanel from './clients-team/ClientCreationHandoffPanel';
@@ -83,6 +84,8 @@ interface ClientsWorkspaceViewProps {
   loading: boolean;
   /** Honest-state: true when the roster fetch failed (never shown as "no clients"). */
   loadError?: boolean;
+  /** Re-runs the roster fetch in place. Absent means the banner degrades to text-only. */
+  onRetryLoad?: () => void;
   manualCreateOpen: boolean;
   manualCreateTrainers: AssignableTrainer[];
   creationHandoff: ManualClientCreationHandoff | null;
@@ -233,6 +236,9 @@ const ClientGrid: React.FC<Pick<
 );
 
 const DetailContent: ContentRenderer = (props) => <SelectedClientDetail {...props} />;
+// Purely visual. The screen-reader announcement is made by LiveRegion, which
+// lives OUTSIDE ContentArea — see its definition for why a live region nested inside
+// an aria-busy subtree can have its announcement deferred and then lost.
 const LoadingContent: ContentRenderer = () => <LoadingPulse>Loading clients...</LoadingPulse>;
 const EmptyContent: ContentRenderer = (props) => {
   const config = getClientHubAudienceConfig(props.audience ?? 'admin');
@@ -265,9 +271,12 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
   return (
     <ClientsWorkspaceLensFrame>
     <HubContainer>
+      {/* Unconditionally mounted, ABOVE and OUTSIDE the aria-busy ContentArea.
+          Both of those are load-bearing — see LiveRegion for why. */}
+      <LiveRegion message={props.loading ? 'Loading clients...' : ''} />
       {props.loadError && !props.loading && (
-        <ErrorNote>
-          Couldn&apos;t load your client roster. Check your connection and reload the page.
+        <ErrorNote onRetry={props.onRetryLoad} retryLabel="Retry">
+          Couldn&apos;t load your client roster.
         </ErrorNote>
       )}
       <ClientsWorkspaceTopBar
@@ -318,7 +327,8 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
           <ClientNutritionEstimateReviewPanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
         </>
       )}
-      <ContentArea>
+      {/* Persistent region, so aria-busy has something to flip back to false on. */}
+      <ContentArea aria-busy={props.loading}>
         <ClientsWorkspaceContent {...props} />
       </ContentArea>
     </HubContainer>

@@ -1,140 +1,28 @@
 /**
- * Dashboard Tabs Configuration
+ * Dashboard Workspace Configuration
  *
- * Centralized configuration for dashboard tabs across different user roles.
- * This ensures consistency between admin, trainer, and client dashboards.
+ * WORKSPACE_CONFIG is the admin dashboard's data-driven nav source, consumed by
+ * AdminStellarSidebar and guarded by sidebarRouteParity.contract.test.ts and
+ * dashboardSupersetInvariant.test.ts.
+ *
+ * The filename still says "tabs" for import stability. It no longer defines tabs:
+ * the per-role tab arrays it used to hold were removed 2026-08-23 as unreferenced.
+ * The trainer sidebar builds its own nav inline in TrainerStellarSidebar.tsx — that
+ * divergence is real and tracked on SWA-64, not something this file resolves.
  */
 
 import { CANONICAL_SURFACES } from './canonical-surface-names';
 
-export type TabStatus = 'real' | 'mock' | 'partial' | 'fix' | 'progress' | 'new' | 'error';
+// TabStatus and DashboardTab were removed with the tab consts they typed (2026-08-23);
+// nothing outside this file referenced either. WORKSPACE_CONFIG has its own interface.
 
-export type DashboardTab = {
-  key: string;
-  label: string;
-  icon: string;
-  order: number;
-  status?: TabStatus;
-  section?: 'command' | 'management' | 'business' | 'content' | 'system';
-  route?: string;
-  description?: string;
-  notification?: number;
-  isNew?: boolean;
-  isDisabled?: boolean;
-};
-
-// Common tabs shared across dashboard types
-export const COMMON_DASHBOARD_TABS: DashboardTab[] = [
-  {
-    key: 'overview',
-    label: 'Overview',
-    icon: 'Shield',
-    order: 1,
-    status: 'mock',
-  },
-  {
-    key: 'sessions',
-    label: 'Schedule',
-    icon: 'Calendar',
-    order: 2,
-    status: 'partial',
-  },
-  {
-    key: 'workouts',
-    label: 'Workouts',
-    icon: 'Dumbbell',
-    order: 3,
-    status: 'real',
-  },
-  {
-    key: 'client-progress',
-    label: 'Client Progress',
-    icon: 'BarChart3',
-    order: 4,
-    status: 'real',
-  },
-  {
-    key: 'messages',
-    label: 'Messages',
-    icon: 'Mail',
-    order: 5,
-    status: 'real',
-  },
-  {
-    key: 'gamification',
-    label: 'Gamification',
-    icon: 'Gamepad2',
-    order: 6,
-    status: 'real',
-  },
-  {
-    key: 'community',
-    label: 'Community',
-    icon: 'Users',
-    order: 7,
-    status: 'progress',
-  },
-];
-
-// Trainer-specific tabs
-export const TRAINER_DASHBOARD_TABS: DashboardTab[] = [
-  ...COMMON_DASHBOARD_TABS,
-  {
-    key: 'clients',
-    label: 'Clients',
-    icon: 'Users',
-    order: 8,
-  },
-  {
-    key: 'packages',
-    label: 'Packages',
-    icon: 'ShoppingBag',
-    order: 9,
-  },
-  {
-    key: 'workout-planner',
-    label: CANONICAL_SURFACES.workoutPlanner.name,
-    icon: 'Dumbbell',
-    order: 9.25,
-    status: 'real',
-    section: 'management',
-    route: '/dashboard/trainer/workout-planner',
-    description: 'Swan Coach workout builder with Teach Mode',
-    isNew: true,
-  },
-];
-
-// Client-specific tabs
-export const CLIENT_DASHBOARD_TABS: DashboardTab[] = [
-  ...COMMON_DASHBOARD_TABS,
-  {
-    key: 'my-equipment',
-    label: 'My Equipment',
-    icon: 'Dumbbell',
-    order: 7.5,
-    status: 'real',
-    route: '/dashboard/client/my-equipment',
-    description: 'Your training locations & gear — powers your workout plans',
-  },
-  {
-    key: 'creative',
-    label: 'Creative Hub',
-    icon: 'Palette',
-    order: 8,
-  },
-  {
-    key: 'profile',
-    label: 'Profile',
-    icon: 'UserCircle',
-    order: 9,
-  },
-  {
-    key: 'settings',
-    label: 'Settings',
-    icon: 'Settings',
-    order: 10,
-  },
-];
+// COMMON_DASHBOARD_TABS / TRAINER_DASHBOARD_TABS / CLIENT_DASHBOARD_TABS lived here
+// until 2026-08-23. Removed because nothing outside this file imported them: ~113
+// lines of tab definitions that read as the authoritative dashboard nav while driving
+// nothing. WORKSPACE_CONFIG below is the real, contract-tested nav source
+// (sidebarRouteParity.contract.test.ts, dashboardSupersetInvariant.test.ts).
+// If you need per-role tab config, extend WORKSPACE_CONFIG rather than reviving a
+// second parallel document — two nav sources is how the two dashboards drifted.
 
 // ─── Workspace Configuration (Phase 1) ─────────────────
 export type WorkspaceSection = 'command' | 'clients' | 'training' | 'business' | 'system';
@@ -234,8 +122,5 @@ export const WORKSPACE_CONFIG: WorkspaceConfig[] = [
 ];
 
 export default {
-  COMMON_DASHBOARD_TABS,
-  TRAINER_DASHBOARD_TABS,
-  CLIENT_DASHBOARD_TABS,
   WORKSPACE_CONFIG,
 };

@@ -106,6 +106,14 @@ const assignment = {
 describe('workout plan lifecycle mutation wiring', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // `dispatchDeleteWorkoutPlan` now loads the plan to authorize the caller against its
+    // owner before reaching the lifecycle service (see
+    // tests/api/aiCommandPlanArchiveOwnership.contract.test.mjs). Every actor in this file
+    // is an admin, so the check passes on role alone — but the lookup still has to find
+    // something. Resolving for EVERY id on purpose: the "plan does not exist" test below
+    // is about the SERVICE's not-found rejection, and short-circuiting it here would
+    // quietly move that test onto a different code path while it kept passing.
+    fixtures.WorkoutPlan.findByPk.mockImplementation(async (id) => ({ id, userId: 42, trainerId: 3 }));
   });
 
   it('advances verified plan progress through the existing transaction and revision', async () => {

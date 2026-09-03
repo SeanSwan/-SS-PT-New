@@ -51,7 +51,12 @@ export const WorkoutLogger = React.lazy(() => import('../WorkoutLogger/WorkoutLo
 export const AdminPersonalWorkoutLogger = React.lazy(() => import('../WorkoutLogger/AdminPersonalWorkoutLogger'));
 export const NASMProgressCharts = React.lazy(() => import('../ClientProgressCharts'));
 export const TheAestheticCodex = React.lazy(() => import('../../core/TheAestheticCodex'));
-export const MyClientsView = React.lazy(() => import('../TrainerDashboard/ClientManagement'));
+// There is intentionally NO MyClientsView export here. The trainer client surface is
+// TrainerClientsWorkspace -> <ClientsWorkspace audience="trainer" /> (see
+// UniversalDashboardLayout.routes.tsx, trainer '/clients'). The legacy
+// TrainerDashboard/ClientManagement tree that this once pointed at was deleted 2026-08-23; its
+// card-parity law now guards the shared ClientHubGridCard instead (clientCardSystem.contract.test.ts).
+// Audit: DASHBOARD-CONVERGENCE-AUDIT-RECORD-2026-08-22.md (F1/F3).
 export const EnhancedWorkoutLogger = React.lazy(() => import('../TrainerDashboard/WorkoutLogging'));
 export const EnhancedClientProgressView = React.lazy(() =>
   import('../TrainerDashboard/ClientProgress').then((module) => ({
@@ -81,7 +86,11 @@ export const ClientCommunityPage = React.lazy(() => import('./Pages/client-dashb
 export const TrainerHomeTab = React.lazy(() => import('./Pages/trainer-dashboard/TrainerHomeTab'));
 export const TrainerEarningsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerEarningsPage'));
 export const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerAssessmentsPage'));
-export const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
+// TrainerVideosPage was lazy-exported here with zero consumers — the trainer route
+// table mounts VideoLibraryPage for /videos, not this component. Removed 2026-08-23,
+// same class as the MyClientsView export (P1-a): an unreferenced lazy export makes an
+// unmounted component read as mountable to the next reader. Do NOT re-add it without
+// a JSX usage in the route table — an import() is not a mount.
 export const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));
 export const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
 export const MyEquipmentPage = React.lazy(() => import('../MyEquipment/MyEquipmentPage'));

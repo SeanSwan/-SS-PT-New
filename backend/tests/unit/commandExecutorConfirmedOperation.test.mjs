@@ -15,6 +15,13 @@ async function loadConfirmedOperationHarness({ hasDispatcher = false, dispatchRe
 
   const destructiveOperations = await import('../../services/ai/destructiveOperations.mjs');
   const commandExecutor = await import('../../services/ai/commandExecutor.mjs');
+  // Production always has an initialized registry: aiCommandRoutes.mjs calls
+  // initializeRegistry() at module load, in the same module that serves /confirm. The
+  // confirm lane re-checks the caller's role against the registry at redemption, so a
+  // harness that resets modules and skips this models a state the server never reaches.
+  const registry = await import('../../services/ai/commandRegistry/index.mjs');
+  registry.initializeRegistry();
+
 
   return {
     ...destructiveOperations,

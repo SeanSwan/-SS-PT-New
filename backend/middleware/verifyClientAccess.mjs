@@ -103,7 +103,36 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
     const assignment = await Model.findOne({
       where: { trainerId: requesterId, clientId: targetClientId, status: 'active' },
     });
-    return !!assignment;
+    if (!assignment) return false;
+    // Re-assert what the WHERE was supposed to guarantee, on the row that came back.
+    //
+    // Hostile-review finding 2026-08-26: every test of this function proves the QUERY
+    // carries the right predicates, never that the DATABASE applied them. A fail-open
+    // construct — `WHERE (... OR :trainerId IS NULL)` is the classic — satisfies every
+    // string-level check and returns a foreign row anyway. Three comparisons convert that
+    // class from a silent leak into a denial, and cost nothing on the hot path. Mirrors the
+    // `isActive` double-check `clientResolver` already does for the same reason.
+    //
+    // Fields ABSENT from the row are not treated as mismatches, and that narrowing is
+    // deliberate rather than sloppy. A real SELECT on this table always returns these
+    // columns, so the threat — a row whose `trainerId` is somebody else's — always carries
+    // the field and is always caught. What omits them is an under-specified test stub, and
+    // ~56 such stubs exist across ten suites written before this guard. Rewriting other
+    // people's security fixtures in passing is how a hardening becomes a regression; that
+    // migration is a slice of its own, and the newer suites already model rows fully.
+    // `requesterId` and `targetClientId` are `parseStrictPositiveInteger` outputs above —
+    // numbers, never strings — so coercing only the row side is correct rather than lucky.
+    // A review asked; this comment is the answer, so nobody has to ask twice.
+    const present = (value) => value !== undefined && value !== null;
+    const mismatched = (actual, expected) => present(actual) && Number(actual) !== expected;
+    if (mismatched(assignment.trainerId, requesterId)) return false;
+    if (mismatched(assignment.clientId, targetClientId)) return false;
+    // Same absent-is-not-a-mismatch rule as the ids. It read differently before — an
+    // explicit `status: null` denied while an explicit `trainerId: null` passed — which errs
+    // closed and so was never going to be caught by a test, but two rules for one idea is
+    // how the next person derives the wrong one.
+    if (present(assignment.status) && assignment.status !== 'active') return false;
+    return true;
   } catch (err) {
     logger.warn('[verifyClientAccess] ClientTrainerAssignment check failed - denying access', {
       userId, clientId, error: err?.message,

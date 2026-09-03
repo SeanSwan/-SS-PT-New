@@ -11,7 +11,22 @@ import { z } from 'zod';
 // ── Enums ────────────────────────────────────────────────────────────────────
 
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
-export const USER_ROLES = ['admin', 'trainer', 'client'];
+/**
+ * Every role a caller can hold, matching `User.role`'s ENUM
+ * (`models/User.mjs`: `DataTypes.ENUM('user', 'client', 'trainer', 'admin')`).
+ *
+ * 'user' was missing here until 2026-08-26 even though it is the model's DEFAULT
+ * role — the one every self-registered signup holds — and twelve commands gate on
+ * it (`my_progress`, `log_my_nutrition`, `request_plan_adjustment`, ...). Nothing at
+ * runtime read this constant, so the drift never denied anyone; it misled a test that
+ * trusted it, which skipped an entire role dimension while reading as exhaustive.
+ * `frontend/src/components/UniversalMasterSchedule/types.ts` already listed all four.
+ *
+ * Keep this in step with the model enum. `tests/api/aiCommandDispatcherAuthorization
+ * .contract.test.mjs` reads the enum directly rather than importing this, so a future
+ * divergence fails there rather than silently narrowing what gets tested.
+ */
+export const USER_ROLES = ['admin', 'trainer', 'client', 'user'];
 
 // ── Classified Intent Schema (output of intent classifier) ────────────────
 

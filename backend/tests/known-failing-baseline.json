@@ -1,6 +1,108 @@
 {
-  "recordedAt": "2026-08-19T19:40:51.219Z",
-  "note": "Files failing for reasons that predate current work. Shrink this list; never grow it casually.",
+  "recordedAt": "2026-08-26T19:42:04.590Z",
+  "note": "Tests failing for reasons that predate current work, with the reason each failed. Shrink this list; never grow it casually. Compared per TEST and per REASON — a baselined test that starts failing differently is a regression, not a match.",
+  "failingTests": [
+    {
+      "id": "__tests__/equipmentScanService.multi.test.mjs :: equipment scan multi-item V2 contract returns all reviewable items while the legacy wrapper keeps the best single item",
+      "reason": "Error: Google Generative AI SDK not installed"
+    },
+    {
+      "id": "__tests__/equipmentScanService.retry.test.mjs :: equipment scan retry behavior asks Gemini a second direct question when the first pass returns Unknown at zero confidence",
+      "reason": "Error: Google Generative AI SDK not installed"
+    },
+    {
+      "id": "__tests__/equipmentScanService.retry.test.mjs :: equipment scan retry behavior uses a plain Gemini caption fallback when both strict JSON passes return Unknown",
+      "reason": "Error: Google Generative AI SDK not installed"
+    },
+    {
+      "id": "__tests__/equipmentScanService.retry.test.mjs :: equipment scan retry behavior uses caption fallback when strict Gemini JSON is malformed before identification",
+      "reason": "Error: Google Generative AI SDK not installed"
+    },
+    {
+      "id": "tests/api/associationsModelRegistryParity.test.mjs :: associations.mjs return-literal parity early-return and full-setup return expose the SAME model set",
+      "reason": "AssertionError: models present only in the full-setup literal (add them to the early return too): expected [ 'RenewalAlert' ] to deeply equal []"
+    },
+    {
+      "id": "tests/api/idorAuditReaderControls.test.mjs :: <file did not collect>",
+      "reason": "Invalid or unexpected token"
+    },
+    {
+      "id": "tests/api/phase1bControllers.test.mjs :: onboardingController.mjs named exports 12 — transformQuestionnaireToMasterPrompt is exported and callable",
+      "reason": "AssertionError: expected '<client_reported>strength</client_rep…' to be 'strength' // Object.is equality"
+    },
+    {
+      "id": "tests/unit/adminWorkoutLoggerHistoryDate.test.mjs :: <file did not collect>",
+      "reason": "default.define is not a function"
+    },
+    {
+      "id": "tests/unit/bracket.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/capabilityHonesty.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/capturedFixtures.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/contactSheet.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/editWorkoutDateParsing.test.mjs :: <file did not collect>",
+      "reason": "default.define is not a function"
+    },
+    {
+      "id": "tests/unit/fixAfter.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/forgeAspectContract.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/forgeEndToEnd.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/imageDimensions.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/moduleSmoke.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/pixels.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/prune.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/swanLawFilter.corpus.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/swanLawFilter.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/swanPromptCompiler.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/variantRun.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    },
+    {
+      "id": "tests/unit/winnerAndCapability.test.mjs :: <file did not collect>",
+      "reason": "No test suite found in file <path>"
+    }
+  ],
   "failingFiles": [
     "__tests__/equipmentScanService.multi.test.mjs",
     "__tests__/equipmentScanService.retry.test.mjs",

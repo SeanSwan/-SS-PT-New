@@ -128,7 +128,7 @@ export const ActionBtn = styled.button<{ $variant?: 'primary' | 'secondary' | 'd
         ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 60%, var(--brand-primary, #002060))'
         : $variant === 'danger'
           ? 'var(--color-error, #DC2626)'
-        : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, #0A0A0F)'};
+        : 'color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, var(--bg-base, #0A0A0F))'};
     box-shadow: ${({ $variant }) =>
       $variant === 'primary'
         ? '0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent)'

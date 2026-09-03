@@ -33,6 +33,7 @@ function signOperation(op) {
     type: op.type,
     endpoint: op.endpoint,
     commandType: op.commandType,  // exec-substrate-v9: included so tampering with commandType fails verification
+    clientId: op.clientId,        // the client this operation was AUTHORIZED against, re-checked at redemption
     params: op.params,
     createdBy: op.createdBy,
   });
@@ -61,6 +62,7 @@ export function prepareDestructiveOperation({
   endpoint,
   commandParams,
   commandType,      // exec-substrate-v9: command-lane type (e.g. 'cancel_session'); HMAC-signed
+  clientId = null,  // resolved client this op was authorized against; HMAC-signed, re-checked at redemption
   userId,
   description,
   affectedRecords = [],
@@ -96,6 +98,7 @@ export function prepareDestructiveOperation({
     type,
     endpoint,
     commandType: commandType ?? null,  // signed in HMAC payload — tampering detected on verify
+    clientId: Number.isSafeInteger(Number(clientId)) && Number(clientId) > 0 ? Number(clientId) : null,
     params: commandParams,
     affectedRecords: affectedRecords.slice(0, 10), // Max 10 in preview
     affectedCount: affectedRecords.length,

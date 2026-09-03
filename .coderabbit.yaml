@@ -1,0 +1,77 @@
+# CodeRabbit configuration — SwanStudios
+# Schema: https://docs.coderabbit.ai/reference/configuration
+#
+# WHY THIS EXISTS (2026-09-01)
+# ----------------------------
+# PR #95 showed CodeRabbit as a green "pass" whose reason string was "Review limit
+# reached". It had never reviewed anything. A green nobody looked at is worse than a
+# red one, so this file exists to stop the two things that were burning the quota
+# before a review could land.
+#
+#   1. auto_incremental_review re-reviews on EVERY push. PR #95 took six pushes, which
+#      is six reviews for one piece of work. Turned off: one review per PR, refreshed
+#      on demand with `@coderabbitai review` in a PR comment.
+#   2. path_filters were absent, so every review also read archive/ — a tree the repo's
+#      own link checker reports 3,738 dead links inside. Reviewing files that are
+#      pending deletion spends attention that the money path needs.
+#
+# NOTE ON WHEN THIS TAKES EFFECT: CodeRabbit reads its config from the repository, so
+# this is fully live once merged to main. Do not expect it to change the review of the
+# PR that introduces it.
+
+reviews:
+  # assertive = more findings. This repo's whole failure history is silent problems
+  # that passed green, so a quieter reviewer is the wrong trade here. Dial to "chill"
+  # if the signal-to-noise turns out badly — a reviewer people skim past protects
+  # nothing, which is the same argument that keeps the pre-commit guards narrow.
+  profile: assertive
+  poem: false
+
+  auto_review:
+    enabled: true
+    # THE QUOTA FIX. Every push was spending a review.
+    auto_incremental_review: false
+    drafts: false
+
+  path_filters:
+    # Pending-deletion and archived material. Not shipped, not maintained, and the
+    # source of essentially all of this repo's dead-link noise.
+    - "!archive/**"
+    - "!**/archived_documentation/**"
+    # Build output and vendored trees — nothing here is authored.
+    - "!**/node_modules/**"
+    - "!frontend/dist/**"
+    - "!frontend/build/**"
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+    - "!**/dashboard-export/**"
+    - "!**/reference-pack/**"
+    - "!**/production-context/**"
+    # Generated artifacts and captured QA output.
+    - "!**/*.generated.ts"
+    - "!docs/qa/**"
+    - "!AI-Village-Documentation/validation-prompts/archive/**"
+
+# Point CodeRabbit at the rules this repo actually enforces, so its findings line up
+# with the pre-commit guards instead of competing with them. Each of these is a real
+# incident class here, not a style preference.
+tone_instructions: >-
+  This is a production personal-training SaaS (React 18 + TypeScript +
+  styled-components; Node/Express/Sequelize/PostgreSQL). Prioritise correctness,
+  authorization and data-scoping bugs over style.
+
+  Hard project rules worth flagging when violated: no @mui/* imports (styled-components
+  only); no recharts (Victory only for new charts); no hardcoded hex colours outside a
+  var(--token, #fallback) fallback position; a shared style fragment that interpolates a
+  styled-components primitive MUST use the css`` helper, because a plain template literal
+  bakes the generated class name in and crashes at mount with styled-components error #12
+  while the build still passes; files over 300 lines should be split.
+
+  Weight cross-tenant and authorization issues highest. Commands in the Swan Coach lane
+  dispatch by command type and never traverse HTTP routes, so no route middleware runs
+  for them — any authorization there must be performed explicitly by the handler, and
+  "it sits next to a protected caller" is not protection.
+
+  Flag fail-OPEN error handling specifically: a catch that swallows an error and returns
+  an empty or permissive result is the failure mode that has cost this repo the most,
+  because it looks identical to success.

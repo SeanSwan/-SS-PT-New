@@ -242,15 +242,87 @@ function main() {
   // `-U0` makes each hunk header name exactly the added range: "@@ -a,b +c,d @@" means d lines
   // starting at c are new. d is omitted when it is 1.
   const addedLines = new Map();
+
+  // --- merge baseline (X3) --------------------------------------------------
+  // `git diff --cached` is against HEAD, and during a MERGE that inverts the meaning of
+  // "a line this commit ADDS": HEAD is the PRE-merge tip, so every line the merge carries
+  // in from origin/main counts as newly added by this commit. It is not. Those lines are
+  // already on the default branch and already deployed, and blocking on them means
+  // origin/main can never be merged into a branch while main carries inherited token debt
+  // — the exact inherited-debt case that made this gate --added-only rather than --strict
+  // in the first place (Rule 34).
+  //
+  // So during a merge the diff baseline becomes origin/main: lines this merge genuinely
+  // authors relative to current law. Strictly the right question and strictly narrower —
+  // a file the merge actually MODIFIED still diffs against main and its new lines are
+  // still judged; only verbatim carries fall away.
+  //
+  // FAILS CLOSED: no MERGE_HEAD, or origin/main unresolvable, and the baseline stays HEAD.
+  // Third guard found with this same blind spot on 2026-08-27 (after frontend-guards X1 and
+  // constitution-guard X2), which is what makes it a pattern rather than three bugs: a guard
+  // that cannot tell a line it AUTHORED from a line that ARRIVED.
+  const gitQuiet = (a) => {
+    try {
+      return execFileSync('git', a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], env: { ...process.env, MSYS_NO_PATHCONV: '1' } }).trim();
+    } catch { return null; }
+  };
+  // `git merge --squash` stages carried bytes and writes NO MERGE_HEAD, only SQUASH_MSG;
+  // keyed on MERGE_HEAD alone a squash-sync billed main's lines to this commit.
+  // Verified against real git. (Flash, R8, finding 2.)
+  const squashing = (() => {
+    const dir = gitQuiet(['rev-parse', '--git-dir']);
+    return Boolean(dir) && existsSync(`${dir}/SQUASH_MSG`);
+  })();
+  // ADOPTION GATE (X4) - merge-mode is only valid when this operation is ADOPTING main.
+  // Merging a feature branch INTO main is the mirror case: HEAD is ahead of origin/main, so
+  // diffing added lines against origin/main bills main's own unpushed lines to this commit.
+  // Test whether the thing being merged CONTAINS current main; if not, keep the HEAD base,
+  // which was correct for that direction. FAILS CLOSED. (GLM 5.3, R8/B2.)
+  const adoptsMain = (() => {
+    if (gitQuiet(['rev-parse', '-q', '--verify', 'origin/main']) === null) return false;
+    if (gitQuiet(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null) {
+      return gitQuiet(['merge-base', '--is-ancestor', 'origin/main', 'MERGE_HEAD']) !== null;
+    }
+    if (squashing) return gitQuiet(['merge-base', '--is-ancestor', 'origin/main', 'HEAD']) === null;
+    return false;
+  })();
+  const DIFF_BASE = adoptsMain && (gitQuiet(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null || squashing)
+    && gitQuiet(['rev-parse', '-q', '--verify', 'origin/main']) !== null
+    ? ['origin/main'] : [];
+  if (DIFF_BASE.length) {
+    console.error('[token-registry] merge in progress — added lines measured against origin/main, not the pre-merge tip');
+  }
+
   if (ADDED_ONLY) {
     for (const f of targets) {
       const set = new Set();
       let diff = '';
       try {
-        diff = execFileSync('git', ['diff', '--cached', '-U0', '--', f], { encoding: 'utf8' });
-      } catch {
-        // A file with no staged diff is not an error - it simply contributes no added lines.
-        diff = '';
+        // maxBuffer: this call had NO limit, so it inherited Node's 1 MiB default. A diff
+        // larger than that throws ERR_CHILD_PROCESS_STDOUT_MAXBUFFER, the catch below swallowed
+        // it, `diff` became '', the file contributed ZERO added lines and was never judged.
+        // A guard that silently stops judging is the worst failure this file can have, and
+        // basing the diff on origin/main made large diffs MORE likely, not less: a carried or
+        // renamed file produces whole-file hunks against that base. Siblings in this repo use
+        // 16-64MB. (GLM 5.3, hostile round 8, A5 — verified: no maxBuffer existed anywhere here.)
+        diff = execFileSync('git', ['diff', '--cached', ...DIFF_BASE, '-U0', '--', f], {
+          encoding: 'utf8',
+          maxBuffer: 64 * 1024 * 1024,
+        });
+      } catch (err) {
+        // A file with no staged diff is not an error - it simply contributes no added lines,
+        // and git signals that with exit 0 and empty stdout, never by throwing. Anything that
+        // THROWS here is a real failure (buffer overrun, git error, missing object), and
+        // treating it as "no added lines" is a silent fail-OPEN. Fail closed instead.
+        if (err && err.status === 0) {
+          diff = '';
+        } else {
+          console.error(`\nCOMMIT BLOCKED: token-registry-check could not diff ${f}.`);
+          console.error(`  ${err && err.message ? String(err.message).split('\n')[0] : err}`);
+          console.error('  This gate cannot vouch for a file it failed to read, so it refuses');
+          console.error('  rather than reporting green on work it never looked at.');
+          process.exit(1);
+        }
       }
       for (const m of diff.matchAll(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gm)) {
         const start = Number(m[1]);
