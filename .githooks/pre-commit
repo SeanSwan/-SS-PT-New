@@ -95,6 +95,35 @@ if [[ -f "$ASCII_GATE" ]]; then
   fi
 fi
 
+# -- Egress chokepoint guard (SWA-237) ----------------------------------------
+# A script that reaches an external MODEL host must go through fetchForEgress, or
+# it skips the identity/secret redactor, the subscription-seat guard, and the
+# training-tier gate. Raised by Muse Spark reviewing its own gate: fetchForEgress
+# is described as "the transport" but is really a function you must remember to
+# call, so every control layered on it is opt-in.
+#
+# RATCHET: staged files only. Five pre-existing violations in scripts/ block
+# nothing until someone edits them (`--all` reports the backlog). Scoped to
+# scripts/ deliberately — backend AI paths answer to Rule 8 / aiPrivacyService,
+# a different control; see SWA-238.
+#
+# This is a LINT, not the boundary. The boundary is SWA-237's other half: binding
+# the API key so a caller cannot authenticate a request it assembled itself.
+# BLOCKS on violations; fail-open on its own bugs, like the guards above.
+EGRESS_GUARD="$REPO_ROOT/scripts/hooks/egress-chokepoint-guard.mjs"
+if [[ -f "$EGRESS_GUARD" ]] && command -v node >/dev/null 2>&1; then
+  set +e
+  node "$EGRESS_GUARD" --staged
+  EGRESS_RC=$?
+  set -e
+  if [[ $EGRESS_RC -eq 1 ]]; then
+    echo "[pre-commit] COMMIT BLOCKED by egress-chokepoint guard (see above)." >&2
+    exit 1
+  elif [[ $EGRESS_RC -ne 0 ]]; then
+    echo "[pre-commit] egress-chokepoint guard errored (rc=$EGRESS_RC) -- allowing commit (fail-open)." >&2
+  fi
+fi
+
 # NOTE: the rulebook-review guard lives in .githooks/commit-msg, NOT here. It needs the
 # commit MESSAGE, and during pre-commit the message is not written yet (with -m, git
 # writes COMMIT_EDITMSG after pre-commit) — a pre-commit read sees the PREVIOUS commit's
