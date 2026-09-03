@@ -9,7 +9,7 @@
  *
  * Usage:
  *   node scripts/consult-qwen.mjs --document <path> [--out <path>] [--remit "<text>"]
- *     [--model qwen3.8:27b-mtp-q4_K_M] [--endpoint http://127.0.0.1:11434]
+ *     [--model default|uncensored|<raw ollama tag>] [--endpoint http://127.0.0.1:11434]
  *     [--max-tokens 16000] [--timeout-ms 900000]
  *
  * VRAM note: the 27B q4 holds ~17GB resident (keep_alive). Fine beside one
@@ -26,7 +26,24 @@ const arg = (f, d = '') => { const i = argv.indexOf(f); return i >= 0 && argv[i 
 const document = arg('--document');
 const out = arg('--out', 'docs/ai-workflow/AI-HANDOFF/QWEN-CONSULT.md');
 const remit = arg('--remit', '');
-const model = arg('--model', 'qwen3.8:27b-mtp-q4_K_M');
+// Named aliases so a model is picked by name, not by a 60-character HF path.
+// THE DEFAULT IS DELIBERATELY THE STOCK MODEL. `uncensored` is opt-in only:
+// it is an abliterated edit (Heretic method) whose refusal rate drops 98/100 -> 12/100
+// on mlabonne/harmful_behaviors. Sean approved it 2026-09-02 as a SELECTABLE option
+// and explicitly NOT as the default.
+//
+// It must never be added to scripts/lib/panel-seats.mjs. A refusal-stripped model's
+// verdict is not a peer review, and a panel that silently contains one is no longer
+// the panel it reports itself to be. Advisory read-only output; never wire it to a
+// path that can write to the repo, the database, or a shell.
+//
+// Unknown values pass through unchanged, so any raw Ollama tag still works.
+const MODEL_ALIASES = {
+  default: 'qwen3.8:27b-mtp-q4_K_M',
+  uncensored: 'hf.co/JonathanColetti/Qwen3.8-27B-Uncensored-GGUF:Q4_K_M',
+};
+const modelArg = arg('--model', 'default');
+const model = MODEL_ALIASES[modelArg] ?? modelArg;
 const endpoint = arg('--endpoint', 'http://127.0.0.1:11434');
 const maxTokens = Number(arg('--max-tokens', '16000'));
 const timeoutMs = Number(arg('--timeout-ms', '900000'));
@@ -39,6 +56,10 @@ const body = readFileSync(document, 'utf8');
 const prompt = remit ? `${remit}\n\n---\n\n${body}` : body;
 
 console.error(`[consult-qwen] model=${model} doc=${document} chars=${body.length} (local Ollama, $0)`);
+if (model === MODEL_ALIASES.uncensored) {
+  console.error('[consult-qwen] ** ABLITERATED MODEL — refusal behaviour removed (98/100 -> 12/100). **');
+  console.error('[consult-qwen]    Advisory output only. Not a panel seat. Never grant it write access.');
+}
 
 const controller = new AbortController();
 const timer = setTimeout(() => controller.abort(), timeoutMs);

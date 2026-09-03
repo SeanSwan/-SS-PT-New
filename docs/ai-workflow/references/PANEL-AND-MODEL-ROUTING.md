@@ -48,6 +48,69 @@ ATTACKS / HIGHEST RISK / CONFIDENCE). That is what makes replies comparable —
 without it the panel returns four essays that can't be diffed and
 consensus-detection degrades to vibes.
 
+## The local Qwen seat has a second, opt-in model (abliterated)
+
+**Added 2026-09-02 by Sean's directive: "make that an option where I can drop
+down and pick it, but it won't be the default."**
+
+`scripts/consult-qwen.mjs` resolves `--model` through a small alias map. The
+default is unchanged and remains the stock model.
+
+| Alias | Resolves to | Refusals |
+|---|---|---|
+| `default` (implicit) | `qwen3.8:27b-mtp-q4_K_M` | intact |
+| `uncensored` | `hf.co/JonathanColetti/Qwen3.8-27B-Uncensored-GGUF:Q4_K_M` | 98/100 -> 12/100 |
+
+Any raw Ollama tag still passes through unchanged, so nothing that worked before
+this change stopped working.
+
+```bash
+node scripts/consult-qwen.mjs --document <packet.md>                       # stock, default
+node scripts/consult-qwen.mjs --document <packet.md> --model uncensored    # opt-in
+```
+
+### What the abliterated build actually is
+
+Produced with **Heretic**, which co-minimises refusal count against KL divergence
+from the base model — no hand-written refusal-stripping code, no fine-tuning, no
+extra training data. The LoRA was merged at bf16 before quantisation. Apache 2.0,
+inherited from base Qwen3.8-27B. Q4_K_M fused-with-MTP is 16.8 GB, essentially the
+same footprint as the stock 4-bit build, so it costs no extra VRAM on the 5090.
+
+Capability deltas **as published on the model card**:
+
+| Benchmark | Base | Abliterated | Delta |
+|---|---|---|---|
+| MMLU | 83.4 | 83.3 | -0.1 |
+| ARC-Challenge | 58.9 | 57.7 | -1.2 |
+| HellaSwag | 82.8 | 82.9 | +0.1 |
+| Winogrande | 76.1 | 75.3 | -0.8 |
+
+### The gap in those numbers — read this before trusting the seat
+
+Those four are **not** the benchmarks abliteration is known to damage. The
+comparative literature finds mathematical reasoning the most sensitive class,
+with GSM8K the usual casualty, and reports TruthfulQA falling about 7 points
+when a refusal direction is removed. **Neither GSM8K nor TruthfulQA appears on
+this model card.** The published set is therefore the friendliest available
+reading, not a neutral one, and the two most load-bearing numbers are absent.
+
+Treat the deltas above as vendor-reported and unverified here. If this seat is
+ever promoted beyond advisory use, the gate is a local GSM8K and TruthfulQA run
+against both builds — not the card.
+
+### Standing limits on the uncensored alias
+
+- **Never the default.** The stock model stays the implicit choice.
+- **Never a panel seat.** Do not add it to `scripts/lib/panel-seats.mjs`. A
+  refusal-stripped model's verdict is not a peer review, and a panel that
+  silently contains one is no longer the panel it reports itself to be.
+- **Never write access.** Advisory, read-only output. Abliteration removes the
+  refusals that catch a bad instruction before it runs, so it must not reach a
+  path that can write to the repo, the database, or a shell.
+- The seat prints a warning banner to stderr whenever the alias is selected, so
+  an abliterated run is never mistaken for a stock one in a log.
+
 ## The ":batch" trap — why the cheaper listing is NOT the better buy
 
 OpenRouter lists two entries per GPT-5.6 tier. Sean spotted the price gap and
