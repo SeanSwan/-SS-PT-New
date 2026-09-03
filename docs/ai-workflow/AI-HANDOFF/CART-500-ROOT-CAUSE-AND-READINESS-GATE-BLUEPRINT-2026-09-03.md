@@ -287,6 +287,25 @@ Sean asked whether the other PC had been set up. **It has not. Nothing beyond th
 
 ---
 
+## 7.5 CONTRADICTION with GLM Blueprint A — resolved (GLM-5.3-Flash B1, 2026-09-03)
+
+**A builder reading both blueprints must NOT execute GLM Blueprint A's slice "A1 — Fix per diagnosis table."**
+
+Blueprint A §A.4 pre-wrote three remediations for the cart 500, and its D-1 branch instructs a
+**reversible migration altering the cart table's user FK**. §1.2 of this document disproved D-1
+against production: `ShoppingCart.userId` is already `INTEGER`, matching `Users.id`. GLM's own
+continuation banner then asserted D-1 had become "materially more likely" — that assertion is
+**false** and was written before the replay existed.
+
+A verbatim builder would therefore run a schema migration on the money path against a table that
+is already correct: live risk, zero benefit, and an acceptance criterion ("repro green twice")
+that could never be attributed to the migration anyway.
+
+**Resolution — Blueprint A §A.5 slice A1 is SUPERSEDED by S0–S2 of this document (§6).** Blueprint
+A's §A.4 diagnosis rows are retained **only** as fallback interpretations, to be consulted if and
+only if a post-merge log line (after `e1f0bcc81`) names a cause other than `MODELS_NOT_READY`.
+Blueprint A's §A.0 (reproduce) and §A.2 (money canary) remain valid and unaffected.
+
 ## 8. What NOT to do
 
 * Do not wrap `getShoppingCart()` in try/catch in the cart route. It hides the cause and fixes one of 61 files.
