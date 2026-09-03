@@ -1,0 +1,119 @@
+{
+  "note": "SHARED CONTRACT: backend services/ai/renderDigest.mjs and frontend src/utils/renderDigest.ts must produce these EXACT values. Ops are stored AS THEY ARRIVE OVER THE WIRE (JSON round-tripped) — an earlier version hashed an in-memory object containing , a value that cannot survive JSON and which the client therefore could never reproduce. Regenerate ONLY on a deliberate contract change.",
+  "algorithm": "sha256(canonicalJson({id,commandType,type,description,affectedCount,params}))",
+  "cases": [
+    {
+      "name": "simple destructive op",
+      "op": {
+        "id": "op-1",
+        "commandType": "cancel_session",
+        "type": "DELETE",
+        "description": "Cancel session 184",
+        "affectedCount": 1,
+        "params": {
+          "sessionId": 184,
+          "clientId": 61
+        }
+      },
+      "canonical": "{\"affectedCount\":1,\"commandType\":\"cancel_session\",\"description\":\"Cancel session 184\",\"id\":\"op-1\",\"params\":{\"clientId\":61,\"sessionId\":184},\"type\":\"DELETE\"}",
+      "digest": "088647db525033db340fc3d456876d4c5cfcd9612e8ac929a340ec3bfbaf933d"
+    },
+    {
+      "name": "key order must not matter",
+      "op": {
+        "params": {
+          "clientId": 61,
+          "sessionId": 184
+        },
+        "affectedCount": 1,
+        "description": "Cancel session 184",
+        "type": "DELETE",
+        "commandType": "cancel_session",
+        "id": "op-1"
+      },
+      "canonical": "{\"affectedCount\":1,\"commandType\":\"cancel_session\",\"description\":\"Cancel session 184\",\"id\":\"op-1\",\"params\":{\"clientId\":61,\"sessionId\":184},\"type\":\"DELETE\"}",
+      "digest": "088647db525033db340fc3d456876d4c5cfcd9612e8ac929a340ec3bfbaf933d"
+    },
+    {
+      "name": "nested object + array order IS meaning",
+      "op": {
+        "id": "op-2",
+        "commandType": "delete_post",
+        "type": "DELETE",
+        "description": "Remove post",
+        "affectedCount": 3,
+        "params": {
+          "postId": 9,
+          "tags": [
+            "b",
+            "a"
+          ],
+          "meta": {
+            "z": 1,
+            "a": {
+              "deep": true
+            }
+          }
+        }
+      },
+      "canonical": "{\"affectedCount\":3,\"commandType\":\"delete_post\",\"description\":\"Remove post\",\"id\":\"op-2\",\"params\":{\"meta\":{\"a\":{\"deep\":true},\"z\":1},\"postId\":9,\"tags\":[\"b\",\"a\"]},\"type\":\"DELETE\"}",
+      "digest": "fbd78b29a2c04410d24feed31439dbfedd34008a035774e3fd86ea445fd2c588"
+    },
+    {
+      "name": "explicit nulls survive",
+      "op": {
+        "id": "op-3",
+        "commandType": null,
+        "type": "UPDATE",
+        "description": "Update",
+        "affectedCount": 0,
+        "params": {
+          "a": null
+        }
+      },
+      "canonical": "{\"affectedCount\":0,\"commandType\":null,\"description\":\"Update\",\"id\":\"op-3\",\"params\":{\"a\":null},\"type\":\"UPDATE\"}",
+      "digest": "c2bb6fa5d5b337f54ea77e3a0cfafa24df90983cb8dba9414248f5f0f2a4acf5"
+    },
+    {
+      "name": "unicode + quotes + newline survive",
+      "op": {
+        "id": "op-4",
+        "commandType": "notify_client",
+        "type": "UPDATE",
+        "description": "Notify — \"quoted\" · emoji swan",
+        "affectedCount": 1,
+        "params": {
+          "clientId": 7,
+          "note": "line\nbreak"
+        }
+      },
+      "canonical": "{\"affectedCount\":1,\"commandType\":\"notify_client\",\"description\":\"Notify — \\\"quoted\\\" · emoji swan\",\"id\":\"op-4\",\"params\":{\"clientId\":7,\"note\":\"line\\nbreak\"},\"type\":\"UPDATE\"}",
+      "digest": "81f434bfd7808c2aacfcd434b153e50c43b17af73b1029a5f8ad5d566370aaa6"
+    },
+    {
+      "name": "missing fields default",
+      "op": {
+        "id": "op-5"
+      },
+      "canonical": "{\"affectedCount\":0,\"commandType\":null,\"description\":null,\"id\":\"op-5\",\"params\":null,\"type\":null}",
+      "digest": "1a15dbcb4e82ce18cf442b9ac62698dc976b19387b3ef65d15b4f75a5081df85"
+    },
+    {
+      "name": "expiresAt and signature are ignored",
+      "op": {
+        "id": "op-6",
+        "commandType": "lock_client",
+        "type": "UPDATE",
+        "description": "Lock",
+        "affectedCount": 1,
+        "params": {
+          "clientId": 3
+        },
+        "expiresAt": "2026-01-01T00:00:00.000Z",
+        "signature": "deadbeef"
+      },
+      "canonical": "{\"affectedCount\":1,\"commandType\":\"lock_client\",\"description\":\"Lock\",\"id\":\"op-6\",\"params\":{\"clientId\":3},\"type\":\"UPDATE\"}",
+      "digest": "47e200d7a3dd8b6305ba72afdbfce1103165e108608293f42eaf9b3fd2139981"
+    }
+  ]
+}

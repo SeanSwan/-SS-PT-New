@@ -257,6 +257,30 @@ export async function verifyAndRetrieveOperation(operationId, userId, actorRole 
 }
 
 /**
+ * Read a pending operation WITHOUT consuming it — the source of truth the
+ * confirmation UI renders (card 1.1 / M1). Before this existed the UI rendered
+ * the REQUEST (`ctx.intent.params`) while the executor ran the STORED op, so the
+ * two could differ by construction (the server injects clientId at mint) and
+ * nothing detected it.
+ *
+ * Ownership and expiry are enforced here. The signature is NEVER returned: it is
+ * the server's proof, and a client that holds it could forge a matching payload.
+ * Not-found and not-owner return the SAME shape so this cannot become an
+ * existence oracle for another user's operation ids.
+ *
+ * @returns {Promise<{ found: boolean, operation: Object|null }>}
+ */
+export async function peekOperation(operationId, userId) {
+  const operation = await store().get(operationId);
+  if (!operation) return { found: false, operation: null };
+  if (operation.createdBy !== userId) return { found: false, operation: null };
+  if (new Date(operation.expiresAt).getTime() < Date.now()) return { found: false, operation: null };
+
+  const { signature, ...safe } = operation;
+  return { found: true, operation: safe };
+}
+
+/**
  * Cancel a pending operation.
  *
  * @param {string} operationId

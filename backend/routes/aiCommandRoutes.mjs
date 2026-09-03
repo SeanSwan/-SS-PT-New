@@ -30,7 +30,9 @@ import {
   checkForConfirmation,
 } from '../services/ai/commandExecutor.mjs';
 import { buildCommandContextEnvelope } from '../services/ai/commandContextEnvelope.mjs';
-import { cancelOperation, getPendingCount } from '../services/ai/destructiveOperations.mjs';
+import { cancelOperation, getPendingCount, peekOperation } from '../services/ai/destructiveOperations.mjs';
+import { renderDigestOf, digestMatches } from '../services/ai/renderDigest.mjs';
+import { recordApprovalEvent, APPROVAL_EVENTS } from '../services/ai/approvalEvents.mjs';
 import {
   getCommandsForRole,
   getAllCommandTypes,
@@ -408,14 +410,69 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
 
 // ── POST /confirm — Confirm a pending destructive operation ─────────────────
 
+// ── GET /pending/:operationId — read-back of the STORED operation (card 1.1) ──
+// The confirmation UI must render what the server will EXECUTE, not what the user
+// asked for. Owner-gated, non-consuming, signature never returned. Not-found and
+// not-owner are indistinguishable so this is not an existence oracle.
+router.get('/pending/:operationId', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
+  try {
+    const { found, operation } = await peekOperation(req.params.operationId, req.user.id);
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'Operation not found or expired.' });
+    }
+    void recordApprovalEvent({
+      event: APPROVAL_EVENTS.READ_BACK, userId: req.user.id, userRole: req.user.role,
+      commandType: operation.commandType ?? null, operationId: operation.id,
+      destructive: operation.kind !== 'pending_confirmed',
+    });
+    res.json({ success: true, operation });
+  } catch (err) {
+    logAICommandRouteError('[AICommand] Pending read-back error', err, req);
+    res.status(500).json({ success: false, error: 'Failed to read the pending operation' });
+  }
+});
+
 router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
   try {
-    const { operationId } = req.body;
+    const { operationId, renderedDigest } = req.body;
 
     if (!operationId) {
       return res.status(400).json({
         success: false,
         error: 'operationId is required',
+      });
+    }
+
+    // Card 1.1 / M1 — proof-of-render. The client sends a digest of the operation
+    // it RENDERED; the server recomputes from the operation it STORED and refuses
+    // on mismatch, so a stale tab cannot confirm op A while displaying op B.
+    //
+    // MODE: `observe` (default) accepts a missing digest and only counts it, so
+    // this can ship before the sheet does; `enforce` requires one. Either way a
+    // digest that is PRESENT and WRONG is always refused — accepting a known-bad
+    // digest would make the check theatre.
+    const digestMode = process.env.APPROVAL_RENDER_DIGEST === 'enforce' ? 'enforce' : 'observe';
+    if (renderedDigest !== undefined && renderedDigest !== null) {
+      const { found, operation: stored } = await peekOperation(operationId, req.user.id);
+      if (!found || !digestMatches(String(renderedDigest), renderDigestOf(stored))) {
+        void recordApprovalEvent({
+          event: APPROVAL_EVENTS.RENDER_MISMATCH, userId: req.user.id, userRole: req.user.role,
+          operationId, commandType: stored?.commandType ?? null,
+        });
+        return res.status(400).json({
+          success: false,
+          code: 'render_mismatch',
+          error: 'What you approved does not match the pending operation. Re-open it and confirm again.',
+        });
+      }
+    } else if (digestMode === 'enforce') {
+      void recordApprovalEvent({
+        event: APPROVAL_EVENTS.RENDER_MISMATCH, userId: req.user.id, userRole: req.user.role, operationId,
+      });
+      return res.status(400).json({
+        success: false,
+        code: 'render_digest_required',
+        error: 'This confirmation is missing its render proof. Re-open the operation and confirm again.',
       });
     }
 
