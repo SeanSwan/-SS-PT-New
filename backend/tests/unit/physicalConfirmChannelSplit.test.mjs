@@ -48,6 +48,12 @@ vi.mock('../../services/ai/destructiveOperations.mjs', () => ({
   assertOperationSigningKey: vi.fn(),
 }));
 
+const recordApprovalEvent = vi.fn(async () => true);
+vi.mock('../../services/ai/approvalEvents.mjs', async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, recordApprovalEvent: (...a) => recordApprovalEvent(...a) };
+});
+
 const { executeConfirmedOperation } = await import('../../services/ai/commandExecutor.mjs');
 const router = (await import('../../routes/aiCommandRoutes.mjs')).default;
 
@@ -82,6 +88,7 @@ beforeEach(() => {
   peekOperation.mockReset();
   vi.mocked(executeConfirmedOperation).mockClear();
   vi.mocked(executeConfirmedOperation).mockResolvedValue({ success: true, type: 'executed' });
+  recordApprovalEvent.mockClear();
 });
 
 describe('M3 channel split at /confirm', () => {
@@ -136,6 +143,37 @@ describe('M3 channel split at /confirm', () => {
 
     expect(res.statusCode).toBe(200);
     expect(executeConfirmedOperation).toHaveBeenCalledTimes(1);
+  });
+
+  it('OBSERVE mode lets it through but still records the occurrence', async () => {
+    /**
+     * The hatch exists so an unswept caller can be defused by env var instead of
+     * a deploy. It is only worth having if it is (a) actually wired and (b) still
+     * counting — a mode that silences the control AND the telemetry leaves you
+     * with a gap you cannot see, which is worse than the refusal it replaced.
+     */
+    process.env.APPROVAL_CHANNEL_MODE = 'observe';
+    try {
+      peekOperation.mockResolvedValue({ found: true, operation: PHYSICAL_OP });
+      const res = await postConfirm({ operationId: 'op-physical', confirmChannel: 'voice' });
+
+      expect(res.statusCode).toBe(200);
+      expect(executeConfirmedOperation).toHaveBeenCalledTimes(1);
+      expect(recordApprovalEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ errorCode: 'physical_confirm_observed' }),
+      );
+    } finally {
+      delete process.env.APPROVAL_CHANNEL_MODE;
+    }
+  });
+
+  it('defaults to ENFORCE — a control that ships switched off is decoration', async () => {
+    delete process.env.APPROVAL_CHANNEL_MODE;
+    peekOperation.mockResolvedValue({ found: true, operation: PHYSICAL_OP });
+    const res = await postConfirm({ operationId: 'op-physical', confirmChannel: 'voice' });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.code).toBe('physical_confirm_required');
   });
 
   it('does not invent a refusal for an operation the store no longer holds', async () => {

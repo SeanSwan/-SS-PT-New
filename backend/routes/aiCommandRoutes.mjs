@@ -541,9 +541,34 @@ router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
      * declares a non-voice channel. Fail-closed, so a surface that has not been
      * taught the contract cannot confirm by silence.
      */
+    const channelMode = process.env.APPROVAL_CHANNEL_MODE === 'observe' ? 'observe' : 'enforce';
     if (peeked?.requiresPhysicalConfirm) {
       const declared = typeof confirmChannel === 'string' ? confirmChannel : null;
-      if (declared !== 'tap' && declared !== 'keyboard') {
+      const permitted = declared === 'tap' || declared === 'keyboard';
+      if (!permitted && channelMode === 'observe') {
+        /**
+         * OBSERVE — count who WOULD have been refused, and let them through.
+         *
+         * The default is `enforce`, unlike the render digest next door, and the
+         * asymmetry is deliberate: `requiresPhysicalConfirm` can only be true on
+         * operations minted by THIS release, and both confirm callers in the
+         * repo declare a channel as of this commit (swept:
+         * useConfirmationSheet and useCoachCommand). Shipping a security control
+         * switched off is how `allowedConfirmChannels` became decoration in the
+         * first place.
+         *
+         * The hatch exists so an incident — a caller nobody swept, a client we
+         * do not build — can be defused by env var instead of a deploy, while
+         * still recording every occurrence so the gap is visible rather than
+         * merely survivable.
+         */
+        void recordApprovalEvent({
+          event: APPROVAL_EVENTS.TIER_SPOOF, userId: req.user.id, userRole: req.user.role,
+          operationId, commandType: peeked?.commandType ?? null,
+          errorCode: 'physical_confirm_observed',
+        });
+      }
+      if (!permitted && channelMode === 'enforce') {
         void recordApprovalEvent({
           event: APPROVAL_EVENTS.TIER_SPOOF, userId: req.user.id, userRole: req.user.role,
           operationId, commandType: peeked?.commandType ?? null,

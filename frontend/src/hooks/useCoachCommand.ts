@@ -192,13 +192,23 @@ export function useCoachCommand() {
    *   caller sends a digest, or the legacy path starts failing closed with
    *   `render_digest_required`. Callers today: ConfirmationSheet (digest ✓) and
    *   CoachCommandLogEntry via the transcript ConfirmationCard (digest ✗).
+   *
+   * @param confirmChannel how the human actually confirmed — the M3 split.
+   *   DELIBERATELY has no default. The server treats an undeclared channel as
+   *   unproven and refuses anything identity-crossing, so a future caller that
+   *   forgets this fails loudly instead of silently acquiring an authority it
+   *   never declared. That is the whole reason the gate note above exists: this
+   *   hook was already the caller that quietly lacked the OTHER proof.
    */
   const confirmCommand = useCallback(async (
     operationId: string,
     renderedDigest?: string,
+    confirmChannel?: 'tap' | 'keyboard' | 'voice',
   ): Promise<ConfirmResult> => {
     try {
-      const res = await apiService.post('/api/ai-command/confirm', { operationId, renderedDigest });
+      const res = await apiService.post('/api/ai-command/confirm', {
+        operationId, renderedDigest, confirmChannel,
+      });
       const data = res.data;
       if (data.type === 'frontend_dispatch') {
         const event = data.event ?? '';

@@ -225,7 +225,9 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
 
   const handleConfirmCommand = async (confirmation: CommandLogConfirmation): Promise<CommandConfirmationResult> => {
     if (!confirmation.operationId) return { success: false, error: 'No pending operation id was returned.' };
-    const result = await props.confirmCommand(confirmation.operationId);
+    // 'tap': the transcript card's Confirm button. Declared at the call site,
+    // where the evidence for the claim is (M3 channel split).
+    const result = await props.confirmCommand(confirmation.operationId, undefined, 'tap');
     if (!result.success) {
       props.setSelectedStatus('Command confirmation failed');
       addLog({

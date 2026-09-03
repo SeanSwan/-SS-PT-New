@@ -270,7 +270,12 @@ describe('CoachCommandCenterPage shell', () => {
     fireEvent.click(screen.getByRole('button', { name: /Confirm action/i }));
 
     await waitFor(() => {
-      expect(confirmCommandMock).toHaveBeenCalledWith('op-session-42');
+      // The confirm declares HOW it happened (M3 channel split). Asserting the
+      // channel is the point: an approval confirmed from this card was pressed,
+      // and the server refuses an undeclared channel on anything that crosses
+      // client identity — so a call site that stops passing it would break the
+      // very case the split exists for, silently, without this argument here.
+      expect(confirmCommandMock).toHaveBeenCalledWith('op-session-42', undefined, 'tap');
     });
     expect(await within(document.querySelector('.transcript-stream') as HTMLElement).findByText(/Session #42 cancelled for Ava/i)).toBeInTheDocument();
   });
