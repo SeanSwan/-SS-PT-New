@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import WorkoutsTab, { WORKOUT_SESSIONS_API_PATH } from './WorkoutsTab';
+import WorkoutsTab, { WORKOUT_SESSIONS_API_PATH, WORKOUT_PAGE_SIZE } from './WorkoutsTab';
 import {
   calcStreak,
   transformWorkoutLogs,
@@ -37,8 +37,12 @@ describe('WorkoutsTab', () => {
     render(<WorkoutsTab />);
 
     await screen.findByText('No workouts logged yet');
+    // RE-ANCHOR (2026-09-03, S8): the tab now requests ONE PAGE (50) instead of
+    // a hard 200, with a "Load older" control and a server hasMore signal. The
+    // assertion's intent — this tab calls the canonical sessions path with an
+    // explicit window — is unchanged; the window size is the thing that moved.
     expect(authGet).toHaveBeenCalledWith(WORKOUT_SESSIONS_API_PATH, {
-      params: { limit: 200, page: 1 },
+      params: { limit: WORKOUT_PAGE_SIZE, page: 1 },
     });
   });
 

@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import styled from 'styled-components';
 import { VictoryAxis, VictoryBar, VictoryChart, VictoryLabel } from 'victory';
 import {
   CategoryCount,
@@ -20,10 +21,26 @@ const CHART_TEXT_COLOR = 'var(--text-primary, #E0ECF4)';
 
 interface WorkoutsTabChartsProps {
   categories: CategoryData[];
+  /**
+   * What window these charts are drawn from ("Showing your last 50 workouts").
+   * A trend over a truncated history that does not admit its window is a claim
+   * the data cannot support (Blueprint v2 S8 / D7).
+   */
+  windowLabel?: string;
 }
 
-const WorkoutsTabCharts: React.FC<WorkoutsTabChartsProps> = ({ categories }) => (
+const ChartWindowNote = styled.p`
+  margin: 0 0 12px;
+  font-family: var(--font-ui, 'Sora', sans-serif);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.7));
+`;
+
+const WorkoutsTabCharts: React.FC<WorkoutsTabChartsProps> = ({ categories, windowLabel }) => (
   <>
+    {windowLabel ? <ChartWindowNote data-testid="chart-window-note">{windowLabel}</ChartWindowNote> : null}
     {categories.map((category) => (
       <CategorySection key={category.key}>
         <CategoryHeader>

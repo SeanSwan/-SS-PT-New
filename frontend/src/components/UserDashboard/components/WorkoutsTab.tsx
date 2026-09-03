@@ -39,10 +39,12 @@ import {
   NextMoveText,
   NextMoveTitle,
   RetryButton,
+  LoadOlderRow,
   SectionTitle,
 } from './WorkoutsTabStyles';
 import { ShimmerCard } from './WorkoutsTabStates.styles';
 import {
+  type RawSession,
   calcStreak,
   extractWorkoutSessions,
   transformWorkoutLogs,
@@ -53,6 +55,13 @@ import WorkoutsTabSummary from './WorkoutsTabSummary';
 import { getPersonalLogWorkoutDashboardPath } from './swanCoachDashboardRoute';
 
 export const WORKOUT_SESSIONS_API_PATH = '/api/workout/sessions';
+/**
+ * One page of history. The tab used to ask for a hard 200 with no way to ask
+ * for more and no signal that more existed, so a long-training member silently
+ * saw a truncated history — and any trend drawn from it was confidently wrong
+ * (Blueprint v2 S8 / D7).
+ */
+export const WORKOUT_PAGE_SIZE = 50;
 
 const getTopExerciseName = (categories: CategoryData[]): string => {
   let topExercise = '';
@@ -77,6 +86,9 @@ const WorkoutsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
+  const [sessions, setSessions] = useState<RawSession[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const navigateToLogger = useCallback(() => {
     navigate(getPersonalLogWorkoutDashboardPath());
@@ -88,19 +100,49 @@ const WorkoutsTab: React.FC = () => {
       setError(null);
 
       const response = await authAxios.get(WORKOUT_SESSIONS_API_PATH, {
-        params: { limit: 200, page: 1 },
+        params: { limit: WORKOUT_PAGE_SIZE, page: 1 },
       });
       const list = extractWorkoutSessions(response.data?.data);
 
+      setSessions(list);
+      setHasMore(Boolean(response.data?.data?.hasMore));
       setCategories(transformWorkoutLogs(list));
       setStreak(list.length === 0 ? 0 : calcStreak(list));
     } catch {
+      setSessions([]);
+      setHasMore(false);
       setCategories([]);
       setError('Unable to load workout data. Please try again.');
     } finally {
       setLoading(false);
     }
   }, [authAxios]);
+
+  /**
+   * Append the next page. Charts recompute over the WHOLE loaded window, so a
+   * member who loads more history sees their trends extend rather than reset.
+   */
+  const loadOlder = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    try {
+      setLoadingMore(true);
+      const nextPage = Math.floor(sessions.length / WORKOUT_PAGE_SIZE) + 1;
+      const response = await authAxios.get(WORKOUT_SESSIONS_API_PATH, {
+        params: { limit: WORKOUT_PAGE_SIZE, page: nextPage },
+      });
+      const older = extractWorkoutSessions(response.data?.data);
+      const merged = [...sessions, ...older];
+      setSessions(merged);
+      setHasMore(Boolean(response.data?.data?.hasMore));
+      setCategories(transformWorkoutLogs(merged));
+      setStreak(merged.length === 0 ? 0 : calcStreak(merged));
+    } catch {
+      // The window already on screen stays valid; only the extension failed.
+      setError('Unable to load older workouts. Please try again.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [authAxios, hasMore, loadingMore, sessions]);
 
   useEffect(() => {
     fetchWorkouts();
@@ -109,6 +151,11 @@ const WorkoutsTab: React.FC = () => {
   const stats = useMemo(() => computeStats(categories), [categories]);
   const hasWorkoutHistory = categories.length > 0;
   const topExercise = useMemo(() => getTopExerciseName(categories), [categories]);
+  // Say what the charts are drawn FROM. A trend over a truncated window that
+  // does not admit its window is a claim the data cannot support.
+  const windowLabel = hasMore
+    ? `Showing your last ${sessions.length} workouts`
+    : `Showing all ${sessions.length} workouts`;
   const workoutCoachPrompt = useMemo(() => buildUserWorkoutsCoachPrompt({
     hasHistory: hasWorkoutHistory,
     totalExerciseTouches: stats.totalExercises,
@@ -183,7 +230,14 @@ const WorkoutsTab: React.FC = () => {
       ) : (
         <>
           <WorkoutsTabSummary stats={stats} streak={streak} />
-          <WorkoutsTabCharts categories={categories} />
+          <WorkoutsTabCharts categories={categories} windowLabel={windowLabel} />
+          {hasMore && (
+            <LoadOlderRow>
+              <RetryButton type="button" onClick={loadOlder} disabled={loadingMore}>
+                {loadingMore ? 'Loading…' : 'Load older workouts'}
+              </RetryButton>
+            </LoadOlderRow>
+          )}
         </>
       )}
     </Container>

@@ -238,9 +238,20 @@ export async function getWorkoutSessions(req, res) {
 
     const { status } = req.query;
 
-    // Get sessions
-    const sessions = await workoutService.getWorkoutSessions(userId, {
-      limit: parsed.value.limit,
+    // Ask for ONE more row than the caller wants. If it comes back there is
+    // another page, and we learned that without a second COUNT query over a
+    // table that grows for the life of every client's membership. The extra row
+    // is sliced off before it reaches the client.
+    //
+    // `hasMore` is additive: `sessions` keeps its exact previous shape, so every
+    // existing consumer is untouched. Without it a paginated client cannot tell
+    // "that is all of it" from "the window ended here", and a truncated history
+    // reads as a complete one (Blueprint v2 S8 / D7).
+    const requestedLimit = parsed.value.limit;
+    const probeLimit = typeof requestedLimit === 'number' ? requestedLimit + 1 : undefined;
+
+    const fetched = await workoutService.getWorkoutSessions(userId, {
+      limit: probeLimit,
       offset: parsed.value.offset,
       status,
       startDate: parsed.value.startDate,
@@ -249,7 +260,16 @@ export async function getWorkoutSessions(req, res) {
       order: parsed.value.order
     });
 
-    return successResponse(res, { sessions });
+    const rows = Array.isArray(fetched) ? fetched : [];
+    const hasMore = typeof requestedLimit === 'number' && rows.length > requestedLimit;
+    const sessions = hasMore ? rows.slice(0, requestedLimit) : fetched;
+
+    return successResponse(res, {
+      sessions,
+      limit: requestedLimit ?? null,
+      offset: parsed.value.offset ?? null,
+      hasMore
+    });
   } catch (error) {
     // Canonical-surface-audit 2026-04-13: silent-failure mask removed.
     // The prior `if (error.name === 'SequelizeDatabaseError' && error.message?.includes('does not exist'))`

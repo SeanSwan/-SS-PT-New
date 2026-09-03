@@ -269,3 +269,10 @@ export const RetryButton = styled.button`
   padding: 8px 16px;
   cursor: pointer;
 `;
+
+/** Centered row for the history-extension control (Blueprint v2 S8). */
+export const LoadOlderRow = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+`;
