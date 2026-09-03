@@ -144,35 +144,70 @@ test('F6: nested paths do not collide with underscore-named siblings', () => {
   }
 });
 
-test('F5: prune keeps the newest KEEP snapshots even when names sort badly', () => {
+test('F5: prune keeps the newest by MTIME even when the NAMES sort the other way', () => {
+  // R2-10: the first version of this test made names and mtimes ascend together,
+  // so the original lexicographic implementation passed it verbatim - it
+  // certified the bug it was written to prevent. Now the two orders DISAGREE.
   const rel = 'docs/ai-workflow/brainstorms/__vault-prune.md';
-  const abs = tempDoc('docs/ai-workflow/brainstorms', '__vault-prune.md', 'v1\n');
+  const abs = tempDoc('docs/ai-workflow/brainstorms', '__vault-prune.md', 'seed' + String.fromCharCode(10));
   const slot = slotFor(rel);
   cleanup([slot]);
   try {
-    for (const v of ['v1', 'v2', 'v3']) {
-      fs.writeFileSync(abs, `${v}\n`);
-      runHook(abs, { SWAN_VAULT_KEEP: '2' });
+    fs.mkdirSync(slot, { recursive: true });
+    // Names ascend n1 < n2 < n3; mtimes descend (as a backward clock step does).
+    const rows = [
+      // ageMs is how far in the PAST the mtime is set: bigger = older.
+      ['20260101T000001Z-aaaaaaaaaaaa.md', 'OLDEST-NAME-NEWEST-MTIME', 1000],
+      ['20260101T000002Z-bbbbbbbbbbbb.md', 'MIDDLE', 2000],
+      ['20260101T000003Z-cccccccccccc.md', 'NEWEST-NAME-OLDEST-MTIME', 3000],
+    ];
+    const base = Date.now();
+    for (const [name, body, ageMs] of rows) {
+      const f = path.join(slot, name);
+      fs.writeFileSync(f, body);
+      const t = (base - ageMs) / 1000;
+      fs.utimesSync(f, t, t);
     }
-    const files = fs.readdirSync(slot);
-    assert.equal(files.length, 2, 'capped at KEEP');
-    const bodies = files.map((f) => fs.readFileSync(path.join(slot, f), 'utf8')).join('');
-    assert.ok(/v2/.test(bodies) && /v3/.test(bodies), 'the two NEWEST survive');
-    assert.ok(!/v1/.test(bodies), 'the oldest was pruned');
+    fs.writeFileSync(abs, 'trigger' + String.fromCharCode(10));
+    runHook(abs, { SWAN_VAULT_KEEP: '2' });   // 4 present -> prune to 2
+
+    const kept = fs.readdirSync(slot).map((f) => fs.readFileSync(path.join(slot, f), 'utf8'));
+    assert.equal(kept.length, 2, 'capped at KEEP');
+    assert.ok(
+      !kept.some((b) => /NEWEST-NAME-OLDEST-MTIME/.test(b)),
+      'the OLDEST BY MTIME was pruned, even though its NAME sorted last',
+    );
   } finally {
     cleanup([abs, slot]);
   }
 });
 
-test('F5: a garbage SWAN_VAULT_KEEP falls back to the default instead of disabling prune', () => {
+test('F5: a garbage SWAN_VAULT_KEEP prunes at the DEFAULT cap, not "never"', () => {
+  // R2-11: the first version asserted "2 snapshots after 2 edits", which the
+  // broken code (NaN -> prune disabled) also satisfied. The bug was that pruning
+  // stopped, so the test has to exceed the default cap and prove it still bites.
   const rel = 'docs/ai-workflow/brainstorms/__vault-keepnan.md';
-  const abs = tempDoc('docs/ai-workflow/brainstorms', '__vault-keepnan.md', 'a\n');
+  const abs = tempDoc('docs/ai-workflow/brainstorms', '__vault-keepnan.md', 'seed' + String.fromCharCode(10));
   const slot = slotFor(rel);
   cleanup([slot]);
   try {
-    fs.writeFileSync(abs, 'a\n'); runHook(abs, { SWAN_VAULT_KEEP: 'abc' });
-    fs.writeFileSync(abs, 'b\n'); runHook(abs, { SWAN_VAULT_KEEP: 'abc' });
-    assert.equal(fs.readdirSync(slot).length, 2, 'still snapshotting under a bad KEEP');
+    fs.mkdirSync(slot, { recursive: true });
+    // 120 pre-existing snapshots (> the 100 default).
+    const base = Date.now();
+    for (let i = 0; i < 120; i += 1) {
+      const name = `20260101T${String(i).padStart(6, '0')}Z-${String(i).padStart(12, '0')}.md`;
+      const f = path.join(slot, name);
+      fs.writeFileSync(f, `v${i}`);
+      const t = (base - (120 - i) * 1000) / 1000;
+      fs.utimesSync(f, t, t);
+    }
+    fs.writeFileSync(abs, 'trigger' + String.fromCharCode(10));
+    runHook(abs, { SWAN_VAULT_KEEP: 'abc' });
+
+    // Count only well-formed snapshots - junk names are excluded from retention
+    // by design (F8), so counting them would test the wrong thing (R2-13).
+    const n = fs.readdirSync(slot).filter((f) => /^\d{8}T\d{6}Z-[0-9a-f]{8,}\./.test(f)).length;
+    assert.ok(n <= 100, `garbage KEEP must fall back to the 100 default, got ${n}`);
   } finally {
     cleanup([abs, slot]);
   }
@@ -251,4 +286,102 @@ test('F1: a Bash command naming no blueprint snapshots nothing', () => {
   });
   assert.equal(r.status, 0);
   assert.equal(fs.existsSync(slotFor('npm')), false);
+});
+
+// ---------------------------------------------------------------------------
+// Round-2 additions: controls the first suite was missing (R2-9, R2-12, R2-13).
+// ---------------------------------------------------------------------------
+
+test('R2-9: the settings matcher still arms this hook on all four write paths', () => {
+  // The suite cannot see settings drift; a matcher edit could silently disarm
+  // every test above without a single failure.
+  const settings = JSON.parse(fs.readFileSync(path.join(REPO, '.claude', 'settings.json'), 'utf8'));
+  const entry = (settings.hooks?.PreToolUse || [])
+    .find((e) => JSON.stringify(e).includes('vault-guard'));
+  assert.ok(entry, 'vault-guard must be registered under PreToolUse');
+  for (const tool of ['Write', 'Edit', 'NotebookEdit', 'Bash']) {
+    assert.ok(entry.matcher.includes(tool), `matcher must include ${tool}, got: ${entry.matcher}`);
+  }
+});
+
+test('R2-13: false-positive control — an EXISTING non-blueprint file is not vaulted', () => {
+  // The original negative control named `npm`, which never existed as a file, so
+  // nothing was being suppressed and the test proved nothing.
+  const before = new Set(fs.existsSync(VAULT) ? fs.readdirSync(VAULT) : []);
+  const r = spawnSync(process.execPath, [HOOK], {
+    input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'cat backend/package.json' } }),
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0);
+  assert.equal(fs.existsSync(slotFor('backend/package.json')), false, 'a real, non-blueprint file stays out');
+  const after = new Set(fs.existsSync(VAULT) ? fs.readdirSync(VAULT) : []);
+  assert.deepEqual([...after], [...before], 'the vault is unchanged as a whole');
+});
+
+test('R2-1: a destructive command with NO filename still snapshots the tree', () => {
+  const rel = 'docs/ai-workflow/brainstorms/__vault-destructive.md';
+  const abs = tempDoc('docs/ai-workflow/brainstorms', '__vault-destructive.md', 'ABOUT TO BE RESET\n');
+  const slot = slotFor(rel);
+  cleanup([slot]);
+  try {
+    const r = spawnSync(process.execPath, [HOOK], {
+      input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'git reset --hard origin/main' } }),
+      encoding: 'utf8',
+    });
+    assert.equal(r.status, 0, 'never blocks');
+    assert.ok(fs.existsSync(slot), 'the live version was captured before the reset');
+    const bodies = fs.readdirSync(slot).map((f) => fs.readFileSync(path.join(slot, f), 'utf8'));
+    assert.ok(bodies.some((b) => /ABOUT TO BE RESET/.test(b)));
+  } finally {
+    cleanup([abs, slot]);
+  }
+});
+
+test('R2-4: a glob that names no real path still triggers the docs sweep', () => {
+  const rel = 'docs/ai-workflow/brainstorms/__vault-glob.md';
+  const abs = tempDoc('docs/ai-workflow/brainstorms', '__vault-glob.md', 'GLOB TARGET\n');
+  const slot = slotFor(rel);
+  cleanup([slot]);
+  try {
+    const r = spawnSync(process.execPath, [HOOK], {
+      input: JSON.stringify({
+        tool_name: 'Bash',
+        tool_input: { command: "npx prettier --write 'docs/**/*.md'" },
+      }),
+      encoding: 'utf8',
+    });
+    assert.equal(r.status, 0);
+    assert.ok(fs.existsSync(slot), 'glob paths never stat, so the sweep must cover them');
+  } finally {
+    cleanup([abs, slot]);
+  }
+});
+
+test('R2-3: a huge heredoc body does not turn into a syscall storm', () => {
+  const big = `cat > docs/ai-workflow/brainstorms/__x.md <<'EOF'\n${'lorem ipsum dolor sit amet '.repeat(40000)}\nEOF`;
+  const started = Date.now();
+  const r = spawnSync(process.execPath, [HOOK], {
+    input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: big } }),
+    encoding: 'utf8',
+  });
+  const ms = Date.now() - started;
+  assert.equal(r.status, 0);
+  assert.ok(ms < 5000, `hook must stay fast on a 1MB command, took ${ms}ms`);
+});
+
+test('R2-12: ERRORS.log records the failing path, not merely "a file exists"', () => {
+  const rel = 'docs/ai-workflow/brainstorms/__vault-err2.md';
+  const abs = tempDoc('docs/ai-workflow/brainstorms', '__vault-err2.md', 'a\n');
+  const slot = slotFor(rel);
+  const log = path.join(VAULT, 'ERRORS.log');
+  cleanup([slot, log]);
+  try {
+    fs.mkdirSync(path.dirname(slot), { recursive: true });
+    fs.writeFileSync(slot, 'a FILE where the slot dir must go');
+    runHook(abs);
+    assert.ok(fs.existsSync(log), 'the failure is recorded');
+    assert.match(fs.readFileSync(log, 'utf8'), /__vault-err2\.md/, 'and names the file it could not protect');
+  } finally {
+    cleanup([abs, slot, log]);
+  }
 });

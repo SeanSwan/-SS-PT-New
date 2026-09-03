@@ -239,6 +239,16 @@ function main() {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
   const bundlePath = path.join(DEST, `SS-PT-full-${stamp}.bundle`);
 
+  // F2 (GLM-5.3 hostile review, 2026-09-03): `git bundle --all` packs TRACKED history
+  // only. The Blueprint Vault lives in gitignored `.ai-workflow/vault` and holds the ONLY
+  // copy of every uncommitted blueprint revision, so it was never leaving this machine -
+  // exactly the content you would want after a disk failure.
+  //
+  // R2-9: this runs BEFORE the bundle, not after it. The vault is independent of git, so a
+  // failed or unrestorable bundle - the moment you most need a second copy - must not also
+  // cost you the vault copy. Best-effort: a vault problem never fails a good repo backup.
+  mirrorVault();
+
   const refCount = git(['for-each-ref', '--format=%(refname)']).split('\n').filter(Boolean).length;
   console.log(`  refs to pack : ${refCount}`);
   console.log(`  target       : ${bundlePath}`);
@@ -280,13 +290,6 @@ function main() {
     process.exit(1);
   }
 
-  // F2 (GLM-5.3 hostile review, 2026-09-03): `git bundle --all` packs TRACKED history
-  // only. The Blueprint Vault lives in gitignored `.ai-workflow/vault` and holds the ONLY
-  // copy of every uncommitted blueprint revision, so it was never leaving this machine -
-  // exactly the content you would want after a disk failure. Mirror it beside the verified
-  // bundle. Best-effort by design: a vault-copy problem must never fail a good repo backup.
-  mirrorVault();
-
   // Prune oldest, but only ever when a freshly VERIFIED bundle exists — so a failed run can never
   // leave the machine with fewer backups than it started with.
   const all = existingBundles();
@@ -313,7 +316,11 @@ function mirrorVault() {
   const dst = path.join(DEST, 'SS-PT-vault-mirror');
   try {
     if (!fs.existsSync(src)) { console.log('  vault mirror : (no vault yet)'); return; }
-    fs.cpSync(src, dst, { recursive: true, force: true });
+    // R2-8: preserveTimestamps is REQUIRED, not cosmetic. Prune orders snapshots
+    // by mtime; a mirror copied with "now" timestamps restores as an all-ties
+    // heap that degrades to filename order - re-introducing the exact F5 bug,
+    // permanently, in the copy you would reach for after losing the original.
+    fs.cpSync(src, dst, { recursive: true, force: true, preserveTimestamps: true });
     let files = 0;
     const walk = (d) => {
       for (const e of fs.readdirSync(d, { withFileTypes: true })) {
