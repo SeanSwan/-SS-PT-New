@@ -637,8 +637,26 @@ export const initializeServer = async (app) => {
           // session id. Deliberately NOT behind a kill switch: the claim/finalize
           // design already assumes something reclaims a failed claim, so disabling
           // it does not pause a feature, it locks customers out of their carts.
-          const { startCheckoutReconciliationSweeper } = await import('../services/checkoutReconciliationCron.mjs');
-          startCheckoutReconciliationSweeper();
+          // SWA-225 EX-3: opt in to the DURABLE sweeper with
+          // USE_BULLMQ_RECONCILIATION=true. The interval dies on every deploy
+          // and has no catch-up; the BullMQ repeatable persists its schedule in
+          // Redis and resumes. Fail-open by design — if the queue cannot start
+          // (no REDIS_URL, bullmq unavailable) we fall straight back to the
+          // interval, because the one outcome worse than a fragile sweeper is
+          // no sweeper at all on a money path.
+          const useDurableSweeper = process.env.USE_BULLMQ_RECONCILIATION === 'true';
+          let durableStarted = false;
+          if (useDurableSweeper) {
+            const { startReconciliationQueue } = await import('../jobs/queues/reconciliationQueue.mjs');
+            durableStarted = Boolean(await startReconciliationQueue());
+            if (!durableStarted) {
+              logger.warn('Durable reconciliation sweeper unavailable — falling back to the interval sweeper.');
+            }
+          }
+          if (!durableStarted) {
+            const { startCheckoutReconciliationSweeper } = await import('../services/checkoutReconciliationCron.mjs');
+            startCheckoutReconciliationSweeper();
+          }
         } catch (reconcileErr) {
           logger.warn(`Checkout reconciliation sweeper failed to start: ${reconcileErr.message}`);
         }
