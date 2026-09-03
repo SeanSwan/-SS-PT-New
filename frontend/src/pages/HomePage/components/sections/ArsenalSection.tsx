@@ -11,7 +11,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 
 import {
   SectionEl, Container, SectionHeader, SectionTitle,
-  SectionSubtitle, ParallaxBg, IconWrapper, FeatureTitle, FeatureDesc,
+  SectionSubtitle, IconWrapper, FeatureTitle, FeatureDesc,
 } from '../shared/HomeStyles';
 import { getReveal, staggerContainer } from '../shared/HomeAnimations';
 import { FEATURES } from '../shared/HomeData';
@@ -26,6 +26,28 @@ interface ArsenalSectionProps {
 }
 
 /* ── Local styled grid ────────────────────────────────── */
+/**
+ * The substrate an optics asset will sit on: layered caustic light over the
+ * deep-sapphire base. No figure, no silhouette — dispersion behaviour only.
+ */
+const CausticSubstrate = styled(motion.div)<{ $opacity?: number }>`
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: ${({ $opacity = 0.35 }) => $opacity};
+  background:
+    radial-gradient(120% 80% at 22% 18%,
+      color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent) 0%,
+      transparent 58%),
+    radial-gradient(90% 70% at 78% 72%,
+      color-mix(in srgb, var(--primary, #002060) 55%, transparent) 0%,
+      transparent 62%),
+    linear-gradient(168deg,
+      color-mix(in srgb, var(--primary, #002060) 42%, transparent) 0%,
+      color-mix(in srgb, var(--bg-base, #0A0A0F) 88%, transparent) 100%),
+    var(--bg-base, #0A0A0F);
+`;
+
 const FeaturesGrid = styled(motion.div)`
   display: grid;
   grid-template-columns: 1fr;
@@ -62,14 +84,27 @@ const ArsenalSection: React.FC<ArsenalSectionProps> = ({ tier }) => {
 
   return (
     <SectionEl id="features" ref={sectionRef}>
-      {/* Parallax background — full tier only */}
-      {isFull && (
-        <ParallaxBg
-          $bgImage="/images/parallax/features-swan-bg.png"
-          $opacity={0.35}
-          {...motionStyleProps({ y: parallaxY })}
-        />
-      )}
+      {/*
+        LAW 4 — optics, not creatures. This section rendered a literal winged
+        swan illustration (features-swan-bg.png): the exact figure the law
+        forbids, on the highest-traffic surface in the product. The swan is
+        bent light, never a drawn silhouette.
+
+        Until the caustic-refraction asset is generated (Blueprint v2 S6 —
+        STYLE RECEIPT + Seedance brief in the slice), this renders the
+        substrate alone: a deep-sapphire caustic gradient with no figure in
+        it. That is the honest interim — an empty substrate is on-law; a
+        creature is not.
+
+        It also renders on EVERY tier now. The old gate was `isFull &&`, so
+        balanced and essential visitors saw no backdrop at all; the parallax
+        drift stays full-tier-only (motion is what the tier governs, not
+        whether the section has a floor).
+      */}
+      <CausticSubstrate
+        $opacity={0.35}
+        {...motionStyleProps(isFull ? { y: parallaxY } : undefined)}
+      />
 
       <Container>
         <SectionHeader variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }}>
