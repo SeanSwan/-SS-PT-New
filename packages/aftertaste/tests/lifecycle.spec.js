@@ -15,6 +15,10 @@ test('a kill topples a corpse: dying on the board, excluded from Remaining, gone
   // Wait past fair-spawn: the machine must mature an enemy before it can be shot at all.
   await page.waitForFunction(() => window.__swanEnemyPos?.[0]?.state === 'alive', null, { timeout: 20_000 });
 
+  // A stationary tester in a ROOM (S6a) gets reached and killed, and `over` short-circuits tick()
+  // — which is what ages a corpse off the board. Death is not under test here.
+  await page.evaluate(() => window.__swanGameStore.setState({ hp: 99999 }));
+
   const remainingBefore = await page.getByTestId('hud-left').textContent();
 
   // Two vertical shots kill the first enemy through the real store path.
@@ -46,10 +50,22 @@ test('a kill topples a corpse: dying on the board, excluded from Remaining, gone
     expect(farmed.kills, 'no double-kill').toBe(1);
   }
 
-  // The corpse leaves the board when the death clip ends (~1s) — poll, don't sleep blindly.
+  // DRIVE THE CLOCK, DO NOT RACE IT. This used to wait in WALL time for a game-clock TTL, which
+  // is a race the moment the machine is busy: under a full suite the browser throttles rAF, a
+  // "1 second" death clip takes longer than the budget, and a perfectly working lifecycle reads as
+  // a hang. The store's tick takes the elapsed time as an argument, so the test can simply say
+  // "it is now later" and assert the consequence. Deterministic, and independent of the machine.
+  await page.evaluate(async () => {
+    const { DEATH_SECONDS } = await import('/src/systems/lifecycle.js');
+    const store = window.__swanGameStore;
+    const p = window.__swanPlayerPos;
+    // Two ticks: one to cross the boundary, one to prove it stays crossed.
+    store.getState().tick({ x: p.x, z: p.z }, 10_000);
+    store.getState().tick({ x: p.x, z: p.z }, 10_000 + DEATH_SECONDS + 1);
+  });
   await page.waitForFunction(
     (id) => !window.__swanGameStore.getState().enemies.some((e) => e.id === id),
-    corpse.id, { timeout: 5_000 },
+    corpse.id, { timeout: 12_000 },
   );
 
   expect(thrown, `page threw: ${thrown.join(' | ')}`).toHaveLength(0);

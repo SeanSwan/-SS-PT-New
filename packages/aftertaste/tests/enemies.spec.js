@@ -62,10 +62,15 @@ test('the player is faster than the enemies, measured, not assumed', async ({ pa
   }));
 
   await page.locator('canvas').click();
+  // TEST-DELTA (S6a): the map has COVER now, and the counter sits directly south of the origin —
+  // walking 'away' from spawn ran into it after 0.6 units and the test read that as a slow player.
+  // Start clear of the furniture and walk along the room's long axis instead.
+  await page.evaluate(() => { window.__swanAim.yaw = 0; window.__swanTeleport?.({ x: -8, z: 6 }); });
+  await page.waitForTimeout(150);
   const before = await sample();
-  await page.keyboard.down('KeyS');
+  await page.keyboard.down('KeyD');
   await page.waitForTimeout(1200);
-  await page.keyboard.up('KeyS');
+  await page.keyboard.up('KeyD');
   const after = await sample();
 
   const moved = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);

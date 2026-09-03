@@ -13,11 +13,12 @@
  * receives the aim's yaw, so W means "the way I am looking" (see movement.js for why, and why
  * pitch deliberately does not steer).
  */
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useKeyboard } from './useKeyboard.js';
 import { gun } from '../combat/gunState.js';
 import { useGameStore } from '../state/store.js';
+import { resolveCollision } from '../world/rooms.js';
 import { stepV } from './movement.js';
 import { aim } from './aim.js';
 import { usePlayerStore } from '../state/store.js';
@@ -29,8 +30,30 @@ export default function Player() {
   const keys = useKeyboard();
   const setPosition = usePlayerStore((s) => s.setPosition);
 
+  // Test seam (S6a): put the player somewhere exactly. Proving a wall holds requires STANDING at
+  // it — the first version of the wall test walked from the middle for 2.2s, never reached the
+  // side walls 12 units away, and passed with the wall code deliberately deleted. A stopwatch is
+  // not a position.
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    window.__swanTeleport = ({ x, z }) => {
+      body.current.x = x; body.current.z = z; body.current.vx = 0; body.current.vz = 0;
+    };
+    return () => { delete window.__swanTeleport; };
+  }, []);
+
   useFrame((_state, delta) => {
     const next = stepV(body.current, keys.current, delta, aim.yaw, gun.ads, useGameStore.getState().feverUntil > 0);
+    // THE WALLS ARE REAL (S6a). Resolved AFTER the physics rather than inside it: movement stays a
+    // pure function of intent, and the map stays a table the movement code has never heard of.
+    // Velocity is zeroed on the axis that was blocked, so walking into a wall does not bank speed
+    // that fires you sideways the moment you turn away from it.
+    const room = useGameStore.getState().room;
+    if (room) {
+      const fixed = resolveCollision(next.x, next.z, room);
+      if (fixed.x !== next.x) { next.x = fixed.x; next.vx = 0; }
+      if (fixed.z !== next.z) { next.z = fixed.z; next.vz = 0; }
+    }
     body.current = next;
     // Publish EVERY frame, moving or not — the __swanPlayerPos seam must exist from frame one.
     // (A "publish only on change" optimisation here broke seven browser tests at once.) The

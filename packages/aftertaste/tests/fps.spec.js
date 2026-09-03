@@ -61,10 +61,26 @@ test('movement is view-relative: facing +x, W walks along +x', async ({ page }) 
   expect(Math.abs(after.z - before.z), 'no sideways drift').toBeLessThan(0.5);
 });
 
+
+/**
+ * TEST-DELTA (S5): the starter became a SEMI-AUTO pistol, so "hold the trigger and count a stream"
+ * stopped being true of the default gun. These tests are about AUTOMATIC fire, so they take the
+ * rifle out first. What they assert did not change; which gun demonstrates it did.
+ */
+const equipAuto = async (page) => {
+  await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit2', bubbles: true })));
+  await page.waitForFunction(() => window.__swanGun.slots.includes('fry-rifle'), null, { timeout: 5_000 });
+  if (await page.evaluate(() => window.__swanGun.weaponId !== 'fry-rifle')) {
+    await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ', bubbles: true })));
+  }
+  await page.waitForFunction(() => window.__swanGun.weaponId === 'fry-rifle' && window.__swanGun.swapUntil === 0, null, { timeout: 5_000 });
+};
+
 test('holding the trigger fires repeatedly, and an aimed burst scores a kill with a hitmarker', async ({ page }) => {
   const thrown = [];
   page.on('pageerror', (e) => thrown.push(String(e)));
   await boot(page);
+  await equipAuto(page);
   await expect(page.getByTestId('crosshair')).toBeVisible();
 
   // Aim at the nearest enemy through the seam (exact yaw/pitch from eye to its waist), then hold
@@ -89,11 +105,24 @@ test('holding the trigger fires repeatedly, and an aimed burst scores a kill wit
     window.__swanAim.pitch = Math.asin(dyy / Math.hypot(dx, dyy, dz));
     return (window.__swanKills ?? 0) > 0;
   }, null, { timeout: 15_000, polling: 50 });
-  await page.mouse.up();
 
+  // TEST-DELTA (S3/S5): the wait above ends the moment something DIES, and the cast now includes
+  // one-hp faces that a headshot kills on the first bullet — so "shots > 1" was being read after a
+  // single lethal shot and failing on a gun that is working perfectly. Automatic fire is a claim
+  // about a HELD trigger, so hold it past the kill and measure there.
+  // ...and survive long enough to observe it. In a ROOM (S6a) the swarm reaches a stationary
+  // player in a couple of seconds, `over` holsters the gun, and the shot count freezes at whatever
+  // it was — which reads exactly like a broken automatic weapon. Death is not what is under test.
+  const afterKill = await page.evaluate(() => {
+    window.__swanGameStore.setState({ hp: 99999, over: false });
+    return window.__swanShotsFired ?? 0;
+  });
+  await page.waitForTimeout(700);
   const stats = await page.evaluate(() => ({ shots: window.__swanShotsFired ?? 0, kills: window.__swanKills ?? 0 }));
+  await page.mouse.up(); // released AFTER the measurement — the earlier version released first and
+                         // then asked a released trigger to keep firing.
   expect(stats.kills, 'the burst killed something').toBeGreaterThan(0);
-  expect(stats.shots, 'held trigger = automatic fire, more than one shot').toBeGreaterThan(1);
+  expect(stats.shots, `held trigger keeps firing (was ${afterKill} at the kill)`).toBeGreaterThan(afterKill);
 
   // The kill leaves a hitmarker on screen (it fades by CSS, but the element persists until over).
   await expect(page.getByTestId('hitmarker')).toHaveCount(1);
@@ -105,6 +134,7 @@ test('releasing the trigger STOPS the fire, and the rate is bounded by FIRE_INTE
   // GLM-5.3 blind-spot finding: a trigger that never stops after mouseup — or fires every frame —
   // passed the whole suite. This is the test that makes both failures red.
   await boot(page);
+  await equipAuto(page);
   await page.mouse.move(640, 400);
   await page.mouse.down();
   await page.waitForTimeout(650);

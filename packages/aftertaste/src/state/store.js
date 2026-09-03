@@ -42,6 +42,7 @@ import { stepLifecycle, can, holdsWave } from '../systems/lifecycle.js';
 import { PART_DAMAGE } from '../enemies/partsData.js';
 import { ROSTER } from '../enemies/roster.js';
 import { awardForShot, awardForRound } from '../systems/economy.js';
+import { startRoom, roomAt, visibleRooms } from '../world/rooms.js';
 
 /** Seconds a severed part's debris tumbles before fading off the floor — T4 default. */
 export const DEBRIS_TTL = 4;
@@ -79,7 +80,7 @@ let clockNow = 0;
  *  for this number (GLM-5.3 hostile review, finding 15). */
 export const SPAWN_RADIUS = 18;
 
-const firstWave = () => spawnRing(waveSize(1), SPAWN_RADIUS, 1);
+const firstWave = () => spawnRing(waveSize(1), SPAWN_RADIUS, 1, { x: 0, z: 0 }, 0, startRoom());
 
 export const useGameStore = create((set, get) => ({
   enemies: firstWave(),
@@ -89,6 +90,10 @@ export const useGameStore = create((set, get) => ({
   hp: PLAYER_HP,
   wave: 1,
   over: false,
+  /** Which room the player is standing in (S6a). null = the pre-room open yard. */
+  room: startRoom(),
+  /** Doors bought this run — permanent, which is what makes opening one a commitment. */
+  openDoors: [],
   invulnUntil: 0,
   /** Bumped by reset(); the trigger holsters the gun when it sees a new value (F6). */
   runId: 0,
@@ -120,7 +125,14 @@ export const useGameStore = create((set, get) => ({
     if (over) return false;
     // Only the shootable are targets — the ray passes THROUGH a toppling corpse and a still-
     // materialising spawn to whatever stands behind them. The lifecycle table decides, not us.
-    const hit = hitscan(origin, dir, enemies.filter((e) => can(e, 'canBeShot')));
+    // BROADPHASE (blueprint §2.5): a shot only tests monsters in rooms it could possibly reach.
+    // The cost of a trigger pull is bounded by the room you stand in, not by how many monsters
+    // exist — which is what makes a shotgun's eight pellets affordable at wave 15.
+    const { room, openDoors } = get();
+    const reachable = room ? visibleRooms(room, new Set(openDoors)) : null;
+    const targets = enemies.filter((e) => can(e, 'canBeShot')
+      && (!reachable || reachable.has(roomAt(e.x, e.z) ?? room)));
+    const hit = hitscan(origin, dir, targets);
     // THE BULLET IS VISIBLE, hit or miss: a hit tracer stops at the monster, a miss flies to max
     // range. Recorded before the miss-return so whiffs still read as gunfire.
     const reach = hit ? hit.t : 60;
@@ -295,7 +307,7 @@ export const useGameStore = create((set, get) => ({
       // replacing the whole array would make kills pop instead of fall.
       patch.enemies = [
         ...stepped.filter((e) => e.state === 'dying'),
-        ...spawnRing(waveSize(r.wave), SPAWN_RADIUS, r.wave, player, elapsed),
+        ...spawnRing(waveSize(r.wave), SPAWN_RADIUS, r.wave, player, elapsed, s.room),
       ];
     }
     if (Object.keys(patch).length) set(patch);
@@ -314,8 +326,9 @@ export const useGameStore = create((set, get) => ({
     // The player does not teleport home on a restart, so the fresh wave rings THEM.
     const centre = usePlayerStore.getState().position;
     set({
-      enemies: spawnRing(waveSize(1), SPAWN_RADIUS, 1, centre, clockNow),
+      enemies: spawnRing(waveSize(1), SPAWN_RADIUS, 1, centre, clockNow, startRoom()),
       kills: 0, points: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0, feverUntil: 0,
+      room: startRoom(), openDoors: [],
       lastAward: 0, lastAwardAt: -1,
       runId: get().runId + 1,
       lastHitAt: -1, lastKillAt: -1, debris: [], shots: [], meleeReadyAt: 0,

@@ -55,14 +55,20 @@ test('SPACE jumps: the player leaves the ground and comes back down', async ({ p
 
 test('SHIFT sprints: measured ground speed rises by the sprint multiplier', async ({ page }) => {
   await boot(page);
+  // TEST-DELTA (S6a): a speed measurement needs RUNWAY, and the room is 24x20 with a counter in
+  // the middle of it. Measured from the origin the sprint ran out of floor mid-sample and read as
+  // barely faster than a walk. Start in a corner and run the long axis.
   const speed = async (sprint) => page.evaluate(async (s) => {
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', bubbles: true }));
+    window.__swanAim.yaw = 0;
+    window.__swanTeleport?.({ x: -10, z: 7 });
+    await new Promise((r) => setTimeout(r, 120));
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyD', bubbles: true }));
     if (s) window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ShiftLeft', bubbles: true }));
     await new Promise((r) => setTimeout(r, 350)); // past the accel ramp
     const a = { ...window.__swanPlayerPos };
     await new Promise((r) => setTimeout(r, 400));
     const b = { ...window.__swanPlayerPos };
-    window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW', bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyD', bubbles: true }));
     if (s) window.dispatchEvent(new KeyboardEvent('keyup', { code: 'ShiftLeft', bubbles: true }));
     await new Promise((r) => setTimeout(r, 250)); // decel to rest between measurements
     return Math.hypot(b.x - a.x, b.z - a.z) / 0.4;
@@ -369,10 +375,20 @@ test('S5.5: the Regulars are not one clone — the crowd wears more than one pal
     const mod = await import('/src/systems/waves.js');
     // A crowd of Regulars, so the variant hash has something to spread across.
     store.setState({ hp: 99999, enemies: mod.spawnRing(9, 12, 1, { x: 0, z: 0 }, 0).filter((e) => e.type === 'regular') });
-    await new Promise((r) => setTimeout(r, 2000)); // models + the colour effect
-    const seen = new Set();
-    window.__swanScene.traverse((o) => { if (o.isSkinnedMesh && o.material?.color) seen.add(o.material.color.getHexString()); });
-    return [...seen];
+    // WAIT for the colours, do not sleep for them: seven GLB clones and their colour effects do
+    // not all land inside a fixed 2s on a loaded machine, and a half-loaded crowd is one colour.
+    const read = () => {
+      const seen = new Set();
+      window.__swanScene.traverse((o) => { if (o.isSkinnedMesh && o.material?.color) seen.add(o.material.color.getHexString()); });
+      return [...seen];
+    };
+    const until = performance.now() + 15_000;
+    let seen = read();
+    while (seen.length < 2 && performance.now() < until) {
+      await new Promise((r) => setTimeout(r, 150));
+      seen = read();
+    }
+    return seen;
   });
   expect(palettes.length, `distinct Regular colours on screen: ${palettes.join(', ')}`).toBeGreaterThan(1);
 });

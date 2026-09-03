@@ -22,9 +22,12 @@ test('floor, grid and sun follow the player; the grid snaps to whole units', asy
   await expect(page.locator('canvas')).toBeVisible({ timeout: 20_000 });
   await page.waitForFunction(() => Boolean(window.__swanScene && window.__swanPlayerPos), undefined, { timeout: 20_000 });
 
-  // Drive far enough that the old fixed-world defect would fire (it appeared at ~9 units).
+  // TEST-DELTA (S6a): the room's north wall stands at z = -10, so "walk past z = -11" became
+  // impossible — the claim under test (the floor and sun FOLLOW the player) is unchanged, but the
+  // distance that proves it must now fit inside a room. The old defect appeared at ~9 units of
+  // travel; the wall is 10 away, so walking into it still crosses the threshold that would fire it.
   await page.keyboard.down('w');
-  await page.waitForFunction(() => window.__swanPlayerPos.z < -11, undefined, { timeout: 10_000 });
+  await page.waitForFunction(() => window.__swanPlayerPos.z < -8, undefined, { timeout: 10_000 });
   await page.keyboard.up('w');
   // One settled frame so the useFrame followers run after the final position write.
   await page.waitForTimeout(100);

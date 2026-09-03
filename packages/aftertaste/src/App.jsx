@@ -16,6 +16,7 @@
 import { Canvas } from '@react-three/fiber';
 
 import Ground from './world/Ground.jsx';
+import Room from './world/Room.jsx';
 import Debris from './world/Debris.jsx';
 import SunLight from './world/SunLight.jsx';
 import Player from './player/Player.jsx';
@@ -67,6 +68,7 @@ export default function App() {
       <SunLight />
 
       <Ground />
+      <Room />
       <Player />
       <Enemies />
       <Debris />

@@ -159,3 +159,24 @@ test('F9: a batched row arrives as a CLUSTER, and every body keeps the fair-spaw
   }
   assert.equal(new Set(w2.map((e) => e.id)).size, w2.length, 'ids stay unique inside a batch');
 });
+
+test('S6a: spawns land INSIDE the room, never in a wall, and never in your lap', async () => {
+  const { ROOMS, inRoom, PLAYER_RADIUS } = await import('../src/world/rooms.js');
+  const room = ROOMS['dining-hall'];
+  // Sweep the player around the room: every spawn, from every standing position, must be legal.
+  for (let px = room.bounds.minX + 1; px < room.bounds.maxX; px += 3) {
+    for (let pz = room.bounds.minZ + 1; pz < room.bounds.maxZ; pz += 3) {
+      const wave = spawnRing(12, 18, 4, { x: px, z: pz }, 0, 'dining-hall');
+      for (const e of wave) {
+        assert.ok(inRoom(room, e.x, e.z), `spawned at (${e.x.toFixed(1)}, ${e.z.toFixed(1)}) outside the room`);
+        const d = Math.hypot(e.x - px, e.z - pz);
+        assert.ok(d >= 3, `spawned ${d.toFixed(2)} from a player standing at (${px}, ${pz})`);
+      }
+    }
+  }
+});
+
+test('S6a: with no room, the ring is unchanged — the open yard still works', () => {
+  const ring = spawnRing(6, 10, 1, { x: 0, z: 0 }, 0, null);
+  for (const e of ring) assert.ok(Math.abs(Math.hypot(e.x, e.z) - 10) < 1e-9);
+});

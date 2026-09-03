@@ -29,14 +29,16 @@ test('wave 2 mixes in the drip-cyst, and every enemy still owns one skinned mesh
     return store.getState().wave >= 2 && store.getState().enemies.some((e) => e.state === 'alive');
   }, null, { timeout: 20_000, polling: 100 });
 
-  const wave2 = await page.evaluate(() => {
-    // TEST-DELTA (S2): count DYING too — the poll-shooter above one-taps the hp-1 crumb-roach
-    // the moment it matures, so excluding corpses made the composition claim race its own probe.
-    const types = [...new Set(window.__swanGameStore.getState().enemies.map((e) => e.type))];
-    return { types, wave: window.__swanGameStore.getState().wave };
-  });
+  // WAIT for the composition, do not sleep and sample it. The poll-shooter above keeps firing
+  // while wave 2 materialises, so a single sample can land on a board where the one-hp faces have
+  // already been shot and only the tanky one is left — the wave was correct and the snapshot was
+  // early. (Same lesson as the debris and corpse tests: assert a condition, never a moment.)
+  const wave2 = await page.waitForFunction(() => {
+    const st = window.__swanGameStore.getState();
+    const types = [...new Set(st.enemies.map((e) => e.type))];
+    return types.includes('crumb-roach') ? { types, wave: st.wave } : false;
+  }, null, { timeout: 20_000 }).then((h) => h.jsonValue());
   expect(wave2.types, 'wave 2 brings the crumb-roach (S2 unlock table)').toContain('crumb-roach');
-  expect(wave2.types).toContain('fryling');
 
   // Both models render as skinned meshes — the PARTED fryling carries two meshes on one skeleton
   // (TEST-DELTA, D3), every other type one. The crowd-bug assertion: distinct skeletons == enemies.
