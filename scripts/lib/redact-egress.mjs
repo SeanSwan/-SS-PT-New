@@ -244,8 +244,130 @@ export async function fetchForEgress(url, init = {}, { label = 'request', quiet 
     throw new Error('[redact-egress] fetchForEgress requires a string body (JSON.stringify it first); refusing to send an unredactable body.');
   }
   assertNotResoldSubscriptionSeat(url, init.body);
+  assertTrainingTierArmed(url, init.body);
   const body = redactOutbound(init.body, { label, quiet });
   return fetchImpl(url, { ...init, body });
 }
 
-export default { readForEgress, redactForEgress, redactOutbound, fetchForEgress, assertNotResoldSubscriptionSeat, selfTest, identityNames };
+/* =========================================================================
+ * TRAINING-TIER GATE (added 2026-09-02 — Muse Spark contributor seat)
+ * =========================================================================
+ * Meta sells `meta/muse-spark-1.3-contributor` at $0.10/$0.20 per M — 12.5x
+ * cheaper than its standard tier — explicitly in exchange for training future
+ * models on the prompts and completions. Meta's own docs name what does NOT
+ * belong there: "client repositories, personal data, secrets, unreleased
+ * product logic, and material under NDA."
+ *
+ * WHY THIS IS A DIFFERENT PROBLEM FROM A SECRET LEAK. A leaked key is bad and
+ * rotatable. Proprietary source absorbed into a foundation model's weights is
+ * neither detectable nor reversible — there is no rotation. So this gate is
+ * FAIL-CLOSED on content, unlike the redactor above (which is fail-closed on
+ * its own instrument but permissive about content by design).
+ *
+ * WHY AN ALLOWLIST, NOT A DENYLIST. This module's own header records the
+ * incident that a content scan returned "no matches" on a file that
+ * demonstrably contained the string. A denylist of "sensitive-looking" content
+ * fails open the same way. So the contributor tier accepts nothing by default
+ * and only what Sean has explicitly named.
+ *
+ * WHY ARMING RATHER THAN A FLAG. A `--i-accept-training` flag inside one script
+ * is bypassed by writing a second script — precisely the reasoning already
+ * recorded for assertNotResoldSubscriptionSeat. So the gate sits at the socket:
+ * any contributor-tier request whose caller did not pass through
+ * armTrainingTierEgress() in this process is refused, no matter which script
+ * issued it or when that script was written.
+ */
+
+/** Set by armTrainingTierEgress(); module-local, not forgeable from elsewhere. */
+let trainingTierArmedUntil = 0;
+
+/** Repo-relative path prefixes Sean has explicitly cleared for the training tier. */
+export function trainingTierAllowlist() {
+  return String(process.env.SWAN_TRAINING_TIER_ALLOWLIST || '')
+    .split(',')
+    .map((entry) => entry.trim().replace(/\\/g, '/').replace(/^\.\//, ''))
+    .filter(Boolean);
+}
+
+export function isTrainingTierModel(model) {
+  return /-contributor$/i.test(String(model || '').trim());
+}
+
+/**
+ * Clear a specific set of source documents for one training-tier call.
+ * Throws unless EVERY path sits under an allowlisted prefix. Arms for `ttlMs`
+ * so an arming cannot silently authorise a later, unrelated call in a
+ * long-running process.
+ */
+export function armTrainingTierEgress(paths, { ttlMs = 120_000 } = {}) {
+  const list = (Array.isArray(paths) ? paths : [paths])
+    .filter(Boolean)
+    .map((p) => String(p).replace(/\\/g, '/').replace(/^\.\//, ''));
+  if (!list.length) {
+    throw new Error('[redact-egress] training tier: refusing to arm with no named source document.');
+  }
+
+  const allow = trainingTierAllowlist();
+  if (!allow.length) {
+    throw new Error(
+      '[redact-egress] REFUSED: a *-contributor model trains Meta on everything you send it, and '
+      + 'SWAN_TRAINING_TIER_ALLOWLIST is unset — so nothing in this repo is cleared for it. Set it to the '
+      + 'specific path prefixes carrying NO client data, NO secrets and NO unreleased product logic '
+      + '(e.g. SWAN_TRAINING_TIER_ALLOWLIST=docs/ai-workflow/brainstorms/public), or use --tier standard.',
+    );
+  }
+  // Traversal is rejected before prefix-matching: "docs/pub/../../backend/x"
+  // would otherwise satisfy a "docs/pub" prefix while reading backend source.
+  const escaped = list.filter((p) => p.split('/').includes('..'));
+  if (escaped.length) {
+    throw new Error(`[redact-egress] REFUSED: training-tier path contains "..": ${escaped.join(', ')}`);
+  }
+  const rejected = list.filter(
+    (p) => !allow.some((prefix) => p === prefix || p.startsWith(`${prefix.replace(/\/$/, '')}/`)),
+  );
+  if (rejected.length) {
+    throw new Error(
+      `[redact-egress] REFUSED: not cleared for the training tier: ${rejected.join(', ')}. `
+      + `Allowlisted prefixes: ${allow.join(', ')}. Use --tier standard for anything else.`,
+    );
+  }
+  trainingTierArmedUntil = Date.now() + ttlMs;
+  console.error(
+    `[redact-egress] training tier ARMED for ${list.length} cleared document(s), ${Math.round(ttlMs / 1000)}s.`,
+  );
+  return true;
+}
+
+/**
+ * Consume the arming. Called by fetchForEgress; single-use, so one arm = one call.
+ *
+ * The arming is consumed by ANY outbound call, not only a training-tier one.
+ * If it were consumed only on the tier it guards, a script could arm for cleared
+ * document A, make an unrelated standard-tier call, and then have the still-live
+ * arming authorise a second contributor call carrying document B that was never
+ * cleared. consult-muse.mjs makes exactly one call so it could not hit that, but
+ * this is a library guard and the next caller is not bound by that shape.
+ */
+export function assertTrainingTierArmed(url, body) {
+  const armed = trainingTierArmedUntil > Date.now();
+  trainingTierArmedUntil = 0; // consumed here, whatever the outcome below
+
+  let host = '';
+  try { host = new URL(url).host.toLowerCase(); } catch { return; }
+  let model = '';
+  try { model = String(JSON.parse(body)?.model ?? ''); } catch { return; }
+  if (!isTrainingTierModel(model)) return;
+  if (armed) return;
+  throw new Error(
+    `[redact-egress] REFUSED: "${model}" (host ${host}) is a TRAINING tier — Meta trains on both the prompt `
+    + 'and the completion, and that is not reversible. This call did not pass armTrainingTierEgress(), so '
+    + 'nothing proved its contents are cleared. Use the standard tier (drop the "-contributor" suffix), or '
+    + 'route through scripts/consult-muse.mjs --tier contributor with SWAN_TRAINING_TIER_ALLOWLIST set.',
+  );
+}
+
+export default {
+  readForEgress, redactForEgress, redactOutbound, fetchForEgress,
+  assertNotResoldSubscriptionSeat, selfTest, identityNames,
+  armTrainingTierEgress, assertTrainingTierArmed, isTrainingTierModel, trainingTierAllowlist,
+};

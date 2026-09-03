@@ -35,6 +35,12 @@ const PRICES = {
   'grok-4.6':            [2.0,  6.0],
   'deepseek-v4-pro':     [0.48, 0.96],
   'deepseek-v4-flash':   [0.073, 0.145],
+  // Muse Spark 1.3, verified on OpenRouter 2026-09-02. The contributor tier is
+  // ~12x cheaper but is deliberately NOT listed: consult-muse.mjs selects it by
+  // --tier, not --model, so an unlisted key makes the gate price every Muse call
+  // at the standard rate. That errs toward overestimating, which is the only
+  // safe direction for a spend guard.
+  'muse-spark-1.3':      [1.25, 4.25],
 };
 
 /** Map a consult script to its default model key. */
@@ -43,6 +49,7 @@ const SCRIPT_MODEL = {
   'consult-sol.mjs': 'gpt-5.6-sol-pro',
   'consult-kimi.mjs': 'kimi-k3',
   'consult-grok.mjs': 'grok-4.6',
+  'consult-muse.mjs': 'muse-spark-1.3',
 };
 
 function readInput() {
@@ -63,7 +70,7 @@ const cmd = input?.tool_input?.command || '';
 // one turned `\b` into a literal backspace (0x08), which matches nothing, so the
 // gate stopped firing entirely while still reporting "SYNTAX OK". A regex that
 // silently never matches is the worst possible failure for a guard.
-const INVOCATION = /(?:^|[ ;&|(])(?:node|npx|bun) [^|;&]*?consult-(?:fable|sol|kimi|grok|panel)[.]mjs/;
+const INVOCATION = /(?:^|[ ;&|(])(?:node|npx|bun) [^|;&]*?consult-(?:fable|sol|kimi|grok|muse|panel)[.]mjs/;
 if (!cmd || !INVOCATION.test(cmd)) ALLOW();
 
 try {
@@ -102,6 +109,23 @@ try {
 
   // consult-panel fans out to many seats; price it as the whole fan-out.
   const isPanel = scriptName === 'consult-panel.mjs';
+
+  // Price the panel by the seats ACTUALLY REQUESTED, not the full roster.
+  // Flat-rating every fan-out at the whole-roster worst case made a run of two
+  // free seats plus two cheap ones (~$0.15) present as $1.20 and get blocked.
+  // A gate that cries wolf is a gate the human learns to wave through, which is
+  // the failure mode this whole control exists to avoid — so an overstatement
+  // is not the "safe" direction, it is corrosive.
+  const SEAT_WORST_USD = {
+    fable: 1.05, sol: 0.32, kimi: 0.31, grok: 0.11,
+    dspro: 0.03, dsflash: 0.01, glm: 0, glmflash: 0, qwen: 0, gemini: 0, ox: 0,
+  };
+  const DEFAULT_SEATS = ['kimi', 'glm', 'qwen', 'ox', 'gemini', 'grok', 'dspro', 'dsflash'];
+  const seatsArg = (cmd.match(/--seats\s+([^\s]+)/) || [])[1];
+  const panelSeats = seatsArg
+    ? seatsArg.split(',').map((s) => s.trim()).filter(Boolean)
+    : DEFAULT_SEATS;
+  const panelUsd = panelSeats.reduce((sum, s) => sum + (SEAT_WORST_USD[s] ?? 0.35), 0);
   const price = PRICES[modelKey];
   if (!price && !isPanel) ALLOW(); // unknown model — do not guess a number
 
@@ -120,16 +144,16 @@ try {
   // worst case is honest rather than flattering.
   const ASSUMED_IN_TOK = 26000;
   const worstCaseUsd = isPanel
-    ? 1.20 // whole-panel fan-out, dominated by the paid seats
+    ? panelUsd
     : (ASSUMED_IN_TOK / 1e6) * price[0] + (maxTok / 1e6) * price[1];
 
   // --- topic: what "the whole thing" means --------------------------------
   // Best available proxy for one workstream is the document/out path stem.
-  const docMatch = cmd.match(/--document\s+([^\s]+)/) || cmd.match(/--out\s+([^\s]+)/);
   // topicFromPath is the SINGLE normalizer, shared with the ledger WRITER in the
   // consult transports. The inline version this replaced was the guard's own
   // rules; the writer had different rules; spentOnTopic matches strictly — so the
   // per-topic cap silently never accumulated for some documents (2026-08-24).
+  const docMatch = cmd.match(/--document\s+([^\s]+)/) || cmd.match(/--out\s+([^\s]+)/);
   const topic = topicFromPath(docMatch ? docMatch[1] : 'untitled');
 
   const approvalToken = (cmd.match(/SWAN_SPEND_APPROVE=([a-f0-9]{12})/) || [])[1] || '';
