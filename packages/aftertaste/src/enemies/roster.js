@@ -45,7 +45,12 @@ export const ROSTER = {
     hp: 1, speed: 3.4, aimRadius: 0.6, renderHeight: 0.8,
     model: { minX: -4, maxX: 4, minZ: -2, maxZ: 3, height: 7 },
     tint: ['#9DB04C', '#4F5C28'], ember: '#39470f',
-    gait: { type: 'hover', hz: 3.4, bob: 0.04, roll: 0.10, lift: 0.08 },
+    // TUNED DOWN BY THE DISPLACEMENT LAW (F2), not by taste: at roll 0.10 / lift 0.08 the fly's
+    // rendered body sat 0.144m from its hit shapes and its head radius only allows 0.060m — the
+    // smallest head in the cast cannot afford a big hover. The honest long-term fix is to re-measure
+    // this creature's hit shapes IN its hover pose (a pipeline pass), which would buy the lift back;
+    // until then aim truth outranks flair.
+    gait: { type: 'hover', hz: 3.4, bob: 0.015, roll: 0.04, lift: 0.025 },
   },
 
   'patty-larva': {
@@ -62,7 +67,10 @@ export const ROSTER = {
     hp: 3, speed: 1.6, aimRadius: 0.55, renderHeight: 1.7,
     model: { minX: -2, maxX: 2, minZ: -1, maxZ: 3, height: 9 },
     tint: ['#8A8D96', '#4A4E5A'], ember: '#2e3140',
-    gait: { type: 'shamble', sway: 0.09, hz: 1.4 },
+    // Sway tuned by the displacement law (F2): 0.09 rad on a 1.7-unit body swung the head 0.199m
+    // against a 0.131m allowance — the tallest creature pays the most for every radian. 0.055 keeps
+    // the weighted shamble and stays inside the hitbox.
+    gait: { type: 'shamble', sway: 0.045, hz: 1.4, hang: 0.04 },
   },
   // Crumb-roach: flood pressure — cheap, fast, dies to one hit; terror is the COUNT, not the unit.
   'crumb-roach': {
@@ -70,6 +78,10 @@ export const ROSTER = {
     model: { minX: -1, maxX: 3, minZ: 0, maxZ: 2, height: 2 },
     tint: ['#6B4A2B', '#3E2B18'], ember: '#2b1d10',
     gait: { type: 'skitter', burstHz: 2.2, jitter: 0.22 },
+    // THE FLOOD IS A NUMBER (F9). "Terror is the COUNT" was a comment while spawnRing put exactly
+    // one enemy in every slot — the roach's whole verb existed only in prose. A batched slot
+    // arrives as a cluster, so one wave slot spends one budget and delivers three bodies.
+    batch: 3,
   },
   // Kissing bug (S3): the patient predator. It CREEPS while far and LUNGES when close — the one
   // creature whose gait changes with distance, which is why `creep` reads as a different animal
@@ -79,7 +91,9 @@ export const ROSTER = {
     hp: 2, speed: 1.1, aimRadius: 0.85, renderHeight: 0.9,
     model: { minX: -3, maxX: 6, minZ: -2, maxZ: 2, height: 5 },
     tint: ['#3E2A24', '#A65A3A'], ember: '#5a2412',
-    gait: { type: 'creep', lungeRange: 4.5, lungeMult: 3.4, hz: 1.6, crouch: 0.07 },
+    // lungePitch is DATA now, not a constant buried in gaits.js: the law has to be able to tune the
+    // worst pose, and it could not reach a hard-coded -0.18 (which put this creature at 105% of cap).
+    gait: { type: 'creep', lungeRange: 4.5, lungeMult: 3.4, hz: 1.6, crouch: 0.07, lungePitch: 0.15, telegraph: 0.35 },
     onTouch: { fever: 3.0 },
   },
 };

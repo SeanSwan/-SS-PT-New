@@ -59,11 +59,17 @@ export function spawnRing(count, radius, waveNumber = 1, centre = { x: 0, z: 0 }
     // The roster decides WHO fills the slot and what its numbers are — a monster is a row.
     const type = typeForSlot(waveNumber, i);
     const spec = ROSTER[type];
+    // A BATCHED row fills its slot with a cluster, not one body (F9). The cluster fans out ALONG
+    // the ring (a small angular spread) rather than in depth, so every member is still exactly
+    // `radius` away — the fair-spawn distance is a promise, and a flood must not break it.
+    const batch = spec.batch ?? 1;
+    for (let b = 0; b < batch; b++) {
+    const spreadAngle = angle + (batch > 1 ? (b - (batch - 1) / 2) * 0.09 : 0);
     out.push({
-      id: `w${waveNumber}-e${i}-${Math.random().toString(36).slice(2, 7)}`,
+      id: `w${waveNumber}-e${i}${batch > 1 ? `-${b}` : ''}-${Math.random().toString(36).slice(2, 7)}`,
       type,
-      x: centre.x + Math.cos(angle) * radius,
-      z: centre.z + Math.sin(angle) * radius,
+      x: centre.x + Math.cos(spreadAngle) * radius,
+      z: centre.z + Math.sin(spreadAngle) * radius,
       hp: spec.hp,
       // The aim sphere and part shapes scale WITH the rendered silhouette (R1/H8): a monster
       // drawn at 1.5x is hit like a 1.5x monster. renderScale multiplies part shapes in hitscan.
@@ -77,6 +83,7 @@ export function spawnRing(count, radius, waveNumber = 1, centre = { x: 0, z: 0 }
       state: 'spawning',
       stateSince: now,
     });
+    }
   }
   return out;
 }

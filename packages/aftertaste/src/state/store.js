@@ -49,6 +49,20 @@ export const DEBRIS_TTL = 4;
 /** Seconds a tracer streak lives. A blink — the bullet already arrived; this is its wake. */
 export const SHOT_TTL = 0.08;
 
+/**
+ * Hard caps on the DECORATION arrays (F5). Both drain on a TTL, which is fine at wave 3 and a
+ * garbage-collector problem at wave 15 with a shotgun: eight tracers per trigger pull, every pull.
+ * A cap turns an unbounded allocation into a ring — oldest out, newest in, cost known in advance.
+ */
+export const SHOT_CAP = 48;
+export const DEBRIS_CAP = 24;
+
+/** Append with a ceiling: the oldest entries fall off the front. */
+export const pushCapped = (arr, items, cap) => {
+  const next = arr.concat(items);
+  return next.length > cap ? next.slice(next.length - cap) : next;
+};
+
 /** Seconds of mercy after a hit, so one touch is not three instant deaths. */
 const INVULN_SECONDS = 1.0;
 
@@ -76,6 +90,8 @@ export const useGameStore = create((set, get) => ({
   wave: 1,
   over: false,
   invulnUntil: 0,
+  /** Bumped by reset(); the trigger holsters the gun when it sees a new value (F6). */
+  runId: 0,
   /** Kissing-bug fever: a clock time, 0 = healthy. Visible on the HUD by design (S3). */
   feverUntil: 0,
   /** When the last shot connected / killed — the HUD's hitmarker reads these. -1 = never:
@@ -110,7 +126,7 @@ export const useGameStore = create((set, get) => ({
       to: [origin.x + dir.x * reach, origin.y + dir.y * reach, origin.z + dir.z * reach],
       at: clockNow,
     };
-    if (!hit) { set({ shots: [...get().shots, tracer] }); return false; }
+    if (!hit) { set({ shots: pushCapped(get().shots, [tracer], SHOT_CAP) }); return false; }
     // LOCATIONAL DAMAGE (D3): the struck part sets the multiplier — headshots hit twice as hard
     // (T3 default). A partless monster's null part reads as x1.
     let hurt = damage(hit.target, PART_DAMAGE[hit.part] ?? 1);
@@ -145,9 +161,9 @@ export const useGameStore = create((set, get) => ({
       kills: kills + killed,
       ...(earned ? { points: get().points + earned } : {}),
       lastHitAt: clockNow,
-      shots: [...get().shots, tracer],
+      shots: pushCapped(get().shots, [tracer], SHOT_CAP),
       ...(killed ? { lastKillAt: clockNow } : {}),
-      ...(newDebris.length ? { debris: [...get().debris, ...newDebris] } : {}),
+      ...(newDebris.length ? { debris: pushCapped(get().debris, newDebris, DEBRIS_CAP) } : {}),
     });
     if (typeof window !== 'undefined') window.__swanKills = kills + killed;
     return true;
@@ -178,9 +194,15 @@ export const useGameStore = create((set, get) => ({
       if (isDead(hurt)) { killedNow += 1; hurt = { ...hurt, state: 'dying', stateSince: clockNow }; }
       return hurt;
     });
+    // THE SECOND DOOR (F1). shoot() minted points and melee() did not, so every fist kill was
+    // free labour — "one choke point" is only true if every path that PRODUCES the event goes
+    // through it. Fists pay the kill award and never a sever: precision is what severing pays for,
+    // and a punch is survival, not marksmanship.
+    const earned = killedNow * awardForShot({ killed: true });
     set({
       enemies: next,
       kills: s.kills + killedNow,
+      ...(earned ? { points: s.points + earned } : {}),
       meleeReadyAt: clockNow + MELEE_COOLDOWN,
       lastHitAt: clockNow,
       ...(killedNow ? { lastKillAt: clockNow } : {}),
@@ -213,6 +235,15 @@ export const useGameStore = create((set, get) => ({
     let changed = false;
     for (const e of s.enemies) {
       // The SAME range function tickRound asks — attack trigger and strike range cannot drift.
+      // The ambush clock (F11): stamp the moment a telegraphing creature first crosses into its
+      // lunge range, so its gait can hold a wind-up. Stamped HERE, not in the gait, because a pure
+      // pose function must not own memory — and cleared when it leaves, so a dodge really resets it.
+      const lunge = ROSTER[e.type]?.gait?.lungeRange;
+      if (lunge) {
+        const near = (e.x - player.x) ** 2 + (e.z - player.z) ** 2 <= lunge ** 2;
+        if (near && e.enteredRangeAt == null) e.enteredRangeAt = elapsed;
+        else if (!near && e.enteredRangeAt != null) e.enteredRangeAt = null;
+      }
       const next = stepLifecycle(e, elapsed, inTouchRange(e, player));
       if (next !== e) changed = true;
       if (next) stepped.push(next);
@@ -273,6 +304,7 @@ export const useGameStore = create((set, get) => ({
     set({
       enemies: spawnRing(waveSize(1), SPAWN_RADIUS, 1, centre, clockNow),
       kills: 0, points: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0, feverUntil: 0,
+      runId: get().runId + 1,
       lastHitAt: -1, lastKillAt: -1, debris: [], shots: [], meleeReadyAt: 0,
     });
     if (typeof window !== 'undefined') {

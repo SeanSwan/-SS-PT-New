@@ -390,3 +390,52 @@ test('reset empties the wallet — a new run starts broke', () => {
   useGameStore.getState().reset();
   assert.equal(useGameStore.getState().points, 0);
 });
+
+// --- S4.5 F1: the economy's SECOND door ---------------------------------------------------------
+// A choke point is only a choke point if every path that can produce the event goes through it.
+// shoot() paid; melee() killed things and paid nothing (Fable 5.1 review, F1 CRIT).
+
+test('F1: a PUNCH kill pays the kill award — the fist is not a free door out of the economy', async () => {
+  const { AWARD } = await import('../src/systems/economy.js');
+  mature();
+  // A one-hp face dies to a single punch, so the award is exact rather than "more than before".
+  // grease-fly, not crumb-roach: beforeEach resets to WAVE 1 and the roach only unlocks at wave 2.
+  // (My fixture was wrong, not the game — the first draft asserted a face that cannot be on the board.)
+  const roach = useGameStore.getState().enemies.find((e) => e.type === 'grease-fly' && e.state === 'alive');
+  assert.ok(roach, 'a one-hp face must be on the wave-1 board for this fixture');
+  roach.x = 0; roach.z = -1.2;                       // directly in front (yaw 0 faces -z)
+  const before = useGameStore.getState().points;
+  useGameStore.setState({ meleeReadyAt: -1 });        // no cooldown in the way
+  assert.equal(useGameStore.getState().melee({ x: 0, z: 0 }, 0), true, 'the punch connected');
+  const after = useGameStore.getState();
+  assert.equal(after.enemies.find((e) => e.id === roach.id).state, 'dying', 'the punch killed it');
+  assert.equal(after.points, before + AWARD.kill, 'a punch kill pays exactly the kill award');
+});
+
+test('F1: a punch that only WOUNDS pays nothing — results pay, contact does not', async () => {
+  mature();
+  const tough = useGameStore.getState().enemies.find((e) => e.type === 'regular' && e.state === 'alive');
+  tough.x = 0; tough.z = -1.2;
+  const before = useGameStore.getState().points;
+  useGameStore.setState({ meleeReadyAt: -1 });
+  useGameStore.getState().melee({ x: 0, z: 0 }, 0);
+  const after = useGameStore.getState();
+  assert.equal(after.enemies.find((e) => e.id === tough.id).state, 'alive', 'it survived the punch');
+  assert.equal(after.points, before, 'wounding pays nothing — the same law the gun obeys');
+});
+
+test('F5: the decoration arrays are CAPPED — a long run cannot grow them without bound', async () => {
+  const { SHOT_CAP } = await import('../src/state/store.js');
+  mature();
+  // Fire far more shots than the cap, all misses (straight up at nothing).
+  for (let i = 0; i < SHOT_CAP + 40; i++) {
+    useGameStore.getState().shoot({ x: 0, y: 0, z: 0 }, { x: 0, y: 1, z: 0 });
+  }
+  assert.equal(useGameStore.getState().shots.length, SHOT_CAP, 'tracers ring-buffer at the cap');
+});
+
+test('F6: reset marks a NEW RUN so the trigger knows to holster', () => {
+  const before = useGameStore.getState().runId;
+  useGameStore.getState().reset();
+  assert.equal(useGameStore.getState().runId, before + 1);
+});

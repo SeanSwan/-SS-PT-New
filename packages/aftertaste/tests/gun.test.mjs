@@ -133,3 +133,29 @@ test('recovery can NEVER start between the shots of a held burst — delay excee
       `${id}: recoverDelay ${recoverDelay(g)} must exceed fireInterval ${WEAPONS[id].fireInterval}`);
   }
 });
+
+// ---- S4.5 F7: the pattern CYCLES past its end instead of sliding forever ------------------------
+test('F7: a long burst repeats the declared loop segment — it never freezes on one kick', () => {
+  const w = WEAPONS[DEFAULT_WEAPON];
+  const [from, to] = w.recoilLoop;
+  const span = (to - from) + 1;
+  const at = (i) => recoilKick(G({ lastShotAt: 10, burstIndex: i }), 10.05);
+  // Shot n and shot n+span land on the same kick once the pattern has run out.
+  const a = at(w.recoilPattern.length + 1);
+  const b = at(w.recoilPattern.length + 1 + span);
+  assert.deepEqual([a.pitch, a.yaw], [b.pitch, b.yaw], 'the tail is a cycle, not a clamp');
+  // And the cycle actually MOVES: a clamped tail would make every late shot identical.
+  const distinct = new Set(Array.from({ length: span }, (_, k) =>
+    JSON.stringify(at(w.recoilPattern.length + k)))).size;
+  assert.ok(distinct > 1, `a burst tail must vary; saw ${distinct} distinct kicks`);
+});
+
+test('F6: holster puts everything back — cone, burst, sights, magazine', async () => {
+  const { holster } = await import('../src/combat/gunState.js');
+  const g = holster({ weaponId: DEFAULT_WEAPON, spread: 0.035, burstIndex: 7, ads: true, mag: 0, reserveAmmo: 3, reloadingUntil: 99, lastShotAt: 5 });
+  const w = WEAPONS[DEFAULT_WEAPON];
+  assert.deepEqual(
+    { spread: g.spread, burstIndex: g.burstIndex, ads: g.ads, mag: g.mag, reserveAmmo: g.reserveAmmo, reloadingUntil: g.reloadingUntil },
+    { spread: w.spread.base, burstIndex: 0, ads: false, mag: w.mag, reserveAmmo: w.reserve, reloadingUntil: 0 },
+  );
+});

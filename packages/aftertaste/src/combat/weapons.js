@@ -35,6 +35,9 @@ export const WEAPONS = {
       [0.010, 0.000], [0.009, 0.001], [0.008, 0.002], [0.006, 0.002],
       [0.005, 0.003], [0.004, 0.003], [0.004, -0.002], [0.004, -0.003],
     ],
+    // The segment that repeats once the pattern runs out — the settled part of the climb, so a
+    // held burst becomes rhythmic instead of sliding left forever (F7).
+    recoilLoop: [4, 7],
     spread: { base: 0.004, perShot: 0.006, max: 0.035, recovery: 0.08, adsScale: 0.35 },
     zoomFov: 55,       // right-click ADS — the slot a real scope upgrades later
     adsSensitivity: 0.6,

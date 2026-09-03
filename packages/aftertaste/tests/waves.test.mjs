@@ -148,3 +148,14 @@ test('the worst fever in a frame wins — a crowd cannot stack timers', () => {
   assert.equal(r.fever, ROSTER['kissing-bug'].onTouch.fever);
   assert.equal(r.hp, PLAYER_HP - 1, 'and it is still ONE life for the frame');
 });
+
+test('F9: a batched row arrives as a CLUSTER, and every body keeps the fair-spawn radius', () => {
+  const w2 = spawnRing(4, 10, 2, { x: 0, z: 0 }, 0);
+  const roaches = w2.filter((e) => e.type === 'crumb-roach');
+  assert.equal(roaches.length, ROSTER['crumb-roach'].batch, 'one slot delivered a whole batch');
+  assert.ok(w2.length > 4, 'a batched wave carries more bodies than slots');
+  for (const e of w2) {
+    assert.ok(Math.abs(Math.hypot(e.x, e.z) - 10) < 1e-9, 'a flood must not spawn anyone closer');
+  }
+  assert.equal(new Set(w2.map((e) => e.id)).size, w2.length, 'ids stay unique inside a batch');
+});

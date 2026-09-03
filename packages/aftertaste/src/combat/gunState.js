@@ -53,7 +53,17 @@ export function finishReload(g) {
 export function recoilKick(g, now) {
   const w = weaponOf(g);
   const idx = (now - g.lastShotAt > RECOIL_RESET) ? 0 : g.burstIndex;
-  const [pitch, yaw] = w.recoilPattern[Math.min(idx, w.recoilPattern.length - 1)];
+  // PAST THE PATTERN, CYCLE — never clamp (F7). Clamping held the final entry forever, so a long
+  // burst drifted one direction indefinitely: not a gun you learn, just a slide. `loop` names the
+  // segment that repeats, so a sustained burst has a rhythm a player can pull against.
+  const n = w.recoilPattern.length;
+  let at = idx;
+  if (idx >= n) {
+    const [from, to] = w.recoilLoop ?? [0, n - 1];
+    const span = (to - from) + 1;
+    at = from + ((idx - n) % span);
+  }
+  const [pitch, yaw] = w.recoilPattern[at];
   return { pitch, yaw, nextIndex: idx + 1 };
 }
 
@@ -103,4 +113,24 @@ export function applySpread(dir, cone, rand = Math.random) {
   const ox = dir.x + (ux * dx + vx * dy); const oy = dir.y + (uy * dx + vy * dy); const oz = dir.z + (uz * dx + vz * dy);
   const l = Math.hypot(ox, oy, oz);
   return { x: ox / l, y: oy / l, z: oz / l };
+}
+
+/**
+ * Put the gun away: cone closed, burst reset, sights down, magazine full (F6).
+ *
+ * WHY IT LIVES HERE: holstering used to be six assignments inlined in the trigger's `over` branch,
+ * which meant only DEATH could holster. A reset that was not a death — a test, a future restart
+ * key — left a half-blown cone and a mid-burst pattern behind. State that belongs to the gun is
+ * reset by the gun.
+ */
+export function holster(g = gun) {
+  const w = WEAPONS[g.weaponId];
+  g.ads = false;
+  g.spread = w.spread.base;
+  g.burstIndex = 0;
+  g.lastShotAt = -Infinity;
+  g.reloadingUntil = 0;
+  g.mag = w.mag;
+  g.reserveAmmo = w.reserve;
+  return g;
 }

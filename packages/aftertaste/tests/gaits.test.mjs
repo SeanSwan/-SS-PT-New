@@ -82,3 +82,29 @@ test('every re-sculpted face declares a gait — a silent row is how the cast we
     assert.ok(row.gait?.type, `${type} has no gait`);
   }
 });
+
+// ---- F2: the law in the units that decide a hit ------------------------------------------------
+test('F2: no gait can carry the body outside its own hit shape', async () => {
+  const { poseDisplacement } = await import('../src/enemies/gaits.js');
+  const { PARTS } = await import('../src/enemies/partsData.js');
+  for (const [type, row] of Object.entries(ROSTER)) {
+    const head = (PARTS[type] ?? []).find((p) => p.tag === 'head');
+    assert.ok(head, `${type} must have a head part to be governed by this law`);
+    const cap = 0.35 * head.hitShape.r * row.renderHeight;
+    const moved = poseDisplacement(row.gait, row.renderHeight);
+    assert.ok(moved <= cap,
+      `${type}: gait moves the body ${moved.toFixed(3)}m; its head radius allows ${cap.toFixed(3)}m`);
+  }
+});
+
+test('F11: the ambusher WINDS UP before it commits — the telegraph is the dodge window', async () => {
+  const g = ROSTER['kissing-bug'].gait;
+  const inRange = g.lungeRange - 0.1;
+  const winding = gaitPose(g, 2, 0.5, inRange, g.telegraph * 0.5);
+  const committed = gaitPose(g, 2, 0.5, inRange, g.telegraph + 0.01);
+  assert.equal(winding.speedScale, 0, 'it freezes for the wind-up');
+  assert.ok(winding.rotX > 0, 'and sinks into a deeper crouch (a readable pose, not a pause)');
+  assert.equal(committed.speedScale, g.lungeMult, 'then it commits');
+  // Leaving the range resets the clock: a dodge has to actually buy the window back.
+  assert.equal(gaitPose(g, 2, 0.5, g.lungeRange + 5, Infinity).speedScale, 0.55, 'back to creeping');
+});

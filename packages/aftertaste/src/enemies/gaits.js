@@ -23,13 +23,47 @@ export function gaitSeed(id) {
   return ((h >>> 0) % 1000) / 1000 * Math.PI * 2;
 }
 
+/**
+ * WORST-CASE DISPLACEMENT of the top of the body, in world units, under this gait.
+ *
+ * WHY THIS EXISTS (Fable 5.1 hostile review, F2): the first gait law asserted that sway, lift and
+ * jitter stayed inside declared BOUNDS — and it was incapable of failing on the defect it was
+ * named for. Hit shapes are pure maths anchored at the enemy's (x, z); the rendered body leans and
+ * floats around that anchor. Bounding the PARAMETER (0.09 rad) says nothing about the CONSEQUENCE
+ * (how far the head moved). A lean of 0.09 rad on a 1.7-unit body throws the head 15 cm sideways —
+ * a headshot the player sees connect, that the maths never sees.
+ *
+ * So the law is restated in the units that decide a hit: metres of head travel, against the head's
+ * own radius. `lean` rotates about the feet, so the top of the body swings by sin(angle) x height;
+ * `lift` translates everything. A gait may decorate; it may not move the body out of its hitbox.
+ */
+export function poseDisplacement(gait, renderHeight = 1, samples = 720) {
+  if (!gait) return 0;
+  let worst = 0;
+  // SWEPT FROM gaitPose ITSELF, never hand-copied from it. A displacement table written by reading
+  // the branches is a second source of truth that rots the moment a gait is tuned — which is the
+  // exact failure this law exists to correct. The sweep covers a full cycle at several seeds, and
+  // both sides of every distance-dependent branch (the creep's lunge is its worst pose).
+  for (const distance of [Infinity, 0]) {
+    for (const seed of [0, 1.7, 3.9, 5.2]) {
+      for (let i = 0; i < samples; i++) {
+        const p = gaitPose(gait, i * 0.01, seed, distance);
+        const lean = Math.hypot(p.rotX, p.rotZ);
+        const swing = Math.sin(Math.abs(lean)) * renderHeight; // rotation is about the feet
+        worst = Math.max(worst, Math.hypot(swing, p.yOffset));
+      }
+    }
+  }
+  return worst;
+}
+
 const STILL = { rotX: 0, rotZ: 0, yawJitter: 0, yOffset: 0, speedScale: 1 };
 
 /**
  * The pose for one enemy this frame. Unknown/absent gait = STILL (a row without a gait moves the
  * old way, so the whole cast never depends on this file being complete).
  */
-export function gaitPose(gait, t, seed = 0, distance = Infinity) {
+export function gaitPose(gait, t, seed = 0, distance = Infinity, sinceEntered = Infinity) {
   if (!gait) return STILL;
   if (gait.type === 'creep') {
     // The kissing bug: the ONLY gait that reads the world. Far away it creeps low and slow; inside
@@ -37,13 +71,22 @@ export function gaitPose(gait, t, seed = 0, distance = Infinity) {
     // other gait ignores it — a gait that changes with the player is a different ANIMAL, not a
     // speed setting.
     const p = t * gait.hz * Math.PI * 2 + seed;
-    const lunging = distance <= gait.lungeRange;
+    const inRange = distance <= gait.lungeRange;
+    // THE TELEGRAPH IS THE DODGE WINDOW (F11). Without it the creature crossed an invisible line
+    // and was simply on you at 3.4x — a lunge with no wind-up is not an ambush, it is a teleport.
+    // The design doc's own word for this creature is "freezes, then strikes": it stops dead, sinks
+    // into a deeper crouch, and only then commits. Everything else in this game telegraphs
+    // (ATTACK_WINDUP); the one creature built around ambush had nothing.
+    const winding = inRange && sinceEntered < (gait.telegraph ?? 0);
+    const lunging = inRange && !winding;
     return {
       rotZ: 0,
-      rotX: lunging ? -0.18 : gait.crouch + Math.sin(p) * 0.02, // crouched, then thrown forward
+      rotX: lunging ? -(gait.lungePitch ?? 0.15)
+        : winding ? gait.crouch * 2
+        : gait.crouch + Math.sin(p) * 0.02,
       yawJitter: 0,
       yOffset: lunging ? 0.04 : 0,
-      speedScale: lunging ? gait.lungeMult : 0.55,
+      speedScale: lunging ? gait.lungeMult : winding ? 0 : 0.55,
     };
   }
   if (gait.type === 'shamble') {
@@ -51,7 +94,7 @@ export function gaitPose(gait, t, seed = 0, distance = Infinity) {
     const p = t * gait.hz * Math.PI * 2 + seed;
     return {
       rotZ: Math.sin(p) * gait.sway,
-      rotX: 0.06 + Math.sin(p * 0.5) * 0.02,
+      rotX: (gait.hang ?? 0.06) + Math.sin(p * 0.5) * 0.02, // forward hang is data: the law must be able to tune it
       yawJitter: 0,
       yOffset: Math.abs(Math.sin(p)) * 0.02,
       speedScale: 1,

@@ -26,6 +26,11 @@ import { FRAME_ORDER } from '../systems/frameOrder.js';
 
 export default function Enemies() {
   const meshes = useRef({});
+  // Two refs per enemy, on purpose (F2). `meshes` is the WRAPPER that carries (x, z) — the same
+  // anchor combat.js offsets every hit shape from. `poses` is an INNER group that carries the
+  // gait's lean, lift and facing. Keeping them apart makes the invariant structural: nothing a
+  // gait does can move the anchor, and a future reader cannot accidentally add displacement to it.
+  const poses = useRef({});
   const enemies = useGameStore((s) => s.enemies);
 
   useFrame((state, delta) => {
@@ -49,21 +54,23 @@ export default function Enemies() {
       // Gait identity (S2): the pose decorates, the speedScale pulses — the skitter's burst rhythm
       // IS its speed some frames and its pause others; steering itself is unchanged.
       const dist = Math.hypot(player.x - snapshot[i].x, player.z - snapshot[i].z);
-      const pose = gaitPose(row?.gait, state.clock.elapsedTime, gaitSeed(list[i].id), dist);
+      const since = list[i].enteredRangeAt == null
+        ? Infinity : state.clock.elapsedTime - list[i].enteredRangeAt;
+      const pose = gaitPose(row?.gait, state.clock.elapsedTime, gaitSeed(list[i].id), dist, since);
       // Per-monster speed from the roster row; the fallback keeps stateless test enemies moving.
       const next = stepEnemy(snapshot[i], player, snapshot, delta, (row?.speed ?? 2) * pose.speedScale);
       list[i].x = next.x;
       list[i].z = next.z;
       const mesh = meshes.current[list[i].id];
-      if (mesh) {
-        mesh.position.x = next.x;
-        mesh.position.z = next.z;
-        mesh.position.y = pose.yOffset;
+      if (mesh) { mesh.position.x = next.x; mesh.position.z = next.z; }
+      const posed = poses.current[list[i].id];
+      if (posed) {
+        posed.position.y = pose.yOffset;
         // Face the walk (plus the gait's wobble). atan2(dx, dz): three.js yaw 0 looks down +z.
         const dx = player.x - next.x; const dz = player.z - next.z;
-        if (dx * dx + dz * dz > 1e-6) mesh.rotation.y = Math.atan2(dx, dz) + pose.yawJitter;
-        mesh.rotation.x = pose.rotX;
-        mesh.rotation.z = pose.rotZ;
+        if (dx * dx + dz * dz > 1e-6) posed.rotation.y = Math.atan2(dx, dz) + pose.yawJitter;
+        posed.rotation.x = pose.rotX;
+        posed.rotation.z = pose.rotZ;
       }
     }
 
@@ -90,6 +97,7 @@ export default function Enemies() {
         >
           {/* Suspense: useGLTF suspends until the GLB arrives. The fallback is the Slice-3 box, so
               the first frames of wave 1 show grey-box enemies instead of an empty board. */}
+          <group ref={(el) => { if (el) poses.current[e.id] = el; else delete poses.current[e.id]; }}>
           <Suspense
             fallback={(
               <mesh position={[0, 0.5, 0]} castShadow>
@@ -100,6 +108,7 @@ export default function Enemies() {
           >
             <Monster type={e.type ?? 'fryling'} hp={e.hp} state={e.state} severed={e.severed} />
           </Suspense>
+          </group>
         </group>
       ))}
     </group>
