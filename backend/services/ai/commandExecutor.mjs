@@ -583,6 +583,19 @@ async function stepConfirmation(ctx) {
     // FF20: an authorization failure is a REFUSAL, never a confirmation prompt.
     // Confirmation is not authorization — rendering "say yes" at an actor who
     // may never run the command teaches that gates are persuadable.
+    //
+    // HONEST SCOPE (self-review, Opus 2026-09-02). In THIS pipeline a
+    // role_not_permitted command never reaches here: stepRBAC runs five steps
+    // earlier and already errors out. So this branch is defence-in-depth, not
+    // the operative gate — do not cite it as the reason clients cannot run
+    // trainer commands (that is stepRBAC, pinned by
+    // commandPipelineOrder.test.mjs). Where the refusal RANK does the work:
+    //   1. the tier contract the voice surfaces consume DIRECTLY, which was its
+    //      original purpose and has no RBAC step of its own;
+    //   2. the envelope the sheet renders — a client-visible tier of
+    //      'deliberate' on a forbidden command would invite the negotiation
+    //      even when the server was always going to refuse;
+    //   3. any future caller that resolves a tier without first running RBAC.
     logger.info('[CommandExecutor] tier refusal', {
       command: ctx.command.type, reasons: verdict.reasons, mode: tierMode(),
     });
