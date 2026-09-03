@@ -37,7 +37,7 @@ Read from `origin/main`, which is what production runs.
 `[VERIFIED]` the mechanism: the ordering, the throw, the window, the 61-file blast radius.
 `[HYPOTHESIS]` that this mechanism is what produced the specific 2026-09-01 observation. The instrumentation commit settles it: after merge, the next 500 either names this error or names something else. **Do not close SWA-92 on this blueprint alone.** Close it when a post-merge log line names the cause, or when the gate has been live across two deploys with no money-path 500.
 
-### 1.2 What was disproven against production (read-only replay, `diagnose-cart-500.mjs`)
+### 1.2 What was disproven against production (read-only replay, `audit-cart-read-path.mjs`)
 
 | Hypothesis | Result |
 |---|---|
