@@ -1,9 +1,34 @@
+/**
+ * COMPONENT: UserSettingsHub
+ * OWNER: User Dashboard / Settings (Wave-1 trust repair)
+ * PURPOSE: One surface for profile, privacy, training context, notifications and
+ *          public-chart visibility. Presentation lives in ./UserSettingsHub.styles.
+ *
+ * THE BUG THIS SURFACE EXISTS TO NOT REPEAT: it once reported "Saved" without
+ * writing. Two rules follow from that and must survive every future edit —
+ *   1. A success state is only ever set after a write is CONFIRMED. Both save paths
+ *      (the injected onUpdateProfile and the direct PUT fallback) reject a 2xx whose
+ *      body says `success:false`; they must not drift apart again.
+ *   2. The result is announced in a live region, not only painted. A save the user
+ *      cannot perceive is the same defect wearing a different coat.
+ *
+ * CONTRACT: onUpdateProfile is REQUIRED at every mount site. When it is absent the
+ * component falls back to its own PUT — historically the branch the P0 travelled
+ * through, so it is held to the identical success contract.
+ *
+ * TESTS: ./UserSettingsHub.saveContract.test.tsx (behavioural — it replaced a
+ * source-text test that was green while the P0 shipped).
+ */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
 import { Bell, Eye, HeartPulse, Save, Shield, UserCog } from 'lucide-react';
 import type { UserProfile } from '../../../services/profileService';
 import apiService from '../../../services/api.service';
+import {
+  Wrap, Hero, Eyebrow, PlanCard, FlagRow, Flag, Grid, Panel, Title, Label,
+  Input, TextArea, Select, ToggleRow, Switch, SecondaryButton, SaveBar,
+  SaveButton, Status, LiveRegion,
+} from './UserSettingsHub.styles';
 import { useSubscription } from '../../../hooks/useSubscription';
 import EditProfileChartToggles, {
   DEFAULT_CHART_VISIBILITY,
@@ -257,24 +282,3 @@ const Toggle: React.FC<{ label: string; active: boolean; onClick: () => void }> 
 );
 
 export default React.memo(UserSettingsHub);
-
-const Wrap = styled.section`display: flex; flex-direction: column; gap: 1rem;`;
-const Hero = styled.div`display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 1rem; padding: 1.25rem; border-radius: 18px; border: 1px solid rgba(96,192,240,.18); background: linear-gradient(135deg, rgba(96,192,240,.12), rgba(139,92,246,.12)); @media(max-width:760px){grid-template-columns:1fr;}`;
-const Eyebrow = styled.div`display:inline-flex; align-items:center; gap:.4rem; color:var(--accent-primary,#60C0F0); font-size:.78rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase;`;
-const PlanCard = styled.div`display:flex; flex-direction:column; gap:.55rem; padding:1rem; border-radius:14px; background:rgba(10,10,20,.55); span,small{color:rgba(224,236,244,.68); font-size:.78rem;} strong{color:var(--text-primary,#E0ECF4);}`;
-const FlagRow = styled.div`display:flex; flex-wrap:wrap; gap:.45rem;`;
-const Flag = styled.div<{ $on: boolean }>`padding:.32rem .5rem; border-radius:999px; font-size:.72rem; color:${p=>p.$on?'#E0ECF4':'rgba(224,236,244,.52)'}; border:1px solid ${p=>p.$on?'rgba(96,192,240,.5)':'rgba(255,255,255,.08)'};`;
-const Grid = styled.div`display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; @media(max-width:900px){grid-template-columns:1fr;}`;
-const Panel = styled.div<{ $wide?: boolean }>`grid-column:${p=>p.$wide?'1 / -1':'auto'}; padding:1rem; border-radius:16px; border:1px solid rgba(96,192,240,.14); background:rgba(20,20,30,.72);`;
-const Title = styled.h3`display:flex; align-items:center; gap:.5rem; margin:0 0 1rem; color:var(--text-primary,#E0ECF4); font-size:1rem;`;
-const Label = styled.label`display:block; margin:.8rem 0 .35rem; color:rgba(224,236,244,.72); font-size:.76rem; font-weight:800; text-transform:uppercase;`;
-const Input = styled.input`width:100%; min-height:44px; padding:.7rem .8rem; border-radius:10px; border:1px solid rgba(96,192,240,.16); background:rgba(10,10,20,.72); color:var(--text-primary,#E0ECF4);`;
-const TextArea = styled.textarea`width:100%; min-height:86px; padding:.7rem .8rem; border-radius:10px; border:1px solid rgba(96,192,240,.16); background:rgba(10,10,20,.72); color:var(--text-primary,#E0ECF4); resize:vertical;`;
-const Select = styled.select`width:100%; min-height:44px; padding:.7rem .8rem; border-radius:10px; border:1px solid rgba(96,192,240,.16); background:rgba(10,10,20,.92); color:var(--text-primary,#E0ECF4);`;
-const ToggleRow = styled.div`display:flex; align-items:center; justify-content:space-between; gap:1rem; min-height:48px; border-bottom:1px solid rgba(255,255,255,.06); color:var(--text-primary,#E0ECF4);`;
-const Switch = styled.button<{ $on: boolean }>`width:52px; height:30px; min-width:52px; border-radius:999px; border:1px solid ${p=>p.$on?'rgba(96,192,240,.75)':'rgba(255,255,255,.12)'}; background:${p=>p.$on?'linear-gradient(135deg,#60C0F0,#8B5CF6)':'rgba(255,255,255,.08)'}; cursor:pointer; position:relative; &::before{content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:100%; height:44px;} &::after{content:''; position:absolute; top:4px; left:${p=>p.$on?'26px':'4px'}; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .18s ease;}`;
-const SecondaryButton = styled.button`min-height:44px; padding:0 1rem; border:1px solid rgba(96,192,240,.3); border-radius:10px; background:rgba(96,192,240,.12); color:var(--text-primary,#E0ECF4); font-weight:800; cursor:pointer;`;
-const SaveBar = styled.div`position:sticky; bottom:.75rem; display:flex; align-items:center; gap:.75rem; padding:.85rem; border-radius:16px; border:1px solid rgba(96,192,240,.2); background:rgba(10,10,20,.9); backdrop-filter:blur(16px);`;
-const SaveButton = styled.button`display:inline-flex; align-items:center; gap:.45rem; min-height:44px; padding:0 1.2rem; border:none; border-radius:10px; background:linear-gradient(135deg,#8B5CF6,#60C0F0); color:#fff; font-weight:800; cursor:pointer; &:disabled{opacity:.55; cursor:wait;}`;
-const Status = styled.span<{ $good: boolean }>`color:${p=>p.$good?'#4ADE80':'#FCA5A5'}; font-size:.85rem; font-weight:800;`;
-const LiveRegion = styled.span`position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;`;

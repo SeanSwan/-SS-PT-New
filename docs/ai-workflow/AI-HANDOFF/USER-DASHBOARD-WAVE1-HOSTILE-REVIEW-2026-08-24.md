@@ -58,10 +58,15 @@ Worth stating first, because three of the five findings sit *next to* correct co
 
 Both are best fixed by the repo's own established pattern — extract to
 `UserSettingsHub.styles.ts` (cf. `ProgressPulsePanel.styles.ts`,
-`ClientMyWorkoutsStyles.ts`). That drops the component to ~120 lines, makes room for
-the blueprint header, and puts the 34 colours in one file where a token pass is a
-single reviewable diff. Recommended as the next slice; **not** done here, because
+`ClientMyWorkoutsStyles.ts`). Recommended as the next slice; **not** done here, because
 retinting 34 colours without a visual pass is how a "cleanup" ships a regression.
+
+> **CORRECTION (Slice 1, below).** This paragraph originally predicted the extraction
+> would drop the component "to ~120 lines". **That was wrong** — it landed at 284. The
+> estimate assumed multi-line styled blocks; these were dense one-liners, so moving them
+> bought ~20 lines while the mandated blueprint header added ~22 back. Rule 4 is still
+> satisfied (284 < 300), and the real wins were the token pass and the header — but the
+> line-count claim was an unverified guess stated as a plan, and it is retracted here.
 
 ## 3. Fixes applied
 
@@ -136,6 +141,30 @@ node scripts/consult-panel.mjs --seats glm,grok --document <same> --remit "<full
 narrow, SwanStudios-branded default remit when `--remit` is omitted — which reintroduces
 exactly the lensing Rule 82 bans. Estimated spend, per the spend-guard table: GLM
 subscription-free at the margin, Grok ~$0.05–0.14.
+
+## 5b. SLICE 1 — the styles extraction, and what it uncovered
+
+Executed immediately after the review above. It was **not** the cosmetic tidy-up §2
+implied: tokenising the surfaces exposed a live legibility defect.
+
+| # | Sev | Finding | Evidence |
+|---|---|---|---|
+| S1-1 | **P1** | **The Settings hub was barely legible under `crystalline-light`.** Every surface was a frozen dark literal (`Panel` = `rgba(20,20,30,.72)`) while its text was the adaptive `var(--text-primary)`, which the bridge emits as `#0B1726` on light. Near-black ink on a panel compositing to ~#4F515A measures **2.28:1** against the 4.5 minimum. | `UserSettingsHub.tsx:268` (pre-fix); measured with the repo's own `colorScience.contrastRatio` |
+| S1-2 | P2 | **The `--danger` token alone misses AA on light.** `#DC2626` on `--bg-elevated` is **4.47:1**. At 13.6px bold it does not qualify for the large-text exemption. Affects any surface pairing danger text with an elevated surface, not just this one. | measured |
+| S1-3 | P2 | **The eyebrow label was 3.03:1 on light.** Raw `--accent-primary` (`#0284C7`) on the Hero's own accent tint. | measured |
+| S1-4 | **P1, NOT FIXED** | **The house CTA gradient fails AA for its own label.** White text on `--accent-primary` measures **2.04:1** in the default dark theme (`#60C0F0`) and 4.23:1 on the purple end. Fixing it locally would desync this button from every other GlowButton in the app, and the purple→cyan gradient IS the house Dual-Button Glow standard — so this is a **design-system decision for Sean**, not a slice patch. Note the Active Palette itself says Midnight Sapphire is the button background and Ice Wing cyan is a *glow* accent, so the gradient is arguably already off-palette. | measured |
+
+**This is the same defect class the Appearance Studio fixed on 2026-07-22** (Sean: "can't
+see the labels"). That fix closed the instance; the class survived here — a Rule 20
+sibling-sweep miss. `UserSettingsHub.contrast.test.ts` now asserts the pairing
+numerically for both themes, so the class cannot return silently on this surface.
+
+**Fixed:** surfaces → `--bg-elevated` / `--bg-base`; text → `--text-secondary` /
+`--text-muted`; status and eyebrow mix a measured share of `--text-primary` to clear AA.
+**Deliberately left un-tokenised, with the reason in the code:** the switch knob and CTA
+label stay `#fff`, because `--button-primary-text` is `getReadableAccentText(primary)`
+and resolves **dark** under the default dark theme — using it would have inverted both.
+That was caught by the hostile round, not by the type checker.
 
 ## 6. Next slice
 
