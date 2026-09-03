@@ -626,7 +626,28 @@ function resolveTierForCommand(ctx) {
     // A name was spoken but could not be placed: never silence, never a
     // tautological match — its own escalation reason.
     unplaceableSpokenRef: Boolean(identity?.spokenRef && identity.lockedClientId && !identity.comparable),
-    inputMode: ctx.routeContext?.inputMode ?? 'text',
+    /**
+     * LIVE BUG, found 2026-09-03 by a test that drove the PIPELINE instead of
+     * the tier function.
+     *
+     * This read `ctx.routeContext`. There is no such property: `createContext`
+     * stores the caller's options as `ctx.options`, and every other reader in
+     * this file goes through `ctx.options.routeContext` (see stepResolveClient
+     * and auditPipelineResult). So `inputMode` silently defaulted to 'text' on
+     * every request, `knownSafeChannel` was therefore always true, and
+     * `physical` could NEVER be true in production.
+     *
+     * The M3 rule — a voice confirmation may not authorize an act that crosses
+     * client identity — was dead by construction. Not weakened: inert. And it
+     * was inert in exactly the way this whole program was created to fix, inside
+     * the control created to fix it.
+     *
+     * Every test over it passed because they all called
+     * resolveVoiceConfirmationTier DIRECTLY with `inputMode: 'voice'`, which
+     * bypasses this line. A unit test of a function cannot see a caller reading
+     * the wrong property; only a test that drives the pipeline can.
+     */
+    inputMode: ctx.options?.routeContext?.inputMode ?? 'text',
   });
   return { verdict, pair };
 }
