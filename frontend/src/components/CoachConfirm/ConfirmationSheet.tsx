@@ -66,7 +66,15 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
   // Escape cancels. It must NEVER confirm — the cheapest key on the keyboard
   // cannot be the one that executes something destructive.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') void sheet.cancel(); };
+    // Escape cancels a LIVE sheet only. On a terminal one (done/expired/burned)
+    // it used to POST /cancel for an operation that no longer exists — a wasted
+    // round trip that also emitted a `cancelled` event for something that was
+    // never cancelled, quietly corrupting the funnel card 1.0 added.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (['done', 'burned', 'expired', 'mismatch', 'unavailable'].includes(sheet.state)) return;
+      void sheet.cancel();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [sheet]);

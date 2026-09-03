@@ -182,9 +182,23 @@ export function useCoachCommand() {
     }
   }, []);
 
-  const confirmCommand = useCallback(async (operationId: string): Promise<ConfirmResult> => {
+  /**
+   * @param renderedDigest proof that the caller displayed the STORED operation
+   *   (card 1.1). ConfirmationSheet always supplies one. The Command Center's
+   *   legacy transcript card does not yet, which is why the server runs the
+   *   check in `observe` mode.
+   *
+   *   GATE — do not flip APPROVAL_RENDER_DIGEST=enforce until every confirm
+   *   caller sends a digest, or the legacy path starts failing closed with
+   *   `render_digest_required`. Callers today: ConfirmationSheet (digest ✓) and
+   *   CoachCommandLogEntry via the transcript ConfirmationCard (digest ✗).
+   */
+  const confirmCommand = useCallback(async (
+    operationId: string,
+    renderedDigest?: string,
+  ): Promise<ConfirmResult> => {
     try {
-      const res = await apiService.post('/api/ai-command/confirm', { operationId });
+      const res = await apiService.post('/api/ai-command/confirm', { operationId, renderedDigest });
       const data = res.data;
       if (data.type === 'frontend_dispatch') {
         const event = data.event ?? '';
