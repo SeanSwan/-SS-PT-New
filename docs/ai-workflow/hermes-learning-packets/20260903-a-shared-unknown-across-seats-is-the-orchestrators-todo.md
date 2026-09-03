@@ -105,6 +105,13 @@ and five rejections came from.
    Minor; used the scratchpad absolute path. Rule already in memory (Git Bash `/tmp` ≠ Node `/tmp`).
 6. **Heredoc quoting failed** on the first 200-line research doc → fell back to the Write tool.
    Minor; the fallback is the documented one.
+7. **Ran `git commit` with no pathspec while another lane had files staged in the shared index.**
+   The pre-commit secret scan blocked it — on *their* file (`operator-identity` hit), not mine — and
+   only then did I see 3 staged blobs. Had their file been clean, my commit would have swept two of
+   another agent's files into my history: the exact Rule 67 R6 collision the lane guard exists for.
+   Caught by the hook, not by me. Fix: `git commit -- <my path>` (temporary index of only my paths;
+   the hook scans only those; their staging is left exactly as it was). Rule: **on a shared index,
+   never commit without a pathspec.** Written up after the fact — first offence this session.
 
 ## Error → fix → repeat ledger
 
@@ -115,8 +122,9 @@ and five rejections came from.
 | Design contradicting its own cited doctrine | 1 | no | two external seats; reversed in v2 |
 | Duplicate watcher on stale state / non-idempotent write loop | 1 | no | checked file mtimes before trusting a tail; `kill` + verified log frozen |
 | Wrong temp path | 1 | yes (memory: Git Bash /tmp) | scratchpad absolute path |
+| Pathspec-less commit on a shared index (R6) | 1 | yes (rule 67 R6) — first offence this session | the pre-commit scanner, on the *other* lane's file; then pathspec commit |
 
-No error class repeated within the session. The two gate-caught ones are procedural and were
+No error class repeated within the session. The three gate-caught ones are procedural and were
 stopped by hooks, not by resolve — which is the point of the hooks.
 
 ## External-model calibration
