@@ -1,14 +1,25 @@
 /**
  * BLUEPRINT: Application Error Boundary
  * PURPOSE: Recover from render failures and offer a privacy-safe Report Room handoff.
- * PRIVACY: Production telemetry contains only a stable error code, never messages,
- *          stacks, full URLs, user agents, query strings, or component trees.
+ * PRIVACY: Two destinations, two different postures - do not conflate them.
+ *          ANALYTICS (window.gtag) still receives ONLY the stable code
+ *          'APP_RENDER_ERROR' - never messages, stacks, URLs, user agents, query
+ *          strings, or component trees. That is unchanged.
+ *          ERROR REPORTING (Sentry, SWA-225 EX-4) receives the exception itself,
+ *          because a crash report without a stack cannot be acted on - that is the
+ *          entire point of the tool. It is scrubbed by `beforeSend` in
+ *          instrument.ts (emails and key shapes redacted, request object dropped,
+ *          breadcrumb query strings stripped) and is inert unless VITE_SENTRY_DSN
+ *          is set. The React component tree is deliberately NOT attached: the
+ *          stack alone locates the throw, so the tree buys little and is the one
+ *          field this boundary has always promised to withhold.
  */
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import styled, { css } from 'styled-components';
 
 import { buildSupportErrorRoute } from '../../pages/support/supportErrorRoute';
 import { logger } from '../../utils/logger';
+import { reportError } from '../../instrument';
 
 interface Props { children: ReactNode }
 interface State {
@@ -44,6 +55,10 @@ export class ErrorBoundary extends Component<Props, State> {
         fatal: true,
       });
     }
+    // reportError self-gates on the DSN and loads the SDK lazily, so with none
+    // configured this boundary behaves exactly as it did before EX-4, and the
+    // vendor SDK never reaches the entry chunk.
+    reportError(error);
   }
 
   handleRetry = () => {
@@ -99,7 +114,10 @@ const ErrorContainer = styled.div`
   min-height: 100vh;
   padding: clamp(20px, 4vw, 32px);
   color: var(--frost-white, #E0ECF4);
-  background: var(--error-page-bg, linear-gradient(135deg, #002060, #003080));
+  /* --error-page-bg was never defined anywhere, so this gradient could never respond
+     to theming and rendered its fallback forever. These two tokens are real and
+     carry exactly these values (Midnight Sapphire, Royal Depth). */
+  background: linear-gradient(135deg, var(--midnight-sapphire, #002060), var(--royal-depth, #003080));
 `;
 
 const ErrorContent = styled.div`

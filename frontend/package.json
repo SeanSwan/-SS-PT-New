@@ -34,6 +34,7 @@
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-toast": "^1.2.15",
     "@reduxjs/toolkit": "^2.0.1",
+    "@sentry/react": "^10.73.0",
     "@stripe/stripe-js": "^8.9.0",
     "@swan/forge": "file:../packages/swan-forge",
     "@swan/schemas": "file:../packages/swan-schemas",
