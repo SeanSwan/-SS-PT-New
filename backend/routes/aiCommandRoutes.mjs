@@ -445,9 +445,11 @@ router.get('/pending/:operationId', protect, aiCommandLaneKillSwitch, aiCommandR
     void recordApprovalEvent({
       event: APPROVAL_EVENTS.READ_BACK, userId: req.user.id, userRole: req.user.role,
       commandType: operation.commandType ?? null, operationId: operation.id,
-      // F-09: was `operation.kind !== 'pending_confirmed'` — a heuristic
-      // standing in for a field the record already carries.
-      destructive: Boolean(operation.destructive ?? (operation.kind !== 'pending_confirmed')),
+      // F-09, corrected by R2-7: the record now actually carries this (the
+      // destructive mint stamps it; a pending confirmation is non-destructive by
+      // construction and stamps nothing). No fallback heuristic, because there
+      // is no longer anything to fall back FROM.
+      destructive: Boolean(operation.destructive),
     });
     res.json({ success: true, operation });
   } catch (err) {
@@ -508,6 +510,25 @@ router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
           error: 'What you approved does not match the pending operation. Re-open it and confirm again.',
         });
       }
+    } else if (digestMode === 'observe') {
+      /**
+       * R2-2 (GLM 5.3 round 2): the comment above promised observe mode
+       * "accepts a missing digest and only counts it". Nothing counted it. The
+       * ONLY record of a missing digest lived in the enforce branch, so in the
+       * DEFAULT configuration a confirmation with no render proof was accepted
+       * in silence — and the number an operator would use to decide whether it
+       * is safe to flip enforce (how many callers still send no digest?) did not
+       * exist. An observe mode that observes nothing is not a rollout plan, it
+       * is an off switch with a comment on it.
+       *
+       * Same shape as APPROVAL_CHANNEL_MODE's observe branch, which I did get
+       * right one commit earlier in this same file.
+       */
+      void recordApprovalEvent({
+        event: APPROVAL_EVENTS.RENDER_MISMATCH, userId: req.user.id, userRole: req.user.role,
+        operationId, commandType: peeked?.commandType ?? null,
+        errorCode: 'render_digest_absent_observed',
+      });
     } else if (digestMode === 'enforce') {
       void recordApprovalEvent({
         event: APPROVAL_EVENTS.RENDER_MISMATCH, userId: req.user.id, userRole: req.user.role, operationId,
@@ -724,25 +745,47 @@ router.get('/health', protect, async (req, res) => {
   // 0.4b: async — the store contract is async now; a sync handler here would
   // serialise a Promise into the JSON (the exact trap the S2 handoff named).
   const allCommands = getAllCommandTypes();
+
+  /**
+   * The operational posture is ADMIN-ONLY (self-review, 2026-09-03).
+   *
+   * This block answers "is the destructive-approval proof actually enforcing,
+   * and are approvals durable?" — which is exactly the reconnaissance an insider
+   * wants before trying a stale-tab replay. It was behind `protect` alone, so
+   * any authenticated account, including a CLIENT, could read it. Health for
+   * everyone; posture for the people who respond to incidents.
+   *
+   * The endpoint still answers 200 for every authenticated caller so an existing
+   * uptime monitor cannot be broken by this narrowing — the detail disappears,
+   * the liveness signal does not.
+   */
+  const isOperator = req.user?.role === 'admin' || req.user?.role === 'trainer';
+
   res.json({
     success: true,
     engine: 'god-level-ai-command-v1',
     registeredCommands: allCommands.length,
     pendingOperations: await getPendingCount(req.user.id),
-    // Card 1.5: during an incident the operator needs the EFFECTIVE state, not
-    // the env string they think they set — and needs to know whether approvals
-    // are durable, because an in-process store silently voids them on deploy.
-    controls: describeLaneControls(),
-    // F-06: a control that defaults to advisory and is invisible in /health is a
-    // rollout plan, not a control. An incident commander must be able to see
-    // whether proof-of-render and the tier are ENFORCING or merely counting.
-    approvalModes: {
-      renderDigest: process.env.APPROVAL_RENDER_DIGEST === 'enforce' ? 'enforce' : 'observe',
-      tier: process.env.APPROVAL_TIER_MODE === 'enforce' ? 'enforce' : 'observe',
-    },
-    approvalStore: getPendingOperationStore().kind,
-    approvalStoreDurable: Boolean(getPendingOperationStore().durable),
     status: allCommands.length > 0 ? 'operational' : 'no_commands_registered',
+    ...(isOperator ? {
+      // Card 1.5: during an incident the operator needs the EFFECTIVE state, not
+      // the env string they think they set — and needs to know whether approvals
+      // are durable, because an in-process store silently voids them on deploy.
+      controls: describeLaneControls(),
+      // F-06: a control that defaults to advisory and is invisible in /health is
+      // a rollout plan, not a control. An incident commander must be able to see
+      // whether each check is ENFORCING or merely counting.
+      approvalModes: {
+        renderDigest: process.env.APPROVAL_RENDER_DIGEST === 'enforce' ? 'enforce' : 'observe',
+        tier: process.env.APPROVAL_TIER_MODE === 'enforce' ? 'enforce' : 'observe',
+        // Added after catching myself: I wrote the rule directly above, then
+        // shipped APPROVAL_CHANNEL_MODE one commit later without surfacing it —
+        // an invisible control, by the same definition, in the same file.
+        channel: process.env.APPROVAL_CHANNEL_MODE === 'observe' ? 'observe' : 'enforce',
+      },
+      approvalStore: getPendingOperationStore().kind,
+      approvalStoreDurable: Boolean(getPendingOperationStore().durable),
+    } : {}),
   });
 });
 

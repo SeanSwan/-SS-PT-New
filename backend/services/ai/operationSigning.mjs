@@ -79,6 +79,15 @@ export function signOperation(op) {
      */
     requiresPhysicalConfirm: op.requiresPhysicalConfirm,
     clientId: op.clientId,
+    /**
+     * F2-03 (GLM 5.3-flash round 2): `expiresAt` was in NEITHER payload, and it
+     * is checked BEFORE the signature. Every other field on the record is bound,
+     * so this was the single value an attacker who reached the store could edit
+     * undetected — extending a captured approval past the 120-second window that
+     * the design leans on as a control, or shortening it to deny one. A TTL that
+     * anyone can rewrite is not a TTL.
+     */
+    expiresAt: op.expiresAt,
     affectedHash: hashAffectedPreview(op.affectedRecords ?? [], op.affectedCount ?? 0),
   });
   return crypto.createHmac('sha256', getOperationSecret()).update(payload).digest('hex');
@@ -102,6 +111,8 @@ export function signPendingConfirmation(op) {
     description: op.description,
     /** F-03: the M3 verdict is a security decision, so it is signed too. */
     requiresPhysicalConfirm: op.requiresPhysicalConfirm,
+    /** F2-03: the validity window is a control; an unsigned one is a suggestion. */
+    expiresAt: op.expiresAt,
   });
   return crypto.createHmac('sha256', getOperationSecret()).update(payload).digest('hex');
 }

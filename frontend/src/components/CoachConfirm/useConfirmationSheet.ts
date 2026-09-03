@@ -29,6 +29,8 @@ export interface StoredOperation {
   affectedCount?: number;
   expiresAt?: string;
   clientId?: number | null;
+  /** Signed at mint: this act crosses client identity, so a spoken yes will not do. */
+  requiresPhysicalConfirm?: boolean;
   /**
    * Forward slot: nothing server-side sets this yet (verified 2026-09-03 —
    * neither mint nor the command registry has an irreversibility concept). When
@@ -46,8 +48,29 @@ export interface ConfirmationSheetOptions {
   onCancel?: () => void;
 }
 
-/** Fallback only — the server's `irreversible` on the stored op is the truth. */
-const IRREVERSIBLE_FALLBACK = new Set(['notify_client', 'delete_post', 'export_client_list']);
+/**
+ * Commands with no undo. This is a judgement about REVERSIBILITY, not about the
+ * `destructive` flag — `cancel_session` is destructive but you can re-book, and
+ * `notify_client` is non-destructive but you cannot unsend.
+ *
+ * F2-06 (GLM 5.3-flash round 2) checked it against the real registry instead of
+ * taking "at risk of drift" on trust, and the drift had already happened:
+ * `delete_workout_plan` is destructive AND has no inverse, and it was rendering
+ * with NO "cannot be undone" badge. Added.
+ *
+ * Assessed and deliberately EXCLUDED, so the next reader does not re-litigate:
+ * cancel_session (re-book), promote_to_trainer (demote), block_user_posting
+ * (unblock), revoke_trainer_permission (re-grant), deactivate_client and
+ * lock_client (both reversible). Included non-destructive: notify_client and
+ * export_client_list — you cannot unsend a message or un-export a file.
+ *
+ * This list living on the client is the actual defect and it is still open: the
+ * registry owns reversibility, nothing server-side declares it, and the next
+ * command added here will be missed the same way this one was. Card 4.2.
+ */
+const IRREVERSIBLE_FALLBACK = new Set([
+  'notify_client', 'delete_post', 'export_client_list', 'delete_workout_plan',
+]);
 
 export function useConfirmationSheet({
   operationId, input, lockedClientId = null, onDone, onCancel,
@@ -109,6 +132,17 @@ export function useConfirmationSheet({
     return () => { if (armTimer.current) clearTimeout(armTimer.current); };
   }, [state, stableInput, send]);
 
+  /**
+   * F2-04 (GLM 5.3-flash round 2): `input.physical` arrives from the REQUEST-time
+   * envelope via the parent, while card 1.1's law is that the sheet renders the
+   * STORED record. Both derive from the same verdict today so they agree, but
+   * the sheet can be opened on a path that never saw the envelope (a re-issue,
+   * a restored surface), and then it would render a ceremony weaker than the one
+   * the server will actually enforce. The signed copy on the operation wins when
+   * it is present. Declared here, above `confirm`, because `confirm` reads it.
+   */
+  const physicalRequired = operation?.requiresPhysicalConfirm ?? input.physical;
+
   // ── confirm ──────────────────────────────────────────────────────────────
   /**
    * @param channel how the human actually confirmed. F-03: `allowedConfirmChannels`
@@ -125,7 +159,7 @@ export function useConfirmationSheet({
    */
   const confirm = useCallback(async (channel: 'tap' | 'keyboard' | 'voice' = 'tap') => {
     if (!canConfirm(state)) return;
-    if (!channelPermitted(stableInput, channel)) {
+    if (!channelPermitted({ ...stableInput, physical: physicalRequired }, channel)) {
       setError('This action needs a tap to confirm — say-so is not enough when it crosses clients.');
       return;
     }
@@ -150,7 +184,7 @@ export function useConfirmationSheet({
       setError(message || 'That confirmation could not be completed.');
       send({ type: 'server_refused', code: code || 'downstream_failed' });
     }
-  }, [state, send, operationId, digest, onDone, stableInput]);
+  }, [state, send, operationId, digest, onDone, stableInput, physicalRequired]);
 
   const cancel = useCallback(async () => {
     // F-14 (GLM 5.3) / F-23 (flash): the state machine refuses `cancel` while
@@ -175,7 +209,16 @@ export function useConfirmationSheet({
   const targetClientId = (operation?.params?.clientId as number | undefined)
     ?? operation?.clientId ?? null;
   const barState = resolveIntentBarState({ lockedClientId, targetClientId });
-  const chipAlarm = input.physical || barState.identityCrossing;
+  /**
+   * F2-04 (GLM 5.3-flash round 2): `input.physical` arrives from the REQUEST-time
+   * envelope via the parent, while card 1.1's law is that the sheet renders the
+   * STORED record. Both derive from the same verdict today so they agree, but
+   * the sheet can be opened on a path that never saw the envelope (a re-issue,
+   * a restored surface), and then it would render a ceremony weaker than the one
+   * the server will actually enforce. The signed copy on the operation wins when
+   * it is present.
+   */
+  const chipAlarm = physicalRequired || barState.identityCrossing;
 
   return {
     state,

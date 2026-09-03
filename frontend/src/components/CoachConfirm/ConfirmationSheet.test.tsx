@@ -92,7 +92,22 @@ describe('ConfirmationSheet', () => {
   it('a voice identity-crossing write says TAP — the spoken path is not offered', async () => {
     render(<ConfirmationSheet operationId={OP_ID} input={input({ physical: true })} lockedClientId={42} />);
     await waitFor(() => expect(screen.getByTestId('physical-required')).toBeTruthy());
-    expect(screen.queryByTestId('spoken-nonce')).toBeNull();
+    expect(screen.queryByTestId('deliberate-confirm')).toBeNull();
+  });
+
+  it('the deliberate tier does NOT instruct a spoken confirm — nothing listens for one', async () => {
+    /**
+     * R2-3: the sheet used to say Say "confirm 481" or tap below. `nonceSatisfied`
+     * has no consumer and nothing calls confirm('voice'), so the spoken half was
+     * a promise the app cannot keep — and it taught the operator that saying a
+     * number is a security step. When the voice path lands (card 2.x), the
+     * spoken instruction and the nonce CHECK go back together; this assertion is
+     * what makes shipping one without the other fail.
+     */
+    render(<ConfirmationSheet operationId={OP_ID} input={input()} lockedClientId={61} />);
+    await waitFor(() => expect(screen.getByTestId('deliberate-confirm')).toBeTruthy());
+    expect(screen.getByTestId('deliberate-confirm').textContent).toMatch(/tap Confirm/i);
+    expect(screen.getByTestId('deliberate-confirm').textContent).not.toMatch(/say/i);
   });
 
   it('an irreversible command shows the no-undo badge BEFORE the confirm, not after', async () => {

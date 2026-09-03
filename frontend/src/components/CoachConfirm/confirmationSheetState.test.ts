@@ -192,4 +192,24 @@ describe('the channel split has an enforcement point (F-03)', () => {
   it('voice is permitted otherwise', () => {
     expect(channelPermitted(input({ physical: false }), 'voice')).toBe(true);
   });
+
+  /**
+   * R2-4: a refusal decided BEFORE the atomic consume leaves the approval
+   * intact. Calling that `burned` tells the operator the write may have run and
+   * then blocks the exit — the most alarming words the sheet owns, about an
+   * operation that provably did nothing, with no way forward.
+   */
+  it('a physical-confirm refusal returns to READY — the approval was never spent', () => {
+    const next = nextState('submitting', { type: 'server_refused', code: 'physical_confirm_required' }, input());
+    expect(next).toBe('ready');
+    expect(TERMINAL_GUIDANCE[next]).toBeUndefined();
+  });
+
+  it('an UNKNOWN refusal code is still BURNED — unknown means unknown', () => {
+    // The default must stay pessimistic. Assuming the reassuring answer about
+    // whether a destructive write executed is the worse of the two mistakes.
+    const next = nextState('submitting', { type: 'server_refused', code: 'something_new' }, input());
+    expect(next).toBe('burned');
+    expect(TERMINAL_GUIDANCE[next].allowReissue).toBe(false);
+  });
 });

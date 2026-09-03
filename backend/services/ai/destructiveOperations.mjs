@@ -164,6 +164,15 @@ export async function prepareDestructiveOperation({
     params: structuredClone(commandParams),
     clientId: Number.isSafeInteger(Number(clientId)) && Number(clientId) > 0 ? Number(clientId) : null,
     requiresPhysicalConfirm: Boolean(requiresPhysicalConfirm),
+    /**
+     * R2-7 (GLM 5.3 round 2): `/pending` reads `operation.destructive` with a
+     * kind-heuristic fallback, and I shipped that as an F-09 "fix" for reading a
+     * heuristic — while NO mint ever wrote the field. The left side of that `??`
+     * was dead by construction, so the fix changed nothing except how honest the
+     * code looked, which is worse than the heuristic it replaced. The record
+     * carries the fact now, so the reader is reading something.
+     */
+    destructive: true,
     affectedRecords: affectedRecords.slice(0, 10), // Max 10 in preview
     affectedCount: affectedRecords.length,
     createdBy: userId,

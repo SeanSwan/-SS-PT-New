@@ -19,7 +19,7 @@ import {
   Sheet, Header, TierBadge, ClientChip, Title, Detail, Warning,
   ArmingTrack, ArmingFill, Actions, ConfirmButton, SecondaryButton, StatusLine,
 } from './ConfirmationSheet.styles';
-import { spokenNonce, type SheetInput } from './confirmationSheetState';
+import { type SheetInput } from './confirmationSheetState';
 import { useConfirmationSheet } from './useConfirmationSheet';
 
 export interface ConfirmationSheetProps {
@@ -140,9 +140,25 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
         </Warning>
       )}
 
+      {/*
+        * R2-3 (GLM 5.3 round 2) — this used to read
+        *   Say “confirm {spokenNonce(operationId)}” or tap below.
+        * and it was a promise the app cannot keep. `nonceSatisfied` — the only
+        * function that could check what the operator said — has NO consumer
+        * anywhere, and nothing calls confirm('voice'): the sheet has no voice
+        * path at all. So the operator could say the phrase indefinitely while
+        * nothing listened, and the copy taught them that saying a number is a
+        * security step. Instructions in the UI are documentation too, and this
+        * one described a capability the code does not have.
+        *
+        * The verifier stays built and tested, ready for the voice path (card
+        * 2.x). When that lands, restore the spoken half of this sentence AND
+        * wire nonceSatisfied in the same change — the two are one feature, and
+        * shipping the sentence without the check is what happened here.
+        */}
       {!input.physical && input.tier === 'deliberate' && (
-        <Warning data-testid="spoken-nonce">
-          Say “confirm {spokenNonce(operationId)}” or tap below.
+        <Warning data-testid="deliberate-confirm">
+          This one is deliberate — tap Confirm to run it.
         </Warning>
       )}
 

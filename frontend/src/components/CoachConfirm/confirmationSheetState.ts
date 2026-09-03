@@ -107,6 +107,28 @@ export function nextState(state: SheetState, event: SheetEvent, input?: SheetInp
         // happened when it had, and invited to run it again. Duplicate
         // destructive execution, offered by the recovery path.
         if (event.code === 'already_confirmed') return 'confirmed_elsewhere';
+        /**
+         * R2-4 (GLM 5.3 round 2) — PRE-CONSUMPTION REFUSALS ARE NOT BURNS.
+         *
+         * `burned` means "we spent your approval and never heard back", and its
+         * guidance says the action MAY HAVE RUN and blocks re-issue. Some server
+         * refusals happen strictly BEFORE the atomic consume, so the operation is
+         * untouched, still pending, and provably did not run — the channel-split
+         * refusal is checked ahead of executeConfirmedOperation, which the
+         * backend test asserts directly.
+         *
+         * Routing those to `burned` told the operator a falsehood in the most
+         * alarming words the sheet owns, then removed the way forward, for an
+         * approval sitting valid in front of them that needed one tap. I
+         * introduced this by adding a server refusal code (F-03) without
+         * teaching the client what it means.
+         *
+         * The default stays `burned` because an UNKNOWN code genuinely is
+         * unknown, and assuming the safe-sounding answer about whether a
+         * destructive write executed is the worse mistake. This list is the
+         * narrow set we can prove happens before consumption.
+         */
+        if (PRE_CONSUMPTION_REFUSALS.has(event.code)) return 'ready';
         // F-04: a lost RESPONSE (gym-floor Wi-Fi) is indistinguishable from a
         // failed execution, and the operation may well have run. `burned` no
         // longer means "safe to re-issue" — see BURNED_GUIDANCE.
@@ -126,6 +148,16 @@ export function nextState(state: SheetState, event: SheetEvent, input?: SheetInp
  * the recovery path for an ambiguous destructive write must not be "do it
  * again" (findings F-02 and F-04).
  */
+/**
+ * Server refusals that are decided BEFORE the operation is consumed. The
+ * approval survives them, so the sheet returns to `ready` and the operator can
+ * act on the server's message instead of being told the write might have run.
+ *
+ * Adding a code here is a claim that the server cannot have executed anything on
+ * that path. Verify it against the route before you add one.
+ */
+export const PRE_CONSUMPTION_REFUSALS = new Set<string>(['physical_confirm_required']);
+
 export const TERMINAL_GUIDANCE: Record<string, { text: string; allowReissue: boolean }> = {
   done: { text: 'Done.', allowReissue: false },
   expired: {

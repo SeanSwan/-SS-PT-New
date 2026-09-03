@@ -123,6 +123,24 @@ describe('approval lane — tamper rejection (S2 seam)', () => {
     expect(result.error).toMatch(/signature invalid|tampering/i);
   });
 
+  it('A25: EXTENDING expiresAt is rejected — the 120s window is a control, not a hint', async () => {
+    // F2-03 (GLM 5.3-flash): expiresAt was in NEITHER signed payload, and it is
+    // checked BEFORE the signature. Every other field was bound, so this was the
+    // one value an attacker who reached the store could rewrite undetected —
+    // keeping a captured approval alive indefinitely past the window the design
+    // leans on. Pushing it a year out must destroy the operation, not extend it.
+    const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+    setPendingOperationStore(tamperingStore((op) => {
+      op.expiresAt = new Date(Date.now() + YEAR_MS).toISOString();
+    }));
+
+    const pending = await mint(OWNER);
+    const result = await verifyAndRetrieveOperation(pending.operationId, OWNER);
+
+    expect(result.verified).toBe(false);
+    expect(result.error).toMatch(/signature invalid|tampering/i);
+  });
+
   it('A17: tampering with createdBy is rejected (ownership cannot be reassigned)', async () => {
     setPendingOperationStore(tamperingStore((op) => { op.createdBy = ATTACKER; }));
 
