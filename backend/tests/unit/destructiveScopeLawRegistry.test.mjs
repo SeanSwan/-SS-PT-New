@@ -43,6 +43,27 @@ describe('destructive scope law is locked to the registry', () => {
     expect(hasExplicitScope({})).toBe(false);
     expect(hasExplicitScope({ reason: 'cleanup', notifyUser: true })).toBe(false);
     expect(hasExplicitScope({ planId: '' })).toBe(false);
-    expect(hasExplicitScope({ dateRange: { from: 'a', to: 'b' } })).toBe(true);
+    /**
+     * R2-5 (GLM 5.3 round 2) — this line USED to assert `true`, and it was
+     * asserting the defect. The scope law's own wording is "names ONE entity ...
+     * or a BOUNDED dateRange", and nothing enforced bounded: presence was the
+     * whole check, so a range whose endpoints do not even parse counted as
+     * scope, and so did a range covering two centuries.
+     *
+     * A range is a scope only if both ends parse, run forwards, and span a
+     * bounded window.
+     */
+    expect(hasExplicitScope({ dateRange: { from: 'a', to: 'b' } })).toBe(false);
+    expect(hasExplicitScope({ dateRange: {} })).toBe(false);
+    expect(hasExplicitScope({ dateRange: { from: '1900-01-01', to: '2100-01-01' } })).toBe(false);
+    expect(hasExplicitScope({ dateRange: { from: '2026-02-01', to: '2026-01-01' } })).toBe(false);
+    expect(hasExplicitScope({ dateRange: { from: '2026-01-01', to: '2026-01-31' } })).toBe(true);
+
+    // One entity means ONE value. A list of ids wearing a single-entity key is
+    // the mass-mutation shape the law exists to refuse.
+    expect(hasExplicitScope({ clientId: [1, 2, 3] })).toBe(false);
+    expect(hasExplicitScope({ planId: { in: [1, 2] } })).toBe(false);
+    expect(hasExplicitScope({ planId: 184 })).toBe(true);
+    expect(hasExplicitScope({ planId: 'abc-123' })).toBe(true);
   });
 });

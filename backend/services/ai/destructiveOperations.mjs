@@ -50,10 +50,43 @@ const OPERATION_TTL_SECONDS = 120;
 const MAX_PENDING_PER_USER = 5;
 
 /** Scope = one named entity (`id` / any `*Id`) or a bounded dateRange, non-empty. */
+/** A dateRange is only a SCOPE if it has both ends, they parse, and the span is bounded. */
+const MAX_SCOPED_RANGE_DAYS = 366;
+
+function isBoundedDateRange(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  const from = Date.parse(v.from ?? v.start ?? '');
+  const to = Date.parse(v.to ?? v.end ?? '');
+  if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) return false;
+  return (to - from) <= MAX_SCOPED_RANGE_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * R2-5 (GLM 5.3 round 2): this checked PRESENCE, while the scope law it enforces
+ * — and the comment at its only caller — says "names ONE entity ... or a bounded
+ * dateRange". Boundedness was enforced by nothing. `dateRange: {}` passed.
+ * `dateRange: { from: '1900-01-01', to: '2100-01-01' }` passed. So did
+ * `clientId: [1, 2, ...5000]`, because an array is neither null nor undefined
+ * nor empty-string — the mass-mutation shape the law exists to refuse, wearing
+ * the name of a single-entity key.
+ *
+ * It is LATENT today only because every registered destructive command is
+ * single-entity by construction, which destructiveCommandsSingleEntity.test.mjs
+ * locks. That test is the thing standing between this and a live hole, and a
+ * law that depends on a DIFFERENT test to hold is not a law. An `*Id` must now
+ * be a scalar, and a dateRange must actually be bounded.
+ */
 export function hasExplicitScope(params) {
   if (!params || typeof params !== 'object') return false;
-  return Object.entries(params).some(([k, v]) =>
-    (k === 'id' || k === 'dateRange' || /Id$/.test(k)) && v !== null && v !== undefined && v !== '');
+  return Object.entries(params).some(([k, v]) => {
+    if (v === null || v === undefined || v === '') return false;
+    if (k === 'dateRange') return isBoundedDateRange(v);
+    if (k === 'id' || /Id$/.test(k)) {
+      // One entity means one value. An array or object here is a set.
+      return typeof v === 'string' || typeof v === 'number';
+    }
+    return false;
+  });
 }
 
 // The pending-approval store lives behind an injectable seam (pendingOperationStore.mjs).

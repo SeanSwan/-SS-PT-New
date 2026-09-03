@@ -69,8 +69,28 @@ export function digestSubject(op) {
 }
 
 /** sha256 hex of the canonical subject. */
+/**
+ * Hash what the CLIENT can see, not what this process happens to hold.
+ *
+ * R2-8 (GLM 5.3 round 2): the digest is a comparison between two machines, so
+ * the only honest subject is the one that survives the wire. With the default
+ * in-process store the server holds the LIVE params object — a key explicitly
+ * set to `undefined` is still a key — while the client receives JSON, where that
+ * key does not exist. canonicalJson renders those two differently, so a
+ * perfectly honest confirmation was refused as `render_mismatch`: fail-closed,
+ * but indistinguishable from tampering, on a path where nothing was wrong.
+ *
+ * The Redis store did not have this problem (it serialises on the way in), which
+ * is the worst possible distribution — it would have worked in whichever
+ * environment happened to have Redis and failed in the other, with a security
+ * error message pointing at the user.
+ *
+ * One JSON round-trip puts this side on the wire representation too. Both sides
+ * then hash the same object by construction rather than by agreement.
+ */
 export function renderDigestOf(op) {
-  return crypto.createHash('sha256').update(canonicalJson(digestSubject(op))).digest('hex');
+  const onTheWire = JSON.parse(JSON.stringify(digestSubject(op)));
+  return crypto.createHash('sha256').update(canonicalJson(onTheWire)).digest('hex');
 }
 
 /** Constant-time compare of two hex digests; false on any shape problem. */

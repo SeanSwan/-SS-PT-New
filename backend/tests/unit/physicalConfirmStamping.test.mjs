@@ -234,6 +234,40 @@ describe('the M3 verdict reaches the stored operation', () => {
     expect(ctx.confirmationTier.reasons).toContain('cross_client');
   });
 
+  it('params.clientId is NORMALIZED to the resolved client — which is why the tier does not compare it', async () => {
+    /**
+     * R2-6 (GLM 5.3 round 2) asked why, with a lock present, a params-sourced
+     * target is never compared against it — `cross_client` cannot fire from
+     * `params.clientId !== lockedClientId`.
+     *
+     * Verified, and the answer is that the comparison would be a tautology:
+     * stepResolveClient WRITES the resolved client back into params
+     * (`ctx.intent.params.clientId = resolved.id`), so by the time the tier runs
+     * the two values are the same object's id twice over. That is precisely the
+     * self-comparison card 1.2 shipped and F-05a was created to escape, and
+     * re-adding it would restore an alarm that cannot fire while looking like
+     * coverage.
+     *
+     * The identities that CAN disagree are the selection and the spoken name,
+     * and those are what ctx.clientIdentity carries. This test pins the
+     * normalization so that if it ever stops happening, the reasoning above
+     * stops being true and somebody is told.
+     */
+    primeIntent(SAFE_WRITE, { clientId: 999 });   // params disagree with the lock ON ENTRY
+
+    const ctx = await executeCommandPipeline('log a workout', TRAINER, {
+      selectedClientId: 61,
+      sequelize: SEQUELIZE,
+      routeContext: { inputMode: 'ui' },
+    });
+
+    // The selection won and params was rewritten to match it — C0.5's law.
+    expect(ctx.intent.params.clientId).toBe(61);
+    expect(ctx.resolvedClient.id).toBe(61);
+    // So a params-vs-lock comparison here would compare 61 with 61, forever.
+    expect(ctx.clientIdentity.lockedClientId).toBe(61);
+  });
+
   it('the stamped operation also carries its client binding top-level (F-12)', async () => {
     primeIntent(DESTRUCTIVE, { clientId: 61, sessionId: 184 });
 
