@@ -28,9 +28,14 @@
  *   node scripts/blast-radius-approve.mjs --list            # approval ledger
  */
 import { writeFileSync, readFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = process.cwd();
+// Resolve from THIS script's location, never process.cwd(): on 2026-09-02 Sean ran
+// the approve from his home dir and the token was minted into a .ai-workflow folder
+// under his HOME, where the gate never looks - the approval silently did nothing
+// ("no change request on file" was the only clue that anything was wrong).
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BASE = join(ROOT, '.ai-workflow', 'blast-radius');
 const APPROVAL_DIR = join(BASE, 'approved');
 const REQUEST_DIR = join(BASE, 'requests');
