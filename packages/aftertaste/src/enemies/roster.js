@@ -67,6 +67,14 @@ export const ROSTER = {
     hp: 3, speed: 1.6, aimRadius: 0.55, renderHeight: 1.7,
     model: { minX: -2, maxX: 2, minZ: -1, maxZ: 3, height: 9 },
     tint: ['#8A8D96', '#4A4E5A'], ember: '#2e3140',
+    // THREE PEOPLE, NOT ONE CLONE (G4). "Zombies as people" cannot read from a crowd wearing one
+    // colour. Variants are picked by the enemy's own id hash — deterministic, so a given diner
+    // looks the same every frame, and free, because it is a material colour and not a mesh.
+    variants: [
+      ['#8A8D96', '#4A4E5A'],  // grey staff
+      ['#6E7A82', '#3A444C'],  // blue-grey
+      ['#8A7A6A', '#4A3F36'],  // warm/tan
+    ],
     // Sway tuned by the displacement law (F2): 0.09 rad on a 1.7-unit body swung the head 0.199m
     // against a 0.131m allowance — the tallest creature pays the most for every radian. 0.055 keeps
     // the weighted shamble and stays inside the hitbox.
@@ -93,7 +101,7 @@ export const ROSTER = {
     tint: ['#3E2A24', '#A65A3A'], ember: '#5a2412',
     // lungePitch is DATA now, not a constant buried in gaits.js: the law has to be able to tune the
     // worst pose, and it could not reach a hard-coded -0.18 (which put this creature at 105% of cap).
-    gait: { type: 'creep', lungeRange: 4.5, lungeMult: 3.4, hz: 1.6, crouch: 0.07, lungePitch: 0.15, telegraph: 0.35 },
+    gait: { type: 'creep', lungeRange: 4.5, lungeMult: 3.4, hz: 1.6, crouch: 0.07, lungePitch: 0.15, telegraph: 0.35, observedScale: 0.12, observedCone: 0.35 },
     onTouch: { fever: 3.0 },
   },
 };

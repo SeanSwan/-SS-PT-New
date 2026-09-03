@@ -23,6 +23,7 @@ import { useAnimations, useGLTF } from '@react-three/drei';
 import { LoopOnce } from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { ROSTER } from './roster.js';
+import { gaitSeed } from './gaits.js';
 import { MODEL_URLS } from './models.js';
 
 /** state → clip. The mapping IS the performance contract; behaviour lives in the state machine. */
@@ -36,7 +37,7 @@ const CLIP_FOR = { spawning: 'idle', alive: 'move', attacking: 'attack', dying: 
  * props (GLM-5.3, finding 5). Positions are unaffected: they are written to the wrapper groups
  * imperatively, never through React.
  */
-function Monster({ type = 'fryling', hp = 2, state = 'alive', severed }) {
+function Monster({ id, type = 'fryling', hp = 2, state = 'alive', severed }) {
   const spec = ROSTER[type];
   const { scene, animations } = useGLTF(MODEL_URLS[type]);
   const group = useRef();
@@ -102,10 +103,15 @@ function Monster({ type = 'fryling', hp = 2, state = 'alive', severed }) {
   // through, exactly as a 2-hp fryling always did at 1.
   useEffect(() => {
     const damagedLook = hp <= spec.hp / 2;
+    // A row with `variants` dresses each individual differently (G4) — the same seed function the
+    // gaits use, so one enemy's look and its walk phase come from one identity.
+    const palette = spec.variants
+      ? spec.variants[Math.floor(gaitSeed(id ?? '') / (Math.PI * 2) * spec.variants.length) % spec.variants.length]
+      : spec.tint;
     model.traverse((o) => {
-      if (o.isMesh && o.material?.color) o.material.color.set(damagedLook ? spec.tint[1] : spec.tint[0]);
+      if (o.isMesh && o.material?.color) o.material.color.set(damagedLook ? palette[1] : palette[0]);
     });
-  }, [hp, model, spec]);
+  }, [hp, model, spec, id]);
 
   // SEVERING (D3): a severed part's mesh disappears from the monster — the debris system throws
   // the tumbling replacement. Hiding beats removing: the clone's skeleton stays intact for the

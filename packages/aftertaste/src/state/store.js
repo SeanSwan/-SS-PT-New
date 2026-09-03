@@ -99,6 +99,10 @@ export const useGameStore = create((set, get) => ({
    *  sentinel swallowed that hitmarker. Sentinels must live outside the value's domain. */
   lastHitAt: -1,
   lastKillAt: -1,
+  /** The last award, and when. The HUD floats a "+N" from these — a number that changes silently
+   *  in a corner teaches nobody the rule that severing is how you get paid (G1). */
+  lastAward: 0,
+  lastAwardAt: -1,
   /** Severed parts tumbling on the floor. DECORATION, by contract: never consulted by tickRound,
    *  hitscan, or steering — a gib cannot hold a wave open or soak a bullet. Drained by tick. */
   debris: [],
@@ -156,16 +160,22 @@ export const useGameStore = create((set, get) => ({
     });
     // ONE choke point for income (S4): every point in the game is minted here or at round clear.
     const earned = awardForShot({ severed: newDebris.length, killed: killed === 1 });
+    const severedNow = newDebris.length;
     set({
       enemies: next,
       kills: kills + killed,
-      ...(earned ? { points: get().points + earned } : {}),
+      ...(earned ? { points: get().points + earned, lastAward: earned, lastAwardAt: clockNow } : {}),
       lastHitAt: clockNow,
       shots: pushCapped(get().shots, [tracer], SHOT_CAP),
       ...(killed ? { lastKillAt: clockNow } : {}),
       ...(newDebris.length ? { debris: pushCapped(get().debris, newDebris, DEBRIS_CAP) } : {}),
     });
-    if (typeof window !== 'undefined') window.__swanKills = kills + killed;
+    if (typeof window !== 'undefined') {
+      window.__swanKills = kills + killed;
+      // The store stays pure of Web Audio: it announces WHAT happened and the sound layer decides
+      // how that sounds. One seam, and node tests never meet an AudioContext.
+      window.__swanSfx?.(severedNow ? 'sever' : killed ? 'kill' : null);
+    }
     return true;
   },
 
@@ -202,7 +212,7 @@ export const useGameStore = create((set, get) => ({
     set({
       enemies: next,
       kills: s.kills + killedNow,
-      ...(earned ? { points: s.points + earned } : {}),
+      ...(earned ? { points: s.points + earned, lastAward: earned, lastAwardAt: clockNow } : {}),
       meleeReadyAt: clockNow + MELEE_COOLDOWN,
       lastHitAt: clockNow,
       ...(killedNow ? { lastKillAt: clockNow } : {}),
@@ -277,6 +287,8 @@ export const useGameStore = create((set, get) => ({
     if (r.cleared) {
       patch.wave = r.wave;
       patch.points = s.points + awardForRound(s.wave);
+      patch.lastAward = awardForRound(s.wave);
+      patch.lastAwardAt = elapsed;
       // Centred on the PLAYER: the floor follows you now, so a ring fixed at the origin would
       // spawn the next wave a full sprint behind wherever you have kited to. Corpses still mid-
       // topple SURVIVE the respawn — the lifecycle removes them when their death clip ends;
@@ -304,6 +316,7 @@ export const useGameStore = create((set, get) => ({
     set({
       enemies: spawnRing(waveSize(1), SPAWN_RADIUS, 1, centre, clockNow),
       kills: 0, points: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0, feverUntil: 0,
+      lastAward: 0, lastAwardAt: -1,
       runId: get().runId + 1,
       lastHitAt: -1, lastKillAt: -1, debris: [], shots: [], meleeReadyAt: 0,
     });

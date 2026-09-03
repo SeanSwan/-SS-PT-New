@@ -19,6 +19,7 @@ import { stepEnemy } from './steering.js';
 import Monster from './Monster.jsx';
 import { ROSTER } from './roster.js';
 import { gaitPose, gaitSeed } from './gaits.js';
+import { aim } from '../player/aim.js';
 import { PART_MESH_COUNT } from './partsData.js';
 import { can } from '../systems/lifecycle.js';
 import { useGameStore, usePlayerStore } from '../state/store.js';
@@ -56,7 +57,16 @@ export default function Enemies() {
       const dist = Math.hypot(player.x - snapshot[i].x, player.z - snapshot[i].z);
       const since = list[i].enteredRangeAt == null
         ? Infinity : state.clock.elapsedTime - list[i].enteredRangeAt;
-      const pose = gaitPose(row?.gait, state.clock.elapsedTime, gaitSeed(list[i].id), dist, since);
+      // "Am I being looked at?" — the angle between where the player is aiming and where this
+      // creature stands. Cheap (one atan2 + a subtraction), and only rows that declare a cone pay
+      // for it at all.
+      let observed = false;
+      if (row?.gait?.observedCone) {
+        const toEnemy = Math.atan2(snapshot[i].x - player.x, snapshot[i].z - player.z);
+        let delta_ = ((toEnemy - (aim.yaw + Math.PI)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+        observed = Math.abs(delta_) < row.gait.observedCone && dist < 14;
+      }
+      const pose = gaitPose(row?.gait, state.clock.elapsedTime, gaitSeed(list[i].id), dist, since, observed);
       // Per-monster speed from the roster row; the fallback keeps stateless test enemies moving.
       const next = stepEnemy(snapshot[i], player, snapshot, delta, (row?.speed ?? 2) * pose.speedScale);
       list[i].x = next.x;
@@ -106,7 +116,7 @@ export default function Enemies() {
               </mesh>
             )}
           >
-            <Monster type={e.type ?? 'fryling'} hp={e.hp} state={e.state} severed={e.severed} />
+            <Monster id={e.id} type={e.type ?? 'fryling'} hp={e.hp} state={e.state} severed={e.severed} />
           </Suspense>
           </group>
         </group>

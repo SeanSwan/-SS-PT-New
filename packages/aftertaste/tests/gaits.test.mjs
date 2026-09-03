@@ -108,3 +108,36 @@ test('F11: the ambusher WINDS UP before it commits — the telegraph is the dodg
   // Leaving the range resets the clock: a dodge has to actually buy the window back.
   assert.equal(gaitPose(g, 2, 0.5, g.lungeRange + 5, Infinity).speedScale, 0.55, 'back to creeping');
 });
+
+test('G9: the ambusher FREEZES when you look at it — but a committed lunge does not care', async () => {
+  const g = ROSTER['kissing-bug'].gait;
+  const far = g.lungeRange + 6;
+  const watched = gaitPose(g, 2, 0.4, far, Infinity, true);
+  const unwatched = gaitPose(g, 2, 0.4, far, Infinity, false);
+  assert.ok(watched.speedScale < unwatched.speedScale * 0.5, 'being looked at nearly stops it');
+  assert.equal(watched.speedScale, g.observedScale);
+
+  // Mid-lunge it is unstoppable: a telegraph you can cancel by looking is not a commitment.
+  const lunging = gaitPose(g, 2, 0.4, g.lungeRange - 0.1, g.telegraph + 0.1, true);
+  assert.equal(lunging.speedScale, g.lungeMult, 'a thrown lunge ignores your gaze');
+
+  // And it is this creature's alone — no other row declares a cone.
+  for (const [type, row] of Object.entries(ROSTER)) {
+    if (type === 'kissing-bug' || !row.gait) continue;
+    assert.deepEqual(
+      gaitPose(row.gait, 3, 1, 5, 1, true), gaitPose(row.gait, 3, 1, 5, 1, false),
+      `${type} must not care whether it is watched`,
+    );
+  }
+});
+
+test('G9: observation cannot break the hitbox law either', async () => {
+  const { poseDisplacement } = await import('../src/enemies/gaits.js');
+  const { PARTS } = await import('../src/enemies/partsData.js');
+  // poseDisplacement sweeps every branch INCLUDING observed — a pose reachable in play that the
+  // law never sampled would be a hole in exactly the place the law exists to close.
+  for (const [type, row] of Object.entries(ROSTER)) {
+    const head = (PARTS[type] ?? []).find((p) => p.tag === 'head');
+    assert.ok(poseDisplacement(row.gait, row.renderHeight) <= 0.35 * head.hitShape.r * row.renderHeight, type);
+  }
+});

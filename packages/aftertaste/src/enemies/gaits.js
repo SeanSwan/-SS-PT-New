@@ -44,14 +44,20 @@ export function poseDisplacement(gait, renderHeight = 1, samples = 720) {
   // the branches is a second source of truth that rots the moment a gait is tuned — which is the
   // exact failure this law exists to correct. The sweep covers a full cycle at several seeds, and
   // both sides of every distance-dependent branch (the creep's lunge is its worst pose).
+  // EVERY branch a player can reach: far and near, mid-telegraph and committed, watched and not.
+  // A pose the sweep never visits is a pose the law does not govern.
   for (const distance of [Infinity, 0]) {
+    for (const sinceEntered of [0, Infinity]) {
+    for (const observed of [false, true]) {
     for (const seed of [0, 1.7, 3.9, 5.2]) {
       for (let i = 0; i < samples; i++) {
-        const p = gaitPose(gait, i * 0.01, seed, distance);
+        const p = gaitPose(gait, i * 0.01, seed, distance, sinceEntered, observed);
         const lean = Math.hypot(p.rotX, p.rotZ);
         const swing = Math.sin(Math.abs(lean)) * renderHeight; // rotation is about the feet
         worst = Math.max(worst, Math.hypot(swing, p.yOffset));
       }
+    }
+    }
     }
   }
   return worst;
@@ -63,7 +69,7 @@ const STILL = { rotX: 0, rotZ: 0, yawJitter: 0, yOffset: 0, speedScale: 1 };
  * The pose for one enemy this frame. Unknown/absent gait = STILL (a row without a gait moves the
  * old way, so the whole cast never depends on this file being complete).
  */
-export function gaitPose(gait, t, seed = 0, distance = Infinity, sinceEntered = Infinity) {
+export function gaitPose(gait, t, seed = 0, distance = Infinity, sinceEntered = Infinity, observed = false) {
   if (!gait) return STILL;
   if (gait.type === 'creep') {
     // The kissing bug: the ONLY gait that reads the world. Far away it creeps low and slow; inside
@@ -79,6 +85,13 @@ export function gaitPose(gait, t, seed = 0, distance = Infinity, sinceEntered = 
     // (ATTACK_WINDUP); the one creature built around ambush had nothing.
     const winding = inRange && sinceEntered < (gait.telegraph ?? 0);
     const lunging = inRange && !winding;
+    // IT FREEZES WHEN YOU LOOK AT IT (G9). The design doc calls this creature's telegraph "its own
+    // shadow — it freezes completely when directly observed". That behaviour, not the mesh, is what
+    // makes it a different animal from a slow roach: it closes the distance you are not watching.
+    // Only outside a committed lunge; once it has thrown itself, looking at it does not stop it.
+    if (observed && !lunging) {
+      return { rotZ: 0, rotX: gait.crouch * 2, yawJitter: 0, yOffset: 0, speedScale: (gait.observedScale ?? 0.15) };
+    }
     return {
       rotZ: 0,
       rotX: lunging ? -(gait.lungePitch ?? 0.15)

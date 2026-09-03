@@ -14,6 +14,7 @@ import { useGameStore } from '../state/store.js';
 import { holdsWave } from '../systems/lifecycle.js';
 import { gun, weaponOf, currentCone } from '../combat/gunState.js';
 import { WEAPONS } from '../combat/weapons.js';
+import { unlockAudio, play } from '../audio/synth.js';
 
 /**
  * TEACHING NOTE — THE CROSSHAIR IS HTML TOO:
@@ -71,6 +72,10 @@ export default function Hud() {
   const lastKillAt = useGameStore((s) => s.lastKillAt);
   // A fever is VISIBLE by design rule — the player must always be able to see what a bite did.
   const feverUntil = useGameStore((st) => st.feverUntil);
+  // The award float: keyed by its timestamp so React re-mounts the element on every payment and
+  // the CSS animation replays. Same trick as the hitmarker.
+  const lastAward = useGameStore((st) => st.lastAward);
+  const lastAwardAt = useGameStore((st) => st.lastAwardAt);
   const remaining = useGameStore((s) => s.enemies.reduce((n, e) => n + (holdsWave(e) ? 1 : 0), 0));
 
   // THE CROSSHAIR IS THE SPREAD, DRAWN. It opens exactly as far as the bullet cone opens and stops
@@ -107,6 +112,23 @@ export default function Hud() {
     return () => cancelAnimationFrame(raf);
   }, [over]);
 
+  // AUDIO: the browser refuses to start sound before a gesture, so the first click unlocks it and
+  // the store's announcements are routed to the sound table from here. One seam, set once.
+  useEffect(() => {
+    const onFirst = () => { unlockAudio(); play('shot'); };
+    const route = (name) => { if (name) play(name); };
+    if (typeof window !== 'undefined') window.__swanSfx = route;
+    window.addEventListener('mousedown', onFirst, { once: true });
+    return () => { window.removeEventListener('mousedown', onFirst); if (typeof window !== 'undefined') delete window.__swanSfx; };
+  }, []);
+
+  // The round chime rides the wave number: one sound when you survive one.
+  const firstWave = useRef(true);
+  useEffect(() => {
+    if (firstWave.current) { firstWave.current = false; return; }
+    play('roundClear');
+  }, [wave]);
+
   // Death hands the mouse back: pointer lock hides the cursor, and a hidden cursor cannot press
   // the restart button. The browser releases lock on Esc; we release it on the death screen.
   useEffect(() => {
@@ -115,7 +137,24 @@ export default function Hud() {
 
   return (
     <>
-      <style>{'@keyframes swan-hitmarker { from { opacity: 1; } to { opacity: 0; } }'}</style>
+      <style>{`
+        @keyframes swan-hitmarker { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes swan-award { from { opacity: 1; transform: translate(-50%, -50%); }
+                                to   { opacity: 0; transform: translate(-50%, -220%); } }
+        @keyframes swan-fever-pulse { from { opacity: .55; } to { opacity: .8; } }
+      `}</style>
+      {/* THE FEVER HAS TEETH (F10). A HUD word that changes nothing is not a debuff — this is what
+          the player SEES while the mechanical cost (slower reload, slower sprint) is being paid. */}
+      {feverUntil > 0 && (
+        <div
+          data-testid="fever-vignette"
+          style={{
+            position: 'fixed', inset: 0, pointerEvents: 'none',
+            boxShadow: 'inset 0 0 22vh 6vh rgba(200,90,30,0.55)',
+            animation: 'swan-fever-pulse 1.1s ease-in-out infinite alternate',
+          }}
+        />
+      )}
       <div data-testid="hud" style={bar}>
         <span data-testid="hud-hp">HP: {hp}</span>
         <span data-testid="hud-wave">Wave: {wave}</span>
@@ -138,6 +177,23 @@ export default function Hud() {
           data-testid="crosshair"
           style={{ ...crosshairStyle, transition: 'transform 70ms ease-out' }}
         >+</div>
+      )}
+      {/* THE MONEY, FELT (G1): every payment rises off the crosshair. Sever-native income is this
+          game's signature rule, and a player only learns a rule they can SEE being applied. */}
+      {!over && lastAwardAt >= 0 && (
+        <div
+          key={lastAwardAt}
+          data-testid="points-float"
+          style={{
+            position: 'fixed', top: 'calc(50% - 2.2rem)', left: '50%',
+            font: '700 20px/1 ui-sans-serif, system-ui, sans-serif',
+            color: '#C6A84B', textShadow: '0 1px 4px rgba(0,0,0,.9)',
+            pointerEvents: 'none', userSelect: 'none',
+            animation: 'swan-award 0.75s ease-out forwards',
+          }}
+        >
+          +{lastAward}
+        </div>
       )}
       {/* -1 is "never": 0 is a real clock reading (a first-frame hit), so it cannot be the sentinel. */}
       {!over && lastHitAt >= 0 && (

@@ -119,6 +119,7 @@ function TriggerControl() {
     if (runId !== seenRun.current) { seenRun.current = runId; holster(gun); }
     if (over) { held.current = false; holster(gun); return; }
     const now = state.clock.elapsedTime;
+    const fevered = useGameStore.getState().feverUntil > 0;
     // The cone shrinks back on its own once you stop shooting — the reward for firing in bursts.
     if (now - gun.lastShotAt > recoverDelay(gun)) gun.spread = spreadAfterRest(gun, delta);
 
@@ -130,14 +131,14 @@ function TriggerControl() {
 
     // --- Swap + dev equip (S5) ---
     if (wantEquip.current) { Object.assign(gun, equip(gun, wantEquip.current, now)); wantEquip.current = null; }
-    if (wantSwap.current) { wantSwap.current = false; if (gun.swapUntil <= now) Object.assign(gun, startSwap(gun, now)); }
+    if (wantSwap.current) { wantSwap.current = false; if (gun.swapUntil <= now) { Object.assign(gun, startSwap(gun, now)); if (gun.swapUntil) window.__swanSfx?.('swap'); } }
     if (gun.swapUntil > now) return;            // hands are busy
     if (gun.pendingSlot != null) Object.assign(gun, finishSwap(gun));
 
     // --- Ammo/reload state (Beyond-Zombies S1) ---
     if (wantReload.current) {
       wantReload.current = false;
-      if (gun.reloadingUntil === 0) { gun.ads = false; Object.assign(gun, startReload(gun, now)); }
+      if (gun.reloadingUntil === 0) { gun.ads = false; Object.assign(gun, startReload(gun, now, fevered)); if (gun.reloadingUntil) window.__swanSfx?.('reload'); }
     }
     if (gun.reloadingUntil > 0) {
       // Sprinting holsters the ram-rod: the reload cancels with the mag exactly as it was —
@@ -152,13 +153,14 @@ function TriggerControl() {
     if (!canFire(gun, now)) {
       // Dry trigger on an empty mag reloads by itself — the horde-game convention, because the
       // player is watching the window, not the counter.
-      if (needsReload(gun)) Object.assign(gun, startReload(gun, now));
+      if (needsReload(gun)) { Object.assign(gun, startReload(gun, now, fevered)); window.__swanSfx?.('dryClick'); }
       return;
     }
     if (now - lastShot.current < weaponOf(gun).fireInterval) return;
     lastShot.current = now;
     Object.assign(gun, ammoAfterShot(gun));
     gun.firedThisPress = true; // a semi now waits for the trigger to be released
+    if (typeof window !== 'undefined') window.__swanSfx?.('shot');
 
     // The bullet leaves inside the CONE, not down the exact crosshair ray. The cone is knowable
     // (it blooms per shot and is hard-capped — Sean: "make sure this spread has a limit, so it's

@@ -119,8 +119,14 @@ export const needsReload = (g) => g.mag < weaponOf(g).mag && g.reserveAmmo > 0;
  * finishReload — because an interrupted reload (sprint-cancel, death) must leave the mag exactly
  * as it was, and that is only possible if starting moves nothing.
  */
-export const startReload = (g, now) =>
-  needsReload(g) ? { reloadingUntil: now + weaponOf(g).reloadSeconds } : {};
+export const FEVER_RELOAD_SCALE = 1.25;
+
+export const startReload = (g, now, fevered = false) =>
+  needsReload(g)
+    // A fever makes your hands slower — the cost is paid exactly where a horde player feels it,
+    // in the seconds between an empty magazine and a full one (F10).
+    ? { reloadingUntil: now + weaponOf(g).reloadSeconds * (fevered ? FEVER_RELOAD_SCALE : 1) }
+    : {};
 
 /** Complete the reload: top the mag up from reserve, paying only for the rounds that moved. */
 export function finishReload(g) {

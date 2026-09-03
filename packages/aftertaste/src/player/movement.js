@@ -85,7 +85,9 @@ export function step(pos, keys, delta, yaw = 0) {
  */
 export const ADS_MULT = 0.6;
 
-export function stepV(s, keys, delta, yaw = 0, ads = false) {
+export const FEVER_SPRINT_SCALE = 0.85;
+
+export function stepV(s, keys, delta, yaw = 0, ads = false, fevered = false) {
   // The wanted horizontal velocity: the v1 direction rule times the (sprint-scaled) speed.
   let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
   let dz = (keys.back ? 1 : 0) - (keys.forward ? 1 : 0);
@@ -97,7 +99,7 @@ export function stepV(s, keys, delta, yaw = 0, ads = false) {
   // every shooter Sean named prices it exactly here. The two are mutually exclusive by
   // construction, so the pair can never both be true and leave the player sprinting while zoomed.
   const sprinting = keys.sprint && !ads;
-  const target = SPEED * (sprinting ? SPRINT_MULT : 1) * (ads ? ADS_MULT : 1);
+  const target = SPEED * (sprinting ? SPRINT_MULT * (fevered ? FEVER_SPRINT_SCALE : 1) : 1) * (ads ? ADS_MULT : 1);
   const wantX = (dx * cos + dz * sin) * target;
   const wantZ = (-dx * sin + dz * cos) * target;
 

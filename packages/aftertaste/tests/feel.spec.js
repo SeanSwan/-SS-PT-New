@@ -311,3 +311,68 @@ test('S5: sprinting drops ADS and costs a beat before the gun answers', async ({
     document.dispatchEvent(new MouseEvent('mouseup', { button: 2, bubbles: true }));
   });
 });
+
+test('S5.5: the money is FELT — a paying shot floats a +N off the crosshair', async ({ page }) => {
+  await boot(page);
+  await equipAuto(page);
+  await expect(page.getByTestId('points-float')).toHaveCount(0);
+
+  await page.evaluate(async () => {
+    const store = window.__swanGameStore;
+    store.getState().tick({ x: 9999, z: 9999 }, 1000);          // mature the flock
+    const t = store.getState().enemies.find((e) => e.state === 'alive' && e.parts);
+    const head = t.parts.find((p) => p.tag === 'head').hitShape.c;
+    const rs = t.renderScale ?? 1;
+    for (let i = 0; i < 12; i++) {
+      const live = store.getState().enemies.find((e) => e.id === t.id);
+      if (live?.state !== 'alive') break;
+      store.getState().shoot({ x: live.x + head[0] * rs, y: 10, z: live.z + head[2] * rs }, { x: 0, y: -1, z: 0 });
+    }
+  });
+  const float = page.getByTestId('points-float');
+  await expect(float).toBeVisible({ timeout: 3_000 });
+  await expect(float).toContainText('+');
+});
+
+test('S5.5: a fever DIMS the screen, not just the word — and it clears itself', async ({ page }) => {
+  await boot(page);
+  await expect(page.getByTestId('fever-vignette')).toHaveCount(0);
+  await page.evaluate(() => window.__swanGameStore.setState({ feverUntil: 9_999_999 }));
+  await expect(page.getByTestId('fever-vignette')).toBeVisible({ timeout: 3_000 });
+  await expect(page.getByTestId('hud-fever')).toBeVisible();
+
+  await page.evaluate(() => {
+    const store = window.__swanGameStore;
+    const p = window.__swanPlayerPos;
+    store.setState({ feverUntil: 1, enemies: [] });
+    store.getState().tick({ x: p.x, z: p.z }, 600);
+  });
+  await expect(page.getByTestId('fever-vignette')).toHaveCount(0, { timeout: 3_000 });
+});
+
+test('S5.5: audio starts only AFTER a gesture — the autoplay law, not a hope', async ({ page }) => {
+  // Deliberately no boot(): boot() clicks, and the whole claim is about what happens before one.
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('canvas')).toBeVisible({ timeout: 20_000 });
+  const before = await page.evaluate(async () => (await import('/src/audio/synth.js')).audioReady());
+  expect(before, 'no AudioContext before the first gesture').toBe(false);
+
+  await page.locator('canvas').click();
+  const after = await page.evaluate(async () => (await import('/src/audio/synth.js')).audioReady());
+  expect(after, 'the first click unlocks sound').toBe(true);
+});
+
+test('S5.5: the Regulars are not one clone — the crowd wears more than one palette', async ({ page }) => {
+  await boot(page);
+  const palettes = await page.evaluate(async () => {
+    const store = window.__swanGameStore;
+    const mod = await import('/src/systems/waves.js');
+    // A crowd of Regulars, so the variant hash has something to spread across.
+    store.setState({ hp: 99999, enemies: mod.spawnRing(9, 12, 1, { x: 0, z: 0 }, 0).filter((e) => e.type === 'regular') });
+    await new Promise((r) => setTimeout(r, 2000)); // models + the colour effect
+    const seen = new Set();
+    window.__swanScene.traverse((o) => { if (o.isSkinnedMesh && o.material?.color) seen.add(o.material.color.getHexString()); });
+    return [...seen];
+  });
+  expect(palettes.length, `distinct Regular colours on screen: ${palettes.join(', ')}`).toBeGreaterThan(1);
+});
