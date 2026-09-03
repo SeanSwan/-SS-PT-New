@@ -1,0 +1,52 @@
+# test-gate — the machine gate SWA-231 exists to create.
+# Before this file, four workflows ran and none executed the test suites; four
+# production slices reached main gated only by their author. Both hostile
+# reviewers ranked this above every other blueprint item.
+#
+# Failure semantics that matter:
+# - vitest exits non-zero on LOAD-failed test files (verified: the 23-red state
+#   exited 1), so the "file fails to even import" class is gated, not just
+#   assertion failures.
+# - the frontend sharded runner runs EVERY batch and reports the complete
+#   failure list (it used to process.exit on the first red batch, silently
+#   skipping ~48% of the suite).
+# - node-runner tests use the GLOB form: `node --test <dir>` treats the arg as
+#   a module path and fails with "Cannot find module".
+name: test-gate
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: backend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
+      - run: npm ci
+      - name: real ffmpeg/ffprobe (mediaSync + renderAgent tests decode real media;
+              the code resolves `ffprobe` from PATH via PLAUD_FFPROBE_PATH fallback)
+        run: sudo apt-get update -q && sudo apt-get install -y -q ffmpeg
+      - name: vitest suite (incl. quarantine-ceiling guard)
+        run: npx vitest run --reporter=dot
+      - name: node:test suite (forge/shared — wrong dialect for vitest, right one here)
+        run: node --test tests/node-runner/*.test.mjs
+  frontend:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: frontend } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - run: npm ci
+      - name: full sharded suite (runs every batch, reports all failures)
+        run: node scripts/run-vitest-shards.mjs
+      # type-check step REMOVED 2026-09-02 per the blueprint's pre-decided
+      # fallback: the 14GB alloc took the runner down ("runner received a
+      # shutdown signal") AFTER all 322 shard batches passed — observed on
+      # PR #108 run 33672333342, i.e. this runner has <16GB. tsc still runs
+      # locally at 16GB per the handoff gotchas; CI type-check returns when a
+      # bigger runner or a project split exists (tracked on SWA-231).

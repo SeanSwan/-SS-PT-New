@@ -41,60 +41,37 @@
 import { useEffect, useRef } from 'react';
 import { SHEEN } from '../styles/sheenPackTokens';
 import { blendHex } from './sheenColor';
+import type {
+  SheenSurfaceOptions,
+  SheenSurfaceState,
+  SheenPointerOptions,
+  SheenPointerEngine,
+} from './sheenPointerTypes';
 
-export interface SheenSurfaceOptions {
-  /** Optional [fromHex, toHex] pair blended across the surface width. */
-  orb?: readonly [string, string];
-  /**
-   * Namespace for the custom properties this engine writes.
-   * Defaults to '' (`--px`, `--py`, `--opac`, `--orb`). The Forge sheen layer
-   * reads namespaced names, so it passes 'sw-sheen-' — without this the engine
-   * writes properties no stylesheet is listening to and the orb never moves,
-   * silently. Caught during the Forge port, 2026-09-01.
-   */
-  varPrefix?: string;
-}
-
-interface SheenSurfaceState extends SheenSurfaceOptions {
-  el: HTMLElement;
-  /** Current (eased) normalised position and opacity. */
-  x: number;
-  y: number;
-  o: number;
-  /** Target normalised position and opacity. */
-  tx: number;
-  ty: number;
-  to: number;
-  rect: DOMRect | null;
-  /** True once the surface has been snapped to rest; skipped until woken. */
-  atRest: boolean;
-}
-
-export interface SheenPointerOptions {
-  /** Injected for tests. Defaults to the real window. */
-  target?: Pick<Window, 'addEventListener' | 'removeEventListener'>;
-  raf?: (cb: FrameRequestCallback) => number;
-  caf?: (handle: number) => void;
-  /** Injected for tests. Defaults to the real media query. */
-  prefersReducedMotion?: boolean;
-}
-
-export interface SheenPointerEngine {
-  register(el: HTMLElement, opts?: SheenSurfaceOptions): () => void;
-  destroy(): void;
-  /** Test seam: number of surfaces styled during the most recent frame. */
-  readonly lastFrameWrites: number;
-  /** Test seam: number of getBoundingClientRect() batches performed. */
-  readonly measureCount: number;
-}
+export type {
+  SheenSurfaceOptions,
+  SheenPointerOptions,
+  SheenPointerEngine,
+} from './sheenPointerTypes';
 
 export function createSheenPointer(options: SheenPointerOptions = {}): SheenPointerEngine {
   const target = options.target ?? (typeof window !== 'undefined' ? window : undefined);
   const raf = options.raf ?? ((cb: FrameRequestCallback) => requestAnimationFrame(cb));
   const caf = options.caf ?? ((h: number) => cancelAnimationFrame(h));
-  const reduce =
-    options.prefersReducedMotion ??
-    (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  // H1 (GLM 5.3 + Flash, 2026-09-01): this was read ONCE at engine construction,
+  // and the engine is a module singleton — so a user who enabled reduce mid-session
+  // got frozen CSS layers and an orb that kept easing. The CSS half was live; the
+  // JS half was not. A pinned test boolean meant no test could see it.
+  const mql =
+    options.prefersReducedMotion === undefined && typeof matchMedia !== 'undefined'
+      ? matchMedia('(prefers-reduced-motion: reduce)')
+      : null;
+  let reduce = options.prefersReducedMotion ?? mql?.matches ?? false;
+  const onMotionPrefChange = (e: MediaQueryListEvent) => {
+    reduce = e.matches;
+    kick(); // re-settle immediately at the new easing rate
+  };
+  mql?.addEventListener('change', onMotionPrefChange);
 
   const P = SHEEN.pointer;
   const surfaces: SheenSurfaceState[] = [];
@@ -231,7 +208,10 @@ export function createSheenPointer(options: SheenPointerOptions = {}): SheenPoin
   target?.addEventListener('pointermove', onPointerMove, { passive: true });
   target?.addEventListener('pointerleave', onPointerGone, { passive: true });
   target?.addEventListener('blur', onPointerGone, { passive: true });
-  target?.addEventListener('scroll', markDirty, { passive: true });
+  // M5: `scroll` does not bubble. Without capture, scrolling any inner
+  // overflow container (modal, menu, carousel) never marks rects dirty and the
+  // orb guides to stale coordinates until the next pointermove.
+  target?.addEventListener('scroll', markDirty, { passive: true, capture: true });
   target?.addEventListener('resize', markDirty, { passive: true });
 
   return {
@@ -260,7 +240,8 @@ export function createSheenPointer(options: SheenPointerOptions = {}): SheenPoin
       target?.removeEventListener('pointermove', onPointerMove);
       target?.removeEventListener('pointerleave', onPointerGone);
       target?.removeEventListener('blur', onPointerGone);
-      target?.removeEventListener('scroll', markDirty);
+      target?.removeEventListener('scroll', markDirty, { capture: true } as EventListenerOptions);
+      mql?.removeEventListener('change', onMotionPrefChange);
       target?.removeEventListener('resize', markDirty);
       if (running) caf(handle);
       running = false;
