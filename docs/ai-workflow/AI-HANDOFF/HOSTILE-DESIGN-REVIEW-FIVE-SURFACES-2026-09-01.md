@@ -65,7 +65,15 @@ Clean notes: V4 architecture is disciplined (15 sections all <300 lines, fail-cl
 
 Product loop holds: Progress is tab #2, one click from Home; training-proof runs on real `/api/workout/sessions`; loading/error/empty triad explicit; Victory only.
 
-**U1+U4 (one defect, sequenced together per R2 N3) — advertised progress charts don't render, and their feed truncates.** `ProfileData.chartVisibility` exposes `weightProgression`, `bodyFatTrend`, `strength1RM` — and these toggles ARE user-facing (`EditProfileChartToggles.tsx`, `ChartTogglePanel.tsx` `[VERIFIED — grep]`) — while the Progress tab renders only `WorkoutsTabCharts.tsx` bar charts: **live dead controls on the core-promise surface.** The same panel fetches with hard `limit: 200`, no pagination (`WorkoutsTab.tsx:91`) — build the trend charts on that and they'd be confidently wrong for long histories. Fix as one slice: pagination/windowing first, then the advertised trend series in a C11 chart environment.
+**U1 — WITHDRAWN as FALSE (Opus 5, 2026-09-03, during S8 build; same defect class as T4).** The claim was "advertised progress charts don't render — live dead controls". The render path says otherwise:
+- `bodyFatTrend` IS wired — `pages/Social/components/ProfileChartsSection.tsx:95` maps it to a lazy-loaded `BodyFatTrendLine` (`components/Charts/charts/live/BodyFatTrendLine.tsx`), gated `requiresPro: true`.
+- `weightProgression` IS rendered — it is one of only two default-visible canonical charts (`ProfileChartsGrid.tsx:70-73`), kept precisely because it has "proven truthful SQL" (fed by `body_measurements`).
+- `strength1RM` is offered to NOBODY — it exists in the `UserDashboardTypes` interface and appears in no toggle UI and no chart. Nothing advertises it, so it cannot be a dead control.
+
+A prior chart-truth pass had already done this work deliberately: `ProfileChartsGrid.tsx:60-69` records that `muscleRadar` was REMOVED from defaults because its data chain is schema-drifted and its tables are empty in production, while the registry entry was kept so an opt-in user gets an honest empty state rather than a missing control. The review graded that considered design as neglect.
+
+How it survived three rounds: the settling probe asked "is `chartVisibility` user-surfaced?" and a grep answered yes (a toggle panel exists). That is not the same question as "does each named key render", and the verdict flip (USER APPROVE→REVISE) rode on the narrower one. **Nothing was built on it** — the blueprint's `TrendChart.tsx` would have duplicated `BodyFatTrendLine` and created exactly the competing-surface hazard X5 warns about. U4 (pagination) was real and shipped on its own merits.
+
 **U2 — [Rule 4]** `HomeTab.tsx` 374 lines on the highest-traffic panel. Split.
 **U3 — [LAW 9]** 37 inline `style={{` uses (`CrystalProgressRing.fx.tsx:110` etc.).
 **U5 — [LAW 8]** zero world/lens tokens (X2).
