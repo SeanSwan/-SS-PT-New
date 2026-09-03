@@ -61,12 +61,31 @@ export default defineConfig({
     // Ensure case-sensitive file resolution matches Linux/Render environment
     preserveSymlinks: false,
     // Dedupe styled-components to prevent "we.div is not a function" error in production
-    // This ensures only one instance of styled-components exists in the bundle
-    dedupe: ['styled-components', 'react', 'react-dom'],
+    // This ensures only one instance of styled-components exists in the bundle.
+    //
+    // 'zod' joined for a different reason, same mechanism (SWA-225 EX-5): the
+    // shared @swan/schemas package is a `file:` dependency, so with
+    // preserveSymlinks:false above, Vite resolves it to its REAL path under
+    // packages/ and then looks for `zod` by walking up from there — never
+    // reaching frontend/node_modules. Deduping pins zod to this project's copy
+    // regardless of which file imported it. Without this the shared schema
+    // resolves locally only because someone once ran `npm install` inside the
+    // package, and fails on any clean `npm ci` — which is exactly how it failed
+    // in CI while passing on the machine that wrote it.
+    dedupe: ['styled-components', 'react', 'react-dom', 'zod'],
     alias: {
       // Force all imports to use the same styled-components instance
       'styled-components': 'styled-components',
       '@': path.resolve(__dirname, './src'),
+      // Pin zod to THIS project's copy (SWA-225 EX-5). The shared @swan/schemas
+      // package is a `file:` dependency: npm symlinks it but does not install
+      // its dependencies, and with preserveSymlinks:false above, Vite resolves
+      // the package to its real path under packages/ and then hunts for `zod` by
+      // walking up from there — never reaching frontend/node_modules. dedupe
+      // cannot help; it chooses BETWEEN copies rather than finding one.
+      // An alias is the surgical fix and leaves the deliberate
+      // preserveSymlinks:false (Linux case-sensitivity parity) untouched.
+      zod: path.resolve(__dirname, './node_modules/zod'),
     }
   },
   build: {
