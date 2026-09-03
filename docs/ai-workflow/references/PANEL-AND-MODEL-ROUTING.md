@@ -48,6 +48,45 @@ ATTACKS / HIGHEST RISK / CONFIDENCE). That is what makes replies comparable —
 without it the panel returns four essays that can't be diffed and
 consensus-detection degrades to vibes.
 
+## Local brain: MEASURED performance baseline (2026-09-03)
+
+Recorded because a context-spill hypothesis was floated in-session and DISPROVEN by
+measurement. Anyone tempted to lower `num_ctx` to make the local seat faster should read
+this first: there is no spill to fix.
+
+`ollama ps` with the brain loaded on the 5090:
+
+```
+NAME                      SIZE     PROCESSOR    CONTEXT
+qwen3.8-ctx131k:latest    17 GB    100% GPU     131072
+```
+
+**100% GPU at the full 131k context. Zero CPU offload.** 17 GB of weights plus the KV cache
+fit inside 32.6 GB with headroom.
+
+| Scenario | Input tokens | Wall |
+|---|---|---|
+| warm, small prompt | 48 | 2.0s |
+| cold, small prompt | 48 | 13.3s |
+| warm, large prompt | 100,870 | 60.9s |
+
+Derived: **cold load costs ~11s** (13.3 minus 2.0). **Prefill runs ~1,700 tok/s**, so a
+~101k-token prompt costs ~59s before the first output token. Generation itself is ~2s.
+
+**What that means when the seat feels slow.** It is prefill, and prefill is proportional to
+prompt size. The only lever is sending less context. Lowering `num_ctx` does NOT help — it
+caps how much you may send, it does not make the same prompt cheaper, and it silently
+truncates once a real packet exceeds the cap.
+
+Both `qwen3.8-ctx131k:latest` and `qwen3.8:27b-mtp-q4_K_M` share model ID `f23450bd97aa`
+with byte-identical parameter sets, and **both already carry `num_ctx 131072`**. The
+`ctx131k` name labels a property the stock tag already had; it is not a separate build.
+Any A/B between those two tags measures nothing.
+
+`OLLAMA_KEEP_ALIVE` was set to `30m` at user scope to remove the ~11s cold-load penalty
+across a working session. Ollama still evicts the model when another one needs the VRAM,
+so this does not monopolise the shared card (see SWA-175).
+
 ## The local Qwen seat has a second, opt-in model (abliterated)
 
 **Added 2026-09-02 by Sean's directive: "make that an option where I can drop
