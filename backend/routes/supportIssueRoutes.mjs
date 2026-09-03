@@ -9,11 +9,7 @@
 import express from "express";
 import { z } from "zod";
 import { protect, rateLimiter } from "../middleware/authMiddleware.mjs";
-import {
-  SUPPORT_ISSUE_CATEGORIES,
-  SUPPORT_ISSUE_SEVERITIES,
-  SUPPORT_ISSUE_SOURCES,
-} from "../domain/supportIssueConstants.mjs";
+import { supportIssueCreateSchema } from "@swan/schemas";
 import {
   addReporterReply,
   createSupportIssue,
@@ -30,22 +26,11 @@ const issueSelector = z
   .min(1)
   .max(64)
   .regex(/^[A-Za-z0-9-]+$/);
-const createSchema = z.object({
-  clientRequestId: z.string().uuid(),
-  category: z.enum(SUPPORT_ISSUE_CATEGORIES),
-  severity: z.enum(SUPPORT_ISSUE_SEVERITIES).default("medium"),
-  source: z.enum(SUPPORT_ISSUE_SOURCES).default("text"),
-  title: z.string().trim().min(4).max(160),
-  description: z.string().trim().min(10).max(8000),
-  expectedBehavior: z.string().trim().max(4000).optional().default(""),
-  impact: z.string().trim().max(4000).optional().default(""),
-  reproductionSteps: z
-    .array(z.string().trim().min(1).max(500))
-    .max(12)
-    .optional()
-    .default([]),
-  diagnostics: z.record(z.unknown()).optional().default({}),
-});
+// The create contract is defined ONCE, in @swan/schemas, and the Report Room
+// form imports the same object — so the rule that rejects a submission here is
+// the rule that warned the user before they sent it (SWA-225 EX-5). The local
+// name is kept so nothing downstream in this file changes.
+const createSchema = supportIssueCreateSchema;
 const listSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).default(20),

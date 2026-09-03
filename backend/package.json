@@ -116,6 +116,7 @@
     "@aws-sdk/s3-request-presigner": "^3.700.0",
     "@google/generative-ai": "^0.24.1",
     "@sendgrid/mail": "^8.1.4",
+    "@swan/schemas": "file:../packages/swan-schemas",
     "archiver": "^7.0.1",
     "axios": "^1.18.1",
     "bcryptjs": "^2.4.3",
