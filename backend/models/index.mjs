@@ -159,6 +159,8 @@ export const getWorkoutLog = () => getModel('WorkoutLog');
 export const getClientTrainerAssignment = () => getModel('ClientTrainerAssignment');
 export const getTrainerPermissions = () => getModel('TrainerPermissions');
 export const getTrainerAvailability = () => getModel('TrainerAvailability');
+export const getTrainerApplication = () => getModel('TrainerApplication');
+export const getTrainerCredentialUpload = () => getModel('TrainerCredentialUpload');
 export const getDailyWorkoutForm = () => getModel('DailyWorkoutForm');
 export const getWorkoutPlanCompletionReceipt = () => getModel('WorkoutPlanCompletionReceipt');
 // Launch charter 2026-07 (PR engine / Recovery Board / History Backfill)

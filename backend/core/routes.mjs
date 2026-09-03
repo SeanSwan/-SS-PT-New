@@ -271,6 +271,7 @@ import roleRoutes from '../routes/roleRoutes.mjs';
 // ===================== NASM WORKOUT TRACKING SYSTEM =====================
 import clientTrainerAssignmentRoutes from '../routes/clientTrainerAssignmentRoutes.mjs';
 import trainerPermissionsRoutes from '../routes/trainerPermissionsRoutes.mjs';
+import trainerOnboardingRoutes from '../routes/trainerOnboardingRoutes.mjs';
 import dailyWorkoutFormRoutes from '../routes/dailyWorkoutFormRoutes.mjs';
 
 // ===================== WEBHOOKS =====================
@@ -770,6 +771,7 @@ export const setupRoutes = async (app) => {
 
   // ===================== NASM WORKOUT TRACKING SYSTEM ROUTES =====================
   // Note: client-trainer-assignments routes registered earlier to avoid conflicts
+  app.use('/api/trainer-onboarding', trainerOnboardingRoutes); // Trainer applications (SWA-62)
   app.use('/api/trainer-permissions', trainerPermissionsRoutes);
   app.use('/api/workout-forms', dailyWorkoutFormRoutes);
 
