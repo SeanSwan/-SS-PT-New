@@ -1,6 +1,6 @@
 ---
 decision: "SWAN JARVIS — Beyond-Jarvis master blueprint for the Swan Coach brain: corrected phase plan (P0 foundation → confirmation module → UI-as-effector → one honest brain → memory with a spine → falsifiable-competence layer), fused from Fable audit + GLM 5.3 + GLM 5.3-flash hostile reviews"
-status: open
+status: superseded — by SWAN-JARVIS-BEYOND-BLUEPRINT-2026-09-02-v2.md (Fable 5.1)
 supersedes: docs/ai-workflow/blueprints/SWAN-COACH-ASSISTANT-MASTER-BLUEPRINT.md
 ---
 
