@@ -210,21 +210,40 @@ describe('approval lane — write kill switch (S11)', () => {
     }
   });
 
-  it('A14: the kill switch is fail-OPEN by design — only the exact string "false" disables', async () => {
-    // This is a deliberate house choice (commandLaneControls.mjs header: a missing or
-    // typo'd env var must never dark-launch an outage). Locking it here so the
-    // trade-off stays visible: 'FALSE', '0' and 'off' do NOT disable writes.
-    const { areCommandWritesEnabled } = await import('../../services/ai/commandLaneControls.mjs');
+  it('A14: the kill switch disables on what an operator actually types, and fails OPEN only on garbage', async () => {
+    // CONTRACT CHANGE (card 1.5, finding FF23 — GLM 5.3-flash, 2026-09-01).
+    //
+    // This case previously asserted the opposite: that 'FALSE', '0' and 'off' do
+    // NOT disable writes, locked in as "a deliberate house choice" so a typo'd
+    // env var could never dark-launch an outage. The inverted property is the
+    // dangerous one — a typo could never STOP one. An operator reaching for the
+    // kill switch mid-incident types whatever their fingers produce, and every
+    // one of those values left the lane hot while they believed writes were
+    // paused. For a kill switch, availability-of-DISABLE dominates.
+    //
+    // What is preserved: unset, empty, and unrecognised values still fail OPEN,
+    // so a missing variable cannot take the lane down. Unrecognised values are
+    // now REPORTED (describeLaneControls) rather than silently read as "on".
+    const { areCommandWritesEnabled, isNonCanonicalFlagValue } =
+      await import('../../services/ai/commandLaneControls.mjs');
     const previous = process.env.AI_COMMAND_WRITES_ENABLED;
 
     try {
-      for (const value of ['FALSE', '0', 'off', 'no', '']) {
+      for (const value of ['false', 'FALSE', 'False', ' false ', '0', 'no', 'off']) {
         process.env.AI_COMMAND_WRITES_ENABLED = value;
-        expect(areCommandWritesEnabled()).toBe(true);
+        expect(areCommandWritesEnabled(), `${JSON.stringify(value)} must disable writes`).toBe(false);
       }
 
-      process.env.AI_COMMAND_WRITES_ENABLED = 'false';
-      expect(areCommandWritesEnabled()).toBe(false);
+      for (const value of ['', 'true', 'on', '1']) {
+        process.env.AI_COMMAND_WRITES_ENABLED = value;
+        expect(areCommandWritesEnabled(), `${JSON.stringify(value)} must leave writes enabled`).toBe(true);
+      }
+
+      // Garbage fails OPEN — but loudly, so the operator finds out from the logs
+      // rather than from an incident that would not stop.
+      process.env.AI_COMMAND_WRITES_ENABLED = 'flase';
+      expect(areCommandWritesEnabled()).toBe(true);
+      expect(isNonCanonicalFlagValue('flase')).toBe(true);
     } finally {
       if (previous === undefined) delete process.env.AI_COMMAND_WRITES_ENABLED;
       else process.env.AI_COMMAND_WRITES_ENABLED = previous;
