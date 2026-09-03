@@ -276,3 +276,14 @@ export const LoadOlderRow = styled.div`
   justify-content: center;
   margin-top: 16px;
 `;
+
+/** Inline note for a FAILED history extension — never a full-screen error. */
+export const ExtensionErrorNote = styled.p`
+  margin: 0;
+  padding: 8px 14px;
+  border-left: 3px solid var(--error, #C92A54);
+  color: var(--text-primary, #E0ECF4);
+  font-family: var(--font-ui, 'Sora', sans-serif);
+  font-size: 0.8rem;
+`;
+

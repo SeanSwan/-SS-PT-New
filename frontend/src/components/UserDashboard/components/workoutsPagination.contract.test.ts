@@ -35,10 +35,17 @@ describe('workouts pagination', () => {
     expect(tab).toMatch(/\{hasMore && \(/);
   });
 
-  it('a failed extension keeps the window already on screen', () => {
+  it('a failed extension uses its OWN error channel, not the full-screen one', () => {
+    // SUPERSEDED ASSERTION (2026-09-03, GLM hostile round 1 blocker 1). This
+    // used to assert the catch called setError — and it PASSED while the code
+    // was broken: `error` drives an early return that replaces the whole tab,
+    // so routing an extension failure there deleted the window the feature
+    // exists to preserve. Source-shape was the wrong thing to check; the
+    // rendered behaviour is asserted in workoutsExtensionFailure.test.tsx.
     const start = tab.indexOf('const loadOlder');
     const body = tab.slice(start, tab.indexOf('useEffect', start));
-    expect(body).toMatch(/setError\('Unable to load older workouts/);
+    expect(body).toMatch(/setExtensionError\('Unable to load older workouts/);
+    expect(body).not.toMatch(/setError\(/);
     expect(body).not.toMatch(/setCategories\(\[\]\)/);
   });
 

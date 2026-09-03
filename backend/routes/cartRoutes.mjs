@@ -28,6 +28,7 @@ import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 // quietly disabling a money-path guard.
 import cartHelpers, { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
 import { resolveUnitPrice, UnpriceableItemError } from '../services/store/itemPricing.mjs';
+import { scrubErrorText } from '../utils/scrubErrorText.mjs';
 import {
   normalizeAuthenticatedUserId,
   safeFindOrCreateActiveCart,
@@ -75,11 +76,13 @@ const sendInternalError = (res, message) => res.status(500).json({
 const toCartErrorMetadata = (error, fallbackCode = 'cart_internal_error') => ({
   errorName: error?.name || 'Error',
   errorCode: error?.code || error?.type || fallbackCode,
-  message: error?.message || null,
+  message: scrubErrorText(error?.message),
   pgCode: error?.original?.code || error?.parent?.code || null,
-  parentMessage: error?.parent?.message || error?.original?.message || null,
+  parentMessage: scrubErrorText(error?.parent?.message || error?.original?.message),
+  // Stack frames are file paths and function names — no user values — but the
+  // top frame can carry an inlined argument, so it is scrubbed too.
   stack: typeof error?.stack === 'string'
-    ? error.stack.split(String.fromCharCode(10)).slice(0, 6).map((line) => line.trim()).join(' | ')
+    ? scrubErrorText(error.stack.split(String.fromCharCode(10)).slice(0, 6).map((line) => line.trim()).join(' | '))
     : null
 });
 

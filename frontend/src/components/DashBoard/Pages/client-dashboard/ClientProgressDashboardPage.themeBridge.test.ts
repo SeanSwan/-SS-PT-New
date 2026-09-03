@@ -31,12 +31,21 @@ describe('ClientProgressDashboardPage theme bridge', () => {
     const recapSource = read(recapPath);
 
     expect(source).toContain("import('./CanonicalProgressChartsGrid')");
-    expect(source).toContain('const weeklyRecapUserIdSegment = getSafeGamificationIdSegment(user.id);');
-    expect(source).toContain('loadClientWeeklyRecap(authAxios, weeklyRecapUserIdSegment)');
+    // RE-POINTED 2026-09-03: the recap loader and its id-segment guard moved
+    // into useClientProgressPanels so this page stays under the 300-line cap.
+    // The guard is unchanged — a client id is still sanitised before it reaches
+    // a gamification URL — so the assertion follows the code rather than being
+    // deleted, and the page is asserted to consume the hook.
+    const panelsSource = read(pagePath.replace('ClientProgressDashboardPage.tsx', 'useClientProgressPanels.ts'));
+    expect(panelsSource).toContain('getSafeGamificationIdSegment(userId)');
+    expect(panelsSource).toContain('loadClientWeeklyRecap(authAxios, segment)');
+    expect(source).toContain('useClientProgressPanels(authAxios, user?.id)');
     expect(source).toContain('const companionPetUserIdSegment = getSafeGamificationIdSegment(user?.id);');
     expect(recapSource).toContain('authAxios.get(');
     expect(recapSource).toContain('`/api/gamification/users/${weeklyRecapUserIdSegment}/weekly-recap`');
-    expect(source).toContain('authAxios.get(`/api/client/analytics/personal-records`)');
+    // RE-POINTED 2026-09-03 (same extraction): the personal-records fetch moved
+    // into useClientProgressPanels. The endpoint it must call is unchanged.
+    expect(panelsSource).toContain("authAxios.get('/api/client/analytics/personal-records')");
     expect(source).toContain('<CanonicalProgressChartsGrid />');
   });
 });

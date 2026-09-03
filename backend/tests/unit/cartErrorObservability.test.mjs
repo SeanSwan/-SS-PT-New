@@ -25,7 +25,10 @@ const metadataBlock = () => {
 
 describe('cart error observability', () => {
   it('logs the error message, not just its class', () => {
-    expect(metadataBlock()).toMatch(/message:\s*error\?\.message/);
+    // Scrubbed, not raw (see the scrubber test) — but present. Before this the
+    // block carried errorName + errorCode only, so a production 500 named its
+    // error CLASS and nothing else and no cause could be assigned.
+    expect(metadataBlock()).toMatch(/message:\s*scrubErrorText\(error\?\.message\)/);
   });
 
   it('logs a bounded stack so the throwing module is nameable', () => {
@@ -48,6 +51,16 @@ describe('cart error observability', () => {
     for (const forbidden of ['req.body', 'req.user.email', 'email:', 'token', 'password']) {
       expect(block).not.toContain(forbidden);
     }
+  });
+
+  it('routes every logged error string through the scrubber', () => {
+    // Behaviour of the scrubber itself is proven in scrubErrorText.test.mjs
+    // against real Postgres messages; this only pins the WIRING, so a future
+    // edit cannot quietly log a raw message again.
+    expect(source).toContain("import { scrubErrorText } from '../utils/scrubErrorText.mjs'");
+    expect(source).toMatch(/message:\s*scrubErrorText\(error\?\.message\)/);
+    expect(source).toMatch(/parentMessage:\s*scrubErrorText\(/);
+    expect(source).toMatch(/stack:[\s\S]{0,240}scrubErrorText\(/);
   });
 
   it('still returns a generic 500 body to the client (no internals leak)', () => {

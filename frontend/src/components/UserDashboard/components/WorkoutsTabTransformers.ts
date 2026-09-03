@@ -29,10 +29,27 @@ const GROUP_TO_CATEGORY: Record<string, string> = {
   Other: 'Other',
 };
 
+/**
+ * Pull the session rows out of whatever the sessions endpoint returned.
+ *
+ * `sessions` is the FIRST key checked because it is what the canonical endpoint
+ * actually sends: GET /api/workout/sessions is served by workoutRoutes' GET
+ * /sessions (the /api/workout mount is registered before /api/workout/sessions,
+ * so it wins), and workoutController.getWorkoutSessions responds
+ * successResponse(res, { sessions }).
+ *
+ * That key was missing here, so this extractor returned [] for every real
+ * response and the Progress tab rendered its empty state regardless of how much
+ * the member had trained. The existing test fixture used `workouts` and passed —
+ * a fixture written from belief rather than from the endpoint (2026-09-03).
+ * `workouts` is retained for any caller still shaped that way.
+ */
 export function extractWorkoutSessions(payload: unknown): RawSession[] {
   if (Array.isArray(payload)) return payload as RawSession[];
-  if (payload && typeof payload === 'object' && Array.isArray((payload as { workouts?: unknown }).workouts)) {
-    return (payload as { workouts: RawSession[] }).workouts;
+  if (payload && typeof payload === 'object') {
+    const record = payload as { sessions?: unknown; workouts?: unknown };
+    if (Array.isArray(record.sessions)) return record.sessions as RawSession[];
+    if (Array.isArray(record.workouts)) return record.workouts as RawSession[];
   }
   return [];
 }

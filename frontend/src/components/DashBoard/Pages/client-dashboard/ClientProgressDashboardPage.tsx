@@ -15,6 +15,7 @@ import {
 import { useSubscription } from '../../../../hooks/useSubscription';
 import CrystallineLockOverlay from '../../../Shared/CrystallineLockOverlay';
 import ErrorCard from '../../../ui/ErrorCard';
+import { useClientProgressPanels } from './useClientProgressPanels';
 import {
   Card,
   CardTitle,
@@ -67,70 +68,19 @@ const ClientProgressDashboardPage: React.FC = () => {
   const companionPetUserIdSegment = getSafeGamificationIdSegment(user?.id);
   const companionPetUserId = companionPetUserIdSegment ? Number(companionPetUserIdSegment) : null;
   const canRenderCompanionPet = companionPetUserId !== null;
-  const [weeklyRecap, setWeeklyRecap] = useState<WeeklyRecap | null>(null);
-  const [weeklyRecapSettled, setWeeklyRecapSettled] = useState(false);
-  // Distinguishes a recap network error from a legitimately empty recap so the
-  // stats strip does not render "0 workouts / 0d streak" during an outage — an
-  // outage must not look identical to a client who genuinely did nothing.
-  const [weeklyRecapError, setWeeklyRecapError] = useState(false);
-  const [personalRecords, setPersonalRecords] = useState<PersonalRecordView[]>([]);
-  // Same honesty rule as weeklyRecapError: a PR-fetch failure must not render
-  // as "0 PRs" — zero is a real number that means "no records yet".
-  const [personalRecordsError, setPersonalRecordsError] = useState(false);
+  // The two retryable panel fetches live in a hook: this page is subject to the
+  // 300-line cap, and the loaders carry their own supersede-the-previous-attempt
+  // guard that does not belong in a render function.
+  const {
+    weeklyRecap,
+    weeklyRecapSettled,
+    weeklyRecapError,
+    retryWeeklyRecap,
+    personalRecords,
+    personalRecordsError,
+    retryPersonalRecords,
+  } = useClientProgressPanels(authAxios, user?.id);
 
-  // Retry nonces: bumping one re-runs its loader effect. The load lives in the
-  // effect (it owns the isMounted guard); the button owns only the nonce, so a
-  // retry can never race a stale unmounted response. (Blueprint v2 S3 / D2.)
-  const [weeklyRecapAttempt, setWeeklyRecapAttempt] = useState(0);
-  const [personalRecordsAttempt, setPersonalRecordsAttempt] = useState(0);
-  const retryWeeklyRecap = useCallback(() => setWeeklyRecapAttempt((n) => n + 1), []);
-  const retryPersonalRecords = useCallback(() => setPersonalRecordsAttempt((n) => n + 1), []);
-
-  useEffect(() => {
-    let isMounted = true; const cleanup = () => { isMounted = false; };
-    setWeeklyRecapSettled(false);
-    setWeeklyRecapError(false);
-
-    if (!authAxios || !user?.id) {
-      setWeeklyRecap(null);
-      setWeeklyRecapSettled(true);
-      return cleanup;
-    }
-
-    const weeklyRecapUserIdSegment = getSafeGamificationIdSegment(user.id);
-    if (!weeklyRecapUserIdSegment) {
-      setWeeklyRecap(null);
-      setWeeklyRecapSettled(true);
-      return cleanup;
-    }
-
-    loadClientWeeklyRecap(authAxios, weeklyRecapUserIdSegment)
-      .then(recap => {
-        if (!isMounted) return;
-        setWeeklyRecap(recap ?? null);
-      })
-      .catch(() => {
-        if (isMounted) { setWeeklyRecap(null); setWeeklyRecapError(true); }
-      })
-      .finally(() => {
-        if (isMounted) setWeeklyRecapSettled(true);
-      });
-
-    return cleanup;
-  }, [authAxios, user?.id, weeklyRecapAttempt]);
-
-  useEffect(() => {
-    if (!authAxios || !user?.id) return;
-    setPersonalRecordsError(false);
-    // Client-safe namespace: userId is derived from JWT, never from URL.
-    authAxios.get(`/api/client/analytics/personal-records`)
-      .then(res => {
-        const payload = res.data as { data?: unknown; records?: unknown };
-        const records = payload.data ?? payload.records ?? [];
-        setPersonalRecords(normalizeClientPersonalRecords(records));
-      })
-      .catch(() => { setPersonalRecords([]); setPersonalRecordsError(true); });
-  }, [authAxios, user?.id, personalRecordsAttempt]);
 
   const p = profile.data;
   const {

@@ -40,6 +40,7 @@ import {
   NextMoveTitle,
   RetryButton,
   LoadOlderRow,
+  ExtensionErrorNote,
   SectionTitle,
 } from './WorkoutsTabStyles';
 import { ShimmerCard } from './WorkoutsTabStates.styles';
@@ -89,6 +90,15 @@ const WorkoutsTab: React.FC = () => {
   const [sessions, setSessions] = useState<RawSession[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
+  // The page the NEXT extension should ask for. Explicit state, never derived
+  // from sessions.length: a workout logged between two fetches shifts the
+  // offset window, and length-arithmetic then duplicates or skips the boundary
+  // row while the window label claims exactness.
+  const [nextPage, setNextPage] = useState(2);
+  // Extension failures get their OWN channel. `error` drives a full-screen
+  // early return (see below), so routing an extension failure there would wipe
+  // the very window this feature promises to preserve.
+  const [extensionError, setExtensionError] = useState<string | null>(null);
 
   const navigateToLogger = useCallback(() => {
     navigate(getPersonalLogWorkoutDashboardPath());
@@ -105,6 +115,8 @@ const WorkoutsTab: React.FC = () => {
       const list = extractWorkoutSessions(response.data?.data);
 
       setSessions(list);
+      setNextPage(2);
+      setExtensionError(null);
       setHasMore(Boolean(response.data?.data?.hasMore));
       setCategories(transformWorkoutLogs(list));
       setStreak(list.length === 0 ? 0 : calcStreak(list));
@@ -126,23 +138,26 @@ const WorkoutsTab: React.FC = () => {
     if (loadingMore || !hasMore) return;
     try {
       setLoadingMore(true);
-      const nextPage = Math.floor(sessions.length / WORKOUT_PAGE_SIZE) + 1;
+      setExtensionError(null);
       const response = await authAxios.get(WORKOUT_SESSIONS_API_PATH, {
         params: { limit: WORKOUT_PAGE_SIZE, page: nextPage },
       });
       const older = extractWorkoutSessions(response.data?.data);
       const merged = [...sessions, ...older];
       setSessions(merged);
+      setNextPage((p) => p + 1);
       setHasMore(Boolean(response.data?.data?.hasMore));
       setCategories(transformWorkoutLogs(merged));
       setStreak(merged.length === 0 ? 0 : calcStreak(merged));
     } catch {
-      // The window already on screen stays valid; only the extension failed.
-      setError('Unable to load older workouts. Please try again.');
+      // Its OWN channel, deliberately: `error` early-returns the whole tab, so
+      // sending an extension failure there would delete the 50 workouts, charts
+      // and streak the member is looking at. Only the extension failed.
+      setExtensionError('Unable to load older workouts. Please try again.');
     } finally {
       setLoadingMore(false);
     }
-  }, [authAxios, hasMore, loadingMore, sessions]);
+  }, [authAxios, hasMore, loadingMore, nextPage, sessions]);
 
   useEffect(() => {
     fetchWorkouts();
@@ -236,6 +251,13 @@ const WorkoutsTab: React.FC = () => {
               <RetryButton type="button" onClick={loadOlder} disabled={loadingMore}>
                 {loadingMore ? 'Loading…' : 'Load older workouts'}
               </RetryButton>
+            </LoadOlderRow>
+          )}
+          {extensionError && (
+            <LoadOlderRow>
+              <ExtensionErrorNote role="alert" data-testid="extension-error">
+                {extensionError}
+              </ExtensionErrorNote>
             </LoadOlderRow>
           )}
         </>

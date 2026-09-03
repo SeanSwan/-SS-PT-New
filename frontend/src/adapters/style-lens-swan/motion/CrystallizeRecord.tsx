@@ -23,7 +23,7 @@
  *
  * @module adapters/style-lens-swan/motion/CrystallizeRecord
  */
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import styled, { css } from 'styled-components';
 
 export type CrystallizeRecordPhase = 'pending' | 'forming' | 'formed' | 'resting';
@@ -80,7 +80,10 @@ const Chip = styled.div<{ $phase: CrystallizeRecordPhase; $animate: boolean }>`
   min-height: 44px;
   padding: 8px 18px;
   clip-path: ${FACETS};
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
+  /* No border property: clip-path cuts a border at every facet vertex, so the
+     edge this component is named for would render broken at each cut. An inset
+     ring draws the facet edge INSIDE the clip, where the clip cannot reach it. */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-primary, #60C0F0) 34%, transparent);
   background:
     linear-gradient(140deg,
       color-mix(in srgb, var(--bg-elevated, #141419) 78%, transparent),
@@ -130,13 +133,12 @@ const CrystallizeRecord: React.FC<CrystallizeRecordProps> = ({
   delta,
   testId,
 }) => {
-  const [reduced, setReduced] = useState<boolean>(true);
-
-  useEffect(() => {
-    // Read after mount so SSR/no-matchMedia environments start at the settled
-    // frame rather than animating from a state the user never asked for.
-    setReduced(prefersReducedMotion());
-  }, []);
+  // Lazy initialiser: the preference is read during the FIRST render, not in an
+  // effect after it. Reading it after mount painted the settled frame and then
+  // animated backward into pending/forming for every non-reduced-motion user —
+  // a reverse animation on every save. Still fails closed: prefersReducedMotion
+  // returns true when matchMedia is absent or throws.
+  const [reduced] = useState<boolean>(prefersReducedMotion);
 
   const effectivePhase: CrystallizeRecordPhase = reduced ? 'resting' : phase;
 
