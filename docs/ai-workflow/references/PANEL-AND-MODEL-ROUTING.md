@@ -61,6 +61,8 @@ default is unchanged and remains the stock model.
 | `default` (implicit) | `qwen3.8:27b-mtp-q4_K_M` | intact |
 | `uncensored` | `hf.co/JonathanColetti/Qwen3.8-27B-Uncensored-GGUF:Q4_K_M` | 98/100 -> 12/100 |
 
+A short local tag `qwen3.8-uncensored:latest` was created with `ollama cp` so the model reads cleanly in any UI that enumerates Ollama models. It shares blobs with the HF tag, so it costs zero extra disk. The alias map deliberately points at the **HF path**, not this short tag, because the HF path is reproducible from a fresh `ollama pull` on any machine while the short tag is local-only.
+
 Any raw Ollama tag still passes through unchanged, so nothing that worked before
 this change stopped working.
 
