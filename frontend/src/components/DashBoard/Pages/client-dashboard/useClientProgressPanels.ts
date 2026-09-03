@@ -86,8 +86,11 @@ export function useClientProgressPanels(
   }, [authAxios, userId, weeklyRecapAttempt]);
 
   useEffect(() => {
-    if (!authAxios || !userId) return undefined;
+    // Clear FIRST. The early return below used to leave the previous member's
+    // records on screen when the page swapped user without unmounting.
+    setPersonalRecords([]);
     setPersonalRecordsError(false);
+    if (!authAxios || !userId) return undefined;
     let isMounted = true;
     // Client-safe namespace: userId is derived from JWT, never from the URL.
     authAxios.get('/api/client/analytics/personal-records')

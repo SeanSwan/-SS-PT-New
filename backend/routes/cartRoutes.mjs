@@ -28,7 +28,7 @@ import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 // quietly disabling a money-path guard.
 import cartHelpers, { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
 import { resolveUnitPrice, UnpriceableItemError } from '../services/store/itemPricing.mjs';
-import { scrubErrorText } from '../utils/scrubErrorText.mjs';
+import { scrubErrorText, scrubLogMeta } from '../utils/scrubErrorText.mjs';
 import {
   normalizeAuthenticatedUserId,
   safeFindOrCreateActiveCart,
@@ -86,12 +86,22 @@ const toCartErrorMetadata = (error, fallbackCode = 'cart_internal_error') => ({
     : null
 });
 
+/**
+ * The ONE place a cart failure reaches the log — and it scrubs by construction.
+ *
+ * The previous shape scrubbed three named fields at the call site. That is
+ * opt-in, which is exactly how the raw-message defect shipped and exactly how it
+ * would ship again at the next field or the next route: anything a future author
+ * adds to `metadata` bypasses the scrub silently. Routing the WHOLE object
+ * through scrubLogMeta means a new field is safe whether or not anyone
+ * remembered. (GLM 5.3 hostile round 2, ONE THING.)
+ */
 const logCartError = (message, error, req, metadata = {}) => {
-  logger.error(message, {
+  logger.error(message, scrubLogMeta({
     userId: req?.authUserId,
     ...metadata,
     ...toCartErrorMetadata(error)
-  });
+  }));
 };
 
 const getOptionalProductVariant = () => {

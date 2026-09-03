@@ -10,6 +10,10 @@ export interface LogEntry {
 }
 
 export interface RawSession {
+  /** Server row id. Optional because older/normalised shapes omit it; the
+   *  pagination merge dedupes on it and KEEPS any row that lacks one rather
+   *  than dropping a workout it cannot identify. */
+  id?: string | number;
   logs?: LogEntry[];
   WorkoutLogs?: LogEntry[];
   completedAt?: string;

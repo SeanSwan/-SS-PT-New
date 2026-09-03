@@ -57,8 +57,11 @@ describe('cart error observability', () => {
     // Behaviour of the scrubber itself is proven in scrubErrorText.test.mjs
     // against real Postgres messages; this only pins the WIRING, so a future
     // edit cannot quietly log a raw message again.
-    expect(source).toContain("import { scrubErrorText } from '../utils/scrubErrorText.mjs'");
+    expect(source).toContain("scrubLogMeta } from '../utils/scrubErrorText.mjs'");
     expect(source).toMatch(/message:\s*scrubErrorText\(error\?\.message\)/);
+    // The boundary is the point: the whole metadata object is scrubbed, so a
+    // field a future author adds cannot bypass the scrub by being forgotten.
+    expect(source).toMatch(/logger\.error\(message, scrubLogMeta\(\{/);
     expect(source).toMatch(/parentMessage:\s*scrubErrorText\(/);
     expect(source).toMatch(/stack:[\s\S]{0,240}scrubErrorText\(/);
   });

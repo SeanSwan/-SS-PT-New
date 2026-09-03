@@ -91,4 +91,36 @@ describe('workouts history extension failure', () => {
     // page 1 forever. The counter advances regardless of how many rows returned.
     await waitFor(() => expect(authGet.mock.calls.some((c) => c[1].params.page === 3)).toBe(true));
   });
+
+  it('does not duplicate a row the shifting offset window repeats', async () => {
+    // Offset pagination has a moving boundary: a workout logged between page 1
+    // and "Load older" pushes every row down, so page 2 legitimately repeats a
+    // row already on screen. Merging blind gives duplicate React keys and feeds
+    // the streak calculation the same day twice. (GLM 5.3 round 2, finding 5.)
+    respondByPage({
+      1: ok([session(1), session(2)], true),
+      2: ok([session(2), session(3)], false),  // session(2) repeats
+    });
+
+    render(<WorkoutsTab />);
+    fireEvent.click(await screen.findByRole('button', { name: /load older workouts/i }));
+
+    // 3 distinct sessions loaded, not 4 — the repeat is dropped, not shown twice.
+    await waitFor(() =>
+      expect(screen.getByTestId('chart-window-note')).toHaveTextContent(/all 3 workouts/i));
+  });
+
+  it('a double click cannot fire the same page twice', async () => {
+    respondByPage({ 1: ok([session(1)], true), 2: ok([session(2)], true), 3: ok([session(3)], false) });
+
+    render(<WorkoutsTab />);
+    const button = await screen.findByRole('button', { name: /load older workouts/i });
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    await waitFor(() => expect(authGet.mock.calls.some((c) => c[1]?.params?.page === 2)).toBe(true));
+    const pageTwoCalls = authGet.mock.calls.filter((c) => c[1]?.params?.page === 2);
+    expect(pageTwoCalls).toHaveLength(1);
+  });
 });
+

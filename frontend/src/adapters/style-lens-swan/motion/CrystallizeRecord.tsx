@@ -23,7 +23,7 @@
  *
  * @module adapters/style-lens-swan/motion/CrystallizeRecord
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styled, { css } from 'styled-components';
 
 export type CrystallizeRecordPhase = 'pending' | 'forming' | 'formed' | 'resting';
@@ -133,12 +133,25 @@ const CrystallizeRecord: React.FC<CrystallizeRecordProps> = ({
   delta,
   testId,
 }) => {
-  // Lazy initialiser: the preference is read during the FIRST render, not in an
-  // effect after it. Reading it after mount painted the settled frame and then
-  // animated backward into pending/forming for every non-reduced-motion user —
-  // a reverse animation on every save. Still fails closed: prefersReducedMotion
-  // returns true when matchMedia is absent or throws.
-  const [reduced] = useState<boolean>(prefersReducedMotion);
+  // Read during the FIRST render (lazy initialiser), so the first paint is
+  // already correct — reading it in an effect painted the settled frame and then
+  // animated BACKWARD into pending/forming on every save. Then SUBSCRIBE, so a
+  // member who flips the OS setting mid-session is honoured instead of being
+  // stuck with whatever was true at mount. Fails closed both times:
+  // prefersReducedMotion returns true when matchMedia is absent or throws.
+  const [reduced, setReduced] = useState<boolean>(prefersReducedMotion);
+
+  useEffect(() => {
+    let query: MediaQueryList;
+    try {
+      query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    } catch {
+      return undefined;
+    }
+    const onChange = () => setReduced(query.matches);
+    query.addEventListener?.('change', onChange);
+    return () => query.removeEventListener?.('change', onChange);
+  }, []);
 
   const effectivePhase: CrystallizeRecordPhase = reduced ? 'resting' : phase;
 

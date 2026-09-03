@@ -16,7 +16,7 @@
  * Children: WorkoutsTabSummary, WorkoutsTabCharts, WorkoutsTabEmptyState.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart3, Dumbbell, MessageCircle, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
@@ -95,6 +95,9 @@ const WorkoutsTab: React.FC = () => {
   // offset window, and length-arithmetic then duplicates or skips the boundary
   // row while the window label claims exactness.
   const [nextPage, setNextPage] = useState(2);
+  // A click fires before the disabled prop re-renders, and the closure is shared,
+  // so two clicks can request the same page twice. The ref settles synchronously.
+  const extendInFlight = useRef(false);
   // Extension failures get their OWN channel. `error` drives a full-screen
   // early return (see below), so routing an extension failure there would wipe
   // the very window this feature promises to preserve.
@@ -135,7 +138,8 @@ const WorkoutsTab: React.FC = () => {
    * member who loads more history sees their trends extend rather than reset.
    */
   const loadOlder = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore || extendInFlight.current) return;
+    extendInFlight.current = true;
     try {
       setLoadingMore(true);
       setExtensionError(null);
@@ -143,7 +147,17 @@ const WorkoutsTab: React.FC = () => {
         params: { limit: WORKOUT_PAGE_SIZE, page: nextPage },
       });
       const older = extractWorkoutSessions(response.data?.data);
-      const merged = [...sessions, ...older];
+      // Offset pagination has a moving boundary: a workout logged between page 1
+      // and this request shifts every row down, so page 2 can legitimately repeat
+      // a row already on screen. Merging blind gives duplicate React keys and
+      // feeds calcStreak the same day twice. Dedupe by id, first occurrence wins.
+      const seen = new Set(sessions.map((s) => s.id).filter((id) => id !== undefined));
+      const merged = [
+        ...sessions,
+        // A row with no id cannot be matched, so it is KEPT: dropping a workout
+        // we merely failed to identify would be a worse bug than showing it twice.
+        ...older.filter((s) => s.id === undefined || !seen.has(s.id)),
+      ];
       setSessions(merged);
       setNextPage((p) => p + 1);
       setHasMore(Boolean(response.data?.data?.hasMore));
@@ -155,6 +169,7 @@ const WorkoutsTab: React.FC = () => {
       // and streak the member is looking at. Only the extension failed.
       setExtensionError('Unable to load older workouts. Please try again.');
     } finally {
+      extendInFlight.current = false;
       setLoadingMore(false);
     }
   }, [authAxios, hasMore, loadingMore, nextPage, sessions]);

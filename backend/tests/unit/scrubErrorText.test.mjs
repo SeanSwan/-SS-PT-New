@@ -9,7 +9,7 @@
  * of reading the source.
  */
 import { describe, it, expect } from 'vitest';
-import { scrubErrorText, SCRUB_MAX_LENGTH } from '../../utils/scrubErrorText.mjs';
+import { scrubErrorText, scrubLogMeta, SCRUB_MAX_LENGTH } from '../../utils/scrubErrorText.mjs';
 
 describe('scrubErrorText', () => {
   it('redacts an email PG quoted back in a type error', () => {
@@ -21,8 +21,8 @@ describe('scrubErrorText', () => {
   });
 
   it('redacts the value half of a unique-violation detail, keeping the column', () => {
-    const out = scrubErrorText('Key (email)=(member@swanstudios.com) already exists.');
-    expect(out).not.toContain('member@swanstudios.com');
+    const out = scrubErrorText('Key (email)=(member@example.com) already exists.');
+    expect(out).not.toContain('member@example.com');
     expect(out).toContain('(email)');
     expect(out).toContain('already exists');
   });
@@ -44,7 +44,10 @@ describe('scrubErrorText', () => {
   });
 
   it('caps length so one error cannot flood the log', () => {
-    expect(scrubErrorText('x'.repeat(5000))).toHaveLength(SCRUB_MAX_LENGTH);
+    // Real words, not a 5000-char blob: a blob is itself an opaque token and is
+    // redacted to a short marker, which would test the wrong rule.
+    const long = 'column does not exist in relation orders '.repeat(200);
+    expect(scrubErrorText(long)).toHaveLength(SCRUB_MAX_LENGTH);
   });
 
   it('returns null for a missing or empty message rather than the string "undefined"', () => {
@@ -57,5 +60,65 @@ describe('scrubErrorText', () => {
   it('leaves an already-clean message intact', () => {
     const clean = 'Models cache not initialized. Call initializeModelsCache() during server startup.';
     expect(scrubErrorText(clean)).toBe(clean);
+  });
+});
+
+describe('scrubErrorText — round 2 hardening', () => {
+  it('redacts a card number written with separators', () => {
+    for (const raw of ['4111 1111 1111 1111', '4111-1111-1111-1111']) {
+      const out = scrubErrorText(`payment ${raw} declined`);
+      expect(out).not.toContain('4111');
+      expect(out).toContain('<redacted-num>');
+    }
+  });
+
+  it('redacts a formatted phone number', () => {
+    const out = scrubErrorText('contact +1 (415) 555-2671 failed');
+    expect(out).not.toContain('555-2671');
+  });
+
+  it('redacts an opaque token (JWT segment, base64 key)', () => {
+    const jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9aaaaaaaaaaaaaaaaaaaa';
+    const out = scrubErrorText(`auth rejected ${jwt}`);
+    expect(out).not.toContain(jwt);
+    expect(out).toContain('<redacted-token>');
+  });
+
+  it('KEEPS a quoted SQL identifier — the constraint name is the diagnosis', () => {
+    const out = scrubErrorText('duplicate key value violates unique constraint "users_email_key"');
+    expect(out).toContain('"users_email_key"');
+    expect(out).toContain('unique constraint');
+  });
+
+  it('still redacts a quoted VALUE that is not an identifier', () => {
+    const out = scrubErrorText('invalid input syntax for type integer: "not a number"');
+    expect(out).not.toContain('not a number');
+    expect(out).toContain('"<redacted>"');
+  });
+
+  it('keeps short numbers that carry diagnosis (ports, PG codes)', () => {
+    expect(scrubErrorText('42703 at port 5432')).toContain('42703');
+  });
+});
+
+describe('scrubLogMeta', () => {
+  it('scrubs every string in the object, including fields nobody remembered', () => {
+    const out = scrubLogMeta({
+      userId: 7,
+      ok: true,
+      message: 'failed for someone@example.com',
+      nested: { detail: 'Key (email)=(a@b.co) already exists' },
+      aFieldAddedLater: 'token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9aaaaaaaaaaaaaaaaaaaa',
+    });
+    expect(out.userId).toBe(7);
+    expect(out.ok).toBe(true);
+    expect(out.message).not.toContain('someone@example.com');
+    expect(out.nested.detail).not.toContain('a@b.co');
+    expect(out.aFieldAddedLater).toContain('<redacted-token>');
+  });
+
+  it('passes non-objects through untouched', () => {
+    expect(scrubLogMeta(null)).toBeNull();
+    expect(scrubLogMeta(undefined)).toBeUndefined();
   });
 });

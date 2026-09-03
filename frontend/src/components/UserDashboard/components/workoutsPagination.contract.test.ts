@@ -25,7 +25,10 @@ describe('workouts pagination', () => {
   });
 
   it('the extension APPENDS rather than replaces, and recomputes over the whole window', () => {
-    expect(tab).toMatch(/const merged = \[\.\.\.sessions, \.\.\.older\]/);
+    // The append is now id-deduped (GLM round 2 finding 5: the offset boundary
+    // moves, so page 2 can repeat a row already on screen). Behaviour is proven
+    // in workoutsExtensionFailure.test.tsx; this pins that it still APPENDS.
+    expect(tab).toMatch(/const merged = \[[\s\S]{0,400}\.\.\.sessions,/);
     expect(tab).toMatch(/setCategories\(transformWorkoutLogs\(merged\)\)/);
     expect(tab).toMatch(/setStreak\(merged\.length === 0 \? 0 : calcStreak\(merged\)\)/);
   });
