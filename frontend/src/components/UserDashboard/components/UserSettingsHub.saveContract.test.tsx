@@ -81,3 +81,58 @@ describe('UserSettingsHub save contract', () => {
     });
   });
 });
+
+/**
+ * Hostile-review additions (2026-08-24). Each of these fails against the
+ * pre-fix component — mutation-verified by reverting the fix and re-running.
+ */
+describe('UserSettingsHub save contract — truth and announcement', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('does NOT report success when a 2xx body says the write did not happen', async () => {
+    // The delegating path (profileService) already treats `success:false` as a failure.
+    // The fallback path checked only the HTTP status, so a 200 that admits it wrote
+    // nothing rendered as "Saved" — the exact Wave-1 bug class, in the branch the
+    // Wave-1 P0 actually routed through.
+    (apiService.put as ReturnType<typeof vi.fn>).mockResolvedValue({
+      status: 200,
+      data: { success: false, message: 'Nothing was written' },
+    });
+
+    render(<UserSettingsHub profile={profile} />);
+    await clickSave();
+
+    await waitFor(() => expect(apiService.put).toHaveBeenCalled());
+    // The string appears twice by design — once in the live region for assistive tech,
+    // once as the aria-hidden visible copy. Assert the live region: it is the contract.
+    const live = screen.getByRole('status');
+    await waitFor(() => expect(live).toHaveTextContent('Nothing was written'));
+    expect(live).not.toHaveTextContent('Saved');
+  });
+
+  it('announces the save result in a live region', async () => {
+    // A sighted user sees a coloured span. Before this, a screen-reader user was
+    // told nothing at all — on the surface whose whole purpose is to stop lying
+    // about whether a save happened.
+    (apiService.put as ReturnType<typeof vi.fn>).mockResolvedValue({ status: 200, data: {} });
+
+    render(<UserSettingsHub profile={profile} />);
+    const live = screen.getByRole('status');
+    expect(live).toHaveAttribute('aria-live', 'polite');
+
+    await clickSave();
+    await waitFor(() => expect(live).toHaveTextContent('Saved'));
+  });
+
+  it('keeps transport-level failures generic instead of leaking axios strings', async () => {
+    const onUpdateProfile = vi.fn().mockRejectedValue(new Error('Request failed with status code 500'));
+
+    render(<UserSettingsHub profile={profile} onUpdateProfile={onUpdateProfile} />);
+    await clickSave();
+
+    await waitFor(() => expect(onUpdateProfile).toHaveBeenCalled());
+    const live = screen.getByRole('status');
+    await waitFor(() => expect(live).toHaveTextContent('Unable to save settings'));
+    expect(screen.queryByText(/status code 500/i)).not.toBeInTheDocument();
+  });
+});

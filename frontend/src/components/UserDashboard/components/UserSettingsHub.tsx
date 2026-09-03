@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Bell, Eye, HeartPulse, Save, Shield, UserCog } from 'lucide-react';
@@ -115,7 +115,15 @@ const UserSettingsHub: React.FC<UserSettingsHubProps> = ({ profile, onUpdateProf
     }));
   }, []);
 
+  // The 'Saved' flash is cleared on a timer; without this the timer outlives the
+  // component and fires setState after unmount when the user navigates within 3s.
+  const saveTimerRef = useRef<number | null>(null);
+  useEffect(() => () => { if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current); }, []);
+
   const handleSave = useCallback(async () => {
+    // Cancel a pending clear: without this, a save within 3s of the previous one
+    // inherits the old timer, which wipes the NEW status early.
+    if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
     setIsSaving(true);
     setSaveStatus(null);
 
@@ -149,11 +157,18 @@ const UserSettingsHub: React.FC<UserSettingsHubProps> = ({ profile, onUpdateProf
       } else {
         const res = await apiService.put('/api/profile', payload, { validateStatus: status => status < 500 });
         if (res.status < 200 || res.status >= 300) throw new Error(res.data?.message || 'Unable to save settings');
+        // profileService.updateProfile treats `success === false` as a failure even on a 2xx.
+        // This branch must not be the weaker path: a 200 that says it did not write is not a save.
+        if (res.data?.success === false) throw new Error(res.data?.message || 'Unable to save settings');
       }
       setSaveStatus('Saved');
-      window.setTimeout(() => setSaveStatus(null), 3000);
-    } catch {
-      setSaveStatus('Unable to save settings');
+      saveTimerRef.current = window.setTimeout(() => setSaveStatus(null), 3000);
+    } catch (err) {
+      // The server's reason was built at the throw site; showing a generic string
+      // discarded it. Transport-level strings stay generic — they are not user-facing.
+      const raw = err instanceof Error ? err.message : '';
+      const transportNoise = /^(request failed with status|network error|timeout)/i.test(raw);
+      setSaveStatus(raw && !transportNoise ? raw : 'Unable to save settings');
     } finally {
       setIsSaving(false);
     }
@@ -228,7 +243,10 @@ const UserSettingsHub: React.FC<UserSettingsHubProps> = ({ profile, onUpdateProf
 
       <SaveBar>
         <SaveButton type="button" onClick={handleSave} disabled={isSaving}><Save size={16} />{isSaving ? 'Saving...' : 'Save Settings'}</SaveButton>
-        {saveStatus && <Status $good={saveStatus === 'Saved'}>{saveStatus}</Status>}
+        {/* Always mounted: a live region inserted at the same moment as its text is
+            unreliably announced. The visible copy is aria-hidden to avoid a double read. */}
+        <LiveRegion role="status" aria-live="polite">{saveStatus ?? ''}</LiveRegion>
+        {saveStatus && <Status aria-hidden="true" $good={saveStatus === 'Saved'}>{saveStatus}</Status>}
       </SaveBar>
     </Wrap>
   );
@@ -254,8 +272,9 @@ const Input = styled.input`width:100%; min-height:44px; padding:.7rem .8rem; bor
 const TextArea = styled.textarea`width:100%; min-height:86px; padding:.7rem .8rem; border-radius:10px; border:1px solid rgba(96,192,240,.16); background:rgba(10,10,20,.72); color:var(--text-primary,#E0ECF4); resize:vertical;`;
 const Select = styled.select`width:100%; min-height:44px; padding:.7rem .8rem; border-radius:10px; border:1px solid rgba(96,192,240,.16); background:rgba(10,10,20,.92); color:var(--text-primary,#E0ECF4);`;
 const ToggleRow = styled.div`display:flex; align-items:center; justify-content:space-between; gap:1rem; min-height:48px; border-bottom:1px solid rgba(255,255,255,.06); color:var(--text-primary,#E0ECF4);`;
-const Switch = styled.button<{ $on: boolean }>`width:52px; height:30px; min-width:52px; border-radius:999px; border:1px solid ${p=>p.$on?'rgba(96,192,240,.75)':'rgba(255,255,255,.12)'}; background:${p=>p.$on?'linear-gradient(135deg,#60C0F0,#8B5CF6)':'rgba(255,255,255,.08)'}; cursor:pointer; position:relative; &::after{content:''; position:absolute; top:4px; left:${p=>p.$on?'26px':'4px'}; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .18s ease;}`;
+const Switch = styled.button<{ $on: boolean }>`width:52px; height:30px; min-width:52px; border-radius:999px; border:1px solid ${p=>p.$on?'rgba(96,192,240,.75)':'rgba(255,255,255,.12)'}; background:${p=>p.$on?'linear-gradient(135deg,#60C0F0,#8B5CF6)':'rgba(255,255,255,.08)'}; cursor:pointer; position:relative; &::before{content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:100%; height:44px;} &::after{content:''; position:absolute; top:4px; left:${p=>p.$on?'26px':'4px'}; width:20px; height:20px; border-radius:50%; background:#fff; transition:left .18s ease;}`;
 const SecondaryButton = styled.button`min-height:44px; padding:0 1rem; border:1px solid rgba(96,192,240,.3); border-radius:10px; background:rgba(96,192,240,.12); color:var(--text-primary,#E0ECF4); font-weight:800; cursor:pointer;`;
 const SaveBar = styled.div`position:sticky; bottom:.75rem; display:flex; align-items:center; gap:.75rem; padding:.85rem; border-radius:16px; border:1px solid rgba(96,192,240,.2); background:rgba(10,10,20,.9); backdrop-filter:blur(16px);`;
 const SaveButton = styled.button`display:inline-flex; align-items:center; gap:.45rem; min-height:44px; padding:0 1.2rem; border:none; border-radius:10px; background:linear-gradient(135deg,#8B5CF6,#60C0F0); color:#fff; font-weight:800; cursor:pointer; &:disabled{opacity:.55; cursor:wait;}`;
 const Status = styled.span<{ $good: boolean }>`color:${p=>p.$good?'#4ADE80':'#FCA5A5'}; font-size:.85rem; font-weight:800;`;
+const LiveRegion = styled.span`position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0;`;
