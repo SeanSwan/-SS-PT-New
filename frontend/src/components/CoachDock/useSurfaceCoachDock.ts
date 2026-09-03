@@ -65,6 +65,19 @@ export interface UseSurfaceCoachDockArgs {
   pushReceipt: (r: CoachDockReceiptInput) => void;
 }
 
+export type ConfirmationTier = 'fire_and_forget' | 'read_back' | 'deliberate' | 'refusal';
+
+/** What the dock needs to render the sheet in place (card 1.3). */
+export interface PendingConfirmation {
+  operationId: string;
+  tier: ConfirmationTier;
+  physical: boolean;
+  isDestructive: boolean;
+  affectedCount: number;
+  /** Kept so a burned/expired approval can be re-issued without re-typing. */
+  sourceMessage: string;
+}
+
 export function useSurfaceCoachDock({
   surface, chatTitle, eventPrefix, selectedClientId, requireClient = true, pushReceipt,
 }: UseSurfaceCoachDockArgs) {
@@ -73,6 +86,7 @@ export function useSurfaceCoachDock({
   const [submitting, setSubmitting] = useState(false);
   const [receipts, setReceipts] = useState<CoachDockReceipt[]>([]);
   const [overlayOpen, setOverlayOpen] = useState(false);
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const receiptIdRef = useRef(0);
   const { executeCommand } = useCoachCommand();
   const chat = useAIChat();
@@ -167,8 +181,23 @@ export function useSurfaceCoachDock({
         pushReceipt({ ok: true, text: `Done — ${result.command.replace(/_/g, ' ')}.` });
         return;
       }
-      // confirmation_required / not_wired / debate_started — surface the lane's
-      // own message honestly; confirmations belong to the Coach Command Center.
+      if (result.type === 'confirmation_required') {
+        // CARD 1.3 — the dead end dies here. This branch used to push the lane's
+        // message as TEXT with no control, so a trainer standing in the planner
+        // had to LEAVE the surface and re-find the action in the Coach Command
+        // Center to approve it. On a gym floor that is the end of the ≤2s voice
+        // loop. The sheet now opens in place, carrying the SERVER's tier verdict.
+        setPendingConfirmation({
+          operationId: result.operationId ?? '',
+          tier: (result.tier as ConfirmationTier) ?? 'deliberate',
+          physical: Boolean(result.physical),
+          isDestructive: Boolean(result.isDestructive),
+          affectedCount: Number(result.details?.affectedCount ?? 1),
+          sourceMessage: trimmed,
+        });
+        return;
+      }
+      // not_wired / debate_started — surface the lane's own message honestly.
       pushReceipt({ ok: result.type === 'debate_started', text: result.message });
     } finally {
       setSubmitting(false);
@@ -176,6 +205,21 @@ export function useSurfaceCoachDock({
   }, [chat, chatTitle, dockText, eventPrefix, executeCommand, pushReceipt, requireClient, selectedClientId, submitting, surface]);
 
   return {
+    /**
+     * The client the operator has locked on this surface. Returned (rather than
+     * re-derived in the dock) so all four mounts inherit the chip's cross-client
+     * alarm through the existing `{...dock}` spread — no per-mount edit, and no
+     * second definition of "which client is this about" to drift.
+     */
+    lockedClientId: selectedClientId,
+    pendingConfirmation,
+    dismissConfirmation: useCallback(() => setPendingConfirmation(null), []),
+    /** Re-issue a burned/expired approval from the ORIGINAL utterance. */
+    reissueConfirmation: useCallback(() => {
+      const source = pendingConfirmation?.sourceMessage;
+      setPendingConfirmation(null);
+      if (source) setDockTextState(source);
+    }, [pendingConfirmation]),
     open,
     toggleOpen: useCallback(() => setOpen((prev) => !prev), []),
     dockText,

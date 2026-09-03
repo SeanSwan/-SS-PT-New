@@ -14,6 +14,7 @@
  * Coach tool executions are announced (Kimi a11y law).
  */
 import React, { useEffect, useRef } from 'react';
+import ConfirmationSheet from '../CoachConfirm/ConfirmationSheet';
 import { Mic, Speech } from 'lucide-react';
 import {
   ClientChip, DockBar, DockFooterRow, DockTextarea, DockTitle, DockWrap,
@@ -42,12 +43,31 @@ export interface SurfaceCoachDockProps {
   handleSubmit: () => Promise<void> | void;
   onReceiptAction: (receiptId: string, action: CoachDockReceiptAction) => void;
   receipts: Array<{ id: string; ok: boolean; text: string; action?: CoachDockReceiptAction }>;
+  /**
+   * Card 1.3: a pending approval is confirmed HERE, in the surface the operator
+   * is standing in. Before this the dock rendered the lane's confirmation
+   * message as dead text and the trainer had to leave the planner (or the
+   * logger, or the pain chart) to approve a planner action.
+   */
+  pendingConfirmation?: {
+    operationId: string;
+    tier: 'fire_and_forget' | 'read_back' | 'deliberate' | 'refusal';
+    physical: boolean;
+    isDestructive: boolean;
+    affectedCount: number;
+  } | null;
+  lockedClientId?: number | null;
+  /** Named to match useSurfaceCoachDock's return so `{...dock}` wires all four surfaces. */
+  dismissConfirmation?: () => void;
+  reissueConfirmation?: () => void;
 }
 
 const SurfaceCoachDock: React.FC<SurfaceCoachDockProps> = ({
   title, contextChip, missingContextMessage = null, examplePrompts,
   open, toggleOpen, dockText, setDockText, listening, interim,
   handleVoice, voiceOverlay, submitting, handleSubmit, onReceiptAction, receipts,
+  pendingConfirmation = null, lockedClientId = null,
+  dismissConfirmation, reissueConfirmation,
 }) => {
   const feedRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -92,6 +112,23 @@ const SurfaceCoachDock: React.FC<SurfaceCoachDockProps> = ({
         </DockTitle>
         {contextChip ? <ClientChip>{contextChip}</ClientChip> : null}
       </DockBar>
+      {pendingConfirmation ? (
+        <ConfirmationSheet
+          operationId={pendingConfirmation.operationId}
+          lockedClientId={lockedClientId}
+          presentation="region"
+          input={{
+            tier: pendingConfirmation.tier,
+            isDestructive: pendingConfirmation.isDestructive,
+            affectedCount: pendingConfirmation.affectedCount,
+            physical: pendingConfirmation.physical,
+            irreversible: false,
+          }}
+          onDone={dismissConfirmation}
+          onCancel={dismissConfirmation}
+          onReissue={reissueConfirmation}
+        />
+      ) : null}
       <ReceiptFeed ref={feedRef} role="log" aria-live="polite" aria-label="Swan Coach receipts">
         {receipts.length === 0 && !submitting ? (
           <ReceiptRow $muted>{examplePrompts}</ReceiptRow>
