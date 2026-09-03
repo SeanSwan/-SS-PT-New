@@ -51,7 +51,6 @@ export const WorkoutLogger = React.lazy(() => import('../WorkoutLogger/WorkoutLo
 export const AdminPersonalWorkoutLogger = React.lazy(() => import('../WorkoutLogger/AdminPersonalWorkoutLogger'));
 export const NASMProgressCharts = React.lazy(() => import('../ClientProgressCharts'));
 export const TheAestheticCodex = React.lazy(() => import('../../core/TheAestheticCodex'));
-export const MyClientsView = React.lazy(() => import('../TrainerDashboard/ClientManagement'));
 export const EnhancedWorkoutLogger = React.lazy(() => import('../TrainerDashboard/WorkoutLogging'));
 export const EnhancedClientProgressView = React.lazy(() =>
   import('../TrainerDashboard/ClientProgress').then((module) => ({
@@ -81,7 +80,16 @@ export const ClientCommunityPage = React.lazy(() => import('./Pages/client-dashb
 export const TrainerHomeTab = React.lazy(() => import('./Pages/trainer-dashboard/TrainerHomeTab'));
 export const TrainerEarningsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerEarningsPage'));
 export const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerAssessmentsPage'));
-export const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
+/*
+ * REMOVED 2026-09-03 (Blueprint v2 S9): the lazy exports for MyClientsView and
+ * TrainerVideosPage. Neither had a route in UniversalDashboardLayout.routes.tsx
+ * — /clients serves TrainerClientsWorkspace and /videos serves VideoLibraryPage
+ * below — but both shipped a live export from the shell ALL FOUR roles route
+ * through. MyClientsView's fallback carries a mockClients array and
+ * TrainerVideosPage is placeholder data; one line of routing drift would have
+ * put fake data in front of a trainer. The components and their own barrels are
+ * untouched; only the shell's offer of them is gone.
+ */
 export const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));
 export const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
 export const MyEquipmentPage = React.lazy(() => import('../MyEquipment/MyEquipmentPage'));

@@ -22,11 +22,8 @@ or betrays it.
 surface, zero decoration without meaning. If a screen could pass for a
 template screenshot, it fails.
 
-> Adopted 2026-07-19 (Sean-confirmed) from KIMI-DESIGN-SKILL-REDO, hardened with
-> 6 refinements proven across 7 shipped design-overhaul surfaces (lens, Dashboards,
-> Store, Home, About, Video, Contact) + their cross-cutting review. Prior router
-> version preserved at `SKILL.md.pre-redo`; its ideation gate + pattern library
-> survive as the Appendix below.
+> Adopted 2026-07-19 from KIMI-DESIGN-SKILL-REDO; 6 refinements proven across 7
+> shipped surfaces. Prior version: `SKILL.md.pre-redo`.
 
 ---
 
@@ -82,9 +79,10 @@ everywhere:
 - **Numerals:** `font-variant-numeric: tabular-nums`, always
 - **PR:** gold bloom on numeral + delta (allowlist slot 1)
 - **Reduced motion:** instant swap, no transition
-- Never invent a second celebration (no confetti, no badge rain). Everything
-  records through the Crystallize. Consume the shipped `useCrystallizeTransition`
-  / `CrystallizeOverlay` (no children) — do NOT re-time or re-implement it.
+- Never invent a second celebration. Consume `CrystallizeRecord`
+  (`adapters/style-lens-swan/motion/`); `CelebrationBurst` is its PR bloom. NOT
+  `useCrystallizeTransition` — that is the settings theme-switch, mistaken for
+  this for months (corrected 2026-09-03).
 - **REFINEMENT 1 (reduced-motion is a JS concern, not just CSS):** framer-motion's
   JS-driven entrances are NOT stopped by the `@media (prefers-reduced-motion)`
   guard. Disable them in JS too — `initial={false}`, or seed state to the settled
@@ -205,20 +203,11 @@ change. Taste evidence never overrides law.
   reasoning and returns EMPTY). RELATIVE paths only; serialize consults; a `*/`
   inside a JS block comment prematurely closes it.
 
-## BUILD-EXACT blueprint format
+## BUILD-EXACT blueprint format · FULL-STACK REAL & REVERSIBLE
 
-A builder must make **zero decisions.** Specify: file paths + next-version names ·
-styled-component names, props, token bindings with fallbacks · every state
-(default/hover/focus/active/disabled/loading/empty/error/reduced-motion) · behavior
-at each responsive row · copy verbatim (LAW 10) · exact API endpoint + model fields
-(flag NEW BACKEND if absent) · feature flag name + kill path. If the builder can ask
-a question, the blueprint is incomplete.
-
-## FULL-STACK REAL & REVERSIBLE
-No mocks/lorem/invented shapes — every datum traces to a named API + model. New
-backend is additive only (new endpoints, nullable columns; no destructive
-migrations, no renames). Next-version component + flag always; the old path
-survives until the new one ships clean.
+A builder must make **zero decisions**; every datum traces to a named API + model;
+new backend is additive only; next-version component + flag always. Full contracts:
+`docs/ai-workflow/design-brain/design.md` § Builder contracts.
 
 ---
 
@@ -261,15 +250,11 @@ hardcode `p.theme.colors.*` hex; CLAUDE.md Rule 46 + the shipped architecture wi
 
 ## World Engine fail-closed compatibility
 
-- Deterministic selection uses the exact `world-roulette.v1` algorithm: normalize
-  the UTF-8 seed to NFC, apply SHA-256 rejection sampling, and sort candidates by
-  ASCII before recent-use, family-balance, and replay-receipt rules. Platform PRNG
-  substitution is refused.
-- Palette Law B is non-Swan: its output must never be branded or represented as a
-  Swan product surface.
-- Live M4 is refused on every product and Hermes operations surface.
-- B0 semantic structure, navigation, and the primary action always survive every
-  renderer failure; B1-B3 are progressive enhancement only.
+`world-roulette.v1` selection is exact (NFC seed, SHA-256 rejection sampling, ASCII
+sort before recent-use/family-balance/replay rules — no platform PRNG); Palette Law B
+output is never branded as Swan; live M4 is refused on product and Hermes operations
+surfaces; B0 structure/nav/primary action survive every renderer failure. Full text:
+`docs/ai-workflow/design-brain/design.md` § Builder contracts.
 
 ---
 
@@ -295,26 +280,20 @@ single-property/single-component-bug/explicitly-scoped-fix).** Before any
 styled-components, produce 2-3 distinct concept directions in the thread; Sean
 steers which becomes the implementation. Each concept:
 
-```
-=== CONCEPT DIRECTION [N] ===
-NAME: [evocative — "Glacier Cathedral"]
-WORLD ID: [stable id from worlds.md, or NONE for M0-M3 product work]
-DIRECTION: [one sentence — mood, hierarchy, the ONE impossible phenomenon]
-SIGNATURE MOMENT: [usually the Crystallize; else justify]
-PALETTE LAW: [A Swan-native | B world-native non-Swan]
-STYLE ANCHOR: [Step 3.5 pick — QUALITY facets + movement/era (taste codes may annotate, never replace); or the Step-3 world/lens bind cited as anchor]
-KILL-LIST CHECK: [confirm zero LAW-3 material]
-```
+Each concept states: NAME · WORLD ID (or NONE) · DIRECTION (one sentence: mood,
+hierarchy, the ONE impossible phenomenon) · SIGNATURE MOMENT (usually the
+Crystallize, else justify) · PALETTE LAW (A Swan-native | B world-native) ·
+STYLE ANCHOR (Step 3.5 facets + movement/era, or the Step-3 bind named) ·
+KILL-LIST CHECK (zero LAW-3 material).
 
-Mobbin MCP reference gate applies to net-new pages / major redesigns; see `docs/ai-workflow/design-brain/external-reference-mcp.md` and classify every call P/S/D/X; Inspect and legacy aliases are refused.
-**P (Probe) is the only enabled mode and the default for a named surface.** There is no `I`/Inspect mode — it and every legacy letter are refused with `E_LEGACY_MODE_REFUSED` and are never privilege-mapped, so never name one in a plan, a receipt, or a sweep. S is ambiguous, capped, and disabled by default; D is Sean hand-edit only; X source-corpus intake is blocked absent exact clearance.
-Mark [MOBBIN UNAVAILABLE] and proceed from Swan canon/accepted claims if absent; external references are research only and Swan source docs win.
+Mobbin MCP reference gate applies to net-new pages / major redesigns. **P (Probe)
+is the only enabled mode**; S is capped and off by default, D is Sean-only, X needs
+exact clearance, and `I`/legacy letters are refused (`E_LEGACY_MODE_REFUSED`) — never
+name one anywhere. Absent → `[MOBBIN UNAVAILABLE]`, proceed from Swan canon; external
+references are research only. Full protocol: `docs/ai-workflow/design-brain/external-reference-mcp.md`.
 
-**Pattern library:** the C1-C13 layout/interaction patterns live in
-`SWAN-CINEMATIC-DESIGN-SYSTEM.md`; use them as the composition vocabulary. The
-full pre-redo router (pre-task receipt template, C1-C13 detail, 2026 surface
-standard) is preserved verbatim at `SKILL.md.pre-redo` for reference.
-
----
+**Pattern library:** C1-C13 live in `SWAN-CINEMATIC-DESIGN-SYSTEM.md`. The full
+pre-redo router (receipt template, C1-C13 detail, 2026 surface standard) is at
+`SKILL.md.pre-redo`.
 
 Hold the line: scarcity, physics, one miracle per screen.

@@ -250,3 +250,38 @@ Every data component ships four states. Empty = Cormorant beat (if §7 budget av
 ---
 
 **Bottom line.** The old doc told people what Swan looks like. This one makes it mechanically difficult to ship anything else: the purple button passes contrast because the failing hex can no longer hold text; the rainbow is physics because the lint rejects reversed wavelengths; Cyberforest can't leak because the import doesn't resolve; motion has two speeds because no third duration compiles; and canon has no holes because "pending" is a build error. Taste is still human — but it now judges at crystallization, on record, with the five tests in front of it.
+
+---
+
+## Builder contracts (moved from the router 2026-09-03, Blueprint v2 S9c)
+
+The router carries the LAW and the decision procedure; the long form of these two
+contracts lives here so the router stays inside the 300-line cap it enforces on
+everyone else. Nothing below changed in the move — this is the same text, relocated.
+
+## BUILD-EXACT blueprint format
+
+A builder must make **zero decisions.** Specify: file paths + next-version names ·
+styled-component names, props, token bindings with fallbacks · every state
+(default/hover/focus/active/disabled/loading/empty/error/reduced-motion) · behavior
+at each responsive row · copy verbatim (LAW 10) · exact API endpoint + model fields
+(flag NEW BACKEND if absent) · feature flag name + kill path. If the builder can ask
+a question, the blueprint is incomplete.
+
+## FULL-STACK REAL & REVERSIBLE
+No mocks/lorem/invented shapes — every datum traces to a named API + model. New
+backend is additive only (new endpoints, nullable columns; no destructive
+migrations, no renames). Next-version component + flag always; the old path
+survives until the new one ships clean.
+
+## World Engine fail-closed compatibility
+
+- Deterministic selection uses the exact `world-roulette.v1` algorithm: normalize
+  the UTF-8 seed to NFC, apply SHA-256 rejection sampling, and sort candidates by
+  ASCII before recent-use, family-balance, and replay-receipt rules. Platform PRNG
+  substitution is refused.
+- Palette Law B is non-Swan: its output must never be branded or represented as a
+  Swan product surface.
+- Live M4 is refused on every product and Hermes operations surface.
+- B0 semantic structure, navigation, and the primary action always survive every
+  renderer failure; B1-B3 are progressive enhancement only.
