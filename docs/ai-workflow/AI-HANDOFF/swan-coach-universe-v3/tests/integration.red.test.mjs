@@ -64,3 +64,10 @@ test('S4 R05 daily-form writer accepts the receipt hook at its own transaction b
   assert.match(writer, /persistCoachIntentReceipt/, 'Daily-form writer has no receipt hook');
   assert.match(writer, /transaction,\s*\n\s*\}\);/, 'Receipt hook is not passed the existing transaction');
 });
+test('S5 R06 context reader emits an evidence envelope with fail-closed safety states', () => {
+  const evidence = code(read('backend/services/ai/contextEngine/coachContextEvidence.mjs'));
+  const engine = code(read('backend/services/ai/contextEngine/coachContextEngine.mjs'));
+  assert.match(evidence, /source:\s*status === 'ok' \? 'database' : 'unavailable'/, 'Evidence source is not explicit');
+  assert.match(evidence, /REQUIRED_DOMAIN_UNAVAILABLE/, 'Required-domain failure code is missing');
+  assert.match(engine, /evidence:\s*buildCoachEvidenceEnvelope/, 'Context reader does not return the evidence envelope');
+});

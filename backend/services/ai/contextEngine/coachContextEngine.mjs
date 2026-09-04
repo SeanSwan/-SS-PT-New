@@ -20,6 +20,7 @@ import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE, parseContextClientId }
 import { getTier, getTierDisplay } from '../../../utils/levelingAlgorithm.mjs';
 import { summarizeNutritionLogs } from './coachNutritionContext.mjs';
 import { loadCoachBadgeRows, summarizeCoachBadges } from './coachGamificationContext.mjs';
+import { buildCoachEvidenceEnvelope } from './coachContextEvidence.mjs';
 
 function selectType(sequelize) {
   return sequelize?.QueryTypes?.SELECT || 'SELECT';
@@ -227,7 +228,14 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
     },
   };
 
-  return { ok: true, context, aliasMap, dataQuality, accessVia: access.via };
+  return {
+    ok: true,
+    context,
+    aliasMap,
+    dataQuality,
+    evidence: buildCoachEvidenceEnvelope({ dataQuality, accessVia: access.via }),
+    accessVia: access.via,
+  };
 }
 
 // ── Trainer Day-Sheet (Slice A2) ────────────────────────────────────────────

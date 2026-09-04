@@ -66,9 +66,11 @@ uses the shared ConfirmationSheet. S3 foundation is implemented and verified:
 CoachIntent has a PII-free model, additive migration, central registration, a
 read-only coordinator for claim, completion, failure, and unknown reconciliation,
 and owner/assignment-gated bounded receipt-read routes. S4 now has a deterministic
-workout read-back verifier for IDs, units, sets, ownership, and date. Route-wide
-claim/commit integration, the writer transaction hook, and S5–S11 remain planned
-until their named tests and real caller paths are built.
+workout read-back verifier plus a narrow receipt hook at the daily-form writer's
+transaction boundary. S5a now returns an evidence envelope that preserves degraded
+domain state and blocks dependent plans when required safety data is unavailable.
+Route-wide claim/commit integration, real workout read-back, S5b/S5c, and S6–S11
+remain planned until their named tests and real caller paths are built.
 
 ## What “excellent” means
 

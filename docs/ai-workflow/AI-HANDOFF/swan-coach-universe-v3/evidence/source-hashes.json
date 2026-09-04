@@ -68,6 +68,14 @@
     {
       "source": "backend/services/workout/aiWorkoutDailyFormService.mjs",
       "sha256": "2fba246e7b209d6d99edbc283145396c354f8aada09932dd598f17275055a10d"
+    },
+    {
+      "source": "backend/services/ai/contextEngine/coachContextEvidence.mjs",
+      "sha256": "1967b3188aae5a75bebdd964bdf13b12b94aa0eb1f581825e3b46779b5ffd2ed"
+    },
+    {
+      "source": "backend/services/ai/contextEngine/coachContextEngine.mjs",
+      "sha256": "65fa79a35fc3e12601e1a8cae8a9bdd00991bfaf71ec956052ed3a97b5b47e6b"
     }
   ]
 }
