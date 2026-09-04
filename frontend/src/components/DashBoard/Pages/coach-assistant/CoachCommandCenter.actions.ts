@@ -27,7 +27,6 @@ import type { ConfirmResult } from '../../../../hooks/useCoachCommand';
 
 type CoachCommandChat = Pick<ReturnType<typeof useAIChat>, 'listConversations' | 'loadConversation' | 'newChat' | 'sendMessageWithConversation'>;
 type CoachCommandQueue = { refresh: () => unknown };
-
 type CoachCommandActionProps = {
   activeThread: ConversationSummary | null;
   activeThreadTitle: string;
@@ -67,7 +66,6 @@ type CoachCommandActionProps = {
   setQuickClientName: Dispatch<SetStateAction<string>>;
   setSelectedStatus: Dispatch<SetStateAction<string>>;
 };
-
 export function createCoachCommandCenterActions(props: CoachCommandActionProps) {
   const addLog = (entry: Omit<CommandLogEntry, 'id' | 'at'>) => {
     props.setLogs((current) => [
