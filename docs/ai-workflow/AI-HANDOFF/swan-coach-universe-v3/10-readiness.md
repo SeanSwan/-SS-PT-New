@@ -72,7 +72,7 @@ Final verifier: exit 0, 10 local links resolved, 9 Mermaid blocks with paired
 fences/type headers. Static Edge captures at 414×896, 1440×1000, 2560×1440 and
 3840×2160 had no horizontal overflow. Desktop and phone captures were visually
 inspected. These are wireframe checks, not app responsiveness or interaction QA.
-`git diff --check` passed. The isolated branch contains the S1/S2/S3/S4/S5a runtime
+`git diff --check` passed. The isolated branch contains the S1/S2/S3/S4/S5 boundary
 and test files listed in the implementation receipt; the shared checkout remains untouched.
 
 ## Implementation progress after Sean authorization
@@ -80,16 +80,17 @@ and test files listed in the implementation receipt; the shared checkout remains
 The isolated branch now contains S1 runtime wiring, the S3 ledger foundation, and
 owner/assignment-gated bounded receipt-read routes under `/api/ai-command/intents`.
 S2 policy normalization is green; S4 has a deterministic workout read-back verifier
-and a narrow receipt hook at the daily-form writer transaction boundary; S5a has an
-evidence envelope returned by the existing context reader. Real entity owner
-resolution, S3 atomic write integration, S4 authorized read-back, and S5b/S5c remain open.
+and a narrow receipt hook at the daily-form writer transaction boundary; S5 has an
+evidence envelope, optional provider policy gate, and bounded conversation response
+union. Real entity owner resolution, S3 atomic write integration, S4 authorized
+read-back, full S5 caller/tool-loop adoption, and S6–S11 remain open.
 Fresh evidence: frontend type-check exit 0; focused provenance, catalog, voice,
 confirmation, log-entry, and Command Center suites 59/59 passed; page shell/action
 regressions 23/23 passed; backend CoachIntent service/model/migration contracts
 6/6 passed; receipt-read route tests 3/3 passed; workout read-back verifier 5/5
 passed; existing command safety,
 confirmation, executor, digest, and pending-readback suites 67/67 passed; package
-source sentinels 10/10 passed. The
+source sentinels 12/12 passed. The
 page regression also proves the shared ConfirmationSheet performs one signed
 confirm/cancel transport and the transcript only records that result. These checks
 do not claim a live database migration, route-wide intent transaction integration,
