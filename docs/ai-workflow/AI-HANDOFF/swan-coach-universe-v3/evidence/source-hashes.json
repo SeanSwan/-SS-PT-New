@@ -7,7 +7,7 @@
     },
     {
       "source": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.actions.ts",
-      "sha256": "9d6a301b9d9967a4ac1ce2ab16dce61e746b0624e06dcf908a6783c21f920ed6"
+      "sha256": "5e7469d63f38056b2bfb7562b3c5ede0bc1fcbdddfe158ff1e84f64b5bd08b2d"
     },
     {
       "source": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandLogEntry.tsx",
