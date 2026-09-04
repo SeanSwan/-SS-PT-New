@@ -1,4 +1,5 @@
 import type { CommandLogConfirmation, CommandLogEntry } from './CoachCommandCenter.data';
+import type { ConfirmResult } from '../../../../hooks/useCoachCommand';
 
 export type LogActor = CommandLogEntry['actor'];
 
@@ -32,8 +33,14 @@ export type FormattedLogBody = {
 
 export type CoachCommandLogEntryProps = {
   entry: CommandLogEntry;
-  onCancelCommand?: (confirmation: CommandLogConfirmation) => Promise<void>;
-  onConfirmCommand?: (confirmation: CommandLogConfirmation) => Promise<{ success: boolean; error?: string }>;
+  onCancelCommand?: (
+    confirmation: CommandLogConfirmation,
+    options?: { alreadyCancelled?: boolean },
+  ) => Promise<void>;
+  onConfirmCommand?: (
+    confirmation: CommandLogConfirmation,
+    result?: ConfirmResult,
+  ) => Promise<{ success: boolean; error?: string }>;
   onRetryMessage?: (message: string) => void;
   onSpeak?: (text: string) => void;
   workoutLoggerRoute?: string | null;

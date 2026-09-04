@@ -1,10 +1,17 @@
 ---
 decision: "SWAN JARVIS blueprint v2 (Fable 5.1) — decision-complete execution spec: every remaining slice is a BUILD CARD (files, contracts, pre-made decisions, RED tests, acceptance, rollback) so Opus 5 builds Fable's vision without re-deciding anything. Supersedes v1 after a 5.1 hostile pass found the 5.0 boot gate decorative and the scope law over-refusing."
-status: open
+status: superseded-for-future-planning
+superseded_by: docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/README.md
 supersedes: docs/ai-workflow/blueprints/SWAN-JARVIS-BEYOND-BLUEPRINT-2026-09-01.md
 ---
 
 # SWAN JARVIS — BLUEPRINT v2 (2026-09-02, Fable 5.1 — the Opus execution spec)
+
+> **2026-09-04 supersession:** use [Universe V3](../AI-HANDOFF/swan-coach-universe-v3/README.md)
+> for future Luna work. The historical body below is preserved, not current build
+> authority. V3 corrects incomplete mounts, lost voice provenance, and unsafe
+> timeout/reissue assumptions; it preserves the implemented September repairs.
+> Neither this document nor V3 authorizes implementation, flag flips or deployment.
 
 > **You are Opus 5. You are the builder, not the architect.** Every decision below was
 > made against the real code on `claude/jarvis-p0-2-security-20260902` (31 commits over

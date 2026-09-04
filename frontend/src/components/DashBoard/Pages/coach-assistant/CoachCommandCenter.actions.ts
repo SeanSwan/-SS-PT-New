@@ -22,6 +22,8 @@ import { INITIAL_COMMAND_LOGS, type CommandLogConfirmation, type CommandLogEntry
 import { buildCoachCommandTitle } from './CoachCommandCenter.commandTitle';
 import { buildRouteScopedCoachPrompt, getConversationTitle } from './CoachCommandCenter.logic';
 import type { CoachChatRouteRequestContext, CoachCommandRouteContext, DrawerSide } from './CoachCommandCenter.types';
+import type { CoachCommandInputMode } from '../../../../hooks/coachInputOrigin';
+import type { ConfirmResult } from '../../../../hooks/useCoachCommand';
 
 type CoachCommandChat = Pick<ReturnType<typeof useAIChat>, 'listConversations' | 'loadConversation' | 'newChat' | 'sendMessageWithConversation'>;
 type CoachCommandQueue = { refresh: () => unknown };
@@ -35,6 +37,7 @@ type CoachCommandActionProps = {
   commandLaneEnabled: boolean;
   cancelCommand: CancelCoachCommand;
   commandText: string;
+  inputMode: CoachCommandInputMode;
   commandTextRef: RefObject<HTMLTextAreaElement>;
   confirmCommand: ConfirmCoachCommand;
   executeCommand: ExecuteCoachCommand;
@@ -156,6 +159,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
       const commandResult = await props.executeCommand(trimmed, {
         selectedClientId: props.routeClientId,
         routeContext: props.routeCommandContext,
+        inputMode: props.inputMode,
       });
       if (commandResult.type === 'error') {
         addLog({
@@ -214,7 +218,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     if (!trimmed) return;
     await submitCoachMessage(trimmed);
   };
-
   const handleRetryMessage = async (message: string) => {
     const trimmed = message.trim();
     if (!trimmed) return;
@@ -222,11 +225,10 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     if (props.isBusy?.()) return props.setSelectedStatus('Wait for the current message to finish, then retry');
     await submitCoachMessage(trimmed);
   };
-
-  const handleConfirmCommand = async (confirmation: CommandLogConfirmation): Promise<CommandConfirmationResult> => {
+  const handleConfirmCommand = async (confirmation: CommandLogConfirmation, sheetResult?: ConfirmResult): Promise<CommandConfirmationResult> => {
     if (!confirmation.operationId) return { success: false, error: 'No pending operation id was returned.' };
-    // 'tap': the transcript card's Confirm button (M3 channel split).
-    const result = await props.confirmCommand(confirmation.operationId, undefined, 'tap');
+    // ConfirmationSheet owns the signed transport; this records its result without confirming twice.
+    const result = sheetResult || await props.confirmCommand(confirmation.operationId, undefined, 'tap');
     if (!result.success) {
       props.setSelectedStatus('Command confirmation failed');
       addLog({
@@ -248,9 +250,8 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     });
     return { success: true };
   };
-
-  const handleCancelCommand = async (confirmation: CommandLogConfirmation): Promise<void> => {
-    if (confirmation.operationId) await props.cancelCommand(confirmation.operationId);
+  const handleCancelCommand = async (confirmation: CommandLogConfirmation, options?: { alreadyCancelled?: boolean }): Promise<void> => {
+    if (confirmation.operationId && !options?.alreadyCancelled) await props.cancelCommand(confirmation.operationId);
     props.setSelectedStatus('Command cancelled');
     addLog({
       actor: 'system',
@@ -259,7 +260,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
       attachments: [confirmation.command, 'cancelled'],
     });
   };
-
   const handleReviewIntake = () => {
     props.setSelectedStatus('Intake review lane ready');
     addLog({

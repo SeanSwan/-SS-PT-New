@@ -8,7 +8,8 @@
  */
 import { useState } from 'react';
 import CoachActionProposalCard from './CoachActionProposalCard';
-import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
+import { ExecutionResultCard } from './CoachCommandCards';
+import ConfirmationSheet from '../../../CoachConfirm/ConfirmationSheet';
 import {
   AccessHandoffCard,
   AccessHandoffHeader,
@@ -34,6 +35,7 @@ import {
   commandLogAccessHandoffLink,
   commandLogAccessHandoffTitle,
 } from './CoachCommandCenter.accessHandoff';
+import type { ConfirmResult } from '../../../../hooks/useCoachCommand';
 
 export { formatCommandLogBody } from './CoachCommandLogEntry.format';
 
@@ -42,6 +44,27 @@ function formatLogTime(at?: string): string | null {
   const parsed = new Date(at);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+const CONFIRM_RESULT_TYPES = new Set<ConfirmResult['type']>([
+  'executed', 'error', 'not_wired', 'frontend_dispatch', 'debate_started',
+]);
+
+function normalizeSheetResult(body: unknown, confirmation: NonNullable<CoachCommandLogEntryProps['entry']['commandConfirmation']>): ConfirmResult {
+  const source = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+  const rawType = typeof source.type === 'string' ? source.type as ConfirmResult['type'] : 'executed';
+  const type = CONFIRM_RESULT_TYPES.has(rawType) ? rawType : 'executed';
+  const rawResult = source.result;
+  return {
+    success: source.success !== false,
+    type,
+    message: typeof source.message === 'string' ? source.message : '',
+    result: rawResult && typeof rawResult === 'object' ? rawResult as Record<string, unknown> : null,
+    command: typeof source.command === 'string' ? source.command : confirmation.command,
+    event: typeof source.event === 'string' ? source.event : undefined,
+    payload: source.payload && typeof source.payload === 'object' ? source.payload as Record<string, unknown> : undefined,
+    dispatched: typeof source.dispatched === 'boolean' ? source.dispatched : undefined,
+  };
 }
 
 function CoachCommandLogEntry({
@@ -141,21 +164,26 @@ function CoachCommandLogEntry({
         ) : null}
       </LogBody>
 
-      {confirmation && onConfirmCommand && onCancelCommand ? (
-        <ConfirmationCard
+      {confirmation?.operationId && onConfirmCommand && onCancelCommand ? (
+        <ConfirmationSheet
           operationId={confirmation.operationId}
-          command={confirmation.command}
-          params={confirmation.params}
-          client={confirmation.client}
-          details={confirmation.details}
-          expiresAt={confirmation.expiresAt}
-          isDestructive={confirmation.isDestructive}
-          onConfirm={async () => onConfirmCommand(confirmation)}
-          onCancel={async () => onCancelCommand(confirmation)}
+          lockedClientId={confirmation.client?.id ?? null}
+          presentation="dialog"
+          input={{
+            tier: confirmation.tier || (confirmation.isDestructive ? 'deliberate' : 'read_back'),
+            isDestructive: confirmation.isDestructive,
+            affectedCount: Number(confirmation.details?.affectedCount ?? 1),
+            physical: Boolean(confirmation.physical),
+            irreversible: Boolean(confirmation.details?.irreversible),
+          }}
+          onDone={(result) => { void onConfirmCommand(confirmation, normalizeSheetResult(result, confirmation)); }}
+          onCancel={() => { void onCancelCommand(confirmation, { alreadyCancelled: true }); }}
           onReissue={confirmation.sourceMessage && onRetryMessage
             ? () => onRetryMessage(confirmation.sourceMessage as string)
             : undefined}
         />
+      ) : confirmation ? (
+        <div role="status">Swan Coach did not return a pending operation id. No action was run.</div>
       ) : null}
 
       {entry.proposals?.map((proposal) => (

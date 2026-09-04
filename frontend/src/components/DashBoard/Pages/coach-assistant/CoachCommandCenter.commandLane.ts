@@ -1,5 +1,6 @@
 import { isCommandLaneCandidate } from '../../../../hooks/aiMessageLimits';
 import type { CommandResponse, ConfirmResult } from '../../../../hooks/useCoachCommand';
+import type { CoachCommandInputMode } from '../../../../hooks/coachInputOrigin';
 import type { CommandLogConfirmation, CommandLogResult } from './CoachCommandCenter.data';
 import { commandResultSummary } from './utils/coachCommandResultSummary';
 import { appendWorkoutPlannerDebateJobId } from '../admin-workout-planner/workoutPlannerDebateJob';
@@ -10,10 +11,15 @@ export type ExecuteCoachCommand = (
     selectedClientId?: number | null;
     previousContext?: string;
     routeContext?: Record<string, unknown> | null;
+    inputMode?: CoachCommandInputMode;
   },
 ) => Promise<CommandResponse>;
 
-export type ConfirmCoachCommand = (operationId: string) => Promise<ConfirmResult>;
+export type ConfirmCoachCommand = (
+  operationId: string,
+  renderedDigest?: string,
+  confirmChannel?: 'tap' | 'keyboard' | 'voice',
+) => Promise<ConfirmResult>;
 export type CancelCoachCommand = (operationId: string) => Promise<void>;
 export type CommandConfirmationResult = { success: boolean; error?: string };
 
@@ -82,6 +88,8 @@ export function commandLaneConfirmation(result: CommandLaneHandledResponse, sour
     details: result.details,
     expiresAt: result.expiresAt,
     isDestructive: result.isDestructive,
+    ...(result.tier ? { tier: result.tier } : {}),
+    ...(result.physical !== undefined ? { physical: result.physical } : {}),
     ...(sourceMessage ? { sourceMessage } : {}),
   };
 }

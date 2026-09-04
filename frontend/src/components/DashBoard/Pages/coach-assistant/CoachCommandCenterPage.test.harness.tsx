@@ -22,6 +22,8 @@ const coachCommandCenterMocks = vi.hoisted(() => ({
   useGlobalClientMock: vi.fn(),
   setActiveClientMock: vi.fn(),
   clearActiveClientMock: vi.fn(),
+  apiGetMock: vi.fn(),
+  apiPostMock: vi.fn(),
 }));
 
 export const {
@@ -41,7 +43,16 @@ export const {
   useGlobalClientMock,
   setActiveClientMock,
   clearActiveClientMock,
+  apiGetMock,
+  apiPostMock,
 } = coachCommandCenterMocks;
+
+vi.mock('../../../../services/api.service', () => ({
+  default: {
+    get: coachCommandCenterMocks.apiGetMock,
+    post: coachCommandCenterMocks.apiPostMock,
+  },
+}));
 
 vi.mock('../../../../hooks/useCoachIntakeQueue', () => ({
   default: coachCommandCenterMocks.useCoachIntakeQueueMock,
@@ -218,6 +229,8 @@ export function resetCoachCommandCenterMocks() {
   useGlobalClientMock.mockReset();
   setActiveClientMock.mockReset();
   clearActiveClientMock.mockReset();
+  apiGetMock.mockReset();
+  apiPostMock.mockReset();
 
   listConversationsMock.mockResolvedValue([]);
   loadConversationMock.mockResolvedValue(null);
@@ -231,6 +244,42 @@ export function resetCoachCommandCenterMocks() {
   executeCommandMock.mockResolvedValue({ type: 'fallback_to_chat' });
   confirmCommandMock.mockResolvedValue({ success: true, type: 'executed', message: '', result: null });
   cancelCommandMock.mockResolvedValue(undefined);
+  apiGetMock.mockImplementation(async (url: string) => {
+    if (url === '/api/ai-command/commands') return { data: { commands: [] } };
+    if (url.startsWith('/api/ai-command/pending/')) {
+      const operationId = url.split('/').pop() || 'unknown';
+      const match = operationId.match(/(\d+)$/);
+      const sessionId = Number(match?.[1] || 42);
+      return {
+        data: {
+          success: true,
+          operation: {
+            id: operationId,
+            commandType: 'cancel_session',
+            description: `Cancel session ${sessionId}`,
+            params: { sessionId, clientId: 77 },
+            affectedCount: 1,
+            clientId: 77,
+          },
+        },
+      };
+    }
+    return { data: {} };
+  });
+  apiPostMock.mockImplementation(async (url: string, body?: { operationId?: string }) => {
+    if (url === '/api/ai-command/confirm') {
+      const match = body?.operationId?.match(/(\d+)$/);
+      return {
+        data: {
+          success: true,
+          type: 'executed',
+          command: 'cancel_session',
+          result: { sessionId: Number(match?.[1] || 42), refundIssued: true },
+        },
+      };
+    }
+    return { data: { success: true } };
+  });
   createQuickCoachCommandClientMock.mockResolvedValue({
     client: {
       id: 77,

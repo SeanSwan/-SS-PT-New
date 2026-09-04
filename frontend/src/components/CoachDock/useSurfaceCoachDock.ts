@@ -12,6 +12,7 @@
 import { createElement, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { commandErrorReceiptText, useCoachCommand } from '../../hooks/useCoachCommand';
+import { commandInputMode, mergeTypedDraftOrigin, mergeVoiceCaptureOrigin, type CoachInputOrigin } from '../../hooks/coachInputOrigin';
 import { useAIChat } from '../../hooks/useAIChat';
 import VoiceRecordingOverlay from '../DashBoard/Pages/coach-assistant/VoiceRecordingOverlay';
 import {
@@ -83,6 +84,7 @@ export function useSurfaceCoachDock({
 }: UseSurfaceCoachDockArgs) {
   const [open, setOpen] = useState(false);
   const [dockText, setDockTextState] = useState('');
+  const [inputOrigin, setInputOrigin] = useState<CoachInputOrigin>('unknown');
   const [submitting, setSubmitting] = useState(false);
   const [receipts, setReceipts] = useState<CoachDockReceipt[]>([]);
   const [overlayOpen, setOverlayOpen] = useState(false);
@@ -119,7 +121,11 @@ export function useSurfaceCoachDock({
   const speech = useCoachBrowserSpeechInput({
     onRuntimeUnavailable: handleSpeechUnavailable,
     setInputError: setVoiceError,
-    setText: setDockTextState,
+    setText: (next) => setDockTextState((current) => {
+      const nextValue = typeof next === 'function' ? next(current) : next;
+      setInputOrigin((origin) => mergeVoiceCaptureOrigin(origin, current, nextValue));
+      return nextValue;
+    }),
   });
 
   const handleVoice = useCallback(() => {
@@ -128,9 +134,13 @@ export function useSurfaceCoachDock({
     pushReceipt({ ok: false, text: 'Voice input is not available in this browser.' });
   }, [pushReceipt, recorderSupported, speech]);
 
-  const appendTranscribed = useCallback((text: string) => {
+  const appendTranscribed = useCallback((text: string, edited = false) => {
     const chunk = text.trim();
-    if (chunk) setDockTextState((prev) => (prev ? `${prev} ${chunk}` : chunk));
+    if (chunk) setDockTextState((prev) => {
+      const nextValue = prev ? `${prev} ${chunk}` : chunk;
+      setInputOrigin(edited ? 'mixed' : (origin) => mergeVoiceCaptureOrigin(origin, prev, chunk));
+      return nextValue;
+    });
     setOverlayOpen(false);
   }, []);
 
@@ -138,7 +148,7 @@ export function useSurfaceCoachDock({
     ? createElement(VoiceRecordingOverlay, {
       isOpen: overlayOpen,
       onClose: () => setOverlayOpen(false),
-      onEditTranscript: appendTranscribed,
+      onEditTranscript: (text: string) => appendTranscribed(text, true),
       onTranscribed: appendTranscribed,
     })
     : null;
@@ -149,7 +159,7 @@ export function useSurfaceCoachDock({
     setDockTextState('');
     setSubmitting(true);
     try {
-      const result = await executeCommand(trimmed, { selectedClientId, surface });
+      const result = await executeCommand(trimmed, { selectedClientId, surface, inputMode: commandInputMode(inputOrigin) });
       if (result.type === 'error') {
         // Server errors (RBAC, validation) pass through verbatim — only a
         // transport failure reads as "unreachable" (R1 honesty fix).
@@ -202,7 +212,7 @@ export function useSurfaceCoachDock({
     } finally {
       setSubmitting(false);
     }
-  }, [chat, chatTitle, dockText, eventPrefix, executeCommand, pushReceipt, requireClient, selectedClientId, submitting, surface]);
+  }, [chat, chatTitle, dockText, eventPrefix, executeCommand, inputOrigin, pushReceipt, requireClient, selectedClientId, submitting, surface]);
 
   return {
     /**
@@ -218,12 +228,22 @@ export function useSurfaceCoachDock({
     reissueConfirmation: useCallback(() => {
       const source = pendingConfirmation?.sourceMessage;
       setPendingConfirmation(null);
-      if (source) setDockTextState(source);
+      if (source) {
+        setDockTextState(source);
+        setInputOrigin('voice');
+      }
     }, [pendingConfirmation]),
     open,
     toggleOpen: useCallback(() => setOpen((prev) => !prev), []),
     dockText,
-    setDockText: useCallback((t: string) => setDockTextState(t), []),
+    setDockText: useCallback((t: string) => {
+      setDockTextState((current) => {
+        setInputOrigin((origin) => mergeTypedDraftOrigin(origin, current, t));
+        return t;
+      });
+    }, []),
+    inputMode: commandInputMode(inputOrigin),
+    inputOrigin,
     listening: speech.listening,
     interim: speech.interim,
     handleVoice,

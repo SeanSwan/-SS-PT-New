@@ -1,0 +1,45 @@
+{
+  "baseline": "bfc7a789869384e48116c5f0f091913865fdc575",
+  "files": [
+    {
+      "source": "frontend/src/hooks/useCoachCommand.ts",
+      "sha256": "13795900237d794b2f6f7d1bca590b37f4c4f4c6da3d9e5b0d3c8789f07008d0"
+    },
+    {
+      "source": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.actions.ts",
+      "sha256": "643fe786e6146601f26df99933fe74d0b979118b9f12a54efacb05805df45d46"
+    },
+    {
+      "source": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandLogEntry.tsx",
+      "sha256": "c4d676ddc4930b9573b21804ba0fbd231d2d5dc83a919ec67f55e3d9cc37f758"
+    },
+    {
+      "source": "frontend/src/components/CoachDock/useSurfaceCoachDock.ts",
+      "sha256": "2c4eae1b1711806a74b9c63ecd31e9f254fcc8ffb18f0b4681c11f01522fcbf4"
+    },
+    {
+      "source": "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+      "sha256": "e93ac9199564bb4a82a100780697ee2da12dae4e1fc7239b643c0064b7508b95"
+    },
+    {
+      "source": "backend/services/ai/operationSigning.mjs",
+      "sha256": "656e35dbdede9a9e17c47ed702f23a388d751c59c27a6d900f04c650b5763be8"
+    },
+    {
+      "source": "backend/services/ai/renderDigest.mjs",
+      "sha256": "acc8b2ea7036505baa7dcab28ce621c05d0efbd184d59fce5e718f474a4c6928"
+    },
+    {
+      "source": "backend/services/ai/commandExecutor.mjs",
+      "sha256": "3a3d23fb008c58a4cc4f8ebaf5534baba076f91defc7b6f1fac54d0c468c3c96"
+    },
+    {
+      "source": "backend/services/ai/coachActionProposalPersistenceService.mjs",
+      "sha256": "50d6d5227c60e210d65838af41339f3d367eeb43d43a92efe8ff38a4b492288b"
+    },
+    {
+      "source": "backend/models/AiCommandAuditLog.mjs",
+      "sha256": "846359792271ea86f3215fcdf1eaf9e777bc9107592807f55f8d3036ae73008c"
+    }
+  ]
+}

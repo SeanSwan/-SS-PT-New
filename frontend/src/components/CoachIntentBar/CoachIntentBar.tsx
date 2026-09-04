@@ -74,7 +74,7 @@ let shortcutBound = false;
 
 function onGlobalShortcut(e: KeyboardEvent) {
   if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'k') return;
-  const focusTopmost = focusStack.at(-1);
+  const focusTopmost = focusStack[focusStack.length - 1];
   if (!focusTopmost) return;
   e.preventDefault();
   focusTopmost();

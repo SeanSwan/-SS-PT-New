@@ -4,6 +4,7 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
+import { mergeVoiceCaptureOrigin, type CoachInputOrigin } from '../../../../hooks/coachInputOrigin';
 import { capturedVoiceText, resolveVoiceCommandText } from './CoachCommandCenter.voiceText';
 import {
   useCoachBrowserSpeechInput,
@@ -22,6 +23,7 @@ type VoiceOverlayProps = {
 type VoiceCaptureParams = {
   commandTextRef: RefObject<HTMLTextAreaElement>;
   setCommandText: Dispatch<SetStateAction<string>>;
+  setInputOrigin: Dispatch<SetStateAction<CoachInputOrigin>>;
   setSelectedStatus: Dispatch<SetStateAction<string>>;
 };
 
@@ -69,6 +71,7 @@ function runCoachVoiceCommand(
 export function useCoachCommandVoiceCapture({
   commandTextRef,
   setCommandText,
+  setInputOrigin,
   setSelectedStatus,
 }: VoiceCaptureParams) {
   const [voiceInputError, setVoiceInputError] = useState<string | null>(null);
@@ -76,22 +79,31 @@ export function useCoachCommandVoiceCapture({
   const recorderSupported = isCoachVoiceRecorderSupported();
 
   const setVoiceCommandText = useCallback((next: SetStateAction<string>) => {
-    setCommandText((current) => resolveVoiceCommandText(next, current));
-  }, [setCommandText]);
+    setCommandText((current) => {
+      const nextValue = resolveVoiceCommandText(next, current);
+      setInputOrigin((origin) => mergeVoiceCaptureOrigin(origin, current, nextValue));
+      return nextValue;
+    });
+  }, [setCommandText, setInputOrigin]);
 
   const handleVoiceCaptured = useCallback((text: string) => {
-    setCommandText((current) => capturedVoiceText(current, text));
+    setCommandText((current) => {
+      const nextValue = capturedVoiceText(current, text);
+      setInputOrigin((origin) => mergeVoiceCaptureOrigin(origin, current, text));
+      return nextValue;
+    });
     setVoiceInputError(null);
     setSelectedStatus('Voice command captured - press Send to continue');
-  }, [setCommandText, setSelectedStatus]);
+  }, [setCommandText, setInputOrigin, setSelectedStatus]);
 
   const handleVoiceOverlayEdit = useCallback((text: string) => {
     setVoiceCommandText(text);
+    setInputOrigin('mixed');
     setVoiceInputError(null);
     setSelectedStatus('Voice transcript staged - press Send to continue');
     setVoiceOverlayOpen(false);
     window.setTimeout(() => commandTextRef.current?.focus(), 0);
-  }, [commandTextRef, setSelectedStatus, setVoiceCommandText]);
+  }, [commandTextRef, setInputOrigin, setSelectedStatus, setVoiceCommandText]);
 
   const handleVoiceOverlayTranscribed = useCallback((text: string) => {
     handleVoiceCaptured(text);

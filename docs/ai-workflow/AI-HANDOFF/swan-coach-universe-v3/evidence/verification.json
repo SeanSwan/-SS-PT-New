@@ -1,0 +1,22 @@
+{
+  "verifiedAt": "2026-09-04T22:47:54.139Z",
+  "reports": [
+    {
+      "file": "baseline.test.mjs",
+      "exit": 0,
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "file": "integration.red.test.mjs",
+      "exit": 0,
+      "passed": 5,
+      "failed": 0
+    }
+  ],
+  "localLinks": 10,
+  "mermaidBlocks": 9,
+  "mermaidValidation": "fences and diagram types only; no Mermaid parser",
+  "captures": [],
+  "browserScope": "Static synthetic wireframe only; not production UI"
+}

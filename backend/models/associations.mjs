@@ -132,6 +132,7 @@ const setupAssociations = async () => {
     const AiInteractionLogModule = await import('./AiInteractionLog.mjs');
     const AdminAccountAuditLogModule = await import('./AdminAccountAuditLog.mjs');
     const AiCommandAuditLogModule = await import('./AiCommandAuditLog.mjs');
+    const CoachIntentModule = await import('./CoachIntent.mjs');
 
     // AI Monitoring Models (Phase 10)
     const AiMetricsBucketModule = await import('./AiMetricsBucket.mjs');
@@ -352,6 +353,7 @@ const setupAssociations = async () => {
     const AiInteractionLog = AiInteractionLogModule.default;
     const AdminAccountAuditLog = AdminAccountAuditLogModule.default;
     const AiCommandAuditLog = AiCommandAuditLogModule.default;
+    const CoachIntent = CoachIntentModule.default;
 
     // AI Monitoring Models (Phase 10)
     const AiMetricsBucket = AiMetricsBucketModule.default;
@@ -521,7 +523,7 @@ const setupAssociations = async () => {
         ClientOnboardingCoverageItem, ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog,
         // AI Privacy Models
-        AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog, AdminAccountAuditLog,
+        AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog, AdminAccountAuditLog, CoachIntent,
         // AI Monitoring Models (Phase 10)
         AiMetricsBucket, AiMonitoringAlert,
         // Long-Horizon Planning Models (Phase 5C)
@@ -1141,6 +1143,8 @@ const setupAssociations = async () => {
     AiInteractionLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(AiCommandAuditLog, { foreignKey: 'userId', as: 'aiCommandAuditLogs' });
     AiCommandAuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(CoachIntent, { foreignKey: 'actorId', as: 'coachIntents' });
+    CoachIntent.belongsTo(User, { foreignKey: 'actorId', as: 'actor' });
     User.hasMany(AdminAccountAuditLog, { foreignKey: 'actorUserId', as: 'adminAccountActions' });
     AdminAccountAuditLog.belongsTo(User, { foreignKey: 'actorUserId', as: 'actor' });
     User.hasMany(AdminAccountAuditLog, { foreignKey: 'targetUserId', as: 'adminAccountAuditTargets' });
@@ -1534,6 +1538,7 @@ const setupAssociations = async () => {
       AiInteractionLog,
       AiCommandAuditLog,
       AdminAccountAuditLog,
+      CoachIntent,
 
       // AI Monitoring Models (Phase 10)
       AiMetricsBucket,

@@ -8,9 +8,10 @@
  * here automatically, role-scoped. Tapping an example stages it into the
  * composer for review — nothing sends or saves from this sheet.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import apiService from '../../../../services/api.service';
+import { useCoachCommandCatalog } from '../../../../hooks/useCoachCommandCatalog';
+import type { CoachCommandCatalogEntry } from '../../../../hooks/coachCommandCatalog';
 import {
   SheetAvailability,
   SheetAvailabilityReason,
@@ -27,24 +28,7 @@ import {
  * `executionLane` is how the backend registry classifies what a command can
  * actually DO. The endpoint has always returned it; this sheet used to ignore it.
  */
-type ExecutionLane =
-  | 'server_dispatch'
-  | 'frontend_event'
-  | 'debate_async'
-  | 'manual_only'
-  | 'chat_fallback'
-  | 'not_wired';
-
-type CatalogCommand = {
-  type: string;
-  description?: string;
-  category?: string;
-  examples?: string[];
-  executionLane?: ExecutionLane;
-  canExecute?: boolean;
-  manualOnly?: boolean;
-  manualOnlyReason?: string | null;
-};
+type CatalogCommand = CoachCommandCatalogEntry;
 
 /**
  * What to tell the user about a command Swan Coach cannot execute for them.
@@ -101,36 +85,15 @@ function friendlyCommandName(type: string): string {
 function groupByCategory(commands: CatalogCommand[]): Array<[string, CatalogCommand[]]> {
   const groups = new Map<string, CatalogCommand[]>();
   for (const command of commands) {
-    const category = command.category?.trim() || 'General';
+    const category = command.group?.trim() || 'General';
     groups.set(category, [...(groups.get(category) ?? []), command]);
   }
   return [...groups.entries()];
 }
 
 const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ open, onClose, onUsePrompt }) => {
-  const [commands, setCommands] = useState<CatalogCommand[] | null>(null);
-  const [failed, setFailed] = useState(false);
+  const { commands, failed, loading } = useCoachCommandCatalog(open);
   const panelRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    let cancelled = false;
-    setFailed(false);
-    setCommands(null);
-    apiService.get('/api/ai-command/commands')
-      .then((res) => {
-        if (cancelled) return;
-        const list = res.data?.commands;
-        if (res.data?.success && Array.isArray(list)) setCommands(list);
-        else setFailed(true);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -194,7 +157,7 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
         <SheetScroll>
           {failed ? (
             <SheetStateText>The command list could not be loaded right now. You can still talk normally — Swan Coach will route supported requests automatically.</SheetStateText>
-          ) : !commands ? (
+          ) : loading ? (
             <SheetStateText>Loading commands…</SheetStateText>
           ) : !commands.length ? (
             <SheetStateText>No structured commands are available for this role yet — plain conversation still works.</SheetStateText>

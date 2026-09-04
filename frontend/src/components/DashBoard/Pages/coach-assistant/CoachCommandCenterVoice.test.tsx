@@ -260,7 +260,7 @@ describe('CoachCommandCenter voice input', () => {
     await waitFor(() => {
       expect(executeCommandMock).toHaveBeenCalledWith(
         'Log squats 3 by 10',
-        expect.objectContaining({ selectedClientId: null }),
+        expect.objectContaining({ selectedClientId: null, inputMode: 'voice' }),
       );
     });
     expect(sendMessageWithConversationMock).not.toHaveBeenCalled();

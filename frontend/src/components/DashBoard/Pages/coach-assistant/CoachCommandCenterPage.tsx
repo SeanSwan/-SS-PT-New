@@ -15,6 +15,8 @@ import CoachCommandOpsSurface from './CoachCommandOpsSurface';
 import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
 import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanelLazy';
 import CoachConsoleDock from './CoachConsoleDock';
+import CoachIntentBar from '../../../CoachIntentBar/CoachIntentBar';
+import { useCoachCommandCatalog } from '../../../../hooks/useCoachCommandCatalog';
 import { resolveCoachPresenceState } from './coachPresenceState';
 import { recentClientIds } from './coachRecentClients';
 import ConsoleAtmosphere from '../../../ConsoleOS/ConsoleAtmosphere';
@@ -43,6 +45,7 @@ const CoachCommandCenterPage: React.FC = () => {
   const authenticatedRole = normalizeCoachCommandRole(authUser?.role);
   const userRole = resolveCoachCommandDashboardRole(useLocation().pathname, authenticatedRole);
   const commandCenter = useCoachCommandCenterController({ actorId: authUser?.id, userRole });
+  const commandCatalog = useCoachCommandCatalog(true);
   useSwanCoachPendingFoodQuery(commandCenter.sendMessageWithFood);
   const [searchParams, setSearchParams] = useSearchParams();
   const isClientMode = isClientCoachRole(userRole);
@@ -66,7 +69,6 @@ const CoachCommandCenterPage: React.FC = () => {
     shellRef: commandCenter.shellRef,
   });
   useCoachKeyboardInset(commandCenter.shellRef);
-
   const nextActionLabel = isClientMode ? CLIENT_NEXT_ACTION_LABEL : commandCenter.coachQueue.health?.nextOperatorAction?.label || 'Review next intake';
   const intakeCount = isClientMode ? 0 : commandCenter.summary.actionable;
   const plaudCount = isClientMode ? 0 : commandCenter.summary.readyReview;
@@ -98,9 +100,11 @@ const CoachCommandCenterPage: React.FC = () => {
     commandCenter.setCommandText(prompt);
     commandCenter.commandTextRef.current?.focus({ preventScroll: true });
   };
-
+  const handleIntentSubmit = (text: string) => {
+    commandCenter.setCommandText(text);
+    window.setTimeout(() => commandCenter.commandFormRef.current?.requestSubmit(), 0);
+  };
   const handleOpenThread = (thread: (typeof commandCenter.coachThreads)[number]) => { commandCenter.handleThreadSelect(thread); setActiveTab('talk'); };
-
   useEffect(() => {
     if (routeForcedTab) {
       setActiveTab(routeForcedTab);
@@ -110,7 +114,6 @@ const CoachCommandCenterPage: React.FC = () => {
 
     setActiveTab((current) => coerceCoachTabForRole(current, userRole));
   }, [hasOperatorRouteContext, isClientMode, routeForcedTab, routeReviewSection, userRole]);
-
   useEffect(() => {
     if (userRole !== 'admin' && accountControlsOpen) setAccountControlsOpen(false);
   }, [accountControlsOpen, userRole]);
@@ -126,18 +129,14 @@ const CoachCommandCenterPage: React.FC = () => {
     pendingReviewFocusRef.current = false;
     document.getElementById('coach-tabpanel-review')?.focus({ preventScroll: true });
   }, [activeReviewSection, activeTab]);
-
   const handleStartPlaudUpload = () => { setActiveTab('review'); setActiveReviewSection('audio'); setPlaudUploadRequest((count) => count + 1); requestReviewWorkspaceFocus(); };
-
   const openIntakeReview = () => { setActiveTab('review'); setActiveReviewSection('intake'); requestReviewWorkspaceFocus(); };
   const handleReviewIntakeFromDock = () => { openIntakeReview(); commandCenter.handleReviewIntake(); };
 
   const handleAccountControlsToggle = () => setAccountControlsOpen((current) => !current);
 
   const handleOpenIntakeFromOps = () => { openIntakeReview(); commandCenter.closeDrawer(false); };
-
   const handleTabChange = (tab: CoachTab) => setActiveTab(coerceCoachTabForRole(tab, userRole));
-
   return (
     <CommandBridgeShell
       ref={commandCenter.shellRef}
@@ -171,6 +170,14 @@ const CoachCommandCenterPage: React.FC = () => {
         <div className="tab-content">
           {activeTab === 'talk' ? (
             <div className="chat-panel" id="coach-tabpanel-talk" role="tabpanel" aria-labelledby="coach-tab-talk">
+              <CoachIntentBar
+                commands={commandCatalog.commands}
+                lockedClientId={commandCenter.routeClientId}
+                pendingCount={commandCenter.summary.pendingDrafts}
+                listening={commandCenter.voiceActive}
+                onSubmit={handleIntentSubmit}
+                onVoice={commandCenter.handleVoice}
+              />
               <CoachChatTranscript
                 activeThread={commandCenter.activeThread}
                 busy={commandCenter.commandBusy}
@@ -289,5 +296,4 @@ const CoachCommandCenterPage: React.FC = () => {
     </CommandBridgeShell>
   );
 };
-
 export default CoachCommandCenterPage;

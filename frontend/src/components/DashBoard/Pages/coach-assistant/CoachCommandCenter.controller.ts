@@ -38,6 +38,7 @@ import type { DrawerSide } from './CoachCommandCenter.types';
 import { useCoachCommandVoiceCapture } from './CoachCommandCenter.voiceCapture';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
 import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
+import { commandInputMode, useCoachInputOrigin } from '../../../../hooks/useCoachInputOrigin';
 export function useCoachCommandCenterController({ actorId, userRole = 'admin' }: { actorId?: string | number | null; userRole?: CoachCommandRole } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const chat = useAIChat(userRole);
@@ -60,8 +61,8 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   const [quickClientMessage, setQuickClientMessage] = useState<string | null>(null);
   const [quickClientError, setQuickClientError] = useState<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
-  const commandFormRef = useRef<HTMLFormElement>(null);
-  const commandTextRef = useRef<HTMLTextAreaElement>(null);
+  const commandFormRef = useRef<HTMLFormElement>(null); const commandTextRef = useRef<HTMLTextAreaElement>(null);
+  const { inputOrigin, setInputOrigin, setTrackedCommandText } = useCoachInputOrigin(setCommandText);
   const leftRailRef = useRef<HTMLElement>(null);
   const rightRailRef = useRef<HTMLElement>(null);
   const plaudReviewRef = useRef<HTMLElement>(null);
@@ -170,7 +171,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     setSelectedStatus('Guide prompt staged for review');
     window.setTimeout(() => commandTextRef.current?.focus(), 0);
   }, []);
-  const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setSelectedStatus });
+  const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setInputOrigin, setSelectedStatus });
   const notebook = useCoachClientNotebook({ actorId, clientId: effectiveClientId, clientLabel: selectedClientLabel,
     commandText, commandTextRef, setCommandText, setSelectedStatus });
   const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });
@@ -186,6 +187,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     clientFacing: userRole === 'client',
     commandLaneEnabled: operatorEnabled,
     commandText,
+    inputMode: commandInputMode(inputOrigin),
     commandTextRef,
     confirmCommand,
     executeCommand,
@@ -206,7 +208,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     onNewThreadRoute: () => setSearchParams(buildThreadSelectionSearchParams(searchParams, effectiveClientId, null), { replace: true }),
     setActiveThreadId,
     setAutoSelectSuppressed,
-    setCommandText,
+    setCommandText: setTrackedCommandText,
     setDrawer,
     setLogs,
     setQuickClientBusy,
@@ -218,7 +220,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   useLoadCoachConversations(chat);
   useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus);
   useAutoSelectCoachThread(autoSelectedThread, chat, setActiveThreadId, setSelectedStatus);
-  useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setCommandText);
+  useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setTrackedCommandText);
   usePlaudReviewScroll(
     shouldScrollPlaudReview(plaudWorkspaceRequested, rawMergeRequestId, reviewNextRequested),
     searchKey,
@@ -273,7 +275,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     selectedClientLabel,
     selectedStatus: displaySelectedStatus(voiceCapture.voiceStatus, selectedStatus),
     sendMessageWithFood,
-    setCommandText,
+    inputMode: commandInputMode(inputOrigin), setCommandText: setTrackedCommandText,
     setQuickClientName,
     setQuickClientSource,
     setTeachMode,

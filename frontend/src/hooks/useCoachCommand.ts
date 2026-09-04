@@ -35,6 +35,10 @@ export type CommandResponse =
       details: Record<string, unknown> | null;
       expiresAt?: string;
       isDestructive: boolean;
+      /** Server-owned confirmation policy; never inferred by the client. */
+      tier?: 'fire_and_forget' | 'read_back' | 'deliberate' | 'refusal' | null;
+      physical?: boolean;
+      tierReasons?: string[];
     }
   | {
       type: 'executed';
@@ -146,6 +150,9 @@ export function useCoachCommand() {
           details: data.details ?? null,
           expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : undefined,
           isDestructive: !!(data.isDestructive),
+          tier: data.tier ?? null,
+          physical: Boolean(data.physical),
+          tierReasons: Array.isArray(data.tierReasons) ? data.tierReasons.filter((reason: unknown): reason is string => typeof reason === 'string') : [],
         };
       }
 
@@ -195,14 +202,16 @@ export function useCoachCommand() {
 
   /**
    * @param renderedDigest proof that the caller displayed the STORED operation
-   *   (card 1.1). ConfirmationSheet always supplies one. The Command Center's
-   *   legacy transcript card does not yet, which is why the server runs the
-   *   check in `observe` mode.
+   *   (card 1.1). ConfirmationSheet callers supply one. The direct hook remains
+   *   a compatibility escape hatch for callers outside the shared sheet, which
+   *   is why the server runs the check in `observe` mode until route parity is
+   *   complete.
    *
    *   GATE — do not flip APPROVAL_RENDER_DIGEST=enforce until every confirm
-   *   caller sends a digest, or the legacy path starts failing closed with
-   *   `render_digest_required`. Callers today: ConfirmationSheet (digest ✓) and
-   *   CoachCommandLogEntry via the transcript ConfirmationCard (digest ✗).
+   *   caller sends a digest, or a direct caller starts failing closed with
+   *   `render_digest_required`. The Command Center log and surface docks now
+   *   use ConfirmationSheet (digest ✓); remaining direct callers are a parity
+   *   gate before enforcement.
    *
    * @param confirmChannel how the human actually confirmed — the M3 split.
    *   DELIBERATELY has no default. The server treats an undeclared channel as

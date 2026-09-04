@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cancelCommandMock,
+  apiPostMock,
   confirmCommandMock,
   executeCommandMock,
   listConversationsMock,
@@ -206,6 +207,7 @@ describe('CoachCommandCenterPage shell', () => {
       expect(executeCommandMock).toHaveBeenCalledWith('List active clients', {
         selectedClientId: null,
         routeContext: { source: 'coach-command-center', intent: null },
+        inputMode: 'text',
       });
     });
 
@@ -262,21 +264,18 @@ describe('CoachCommandCenterPage shell', () => {
     fireEvent.change(composerInput(), { target: { value: 'Cancel session 42' } });
     fireEvent.click(sendButton());
 
-    expect(await screen.findByText(/Confirm risky action/i)).toBeInTheDocument();
-    // v2 P2.4: destructive confirms require a second tap (Sprint A §3.4).
-    fireEvent.click(screen.getByRole('button', { name: /Confirm action/i }));
-    expect(confirmCommandMock).not.toHaveBeenCalled();
-    expect(screen.getByText(/Tap again to confirm/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Confirm action/i }));
+    expect(await screen.findByText(/Cancel session 42/i)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('ready'), { timeout: 5000 });
+    fireEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() => {
-      // The confirm declares HOW it happened (M3 channel split). Asserting the
-      // channel is the point: an approval confirmed from this card was pressed,
-      // and the server refuses an undeclared channel on anything that crosses
-      // client identity — so a call site that stops passing it would break the
-      // very case the split exists for, silently, without this argument here.
-      expect(confirmCommandMock).toHaveBeenCalledWith('op-session-42', undefined, 'tap');
+      expect(apiPostMock).toHaveBeenCalledWith('/api/ai-command/confirm', expect.objectContaining({
+        operationId: 'op-session-42',
+        confirmChannel: 'tap',
+        renderedDigest: expect.stringMatching(/^[0-9a-f]{64}$/),
+      }));
     });
+    expect(confirmCommandMock).not.toHaveBeenCalled();
     expect(await within(document.querySelector('.transcript-stream') as HTMLElement).findByText(/Session #42 cancelled for Ava/i)).toBeInTheDocument();
   });
 
@@ -296,12 +295,13 @@ describe('CoachCommandCenterPage shell', () => {
     fireEvent.change(composerInput(), { target: { value: 'Cancel session 43' } });
     fireEvent.click(sendButton());
 
-    expect(await screen.findByText(/Confirm risky action/i)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Cancel action/i }));
+    expect(await screen.findByText(/Cancel session 43/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('cancel-button'));
 
     await waitFor(() => {
-      expect(cancelCommandMock).toHaveBeenCalledWith('op-session-cancel');
+      expect(apiPostMock).toHaveBeenCalledWith('/api/ai-command/cancel', { operationId: 'op-session-cancel' });
     });
+    expect(cancelCommandMock).not.toHaveBeenCalled();
     expect(confirmCommandMock).not.toHaveBeenCalled();
     expect(await within(document.querySelector('.transcript-stream') as HTMLElement).findByText(/cancel session cancelled. No data was changed/i)).toBeInTheDocument();
   });
