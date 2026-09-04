@@ -88,6 +88,10 @@
     {
       "source": "backend/services/ai/providerRouter.mjs",
       "sha256": "a61d786b62bad8f8d0d6af34a7dc6363a84749119fa1da09eba0a54cbc0b2108"
+    },
+    {
+      "source": "backend/services/ai/coachProgressEvidence.mjs",
+      "sha256": "7def50b087b6c32df011fdbdbf4bb5509eb02148aa8cb5bab76d8cfa02da1d88"
     }
   ]
 }

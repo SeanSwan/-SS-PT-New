@@ -52,11 +52,11 @@ node docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/verify-package.mjs
 ```
 
 Observed package baseline: **12 passed, exit 0** (8 pure-runtime checks, 4 document
-checks). Source integration sentinels: **11 passed, exit 0** after S1–S5 boundary
+checks). Source integration sentinels: **12 passed, exit 0** after S1–S5 and S8a
 wiring. Focused frontend suites: **59 passed** for provenance, catalog, voice,
 confirmation, log entry, and Command Center; page shell/action regressions add
 **23 passed**. Backend CoachIntent contracts: **6 passed**; focused S4/S5 contracts:
-**18 passed** (5 read-back, 3 receipt-hook, 4 evidence-envelope, 3 provider-policy, 3 model-response); existing command safety,
+**21 passed** (5 read-back, 3 receipt-hook, 4 evidence-envelope, 3 provider-policy, 3 model-response, 3 progress-evidence); existing command safety,
 confirmation, executor, digest, and pending-readback suites: **67 passed**. The 48
 scenario matrix is still the acceptance plan, not 48 passing end-to-end tests. No
 live migration, production DB, Redis, paid inference, authenticated browser
@@ -120,7 +120,7 @@ independent/final-decider implementation gates remain required before release.
 
 ## Open decisions and readiness status
 
-**Ready for:** an independent Astral hostile review of the S1–S5 implementation
+**Ready for:** an independent Astral hostile review of the S1–S5 and S8a implementation
 slice and a subsequent S3 route-integration pass.
 **Not ready for:** claiming all twelve slices, applying the migration to a live
 database, enabling autonomous writes, or releasing to production.
@@ -159,9 +159,9 @@ occurred. Main shared-tree runtime, its dirty files, other agents’ work and
 continuity log were left alone. The isolated implementation is committed locally
 only; no push or deploy occurred.
 
-PROOF: package baseline 12/12; source sentinels 11/11; focused frontend 82/82 across
+PROOF: package baseline 12/12; source sentinels 12/12; focused frontend 82/82 across
 the implementation and page/action regressions; backend CoachIntent 6/6 plus the
-existing safety set 67/67; workout read-back verifier 5/5; receipt hook 3/3; evidence envelope 4/4; provider policy 3/3; model response 3/3; preservation 902/902 with two restored samples plus a
+existing safety set 67/67; workout read-back verifier 5/5; receipt hook 3/3; evidence envelope 4/4; provider policy 3/3; model response 3/3; progress evidence 3/3; preservation 902/902 with two restored samples plus a
 separate index restore. See verifier for final HTML checks.
-DRY-LOOP: CLEAN×2 (rounds: 6-7) for the S2/S3/S4/S5 foundation; S3 write integration,
-S4 authorized read-back, full S5 caller adoption, and S6–S11 remain open and are the next implementation gates.
+DRY-LOOP: CLEAN×2 (rounds: 7-8) for the S2/S3/S4/S5/S8a foundation; S3 write integration,
+S4 authorized read-back, full S5 caller adoption, S8 canonical progress caller, and S6/S7/S8b–S11 remain open and are the next implementation gates.

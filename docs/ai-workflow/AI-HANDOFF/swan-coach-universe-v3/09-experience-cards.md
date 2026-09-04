@@ -3,6 +3,11 @@
 Owner: Codex architect; Luna future builder. Version: 3.0. Status: planned, OFF by default.
 Supersedes: v2 unspecified experience/facts/briefing cards. S0–S5 are dependencies.
 
+Implementation note: S8a now has an opt-in deterministic evidence calculator for
+verified, non-voided records and unit-separated volume. The canonical progress
+route and source-linked training-intelligence caller remain open; this helper does
+not authorize writes or replace existing charts.
+
 ## S6 — Session Desk and cross-surface draft continuity
 
 Depends: S1–S4 and Sean’s visual direction decision. Target contract: R07/C1/C4.

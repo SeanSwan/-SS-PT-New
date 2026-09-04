@@ -80,3 +80,9 @@ test('S5 R06 provider and model boundaries are optional server-owned router path
   assert.match(policy, /PRIVACY_POLICY_BLOCKED/, 'Provider policy has no privacy refusal');
   assert.match(response, /requiresServerResolution/, 'Model proposal does not remain server-resolved');
 });
+test('S8 R10 progress evidence excludes unverified and incomparable records', () => {
+  const evidence = code(read('backend/services/ai/coachProgressEvidence.mjs'));
+  assert.match(evidence, /session\?\.verified === true/, 'Progress evidence accepts unverified records');
+  assert.match(evidence, /session\?\.voided !== true/, 'Progress evidence accepts voided records');
+  assert.match(evidence, /mixed_units/, 'Progress evidence does not preserve unit incomparability');
+});
