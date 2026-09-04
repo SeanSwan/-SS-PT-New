@@ -834,6 +834,10 @@ router.get('/commands', protect, (req, res) => {
           examples: cmd.naturalLanguagePatterns.slice(0, 2),
           destructive: cmd.destructive,
           requiresClientRef: cmd.requiresClientRef || false,
+          policy: {
+            ...cmd.policy,
+            requiredDomainStates: [...(cmd.policy?.requiredDomainStates || [])],
+          },
           ...execution,
         };
       }),

@@ -48,3 +48,9 @@ test('S3 R04 mounted command route exposes bounded intent receipt reads', () => 
   assert.match(routes, /router\.get\('\/intents\/\:intentId'/, 'Intent detail route is not mounted');
   assert.match(routes, /toPublicCoachIntent/, 'Intent route does not use the redacted receipt projection');
 });
+test('S2 R02 command registry attaches server-owned policy metadata before discovery', () => {
+  const registry = code(read('backend/services/ai/commandRegistry/baseSchemas.mjs'));
+  const routes = code(read('backend/routes/aiCommandRoutes.mjs'));
+  assert.match(registry, /policy:\s*resolveCommandPolicy/, 'Registry does not normalize policy metadata');
+  assert.match(routes, /policy:\s*\{/, 'Command discovery does not expose server-owned policy metadata');
+});

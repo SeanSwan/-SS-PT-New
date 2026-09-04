@@ -7,6 +7,7 @@
  * NO OpenAI. Provider chain: Gemini → Anthropic → Venice.
  */
 import { z } from 'zod';
+import { resolveCommandPolicy } from '../commandPolicy.mjs';
 
 // ── Enums ────────────────────────────────────────────────────────────────────
 
@@ -85,7 +86,10 @@ export function registerCommand(command) {
   if (COMMAND_REGISTRY.has(command.type)) {
     throw new Error(`Duplicate command type: ${command.type}`);
   }
-  COMMAND_REGISTRY.set(command.type, command);
+  COMMAND_REGISTRY.set(command.type, {
+    ...command,
+    policy: resolveCommandPolicy(command),
+  });
 }
 
 /**

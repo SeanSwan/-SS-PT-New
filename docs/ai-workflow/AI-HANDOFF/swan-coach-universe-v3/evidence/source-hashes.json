@@ -51,7 +51,11 @@
     },
     {
       "source": "backend/routes/aiCommandRoutes.mjs",
-      "sha256": "31c7b7bdd2eedfeaef4caf9ca90b55b11605ddc9dfa58963c094996b33525568"
+      "sha256": "c041366e80979f56fb1d02b625938d7551e95c6f86889b77570be871d6fe2048"
+    },
+    {
+      "source": "backend/services/ai/commandPolicy.mjs",
+      "sha256": "852ad7c1ae5bbaf20ea1d77a1b1ff53cb50982e3173389bc78c501285e51759a"
     }
   ]
 }

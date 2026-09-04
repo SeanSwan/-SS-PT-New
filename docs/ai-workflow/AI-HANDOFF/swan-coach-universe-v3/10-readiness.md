@@ -52,7 +52,7 @@ node docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/verify-package.mjs
 ```
 
 Observed package baseline: **12 passed, exit 0** (8 pure-runtime checks, 4 document
-checks). Source integration sentinels: **6 passed, exit 0** after S1/S3 foundation
+checks). Source integration sentinels: **7 passed, exit 0** after S1/S2/S3 foundation
 wiring. Focused frontend suites: **59 passed** for provenance, catalog, voice,
 confirmation, log entry, and Command Center; page shell/action regressions add
 **23 passed**. Backend CoachIntent contracts: **6 passed**; existing command safety,
@@ -71,19 +71,20 @@ Final verifier: exit 0, 10 local links resolved, 9 Mermaid blocks with paired
 fences/type headers. Static Edge captures at 414×896, 1440×1000, 2560×1440 and
 3840×2160 had no horizontal overflow. Desktop and phone captures were visually
 inspected. These are wireframe checks, not app responsiveness or interaction QA.
-`git diff --check` passed. The isolated branch contains the S1/S3 runtime and test
+`git diff --check` passed. The isolated branch contains the S1/S2/S3 runtime and test
 files listed in the implementation receipt; the shared checkout remains untouched.
 
 ## Implementation progress after Sean authorization
 
 The isolated branch now contains S1 runtime wiring, the S3 ledger foundation, and
 owner/assignment-gated bounded receipt-read routes under `/api/ai-command/intents`.
+S2 policy normalization is green; real entity owner resolution remains open.
 Fresh evidence: frontend type-check exit 0; focused provenance, catalog, voice,
 confirmation, log-entry, and Command Center suites 59/59 passed; page shell/action
 regressions 23/23 passed; backend CoachIntent service/model/migration contracts
 6/6 passed; receipt-read route tests 3/3 passed; existing command safety,
 confirmation, executor, digest, and pending-readback suites 67/67 passed; package
-source sentinels 6/6 passed. The
+source sentinels 7/7 passed. The
 page regression also proves the shared ConfirmationSheet performs one signed
 confirm/cancel transport and the transcript only records that result. These checks
 do not claim a live database migration, route-wide intent transaction integration,
@@ -153,7 +154,7 @@ occurred. Main shared-tree runtime, its dirty files, other agents’ work and
 continuity log were left alone. The isolated implementation is committed locally
 only; no push or deploy occurred.
 
-PROOF: package baseline 12/12; source sentinels 6/6; focused frontend 82/82 across
+PROOF: package baseline 12/12; source sentinels 7/7; focused frontend 82/82 across
 the implementation and page/action regressions; backend CoachIntent 6/6 plus the
 existing safety set 67/67; preservation 902/902 with two restored samples plus a
 separate index restore. See verifier for final HTML checks.

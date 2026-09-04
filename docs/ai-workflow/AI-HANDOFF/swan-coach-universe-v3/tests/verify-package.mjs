@@ -16,7 +16,7 @@ mkdirSync(out, { recursive: true });
 const hash = (p) => createHash('sha256').update(readFileSync(p)).digest('hex');
 const reports = [];
 for (const [file, exit, passed, failed] of [
-  ['baseline.test.mjs', 0, 12, 0], ['integration.red.test.mjs', 0, 6, 0],
+  ['baseline.test.mjs', 0, 12, 0], ['integration.red.test.mjs', 0, 7, 0],
 ]) {
   const r = spawnSync(process.execPath, ['--test', path.join(packet, 'tests', file)],
     { cwd: root, encoding: 'utf8', timeout: 30000 });
@@ -58,6 +58,7 @@ const sources = [
   'backend/models/CoachIntent.mjs',
   'backend/services/ai/coachIntentService.mjs',
   'backend/routes/aiCommandRoutes.mjs',
+  'backend/services/ai/commandPolicy.mjs',
 ];
 writeFileSync(path.join(out, 'source-hashes.json'), JSON.stringify({
   baseline: 'bfc7a789869384e48116c5f0f091913865fdc575',
