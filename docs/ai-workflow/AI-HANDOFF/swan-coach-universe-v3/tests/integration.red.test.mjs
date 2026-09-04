@@ -71,3 +71,12 @@ test('S5 R06 context reader emits an evidence envelope with fail-closed safety s
   assert.match(evidence, /REQUIRED_DOMAIN_UNAVAILABLE/, 'Required-domain failure code is missing');
   assert.match(engine, /evidence:\s*buildCoachEvidenceEnvelope/, 'Context reader does not return the evidence envelope');
 });
+test('S5 R06 provider and model boundaries are optional server-owned router paths', () => {
+  const router = code(read('backend/services/ai/providerRouter.mjs'));
+  const policy = code(read('backend/services/ai/coachProviderBoundary.mjs'));
+  const response = code(read('backend/services/ai/coachModelResponseContract.mjs'));
+  assert.match(router, /guardCoachProviderRequest/, 'Provider router has no policy gate');
+  assert.match(router, /coachResponseMode === 'conversation'/, 'Router has no bounded conversation response path');
+  assert.match(policy, /PRIVACY_POLICY_BLOCKED/, 'Provider policy has no privacy refusal');
+  assert.match(response, /requiresServerResolution/, 'Model proposal does not remain server-resolved');
+});

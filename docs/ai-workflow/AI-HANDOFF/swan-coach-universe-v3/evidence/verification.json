@@ -1,5 +1,5 @@
 {
-  "verifiedAt": "2026-09-04T23:21:33.196Z",
+  "verifiedAt": "2026-09-04T23:26:43.802Z",
   "reports": [
     {
       "file": "baseline.test.mjs",
@@ -10,7 +10,7 @@
     {
       "file": "integration.red.test.mjs",
       "exit": 0,
-      "passed": 10,
+      "passed": 11,
       "failed": 0
     }
   ],

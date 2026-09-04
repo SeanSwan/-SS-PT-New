@@ -69,8 +69,10 @@ and owner/assignment-gated bounded receipt-read routes. S4 now has a determinist
 workout read-back verifier plus a narrow receipt hook at the daily-form writer's
 transaction boundary. S5a now returns an evidence envelope that preserves degraded
 domain state and blocks dependent plans when required safety data is unavailable.
-Route-wide claim/commit integration, real workout read-back, S5b/S5c, and S6–S11
-remain planned until their named tests and real caller paths are built.
+S5b adds an optional provider policy gate and S5c bounds conversation responses
+before they leave the router. Route-wide claim/commit integration, real workout
+read-back, full chat caller adoption, and S6–S11 remain planned until their named
+tests and real caller paths are built.
 
 ## What “excellent” means
 

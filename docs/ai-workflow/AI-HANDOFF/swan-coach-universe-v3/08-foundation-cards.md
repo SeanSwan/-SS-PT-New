@@ -1,6 +1,6 @@
 # SCU-BUILD-A — foundation cards for Luna
 
-Owner: Codex architect; Luna future builder. Version: 3.0. Status: implementation in progress — S1, S2 policy metadata, S3 receipt reads, S4 verifier/writer hook, and S5a evidence envelope GREEN; S2/S3 write integration, S4 real read-back, S5b/S5c, and S6–S11 pending.
+Owner: Codex architect; Luna future builder. Version: 3.0. Status: implementation in progress — S1, S2 policy metadata, S3 receipt reads, S4 verifier/writer hook, and S5a–S5c boundary contracts GREEN; S2/S3 write integration, S4 real read-back, provider caller adoption, and S6–S11 pending.
 Historical planning snapshot: implementation was previously unauthorized; Sean authorized the implementation pass on 2026-09-04.
 Supersedes: v2 open foundation cards; do not revert the September repairs.
 
@@ -144,5 +144,7 @@ Rollback: disable new inference features; do not fall back to a less private rou
 
 Implementation note: S5a now has a pure evidence envelope and is returned by the
 existing context reader. It preserves degraded status, source, and freshness and
-fails closed when a required domain is not healthy. Provider routing and bounded
-model-output unions remain open S5b/S5c work.
+fails closed when a required domain is not healthy. The optional provider-router
+policy path and bounded conversation response union are also present; existing
+non-Coach router callers retain their current result shapes. Full chat caller
+adoption and tool-loop execution remain open.

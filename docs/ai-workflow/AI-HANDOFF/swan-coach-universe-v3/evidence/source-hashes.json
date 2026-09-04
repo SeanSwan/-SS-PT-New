@@ -76,6 +76,18 @@
     {
       "source": "backend/services/ai/contextEngine/coachContextEngine.mjs",
       "sha256": "65fa79a35fc3e12601e1a8cae8a9bdd00991bfaf71ec956052ed3a97b5b47e6b"
+    },
+    {
+      "source": "backend/services/ai/coachProviderBoundary.mjs",
+      "sha256": "6eb889a8cc0b501c744b210c6f5531ed3d052b2ed62d3ff1823a8bf1b5dadf1a"
+    },
+    {
+      "source": "backend/services/ai/coachModelResponseContract.mjs",
+      "sha256": "967633d91e6849885f8b0462a09802674aad93e2e654d838f2756991a8a02db2"
+    },
+    {
+      "source": "backend/services/ai/providerRouter.mjs",
+      "sha256": "a61d786b62bad8f8d0d6af34a7dc6363a84749119fa1da09eba0a54cbc0b2108"
     }
   ]
 }

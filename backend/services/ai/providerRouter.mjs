@@ -23,6 +23,8 @@ import {
   RETRY_DELAY_MS,
   DEFAULT_GLOBAL_TIMEOUT_MS,
 } from './types.mjs';
+import { guardCoachProviderRequest, normalizeCoachProviderPolicy } from './coachProviderBoundary.mjs';
+import { normalizeCoachModelResponse } from './coachModelResponseContract.mjs';
 
 // ── Adapter Registry ─────────────────────────────────────────────────────────
 
@@ -135,6 +137,7 @@ async function tryProvider(adapter, ctx, globalSignal) {
  */
 export async function routeAiGeneration(ctx) {
   const providerOrder = getProviderOrder();
+  const coachPolicy = ctx?.coachPolicy ? normalizeCoachProviderPolicy(ctx.coachPolicy) : null;
   const globalTimeoutMs = Number(process.env.AI_GLOBAL_TIMEOUT_MS) || DEFAULT_GLOBAL_TIMEOUT_MS;
 
   const globalAc = new AbortController();
@@ -150,6 +153,14 @@ export async function routeAiGeneration(ctx) {
       if (globalAc.signal.aborted) {
         failoverTrace.push(`${providerName}:budget_exhausted`);
         continue;
+      }
+
+      if (coachPolicy) {
+        const policyGate = guardCoachProviderRequest({ policy: coachPolicy, providerName });
+        if (!policyGate.allowed) {
+          failoverTrace.push(`${providerName}:policy_${policyGate.reasonCode.toLowerCase()}`);
+          continue;
+        }
       }
 
       const adapter = adapters.get(providerName);
@@ -180,7 +191,9 @@ export async function routeAiGeneration(ctx) {
         failoverTrace.push(`${providerName}:success`);
         return {
           ok: true,
-          result: result.result,
+          result: ctx?.coachResponseMode === 'conversation'
+            ? normalizeCoachModelResponse(result.result)
+            : result.result,
           failoverTrace,
         };
       }
