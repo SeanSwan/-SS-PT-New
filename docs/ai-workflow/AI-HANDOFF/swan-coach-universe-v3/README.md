@@ -63,10 +63,11 @@ Sean authorized the runtime slices in this task. S1 is implemented and verified:
 the live command registry feeds the mounted CoachIntentBar, voice and recorder
 drafts carry explicit provenance, typed edits become mixed, and the Command Center
 uses the shared ConfirmationSheet. S3 foundation is implemented and verified:
-CoachIntent has a PII-free model, additive migration, central registration, and a
-read-only coordinator for claim, completion, failure, and unknown reconciliation.
-Route-wide claim/commit integration and the database concurrency gate remain open;
-S4–S11 remain planned until their named tests and real caller paths are built.
+CoachIntent has a PII-free model, additive migration, central registration, a
+read-only coordinator for claim, completion, failure, and unknown reconciliation,
+and owner/assignment-gated bounded receipt-read routes. Route-wide claim/commit
+integration and the database concurrency gate remain open; S4–S11 remain planned
+until their named tests and real caller paths are built.
 
 ## What “excellent” means
 

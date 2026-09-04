@@ -42,3 +42,9 @@ test('S3 R04 durable result service exists for lost-response recovery', () => {
   assert.ok(existsSync(path.join(root, 'backend/services/ai/coachIntentService.mjs')),
     'Planned service absent; existence is prerequisite only, T11-T16 prove behavior');
 });
+test('S3 R04 mounted command route exposes bounded intent receipt reads', () => {
+  const routes = code(read('backend/routes/aiCommandRoutes.mjs'));
+  assert.match(routes, /router\.get\('\/intents'/, 'Intent list route is not mounted');
+  assert.match(routes, /router\.get\('\/intents\/\:intentId'/, 'Intent detail route is not mounted');
+  assert.match(routes, /toPublicCoachIntent/, 'Intent route does not use the redacted receipt projection');
+});

@@ -18,10 +18,10 @@ never import the live application or preload `.env` for these planning checks.
 All negative tests assert zero domain writes, zero outbound sends and no leaked
 other-client data unless the row explicitly tests one committed write.
 
-The initial implementation pass converted the five source sentinels to green and
-added focused provenance, catalog normalization, CoachIntent service, model, and
-migration contract tests. The 48-row matrix remains the acceptance plan; a green
-foundation check is not a claim that every row has run.
+The initial implementation pass converted the six source sentinels to green and
+added focused provenance, catalog normalization, CoachIntent service, model,
+migration, and receipt-route contract tests. The 48-row matrix remains the
+acceptance plan; a green foundation check is not a claim that every row has run.
 
 ## Acceptance matrix
 

@@ -40,6 +40,18 @@
     {
       "source": "backend/models/AiCommandAuditLog.mjs",
       "sha256": "846359792271ea86f3215fcdf1eaf9e777bc9107592807f55f8d3036ae73008c"
+    },
+    {
+      "source": "backend/models/CoachIntent.mjs",
+      "sha256": "eb14633d75c0c8daa89a7799b03448d4b0dd8142679d792ad2ca0a1e6ba0796a"
+    },
+    {
+      "source": "backend/services/ai/coachIntentService.mjs",
+      "sha256": "e4116ecad9fed1fb7cb46448b9f3896201164bc41a98228647b9bd1130bc8857"
+    },
+    {
+      "source": "backend/routes/aiCommandRoutes.mjs",
+      "sha256": "31c7b7bdd2eedfeaef4caf9ca90b55b11605ddc9dfa58963c094996b33525568"
     }
   ]
 }

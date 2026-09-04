@@ -9,6 +9,8 @@
  *   POST /api/ai-command/confirm    — Confirm a pending destructive operation
  *   POST /api/ai-command/cancel     — Cancel a pending operation
  *   GET  /api/ai-command/commands   — List available commands for current role
+ *   GET  /api/ai-command/intents    — Read bounded durable intent receipts
+ *   GET  /api/ai-command/intents/:intentId — Read one authorized receipt
  *   GET  /api/ai-command/health     — Command engine health check
  *
  * All routes require authentication via `protect` middleware.
@@ -21,7 +23,7 @@ import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { recordCommandAudit } from '../services/ai/commandAudit.mjs';
 import { recordUnhandledUtterance } from '../services/ai/unhandledUtteranceAudit.mjs';
 import { gateCommandFrontendDispatch, buildDispatchRefusalResponse } from '../services/ai/commandDispatchEligibility.mjs';
-import sequelize from '../database.mjs';
+import sequelize, { Op } from '../database.mjs';
 import { getModel } from '../models/index.mjs';
 import { createAccessibleClientIdentitySanitizer } from '../services/ai/accessibleClientIdentityPrivacy.mjs';
 import {
@@ -42,9 +44,51 @@ import {
 } from '../services/ai/commandRegistry/index.mjs';
 import { shouldFallbackNotWiredCommandToChat } from '../services/ai/commandFallbackPolicy.mjs';
 import { getCommandExecutionLane } from '../services/ai/commandExecutionLane.mjs';
+import {
+  readCoachIntent,
+  toPublicCoachIntent,
+} from '../services/ai/coachIntentService.mjs';
 
 const router = express.Router();
 const AI_COMMAND_MESSAGE_MAX_CHARS = 2000;
+const INTENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const parseIntentLimit = (value) => {
+  const parsed = Number(value ?? 20);
+  return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 50 ? parsed : null;
+};
+
+const encodeIntentCursor = (row) => Buffer.from(JSON.stringify({
+  createdAt: new Date(row.createdAt).toISOString(), id: row.id,
+})).toString('base64url');
+
+const decodeIntentCursor = (value) => {
+  if (typeof value !== 'string' || value.length > 512) return null;
+  try {
+    const decoded = JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
+    const date = new Date(decoded?.createdAt);
+    if (!decoded?.id || Number.isNaN(date.getTime())) return null;
+    return { createdAt: date, id: String(decoded.id) };
+  } catch {
+    return null;
+  }
+};
+
+const intentNotFound = (res) => res.status(404).json({
+  success: false,
+  error: 'Intent not found or unavailable.',
+});
+
+const canReadIntent = async (intent, user) => {
+  if (!intent || !user?.id) return false;
+  if (Number(intent.actorId) === Number(user.id)) return true;
+  if (intent.targetClientId == null) return false;
+  try {
+    return await assertAssignmentOrAdmin(user.id, user.role, intent.targetClientId);
+  } catch {
+    return false;
+  }
+};
 
 const toAICommandRouteErrorMetadata = (err) => ({
   errorName: err?.name || 'Error',
@@ -455,6 +499,67 @@ router.get('/pending/:operationId', protect, aiCommandLaneKillSwitch, aiCommandR
   } catch (err) {
     logAICommandRouteError('[AICommand] Pending read-back error', err, req);
     res.status(500).json({ success: false, error: 'Failed to read the pending operation' });
+  }
+});
+
+// ── GET /intents — bounded durable receipt list (S3/C5) ────────────────────
+// The default scope is the authenticated actor. Staff may request one target
+// client only after a fresh assignment check; there is no unscoped roster.
+router.get('/intents', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
+  try {
+    const limit = parseIntentLimit(req.query.limit);
+    if (!limit) return res.status(400).json({ success: false, error: 'limit must be an integer from 1 to 50.' });
+
+    const requestedTarget = req.query.targetClientId === undefined
+      ? null
+      : normalizeSelectedClientId(req.query.targetClientId);
+    if (req.query.targetClientId !== undefined && !requestedTarget) {
+      return res.status(400).json({ success: false, error: 'targetClientId must be a positive integer.' });
+    }
+    if (requestedTarget && !(await assertAssignmentOrAdmin(req.user.id, req.user.role, requestedTarget))) {
+      return intentNotFound(res);
+    }
+
+    const cursor = req.query.cursor === undefined ? null : decodeIntentCursor(req.query.cursor);
+    if (req.query.cursor !== undefined && !cursor) {
+      return res.status(400).json({ success: false, error: 'cursor is invalid.' });
+    }
+
+    const where = requestedTarget
+      ? { targetClientId: requestedTarget }
+      : { actorId: req.user.id };
+    if (cursor) where.createdAt = { [Op.lt]: cursor.createdAt };
+
+    const Model = getModel('CoachIntent');
+    const rows = await Model.findAll({
+      where,
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
+      limit: limit + 1,
+    });
+    const page = rows.slice(0, limit);
+    const nextCursor = rows.length > limit && page.length ? encodeIntentCursor(page[page.length - 1]) : null;
+    return res.json({
+      success: true,
+      intents: page.map(toPublicCoachIntent),
+      nextCursor,
+    });
+  } catch (err) {
+    logAICommandRouteError('[AICommand] Intent list error', err, req);
+    return res.status(500).json({ success: false, error: 'Failed to read coach intents.' });
+  }
+});
+
+// ── GET /intents/:intentId — owner/assignment-gated receipt (S3/C5) ────────
+router.get('/intents/:intentId', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
+  try {
+    if (!INTENT_ID_PATTERN.test(String(req.params.intentId || ''))) return intentNotFound(res);
+    const Model = getModel('CoachIntent');
+    const intent = await readCoachIntent({ model: Model, intentId: req.params.intentId });
+    if (!(await canReadIntent(intent, req.user))) return intentNotFound(res);
+    return res.json({ success: true, intent: toPublicCoachIntent(intent) });
+  } catch (err) {
+    logAICommandRouteError('[AICommand] Intent read error', err, req);
+    return res.status(500).json({ success: false, error: 'Failed to read coach intent.' });
   }
 });
 

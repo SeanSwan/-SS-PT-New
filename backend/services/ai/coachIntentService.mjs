@@ -8,6 +8,32 @@
  */
 
 const ALLOWED_STATUSES = new Set(['claimed', 'completed', 'failed', 'unknown', 'cancelled']);
+const PUBLIC_STATES = new Set([
+  'claimed', 'awaiting_approval', 'executing', 'committed_unverified',
+  'completed', 'verified', 'failed', 'unknown', 'cancelled', 'refused',
+]);
+
+const toIso = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+const safeString = (value, max = 128) => (
+  typeof value === 'string' && value.trim() ? value.trim().slice(0, max) : null
+);
+
+const safeRecordRefs = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((ref) => ref && typeof ref === 'object' && !Array.isArray(ref))
+    .map((ref) => ({
+      kind: safeString(ref.kind, 64),
+      id: safeString(String(ref.id ?? ''), 128),
+      version: Number.isSafeInteger(ref.version) ? ref.version : null,
+    }))
+    .filter((ref) => ref.kind && ref.id);
+};
 
 async function resolveModel(model) {
   if (model) return model;
@@ -18,6 +44,61 @@ async function resolveModel(model) {
 function safeIntent(row) {
   if (!row) return null;
   return typeof row.toJSON === 'function' ? row.toJSON() : { ...row };
+}
+
+/**
+ * Convert an internal intent row into the bounded C5 receipt contract.
+ * Raw result payloads are deliberately ignored; callers must put only the
+ * receipt-shaped fields in `result` before this boundary.
+ */
+export function toCoachIntentReceipt(intent) {
+  if (!intent) return null;
+  const source = intent.result && typeof intent.result === 'object' && !Array.isArray(intent.result)
+    ? intent.result
+    : {};
+  const state = PUBLIC_STATES.has(source.state) ? source.state : intent.status;
+  const targetUserId = Number.isSafeInteger(Number(intent.targetClientId)) && Number(intent.targetClientId) > 0
+    ? Number(intent.targetClientId)
+    : null;
+  const realAffectedCount = Number.isSafeInteger(source.realAffectedCount)
+    ? source.realAffectedCount
+    : null;
+
+  return {
+    schemaVersion: 1,
+    intentId: intent.id,
+    operationId: intent.operationId ?? safeString(source.operationId, 64),
+    proposalId: intent.proposalId ?? safeString(source.proposalId, 64),
+    state,
+    commandType: intent.commandType,
+    targetUserId,
+    committedAt: toIso(source.committedAt ?? intent.completedAt),
+    verifiedAt: toIso(source.verifiedAt),
+    recordRefs: safeRecordRefs(source.recordRefs),
+    realAffectedCount,
+    reversibility: source.reversibility === 'inverse' || source.reversibility === 'compensation'
+      ? source.reversibility
+      : 'none',
+    undoAvailable: source.undoAvailable === true,
+    reasonCode: safeString(source.reasonCode ?? intent.errorCode, 100),
+    correlationId: safeString(source.correlationId, 128),
+  };
+}
+
+export function toPublicCoachIntent(intent) {
+  if (!intent) return null;
+  return {
+    id: intent.id,
+    commandType: intent.commandType,
+    targetUserId: intent.targetClientId ?? null,
+    status: intent.status,
+    operationId: intent.operationId ?? null,
+    proposalId: intent.proposalId ?? null,
+    expiresAt: toIso(intent.expiresAt),
+    createdAt: toIso(intent.createdAt),
+    updatedAt: toIso(intent.updatedAt),
+    result: toCoachIntentReceipt(intent),
+  };
 }
 
 function assertStatus(status) {
