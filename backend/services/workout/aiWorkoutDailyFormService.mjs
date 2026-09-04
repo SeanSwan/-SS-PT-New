@@ -43,6 +43,7 @@ import { deriveWorkoutLogSourcePolicy } from './workoutLogSourcePolicy.mjs';
 import { applyAiWorkoutChallengeProgress } from './aiWorkoutChallengeProgressBridge.mjs';
 import { accrueFlatSessionEarning } from '../trainerSessionEarningService.mjs';
 import { resolveClientTrainingDateContext } from '../clientTrainingDateService.mjs';
+import { persistCoachIntentReceipt } from './coachIntentTransactionHook.mjs';
 
 export { AiWorkoutDailyFormError } from './aiWorkoutDailyFormPayloadService.mjs';
 
@@ -59,6 +60,7 @@ export async function submitAiWorkoutLogAsDailyForm({
   trainerId,
   userRole = 'trainer',
   source,
+  coachIntent = null,
   sequelize,
 }) {
   const parsedClientId = parsePositiveInteger(clientId);
@@ -98,7 +100,7 @@ export async function submitAiWorkoutLogAsDailyForm({
   try {
     const models = getAllModels();
     ensureWorkoutModels(models);
-    const { User, DailyWorkoutForm, WorkoutSession, WorkoutLog } = models;
+    const { User, DailyWorkoutForm, WorkoutSession, WorkoutLog, CoachIntent } = models;
 
     const client = await User.findByPk(parsedClientId, { transaction, lock: transaction.LOCK?.UPDATE });
     if (!client) throw new AiWorkoutDailyFormError('Client not found', 'VALIDATION_ERROR');
@@ -250,6 +252,14 @@ export async function submitAiWorkoutLogAsDailyForm({
       scheduledCreditsRequired,
       availableSessionsBeforeSave,
     });
+    if (coachIntent?.intentId) {
+      await persistCoachIntentReceipt({
+        model: CoachIntent,
+        intentId: coachIntent.intentId,
+        result: coachIntent.result,
+        transaction,
+      });
+    }
     await transaction.commit();
 
     // Employed-trainer pay (mode b): the AI workout log just completed the

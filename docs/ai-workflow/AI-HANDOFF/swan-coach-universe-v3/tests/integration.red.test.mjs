@@ -59,3 +59,8 @@ test('S4 R05 workout read-back verifier is present before writer integration', (
   assert.match(verifier, /verifyCoachWorkoutReadback/, 'Workout read-back verifier is not wired as a source contract');
   assert.match(verifier, /READBACK_MISMATCH/, 'Verifier does not fail closed on mismatched records');
 });
+test('S4 R05 daily-form writer accepts the receipt hook at its own transaction boundary', () => {
+  const writer = code(read('backend/services/workout/aiWorkoutDailyFormService.mjs'));
+  assert.match(writer, /persistCoachIntentReceipt/, 'Daily-form writer has no receipt hook');
+  assert.match(writer, /transaction,\s*\n\s*\}\);/, 'Receipt hook is not passed the existing transaction');
+});
