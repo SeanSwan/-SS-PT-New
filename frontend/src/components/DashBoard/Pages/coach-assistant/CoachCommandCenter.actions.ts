@@ -103,7 +103,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     closeDrawer(false);
     void props.chat.loadConversation(thread.id);
   };
-
   const handleStartPlaudUpload = () => {
     closeDrawer(false);
     props.setSelectedStatus('Audio review lane ready');
@@ -119,7 +118,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     panel?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     panel?.focus({ preventScroll: true });
   };
-
   const handleNewThread = () => {
     props.chat.newChat();
     props.onNewThreadRoute();
@@ -131,7 +129,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     props.setSelectedStatus(props.clientFacing ? 'New Coach Chat ready' : 'New Coach Thread ready');
     focusComposer();
   };
-
   const handleQuickClientSubmit = createQuickClientSubmitAction({
     addLog,
     coachQueue: props.coachQueue,
@@ -143,7 +140,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     setQuickClientName: props.setQuickClientName,
     setSelectedStatus: props.setSelectedStatus,
   });
-
   const submitCoachMessage = async (trimmed: string, commandType?: string) => {
     addLog({ actor: 'operator', label: props.clientFacing ? 'client request' : 'operator command', body: trimmed });
     props.setCommandText('');
@@ -212,7 +208,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     props.setSelectedStatus('Swan Coach response ready');
     void props.chat.listConversations('active', true);
   };
-
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const trimmed = props.commandText.trim();
@@ -275,7 +270,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
       attachments: ['intake queue open', 'operator approval required'],
     });
   };
-
   const handleReadback = () => {
     props.setSelectedStatus('Voice replies read the next real Swan Coach response when enabled');
     addLog({
