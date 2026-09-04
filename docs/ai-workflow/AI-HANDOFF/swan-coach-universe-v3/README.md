@@ -65,8 +65,9 @@ drafts carry explicit provenance, typed edits become mixed, and the Command Cent
 uses the shared ConfirmationSheet. S3 foundation is implemented and verified:
 CoachIntent has a PII-free model, additive migration, central registration, a
 read-only coordinator for claim, completion, failure, and unknown reconciliation,
-and owner/assignment-gated bounded receipt-read routes. Route-wide claim/commit
-integration and the database concurrency gate remain open; S4–S11 remain planned
+and owner/assignment-gated bounded receipt-read routes. S4 now has a deterministic
+workout read-back verifier for IDs, units, sets, ownership, and date. Route-wide
+claim/commit integration, the writer transaction hook, and S5–S11 remain planned
 until their named tests and real caller paths are built.
 
 ## What “excellent” means

@@ -56,6 +56,10 @@
     {
       "source": "backend/services/ai/commandPolicy.mjs",
       "sha256": "852ad7c1ae5bbaf20ea1d77a1b1ff53cb50982e3173389bc78c501285e51759a"
+    },
+    {
+      "source": "backend/services/ai/coachWorkoutResultVerifier.mjs",
+      "sha256": "d381c7f9716444306b5893f2748a0f51aeacce585db668a3e0f397e11fb8baee"
     }
   ]
 }

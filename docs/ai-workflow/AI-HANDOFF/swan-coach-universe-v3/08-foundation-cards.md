@@ -1,6 +1,6 @@
 # SCU-BUILD-A — foundation cards for Luna
 
-Owner: Codex architect; Luna future builder. Version: 3.0. Status: implementation in progress — S1 GREEN; S3 foundation and receipt reads GREEN; S2/S3 write integration and S4–S11 pending.
+Owner: Codex architect; Luna future builder. Version: 3.0. Status: implementation in progress — S1, S2 policy metadata, S3 receipt reads, and S4 verifier GREEN; S2/S3 write integration, the S4 writer transaction, and S5–S11 pending.
 Historical planning snapshot: implementation was previously unauthorized; Sean authorized the implementation pass on 2026-09-04.
 Supersedes: v2 open foundation cards; do not revert the September repairs.
 

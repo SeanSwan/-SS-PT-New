@@ -54,3 +54,8 @@ test('S2 R02 command registry attaches server-owned policy metadata before disco
   assert.match(registry, /policy:\s*resolveCommandPolicy/, 'Registry does not normalize policy metadata');
   assert.match(routes, /policy:\s*\{/, 'Command discovery does not expose server-owned policy metadata');
 });
+test('S4 R05 workout read-back verifier is present before writer integration', () => {
+  const verifier = code(read('backend/services/ai/coachWorkoutResultVerifier.mjs'));
+  assert.match(verifier, /verifyCoachWorkoutReadback/, 'Workout read-back verifier is not wired as a source contract');
+  assert.match(verifier, /READBACK_MISMATCH/, 'Verifier does not fail closed on mismatched records');
+});
