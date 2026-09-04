@@ -298,6 +298,16 @@ async function stepPHIScan(ctx) {
 /** Step 3: Classify intent via AI */
 async function stepClassify(ctx) {
   ctx.stage = 'classify';
+  const selectedCommandType = ctx.options?.routeContext?.commandType;
+  if (selectedCommandType && getCommand(selectedCommandType)) {
+    ctx.intent = {
+      intent: selectedCommandType,
+      clientRef: null,
+      params: {},
+      confidence: 1,
+    };
+    return ctx;
+  }
   const deterministicIntent = routeDeterministicSurfaceCommand(
     ctx.sanitizedInput,
     ctx.options.contextEnvelope,

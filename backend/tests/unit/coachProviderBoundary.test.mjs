@@ -47,3 +47,11 @@ test('requires an explicitly allowed provider when the policy supplies an allow-
   });
   assert.deepEqual(guardCoachProviderRequest({ policy, providerName: 'gemini' }), { allowed: true });
 });
+
+test('fails closed when a server policy omits its provider allow-list', () => {
+  const policy = normalizeCoachProviderPolicy({ privacyClass: 'deidentified', budgetMs: 100 });
+  assert.deepEqual(guardCoachProviderRequest({ policy, providerName: 'gemini' }), {
+    allowed: false,
+    reasonCode: 'PROVIDER_ALLOWLIST_REQUIRED',
+  });
+});

@@ -1,6 +1,6 @@
 # SCU-READINESS — delivery receipt and Luna kickoff
 
-Owner: Codex. Version: 3.0, 2026-09-04. Status: implementation in progress; S1 GREEN, S3 foundation GREEN, runtime REVISE.
+Owner: Codex. Version: 3.0, 2026-09-04. Status: implementation in progress; S1 GREEN, S3 foundation GREEN, runtime REVISE pending two clean independent hostile passes.
 Supersedes: handoffs that treat September Phase 1 as fully mounted or deployed.
 
 ## Plain-English Summary
@@ -56,7 +56,8 @@ checks). Source integration sentinels: **12 passed, exit 0** after S1–S5 and S
 wiring. Focused frontend suites: **59 passed** for provenance, catalog, voice,
 confirmation, log entry, and Command Center; page shell/action regressions add
 **23 passed**. Backend CoachIntent contracts: **6 passed**; focused S4/S5 contracts:
-**21 passed** (5 read-back, 3 receipt-hook, 4 evidence-envelope, 3 provider-policy, 3 model-response, 3 progress-evidence); existing command safety,
+**31 passed** in the current scoped Coach contracts (including migration, receipt,
+read-back version, provider, and progress regressions); existing command safety,
 confirmation, executor, digest, and pending-readback suites: **67 passed**. The 48
 scenario matrix is still the acceptance plan, not 48 passing end-to-end tests. No
 live migration, production DB, Redis, paid inference, authenticated browser
@@ -84,19 +85,21 @@ and a narrow receipt hook at the daily-form writer transaction boundary; S5 has 
 evidence envelope, optional provider policy gate, and bounded conversation response
 union. Real entity owner resolution, S3 atomic write integration, S4 authorized
 read-back, full S5 caller/tool-loop adoption, and S6–S11 remain open.
-Fresh evidence: frontend type-check exit 0; focused provenance, catalog, voice,
+Fresh evidence: the default frontend type-check process exhausted its Node heap in
+this worktree; focused Vitest transpile/type paths passed. Focused provenance, catalog, voice,
 confirmation, log-entry, and Command Center suites 59/59 passed; page shell/action
 regressions 23/23 passed; backend CoachIntent service/model/migration contracts
-6/6 passed; receipt-read route tests 3/3 passed; workout read-back verifier 5/5
-passed; existing command safety,
+6/6 passed; receipt-read route tests 7/7 passed; workout read-back verifier 6/6
+passed; migration and provider regressions are included in the 31-contract run;
+existing command safety,
 confirmation, executor, digest, and pending-readback suites 67/67 passed; package
 source sentinels 12/12 passed. The
 page regression also proves the shared ConfirmationSheet performs one signed
 confirm/cancel transport and the transcript only records that result. These checks
 do not claim a live database migration, route-wide intent transaction integration,
 production deployment, or completion of S4–S11. The isolated branch is ready for
-an independent hostile review of this slice and a follow-up implementation pass
-for the remaining gates.
+an independent hostile review of this repaired slice and a follow-up implementation
+pass for the remaining gates.
 
 ## Hostile planning review and resolutions
 
@@ -121,8 +124,8 @@ independent/final-decider implementation gates remain required before release.
 
 ## Open decisions and readiness status
 
-**Ready for:** an independent Astral hostile review of the S1–S5 and S8a implementation
-slice and a subsequent S3 route-integration pass.
+**Ready for:** Astral's second independent hostile pass of the repaired S1–S5 and S8a
+slice, followed by a third clean confirmation before any release claim.
 **Not ready for:** claiming all twelve slices, applying the migration to a live
 database, enabling autonomous writes, or releasing to production.
 
@@ -160,9 +163,11 @@ occurred. Main shared-tree runtime, its dirty files, other agents’ work and
 continuity log were left alone. The isolated implementation is committed locally
 only; no push or deploy occurred.
 
-PROOF: package baseline 12/12; source sentinels 12/12; focused frontend 82/82 across
-the implementation and page/action regressions; backend CoachIntent 6/6 plus the
-existing safety set 67/67; workout read-back verifier 5/5; receipt hook 3/3; evidence envelope 4/4; provider policy 3/3; model response 3/3; progress evidence 3/3; preservation 902/902 with two restored samples plus a
+PROOF: package baseline 12/12; source sentinels 12/12; focused frontend 82/82 historical
+suite plus 36/36 current hostile-fix regressions; backend scoped Coach contracts 31/31;
+receipt-read route tests 7/7; workout read-back verifier 6/6; receipt hook 3/3; evidence envelope 4/4; provider boundary 4/4; model response 3/3; progress evidence 4/4; preservation 902/902 with two restored samples plus a
 separate index restore. See verifier for final HTML checks.
-DRY-LOOP: CLEAN×2 (rounds: 7-8) for the S2/S3/S4/S5/S8a foundation; S3 write integration,
-S4 authorized read-back, full S5 caller adoption, S8 canonical progress caller, and S6/S7/S8b–S11 remain open and are the next implementation gates.
+HOSTILE-REVIEW: Astral round 1 found 9 verified defects; all nine have targeted
+regressions and local fixes. Independent round 2 is pending, so no clean marker is
+claimed yet. S3 write integration, S4 authorized read-back, full S5 caller adoption,
+S8 canonical progress caller, and S6/S7/S8b–S11 remain open.

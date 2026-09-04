@@ -3,15 +3,15 @@
   "files": [
     {
       "source": "frontend/src/hooks/useCoachCommand.ts",
-      "sha256": "13795900237d794b2f6f7d1bca590b37f4c4f4c6da3d9e5b0d3c8789f07008d0"
+      "sha256": "139c9044b7db2b105b61546c0cb7205d4e01c0e2c99534b4b1e3c2a8c547e9a0"
     },
     {
       "source": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.actions.ts",
-      "sha256": "643fe786e6146601f26df99933fe74d0b979118b9f12a54efacb05805df45d46"
+      "sha256": "9d6a301b9d9967a4ac1ce2ab16dce61e746b0624e06dcf908a6783c21f920ed6"
     },
     {
       "source": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandLogEntry.tsx",
-      "sha256": "c4d676ddc4930b9573b21804ba0fbd231d2d5dc83a919ec67f55e3d9cc37f758"
+      "sha256": "be4f54199a0404991d4ac0c6552d42c6c99f893d92cefc451b8f4e6da0ab8aa6"
     },
     {
       "source": "frontend/src/components/CoachDock/useSurfaceCoachDock.ts",
@@ -19,7 +19,7 @@
     },
     {
       "source": "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
-      "sha256": "e93ac9199564bb4a82a100780697ee2da12dae4e1fc7239b643c0064b7508b95"
+      "sha256": "640c110d4122e74c7b885af38ff6740257445b5fed65702d568047e0f0526e4b"
     },
     {
       "source": "backend/services/ai/operationSigning.mjs",
@@ -31,7 +31,7 @@
     },
     {
       "source": "backend/services/ai/commandExecutor.mjs",
-      "sha256": "3a3d23fb008c58a4cc4f8ebaf5534baba076f91defc7b6f1fac54d0c468c3c96"
+      "sha256": "5952e2a5bb0af5dcee60b2b26954a3c37d410459d37dead86a91fe2911f5ddb1"
     },
     {
       "source": "backend/services/ai/coachActionProposalPersistenceService.mjs",
@@ -51,7 +51,7 @@
     },
     {
       "source": "backend/routes/aiCommandRoutes.mjs",
-      "sha256": "c041366e80979f56fb1d02b625938d7551e95c6f86889b77570be871d6fe2048"
+      "sha256": "30950b1ef84a6023825bc567a4bf864f9b498f236a0a98a56f1608ddff1bf77e"
     },
     {
       "source": "backend/services/ai/commandPolicy.mjs",
@@ -59,7 +59,7 @@
     },
     {
       "source": "backend/services/ai/coachWorkoutResultVerifier.mjs",
-      "sha256": "d381c7f9716444306b5893f2748a0f51aeacce585db668a3e0f397e11fb8baee"
+      "sha256": "8afbb3530cbe72c3d9d3ec72d8725d1e03c8c16f6437213e3276da7c7e77b5dc"
     },
     {
       "source": "backend/services/workout/coachIntentTransactionHook.mjs",
@@ -79,7 +79,7 @@
     },
     {
       "source": "backend/services/ai/coachProviderBoundary.mjs",
-      "sha256": "6eb889a8cc0b501c744b210c6f5531ed3d052b2ed62d3ff1823a8bf1b5dadf1a"
+      "sha256": "d817f6d698f58d659cb4ae2aa5e57e07b9c0264e8df385e1b4e2dff205560a5e"
     },
     {
       "source": "backend/services/ai/coachModelResponseContract.mjs",
@@ -87,11 +87,11 @@
     },
     {
       "source": "backend/services/ai/providerRouter.mjs",
-      "sha256": "a61d786b62bad8f8d0d6af34a7dc6363a84749119fa1da09eba0a54cbc0b2108"
+      "sha256": "fc2552fa90ed0d61804c6465b28ef4a15b00089a68d096d3c7796dbcd6a3fa2a"
     },
     {
       "source": "backend/services/ai/coachProgressEvidence.mjs",
-      "sha256": "7def50b087b6c32df011fdbdbf4bb5509eb02148aa8cb5bab76d8cfa02da1d88"
+      "sha256": "1d808118d251659868779e12a1b456b9ac4426c99fa3ff9ba014ec5dd7aba77e"
     }
   ]
 }

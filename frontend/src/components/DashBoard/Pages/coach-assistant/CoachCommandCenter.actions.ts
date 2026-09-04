@@ -144,7 +144,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     setSelectedStatus: props.setSelectedStatus,
   });
 
-  const submitCoachMessage = async (trimmed: string) => {
+  const submitCoachMessage = async (trimmed: string, commandType?: string) => {
     addLog({ actor: 'operator', label: props.clientFacing ? 'client request' : 'operator command', body: trimmed });
     props.setCommandText('');
     props.setSelectedStatus('Sending command to Swan Coach');
@@ -160,6 +160,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
         selectedClientId: props.routeClientId,
         routeContext: props.routeCommandContext,
         inputMode: props.inputMode,
+        commandType,
       });
       if (commandResult.type === 'error') {
         addLog({
@@ -217,6 +218,11 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     const trimmed = props.commandText.trim();
     if (!trimmed) return;
     await submitCoachMessage(trimmed);
+  };
+  const handleIntentSubmit = async (message: string, commandType?: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    await submitCoachMessage(trimmed, commandType);
   };
   const handleRetryMessage = async (message: string) => {
     const trimmed = message.trim();
@@ -284,6 +290,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
   return {
     closeDrawer,
     handleReviewIntake,
+    handleIntentSubmit,
     handleCancelCommand,
     handleConfirmCommand,
     handleNewThread,

@@ -195,6 +195,20 @@ describe('ConfirmationSheet', () => {
     expect(screen.getByTestId('sheet-status').textContent).toMatch(/check the history/i);
   });
 
+  it('acknowledging an uncertain terminal state does not report a cancellation', async () => {
+    const onCancel = vi.fn();
+    const onAcknowledge = vi.fn();
+    post.mockRejectedValue({ response: { data: { code: 'downstream_failed', error: 'refused' } } });
+    render(<ConfirmationSheet operationId={OP_ID} input={READY_NOW} lockedClientId={61} onCancel={onCancel} onAcknowledge={onAcknowledge} />);
+    const user = userEvent.setup();
+    await waitFor(() => expect(screen.getAllByTestId('confirm-button').at(-1)?.hasAttribute('disabled')).toBe(false));
+    await user.click(screen.getAllByTestId('confirm-button').at(-1)!);
+    await waitFor(() => expect(screen.getAllByTestId('acknowledge-button').at(-1)).toBeTruthy());
+    await user.click(screen.getAllByTestId('acknowledge-button').at(-1)!);
+    expect(onAcknowledge).toHaveBeenCalledTimes(1);
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
   it('an ALREADY-CONFIRMED approval offers no re-issue either', async () => {
     await driveToRefusal('already_confirmed');
 

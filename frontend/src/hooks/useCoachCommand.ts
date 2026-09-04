@@ -106,6 +106,8 @@ export function useCoachCommand() {
       selectedClientId?: number | null;
       previousContext?: string;
       routeContext?: Record<string, unknown> | null;
+      /** Exact server-registry type selected from the mounted command catalog. */
+      commandType?: string;
       /**
        * Which channel produced this utterance. Defaults to 'text' because this
        * hook IS the typed lane; a voice surface passes 'voice' and the server's
@@ -129,6 +131,7 @@ export function useCoachCommand() {
         // (aiCommandRoutes normalizeRouteContext → intent surface remap).
         routeContext: {
           ...(opts?.routeContext ?? {}),
+          ...(opts?.commandType ? { commandType: opts.commandType } : {}),
           ...(opts?.surface ? { surface: opts.surface } : {}),
           inputMode: opts?.inputMode ?? 'text',
         },

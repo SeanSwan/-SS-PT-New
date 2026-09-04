@@ -53,3 +53,10 @@ test('returns unavailable instead of an invented zero when no verified source ex
   assert.deepEqual(result.missingInputs, ['verified_workout_records']);
   assert.equal(result.completedSessionCount, 0);
 });
+
+test('does not invent adherence when scheduled count is absent', () => {
+  const result = buildCoachProgressEvidence({
+    sessions: [SESSIONS[0]],
+  });
+  assert.equal(result.adherence, null);
+});

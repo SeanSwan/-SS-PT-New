@@ -44,13 +44,16 @@ vi.mock('../../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => { req.user = { ...actingUser }; next(); },
 }));
 vi.mock('../../middleware/aiCommandGuards.mjs', () => ({
-  aiCommandLaneKillSwitch: (_req, _res, next) => next(),
+  aiCommandLaneKillSwitch: (_req, res, next) => {
+    if (process.env.AI_COMMANDS_ENABLED === 'false') return res.status(503).json({ code: 'AI_COMMANDS_DISABLED' });
+    return next();
+  },
   aiCommandRateLimiter: (_req, _res, next) => next(),
 }));
 vi.mock('../../middleware/verifyClientAccess.mjs', () => ({
   assertAssignmentOrAdmin: mockAssignment,
 }));
-vi.mock('../../database.mjs', () => ({ default: {}, Op: { lt: Symbol('lt') } }));
+vi.mock('../../database.mjs', () => ({ default: {}, Op: { lt: Symbol('lt'), or: Symbol('or') } }));
 vi.mock('../../models/index.mjs', () => ({ getModel: mockGetModel }));
 vi.mock('../../services/ai/coachIntentService.mjs', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -128,6 +131,16 @@ describe('CoachIntent receipt reads', () => {
     expect(denied.body).toEqual(missing.body);
   });
 
+  it('rechecks current target assignment even when the requester created the receipt', async () => {
+    mockReadCoachIntent.mockResolvedValue(rows[0]);
+    mockAssignment.mockResolvedValue(false);
+
+    await request(makeApp())
+      .get(`/api/ai-command/intents/${rows[0].id}`)
+      .expect(404);
+    expect(mockAssignment).toHaveBeenCalledWith(7, 'trainer', 44);
+  });
+
   it('lists only the actor scope with an opaque next cursor and bounded result shape', async () => {
     const model = { findAll: vi.fn(async () => rows) };
     mockGetModel.mockReturnValue(model);
@@ -140,5 +153,24 @@ describe('CoachIntent receipt reads', () => {
     expect(res.body.nextCursor).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(res.body.intents[0]).not.toHaveProperty('actorId');
     expect(JSON.stringify(res.body)).not.toMatch(/do not expose|transcript|providerError/i);
+  });
+
+  it('uses the cursor id as a tie-breaker for equal createdAt rows', async () => {
+    const model = { findAll: vi.fn()
+      .mockResolvedValueOnce([rows[0], { ...rows[1], createdAt: rows[0].createdAt, id: '00000000-0000-4000-8000-000000000000' }])
+      .mockResolvedValueOnce([]) };
+    mockGetModel.mockReturnValue(model);
+
+    const first = await request(makeApp()).get('/api/ai-command/intents?limit=1').expect(200);
+    await request(makeApp()).get(`/api/ai-command/intents?limit=1&cursor=${first.body.nextCursor}`).expect(200);
+    const secondWhere = model.findAll.mock.calls[1][0].where;
+    expect(Object.getOwnPropertySymbols(secondWhere).length).toBeGreaterThan(0);
+  });
+
+  it('keeps receipt reads available while command writes are paused', async () => {
+    process.env.AI_COMMANDS_ENABLED = 'false';
+    mockReadCoachIntent.mockResolvedValue(rows[1]);
+    await request(makeApp()).get(`/api/ai-command/intents/${rows[1].id}`).expect(200);
+    delete process.env.AI_COMMANDS_ENABLED;
   });
 });

@@ -178,6 +178,7 @@ function CoachCommandLogEntry({
           }}
           onDone={(result) => { void onConfirmCommand(confirmation, normalizeSheetResult(result, confirmation)); }}
           onCancel={() => { void onCancelCommand(confirmation, { alreadyCancelled: true }); }}
+          onAcknowledge={() => undefined}
           onReissue={confirmation.sourceMessage && onRetryMessage
             ? () => onRetryMessage(confirmation.sourceMessage as string)
             : undefined}

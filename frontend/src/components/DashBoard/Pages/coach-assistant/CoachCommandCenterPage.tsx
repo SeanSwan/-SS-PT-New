@@ -100,9 +100,8 @@ const CoachCommandCenterPage: React.FC = () => {
     commandCenter.setCommandText(prompt);
     commandCenter.commandTextRef.current?.focus({ preventScroll: true });
   };
-  const handleIntentSubmit = (text: string) => {
-    commandCenter.setCommandText(text);
-    window.setTimeout(() => commandCenter.commandFormRef.current?.requestSubmit(), 0);
+  const handleIntentSubmit = (text: string, picked?: { type: string }) => {
+    void commandCenter.handleIntentSubmit(text, picked?.type);
   };
   const handleOpenThread = (thread: (typeof commandCenter.coachThreads)[number]) => { commandCenter.handleThreadSelect(thread); setActiveTab('talk'); };
   useEffect(() => {

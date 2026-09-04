@@ -49,7 +49,7 @@ export function buildCoachProgressEvidence({ sessions, scheduledCount = null } =
     }
   }
 
-  const scheduled = asPositiveNumber(scheduledCount);
+  const scheduled = scheduledCount == null ? null : asPositiveNumber(scheduledCount);
   const boundedScheduled = scheduled !== null ? Math.max(scheduled, valid.length) : null;
   return {
     status: 'verified',

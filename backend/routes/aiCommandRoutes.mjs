@@ -81,7 +81,7 @@ const intentNotFound = (res) => res.status(404).json({
 
 const canReadIntent = async (intent, user) => {
   if (!intent || !user?.id) return false;
-  if (Number(intent.actorId) === Number(user.id)) return true;
+  if (Number(intent.actorId) === Number(user.id) && intent.targetClientId == null) return true;
   if (intent.targetClientId == null) return false;
   try {
     return await assertAssignmentOrAdmin(user.id, user.role, intent.targetClientId);
@@ -139,7 +139,7 @@ export const normalizePreviousContext = (value) => {
 // confirm (M3). It is a hint about provenance, never about authority: the tier
 // itself is computed server-side, and a `tier` field in the body is ignored and
 // audited (see stepConfirmation).
-const ROUTE_CONTEXT_KEYS = ['source', 'intent', 'surface', 'inputMode'];
+const ROUTE_CONTEXT_KEYS = ['source', 'intent', 'surface', 'inputMode', 'commandType'];
 const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;
 const ISO_DATE_PREFIX_PATTERN = /^\d{4}-\d{2}-\d{2}/;
 
@@ -505,7 +505,7 @@ router.get('/pending/:operationId', protect, aiCommandLaneKillSwitch, aiCommandR
 // ── GET /intents — bounded durable receipt list (S3/C5) ────────────────────
 // The default scope is the authenticated actor. Staff may request one target
 // client only after a fresh assignment check; there is no unscoped roster.
-router.get('/intents', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
+router.get('/intents', protect, aiCommandRateLimiter, async (req, res) => {
   try {
     const limit = parseIntentLimit(req.query.limit);
     if (!limit) return res.status(400).json({ success: false, error: 'limit must be an integer from 1 to 50.' });
@@ -528,7 +528,12 @@ router.get('/intents', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, a
     const where = requestedTarget
       ? { targetClientId: requestedTarget }
       : { actorId: req.user.id };
-    if (cursor) where.createdAt = { [Op.lt]: cursor.createdAt };
+    if (cursor) {
+      where[Op.or] = [
+        { createdAt: { [Op.lt]: cursor.createdAt } },
+        { createdAt: cursor.createdAt, id: { [Op.lt]: cursor.id } },
+      ];
+    }
 
     const Model = getModel('CoachIntent');
     const rows = await Model.findAll({
@@ -536,8 +541,11 @@ router.get('/intents', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, a
       order: [['createdAt', 'DESC'], ['id', 'DESC']],
       limit: limit + 1,
     });
-    const page = rows.slice(0, limit);
-    const nextCursor = rows.length > limit && page.length ? encodeIntentCursor(page[page.length - 1]) : null;
+    const readableRows = requestedTarget
+      ? rows
+      : (await Promise.all(rows.map(async (intent) => ((await canReadIntent(intent, req.user)) ? intent : null)))).filter(Boolean);
+    const page = readableRows.slice(0, limit);
+    const nextCursor = readableRows.length > limit && page.length ? encodeIntentCursor(page[page.length - 1]) : null;
     return res.json({
       success: true,
       intents: page.map(toPublicCoachIntent),
@@ -550,7 +558,7 @@ router.get('/intents', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, a
 });
 
 // ── GET /intents/:intentId — owner/assignment-gated receipt (S3/C5) ────────
-router.get('/intents/:intentId', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
+router.get('/intents/:intentId', protect, aiCommandRateLimiter, async (req, res) => {
   try {
     if (!INTENT_ID_PATTERN.test(String(req.params.intentId || ''))) return intentNotFound(res);
     const Model = getModel('CoachIntent');

@@ -32,7 +32,10 @@ export function guardCoachProviderRequest({ policy, providerName } = {}) {
     return { allowed: false, reasonCode: 'PROVIDER_BUDGET_EXHAUSTED' };
   }
   const provider = String(providerName || '').trim().toLowerCase();
-  if (normalized.allowedProviders.length > 0 && !normalized.allowedProviders.includes(provider)) {
+  if (normalized.allowedProviders.length === 0) {
+    return { allowed: false, reasonCode: 'PROVIDER_ALLOWLIST_REQUIRED' };
+  }
+  if (!normalized.allowedProviders.includes(provider)) {
     return { allowed: false, reasonCode: 'PROVIDER_NOT_ALLOWED' };
   }
   return { allowed: true };

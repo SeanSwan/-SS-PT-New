@@ -32,6 +32,7 @@ const normalizeFootprint = (footprint) => {
   if (!footprint || !isPositiveId(footprint.actorId) || !isPositiveId(footprint.targetClientId)) return null;
   if (typeof footprint.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(footprint.date)) return null;
   if (!isPositiveId(footprint.dailyFormId) || !String(footprint.sessionId || '').trim()) return null;
+  if (!isPositiveId(footprint.version)) return null;
   if (!Array.isArray(footprint.exercises) || footprint.exercises.length === 0) return null;
   const exercises = footprint.exercises.map(normalizeExercise);
   if (exercises.some((exercise) => !exercise)) return null;
@@ -41,6 +42,7 @@ const normalizeFootprint = (footprint) => {
     date: footprint.date,
     dailyFormId: String(footprint.dailyFormId),
     sessionId: String(footprint.sessionId),
+    version: Number(footprint.version),
     exercises,
   };
 };

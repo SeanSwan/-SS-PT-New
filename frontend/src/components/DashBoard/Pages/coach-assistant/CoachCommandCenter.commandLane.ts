@@ -11,6 +11,7 @@ export type ExecuteCoachCommand = (
     selectedClientId?: number | null;
     previousContext?: string;
     routeContext?: Record<string, unknown> | null;
+    commandType?: string;
     inputMode?: CoachCommandInputMode;
   },
 ) => Promise<CommandResponse>;

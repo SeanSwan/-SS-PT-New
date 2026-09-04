@@ -12,7 +12,13 @@ module.exports = {
       await queryInterface.describeTable('coach_intents');
       return;
     } catch (error) {
-      if (error?.original?.code !== '42P01' && error?.parent?.code !== '42P01' && error?.code !== '42P01') throw error;
+      const message = String(error?.message || '');
+      const missingTable = error?.original?.code === '42P01'
+        || error?.parent?.code === '42P01'
+        || error?.code === '42P01'
+        || /no description found for [\"']?coach_intents[\"']? table/i.test(message)
+        || /(?:relation|table).*coach_intents.*(?:does not exist|not found)/i.test(message);
+      if (!missingTable) throw error;
       // The additive table is absent; create it below.
     }
     await queryInterface.createTable('coach_intents', {
@@ -38,12 +44,9 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    try {
-      await queryInterface.describeTable('coach_intents');
-      await queryInterface.dropTable('coach_intents');
-    } catch (error) {
-      if (error?.original?.code !== '42P01' && error?.parent?.code !== '42P01' && error?.code !== '42P01') throw error;
-      // Idempotent rollback when the table was never created.
-    }
+    // Durable receipts are the reconciliation record for already-issued Coach
+    // commands. Rollback must never erase that evidence; a later migration can
+    // explicitly retire the table after an audited retention decision.
+    void queryInterface;
   },
 };

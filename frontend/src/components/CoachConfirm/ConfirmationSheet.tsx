@@ -30,6 +30,8 @@ export interface ConfirmationSheetProps {
   presentation?: 'dialog' | 'region';
   onDone?: (result: unknown) => void;
   onCancel?: () => void;
+  /** A terminal read-back refusal is acknowledged, not cancelled. */
+  onAcknowledge?: () => void;
   onReissue?: (operationId: string) => void;
 }
 
@@ -47,7 +49,7 @@ const STATE_TEXT: Record<string, string> = {
 
 export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
   operationId, input, lockedClientId = null, presentation = 'region',
-  onDone, onCancel, onReissue,
+  onDone, onCancel, onAcknowledge, onReissue,
 }) => {
   const sheet = useConfirmationSheet({ operationId, input, lockedClientId, onDone, onCancel });
   const confirmRef = useRef<HTMLButtonElement>(null);
@@ -217,7 +219,7 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
           <SecondaryButton
             ref={recoverRef}
             type="button"
-            onClick={() => onCancel?.()}
+            onClick={() => onAcknowledge?.()}
             data-testid="acknowledge-button"
           >
             Close — check history first

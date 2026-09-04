@@ -3,6 +3,23 @@ import { createCoachCommandCenterActions } from './CoachCommandCenter.actions';
 import type { CommandLogEntry } from './CoachCommandCenter.data';
 
 describe('CoachCommandCenter actions command errors', () => {
+  it('preserves a picked catalog command type for the server-owned lane', async () => {
+    const executeCommand = vi.fn().mockResolvedValue({ type: 'not_wired', message: 'manual', command: 'cancel_session', manualOnly: true, reason: null });
+    const actions = createCoachCommandCenterActions({
+      activeThread: null, activeThreadTitle: 'Friday intake cleanup',
+      chat: { listConversations: vi.fn(), loadConversation: vi.fn(), newChat: vi.fn(), sendMessageWithConversation: vi.fn() },
+      coachQueue: { refresh: vi.fn() }, clientFacing: false, commandLaneEnabled: true,
+      cancelCommand: vi.fn(), commandText: '', commandTextRef: { current: null }, confirmCommand: vi.fn(), executeCommand,
+      lastDrawerTriggerRef: { current: null }, plaudReviewRef: { current: null }, quickClientName: '', quickClientSource: 'swanstudios',
+      routeClientId: null, routeClientLabel: null, routeCommandContext: null, routeContextPrompt: null, routeIntent: null,
+      setActiveThreadId: vi.fn(), setCommandText: vi.fn(), setDrawer: vi.fn(), setLogs: vi.fn(), setQuickClientBusy: vi.fn(),
+      setQuickClientError: vi.fn(), setQuickClientMessage: vi.fn(), setQuickClientName: vi.fn(), setSelectedStatus: vi.fn(),
+    });
+
+    await actions.handleIntentSubmit('Cancel a session', 'cancel_session');
+    expect(executeCommand).toHaveBeenCalledWith('Cancel a session', expect.objectContaining({ commandType: 'cancel_session' }));
+  });
+
   it('keeps command-lane errors out of chat fallback', async () => {
     let logs: CommandLogEntry[] = [];
     const setLogs = vi.fn((updater: unknown) => {

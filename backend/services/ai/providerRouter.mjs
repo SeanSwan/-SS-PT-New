@@ -68,6 +68,13 @@ function getProviderOrder() {
   return ['openai', 'anthropic', 'gemini', 'venice'];
 }
 
+export function resolveCoachProviderTimeoutMs(policy) {
+  const configured = Number(process.env.AI_GLOBAL_TIMEOUT_MS) || DEFAULT_GLOBAL_TIMEOUT_MS;
+  if (!policy) return configured;
+  const budget = Number(policy.budgetMs);
+  return Number.isSafeInteger(budget) ? Math.min(configured, Math.max(0, budget)) : configured;
+}
+
 // ── Router Core ──────────────────────────────────────────────────────────────
 
 /**
@@ -138,7 +145,7 @@ async function tryProvider(adapter, ctx, globalSignal) {
 export async function routeAiGeneration(ctx) {
   const providerOrder = getProviderOrder();
   const coachPolicy = ctx?.coachPolicy ? normalizeCoachProviderPolicy(ctx.coachPolicy) : null;
-  const globalTimeoutMs = Number(process.env.AI_GLOBAL_TIMEOUT_MS) || DEFAULT_GLOBAL_TIMEOUT_MS;
+  const globalTimeoutMs = resolveCoachProviderTimeoutMs(coachPolicy);
 
   const globalAc = new AbortController();
   const globalTimer = setTimeout(() => globalAc.abort(), globalTimeoutMs);

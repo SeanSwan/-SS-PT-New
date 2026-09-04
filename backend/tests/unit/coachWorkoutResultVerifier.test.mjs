@@ -8,6 +8,7 @@ const expected = {
   date: '2026-09-04',
   dailyFormId: 101,
   sessionId: 'session-1',
+  version: 3,
   exercises: [{
     exerciseId: 9,
     unit: 'lb',
@@ -71,6 +72,15 @@ test('returns unknown when an exercise identity, unit, or set value changes', ()
         sets: [{ setNumber: 1, reps: 8, load: 135 }, { setNumber: 2, reps: 7, load: 135 }],
       }],
     },
+  });
+  assert.equal(result.status, 'unknown');
+  assert.equal(result.reasonCode, 'READBACK_MISMATCH');
+});
+
+test('returns unknown when the read-back version differs from the expected write version', () => {
+  const result = verifyCoachWorkoutReadback({
+    expected,
+    observed: { ...observed, version: 99 },
   });
   assert.equal(result.status, 'unknown');
   assert.equal(result.reasonCode, 'READBACK_MISMATCH');

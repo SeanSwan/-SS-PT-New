@@ -303,6 +303,12 @@ describe('providerRouter', () => {
     cb.resetAll();
   });
 
+  it('clips the router timeout to the server-owned Coach provider budget', async () => {
+    process.env.AI_GLOBAL_TIMEOUT_MS = '10000';
+    expect(router.resolveCoachProviderTimeoutMs({ budgetMs: 750 })).toBe(750);
+    delete process.env.AI_GLOBAL_TIMEOUT_MS;
+  });
+
   const makeCtx = () => ({
     requestType: 'workout_generation',
     userId: 1,
