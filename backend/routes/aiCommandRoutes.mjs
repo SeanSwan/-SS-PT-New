@@ -90,6 +90,13 @@ const canReadIntent = async (intent, user) => {
   }
 };
 
+const intentCursorWhere = (cursor) => ({
+  [Op.or]: [
+    { createdAt: { [Op.lt]: cursor.createdAt } },
+    { createdAt: cursor.createdAt, id: { [Op.lt]: cursor.id } },
+  ],
+});
+
 const toAICommandRouteErrorMetadata = (err) => ({
   errorName: err?.name || 'Error',
   errorCode: err?.code || err?.type || 'ai_command_route_error',
@@ -525,25 +532,32 @@ router.get('/intents', protect, aiCommandRateLimiter, async (req, res) => {
       return res.status(400).json({ success: false, error: 'cursor is invalid.' });
     }
 
-    const where = requestedTarget
+    const baseWhere = requestedTarget
       ? { targetClientId: requestedTarget }
       : { actorId: req.user.id };
-    if (cursor) {
-      where[Op.or] = [
-        { createdAt: { [Op.lt]: cursor.createdAt } },
-        { createdAt: cursor.createdAt, id: { [Op.lt]: cursor.id } },
-      ];
-    }
 
     const Model = getModel('CoachIntent');
-    const rows = await Model.findAll({
-      where,
-      order: [['createdAt', 'DESC'], ['id', 'DESC']],
-      limit: limit + 1,
-    });
-    const readableRows = requestedTarget
-      ? rows
-      : (await Promise.all(rows.map(async (intent) => ((await canReadIntent(intent, req.user)) ? intent : null)))).filter(Boolean);
+    const readableRows = [];
+    let scanWhere = cursor ? { ...baseWhere, ...intentCursorWhere(cursor) } : baseWhere;
+    let lastTailKey = null;
+    while (readableRows.length < limit + 1) {
+      const rows = await Model.findAll({
+        where: scanWhere,
+        order: [['createdAt', 'DESC'], ['id', 'DESC']],
+        limit: limit + 1,
+      });
+      if (!rows.length) break;
+      const visible = requestedTarget
+        ? rows
+        : (await Promise.all(rows.map(async (intent) => ((await canReadIntent(intent, req.user)) ? intent : null)))).filter(Boolean);
+      readableRows.push(...visible);
+      if (rows.length < limit + 1) break;
+      const tail = rows[rows.length - 1];
+      const tailKey = `${new Date(tail.createdAt).toISOString()}|${String(tail.id)}`;
+      if (tailKey === lastTailKey) break;
+      lastTailKey = tailKey;
+      scanWhere = { ...baseWhere, ...intentCursorWhere({ createdAt: new Date(tail.createdAt), id: String(tail.id) }) };
+    }
     const page = readableRows.slice(0, limit);
     const nextCursor = readableRows.length > limit && page.length ? encodeIntentCursor(page[page.length - 1]) : null;
     return res.json({

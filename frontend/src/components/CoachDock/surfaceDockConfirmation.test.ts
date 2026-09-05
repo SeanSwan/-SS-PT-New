@@ -55,4 +55,8 @@ describe('surface docks confirm in place', () => {
   it('the dock passes the locked client so the chip can alarm on a cross-client action', () => {
     expect(dock).toContain('lockedClientId={lockedClientId}');
   });
+
+  it('the dock closes a terminal acknowledgement without routing it through cancellation', () => {
+    expect(dock).toContain('onAcknowledge={dismissConfirmation}');
+  });
 });

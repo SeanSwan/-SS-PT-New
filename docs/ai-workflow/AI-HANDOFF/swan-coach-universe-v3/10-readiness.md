@@ -86,14 +86,12 @@ evidence envelope, optional provider policy gate, and bounded conversation respo
 union. Real entity owner resolution, S3 atomic write integration, S4 authorized
 read-back, full S5 caller/tool-loop adoption, and S6–S11 remain open.
 Fresh evidence: the default frontend type-check process exhausted its Node heap in
-this worktree; focused Vitest transpile/type paths passed. Focused provenance, catalog, voice,
-confirmation, log-entry, and Command Center suites 59/59 passed; page shell/action
-regressions 23/23 passed; backend CoachIntent service/model/migration contracts
-6/6 passed; receipt-read route tests 7/7 passed; workout read-back verifier 6/6
-passed; migration and provider regressions are included in the 31-contract run;
-existing command safety,
-confirmation, executor, digest, and pending-readback suites 67/67 passed; package
-source sentinels 12/12 passed. The
+this worktree; focused Vitest transpile/type paths passed. The current focused frontend
+hostile-fix regressions are 46/46; backend scoped Coach contracts are 32/32 and the
+runner-separated backend regression set is 104/104. Receipt-read route tests 7/7,
+workout read-back verifier 6/6, receipt hook 3/3, evidence envelope 4/4, provider
+boundary 4/4, model response 3/3, and progress evidence 4/4 passed; package source
+sentinels 12/12 passed. The
 page regression also proves the shared ConfirmationSheet performs one signed
 confirm/cancel transport and the transcript only records that result. These checks
 do not claim a live database migration, route-wide intent transaction integration,
@@ -124,8 +122,8 @@ independent/final-decider implementation gates remain required before release.
 
 ## Open decisions and readiness status
 
-**Ready for:** Astral's second independent hostile pass of the repaired S1–S5 and S8a
-slice, followed by a third clean confirmation before any release claim.
+**Ready for:** Astral's third independent hostile pass of the repaired S1–S5 and S8a
+slice, followed by a fourth clean confirmation before any release claim.
 **Not ready for:** claiming all twelve slices, applying the migration to a live
 database, enabling autonomous writes, or releasing to production.
 
@@ -163,11 +161,14 @@ occurred. Main shared-tree runtime, its dirty files, other agents’ work and
 continuity log were left alone. The isolated implementation is committed locally
 only; no push or deploy occurred.
 
-PROOF: package baseline 12/12; source sentinels 12/12; focused frontend 82/82 historical
-suite plus 36/36 current hostile-fix regressions; backend scoped Coach contracts 31/31;
-receipt-read route tests 7/7; workout read-back verifier 6/6; receipt hook 3/3; evidence envelope 4/4; provider boundary 4/4; model response 3/3; progress evidence 4/4; preservation 902/902 with two restored samples plus a
-separate index restore. See verifier for final HTML checks.
-HOSTILE-REVIEW: Astral round 1 found 9 verified defects; all nine have targeted
-regressions and local fixes. Independent round 2 is pending, so no clean marker is
-claimed yet. S3 write integration, S4 authorized read-back, full S5 caller adoption,
-S8 canonical progress caller, and S6/S7/S8b–S11 remain open.
+PROOF: package baseline 12/12; source sentinels 12/12; focused frontend hostile-fix
+regressions 46/46; backend scoped Coach contracts 32/32; runner-separated backend
+regressions 104/104; receipt-read route tests 7/7; workout read-back verifier 6/6;
+receipt hook 3/3; evidence envelope 4/4; provider boundary 4/4; model response 3/3;
+progress evidence 4/4; preservation 902/902 with two restored samples plus a separate
+index restore. See verifier for final HTML checks.
+HOSTILE-REVIEW: Astral round 1 found 9 verified defects and round 2 found 5 additional
+verified defects; all fourteen have targeted regressions and local fixes. Independent
+round 3 is pending, so no clean marker is claimed yet. S3 write integration, S4
+authorized read-back, full S5 caller adoption, S8 canonical progress caller, and
+S6/S7/S8b–S11 remain open.

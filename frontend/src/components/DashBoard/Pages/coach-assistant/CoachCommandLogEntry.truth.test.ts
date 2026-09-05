@@ -51,6 +51,9 @@ describe('CoachCommandLogEntry canonical command-center contract', () => {
     expect(stylesSource).toContain('export const LogEntry = styled.article');
     expect(typesSource).toContain("export type LogActor = CommandLogEntry['actor'];");
     expect(typesSource).toContain('export type CoachCommandLogEntryProps');
+    expect(rendererSource).not.toContain('onAcknowledge={() => undefined}');
+    expect(rendererSource).toContain('setAcknowledgedConfirmationId');
+    expect(rendererSource).toContain('confirmation.operationId !== acknowledgedConfirmationId');
 
     [
       ['CoachCommandLogEntry.tsx', rendererSource],

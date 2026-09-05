@@ -175,7 +175,6 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   const notebook = useCoachClientNotebook({ actorId, clientId: effectiveClientId, clientLabel: selectedClientLabel,
     commandText, commandTextRef, setCommandText, setSelectedStatus });
   const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });
-  // Notebook mode owns the composer while active — see useCoachComposerDraft's `enabled`.
   useCoachComposerDraft(activeThreadId, commandText, setCommandText, { actorId, clientId: effectiveClientId },
     !notebook.dockControls.active);
   const actions = createCoachCommandCenterActions({
@@ -244,6 +243,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     dossierTiles,
     drawer,
     handleReviewIntake: actions.handleReviewIntake,
+    handleIntentSubmit: actions.handleIntentSubmit,
     handleCancelCommand: actions.handleCancelCommand,
     handleConfirmCommand: actions.handleConfirmCommand,
     handleGuidePrompt,

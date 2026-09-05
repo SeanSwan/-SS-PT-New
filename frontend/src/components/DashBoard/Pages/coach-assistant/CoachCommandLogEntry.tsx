@@ -77,6 +77,7 @@ function CoachCommandLogEntry({
   workoutLoggerScopeLabel,
 }: CoachCommandLogEntryProps) {
   const [copied, setCopied] = useState(false);
+  const [acknowledgedConfirmationId, setAcknowledgedConfirmationId] = useState<string | null>(null);
   const handleCopy = () => {
     void navigator.clipboard?.writeText(entry.body).then(() => {
       setCopied(true);
@@ -164,7 +165,7 @@ function CoachCommandLogEntry({
         ) : null}
       </LogBody>
 
-      {confirmation?.operationId && onConfirmCommand && onCancelCommand ? (
+      {confirmation?.operationId && confirmation.operationId !== acknowledgedConfirmationId && onConfirmCommand && onCancelCommand ? (
         <ConfirmationSheet
           operationId={confirmation.operationId}
           lockedClientId={confirmation.client?.id ?? null}
@@ -178,12 +179,12 @@ function CoachCommandLogEntry({
           }}
           onDone={(result) => { void onConfirmCommand(confirmation, normalizeSheetResult(result, confirmation)); }}
           onCancel={() => { void onCancelCommand(confirmation, { alreadyCancelled: true }); }}
-          onAcknowledge={() => undefined}
+          onAcknowledge={() => setAcknowledgedConfirmationId(confirmation.operationId)}
           onReissue={confirmation.sourceMessage && onRetryMessage
             ? () => onRetryMessage(confirmation.sourceMessage as string)
             : undefined}
         />
-      ) : confirmation ? (
+      ) : confirmation && !confirmation.operationId ? (
         <div role="status">Swan Coach did not return a pending operation id. No action was run.</div>
       ) : null}
 

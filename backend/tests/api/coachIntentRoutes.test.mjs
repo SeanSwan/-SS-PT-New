@@ -173,4 +173,19 @@ describe('CoachIntent receipt reads', () => {
     await request(makeApp()).get(`/api/ai-command/intents/${rows[1].id}`).expect(200);
     delete process.env.AI_COMMANDS_ENABLED;
   });
+
+  it('continues past revoked recent rows so older authorized receipts remain visible', async () => {
+    const revoked = { ...rows[0], createdAt: new Date('2026-09-04T21:00:00.000Z'), targetClientId: 44 };
+    const authorized = { ...rows[1], createdAt: new Date('2026-09-04T20:00:00.000Z'), targetClientId: 55 };
+    const model = { findAll: vi.fn()
+      .mockResolvedValueOnce([revoked, authorized])
+      .mockResolvedValueOnce([]) };
+    mockGetModel.mockReturnValue(model);
+    mockAssignment.mockImplementation(async (_actorId, _role, targetId) => targetId === 55);
+
+    const res = await request(makeApp()).get('/api/ai-command/intents?limit=1').expect(200);
+    expect(res.body.intents).toHaveLength(1);
+    expect(res.body.intents[0].targetUserId).toBe(55);
+    expect(model.findAll).toHaveBeenCalledTimes(2);
+  });
 });

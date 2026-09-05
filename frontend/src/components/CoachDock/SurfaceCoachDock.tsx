@@ -126,6 +126,7 @@ const SurfaceCoachDock: React.FC<SurfaceCoachDockProps> = ({
           }}
           onDone={dismissConfirmation}
           onCancel={dismissConfirmation}
+          onAcknowledge={dismissConfirmation}
           onReissue={reissueConfirmation}
         />
       ) : null}

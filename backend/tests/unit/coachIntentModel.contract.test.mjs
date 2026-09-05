@@ -18,7 +18,7 @@ test('CoachIntent model is a PII-free mutable receipt with an actor/request uniq
 test('CoachIntent migration is additive and creates the uniqueness/index contract', () => {
   const migration = read('migrations/20260904000000-create-coach-intents.cjs');
   assert.match(migration, /createTable\('coach_intents'/);
-  assert.match(migration, /addIndex\('coach_intents', \['actorId', 'requestKey'\], \{ unique: true/);
+  assert.match(migration, /fields:\s*\['actorId',\s*'requestKey'\], options:\s*\{\s*unique:\s*true/);
   assert.match(migration, /Durable receipts are the reconciliation record/);
 });
 
@@ -28,6 +28,7 @@ test('CoachIntent migration creates the table for Sequelize missing-table errors
   const queryInterface = {
     describeTable: async () => { throw new Error('No description found for "coach_intents" table'); },
     createTable,
+    showIndex: async () => [],
     addIndex,
     dropTable: async () => { throw new Error('dropTable must not run for durable receipts'); },
   };
@@ -39,6 +40,39 @@ test('CoachIntent migration creates the table for Sequelize missing-table errors
     dropTable: async () => { throw new Error('dropTable must not run for durable receipts'); },
   });
   assert.equal(rollbackDescribeCalls, 0);
+});
+
+test('CoachIntent migration retries every index after table creation is interrupted', async () => {
+  let tableExists = false;
+  let failUniqueIndex = true;
+  const indexes = [];
+  const queryInterface = {
+    describeTable: async () => {
+      if (!tableExists) throw Object.assign(new Error('relation "coach_intents" does not exist'), { code: '42P01' });
+      return { id: {} };
+    },
+    createTable: async () => { tableExists = true; },
+    showIndex: async () => indexes.map((name) => ({ name })),
+    addIndex: async (_table, _fields, options) => {
+      if (options.name === 'coach_intents_actor_request_key' && failUniqueIndex) {
+        failUniqueIndex = false;
+        throw new Error('temporary index outage');
+      }
+      indexes.push(options.name);
+    },
+  };
+  const Sequelize = { UUID: 'UUID', INTEGER: 'INTEGER', STRING: () => 'STRING', JSONB: 'JSONB', DATE: 'DATE', fn: () => 'NOW' };
+
+  await assert.rejects(() => migrationModule.up(queryInterface, Sequelize), /temporary index outage/);
+  assert.equal(tableExists, true);
+  assert.deepEqual(indexes, []);
+
+  await migrationModule.up(queryInterface, Sequelize);
+  assert.deepEqual(indexes, [
+    'coach_intents_actor_request_key',
+    'coach_intents_status_created_at',
+    'coach_intents_operation_id',
+  ]);
 });
 
 test('CoachIntent is registered in the central Sequelize model associations', () => {

@@ -11,7 +11,7 @@
     },
     {
       "source": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandLogEntry.tsx",
-      "sha256": "be4f54199a0404991d4ac0c6552d42c6c99f893d92cefc451b8f4e6da0ab8aa6"
+      "sha256": "53ad47ccb61dadf82f84f7d0396bb4a60b6596d727e5b9ab61cdd6d19876cea0"
     },
     {
       "source": "frontend/src/components/CoachDock/useSurfaceCoachDock.ts",
@@ -51,7 +51,7 @@
     },
     {
       "source": "backend/routes/aiCommandRoutes.mjs",
-      "sha256": "30950b1ef84a6023825bc567a4bf864f9b498f236a0a98a56f1608ddff1bf77e"
+      "sha256": "da63c25a13ff956718ab37284c3800eb04a86334012651db735d32225784aaa8"
     },
     {
       "source": "backend/services/ai/commandPolicy.mjs",
