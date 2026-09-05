@@ -62,8 +62,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   const [quickClientError, setQuickClientError] = useState<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
   const commandFormRef = useRef<HTMLFormElement>(null); const commandTextRef = useRef<HTMLTextAreaElement>(null);
-  const { inputOrigin, setInputOrigin, setTrackedCommandText } = useCoachInputOrigin(setCommandText);
-  const leftRailRef = useRef<HTMLElement>(null);
+  const { inputOrigin, setInputOrigin, setTrackedCommandText } = useCoachInputOrigin(setCommandText); const leftRailRef = useRef<HTMLElement>(null);
   const rightRailRef = useRef<HTMLElement>(null);
   const plaudReviewRef = useRef<HTMLElement>(null);
   const lastDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
