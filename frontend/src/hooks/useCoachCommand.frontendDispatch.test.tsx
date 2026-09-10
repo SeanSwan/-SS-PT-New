@@ -211,22 +211,31 @@ describe('useCoachCommand — channel declaration (M3)', () => {
     vi.mocked(apiService.post).mockResolvedValue({ data: { success: true, type: 'executed' } });
   });
 
-  /**
-   * The server can no longer assume a safe channel. It used to default a
-   * missing `inputMode` to 'text', which meant the M3 voice rule answered
-   * "safe" for every request ever made — no caller sent the field at all. The
-   * absence now travels, and callers declare instead. This hook IS the typed
-   * lane, so it declares 'text'; if it silently stopped, every command from it
-   * would start being treated as an unproven channel and identity-crossing work
-   * would demand a physical confirm the operator cannot understand.
-   */
-  it('declares inputMode "text" by default — this hook is the typed lane', async () => {
+  // Shared command transport cannot infer a typed gesture for an unknown producer.
+  it.each([undefined, {}, { inputMode: undefined }, { inputMode: null }] as const)(
+    'keeps missing provenance unknown for options %j', async options => {
     const { result } = renderHook(() => useCoachCommand());
-    await act(async () => { await result.current.executeCommand('log a workout'); });
+    await act(async () => { await result.current.executeCommand('log a workout', options); });
 
     const [, body] = vi.mocked(apiService.post).mock.calls[0];
     expect((body as { routeContext?: Record<string, unknown> }).routeContext)
-      .toMatchObject({ inputMode: 'text' });
+      .toMatchObject({ inputMode: 'unknown' });
+  });
+
+  it.each(['text', 'voice', 'ui'] as const)('preserves explicitly declared %s provenance', async inputMode => {
+    const { result } = renderHook(() => useCoachCommand());
+    await act(async () => { await result.current.executeCommand('show my workout', { inputMode }); });
+    expect(vi.mocked(apiService.post).mock.calls[0][1]).toMatchObject({ routeContext: { inputMode } });
+  });
+
+  it('does not infer provenance from a route-context hint', async () => {
+    const { result } = renderHook(() => useCoachCommand());
+    await act(async () => { await result.current.executeCommand('log a workout', {
+      routeContext: { inputMode: 'text', source: 'coach-command-center' },
+    }); });
+    expect(vi.mocked(apiService.post).mock.calls[0][1]).toMatchObject({
+      routeContext: { inputMode: 'unknown', source: 'coach-command-center' },
+    });
   });
 
   it('lets a voice surface declare "voice" without losing its other tokens', async () => {
@@ -234,7 +243,7 @@ describe('useCoachCommand — channel declaration (M3)', () => {
     await act(async () => {
       await result.current.executeCommand('log a workout', {
         inputMode: 'voice',
-        surface: 'coach-dock',
+        surface: 'workout-logger',
         routeContext: { source: 'coach-command-center' },
       });
     });
@@ -242,7 +251,7 @@ describe('useCoachCommand — channel declaration (M3)', () => {
     const [, body] = vi.mocked(apiService.post).mock.calls[0];
     expect((body as { routeContext?: Record<string, unknown> }).routeContext).toMatchObject({
       inputMode: 'voice',
-      surface: 'coach-dock',
+      surface: 'workout-logger',
       source: 'coach-command-center',
     });
   });

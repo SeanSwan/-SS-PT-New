@@ -1,0 +1,1103 @@
+{
+  "schemaVersion": 4,
+  "mode": "explicit-task-override",
+  "taskId": "swan-coach-universe-v3-g02-robustness",
+  "sessionId": "01a0801f-c16d-7b52-a12b-a539ef8ee56d",
+  "repoRoot": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\tmp\\worktrees\\swan-coach-astra-owned-20260906",
+  "policyHash": "79aa03e0f3c44317e85f7bb771837d04c5d42b761656842f510acee8c4d3a8a8",
+  "authorization": {
+    "authorizedBy": "user",
+    "instruction": "Sean explicitly authorizes this task-scoped migration: finish bounded Swan Coach slices and tests, then final Astra-only hostile review, adjudication and fixes. Preserve old state, histories, sessions and cumulative consumption. Allow current-session rebind and future planner-defined bounded slices without repeating confirmation. A task-specific cap appropriate to the remaining work is authorized; this request records 24 cumulative admissions. Included subscription only; no paid spend. Source authorization: swan-user-workflow-authorization.md in this task's visualization directory.",
+    "cadence": "final-astra",
+    "reviewCallsPerTask": 24,
+    "sessionRebind": true,
+    "allowAdditionalSlices": true
+  },
+  "origin": {
+    "previousState": {
+      "path": "tmp/coach-g02-robustness-20260908/workflow-state.json",
+      "sha256": "1249a089f2d25a6631cb977601647dd02fcc49a4085df1defd122d16a9f1121a"
+    },
+    "state": {
+      "schemaVersion": 3,
+      "taskId": "swan-coach-universe-v3-g02-robustness",
+      "sessionId": "01a07fb8-5d55-7651-aabb-528f05f73c6e",
+      "repoRoot": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\tmp\\worktrees\\swan-coach-astra-owned-20260906",
+      "profile": "astra",
+      "extras": [],
+      "localModel": null,
+      "policyHash": "9b930ab2fd26dad087570289092ff4b7de4d651ea4d29a2f84d12a5b77a65667",
+      "index": 0,
+      "stage": "slice",
+      "status": "active",
+      "calls": 1,
+      "inFlight": null,
+      "slices": [
+        {
+          "id": "G02-R",
+          "files": [
+            "frontend/src/components/CoachConfirm/confirmationProjection.ts",
+            "frontend/src/components/CoachConfirm/useConfirmationSheet.ts",
+            "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+            "frontend/src/components/CoachConfirm/confirmationSheetState.ts",
+            "frontend/src/components/CoachConfirm/confirmationProjection.test.ts",
+            "frontend/src/components/CoachConfirm/ConfirmationSheet.projection.test.tsx",
+            "frontend/src/components/CoachConfirm/confirmationProjection.robustness.test.ts",
+            "frontend/src/components/CoachConfirm/ConfirmationSheet.robustness.test.tsx",
+            "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/36-g02-confirmation-robustness.md",
+            "tmp/coach-g02-robustness-20260908/plan-readiness.json",
+            "tmp\\coach-g02-robustness-20260908\\plan-bound.md",
+            "tmp\\coach-g02-robustness-20260908\\vitest.log",
+            "tmp\\coach-g02-robustness-20260908\\preservation.json"
+          ],
+          "allowedFiles": [
+            "frontend/src/components/CoachConfirm/confirmationProjection.ts",
+            "frontend/src/components/CoachConfirm/useConfirmationSheet.ts",
+            "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+            "frontend/src/components/CoachConfirm/confirmationSheetState.ts",
+            "frontend/src/components/CoachConfirm/confirmationProjection.test.ts",
+            "frontend/src/components/CoachConfirm/ConfirmationSheet.projection.test.tsx",
+            "frontend/src/components/CoachConfirm/confirmationProjection.robustness.test.ts",
+            "frontend/src/components/CoachConfirm/ConfirmationSheet.robustness.test.tsx"
+          ],
+          "builder": {
+            "model": "gpt-5.6-luna",
+            "effort": "xhigh",
+            "billing": "subscription",
+            "role": "Required tests only; review repair owner Astra per Sean"
+          },
+          "status": "review",
+          "round": 1,
+          "reviews": [
+            {
+              "seat": "astra",
+              "status": "complete",
+              "verdict": "APPROVE",
+              "digest": "306a707e9b209a9da44077642224cce878e5e8af6188b05560e3e306b2f00594",
+              "path": "tmp/coach-g02-robustness-20260908/review-round1.json",
+              "sha256": "954cfcf921ec19604dcd4a7e601a0052e8e144f41b1cf482749557b6fc2e2820"
+            }
+          ],
+          "findings": {},
+          "route": {
+            "requested": [
+              "astra"
+            ],
+            "selected": [
+              {
+                "seat": "astra",
+                "model": "gpt-6-astra",
+                "provider": "openai-codex",
+                "billing": "subscription",
+                "effort": "xhigh"
+              }
+            ],
+            "skipped": [],
+            "grade": "SELECTED_REVIEWERS"
+          },
+          "digest": "306a707e9b209a9da44077642224cce878e5e8af6188b05560e3e306b2f00594",
+          "snapshot": [
+            {
+              "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/36-g02-confirmation-robustness.md",
+              "sha256": "280d3e41aca5ac237a072bca427b17be766474b480d099546746cefa7460f6a0"
+            },
+            {
+              "path": "frontend/src/components/CoachConfirm/ConfirmationSheet.projection.test.tsx",
+              "sha256": "c58998251ad30a1807be89d76ef7f0609876d3efef2f84d21117fd9bcb4098c0"
+            },
+            {
+              "path": "frontend/src/components/CoachConfirm/ConfirmationSheet.robustness.test.tsx",
+              "sha256": "b807b98588b37c450fa7cb44c649fa16aa1a590fc21de8cbeeadd93bc55b6e67"
+            },
+            {
+              "path": "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+              "sha256": "919de9942cdc5e73052a6f8b5590e12c4888795afdf8fce035e0a703e1cc218e"
+            },
+            {
+              "path": "frontend/src/components/CoachConfirm/confirmationProjection.robustness.test.ts",
+              "sha256": "387ba98e1d876bfb40e43f8329031ad727ed8adfe89e2cf8f61d5accf89ef483"
+            },
+            {
+              "path": "frontend/src/components/CoachConfirm/confirmationProjection.test.ts",
+              "sha256": "18f63f463321e626acfe27ae9b0a24c09450175b3722d18141d8894a5695bc45"
+            },
+            {
+              "path": "frontend/src/components/CoachConfirm/confirmationProjection.ts",
+              "sha256": "2069cde2486a40799c0a3f4af8ef8d956972890c7e88cbad27bc03e633a99bd7"
+            },
+            {
+              "path": "frontend/src/components/CoachConfirm/confirmationSheetState.ts",
+              "sha256": "99ebc9e75cc4a6f6f61f60791c8667fb30a40450ef6b08a7080b17ed77f1692f"
+            },
+            {
+              "path": "frontend/src/components/CoachConfirm/useConfirmationSheet.ts",
+              "sha256": "f17b2435ddc70fc9c946e65f9a6f0496890cd12f372b1f3d55fe64aca92f8f20"
+            },
+            {
+              "path": "tmp/coach-g02-robustness-20260908/plan-readiness.json",
+              "sha256": "c1917a44289cd3fb8bca3265db3ca29bd204c620485a4e1da21178265074ec91"
+            },
+            {
+              "path": "tmp\\coach-g02-robustness-20260908\\plan-bound.md",
+              "sha256": "280d3e41aca5ac237a072bca427b17be766474b480d099546746cefa7460f6a0"
+            },
+            {
+              "path": "tmp\\coach-g02-robustness-20260908\\preservation.json",
+              "sha256": "c350574d592e7d4ef8f27f2e506fa1278f5e07f27d0c69edc87af60a15aa15c5"
+            },
+            {
+              "path": "tmp\\coach-g02-robustness-20260908\\vitest.log",
+              "sha256": "2e65a7b494132fa6c6e2a5e23b71709935d59a1c46ce2588d9bc5abcc2277ed8"
+            }
+          ],
+          "tests": {
+            "status": "PASS",
+            "digest": "306a707e9b209a9da44077642224cce878e5e8af6188b05560e3e306b2f00594",
+            "command": "WSL existing Node22.23.2: vitest run six CoachConfirm suites; corrected affected two-suite and final decoder reruns; vitest run CoachCommandLogEntry.test.tsx renderDigest.test.ts; tsc --noEmit; vite build --outDir ../tmp/coach-g02-robustness-20260908/frontend-dist; node tmp/coach-g02-robustness-20260908/browser-g02.mjs",
+            "results": {
+              "confirmationUnique": 130,
+              "newRobustness": 67,
+              "callerAndDigest": 32,
+              "browser": 8,
+              "types": "PASS",
+              "build": "PASS"
+            },
+            "qualification": "130 unique tests across initial128/2fail plus14pass and9pass affected reruns; not one all-green130 invocation. Backend/PG/provider not run for frontend-only delta. Browser real caller/WebCrypto with synthetic transport/auth.",
+            "evidence": {
+              "path": "tmp/coach-g02-robustness-20260908/combined-tests.json",
+              "sha256": "94f431acf47ef6b65920cd8f5110a32826fbd32bd1a4e9091d983b5cf8a59a70"
+            },
+            "sourceSnapshot": {
+              "entries": [
+                {
+                  "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/36-g02-confirmation-robustness.md",
+                  "sha256": "280d3e41aca5ac237a072bca427b17be766474b480d099546746cefa7460f6a0"
+                },
+                {
+                  "path": "frontend/src/components/CoachConfirm/ConfirmationSheet.projection.test.tsx",
+                  "sha256": "c58998251ad30a1807be89d76ef7f0609876d3efef2f84d21117fd9bcb4098c0"
+                },
+                {
+                  "path": "frontend/src/components/CoachConfirm/ConfirmationSheet.robustness.test.tsx",
+                  "sha256": "b807b98588b37c450fa7cb44c649fa16aa1a590fc21de8cbeeadd93bc55b6e67"
+                },
+                {
+                  "path": "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+                  "sha256": "919de9942cdc5e73052a6f8b5590e12c4888795afdf8fce035e0a703e1cc218e"
+                },
+                {
+                  "path": "frontend/src/components/CoachConfirm/confirmationProjection.robustness.test.ts",
+                  "sha256": "387ba98e1d876bfb40e43f8329031ad727ed8adfe89e2cf8f61d5accf89ef483"
+                },
+                {
+                  "path": "frontend/src/components/CoachConfirm/confirmationProjection.test.ts",
+                  "sha256": "18f63f463321e626acfe27ae9b0a24c09450175b3722d18141d8894a5695bc45"
+                },
+                {
+                  "path": "frontend/src/components/CoachConfirm/confirmationProjection.ts",
+                  "sha256": "2069cde2486a40799c0a3f4af8ef8d956972890c7e88cbad27bc03e633a99bd7"
+                },
+                {
+                  "path": "frontend/src/components/CoachConfirm/confirmationSheetState.ts",
+                  "sha256": "99ebc9e75cc4a6f6f61f60791c8667fb30a40450ef6b08a7080b17ed77f1692f"
+                },
+                {
+                  "path": "frontend/src/components/CoachConfirm/useConfirmationSheet.ts",
+                  "sha256": "f17b2435ddc70fc9c946e65f9a6f0496890cd12f372b1f3d55fe64aca92f8f20"
+                },
+                {
+                  "path": "tmp/coach-g02-robustness-20260908/plan-readiness.json",
+                  "sha256": "c1917a44289cd3fb8bca3265db3ca29bd204c620485a4e1da21178265074ec91"
+                },
+                {
+                  "path": "tmp\\coach-g02-robustness-20260908\\plan-bound.md",
+                  "sha256": "280d3e41aca5ac237a072bca427b17be766474b480d099546746cefa7460f6a0"
+                },
+                {
+                  "path": "tmp\\coach-g02-robustness-20260908\\preservation.json",
+                  "sha256": "c350574d592e7d4ef8f27f2e506fa1278f5e07f27d0c69edc87af60a15aa15c5"
+                },
+                {
+                  "path": "tmp\\coach-g02-robustness-20260908\\vitest.log",
+                  "sha256": "2e65a7b494132fa6c6e2a5e23b71709935d59a1c46ce2588d9bc5abcc2277ed8"
+                }
+              ],
+              "digest": "306a707e9b209a9da44077642224cce878e5e8af6188b05560e3e306b2f00594"
+            },
+            "createdAt": "2026-09-08T07:21:27.823Z"
+          }
+        }
+      ],
+      "events": [
+        {
+          "type": "pre-review-plan-correction",
+          "reason": "Correct documented existing arming duration1500 to verified2500; no behavior/ownership/counter change",
+          "at": "2026-09-08T06:56:09.269Z"
+        },
+        {
+          "type": "freeze",
+          "slice": "G02-R",
+          "round": 1,
+          "at": "2026-09-08T07:21:27.850Z"
+        },
+        {
+          "type": "admitted",
+          "attemptId": "swan-coach-universe-v3-g02-robustness:G02-R:1:astra:306a707e9b209a9da44077642224cce878e5e8af6188b05560e3e306b2f00594",
+          "at": "2026-09-08T07:21:27.873Z"
+        },
+        {
+          "type": "admit",
+          "slice": "G02-R",
+          "round": 1,
+          "at": "2026-09-08T07:21:27.873Z"
+        },
+        {
+          "type": "reviewed",
+          "attemptId": "swan-coach-universe-v3-g02-robustness:G02-R:1:astra:306a707e9b209a9da44077642224cce878e5e8af6188b05560e3e306b2f00594",
+          "receipt": {
+            "path": "tmp/coach-g02-robustness-20260908/review-round1.json",
+            "sha256": "954cfcf921ec19604dcd4a7e601a0052e8e144f41b1cf482749557b6fc2e2820"
+          }
+        },
+        {
+          "type": "review",
+          "slice": "G02-R",
+          "round": 1,
+          "at": "2026-09-08T07:28:05.930Z"
+        }
+      ],
+      "planReceipt": {
+        "path": "tmp/coach-g02-robustness-20260908/plan-readiness.json",
+        "sha256": "c1917a44289cd3fb8bca3265db3ca29bd204c620485a4e1da21178265074ec91"
+      }
+    },
+    "calls": 9,
+    "carriedCalls": [
+      {
+        "id": "pre-g02-historical",
+        "calls": 5,
+        "reason": "Preserved root ledger conservatively counts five historical admissions outside predecessor.calls.",
+        "evidence": [
+          {
+            "path": "tmp/coach-g02-robustness-20260908/root-review-budget.json",
+            "sha256": "68d57196e9ea04d4b5d5d47fefc7e79180eb420dbc3c1243e6de444f11c23afa"
+          }
+        ]
+      },
+      {
+        "id": "observed-v4-reviews",
+        "calls": 3,
+        "reason": "Corrected v6 packet records fresh GLM, Flash, and Astra calls outside the stale controller; count conservatively without inventing native admissions or current approval."
+      }
+    ],
+    "events": [
+      {
+        "type": "pre-review-plan-correction",
+        "reason": "Correct documented existing arming duration1500 to verified2500; no behavior/ownership/counter change",
+        "at": "2026-09-08T06:56:09.269Z"
+      },
+      {
+        "type": "freeze",
+        "slice": "G02-R",
+        "round": 1,
+        "at": "2026-09-08T07:21:27.850Z"
+      },
+      {
+        "type": "admitted",
+        "attemptId": "swan-coach-universe-v3-g02-robustness:G02-R:1:astra:306a707e9b209a9da44077642224cce878e5e8af6188b05560e3e306b2f00594",
+        "at": "2026-09-08T07:21:27.873Z"
+      },
+      {
+        "type": "admit",
+        "slice": "G02-R",
+        "round": 1,
+        "at": "2026-09-08T07:21:27.873Z"
+      },
+      {
+        "type": "reviewed",
+        "attemptId": "swan-coach-universe-v3-g02-robustness:G02-R:1:astra:306a707e9b209a9da44077642224cce878e5e8af6188b05560e3e306b2f00594",
+        "receipt": {
+          "path": "tmp/coach-g02-robustness-20260908/review-round1.json",
+          "sha256": "954cfcf921ec19604dcd4a7e601a0052e8e144f41b1cf482749557b6fc2e2820"
+        }
+      },
+      {
+        "type": "review",
+        "slice": "G02-R",
+        "round": 1,
+        "at": "2026-09-08T07:28:05.930Z"
+      }
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/36-g02-confirmation-robustness.md"
+  ],
+  "scopes": [
+    {
+      "id": "G02-R",
+      "files": [
+        "frontend/src/components/CoachConfirm/confirmationProjection.ts",
+        "frontend/src/components/CoachConfirm/useConfirmationSheet.ts",
+        "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+        "frontend/src/components/CoachConfirm/confirmationSheetState.ts",
+        "frontend/src/components/CoachConfirm/confirmationProjection.test.ts",
+        "frontend/src/components/CoachConfirm/ConfirmationSheet.projection.test.tsx",
+        "frontend/src/components/CoachConfirm/confirmationProjection.robustness.test.ts",
+        "frontend/src/components/CoachConfirm/ConfirmationSheet.robustness.test.tsx",
+        "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.tsx",
+        "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.test.tsx",
+        "frontend/src/utils/aiWorkoutEvents.ts",
+        "frontend/src/utils/aiWorkoutEvents.test.ts"
+      ]
+    },
+    {
+      "id": "G04a",
+      "files": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/coachSessionDraftState.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDraftContext.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSessionDraft.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachActionProposalController.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachActionProposalCard.tsx",
+        "frontend/src/components/DashBoard/UniversalDashboardLayout.tsx"
+      ],
+      "planFiles": [
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+      ]
+    },
+    {
+      "id": "G04b",
+      "files": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.test.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.test.ts",
+        "frontend/src/services/coachProposalService.ts"
+      ],
+      "planFiles": [
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+      ]
+    },
+    {
+      "id": "G04c",
+      "files": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.test.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.floorMode.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.deskMount.test.tsx",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+      ],
+      "planFiles": [
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+      ]
+    },
+    {
+      "id": "G05",
+      "files": [
+        "backend/services/ai/coachInferenceBoundary.mjs",
+        "backend/services/ai/coachEvidenceTools.mjs",
+        "backend/services/ai/coachContextCache.mjs",
+        "backend/services/ai/coachModelResponseContract.mjs",
+        "backend/services/aiChatService.mjs",
+        "backend/routes/aiChatRoutes.mjs",
+        "backend/tests/unit/coachInferenceBoundary.test.mjs",
+        "backend/tests/unit/coachEvidenceTools.test.mjs",
+        "backend/tests/unit/coachContextCache.test.mjs",
+        "backend/tests/unit/coachCallerInventory.test.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+      ],
+      "planFiles": [
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+      ]
+    }
+  ],
+  "calls": 9,
+  "events": [
+    {
+      "type": "pre-review-plan-correction",
+      "reason": "Correct documented existing arming duration1500 to verified2500; no behavior/ownership/counter change",
+      "at": "2026-09-08T06:56:09.269Z"
+    },
+    {
+      "type": "freeze",
+      "slice": "G02-R",
+      "round": 1,
+      "at": "2026-09-08T07:21:27.850Z"
+    },
+    {
+      "type": "admitted",
+      "attemptId": "swan-coach-universe-v3-g02-robustness:G02-R:1:astra:306a707e9b209a9da44077642224cce878e5e8af6188b05560e3e306b2f00594",
+      "at": "2026-09-08T07:21:27.873Z"
+    },
+    {
+      "type": "admit",
+      "slice": "G02-R",
+      "round": 1,
+      "at": "2026-09-08T07:21:27.873Z"
+    },
+    {
+      "type": "reviewed",
+      "attemptId": "swan-coach-universe-v3-g02-robustness:G02-R:1:astra:306a707e9b209a9da44077642224cce878e5e8af6188b05560e3e306b2f00594",
+      "receipt": {
+        "path": "tmp/coach-g02-robustness-20260908/review-round1.json",
+        "sha256": "954cfcf921ec19604dcd4a7e601a0052e8e144f41b1cf482749557b6fc2e2820"
+      }
+    },
+    {
+      "type": "review",
+      "slice": "G02-R",
+      "round": 1,
+      "at": "2026-09-08T07:28:05.930Z"
+    },
+    {
+      "type": "explicit-migration",
+      "at": "2026-09-09T04:39:18.144Z",
+      "previousSessionId": "01a07fb8-5d55-7651-aabb-528f05f73c6e",
+      "sessionId": "01a0801f-c16d-7b52-a12b-a539ef8ee56d",
+      "previousPolicyHash": "9b930ab2fd26dad087570289092ff4b7de4d651ea4d29a2f84d12a5b77a65667",
+      "previousCalls": 1,
+      "carriedCalls": 8,
+      "calls": 9,
+      "authorization": {
+        "authorizedBy": "user",
+        "instruction": "Sean explicitly authorizes this task-scoped migration: finish bounded Swan Coach slices and tests, then final Astra-only hostile review, adjudication and fixes. Preserve old state, histories, sessions and cumulative consumption. Allow current-session rebind and future planner-defined bounded slices without repeating confirmation. A task-specific cap appropriate to the remaining work is authorized; this request records 24 cumulative admissions. Included subscription only; no paid spend. Source authorization: swan-user-workflow-authorization.md in this task's visualization directory.",
+        "cadence": "final-astra",
+        "reviewCallsPerTask": 24,
+        "sessionRebind": true,
+        "allowAdditionalSlices": true
+      },
+      "contractDigest": "6555d8f83a86dd7f7378680901391c83cbce218d9512c51792c05b9e9a74d003"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "G04a",
+        "files": [
+          "frontend/src/components/DashBoard/Pages/coach-assistant/coachSessionDraftState.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDraftContext.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSessionDraft.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachActionProposalController.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachActionProposalCard.tsx",
+          "frontend/src/components/DashBoard/UniversalDashboardLayout.tsx"
+        ],
+        "planFiles": [
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+        ]
+      },
+      "reason": "Place the next approved implementation slice after the migrated G02/G03 scope. G04a is the six-file shell-owned draft foundation; G04b and G04c remain separate bounded slices with their own architecture and exact file scopes.",
+      "previousContractDigest": "6555d8f83a86dd7f7378680901391c83cbce218d9512c51792c05b9e9a74d003",
+      "contractDigest": "af1e05e190e5d1dbc18d50d22eaa865712eb1b5acd2f3bf68646755347fed68f"
+    },
+    {
+      "type": "append-slice",
+      "slice": "G02-R",
+      "at": "2026-09-09T04:45:43.329Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G02-R",
+      "digest": "849990b7b5e3168d1ff4826415b1ed85b3d65fade2ee38fbda303ea88cb8ba64",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g02-robustness-20260908/g02-current-tests.json",
+          "sha256": "9ec5fda3e4463c23c0068578865294bf2354283a7ad8411d8522faefdc340b84"
+        },
+        "build": {
+          "path": "tmp/coach-g02-robustness-20260908/g02-current-build.json",
+          "sha256": "22fd515a1cf78fcd16f455d22a20be5ca13193c10c67ccbe866641d013311a3c"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G02-R",
+      "at": "2026-09-09T04:50:43.495Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G02-R",
+      "digest": "849990b7b5e3168d1ff4826415b1ed85b3d65fade2ee38fbda303ea88cb8ba64"
+    },
+    {
+      "type": "advance",
+      "slice": "G02-R",
+      "at": "2026-09-09T04:50:57.462Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G04a",
+      "digest": "133b6f90300d57065b7ffd772227718a584fd5568ee16d337a344a6156dadb56",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g04a-20260908/g04a-tests-receipt.json",
+          "sha256": "369cdc3ec78089886e30f49d9d8930be24e8e02ebb97b4fdbb552c2928c519c6"
+        },
+        "build": {
+          "path": "tmp/coach-g04a-20260908/g04a-build-receipt.json",
+          "sha256": "786bba15d054fc395d5501b346dd87a3c43c24d712d77d9769a8802f797f67b2"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G04a",
+      "at": "2026-09-09T05:41:03.488Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G04a",
+      "digest": "133b6f90300d57065b7ffd772227718a584fd5568ee16d337a344a6156dadb56"
+    },
+    {
+      "type": "advance",
+      "slice": "G04a",
+      "at": "2026-09-09T05:41:08.554Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "G04b",
+        "files": [
+          "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.test.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.test.ts",
+          "frontend/src/services/coachProposalService.ts"
+        ],
+        "planFiles": [
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+        ]
+      },
+      "reason": "G04b canonical editable workout contract and immutable submitted-request adapter; reuse the existing staff draft endpoint and defer mounted editor/Logger/receipt UI to G04c.",
+      "previousContractDigest": "af1e05e190e5d1dbc18d50d22eaa865712eb1b5acd2f3bf68646755347fed68f",
+      "contractDigest": "15db9bb3d8ee8fe08d8184c4d11d42405e45f8d93c15fddd3e0c7df56cb1f6c7"
+    },
+    {
+      "type": "append-slice",
+      "slice": "FINAL",
+      "at": "2026-09-09T05:43:33.662Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G04b",
+      "digest": "80cd818207d2479121e1aefa723c3f93f69a7574d69329bafcf2c50a5042adb9",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g04b-20260909/g04b-tests-receipt.json",
+          "sha256": "b4cdbb2a102520d789805c0e03c869678b7c3653cdfc93ccce5ad2ec241cc059"
+        },
+        "build": {
+          "path": "tmp/coach-g04b-20260909/g04b-build-receipt.json",
+          "sha256": "e2048649198da48d5b7217d25f2625f9369bee6ea6ba78af12bf80d65dc497c2"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G04b",
+      "at": "2026-09-09T20:18:53.378Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G04b",
+      "digest": "80cd818207d2479121e1aefa723c3f93f69a7574d69329bafcf2c50a5042adb9"
+    },
+    {
+      "type": "advance",
+      "slice": "G04b",
+      "at": "2026-09-09T20:23:46.501Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "G04c",
+        "files": [
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.test.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.test.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.test.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.test.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.test.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.test.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.floorMode.test.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.deskMount.test.tsx",
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+        ],
+        "planFiles": [
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+        ]
+      },
+      "reason": "G04c: Session Desk B presentation layer per S6 (doc 31 lane table G04 + doc 38/14): CoachSessionDesk + Gate, ContextStatus, IntentTimeline, editable WorkoutDraft (canonical rows via G04a owner), useCoachSurfaceContext, Floor Mode, target-switch choices, all 12 UI states, Logger bridge emission, mounted desktop/mobile evidence. Consumes the frozen G04a shell owner; no parallel draft store.",
+      "previousContractDigest": "15db9bb3d8ee8fe08d8184c4d11d42405e45f8d93c15fddd3e0c7df56cb1f6c7",
+      "contractDigest": "c0b3753a275f4e3b2384225ae1d496c71797e3fa1b6e0be37a49028f9d935e6b"
+    },
+    {
+      "type": "append-slice",
+      "slice": "FINAL",
+      "at": "2026-09-09T21:02:17.804Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G04c",
+      "digest": "c917c7562cc5f77f890ab60f59c6bdd850901056deb15f9c6eb47fabd8fead96",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g04c-20260909/g04c-tests-receipt.json",
+          "sha256": "a4b5fd0f4d89c203c1ba7a065036db03a3efc2a013043f3f2357e08757e6d5ff"
+        },
+        "build": {
+          "path": "tmp/coach-g04c-20260909/g04c-build-receipt.json",
+          "sha256": "da4bf548a55d7c50afaebfdb0f2a696268bfa9a77197624303b819038013520c"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G04c",
+      "at": "2026-09-10T00:14:20.507Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G04c",
+      "digest": "c917c7562cc5f77f890ab60f59c6bdd850901056deb15f9c6eb47fabd8fead96"
+    },
+    {
+      "type": "advance",
+      "slice": "G04c",
+      "at": "2026-09-10T00:18:25.492Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "G05",
+        "files": [
+          "backend/services/ai/coachInferenceBoundary.mjs",
+          "backend/services/ai/coachEvidenceTools.mjs",
+          "backend/services/ai/coachContextCache.mjs",
+          "backend/services/ai/coachModelResponseContract.mjs",
+          "backend/services/aiChatService.mjs",
+          "backend/routes/aiChatRoutes.mjs",
+          "backend/tests/unit/coachInferenceBoundary.test.mjs",
+          "backend/tests/unit/coachEvidenceTools.test.mjs",
+          "backend/tests/unit/coachContextCache.test.mjs",
+          "backend/tests/unit/coachCallerInventory.test.mjs",
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+        ],
+        "planFiles": [
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+        ]
+      },
+      "reason": "G05/S5: one provider/privacy boundary for all Coach callers. Server builds the actor/target/capability policy (body policy ignored) via the existing coachProviderBoundary gate; non-Coach callers keep their shapes through a compatibility adapter. Four bounded read-only evidence tools (context summary, exercise lookup, recent-workout evidence, progress evidence) reuse authorized domain readers with per-query row/byte caps and per-tool permission/target refresh; tool output is data, never instructions; no model-visible write tool. Budget: 6 tool calls / 2 model rounds / 20s wall time; exhaustion returns partial findings, never a new provider. Context distinguishes empty/unavailable/stale/denied; denied data never enters the provider payload. In-memory context cache keyed by actor+target+access-version+capability+private-mode, invalidated on role/target change, forget, logout. Final union extends the S5c contract with 'unavailable' (S5c 'proposal' retained as the frozen draft_proposal spelling). Exits T22-T25 plus complete caller inventory and forbidden-provider spy tests. Existing provider configuration only; no live paid inference.",
+      "previousContractDigest": "c0b3753a275f4e3b2384225ae1d496c71797e3fa1b6e0be37a49028f9d935e6b",
+      "contractDigest": "69ed890dffa19e558aecfc60a31b19dd5ab462f7b908e166bd1b211f7c53cb4f"
+    },
+    {
+      "type": "append-slice",
+      "slice": "FINAL",
+      "at": "2026-09-10T00:26:47.429Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G05",
+      "digest": "292ca454f965799595e7fae3556cb75ded4cb27355f62247991d6096cf31ac3f",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g05-20260909/g05-tests-receipt.json",
+          "sha256": "23ef2408bf13de3cc06df3de2d22d3fda675f7198293f7082c84f07057315033"
+        },
+        "build": {
+          "path": "tmp/coach-g05-20260909/g05-build-receipt.json",
+          "sha256": "19c5a118068e33cd5a81be12f6fd3044c2ac433f8da83d43d050267aa87093f6"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G05",
+      "at": "2026-09-10T00:57:54.626Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G05",
+      "digest": "292ca454f965799595e7fae3556cb75ded4cb27355f62247991d6096cf31ac3f"
+    },
+    {
+      "type": "advance",
+      "slice": "G05",
+      "at": "2026-09-10T00:57:57.492Z"
+    }
+  ],
+  "status": "active",
+  "stage": "final",
+  "index": 4,
+  "inFlight": null,
+  "slices": [
+    {
+      "id": "G02-R",
+      "files": [
+        "frontend/src/components/CoachConfirm/confirmationProjection.ts",
+        "frontend/src/components/CoachConfirm/useConfirmationSheet.ts",
+        "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+        "frontend/src/components/CoachConfirm/confirmationSheetState.ts",
+        "frontend/src/components/CoachConfirm/confirmationProjection.test.ts",
+        "frontend/src/components/CoachConfirm/ConfirmationSheet.projection.test.tsx",
+        "frontend/src/components/CoachConfirm/confirmationProjection.robustness.test.ts",
+        "frontend/src/components/CoachConfirm/ConfirmationSheet.robustness.test.tsx",
+        "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.tsx",
+        "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.test.tsx",
+        "frontend/src/utils/aiWorkoutEvents.ts",
+        "frontend/src/utils/aiWorkoutEvents.test.ts",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/36-g02-confirmation-robustness.md"
+      ],
+      "allowedFiles": [
+        "frontend/src/components/CoachConfirm/confirmationProjection.ts",
+        "frontend/src/components/CoachConfirm/useConfirmationSheet.ts",
+        "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+        "frontend/src/components/CoachConfirm/confirmationSheetState.ts",
+        "frontend/src/components/CoachConfirm/confirmationProjection.test.ts",
+        "frontend/src/components/CoachConfirm/ConfirmationSheet.projection.test.tsx",
+        "frontend/src/components/CoachConfirm/confirmationProjection.robustness.test.ts",
+        "frontend/src/components/CoachConfirm/ConfirmationSheet.robustness.test.tsx",
+        "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.tsx",
+        "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.test.tsx",
+        "frontend/src/utils/aiWorkoutEvents.ts",
+        "frontend/src/utils/aiWorkoutEvents.test.ts"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "849990b7b5e3168d1ff4826415b1ed85b3d65fade2ee38fbda303ea88cb8ba64",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g02-robustness-20260908/g02-current-tests.json",
+          "sha256": "9ec5fda3e4463c23c0068578865294bf2354283a7ad8411d8522faefdc340b84"
+        },
+        "build": {
+          "path": "tmp/coach-g02-robustness-20260908/g02-current-build.json",
+          "sha256": "22fd515a1cf78fcd16f455d22a20be5ca13193c10c67ccbe866641d013311a3c"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "G04a",
+      "allowedFiles": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/coachSessionDraftState.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDraftContext.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSessionDraft.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachActionProposalController.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachActionProposalCard.tsx",
+        "frontend/src/components/DashBoard/UniversalDashboardLayout.tsx"
+      ],
+      "files": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/coachSessionDraftState.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDraftContext.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSessionDraft.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachActionProposalController.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachActionProposalCard.tsx",
+        "frontend/src/components/DashBoard/UniversalDashboardLayout.tsx",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "133b6f90300d57065b7ffd772227718a584fd5568ee16d337a344a6156dadb56",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g04a-20260908/g04a-tests-receipt.json",
+          "sha256": "369cdc3ec78089886e30f49d9d8930be24e8e02ebb97b4fdbb552c2928c519c6"
+        },
+        "build": {
+          "path": "tmp/coach-g04a-20260908/g04a-build-receipt.json",
+          "sha256": "786bba15d054fc395d5501b346dd87a3c43c24d712d77d9769a8802f797f67b2"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "G04b",
+      "allowedFiles": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.test.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.test.ts",
+        "frontend/src/services/coachProposalService.ts"
+      ],
+      "files": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.test.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.test.ts",
+        "frontend/src/services/coachProposalService.ts",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "80cd818207d2479121e1aefa723c3f93f69a7574d69329bafcf2c50a5042adb9",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g04b-20260909/g04b-tests-receipt.json",
+          "sha256": "b4cdbb2a102520d789805c0e03c869678b7c3653cdfc93ccce5ad2ec241cc059"
+        },
+        "build": {
+          "path": "tmp/coach-g04b-20260909/g04b-build-receipt.json",
+          "sha256": "e2048649198da48d5b7217d25f2625f9369bee6ea6ba78af12bf80d65dc497c2"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "G04c",
+      "allowedFiles": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.test.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.floorMode.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.deskMount.test.tsx",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+      ],
+      "files": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.test.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.floorMode.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.deskMount.test.tsx",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "c917c7562cc5f77f890ab60f59c6bdd850901056deb15f9c6eb47fabd8fead96",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g04c-20260909/g04c-tests-receipt.json",
+          "sha256": "a4b5fd0f4d89c203c1ba7a065036db03a3efc2a013043f3f2357e08757e6d5ff"
+        },
+        "build": {
+          "path": "tmp/coach-g04c-20260909/g04c-build-receipt.json",
+          "sha256": "da4bf548a55d7c50afaebfdb0f2a696268bfa9a77197624303b819038013520c"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "G05",
+      "allowedFiles": [
+        "backend/services/ai/coachInferenceBoundary.mjs",
+        "backend/services/ai/coachEvidenceTools.mjs",
+        "backend/services/ai/coachContextCache.mjs",
+        "backend/services/ai/coachModelResponseContract.mjs",
+        "backend/services/aiChatService.mjs",
+        "backend/routes/aiChatRoutes.mjs",
+        "backend/tests/unit/coachInferenceBoundary.test.mjs",
+        "backend/tests/unit/coachEvidenceTools.test.mjs",
+        "backend/tests/unit/coachContextCache.test.mjs",
+        "backend/tests/unit/coachCallerInventory.test.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+      ],
+      "files": [
+        "backend/services/ai/coachInferenceBoundary.mjs",
+        "backend/services/ai/coachEvidenceTools.mjs",
+        "backend/services/ai/coachContextCache.mjs",
+        "backend/services/ai/coachModelResponseContract.mjs",
+        "backend/services/aiChatService.mjs",
+        "backend/routes/aiChatRoutes.mjs",
+        "backend/tests/unit/coachInferenceBoundary.test.mjs",
+        "backend/tests/unit/coachEvidenceTools.test.mjs",
+        "backend/tests/unit/coachContextCache.test.mjs",
+        "backend/tests/unit/coachCallerInventory.test.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "292ca454f965799595e7fae3556cb75ded4cb27355f62247991d6096cf31ac3f",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g05-20260909/g05-tests-receipt.json",
+          "sha256": "23ef2408bf13de3cc06df3de2d22d3fda675f7198293f7082c84f07057315033"
+        },
+        "build": {
+          "path": "tmp/coach-g05-20260909/g05-build-receipt.json",
+          "sha256": "19c5a118068e33cd5a81be12f6fd3044c2ac433f8da83d43d050267aa87093f6"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
+    }
+  ],
+  "contractDigest": "69ed890dffa19e558aecfc60a31b19dd5ab462f7b908e166bd1b211f7c53cb4f",
+  "finalReview": {
+    "id": "FINAL",
+    "files": [
+      "frontend/src/components/CoachConfirm/confirmationProjection.ts",
+      "frontend/src/components/CoachConfirm/useConfirmationSheet.ts",
+      "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+      "frontend/src/components/CoachConfirm/confirmationSheetState.ts",
+      "frontend/src/components/CoachConfirm/confirmationProjection.test.ts",
+      "frontend/src/components/CoachConfirm/ConfirmationSheet.projection.test.tsx",
+      "frontend/src/components/CoachConfirm/confirmationProjection.robustness.test.ts",
+      "frontend/src/components/CoachConfirm/ConfirmationSheet.robustness.test.tsx",
+      "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.tsx",
+      "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.test.tsx",
+      "frontend/src/utils/aiWorkoutEvents.ts",
+      "frontend/src/utils/aiWorkoutEvents.test.ts",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/36-g02-confirmation-robustness.md",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/coachSessionDraftState.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDraftContext.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSessionDraft.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachActionProposalController.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachActionProposalCard.tsx",
+      "frontend/src/components/DashBoard/UniversalDashboardLayout.tsx",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.test.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.test.ts",
+      "frontend/src/services/coachProposalService.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.test.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.floorMode.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.deskMount.test.tsx",
+      "backend/services/ai/coachInferenceBoundary.mjs",
+      "backend/services/ai/coachEvidenceTools.mjs",
+      "backend/services/ai/coachContextCache.mjs",
+      "backend/services/ai/coachModelResponseContract.mjs",
+      "backend/services/aiChatService.mjs",
+      "backend/routes/aiChatRoutes.mjs",
+      "backend/tests/unit/coachInferenceBoundary.test.mjs",
+      "backend/tests/unit/coachEvidenceTools.test.mjs",
+      "backend/tests/unit/coachContextCache.test.mjs",
+      "backend/tests/unit/coachCallerInventory.test.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+    ],
+    "allowedFiles": [
+      "frontend/src/components/CoachConfirm/confirmationProjection.ts",
+      "frontend/src/components/CoachConfirm/useConfirmationSheet.ts",
+      "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+      "frontend/src/components/CoachConfirm/confirmationSheetState.ts",
+      "frontend/src/components/CoachConfirm/confirmationProjection.test.ts",
+      "frontend/src/components/CoachConfirm/ConfirmationSheet.projection.test.tsx",
+      "frontend/src/components/CoachConfirm/confirmationProjection.robustness.test.ts",
+      "frontend/src/components/CoachConfirm/ConfirmationSheet.robustness.test.tsx",
+      "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.tsx",
+      "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.test.tsx",
+      "frontend/src/utils/aiWorkoutEvents.ts",
+      "frontend/src/utils/aiWorkoutEvents.test.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/coachSessionDraftState.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDraftContext.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSessionDraft.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachActionProposalController.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachActionProposalCard.tsx",
+      "frontend/src/components/DashBoard/UniversalDashboardLayout.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/coachWorkoutDraftContract.test.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachWorkoutDraftSubmit.test.ts",
+      "frontend/src/services/coachProposalService.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.test.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.floorMode.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.deskMount.test.tsx",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md",
+      "backend/services/ai/coachInferenceBoundary.mjs",
+      "backend/services/ai/coachEvidenceTools.mjs",
+      "backend/services/ai/coachContextCache.mjs",
+      "backend/services/ai/coachModelResponseContract.mjs",
+      "backend/services/aiChatService.mjs",
+      "backend/routes/aiChatRoutes.mjs",
+      "backend/tests/unit/coachInferenceBoundary.test.mjs",
+      "backend/tests/unit/coachEvidenceTools.test.mjs",
+      "backend/tests/unit/coachContextCache.test.mjs",
+      "backend/tests/unit/coachCallerInventory.test.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+    ],
+    "status": "build",
+    "round": 0,
+    "reviews": [],
+    "findings": {}
+  }
+}

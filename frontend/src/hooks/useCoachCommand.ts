@@ -109,14 +109,11 @@ export function useCoachCommand() {
       /** Exact server-registry type selected from the mounted command catalog. */
       commandType?: string;
       /**
-       * Which channel produced this utterance. Defaults to 'text' because this
-       * hook IS the typed lane; a voice surface passes 'voice' and the server's
-       * M3 rule then demands a physical confirm for anything crossing client
-       * identity. Declared here rather than defaulted server-side: the server
-       * cannot know, and a server-side default of 'text' is what kept that rule
-       * inert (it silently answered "safe" for every caller that never spoke).
+       * Which channel produced this utterance. This transport serves both typed
+       * and voice callers; absence is unknown. Producers declare their origin
+       * so the server can apply its existing physical-confirmation policy.
        */
-      inputMode?: 'text' | 'voice' | 'ui';
+      inputMode?: 'text' | 'voice' | 'ui' | 'unknown' | null;
       /** Active surface for intent disambiguation (planner / logger / CC-3 dock surfaces). */
       surface?: 'workout-planner' | 'workout-logger' | 'bootcamp-builder' | 'pain-chart';
     },
@@ -133,7 +130,7 @@ export function useCoachCommand() {
           ...(opts?.routeContext ?? {}),
           ...(opts?.commandType ? { commandType: opts.commandType } : {}),
           ...(opts?.surface ? { surface: opts.surface } : {}),
-          inputMode: opts?.inputMode ?? 'text',
+          inputMode: opts?.inputMode ?? 'unknown',
         },
       });
       const data = res.data;

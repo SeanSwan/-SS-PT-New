@@ -9,6 +9,7 @@ import { useAuth } from '../../../../hooks/useAuth';
 import { CommandBridgeShell } from './CoachCommandCenter.bridgeStyles';
 import { useCoachCommandCenterController } from './CoachCommandCenter.controller';
 import CoachChatTranscript from './CoachChatTranscript';
+import CoachSessionDeskGate from './CoachSessionDeskGate';
 import CoachClientBar from './CoachClientBar';
 import CoachCommandLeftRail from './CoachCommandLeftRail';
 import CoachCommandOpsSurface from './CoachCommandOpsSurface';
@@ -177,6 +178,15 @@ const CoachCommandCenterPage: React.FC = () => {
                 onSubmit={handleIntentSubmit}
                 onVoice={commandCenter.handleVoice}
               />
+              {!isClientMode ? (
+                <CoachSessionDeskGate
+                  enabled
+                  targetUserId={commandCenter.routeClientId ?? null}
+                  onOpenLogger={(_payload) => {
+                    commandCenter.shellRef.current?.focus();
+                  }}
+                />
+              ) : null}
               <CoachChatTranscript
                 activeThread={commandCenter.activeThread}
                 busy={commandCenter.commandBusy}

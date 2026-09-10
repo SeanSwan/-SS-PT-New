@@ -93,6 +93,19 @@ export function nextState(state: SheetState, event: SheetEvent, input?: SheetInp
     case 'ready':
       if (event.type === 'confirm') return 'submitting';
       if (event.type === 'cancel') return 'unavailable';
+      /**
+       * SCU G02 / AF11 — the read-back can RE-ARM. The machine initialises on
+       * the request-time envelope before the store answers, and that envelope
+       * may claim a small blast radius (instant arm). When the stored record
+       * arrives with a LARGER one, the delay the mint signed must still hold:
+       * the operator approved "a 12-record delete", not "a 1-record tap". A
+       * decode that still arms nothing leaves `ready` untouched, so this
+       * transition is inert for the common (matching) case.
+       */
+      if (event.type === 'read_ok' && event.input
+          && armDelayMs(event.input) > 0) {
+        return 'arming';
+      }
       return state;
     case 'submitting':
       if (event.type === 'confirmed') return 'done';
@@ -155,29 +168,36 @@ export function nextState(state: SheetState, event: SheetEvent, input?: SheetInp
  *
  * Adding a code here is a claim that the server cannot have executed anything on
  * that path. Verify it against the route before you add one.
+ *
+ * `ACCESS_CHANGED` (SCU G02 / T06+T07): the route re-anchors entity-owner
+ * authority from fresh rows immediately BEFORE executeConfirmedOperation and
+ * returns 403 with the approval untouched — the owner re-issues with current
+ * access. It is pre-consumption by construction in the route.
  */
-export const PRE_CONSUMPTION_REFUSALS = new Set<string>(['physical_confirm_required']);
+export const PRE_CONSUMPTION_REFUSALS = new Set<string>(['physical_confirm_required', 'ACCESS_CHANGED']);
+
+const UNKNOWN_OUTCOME = 'The outcome is unknown. It may have gone through. Check the history before taking further action.';
 
 export const TERMINAL_GUIDANCE: Record<string, { text: string; allowReissue: boolean }> = {
   done: { text: 'Done.', allowReissue: false },
   expired: {
-    text: 'This approval expired before it was used. Nothing happened — you can ask again.',
-    allowReissue: true,
+    text: UNKNOWN_OUTCOME,
+    allowReissue: false,
   },
   mismatch: {
     text: 'What you approved no longer matches the pending action. Re-open it and check before confirming.',
     allowReissue: true,
   },
   unavailable: {
-    text: 'This approval is no longer available. Nothing happened — you can ask again.',
-    allowReissue: true,
+    text: UNKNOWN_OUTCOME,
+    allowReissue: false,
   },
   confirmed_elsewhere: {
     text: 'This action was already confirmed and has run. Check the history before doing anything else — do not repeat it.',
     allowReissue: false,
   },
   burned: {
-    text: 'Your approval was used but the result never came back. It may have gone through. Check the history before re-issuing.',
+    text: UNKNOWN_OUTCOME,
     allowReissue: false,
   },
 };

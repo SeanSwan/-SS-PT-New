@@ -2032,6 +2032,14 @@ export function buildPromptMessages(systemPrompt, conversationMessages, newMessa
  * Send a chat message to an AI provider.
  * Tries providers in order: OpenAI -> Anthropic -> Gemini
  */
+// S5 compatibility adapter: the legacy provider loop (all non-Coach callers, and
+// the pre-S5 Coach path) keeps its exact shape; the inference boundary consumes
+// this as its provider adapter so Coach callers never get a second, parallel
+// provider selection.
+export function coachProviderCompatAdapter(messages) {
+  return sendChatMessage(messages);
+}
+
 export async function sendChatMessage(messages, options = {}) {
   // maxTokens: 2500 balances response quality vs Render's 30s proxy timeout
   // (History trimming in buildPromptMessages keeps prompt size manageable)

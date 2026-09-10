@@ -24,7 +24,8 @@ CoachIntent.init({
     type: DataTypes.STRING(24),
     allowNull: false,
     defaultValue: 'claimed',
-    validate: { isIn: [['claimed', 'completed', 'failed', 'unknown', 'cancelled']] },
+    validate: { isIn: [['claimed', 'completed', 'failed', 'unknown', 'cancelled',
+      'drafted', 'awaiting_approval', 'executing', 'committed_unverified', 'verified', 'refused']] },
   },
   operationId: { type: DataTypes.STRING(64), allowNull: true },
   proposalId: { type: DataTypes.STRING(64), allowNull: true },
@@ -32,6 +33,12 @@ CoachIntent.init({
   errorCode: { type: DataTypes.STRING(100), allowNull: true },
   expiresAt: { type: DataTypes.DATE, allowNull: true },
   completedAt: { type: DataTypes.DATE, allowNull: true },
+  version: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0, validate: { min: 0 } },
+  expectedHash: { type: DataTypes.STRING(64), allowNull: true, validate: { is: /^[a-f0-9]{64}$/ } },
+  expectedFootprint: { type: DataTypes.JSONB, allowNull: true },
+  proofVersion: { type: DataTypes.INTEGER, allowNull: true },
+  committedAt: { type: DataTypes.DATE, allowNull: true },
+  verifiedAt: { type: DataTypes.DATE, allowNull: true },
 }, {
   sequelize,
   modelName: 'CoachIntent',
@@ -41,6 +48,7 @@ CoachIntent.init({
     { unique: true, fields: ['actorId', 'requestKey'] },
     { fields: ['status', 'createdAt'] },
     { fields: ['operationId'] },
+    { unique: true, fields: ['proposalId'], name: 'coach_intents_proposal_unique' },
   ],
 });
 

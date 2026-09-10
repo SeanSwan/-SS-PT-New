@@ -25,20 +25,21 @@ export function mapProposalRow(row) {
   };
 }
 
-export async function loadOwnedProposal({ id, userId, db }) {
+export async function loadOwnedProposal({ id, userId, db, transaction = undefined, lock = false }) {
+  if (lock && !transaction) throw new Error('Proposal row lock requires a transaction');
   const rows = await db.query(
-    `SELECT id, created_by_user_id, proposal_type, status, summary_json,
+    `SELECT id, created_by_user_id, proposal_type, status, schema_version, summary_json,
             conversation_id, source_message_id, applied_result_json,
             proposal_cipher, proposal_iv, proposal_tag, cipher_key_id
        FROM coach_action_proposals
       WHERE id = :id AND created_by_user_id = :userId
-      LIMIT 1`,
-    { replacements: { id, userId }, type: QueryTypes.SELECT },
+      LIMIT 1 ${lock ? 'FOR UPDATE' : ''}`,
+    { replacements: { id, userId }, type: QueryTypes.SELECT, transaction },
   );
   return rows[0] || null;
 }
 
-export async function claimPendingProposal({ id, userId, db }) {
+export async function claimPendingProposal({ id, userId, db, transaction = undefined }) {
   const rows = await db.query(
     `UPDATE coach_action_proposals
         SET status = :claimedStatus,
@@ -55,6 +56,7 @@ export async function claimPendingProposal({ id, userId, db }) {
         pendingStatus: COACH_PROPOSAL_STATUS.PENDING,
       },
       type: QueryTypes.SELECT,
+      transaction,
     },
   );
   return !!rows[0];
@@ -162,6 +164,7 @@ export async function updateProposalStatus({
   userId = null,
   fromStatus = null,
   db,
+  transaction = undefined,
 }) {
   const rows = await db.query(
     `UPDATE coach_action_proposals
@@ -176,26 +179,29 @@ export async function updateProposalStatus({
     {
       replacements: { id, status, resultJson: JSON.stringify(result), errorCode, userId, fromStatus },
       type: QueryTypes.SELECT,
+      transaction,
     },
   );
   if (!rows[0]) return null;
-  try {
-    await syncLatestProposalStatusToIntake({ row: rows[0], db });
-  } catch (err) {
-    logger.warn('[CoachActionProposal] Intake latest-proposal status sync failed', {
-      proposalId: rows[0].id,
-      error: err.message,
-    });
-  }
-  try {
-    await appendLatestProposalEventToIntake({ row: rows[0], errorCode, db });
-  } catch (err) {
-    logger.warn('[CoachActionProposal] Intake proposal event append failed', {
-      proposalId: rows[0].id,
-      error: err.message,
-    });
-  }
+  // Caller must publish explicitly after its COMMIT returns successfully.
+  // Sequelize afterCommit callbacks also run on rejected COMMIT in v6.
+  if (!transaction) await notifyProposalStatus(rows[0], errorCode, db);
   return mapProposalRow(rows[0]);
+}
+
+async function notifyProposalStatus(row, errorCode, db) {
+  for (const action of [syncLatestProposalStatusToIntake, appendLatestProposalEventToIntake]) {
+    try { await action({ row, errorCode, db }); }
+    catch { logger.warn('[CoachActionProposal] Intake status publication unavailable'); }
+  }
+}
+
+/** Only call after the domain writer reports successful COMMIT. Never retries effects. */
+export async function publishProposalStatus({ id, userId, db }) {
+  try {
+    const row = await loadOwnedProposal({ id, userId, db });
+    if (row) await notifyProposalStatus(row, null, db);
+  } catch { logger.warn('[CoachActionProposal] Intake status publication unavailable'); }
 }
 
 export default {

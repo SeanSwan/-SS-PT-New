@@ -14,6 +14,13 @@ import { resolveCommandPolicy } from '../commandPolicy.mjs';
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 export const USER_ROLES = ['admin', 'trainer', 'client'];
 
+// ── SCU G02 / T10 — per-command reversibility ─────────────────────────────
+// Methods whose commands write something the confirmation sheet must be able
+// to describe. FRONTEND_DISPATCH is included: a browser dispatch that cannot
+// be undone is still irreversible, and the sheet renders it like anything
+// else. GETs read; they need no undo story.
+const REVERSIBILITY_STAMP_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE', 'FRONTEND_DISPATCH']);
+
 // ── Classified Intent Schema (output of intent classifier) ────────────────
 
 export const ClassifiedIntentSchema = z.object({
@@ -86,10 +93,19 @@ export function registerCommand(command) {
   if (COMMAND_REGISTRY.has(command.type)) {
     throw new Error(`Duplicate command type: ${command.type}`);
   }
-  COMMAND_REGISTRY.set(command.type, {
-    ...command,
-    policy: resolveCommandPolicy(command),
-  });
+  // SCU G02 / T10: every MUTATING command carries an explicit top-level
+  // `reversibility` — the signed projection stamps it, and the sheet renders
+  // THAT, never a client-side list. Entries that know a real undo story
+  // (an inverse or compensation command) declare it on the entry itself, and
+  // the declaration wins. Everything else is stamped with the conservative
+  // 'none' — no undo story the sheet can promise — which is the safe direction
+  // (a destructive act shows its "cannot be undone" badge rather than hiding
+  // behind an unexamined assumption).
+  const stored = { ...command, policy: resolveCommandPolicy(command) };
+  if (REVERSIBILITY_STAMP_METHODS.has(command.method) && stored.reversibility === undefined) {
+    stored.reversibility = 'none';
+  }
+  COMMAND_REGISTRY.set(command.type, stored);
 }
 
 /**

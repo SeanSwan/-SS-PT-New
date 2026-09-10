@@ -86,6 +86,16 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
 
   const op = sheet.operation;
   /**
+   * SCU G02 / AF11 — the render layer reads the DECODED stored policy.
+   * Before the read-back resolves this is the request-time envelope (the
+   * sheet shows nothing load-bearing until then); after it, it is the
+   * projection the server minted and signed. The raw `input` prop remains
+   * the fallback source only; every visible policy decision below runs on
+   * `renderInput`, so a parent hint can no longer override what the server
+   * decided.
+   */
+  const renderInput = sheet.renderInput;
+  /**
    * F-04 (GLM 5.3 round 1) — THE LIVE DEFECT THIS FILE HAD.
    *
    * `terminalRecoverable` was a hardcoded list that INCLUDED `burned`, so the
@@ -104,7 +114,7 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
 
   return (
     <Sheet
-      $destructive={input.isDestructive}
+      $destructive={renderInput.isDestructive}
       role={presentation === 'dialog' ? 'dialog' : 'region'}
       aria-modal={presentation === 'dialog' ? true : undefined}
       aria-label="Confirm Swan Coach action"
@@ -112,10 +122,10 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
       data-state={sheet.state}
     >
       <Header>
-        <Title>{op?.description || 'Pending action'}</Title>
-        <TierBadge $tier={input.tier} data-testid="tier-badge">
-          {input.tier.replace(/_/g, ' ')}
-        </TierBadge>
+        <Title>{sheet.displayDescription || 'Pending action'}</Title>
+        {op && <TierBadge $tier={renderInput.tier} data-testid="tier-badge">
+          {renderInput.tier.replace(/_/g, ' ')}
+        </TierBadge>}
       </Header>
 
       {sheet.targetClientId !== null && (
@@ -127,8 +137,8 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
 
       {op && (
         <Detail>
-          <dt>Action</dt><dd>{op.commandType || op.type || 'unknown'}</dd>
-          <dt>Affects</dt><dd>{op.affectedCount ?? 0} record{(op.affectedCount ?? 0) === 1 ? '' : 's'}</dd>
+          <dt>Action</dt><dd>{sheet.displayCommandType || op.type || 'unknown'}</dd>
+          <dt>Affects</dt><dd>{sheet.displayAffectedCount} record{sheet.displayAffectedCount === 1 ? '' : 's'}</dd>
         </Detail>
       )}
 
@@ -136,7 +146,7 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
         <Warning $tone="stop" data-testid="no-undo">⛔ This cannot be undone.</Warning>
       )}
 
-      {input.physical && (
+      {renderInput.physical && (
         <Warning data-testid="physical-required">
           Voice request across clients — tap to confirm.
         </Warning>
@@ -158,7 +168,7 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
         * wire nonceSatisfied in the same change — the two are one feature, and
         * shipping the sentence without the check is what happened here.
         */}
-      {!input.physical && input.tier === 'deliberate' && (
+      {!renderInput.physical && renderInput.tier === 'deliberate' && (
         <Warning data-testid="deliberate-confirm">
           This one is deliberate — tap Confirm to run it.
         </Warning>
@@ -183,7 +193,7 @@ export const ConfirmationSheet: React.FC<ConfirmationSheetProps> = ({
       </StatusLine>
 
       <Actions>
-        {!terminalRecoverable && sheet.state !== 'done' && (
+        {!terminalRecoverable && !terminalBlocked && sheet.state !== 'done' && (
           <>
             <ConfirmButton
               ref={confirmRef}

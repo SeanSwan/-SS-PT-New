@@ -79,7 +79,11 @@ export function commandLaneLogAttachments(result: CommandLaneHandledResponse): s
   }
 }
 
-export function commandLaneConfirmation(result: CommandLaneHandledResponse, sourceMessage?: string): CommandLogConfirmation | undefined {
+export function commandLaneConfirmation(
+  result: CommandLaneHandledResponse,
+  sourceMessage?: string,
+  sourceInputMode?: CoachCommandInputMode,
+): CommandLogConfirmation | undefined {
   if (result.type !== 'confirmation_required') return undefined;
   return {
     operationId: result.operationId,
@@ -92,6 +96,7 @@ export function commandLaneConfirmation(result: CommandLaneHandledResponse, sour
     ...(result.tier ? { tier: result.tier } : {}),
     ...(result.physical !== undefined ? { physical: result.physical } : {}),
     ...(sourceMessage ? { sourceMessage } : {}),
+    ...(sourceInputMode ? { sourceInputMode } : {}),
   };
 }
 

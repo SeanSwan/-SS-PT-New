@@ -73,4 +73,77 @@ describe('AI workout event dispatch acknowledgements', () => {
       }
     },
   );
+
+  it.each(['toString', 'constructor', '__proto__'])(
+    'fails closed for inherited event name %s',
+    (eventName) => {
+      expect(dispatchAIWorkoutEvent(eventName, {})).toBe(false);
+    },
+  );
+  it('fails closed for arrays without coercing them into event names', () => {
+    const listener = vi.fn();
+    window.addEventListener(AI_ADD_EXERCISE, listener);
+    try {
+      let result: boolean | undefined;
+      expect(() => {
+        result = dispatchAIWorkoutEvent([AI_ADD_EXERCISE], {});
+      }).not.toThrow();
+      expect(result).toBe(false);
+      expect(listener).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(AI_ADD_EXERCISE, listener);
+    }
+  });
+
+  it('fails closed for objects with a throwing custom toString', () => {
+    const listener = vi.fn();
+    const toString = vi.fn(() => {
+      throw new Error('event name coercion must not run');
+    });
+    window.addEventListener(AI_ADD_EXERCISE, listener);
+    try {
+      let result: boolean | undefined;
+      expect(() => {
+        result = dispatchAIWorkoutEvent({ toString }, {});
+      }).not.toThrow();
+      expect(result).toBe(false);
+      expect(toString).not.toHaveBeenCalled();
+      expect(listener).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(AI_ADD_EXERCISE, listener);
+    }
+  });
+
+  it.each([0, 42, null, undefined])(
+    'fails closed for non-string event name %s',
+    (eventName) => {
+      const listener = vi.fn();
+      window.addEventListener(AI_ADD_EXERCISE, listener);
+      try {
+        let result: boolean | undefined;
+        expect(() => {
+          result = dispatchAIWorkoutEvent(eventName, {});
+        }).not.toThrow();
+        expect(result).toBe(false);
+        expect(listener).not.toHaveBeenCalled();
+      } finally {
+        window.removeEventListener(AI_ADD_EXERCISE, listener);
+      }
+    },
+  );
+
+  it.each(['', ' ', '\t\n'])('fails closed for blank event name %j', (eventName) => {
+    const listener = vi.fn();
+    window.addEventListener(AI_ADD_EXERCISE, listener);
+    try {
+      let result: boolean | undefined;
+      expect(() => {
+        result = dispatchAIWorkoutEvent(eventName, {});
+      }).not.toThrow();
+      expect(result).toBe(false);
+      expect(listener).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener(AI_ADD_EXERCISE, listener);
+    }
+  });
 });

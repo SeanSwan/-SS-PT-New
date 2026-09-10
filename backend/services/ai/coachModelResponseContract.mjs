@@ -4,7 +4,9 @@
  * Model text can suggest a proposal, but it cannot assert identity, approval,
  * persistence, or a database result. The server resolves those fields later.
  */
-const TYPES = new Set(['answer', 'proposal', 'clarification']);
+const TYPES = new Set(['answer', 'proposal', 'clarification', 'unavailable']);
+
+const UNAVAILABLE_MESSAGE = 'I could not finish that right now — the data I need is temporarily unavailable.';
 
 const boundedMessage = (value) => (
   typeof value === 'string' && value.trim() ? value.trim().slice(0, 4000) : null
@@ -32,6 +34,7 @@ export function normalizeCoachModelResponse(response = {}) {
   }
   if (type === 'answer') return { type, message };
   if (type === 'clarification') return { type, message };
+  if (type === 'unavailable') return { type, message: message || UNAVAILABLE_MESSAGE };
 
   const proposal = boundedProposal(response.proposal);
   if (!proposal) {

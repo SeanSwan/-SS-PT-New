@@ -12,11 +12,32 @@ import {
   rejectCoachActionProposal,
 } from '../services/ai/coachActionProposalApprovalService.mjs';
 import { buildCoachProposalRouteErrorBody } from '../services/ai/coachActionProposalErrorPresenter.mjs';
+import { createWorkoutDraftRequest } from '../services/ai/coachWorkoutDraftRequestService.mjs';
 
 const router = express.Router();
 
 router.use(protect);
 router.use(authorize(['admin', 'trainer']));
+
+router.post('/workout-drafts', async (req, res) => {
+  try {
+    const result = await createWorkoutDraftRequest({ user: req.user, body: req.body, db: req.app.get('sequelize') || req.app.db });
+    return res.status(result.status).json({
+      success: true,
+      intentId: result.intentId,
+      proposalId: result.proposalId,
+      idempotent: result.idempotent,
+      recovered: result.recovered,
+    });
+  } catch (err) {
+    const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500;
+    const code = status >= 500 ? 'WORKOUT_DRAFT_CREATE_FAILED' : (err?.code || 'WORKOUT_DRAFT_CREATE_FAILED');
+    const body = status >= 500
+      ? buildCoachProposalRouteErrorBody('WORKOUT_DRAFT_CREATE_FAILED')
+      : { success: false, code, error: code };
+    return res.status(status).json(body);
+  }
+});
 
 router.get('/:id', async (req, res) => {
   try {

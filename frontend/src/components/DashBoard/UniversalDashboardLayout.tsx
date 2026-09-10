@@ -40,6 +40,7 @@ import {
 import { roleConfigurations } from './UniversalDashboardLayout.routes';
 import { UniversalDashboardLayoutShell } from './UniversalDashboardLayout.shell';
 import { isNonDeductingClientSource } from './workspaces/clients-team/clientSessionSignal';
+import { CoachSessionDraftProvider } from './Pages/coach-assistant/CoachSessionDraftContext';
 
 // === MAIN COMPONENT ===
 interface UniversalDashboardLayoutProps {}
@@ -189,7 +190,8 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
     navigate(`/dashboard/${activeRole}/coach-assistant?${params.toString()}`);
   }, [activeRole, navigate]);
   return (
-    <UniversalDashboardLayoutShell
+    <CoachSessionDraftProvider actorId={user?.id} actorRole={rawRole}>
+      <UniversalDashboardLayoutShell
       activeRole={activeRole}
       userRole={userRole}
       userClientSource={user?.clientSource}
@@ -207,7 +209,8 @@ const UniversalDashboardLayout: React.FC<UniversalDashboardLayoutProps> = () => 
       onRetryInitialization={handleRetryInitialization}
       onLogout={handleLogout}
       onTeachMeCoachPrompt={handleTeachMeCoachPrompt}
-    />
+      />
+    </CoachSessionDraftProvider>
   );
 };
 

@@ -1,0 +1,114 @@
+[
+  {
+    "path": ".ai-workflow/gates/coach-atomic-workout-astra-20260906/gate.mjs",
+    "sha256": "2e24bb2f92e7b00be86f3ae231aa51f651c017257932e9e4216e89c7119b572f"
+  },
+  {
+    "path": "backend/services/ai/coachActionProposalApprovalService.mjs",
+    "sha256": "04c01caf16816f87f16905eefe80f78237ddbfab5dc44b595bc39586fabc5f46"
+  },
+  {
+    "path": "backend/services/ai/coachActionProposalPersistenceService.mjs",
+    "sha256": "80af7e7e08b3472a55a00c0933eea04eccd3764a4624c5693b5dc74d4f78ba2d"
+  },
+  {
+    "path": "backend/services/ai/coachProposalReviewTokenService.mjs",
+    "sha256": "c72f9e922cabc82eabbff008e75cb84b25f0a5e0a96676c65667c7f635204101"
+  },
+  {
+    "path": "backend/services/ai/coachWorkoutProposalApprovalService.mjs",
+    "sha256": "d9e6f5e1e0f57d2153da447ff74bce009c848afab2df798ae1d3fb24e39427ed"
+  },
+  {
+    "path": "backend/services/workout/aiWorkoutDailyFormResult.mjs",
+    "sha256": "6469eca9d14173e54877da206d01fb995d34b53c3891cab3676667d8bd85ab83"
+  },
+  {
+    "path": "backend/services/workout/aiWorkoutDailyFormService.mjs",
+    "sha256": "7c4d98f2c3c370bf97910d1acb3ccd07afb89c87ab2b0bc5b36351de12e64919"
+  },
+  {
+    "path": "backend/services/workout/aiWorkoutPostCommitService.mjs",
+    "sha256": "e236602b759a485e79e53aa2b69889a83bfa96e8df6c644dfe2c52b7c30435b0"
+  },
+  {
+    "path": "backend/tests/helpers/coachWorkoutAtomic.postgres.config.mjs",
+    "sha256": "5139a527a0976a3cc1f54458922fec9b9aa796201f45da810c9e31df466b64d5"
+  },
+  {
+    "path": "backend/tests/integration/coachWorkoutAtomic.postgres.test.mjs",
+    "sha256": "6a956e64b6942d0e0c867f72b12362baaf8c14c820a91b8d49815e364674448a"
+  },
+  {
+    "path": "backend/tests/unit/coachActionProposalApprovalService.test.mjs",
+    "sha256": "bfde34bad42dd2972b18088addc38493ac92adc43386564f9358c580d9bd467f"
+  },
+  {
+    "path": "backend/tests/unit/coachActionProposalApprovalSourceGuard.test.mjs",
+    "sha256": "7863bfbec98cb65d3d8db228fd0a374e28e82cfdd83fa083ebab25a5596a5f28"
+  },
+  {
+    "path": "backend/utils/clientAccess.mjs",
+    "sha256": "8698caed2eeb0b213b43ac067a3389c9bf3f4cb3b8f83fca8569e4d247745e61"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/25-atomic-workout-execution.md",
+    "sha256": "c98162e7dc95c21cbe4d65fb9bff2870cb8555fc8056662d6b29840939aa1a38"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-gate-1.log",
+    "sha256": "8ccade3b373be313d270c3012a47d58c0edf63cc6edc25388a627d951f752dc2"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-gate-2.log",
+    "sha256": "8ccade3b373be313d270c3012a47d58c0edf63cc6edc25388a627d951f752dc2"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-hostile-root-2.log",
+    "sha256": "8773e7ea554d68b1d6e4731c45ce6bbe603db5b93f56bd325c1ffb1ce07b11b0"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-hostile-root.log",
+    "sha256": "68b5b8e833f6e4cee93f1fa565b2c71b07ddae69d96536044ce9ed9aa6eb1e63"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-postgres-green-1.log",
+    "sha256": "d0afdeb21d72b60ff868e0b2021ab095e4dabd0cbc8ab1c597f147857bc6b521"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-postgres-green-2.log",
+    "sha256": "222b1e8a989b594d05b220e7de5d18554ab5cee650ed47b06b7c3818690f9297"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-postgres-red-2.log",
+    "sha256": "06e139fb213840c21c5964bac12c80df90b2322a6cc52a18937828c8f347dde0"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-postgres-red-3.log",
+    "sha256": "741071c4ac7296e98f9acdbddc00c44e40eeb02425b01550f9c302e1f372f5d7"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-postgres-red.log",
+    "sha256": "2ccbfaf5b856b72d39fd720162ae11d7cf72bc47497cabae41f8ae8a2fe2360c"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-regression-1.log",
+    "sha256": "8f31603ed3167e8fc4f94231884f1505b860f8b69940340e0e9476a3e6c953dc"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-regression-2.log",
+    "sha256": "851bbb8bf3f6c1b4220ef251f2681f0a889f5b8fff5f2f9d9cb626f482606a30"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-regression-3.log",
+    "sha256": "33471b94b65b14ac45ae58910bce9dce0cc9721c789cf3a024bdd463f49cc160"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-atomic-regression-final.log",
+    "sha256": "077de7b0c049073ca1d18b80cc8234cf9bd3f8cc7b220b2fe46cd00282634d1b"
+  },
+  {
+    "path": "tmp/coach-atomic-hostile/review-receipt.json",
+    "sha256": "189b3a95254f6cf93745ef78675118b57d65a6b16fc4260a4907ed88e0a585dd"
+  }
+]

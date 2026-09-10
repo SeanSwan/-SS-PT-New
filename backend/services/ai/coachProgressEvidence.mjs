@@ -29,8 +29,10 @@ export function buildCoachProgressEvidence({ sessions, scheduledCount = null } =
   ));
   if (valid.length === 0) return emptyEvidence();
 
-  const volumeByExercise = {};
-  const unitsByExercise = {};
+  // Exercise/library keys are data, including names that collide with Object's
+  // prototype. Maps prevent inherited reads and writes during accumulation.
+  const volumes = new Map();
+  const unitsByExercise = new Map();
   for (const session of valid) {
     for (const exercise of Array.isArray(session.exercises) ? session.exercises : []) {
       const exerciseKey = String(exercise?.exerciseKey || '').trim();
@@ -42,20 +44,23 @@ export function buildCoachProgressEvidence({ sessions, scheduledCount = null } =
         const load = asPositiveNumber(set?.load);
         return reps === null || load === null ? total : total + (reps * load);
       }, 0);
-      if (!volumeByExercise[exerciseKey]) volumeByExercise[exerciseKey] = {};
-      volumeByExercise[exerciseKey][unit] = (volumeByExercise[exerciseKey][unit] || 0) + volume;
-      if (!unitsByExercise[exerciseKey]) unitsByExercise[exerciseKey] = new Set();
-      unitsByExercise[exerciseKey].add(unit);
+      if (!volumes.has(exerciseKey)) volumes.set(exerciseKey, new Map());
+      const units = volumes.get(exerciseKey);
+      units.set(unit, (units.get(unit) || 0) + volume);
+      if (!unitsByExercise.has(exerciseKey)) unitsByExercise.set(exerciseKey, new Set());
+      unitsByExercise.get(exerciseKey).add(unit);
     }
   }
 
   const scheduled = scheduledCount == null ? null : asPositiveNumber(scheduledCount);
-  const boundedScheduled = scheduled !== null ? Math.max(scheduled, valid.length) : null;
+  // A count mismatch needs source schedule membership, not an invented denominator.
+  const missingScheduleMatches = scheduled !== null && scheduled < valid.length;
+  const boundedScheduled = missingScheduleMatches ? null : scheduled;
   return {
     status: 'verified',
     completedSessionCount: valid.length,
-    volumeByExercise,
-    comparability: Object.fromEntries(Object.entries(unitsByExercise).map(([key, units]) => [
+    volumeByExercise: Object.fromEntries([...volumes].map(([key, units]) => [key, Object.fromEntries(units)])),
+    comparability: Object.fromEntries([...unitsByExercise].map(([key, units]) => [
       key,
       units.size > 1 ? 'mixed_units' : 'comparable',
     ])),
@@ -63,6 +68,6 @@ export function buildCoachProgressEvidence({ sessions, scheduledCount = null } =
       ? null
       : { scheduledCount: boundedScheduled, completedCount: valid.length, rate: valid.length / boundedScheduled },
     recordRefs: valid.map((session) => String(session.id || '')).filter(Boolean),
-    missingInputs: [],
+    missingInputs: missingScheduleMatches ? ['scheduled_session_matches'] : [],
   };
 }

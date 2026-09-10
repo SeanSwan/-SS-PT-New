@@ -173,7 +173,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
           label: commandResult.type === 'confirmation_required' ? 'approval required' : 'command lane result',
           body: commandLaneLogBody(commandResult),
           attachments: commandLaneLogAttachments(commandResult),
-          commandConfirmation: commandLaneConfirmation(commandResult, trimmed),
+          commandConfirmation: commandLaneConfirmation(commandResult, trimmed, props.inputMode),
           commandResult: commandLaneResult(commandResult),
         });
         props.setSelectedStatus('Command lane handled');

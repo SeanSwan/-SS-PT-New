@@ -1,0 +1,599 @@
+{
+  "scope": "synthetic wireframe only",
+  "browser": "138.0.3351.83",
+  "cases": [
+    {
+      "width": 320,
+      "height": 800,
+      "state": "draft",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "draft",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "draft",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "review",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "review",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "review",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "saving",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "saving",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "saving",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "unknown",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "unknown",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "unknown",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "verified",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "verified",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "verified",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "denied",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "denied",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "denied",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "offline",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "offline",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 320,
+      "height": 800,
+      "state": "offline",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "draft",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "draft",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "draft",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "review",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "review",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "review",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "saving",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "saving",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "saving",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "unknown",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "unknown",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "unknown",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "verified",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "verified",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "verified",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "denied",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "denied",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "denied",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "offline",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "offline",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "state": "offline",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "draft",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "draft",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "draft",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "review",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "review",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "review",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "saving",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "saving",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "saving",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "unknown",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "unknown",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "unknown",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "verified",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "verified",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "verified",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "denied",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "denied",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "denied",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "offline",
+      "view": "talk",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "offline",
+      "view": "workout",
+      "passed": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "state": "offline",
+      "view": "results",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "draft",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "review",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "saving",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "unknown",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "verified",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "denied",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "state": "offline",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "state": "draft",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "state": "review",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "state": "saving",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "state": "unknown",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "state": "verified",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "state": "denied",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "state": "offline",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "state": "draft",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "state": "review",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "state": "saving",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "state": "unknown",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "state": "verified",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "state": "denied",
+      "view": "desktop",
+      "passed": true
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "state": "offline",
+      "view": "desktop",
+      "passed": true
+    }
+  ],
+  "terminalControls": "pass",
+  "deniedRecordVisibility": "pass",
+  "keyboardTabs": "pass",
+  "networkRequests": 0,
+  "browserErrors": []
+}

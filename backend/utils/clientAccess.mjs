@@ -22,7 +22,7 @@ const parseId = (value) => {
  */
 export const isClientEquivalentRole = (role) => role === 'client' || role === 'user';
 
-const isTrainerAssigned = async (models, clientId, trainerId) => {
+const isTrainerAssigned = async (models, clientId, trainerId, transaction) => {
   const { ClientTrainerAssignment } = models;
   if (!ClientTrainerAssignment) {
     return false;
@@ -33,13 +33,16 @@ const isTrainerAssigned = async (models, clientId, trainerId) => {
       clientId,
       trainerId,
       status: 'active'
-    }
+    },
+    ...(transaction ? { transaction, lock: transaction.LOCK.UPDATE } : {}),
   });
 
   return Boolean(assignment);
 };
 
-export const ensureClientAccess = async (req, clientIdInput) => {
+// Optional writer transaction stabilizes User then assignment through COMMIT.
+// Existing callers retain their read-only/autocommit authorization contract.
+export const ensureClientAccess = async (req, clientIdInput, { transaction } = {}) => {
   const clientId = parseId(clientIdInput);
   if (!clientId) {
     return { allowed: false, status: 400, message: 'Invalid user ID' };
@@ -55,6 +58,7 @@ export const ensureClientAccess = async (req, clientIdInput) => {
 
   const client = await User.findByPk(clientId, {
     attributes: ['id', 'role', 'timeZone', 'timeZoneConfigured'],
+    ...(transaction ? { transaction, lock: transaction.LOCK.UPDATE } : {}),
   });
   if (!client || !isClientEquivalentRole(client.role)) {
     return { allowed: false, status: 404, message: 'Client not found' };
@@ -72,7 +76,7 @@ export const ensureClientAccess = async (req, clientIdInput) => {
   }
 
   if (req.user?.role === 'trainer') {
-    const assigned = await isTrainerAssigned(models, clientId, requesterId);
+    const assigned = await isTrainerAssigned(models, clientId, requesterId, transaction);
     if (!assigned) {
       return { allowed: false, status: 403, message: 'Not assigned to this client' };
     }

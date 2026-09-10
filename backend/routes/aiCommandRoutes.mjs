@@ -19,11 +19,11 @@ import express from 'express';
 import logger from '../utils/logger.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiCommandLaneKillSwitch, aiCommandRateLimiter } from '../middleware/aiCommandGuards.mjs';
-import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
+import { assertAssignmentOrAdmin, listAssignedClientIds } from '../middleware/verifyClientAccess.mjs';
 import { recordCommandAudit } from '../services/ai/commandAudit.mjs';
 import { recordUnhandledUtterance } from '../services/ai/unhandledUtteranceAudit.mjs';
 import { gateCommandFrontendDispatch, buildDispatchRefusalResponse } from '../services/ai/commandDispatchEligibility.mjs';
-import sequelize, { Op } from '../database.mjs';
+import sequelize from '../database.mjs';
 import { getModel } from '../models/index.mjs';
 import { createAccessibleClientIdentitySanitizer } from '../services/ai/accessibleClientIdentityPrivacy.mjs';
 import {
@@ -34,6 +34,7 @@ import {
 import { buildCommandContextEnvelope } from '../services/ai/commandContextEnvelope.mjs';
 import { cancelOperation, getPendingCount, peekOperation } from '../services/ai/destructiveOperations.mjs';
 import { renderDigestOf, digestMatches } from '../services/ai/renderDigest.mjs';
+import { recheckEntityOwnership } from '../services/ai/entityOwnershipRecheck.mjs';
 import { describeLaneControls } from '../services/ai/commandLaneControls.mjs';
 import { getPendingOperationStore } from '../services/ai/pendingOperationStore.mjs';
 import { recordApprovalEvent, APPROVAL_EVENTS } from '../services/ai/approvalEvents.mjs';
@@ -48,30 +49,16 @@ import {
   readCoachIntent,
   toPublicCoachIntent,
 } from '../services/ai/coachIntentService.mjs';
+import { listCoachIntents, isCoachReceiptReader, CoachIntentListError } from '../services/ai/coachIntentListing.mjs';
 
 const router = express.Router();
 const AI_COMMAND_MESSAGE_MAX_CHARS = 2000;
 const INTENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const parseIntentLimit = (value) => {
+  if (value !== undefined && typeof value !== 'string' && typeof value !== 'number') return null;
   const parsed = Number(value ?? 20);
   return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 50 ? parsed : null;
-};
-
-const encodeIntentCursor = (row) => Buffer.from(JSON.stringify({
-  createdAt: new Date(row.createdAt).toISOString(), id: row.id,
-})).toString('base64url');
-
-const decodeIntentCursor = (value) => {
-  if (typeof value !== 'string' || value.length > 512) return null;
-  try {
-    const decoded = JSON.parse(Buffer.from(value, 'base64url').toString('utf8'));
-    const date = new Date(decoded?.createdAt);
-    if (!decoded?.id || Number.isNaN(date.getTime())) return null;
-    return { createdAt: date, id: String(decoded.id) };
-  } catch {
-    return null;
-  }
 };
 
 const intentNotFound = (res) => res.status(404).json({
@@ -80,7 +67,7 @@ const intentNotFound = (res) => res.status(404).json({
 });
 
 const canReadIntent = async (intent, user) => {
-  if (!intent || !user?.id) return false;
+  if (!intent || !isCoachReceiptReader(user)) return false;
   if (Number(intent.actorId) === Number(user.id) && intent.targetClientId == null) return true;
   if (intent.targetClientId == null) return false;
   try {
@@ -89,13 +76,6 @@ const canReadIntent = async (intent, user) => {
     return false;
   }
 };
-
-const intentCursorWhere = (cursor) => ({
-  [Op.or]: [
-    { createdAt: { [Op.lt]: cursor.createdAt } },
-    { createdAt: cursor.createdAt, id: { [Op.lt]: cursor.id } },
-  ],
-});
 
 const toAICommandRouteErrorMetadata = (err) => ({
   errorName: err?.name || 'Error',
@@ -523,51 +503,14 @@ router.get('/intents', protect, aiCommandRateLimiter, async (req, res) => {
     if (req.query.targetClientId !== undefined && !requestedTarget) {
       return res.status(400).json({ success: false, error: 'targetClientId must be a positive integer.' });
     }
-    if (requestedTarget && !(await assertAssignmentOrAdmin(req.user.id, req.user.role, requestedTarget))) {
-      return intentNotFound(res);
-    }
-
-    const cursor = req.query.cursor === undefined ? null : decodeIntentCursor(req.query.cursor);
-    if (req.query.cursor !== undefined && !cursor) {
-      return res.status(400).json({ success: false, error: 'cursor is invalid.' });
-    }
-
-    const baseWhere = requestedTarget
-      ? { targetClientId: requestedTarget }
-      : { actorId: req.user.id };
-
-    const Model = getModel('CoachIntent');
-    const readableRows = [];
-    let scanWhere = cursor ? { ...baseWhere, ...intentCursorWhere(cursor) } : baseWhere;
-    let lastTailKey = null;
-    while (readableRows.length < limit + 1) {
-      const rows = await Model.findAll({
-        where: scanWhere,
-        order: [['createdAt', 'DESC'], ['id', 'DESC']],
-        limit: limit + 1,
-      });
-      if (!rows.length) break;
-      const visible = requestedTarget
-        ? rows
-        : (await Promise.all(rows.map(async (intent) => ((await canReadIntent(intent, req.user)) ? intent : null)))).filter(Boolean);
-      readableRows.push(...visible);
-      if (rows.length < limit + 1) break;
-      const tail = rows[rows.length - 1];
-      const tailKey = `${new Date(tail.createdAt).toISOString()}|${String(tail.id)}`;
-      if (tailKey === lastTailKey) break;
-      lastTailKey = tailKey;
-      scanWhere = { ...baseWhere, ...intentCursorWhere({ createdAt: new Date(tail.createdAt), id: String(tail.id) }) };
-    }
-    const page = readableRows.slice(0, limit);
-    const nextCursor = readableRows.length > limit && page.length ? encodeIntentCursor(page[page.length - 1]) : null;
-    return res.json({
-      success: true,
-      intents: page.map(toPublicCoachIntent),
-      nextCursor,
-    });
+    const page = await listCoachIntents({ model: getModel('CoachIntent'), user: req.user,
+      targetClientId: requestedTarget, limit, cursor: req.query.cursor,
+      readAssignedClientIds: listAssignedClientIds });
+    return res.json({ success: true, ...page });
   } catch (err) {
+    if (err instanceof CoachIntentListError) return res.status(err.status).json({ success: false, error: err.message });
     logAICommandRouteError('[AICommand] Intent list error', err, req);
-    return res.status(500).json({ success: false, error: 'Failed to read coach intents.' });
+    return res.status(503).json({ success: false, error: 'Failed to read coach intents.' });
   }
 });
 
@@ -728,6 +671,25 @@ router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
           error: 'This action affects a different client than the one you have open. Tap to confirm — saying so is not enough.',
         });
       }
+    }
+
+    // Current authority is required before consuming the stored approval.
+    // A failed read preserves the operation for a later explicit confirmation.
+    const recheck = await recheckEntityOwnership({ operation: peeked, user: req.user, sequelize });
+    if (recheck.refuse) {
+      const unavailable = recheck.reason === 'db_error';
+      void recordApprovalEvent({
+        event: APPROVAL_EVENTS.TIER_SPOOF, userId: req.user.id, userRole: req.user.role,
+        operationId, commandType: peeked?.commandType ?? null,
+        errorCode: 'entity_recheck_' + recheck.reason,
+      });
+      return res.status(unavailable ? 503 : 403).json({
+        success: false,
+        code: unavailable ? 'ACCESS_CHECK_UNAVAILABLE' : 'ACCESS_CHANGED',
+        error: unavailable
+          ? 'Current access could not be checked. Nothing was executed. Try reviewing again shortly.'
+          : 'Your access to this action changed. Review a new request with your current access.',
+      });
     }
 
     const result = await executeConfirmedOperation(operationId, req.user, sequelize);

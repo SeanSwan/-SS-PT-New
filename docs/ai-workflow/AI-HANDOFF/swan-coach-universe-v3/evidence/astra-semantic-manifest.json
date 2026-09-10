@@ -1,0 +1,114 @@
+[
+  {
+    "path": ".ai-workflow/gates/coach-semantic-readback-astra-20260906-v2/gate-contract-amendment.md",
+    "sha256": "2c2dd828ed24dd947ecfa8c4f5b0b0035ce181926445a5273612f5edee05a23a"
+  },
+  {
+    "path": ".ai-workflow/gates/coach-semantic-readback-astra-20260906-v2/gate.mjs",
+    "sha256": "ff06de76fcea0a65c180d89e442a0582c2ac45456ff6b9d84d2cae15f7d4c69e"
+  },
+  {
+    "path": ".ai-workflow/gates/coach-semantic-readback-astra-20260906/gate.mjs",
+    "sha256": "af14c2bdff584661700ab9be5c699d94bd6c97d4bd6200ca674fcfd149bd3757"
+  },
+  {
+    "path": "backend/services/ai/coachIntentEffectProof.mjs",
+    "sha256": "0e52f01d4f732cd2abf577cf761b56e73d48f505add790151624d4dcdc1a2c57"
+  },
+  {
+    "path": "backend/services/ai/coachWorkoutResultVerifier.mjs",
+    "sha256": "281e64331ac9ef23a2847fc08e37fe7ee5a37a581c5887929acb9eb27b3b1324"
+  },
+  {
+    "path": "backend/services/ai/coachWorkoutSemanticFootprint.mjs",
+    "sha256": "e260ec3edd3904f7f970c787727f98e8daf23a76785a9cf36bedce776c75c16c"
+  },
+  {
+    "path": "backend/services/workout/coachWorkoutReadbackService.mjs",
+    "sha256": "f93a0d73924636af9d6febc35286fd061c9e7b78183083441aedc0620169cbaf"
+  },
+  {
+    "path": "backend/tests/helpers/coachWorkoutReadback.postgres.config.mjs",
+    "sha256": "7de730af7da84b69ff2941249efa983687038cc37ee1012434a6b8d7429826c3"
+  },
+  {
+    "path": "backend/tests/integration/coachWorkoutReadback.postgres.test.mjs",
+    "sha256": "7c83cc606576d26346a338f4249a70f38099d46d03193a1cdeaa22495d047d9e"
+  },
+  {
+    "path": "backend/tests/unit/coachWorkoutReadbackService.test.mjs",
+    "sha256": "ded21772e9a7889ab3216a9fdb018c040aceeea323ec7fb4e75be57007d9915e"
+  },
+  {
+    "path": "backend/tests/unit/coachWorkoutResultVerifier.test.mjs",
+    "sha256": "d9745c7ac97bdce2cbdc03960e0d3fc7366efcda6b07db8bb613c3078646e874"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/11-comprehensive-handoff.md",
+    "sha256": "69dc789a35e1835ff1b02f9c6fd3e5c1cb3be94fe6f9905b118e06567153da71"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/26-semantic-readback-execution.md",
+    "sha256": "0b97acff42b4fb9678fc9565fcca684754f118636436698b903d60b171634a16"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/27-implementation-checkpoint.md",
+    "sha256": "ab9724948eee1f43466bb0297a9c55d5ecd78b996903e22b283ab5ca2918e525"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-gate-1.log",
+    "sha256": "d361dba88c2240be2b6714594b25d587f08a02400a1fe8dc6fd7d919aa7b0f86"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-gate-2.log",
+    "sha256": "d361dba88c2240be2b6714594b25d587f08a02400a1fe8dc6fd7d919aa7b0f86"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-hostile-root-final.log",
+    "sha256": "33c9f0a8470f03e4b89f5a885fb9656a21145021732dc612914265dfacc0f12c"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-hostile-root.log",
+    "sha256": "6645e79e8a955cb3e5680688e096bbae3fff0f0b48ef896de0a845675dbfef0d"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-legacy-proof-postgres.log",
+    "sha256": "56aef7b5c07842c138141cd7f6926fa9fbca8045d63ba6dcd4386dc86792b752"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-node-1.log",
+    "sha256": "e3a5eb1cca9f2c3d1627a92f69a95e5c53b9c3e54b74853748d55acae068c5f2"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-node-final.log",
+    "sha256": "7fdcd396a01b7ee4eba504931483acfcf85f848b3357573057d435de54cab451"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-packet.log",
+    "sha256": "f99556327a6d88f622eb75f18953e638cc73212bbfee51f2b3992e5898cd3b00"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-postgres-final.log",
+    "sha256": "a1538c5a9aeb957daa2347b10a4926671b9d4f10e8110bf35a4bc5f53ba71eef"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-postgres-green-1.log",
+    "sha256": "95aa07602ea1ee90557a2120e4cdcad3b08ed566f6cfce9dc260790ef74f71ee"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-postgres-green-2.log",
+    "sha256": "801a494f301c9de15fdf24baceab8bebb27b6d7c330c1fde865790f67ef882ce"
+  },
+  {
+    "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-semantic-postgres-red.log",
+    "sha256": "bdf7f86d684b4ebb69ae5e6d269652dac5b05e14422c6616553cbfa8275c3e03"
+  },
+  {
+    "path": "tmp/coach-semantic-hostile/hostile-verdict.md",
+    "sha256": "5b70ccbd63fcea95079a189cca243d822413a350e7ca39f4d7e567a1cc579c28"
+  },
+  {
+    "path": "tmp/coach-semantic-hostile/rounds.mjs",
+    "sha256": "1226d7ca2cc25ba9f5e559e4317a0e521ac2b2f95b52ed70a5bb7f8ebfb4f243"
+  }
+]

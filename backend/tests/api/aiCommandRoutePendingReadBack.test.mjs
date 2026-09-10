@@ -78,6 +78,15 @@ beforeEach(() => {
   mockExecuteConfirmed.mockReset();
   mockExecuteConfirmed.mockResolvedValue({ success: true, type: 'executed', command: 'cancel_session' });
   mockRecordAudit.mockReset();
+  // Positive authorization fixture: actual SELECT shape, active coassignment.
+  // Absence/error refusal is covered by the sibling hostile route tests.
+  mockQuery.mockReset();
+  mockQuery.mockImplementation(async sql => {
+    if (/user-role-recheck/.test(sql)) return [{ id: 7, role: 'trainer' }];
+    if (/target-user-recheck/.test(sql)) return [{ id: 61, role: 'client' }];
+    if (/target-client-recheck/.test(sql)) return [{ clientId: 61, trainerId: 7, status: 'active' }];
+    throw new Error('Unexpected authorization query');
+  });
   delete process.env.APPROVAL_RENDER_DIGEST;
 });
 

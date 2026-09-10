@@ -89,6 +89,11 @@ export function signOperation(op) {
      */
     expiresAt: op.expiresAt,
     affectedHash: hashAffectedPreview(op.affectedRecords ?? [], op.affectedCount ?? 0),
+    // SCU G02 / AF11: the stored policy projection is a security decision too —
+    // tier, blast radius, channel, target, reversibility — so it is signed.
+    // Absent on pre-G02 records, where JSON.stringify drops the key and the
+    // payload is byte-identical to before: no signature break on in-flight ops.
+    projection: op.projection,
   });
   return crypto.createHmac('sha256', getOperationSecret()).update(payload).digest('hex');
 }
@@ -113,6 +118,9 @@ export function signPendingConfirmation(op) {
     requiresPhysicalConfirm: op.requiresPhysicalConfirm,
     /** F2-03: the validity window is a control; an unsigned one is a suggestion. */
     expiresAt: op.expiresAt,
+    // SCU G02 / AF11: the stored policy projection is signed on this lane too;
+    // absent on pre-G02 records (byte-identical payload), no in-flight break.
+    projection: op.projection,
   });
   return crypto.createHmac('sha256', getOperationSecret()).update(payload).digest('hex');
 }

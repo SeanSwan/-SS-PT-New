@@ -29,18 +29,30 @@ const resolveEffect = (command) => {
 
 /**
  * Return the immutable policy fields the server may expose to callers.
- * `none` is intentional until a tested inverse or compensation command exists.
+ *
+ * SCU G02 / T10: `reversibility` and `inverseCommand` now honour the entry's
+ * own top-level declarations when it has them (registerCommand stamps
+ * 'none' onto every mutating command that declares nothing, so the value is
+ * always explicit). The adapter no longer INVENTS the field for everyone —
+ * a declared inverse is a declaration, and everything else stays the
+ * conservative 'none' until a tested inverse or compensation command exists.
  */
 export function resolveCommandPolicy(command) {
   const scope = resolveScope(command);
+  const declared = command.reversibility;
+  const reversibility = declared === 'inverse' || declared === 'compensation'
+    ? declared
+    : 'none';
   return {
     policyVersion: 1,
     capabilityVersion: 1,
     scopeKind: scope.scopeKind,
     ownerResolverKey: scope.ownerResolverKey,
     effect: resolveEffect(command),
-    reversibility: 'none',
-    inverseCommand: null,
+    reversibility,
+    inverseCommand: (command.inverseCommand && typeof command.inverseCommand === 'string')
+      ? command.inverseCommand
+      : null,
     requiredDomainStates: [],
   };
 }

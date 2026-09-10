@@ -65,9 +65,15 @@ function fakeRejectRaceDb({ order = [] } = {}) {
 
 async function loadApprovalService({ order = [], decryptedProposal = null, accessAllowed = true } = {}) {
   vi.resetModules();
-  const submitAiWorkoutLogAsDailyForm = vi.fn(async () => {
+  const submitAiWorkoutLogAsDailyForm = vi.fn(async ({ beforeWrite, beforeCommit }) => {
+    const callbacks = [];
+    const transaction = { afterCommit: callback => callbacks.push(callback) };
+    await beforeWrite?.({ transaction });
     order.push('workout-write');
-    return { id: 'workout-1' };
+    const workout = { id: 'workout-1', formId: 'form-1', sessionId: 'session-1' };
+    await beforeCommit?.({ transaction, workout, dailyForm: { id: 'form-1' }, workoutSession: { id: 'session-1' } });
+    for (const callback of callbacks) await callback();
+    return workout;
   });
   const ensureClientAccess = vi.fn(async () => (
     accessAllowed ? { allowed: true, clientId: 42 } : { allowed: false, status: 403, message: 'Client access denied' }
@@ -127,7 +133,7 @@ afterEach(() => {
 });
 
 describe('coachActionProposalApprovalService', () => {
-  it('claims a pending proposal before running the workout writer', async () => {
+  it('claims a pending proposal inside the writer before domain effects', async () => {
     const order = [];
     const db = fakeApprovalDb({ order });
     const { approveCoachActionProposal, getCoachActionProposal, submitAiWorkoutLogAsDailyForm } = await loadApprovalService({ order });
@@ -400,7 +406,8 @@ describe('coachActionProposalApprovalService', () => {
 
     expect(result.status).toBe(409);
     expect(result.body.code).toBe('PROPOSAL_NOT_PENDING');
-    expect(submitAiWorkoutLogAsDailyForm).not.toHaveBeenCalled();
+    expect(submitAiWorkoutLogAsDailyForm).toHaveBeenCalledTimes(1);
+    expect(order).not.toContain('workout-write');
     expect(order).toEqual(['claim']);
   });
 

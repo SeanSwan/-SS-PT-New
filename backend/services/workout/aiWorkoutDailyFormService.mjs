@@ -9,7 +9,6 @@
  * WorkoutLog, and paid-session deduction policy.
  */
 import { randomUUID } from 'node:crypto';
-import logger from '../../utils/logger.mjs';
 import { getAllModels } from '../../models/index.mjs';
 import {
   buildWorkoutSessionBillingDecision,
@@ -26,8 +25,6 @@ import {
   parseNonNegativeInteger,
   parsePositiveInteger,
 } from './aiWorkoutDailyFormPayloadService.mjs';
-import { runWorkoutXpAwardStep } from './workoutXpAwardStep.mjs';
-import { detectAndRecordPersonalRecords } from './workoutPrDetectionService.mjs';
 import {
   advanceAiPlannedAssignmentAfterLog,
   isAiNonBillablePlannedAssignment,
@@ -40,10 +37,11 @@ import {
   scheduledWorkoutSessionFields,
 } from './aiWorkoutScheduledSessionService.mjs';
 import { deriveWorkoutLogSourcePolicy } from './workoutLogSourcePolicy.mjs';
-import { applyAiWorkoutChallengeProgress } from './aiWorkoutChallengeProgressBridge.mjs';
-import { accrueFlatSessionEarning } from '../trainerSessionEarningService.mjs';
 import { resolveClientTrainingDateContext } from '../clientTrainingDateService.mjs';
 import { persistCoachIntentReceipt } from './coachIntentTransactionHook.mjs';
+
+import { runAiWorkoutPostCommit } from './aiWorkoutPostCommitService.mjs';
+import { buildAiWorkoutDailyFormResult } from './aiWorkoutDailyFormResult.mjs';
 
 export { AiWorkoutDailyFormError } from './aiWorkoutDailyFormPayloadService.mjs';
 
@@ -61,6 +59,8 @@ export async function submitAiWorkoutLogAsDailyForm({
   userRole = 'trainer',
   source,
   coachIntent = null,
+  beforeWrite = null,
+  beforeCommit = null,
   sequelize,
 }) {
   const parsedClientId = parsePositiveInteger(clientId);
@@ -83,7 +83,9 @@ export async function submitAiWorkoutLogAsDailyForm({
     throw new AiWorkoutDailyFormError('Historical workout imports cannot be linked to scheduled sessions');
   }
 
-  const normalizedExercises = normalizeAiExercises(exercises);
+  const normalizedExercises = normalizeAiExercises(exercises, {
+    policy: coachIntent?.proofVersion === 2 ? 'coach_verified_v1' : undefined,
+  });
   const requestedDuration = parseNonNegativeInteger(duration, null);
   if (duration !== undefined && duration !== null && duration !== '' && requestedDuration === null) {
     throw new AiWorkoutDailyFormError('duration must be a non-negative integer');
@@ -96,11 +98,15 @@ export async function submitAiWorkoutLogAsDailyForm({
   const estimatedDuration = requestedDuration ?? Math.min(totalSets * 3, 120);
   const sessionNotes = normalizeText(notes, '');
   const transaction = await sequelize.transaction();
+  let committedWorkout, postCommitContext;
+  let commitStarted = false;
 
   try {
     const models = getAllModels();
     ensureWorkoutModels(models);
     const { User, DailyWorkoutForm, WorkoutSession, WorkoutLog, CoachIntent } = models;
+    // Internal hooks share this transaction; proposal/intent locks precede domain locks.
+    if (beforeWrite) await beforeWrite({ transaction, models });
 
     const client = await User.findByPk(parsedClientId, { transaction, lock: transaction.LOCK?.UPDATE });
     if (!client) throw new AiWorkoutDailyFormError('Client not found', 'VALIDATION_ERROR');
@@ -192,7 +198,7 @@ export async function submitAiWorkoutLogAsDailyForm({
 
     const workoutRows = buildWorkoutRows(normalizedExercises, workoutSession.id);
     await WorkoutLog.destroy({ where: { sessionId: workoutSession.id }, transaction });
-    await WorkoutLog.bulkCreate(workoutRows, { transaction, validate: true });
+    const persistedWorkoutLogs = await WorkoutLog.bulkCreate(workoutRows, { transaction, validate: true });
 
     const formData = {
       exercises: normalizedExercises,
@@ -260,115 +266,33 @@ export async function submitAiWorkoutLogAsDailyForm({
         transaction,
       });
     }
-    await transaction.commit();
-
-    // Employed-trainer pay (mode b): the AI workout log just completed the
-    // linked scheduled session — accrue post-commit (self-filtering +
-    // idempotent per session; revenue_share assignments accrue nothing).
-    if (linkedScheduledSession?.trainerId) {
-      await accrueFlatSessionEarning({ session: linkedScheduledSession });
-    }
-
-    // Charter v3 H rail: historical/backfilled sessions never move live
-    // challenges — their events would stamp submittedAt (today), not the
-    // backdated workout date, so a 60-session backfill would instantly
-    // complete active challenges. PLAUD-applied live sessions keep
-    // challenge progress (suppressEngagementSideEffects is false there).
-    const challengeProgress = sourcePolicy.suppressEngagementSideEffects
-      ? { status: 'suppressed_historical', updatedCount: 0, skippedCount: 0, headline: null, updates: [] }
-      : await applyAiWorkoutChallengeProgress({
-        sequelize, models, userId: parsedClientId, dailyForm, workoutSession,
-        workoutDateIso, estimatedDuration, exercises: normalizedExercises,
-      });
-    // Phase 1.1a: every unified-lane write feeds streaks/levels identically.
-    const xp = await runWorkoutXpAwardStep({
-      sequelize,
-      userId: parsedClientId,
-      workoutId: dailyForm.id,
-      sessionId: workoutSession.id,
-      duration: estimatedDuration,
-      exercisesCompleted: normalizedExercises.length,
-      workoutDate,
-      awardedBy: parsedTrainerId,
-      suppress: sourcePolicy.suppressEngagementSideEffects,
+    committedWorkout = buildAiWorkoutDailyFormResult({
+      dailyForm, workoutSession, parsedClientId, parsedTrainerId, sessionTitle,
+      workoutDateIso, estimatedDuration, overallIntensity, normalizedExercises,
+      totalSets, totalReps, totalWeight, sourcePolicy, billing, billingDecision,
+      linkedScheduledSession, plannedAssignmentMetadata, planProgress,
     });
-
-    // Launch charter 4a: PR detection = third post-commit step, same never-fail
-    // contract as the XP step. REAL historical imports (plaud_merge etc.) still
-    // record baselines/records; celebration is a caller concern.
-    //
-    // SYNTHETIC backfill is excluded entirely: its sets are fabricated (MAX weight paired
-    // with an unrelated MAX reps), so they can out-score a client's real PR, overwrite it,
-    // and repoint it at a filler session — which the backfill's own undo then DESTROYS,
-    // erasing the client's real best for good. No PR may reference generated filler.
-    let prEvents = [];
-    if (sourcePolicy.suppressPersonalRecords) {
-      logger.info('[aiWorkoutDailyForm] PR detection skipped for synthetic source', {
-        userId: parsedClientId,
-        source: sourcePolicy.source,
-      });
-    } else {
-      try {
-        const prResult = await detectAndRecordPersonalRecords({
-          userId: parsedClientId,
-          formId: dailyForm.id,
-          sessionId: workoutSession.id,
-          exercises: normalizedExercises,
-          date: workoutDateIso,
-          // Charter v3 H rails: historical sources record baselines at the WORKOUT
-          // date but never earn points or celebration.
-          awardPoints: !sourcePolicy.suppressEngagementSideEffects,
-          achievedAt: workoutDateIso,
-        });
-        prEvents = prResult.prEvents || [];
-      } catch (prErr) {
-        logger.warn('[aiWorkoutDailyForm] PR detection failed (non-critical)', {
-          userId: parsedClientId,
-          formId: dailyForm.id,
-          error: prErr?.message,
-        });
-      }
-    }
-
-    return {
-      id: dailyForm.id,
-      formId: dailyForm.id,
-      workoutId: workoutSession.id,
-      sessionId: workoutSession.id,
-      userId: parsedClientId,
-      title: workoutSession.title || sessionTitle,
-      date: workoutDateIso,
-      duration: estimatedDuration,
-      intensity: overallIntensity,
-      exerciseCount: normalizedExercises.length,
-      totalSets,
-      totalReps,
-      totalWeight,
-      xpAwarded: xp?.pointsAwarded ?? null,
-      streakDays: xp?.streakDays ?? null,
-      xp,
-      prEvents,
-      source: sourcePolicy.source,
-      historicalImport: sourcePolicy.isHistoricalImport,
-      billing,
-      challengeProgress,
-      form: {
-        id: dailyForm.id,
-        clientId: parsedClientId,
-        trainerId: parsedTrainerId,
-        date: workoutDateIso,
-        totalSets,
-        estimatedDuration,
-        ...(linkedScheduledSession ? { scheduledSessionId: linkedScheduledSession.id } : {}),
-        sessionDeducted: billingDecision.sessionDeducted,
-        source: sourcePolicy.source,
-        historicalImport: sourcePolicy.isHistoricalImport,
-        ...(plannedAssignmentMetadata ? { plannedAssignment: plannedAssignmentMetadata } : {}),
-        ...(planProgress?.advanced ? { planProgress } : {}),
-      },
-    };
+    if (beforeCommit) await beforeCommit({
+      transaction, models, dailyForm, workoutSession, workoutLogs: persistedWorkoutLogs,
+      normalizedExercises, workout: committedWorkout,
+    });
+    postCommitContext = { sequelize, models, parsedClientId, parsedTrainerId, dailyForm,
+      workoutSession, workoutDateIso, workoutDate, estimatedDuration, normalizedExercises,
+      linkedScheduledSession, sourcePolicy };
+    commitStarted = true;
+    await transaction.commit();
   } catch (error) {
-    await transaction.rollback();
+    // Sequelize marks commit before sending COMMIT. An interrupted commit is
+    // uncertain even if a best-effort rollback is possible; never advertise retry.
+    if (!transaction.finished) {
+      try { await transaction.rollback(); } catch { /* preserve original failure */ }
+    }
+    if (commitStarted) {
+      throw new AiWorkoutDailyFormError('Save confirmation was interrupted', 'WORKOUT_COMMIT_UNKNOWN');
+    }
     throw error;
   }
+  // Deliberately outside the rollback catch: secondary failures cannot undo save.
+  const secondary = await runAiWorkoutPostCommit(postCommitContext);
+  return { ...committedWorkout, ...secondary };
 }

@@ -768,6 +768,8 @@ async function stepConfirmation(ctx) {
       // F-03: `verdict` is already in hand from the tier resolution above; the
       // M3 rule was computed and then thrown away.
       requiresPhysicalConfirm: Boolean(verdict.physical),
+      // SCU G02 / AF11: stamp the policy projection with the tier in hand.
+      tier: verdict?.tier ?? null,
     });
 
     ctx.pendingOperation = pending;
@@ -795,6 +797,9 @@ async function stepConfirmation(ctx) {
     description: `${ctx.command.description}${clientName ? ` for ${clientName}` : ''}`,
     frontendEvent: isConfirmedFrontendDispatch ? ctx.command.frontendEvent : null,
     requiresPhysicalConfirm: Boolean(verdict.physical),
+    // SCU G02 / AF11: stamp the policy projection with the tier in hand.
+    tier: verdict?.tier ?? null,
+    command: ctx.command,
   });
 
   ctx.result = {

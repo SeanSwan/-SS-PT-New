@@ -3,16 +3,54 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const migrationModule = (await import('../../migrations/20260904000000-create-coach-intents.cjs')).default;
+const trustMigrationModule = (await import('../../migrations/20260906000000-add-coach-intent-trust-fields.cjs')).default;
 
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
 test('CoachIntent model is a PII-free mutable receipt with an actor/request uniqueness boundary', () => {
   const model = read('models/CoachIntent.mjs');
-  for (const field of ['actorId', 'requestKey', 'requestHash', 'commandType', 'targetClientId', 'status', 'operationId', 'proposalId', 'result', 'errorCode', 'expiresAt', 'completedAt']) {
+  for (const field of ['actorId', 'requestKey', 'requestHash', 'commandType', 'targetClientId', 'status', 'operationId', 'proposalId', 'result', 'errorCode', 'expiresAt', 'completedAt', 'version', 'committedAt', 'verifiedAt', 'expectedHash', 'expectedFootprint', 'proofVersion']) {
     assert.match(model, new RegExp(`\\b${field}\\s*:`), `missing model field ${field}`);
   }
   assert.match(model, /unique:\s*true,\s*fields:\s*\['actorId',\s*'requestKey'\]/);
   assert.doesNotMatch(model, /prompt|firstName|lastName/i);
+});
+
+test('CoachIntent trust migration adds server-owned commit and verification columns idempotently', async () => {
+  const columns = new Set(['id', 'actorId', 'requestKey', 'requestHash', 'commandType', 'targetClientId', 'status', 'operationId', 'proposalId', 'result', 'errorCode', 'expiresAt', 'completedAt']);
+  const added = [];
+  const indexes = [];
+  const transaction = { synthetic: true };
+  const queryInterface = {
+    sequelize: {
+      transaction: async run => run(transaction),
+      query: async (_sql, options) => { assert.equal(options.transaction, transaction); return []; },
+    },
+    describeTable: async () => Object.fromEntries([...columns].map((column) => [column, {}])),
+    addColumn: async (_table, column, definition, options) => {
+      assert.equal(options.transaction, transaction);
+      added.push([column, definition]); columns.add(column);
+    },
+    showIndex: async () => indexes,
+    addIndex: async (_table, fields, options) => {
+      assert.deepEqual(fields, ['proposalId']);
+      assert.equal(options.transaction, transaction);
+      assert.equal(options.unique, true);
+      indexes.push({ name: options.name });
+    },
+  };
+  const Sequelize = { INTEGER: 'INTEGER', STRING: () => 'STRING', DATE: 'DATE', JSONB: 'JSONB',
+    QueryTypes: { SELECT: 'SELECT' }, Op: { ne: Symbol('ne') } };
+
+  await trustMigrationModule.up(queryInterface, Sequelize);
+  await trustMigrationModule.up(queryInterface, Sequelize);
+
+  assert.deepEqual(added.map(([column]) => column), [
+    'version', 'expectedHash', 'expectedFootprint', 'proofVersion', 'committedAt', 'verifiedAt',
+  ]);
+  assert.deepEqual(added[0][1], { type: 'INTEGER', allowNull: false, defaultValue: 0 });
+  assert.equal(added[3][1].allowNull, true);
+  assert.equal(indexes.length, 1);
 });
 
 test('CoachIntent migration is additive and creates the uniqueness/index contract', () => {

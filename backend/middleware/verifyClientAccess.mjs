@@ -49,6 +49,7 @@
 
 import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+import { Op } from 'sequelize';
 
 const parseStrictPositiveInteger = (value) => {
   if (typeof value === 'number') {
@@ -136,15 +137,21 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
  * @returns {Promise<number[]>} active assigned client ids; [] means genuinely none
  * @throws {Error} with code 'ASSIGNMENT_LOOKUP_UNAVAILABLE' when the lookup fails
  */
-export async function listAssignedClientIds(trainerId) {
+export async function listAssignedClientIds(trainerId, candidateIds) {
   const requesterId = parseStrictPositiveInteger(trainerId);
   if (!requesterId) return [];
+  // Optional bounded candidates preserve the existing roster caller contract.
+  if (candidateIds !== undefined && (!Array.isArray(candidateIds) || candidateIds.length > 50
+    || candidateIds.some(id => !parseStrictPositiveInteger(id)))) throw new Error('Invalid assignment candidate batch');
+  if (candidateIds?.length === 0) return [];
 
   try {
     const Model = getModel('ClientTrainerAssignment');
     const rows = await Model.findAll({
-      where: { trainerId: requesterId, status: 'active' },
+      where: { trainerId: requesterId, status: 'active',
+        ...(candidateIds ? { clientId: { [Op.in]: [...new Set(candidateIds.map(Number))] } } : {}) },
       attributes: ['clientId'],
+      ...(candidateIds ? { limit: 50 } : {}),
     });
     return rows
       .map((row) => parseStrictPositiveInteger(row?.clientId ?? row?.get?.('clientId')))

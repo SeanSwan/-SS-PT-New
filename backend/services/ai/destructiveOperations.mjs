@@ -37,6 +37,7 @@ import {
   verifySignature,
   signPendingConfirmation,
 } from './operationSigning.mjs';
+import { buildConfirmationProjection } from './confirmationProjection.mjs';
 
 // Re-exported so core/startup.mjs, commandExecutor and the S1 tests keep ONE
 // import surface — the split (Rule 4 cap) must not ripple through callers.
@@ -148,6 +149,12 @@ export async function prepareDestructiveOperation({
    * that could be fooled is not the surface that decides.
    */
   requiresPhysicalConfirm = false,
+  /**
+   * SCU G02 / AF11: the tier verdict in hand at mint (from the executor's tier
+   * resolution), stamped into the signed projection. Callers that resolve no
+   * tier pass nothing; the builder defaults to the conservative 'read_back'.
+   */
+  tier = null,
 }) {
   // 0.4a (was V3 DELETE-only): EVERY destructive type requires explicit scope.
   // An unscoped UPDATE or DEACTIVATE with `params: {}` is the same mass-mutation
@@ -214,6 +221,20 @@ export async function prepareDestructiveOperation({
     expiresAt: new Date(Date.now() + OPERATION_TTL_SECONDS * 1000).toISOString(),
     signature: '',
   };
+  // SCU G02 / AF11: the sheet renders ONE stored projection. It is stamped
+  // BEFORE the signature so tampering with any policy field fails verification.
+  operation.projection = await buildConfirmationProjection({
+    id: opId,
+    expiresAt: operation.expiresAt,
+    commandType: commandType ?? null,
+    isDestructive: true,
+    requiresPhysicalConfirm: operation.requiresPhysicalConfirm,
+    affectedCount: operation.affectedCount,
+    targetUserId: operation.clientId,
+    createdBy: userId,
+    description,
+    tier,
+  });
   operation.signature = signOperation(operation);
 
   await store().set(opId, operation, OPERATION_TTL_SECONDS * 1000);

@@ -2,6 +2,7 @@ import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import CoachCommandCenterPage from './CoachCommandCenterPage';
+import { CoachSessionDraftProvider } from './CoachSessionDraftContext';
 
 vi.setConfig({ testTimeout: 15000 });
 
@@ -150,7 +151,12 @@ export function renderPage(route = '/dashboard/admin/coach-assistant', role: Coa
   setCoachCommandCenterRole(role);
   return render(
     <MemoryRouter initialEntries={[route]}>
-      <CoachCommandCenterPage />
+      {/* Mirrors UniversalDashboardLayout: the G04a shell-owned draft provider wraps
+          every dashboard surface. The Session Desk (G04c) reads it, so harness renders
+          must provide it or the desk's useCoachSessionDraft throws. */}
+      <CoachSessionDraftProvider actorId={1} actorRole={role}>
+        <CoachCommandCenterPage />
+      </CoachSessionDraftProvider>
     </MemoryRouter>,
   );
 }

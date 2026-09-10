@@ -1,0 +1,491 @@
+{
+  "generatedAt": "2026-09-06T08:44:28.8680331Z",
+  "worktree": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\swan-coach-astra-owned-20260906",
+  "branch": "codex/swan-coach-astra-owned-20260906",
+  "head": "b88dd9e5c894908d9f193411fe66117294d190ef",
+  "scope": "Local takeover candidate; full Coach upgrade remains in progress",
+  "deployed": false,
+  "sourcePreservation": "tmp/coach-isolation-receipt/manifest.json",
+  "postgresContainer": "swan-coach-test-20260906-0738 (verified identity and stopped)",
+  "verifiedNodeCounts": {
+    "astra-takeover-proof-unit-final.log": 11,
+    "astra-takeover-node-green.log": 223,
+    "astra-takeover-postgres.log": 8,
+    "astra-takeover-list-postgres.log": 2,
+    "astra-takeover-proof-postgres.log": 8
+  },
+  "immutableGates": {
+    ".ai-workflow/gates/coach-receipt-list-astra-20260906/gate.mjs": "5607311f6ce70fed750c0a238edf4214370176ceba487baf9cb821a6771fd08c",
+    ".ai-workflow/gates/coach-reconcile-astra-20260906/gate.mjs": "eb84abfbbcd1c85716d2ccd10fd9a40d262f0dbff3b27556a39b3d8875d4e608"
+  },
+  "files": [
+    {
+      "path": ".ai-workflow/gates/coach-receipt-list-astra-20260906/gate.mjs",
+      "sha256": "5607311f6ce70fed750c0a238edf4214370176ceba487baf9cb821a6771fd08c"
+    },
+    {
+      "path": ".ai-workflow/gates/coach-reconcile-astra-20260906/gate.mjs",
+      "sha256": "eb84abfbbcd1c85716d2ccd10fd9a40d262f0dbff3b27556a39b3d8875d4e608"
+    },
+    {
+      "path": "backend/middleware/verifyClientAccess.mjs",
+      "sha256": "ec459acbc7abc4aed8a0be334b9c8f77d7d809c6a8ebae726f1905204d477b81"
+    },
+    {
+      "path": "backend/migrations/20260906000000-add-coach-intent-trust-fields.cjs",
+      "sha256": "903c4bd854990b890d4585f0d8894825c5f380f7c08d73f3bc0f1b2e1cac052a"
+    },
+    {
+      "path": "backend/migrations/20260906000000-coach-intent-lifecycle-v2.cjs",
+      "sha256": "db06f2f137426af2b95d6df5ec54871b62eaea75038a1b3a282b862748a21fea"
+    },
+    {
+      "path": "backend/models/CoachIntent.mjs",
+      "sha256": "1f3f180224f505db0147a66cb68cc35c68fadf85503b770ee7a513511dda7b3b"
+    },
+    {
+      "path": "backend/package.json",
+      "sha256": "0c4e2f439ebb6c74af9f4bb80e3e777fc3de13995c750dbc1938df34eed66fb9"
+    },
+    {
+      "path": "backend/routes/aiCommandRoutes.mjs",
+      "sha256": "4e3550f860db5c79711c700d9a40f65afa7a73617587e89335bbd66fba4ec21f"
+    },
+    {
+      "path": "backend/services/ai/coachIntentCursor.mjs",
+      "sha256": "86b1054320f5f02e6375bacd46cf71c459dfbbfcc87177822dbcf4213567cc53"
+    },
+    {
+      "path": "backend/services/ai/coachIntentEffectProof.mjs",
+      "sha256": "50bfbcf52462de6a2948025e138fb20403f9c7db5b3aca03eaf75c2057471f88"
+    },
+    {
+      "path": "backend/services/ai/coachIntentLifecycle.mjs",
+      "sha256": "53492e6a32091917904cb56253e5aee5af47b79730501f1e830dfe56a11c7ad3"
+    },
+    {
+      "path": "backend/services/ai/coachIntentListing.mjs",
+      "sha256": "bc3e67c200ceb680f5a00bef17f68489f0b9fb68146c93433d1ac58c3c6bf4de"
+    },
+    {
+      "path": "backend/services/ai/coachIntentReceipt.mjs",
+      "sha256": "f9f4b4575fdcc13a77b20a59e33469548b14b92e1698e634d88ecd103240ff47"
+    },
+    {
+      "path": "backend/services/ai/coachIntentService.mjs",
+      "sha256": "1616fcec0e4e1db73127056518f0fd51e835576ef32926cde06133389f867445"
+    },
+    {
+      "path": "backend/services/ai/coachProgressEvidence.mjs",
+      "sha256": "e33a0326cf2d1a61d15bd6463ed2acc69f8730dfb02a0f52857ec39b975009c0"
+    },
+    {
+      "path": "backend/services/ai/coachWorkoutResultVerifier.mjs",
+      "sha256": "f6baac3fe9acb5946b72b15748de5dee4f81044c6429743925330ef047e4e8c5"
+    },
+    {
+      "path": "backend/services/workout/aiWorkoutDailyFormPayloadService.mjs",
+      "sha256": "098a5600adfd93504f4410bc1e7ae9881c26c1a26e985fcd5bb271ff05f9c2a9"
+    },
+    {
+      "path": "backend/services/workout/aiWorkoutDailyFormService.mjs",
+      "sha256": "3a62a8e599396eaac9778c4cdd6ad1828e2d7b18e9c27a6c06c35de9d7405378"
+    },
+    {
+      "path": "backend/services/workout/coachIntentTransactionHook.mjs",
+      "sha256": "ffa1cfce554d0a50914ac6e2c17b2907409b5e923533713a7d0dc3358a3b2c17"
+    },
+    {
+      "path": "backend/services/workout/coachStrictWorkoutPayload.mjs",
+      "sha256": "8b08cfc711de71e3250d944366d4d006263c310c5eb5e011c2283fce9efc316f"
+    },
+    {
+      "path": "backend/services/workout/coachWorkoutReadbackService.mjs",
+      "sha256": "c2ce498d044677c4c9555128046ddcc290a90c1f8cc8d9bf9fe901862efad7f1"
+    },
+    {
+      "path": "backend/tests/api/coachIntentRoutes.test.mjs",
+      "sha256": "7abf796a8afec43c0c2e82290dab71c025857e8b64f02747134968d18b9984e1"
+    },
+    {
+      "path": "backend/tests/helpers/coachTestDatabase.mjs",
+      "sha256": "bc467a2dbb0f0be9389af826b9774c9910c6d16661ba1bc270e5418f1053fb61"
+    },
+    {
+      "path": "backend/tests/helpers/coachTestDatabaseLoader.mjs",
+      "sha256": "af9ccb83c3f6e6217417a4eb1f5708d05c73482227139222b86856fff19eccbf"
+    },
+    {
+      "path": "backend/tests/helpers/registerCoachTestDatabase.mjs",
+      "sha256": "fb5eb0304924ac673701627c0dec47fd2801e741aec4cc6c124297613901d1c9"
+    },
+    {
+      "path": "backend/tests/integration/coachIntent.postgres.test.mjs",
+      "sha256": "28217af8c3e87f442594f344bbe9be4765a99f617c198aa1549e571bcff57d8a"
+    },
+    {
+      "path": "backend/tests/integration/coachIntent.proof.postgres.test.mjs",
+      "sha256": "4a192975dc73ddbb8c5fed52c65cef06c0db2a2b1d8b56da41effd4fc90115b9"
+    },
+    {
+      "path": "backend/tests/integration/coachIntentListing.postgres.test.mjs",
+      "sha256": "10ce76b6e7c23b2d2a5a13f2d3124ec28f4b3d4ca89347a824d00477e0681c46"
+    },
+    {
+      "path": "backend/tests/unit/coachIntentCursor.test.mjs",
+      "sha256": "8c15edb7c50bcdc8bb884005d088badc2d150ee83d21f13a9deae62abc17efa6"
+    },
+    {
+      "path": "backend/tests/unit/coachIntentModel.contract.test.mjs",
+      "sha256": "1fa417fddfbe02a4950ec666a0036b49810f9b14c2f6d640e6a67314eacf5c3a"
+    },
+    {
+      "path": "backend/tests/unit/coachIntentReceipt.test.mjs",
+      "sha256": "66090f38f5fef18dc420631f4970b8085ae4b29e5a13d124ee1205e0506febd6"
+    },
+    {
+      "path": "backend/tests/unit/coachIntentService.test.mjs",
+      "sha256": "f25138b75589af69b9570f6d08b68db8b76c5757696144e3c981891fa39f4ec1"
+    },
+    {
+      "path": "backend/tests/unit/coachIntentTransactionHook.test.mjs",
+      "sha256": "e7ff602d8ff740e5035ae815e08c02ee94cd493ccd7ac0a543793c1f255f3abe"
+    },
+    {
+      "path": "backend/tests/unit/coachWorkoutReadbackService.test.mjs",
+      "sha256": "e6a2ceed04cf1f1af66e9567ccf77eadb349f7f3e1ab8136be28a3a31cf6338f"
+    },
+    {
+      "path": "backend/tests/unit/coachWorkoutResultVerifier.test.mjs",
+      "sha256": "e82ee630550756727ce468eb7c24f154f88fddc85a82d3b41c381c55d2388516"
+    },
+    {
+      "path": "backend/vitest.config.mjs",
+      "sha256": "60a9a8efcf61abaea1b3be12ffbef39ed54f9494c309a022ccc2d4514e93d315"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/11-comprehensive-handoff.md",
+      "sha256": "07938b08087b2d45406d5628db0800e4a31958ee8b15fd971eb9f7c709b8320b"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/12-astra-review.md",
+      "sha256": "60e25f2cb1bc95788ead0280981484d45c99dcf3fa59f82366cf934f2304b969"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md",
+      "sha256": "5bd39552e70eaf8481defe83eaed6450e997f5f3eeb987df86c54cb4c6795916"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/14-experience-execution.md",
+      "sha256": "31f586b6fe2f9efc49146b258a5ae3821b9ad4613346a0e8acbd1e77cf24efb7"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/15-acceptance-and-release.md",
+      "sha256": "e837616377697af432f1d6e3d4ac88a540f5546668e9de4283ee66a11ec3c04e"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/16-state-and-data-flows.md",
+      "sha256": "25c7fd7536e2f04be199cb0ef5964c9254c50eba514dd642c491c7d582764c21"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/17-astra-readiness.md",
+      "sha256": "553a6f56a547dc3782ecd57693aea89d43dad888a132490d4cbb50a05d9aabb1"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/18-dashboard-tab-audit.md",
+      "sha256": "1ec5dd20a78f547365d6249e0daa19370a615c3ab3647c2d81bb7de992f3975d"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/19-one-coach-domain-contracts.md",
+      "sha256": "ec365614bf1f2892cf06fde8ff461ca76397cf3d70fa672a4cbbb68df12dce47"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/20-first-repair-source-receipt.md",
+      "sha256": "35259862c7910e575f0058b229e9b602c4a82e76bdc68e2092c2995defdee53d"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/21-nested-workspace-audit.md",
+      "sha256": "998bb725a0a3e54ed162374af8a7c8aee188430d081c59b88141ef889a81ebf8"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/22-astra-verification.md",
+      "sha256": "5f77fa9f4a5ebf7139384267ddfafd4e514e05005dc06a1de4f71a229fbc38dd"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/23-takeover-source-receipt.md",
+      "sha256": "cc527c5673afcebcf2e0d3fe37f1599107ccb7edb06be250bc53ee8c3463595a"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/24-takeover-verification.md",
+      "sha256": "528eb83a1b7f53ddef73cb189f9e23f1608b9beac88313ab64ab8e95b9fb2d9a"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-current-verification.json",
+      "sha256": "a88911dbcdb7f6c2b061a8c1c3f8f8ff1d27947065b0b96fef36e8b187ba4432"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-dashboard-inventory.json",
+      "sha256": "2f887164bd7d0fdce49ee07c26e6c970289516c743066afdf372f4a7c8f7f027"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-api-final.log",
+      "sha256": "e378f0d2c4a393528782267fdf90710b0cf7c79318093aa47298486915c38e07"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-baseline.log",
+      "sha256": "ab147ad9c7af9b141a80046c4658cafae6d578ab16414c715792dc2d40603dd7"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-build.log",
+      "sha256": "4e464895c0445c436775f54906cece21dcf3053bc855b3b7b3f47d47ce803c62"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-confirmation-green.log",
+      "sha256": "d3d5ce989b552e585bee6f7517848b6bfd1f5ad1a0e85b0bbbefb4bf3ca3ea5f"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-confirmation-red.log",
+      "sha256": "07f4740efbaff7e321c91fbf9f7523f30686bca38108c744f733952001892802"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-frontend.log",
+      "sha256": "1bfc6c92aa81a5c084297050dfa0203ffe6a7e0c9f3b9277cdfb34908af63aef"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-lifecycle-api-red.log",
+      "sha256": "97a21e2391888e0fac3c3b9a8e9893c0cd65ef6409f7bb2c755fb790e5e9b806"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-list-api.log",
+      "sha256": "35b8ada92a0d2ad3c6995520b5231e5bbd30909057f4bce396fbff731c291b3a"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-list-gate-1.log",
+      "sha256": "3c4d0a6a2dd9e27cb78754b0a2cb580f34d325961b1a8704275f1c220cae8f16"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-list-gate-2.log",
+      "sha256": "76d28ab31d1a4589da314a4f1490836867e8a42bc89e73a696c16e4108b3c0cc"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-list-postgres.log",
+      "sha256": "fbe6237b81c0ab9f8ba99a2fb5ffa9e765da35c791a9bccb2e3f324ceac5aee8"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-list-red.log",
+      "sha256": "b696d25e4724187bcf69882de46b4186728e39cdf0f03e315441ed39c9c2e4c2"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-migration-unit.log",
+      "sha256": "5cff722d5a467e9d3c0d336f0003ae124a0a6074991fe1aad973ae986b5367b4"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-node-baseline.log",
+      "sha256": "82ba3cac5b13a5deaffbf4051f6ceef1aeff9bc5931cb0de5da76add0c976bcd"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-node-green.log",
+      "sha256": "ab118429776cb17e8a950ee8f7a825261aab0c3ecb0c680b486bd133ab2efa6e"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-packet-verification.log",
+      "sha256": "c1d26c9fc3a2528e9b5116032b1240915491a6dcbb53bae13e73dd38b92df430"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-postgres-red.log",
+      "sha256": "873ea0e4d4468227101b6920337e7bf59a01a0457e8e8c0e6fca3bdbe89f6991"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-postgres.log",
+      "sha256": "48df478a31862c062b2e115fd0f0627744f014207a2c50f5460e29e0f403e212"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-proof-postgres-red.log",
+      "sha256": "a7daa8e92faff2309006885a8a614dd1b3c3ed70bda188b53316d08a9118e0b1"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-proof-postgres.log",
+      "sha256": "2d480d64d7d24b0a8ba5e74b8b678e7cdb3a2d22738c03fdf6e39c5a08c44e71"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-proof-unit-final.log",
+      "sha256": "87d8d0fd5baad7ea2e3fb69f558f90c078b3c2a4170d23a63f636a287649d57b"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-reconcile-confirmation.log",
+      "sha256": "c280c788690aee63ab14f01eaf297a6a54cba7b6f26dda3ced673fd170c90e54"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-reconcile-gate-1.log",
+      "sha256": "b716de0c9bc9f768b2cc180f1e3a68914e8b2c883cf4381e0b02cc326aaa9c91"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-reconcile-gate-2.log",
+      "sha256": "a42ca30ca6fb1219927d819125ae4e160872fef88f8e01d7094158a0a3a50b1f"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-reconcile-gate-3.log",
+      "sha256": "a42ca30ca6fb1219927d819125ae4e160872fef88f8e01d7094158a0a3a50b1f"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-reconcile-hostile.log",
+      "sha256": "c8f6475d4c348af72b370da1dfa6f489d8e215438226517aced583bd763fcb6b"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-runner-green.log",
+      "sha256": "ff90161d19b1d4837154cd9e629dd9de613bcebaf6b4debd097c29c4c5650d58"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-runner-red.log",
+      "sha256": "272a2ab9ae77e551574cffaee3ea583ffba5fd033635b4a54834e82683a4725f"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-takeover-typecheck.log",
+      "sha256": "2fef17883025df19058b32c4bc4e7210485d5d4c937f14cbe5f84e257584d21d"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-wireframe-1440.png",
+      "sha256": "39a475679076c6688144e9d6e2f9b87ae238f5a1e0275fe1b9dbfbdb5d877e15"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-wireframe-2560.png",
+      "sha256": "4a215a232b3e485048adada7dd9cf35ece1364f4f19b2de33dfe66cee483e752"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-wireframe-320.png",
+      "sha256": "feecaa65cfeb8da3cd6141ee07dafd6507dfc375dc309b2edf2e8c8cb93247ab"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-wireframe-3840.png",
+      "sha256": "8f13a29a939799bf7c7837babcc5ec09de667a0d7cc534e1656dab4c9d1a3628"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-wireframe-414.png",
+      "sha256": "2a93e599d07293d566f629438567bde937d14ebb7306f3c31561f51982d6101b"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-wireframe-768.png",
+      "sha256": "d9afea32ba4d0b329af679fbe8f9f6d3dca3d0781520af2ea589fa066f204336"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/astra-wireframe-check.json",
+      "sha256": "ef3ff566ccb76b1ac91c1256cc9a495fff578ac8c810a71a19b658aac9f5052c"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/final-review-integration.json",
+      "sha256": "4875a2298571a3617bbfc509421071651e83aba17805c53986cb11fbd2f1b90e"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/glm-blueprint-review-packet-20260905.md",
+      "sha256": "ba2e8b67f2abc41cbb60018f96f1a5fbecc1825db2a7d6dd0dbbbf63560bd34d"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/hostile-r3-probes.mjs",
+      "sha256": "6e77990f4270c5fe57d7f3f6d38e19ae29eba35cef325b19136ddb42d853a6e2"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/hostile-r3-review.md",
+      "sha256": "8d90971ff18e46ce2d3299d8569b7a3fcd8f07ad61092a97eea0615f23646389"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/panel-20260905-hostile-r3-dispatch/GLM-5.3-FLASH-PANEL-REVIEW.md",
+      "sha256": "c42eac9505fac439814673bdd0418b2c6631e9f7e5c4f32ce4656a198a5013e6"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/panel-20260905-hostile-r3-dispatch/GLM-PANEL-REVIEW.md",
+      "sha256": "b123077b6e726b254e7e807813326f80d828d996c7b6fbb47b1cfcd9b497d47e"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/panel-20260905-hostile-r3-dispatch/INDEX.md",
+      "sha256": "258f35f32210a9f49a12c09a5bfd835bdcd1fe74a9a1466cb504e0bddde1de36"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/panel-20260905-hostile-r3-dispatch/PANEL-ARTIFACT-RECEIPT.json",
+      "sha256": "126208a469a0617af6d3540329d1fa126c732fba3c8f24ab7147ccc68fa31ed7"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/README.md",
+      "sha256": "b067ee7e33021981b21baf9f651ef9e60d21c2f9af3f6e51a34faa398e963995"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/session-desk-review.html",
+      "sha256": "1c96bbc9a070497eca72ba00b1c00c4a97fc0e20eb9d5e0f06d253236b5c88f7"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra-verify.mjs",
+      "sha256": "f5566ccfa13d8ebb8592c825ae5fc1920afd62aa8025c9a403f65505afe1dcb4"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra-wireframe-check.mjs",
+      "sha256": "5455919774e199ca2918b6e0acadfddc3bc0bec20109ad31cebfb6a0b882e8cf"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.acceptance.red.test.mjs",
+      "sha256": "f5fb774f9a23ed07a739f3b916d69db6b0853bf7075ade4a8b644fda36a3e957"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.progress-keys.test.mjs",
+      "sha256": "bf322612acee566c5e9b4f9a3b17d3335d81222d2b2b6976102c6cae4546e314"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.readback-validation.test.mjs",
+      "sha256": "603af83baccfd336def0bc316a26e2446c938e87afbf096271aa01ab043e141b"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.strict-payload.test.mjs",
+      "sha256": "cdfe988457ba83a1b90604278becd95cc0fac0abda6321f77edddbde2eeb6762"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/dashboard-audit-report.mjs",
+      "sha256": "2cb51c3298646621931c022754b4cb9383c9cec66f9f721aeb9a972c7304791c"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/dashboard-inventory.mjs",
+      "sha256": "4a6f573b4a41b3e323e7b5668766f243e8f90b5c9b91cd3035dde5f2d0cc0a3f"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/review-integration.test.mjs",
+      "sha256": "fb6bd8be46fa395cf3aff62ae3e2bf4b2174230bca3a9b0950771951da7f93f7"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.actions.ts",
+      "sha256": "372cd9081c4b46dbca53b93de511bc44833af1c51aa8149d0a73d6179e9cc8b1"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.commandLane.ts",
+      "sha256": "734bfc1e65a3ac2558c40420be9a564c3ab3f843098f7607da8a3db3865eda80"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.data.ts",
+      "sha256": "eaf1e98841b59484c44d1611b4da9cdd89f20c02cc2f8400a3196e728ad6e006"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.commandError.test.tsx",
+      "sha256": "dced9b62cb13a4491c90f212c097351e239ad64251f76afacfe035b13adca8a0"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.helpers.ts",
+      "sha256": "fad7affa34d0b329b3129acf341333b202adfcb4d386fa3f54c61fe8b4c238bb"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.test.tsx",
+      "sha256": "fc59eecb9469a107a69f2f6cf146ee6e4e0d02863913c6edee8be929d0b6ec58"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/workspaces/clients-team/ClientTrainingCommandBar.tsx",
+      "sha256": "7b3e8992c174085e099d97b226e5b16f31a5cbe24f4d047302775feb1b25d5c7"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutLoggerDictation.provenance.test.tsx",
+      "sha256": "6704f74bee3903feb73b56e7e9ed7c7fb8b340d9a49e25186c28820cbf8bb6a9"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutLoggerDictation.ts",
+      "sha256": "b3c740ca6764fa45fe2f913f675608ae282f7676d82eb010d83634c7d9c3f401"
+    },
+    {
+      "path": "frontend/src/hooks/useCoachInputOrigin.ts",
+      "sha256": "40d89ecc5aa3b7b262192cc6fee0b097835982fcfa451268cbaff109fcfc8d7c"
+    }
+  ]
+}

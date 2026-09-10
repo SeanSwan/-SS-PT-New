@@ -1,0 +1,106 @@
+{
+  "schemaVersion": "scu-final-review-integration-v1",
+  "createdAt": "2026-09-06T07:26:42.692Z",
+  "planStatus": "READY_FOR_GATED_CONTINUATION",
+  "runtimeStatus": "REVISE",
+  "releaseStatus": "NOT_AUTHORIZED",
+  "entryPoint": "11-comprehensive-handoff.md",
+  "version": "3.2 final-review amendment 1",
+  "reviewedRuntimeHead": "b88dd9e5c894908d9f193411fe66117294d190ef",
+  "concurrency": "Separate implementation task has uncommitted runtime repairs. This receipt certifies planning integration only; it does not certify those repairs.",
+  "canonicalAuthority": "11-comprehensive-handoff.md and its 12-19 references; 01-10 remain historical/detail references where superseded.",
+  "contextIntegrated": [
+    "GLM 5.3 exact served identity and valid reply hash",
+    "GLM 5.3 Flash exact served identity and valid reply hash",
+    "Astra AF01-AF16 review and AR acceptance inventory",
+    "R3-1 response-loss no-change/retry defect",
+    "R3-3 logger/shared-hook provenance coverage",
+    "R3-2 bounded receipt scan, deduplicated with AF13"
+  ],
+  "adjudication": "Accept locally reproduced gaps and gated authority/transaction/readback recommendations. Reject speculative P0s, blanket single-command-route authority, unsupported role/health bypass assertions, and invented conflict/status contracts.",
+  "tests": {
+    "command": "node --test docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/review-integration.test.mjs",
+    "exitCode": 0,
+    "summary": [
+      "ok 1 - RI01 final start-here links resolve and no required artifact is missing",
+      "ok 2 - RI02 original paired model artifacts still match their exact receipt",
+      "ok 3 - RI03 canonical adjudication integrates reviews without claiming proven P0s",
+      "ok 4 - RI04 S1 names the logger producer and the shared default-provenance boundary",
+      "ok 5 - RI05 S3 specifies no-change truth, stable retry identity and a finite scan budget",
+      "ok 6 - RI06 review findings have acceptance mappings, not only prose adjudication",
+      "ok 7 - RI07 diagram distinguishes unknown recovery from explicit known-rollback retry",
+      "ok 8 - RI08 readiness keeps plan completeness separate from unresolved runtime evidence",
+      "ok 9 - RI09 empty pages preserve cursor continuation and authorized lookahead",
+      "# tests 9",
+      "# pass 9",
+      "# fail 0"
+    ]
+  },
+  "structuralVerification": {
+    "artifactHashes": {
+      "11-comprehensive-handoff.md": "6ab0e223db389a4da701143671f26f8de2202fa6e11a3050d9b2eb14ee5b45a4",
+      "12-astra-review.md": "60e25f2cb1bc95788ead0280981484d45c99dcf3fa59f82366cf934f2304b969",
+      "13-foundation-execution.md": "632705abfbbf5a9c575740adf89681e6afc07d31d7483bd9b939c5fc5863162e",
+      "14-experience-execution.md": "31f586b6fe2f9efc49146b258a5ae3821b9ad4613346a0e8acbd1e77cf24efb7",
+      "15-acceptance-and-release.md": "e837616377697af432f1d6e3d4ac88a540f5546668e9de4283ee66a11ec3c04e",
+      "16-state-and-data-flows.md": "25c7fd7536e2f04be199cb0ef5964c9254c50eba514dd642c491c7d582764c21",
+      "17-astra-readiness.md": "553a6f56a547dc3782ecd57693aea89d43dad888a132490d4cbb50a05d9aabb1",
+      "18-dashboard-tab-audit.md": "1ec5dd20a78f547365d6249e0daa19370a615c3ab3647c2d81bb7de992f3975d",
+      "19-one-coach-domain-contracts.md": "f26e05223e1593c95d4b183c93db39f7e33d4410164e25165e8c62249665917d",
+      "session-desk-review.html": "1c96bbc9a070497eca72ba00b1c00c4a97fc0e20eb9d5e0f06d253236b5c88f7",
+      "tests/review-integration.test.mjs": "fb6bd8be46fa395cf3aff62ae3e2bf4b2174230bca3a9b0950771951da7f93f7"
+    },
+    "localLinksChecked": 10,
+    "lineCaps": "pass",
+    "wireframeScriptSyntax": "pass",
+    "liveBrowserClaim": false
+  },
+  "preservation": {
+    "manifest": "tmp/coach-final-plan-preservation-20260906-0722/manifest.json",
+    "sha256": "5fbeab655dbab3f3d29bda359ebf55d6a9935a94180db3e481a17ae8eea90f39",
+    "verifiedFiles": 2,
+    "sampleRestored": 2,
+    "coverage": "15 and 17 immediately before this review amendment; explicit snapshot because native main-checkout vault does not cover this isolated path"
+  },
+  "reviewRounds": [
+    {
+      "round": 1,
+      "vantage": "Cross-document semantic review",
+      "result": "Clarified ambiguous empty-page termination into scoped continuation, no skipped lookahead, manual fetch-next; RI09 initially RED."
+    },
+    {
+      "round": 2,
+      "vantage": "Executable planning coverage and immutable review-evidence checks",
+      "result": "9/9 PASS; no remaining finding in this planning-integration gate."
+    },
+    {
+      "round": 3,
+      "vantage": "Separate canonical-document local-link, line-cap and wireframe-script inspection",
+      "result": "10 links resolve; all selected artifacts <=300 lines; inline script syntax valid; no additional planning-integration finding."
+    }
+  ],
+  "nextStep": "S0-R: resolve actual file ownership, refresh branch/source/model baseline and integration delta; then finish S1-close/S2/S3/S4 under their tests and domain transaction/read-back gates.",
+  "remainingGates": [
+    "Earlier runtime-file ownership claims",
+    "Current-main candidate reconciliation",
+    "Real PostgreSQL/Redis transaction and race tests",
+    "Authorized independent read-back and canonical adapters",
+    "Authenticated role and dashboard journeys",
+    "Full typecheck/build for actual candidate",
+    "Provider/privacy/evaluation and feature-activation proof",
+    "Repository final review/commit policy and explicit release authorization"
+  ],
+  "thisTaskWrites": [
+    "tests/review-integration.test.mjs",
+    "15-acceptance-and-release.md",
+    "17-astra-readiness.md",
+    "evidence/final-review-integration.json"
+  ],
+  "externalCallsThisTurn": 0,
+  "applicationImplementationThisTask": false,
+  "committed": false,
+  "pushed": false,
+  "deployed": false,
+  "invalidation": "Any change to the recorded artifact hashes requires rerunning relevant review and checks; the ongoing implementation task remains separately owned.",
+  "hygiene": "Retain this evidence and scoped local snapshot with the planning package. No automatic cleanup, tracker update, or continuity closeout."
+}

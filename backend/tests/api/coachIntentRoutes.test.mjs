@@ -5,10 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   mockGetModel,
   mockAssignment,
+  mockListAssignments,
   mockReadCoachIntent,
 } = vi.hoisted(() => ({
   mockGetModel: vi.fn(),
   mockAssignment: vi.fn(),
+  mockListAssignments: vi.fn(),
   mockReadCoachIntent: vi.fn(),
 }));
 
@@ -18,7 +20,7 @@ const rows = [
     id: '11111111-1111-4111-8111-111111111111', actorId: 7, targetClientId: 44,
     commandType: 'log_workout', status: 'completed', operationId: 'op-1', proposalId: 'proposal-1',
     result: {
-      schemaVersion: 1, recordRefs: [{ kind: 'daily_form', id: 91, version: 3 }],
+      schemaVersion: 1, recordRefs: [{ kind: 'daily_workout_form', id: 91, version: 3 }],
       realAffectedCount: 1, reversibility: 'none', undoAvailable: false,
       providerError: 'do not expose', transcript: 'do not expose',
     },
@@ -52,6 +54,7 @@ vi.mock('../../middleware/aiCommandGuards.mjs', () => ({
 }));
 vi.mock('../../middleware/verifyClientAccess.mjs', () => ({
   assertAssignmentOrAdmin: mockAssignment,
+  listAssignedClientIds: mockListAssignments,
 }));
 vi.mock('../../database.mjs', () => ({ default: {}, Op: { lt: Symbol('lt'), or: Symbol('or') } }));
 vi.mock('../../models/index.mjs', () => ({ getModel: mockGetModel }));
@@ -96,12 +99,47 @@ beforeEach(() => {
   actingUser = { id: 7, role: 'trainer' };
   mockAssignment.mockReset();
   mockAssignment.mockResolvedValue(true);
+  mockListAssignments.mockReset();
+  mockListAssignments.mockResolvedValue([44, 55]);
   mockReadCoachIntent.mockReset();
   mockGetModel.mockReset();
   mockGetModel.mockReturnValue({ findByPk: vi.fn(), findAll: vi.fn() });
 });
 
 describe('CoachIntent receipt reads', () => {
+  it('does not reuse a cursor under a different actor or filter', async () => {
+    mockGetModel.mockReturnValue({ findAll: vi.fn(async () => rows) });
+    const page = await request(makeApp()).get('/api/ai-command/intents?limit=1').expect(200);
+    actingUser = { id: 8, role: 'trainer' };
+    await request(makeApp()).get('/api/ai-command/intents').query({ cursor: page.body.nextCursor }).expect(400);
+    actingUser = { id: 7, role: 'trainer' };
+    await request(makeApp()).get('/api/ai-command/intents').query({ cursor: page.body.nextCursor, targetClientId: 44 }).expect(400);
+  });
+
+  it('bounds denied-row scanning and preserves a private empty-page continuation', async () => {
+    let ordinal = 0;
+    const model = { findAll: vi.fn(async ({ limit }) => Array.from({ length: Math.min(limit, 600 - ordinal) }, () => {
+      ordinal += 1;
+      return { ...rows[0], id: `00000000-0000-4000-8000-${String(ordinal).padStart(12, '0')}`,
+        createdAt: new Date(Date.parse('2026-09-04T20:00:00Z') - ordinal * 1000) };
+    })) };
+    mockGetModel.mockReturnValue(model);
+    mockAssignment.mockResolvedValue(false);
+    mockListAssignments.mockResolvedValue([]);
+    const res = await request(makeApp()).get('/api/ai-command/intents?limit=1').expect(200);
+    expect(res.body.intents).toEqual([]);
+    expect(model.findAll.mock.calls.length).toBeLessThanOrEqual(10);
+    expect(ordinal).toBeLessThanOrEqual(500);
+    expect(res.body.nextCursor).toBeTruthy();
+    expect(Buffer.from(res.body.nextCursor, 'base64url').toString()).not.toMatch(/createdAt|00000000-0000-4000/);
+  });
+
+  it('denies unsupported roles even for an actor-owned receipt', async () => {
+    actingUser = { id: 7, role: 'unregistered' };
+    mockGetModel.mockReturnValue({ findAll: vi.fn(async () => [rows[1]]) });
+    await request(makeApp()).get('/api/ai-command/intents').expect(404);
+  });
+
   it('returns a redacted semantic receipt to its actor without raw result payloads', async () => {
     mockReadCoachIntent.mockResolvedValue(rows[0]);
 
@@ -112,7 +150,7 @@ describe('CoachIntent receipt reads', () => {
     expect(res.body.intent).toMatchObject({
       id: rows[0].id, commandType: 'log_workout', targetUserId: 44, status: 'completed',
     });
-    expect(res.body.intent.result.recordRefs).toEqual([{ kind: 'daily_form', id: '91', version: 3 }]);
+    expect(res.body.intent.result.recordRefs).toEqual([{ kind: 'daily_workout_form', id: '91', version: 3 }]);
     expect(JSON.stringify(res.body)).not.toMatch(/do not expose|transcript|providerError/i);
   });
 
@@ -148,7 +186,7 @@ describe('CoachIntent receipt reads', () => {
     const res = await request(makeApp()).get('/api/ai-command/intents?limit=2');
     expect(res.status).toBe(200);
 
-    expect(model.findAll).toHaveBeenCalledWith(expect.objectContaining({ limit: 3 }));
+    expect(model.findAll).toHaveBeenCalledWith(expect.objectContaining({ limit: 50 }));
     expect(res.body.intents).toHaveLength(2);
     expect(res.body.nextCursor).toMatch(/^[A-Za-z0-9_-]+$/);
     expect(res.body.intents[0]).not.toHaveProperty('actorId');
@@ -182,10 +220,11 @@ describe('CoachIntent receipt reads', () => {
       .mockResolvedValueOnce([]) };
     mockGetModel.mockReturnValue(model);
     mockAssignment.mockImplementation(async (_actorId, _role, targetId) => targetId === 55);
+    mockListAssignments.mockResolvedValue([55]);
 
     const res = await request(makeApp()).get('/api/ai-command/intents?limit=1').expect(200);
     expect(res.body.intents).toHaveLength(1);
     expect(res.body.intents[0].targetUserId).toBe(55);
-    expect(model.findAll).toHaveBeenCalledTimes(2);
+    expect(model.findAll).toHaveBeenCalledTimes(1); // The short 50-row batch proves exhaustion.
   });
 });

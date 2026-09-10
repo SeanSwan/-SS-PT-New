@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "non-vibe-planning-verify-receipt-v1",
+  "status": "PASS",
+  "manifestPath": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\swan-coach-astra-owned-20260906\\tmp\\gwen-handoff-before-20260906\\manifest.json",
+  "manifestSha256": "289d874b14e6e5e1d6571dff06397b64a29482daaec3b8c99f14e678161ede03",
+  "verifiedFiles": 12,
+  "sampleRestored": 2,
+  "temporaryRestoreRemoved": true
+}

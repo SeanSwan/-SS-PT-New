@@ -56,11 +56,13 @@ import {
   getSystemPrompt,
   buildPromptMessages,
   sendChatMessage,
+  coachProviderCompatAdapter,
   enrichWithUserData,
   getAIChatDiagnostics,
   sanitizeAiChatMetadataForClient,
   sanitizeAiFailoverTrace,
 } from '../services/aiChatService.mjs';
+import { runCoachInference } from '../services/ai/coachInferenceBoundary.mjs';
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
 import { stripIdentityFromMessage, stripIdentityFromResponse, scrubGenericPII } from '../services/aiPrivacyService.mjs';
 import { createAccessibleClientIdentitySanitizer } from '../services/ai/accessibleClientIdentityPrivacy.mjs';
@@ -907,8 +909,54 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     // Use sanitized message/history (identity stripped) for the AI prompt
     const promptMessages = buildPromptMessages(systemPrompt, promptHistory.messages, sanitizedMessage);
 
-    // Send to AI provider
-    const aiResult = await sendChatMessage(promptMessages);
+// Send to AI provider — S5: Coach caller contexts route through the single
+// inference boundary (server-owned policy + bounded evidence tools + budget);
+// every other context keeps the legacy provider loop via the same compat
+// adapter, so no caller gets a second provider selection.
+const AI_CHAT_COACH_INFERENCE_CONTEXTS = new Set(['coach_assistant', 'workout_generation']);
+let aiResult;
+if (requesterIsStaff && AI_CHAT_COACH_INFERENCE_CONTEXTS.has(conversation.context)) {
+  try {
+    const boundaryOut = await runCoachInference({
+      actor: req.user,
+      targetClientId: conversation.targetUserId || null,
+      sequelize,
+      message: sanitizedMessage,
+      providerName: 'coach_boundary',
+      providerGenerate: coachProviderCompatAdapter,
+      capability: 'coach_chat',
+      promptMessagesOverride: promptMessages,
+    });
+    const verdict = boundaryOut.result;
+    if (verdict.type === 'unavailable') {
+      aiResult = {
+        ok: false,
+        content: verdict.message,
+        provider: 'fallback',
+        model: null,
+        tokenUsage: null,
+        failoverTrace: [`coach_boundary:${boundaryOut.reasonCode === 'BUDGET_EXHAUSTED' ? 'budget_exhausted' : 'provider_error'}`],
+      };
+    } else {
+      // Raw model content is preserved so the downstream proposal parser sees
+      // exactly what the model emitted; the boundary's validated union (verdict)
+      // still gates the degraded outcome as `unavailable` above.
+      aiResult = {
+        ok: true,
+        content: boundaryOut.rawContent,
+        provider: boundaryOut.providerUsed || 'fallback',
+        model: null,
+        tokenUsage: null,
+        failoverTrace: [`coach_boundary:success`],
+      };
+    }
+  } catch (boundaryErr) {
+    logger.warn('[AIChatRoutes] Coach inference boundary failed; legacy adapter fallback:', boundaryErr.message);
+    aiResult = await sendChatMessage(promptMessages);
+  }
+} else {
+  aiResult = await sendChatMessage(promptMessages);
+}
 
     // ── PHASE 2b: Strip identity from AI response (bidirectional scrubbing) ──
     let aiContent = aiResult.content;

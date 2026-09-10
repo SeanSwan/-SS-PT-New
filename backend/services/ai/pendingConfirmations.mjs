@@ -12,6 +12,7 @@ import crypto from 'crypto';
 import logger from '../../utils/logger.mjs';
 import { getPendingOperationStore, countPendingForUser } from './pendingOperationStore.mjs';
 import { signPendingConfirmation } from './operationSigning.mjs';
+import { buildConfirmationProjection } from './confirmationProjection.mjs';
 import { recordApprovalEvent, APPROVAL_EVENTS } from './approvalEvents.mjs';
 
 const OPERATION_TTL_SECONDS = 120;
@@ -34,6 +35,12 @@ const store = () => getPendingOperationStore();
 export async function preparePendingConfirmation({
   commandType, params, clientId, userId, actorRole = null, description,
   frontendEvent = null, requiresPhysicalConfirm = false,
+  /**
+   * SCU G02 / AF11: the tier verdict in hand at mint, stamped into the signed
+   * projection. Callers that resolve no tier get the conservative 'read_back'
+   * default (see confirmationProjection.mjs).
+   */
+  tier = 'read_back',
 }) {
   const userCount = await countPendingForUser(userId);
   if (userCount >= MAX_PENDING_PER_USER) {
@@ -61,6 +68,22 @@ export async function preparePendingConfirmation({
     expiresAt: new Date(Date.now() + OPERATION_TTL_SECONDS * 1000).toISOString(),
     signature: '',
   };
+  // SCU G02 / AF11: the sheet renders ONE stored projection. It is stamped
+  // BEFORE the signature so tampering with any policy field fails verification.
+  // The pending lane is a single write by construction, so the blast radius is
+  // 1 and the lane is non-destructive.
+  operation.projection = await buildConfirmationProjection({
+    id: opId,
+    expiresAt: operation.expiresAt,
+    commandType,
+    isDestructive: false,
+    requiresPhysicalConfirm: operation.requiresPhysicalConfirm,
+    affectedCount: 1,
+    targetUserId: scopedClientId,
+    createdBy: userId,
+    description,
+    tier,
+  });
   operation.signature = signPendingConfirmation(operation);
 
   await store().set(opId, operation, OPERATION_TTL_SECONDS * 1000);

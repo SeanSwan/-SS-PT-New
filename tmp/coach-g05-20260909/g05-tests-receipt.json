@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "digest": "292ca454f965799595e7fae3556cb75ded4cb27355f62247991d6096cf31ac3f",
+  "command": "WSL Node22.23.2: node node_modules/vitest/vitest.mjs run --reporter=verbose on the 4 G05 S5 test files (32 tests, exit 0); baseline + runner-lock re-run 71/71 exit 0; node --test S5c/S5b/S5 context trio 11 pass / 0 fail; ESM import smoke SMOKE_PASS exit 0",
+  "scope": "G05/S5: one provider/privacy boundary for all Coach callers — server-owned policy (body policy ignored), four bounded read-only evidence tools (empty/unavailable/denied/stale distinguished), 6-call/2-round/20s budget with partial findings on exhaustion, context cache keyed by actor/target/access-version/capability/private-mode, final union answer/clarification/draft_proposal/unavailable, compat adapter preserving non-Coach caller shapes; exits T22-T25 + caller inventory + forbidden-egress spy",
+  "files": [
+    "backend/services/ai/coachInferenceBoundary.mjs",
+    "backend/services/ai/coachEvidenceTools.mjs",
+    "backend/services/ai/coachContextCache.mjs",
+    "backend/services/ai/coachModelResponseContract.mjs",
+    "backend/services/aiChatService.mjs",
+    "backend/routes/aiChatRoutes.mjs",
+    "backend/tests/unit/coachInferenceBoundary.test.mjs",
+    "backend/tests/unit/coachEvidenceTools.test.mjs",
+    "backend/tests/unit/coachContextCache.test.mjs",
+    "backend/tests/unit/coachCallerInventory.test.mjs"
+  ],
+  "results": {
+    "scopedSuite": "32/32 PASS across 4 files, exit 0 (/tmp/g05-suite2.log)",
+    "baselineAndLockReRun": "71/71 PASS across 7 files (6 baseline + runner-separation lock), exit 0 (/tmp/g05-baseline-post.log)",
+    "contractTrioNodeTest": "11 pass / 0 fail via node --test (/tmp/g05-nodecontract.log)",
+    "build": "SMOKE_PASS — all 6 changed modules import on Node 22 (/tmp/g05-smoke.log)"
+  },
+  "toolEvidence": {
+    "path": "tmp/coach-g05-20260909/g05-tests-evidence.md",
+    "sha256": "6e0968cda31fa04e9a7946609783781a94889b762eed2293033536565af98737"
+  }
+}

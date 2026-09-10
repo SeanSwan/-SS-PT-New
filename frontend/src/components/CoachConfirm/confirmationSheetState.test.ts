@@ -167,9 +167,12 @@ describe('terminal guidance never invites a duplicate destructive write', () => 
     expect(TERMINAL_GUIDANCE.burned.text).toMatch(/may have|check the history/i);
   });
 
-  it('states where nothing happened DO allow re-issue', () => {
-    expect(TERMINAL_GUIDANCE.expired.allowReissue).toBe(true);
-    expect(TERMINAL_GUIDANCE.unavailable.allowReissue).toBe(true);
+  it('expired and unavailable outcomes are unknown and require history acknowledgement', () => {
+    for (const state of ['expired', 'unavailable'] as const) {
+      expect(TERMINAL_GUIDANCE[state].allowReissue).toBe(false);
+      expect(TERMINAL_GUIDANCE[state].text).toMatch(/check (the )?history/i);
+      expect(TERMINAL_GUIDANCE[state].text).not.toMatch(/nothing happened|ask again/i);
+    }
   });
 
   it('a double confirm lands in confirmed_elsewhere, NOT burned', () => {

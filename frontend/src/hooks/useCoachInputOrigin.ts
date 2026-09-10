@@ -4,7 +4,7 @@
  */
 import { useCallback, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { mergeTypedDraftOrigin, type CoachInputOrigin } from './coachInputOrigin';
+import { mergeTypedDraftOrigin, mergeVoiceCaptureOrigin, type CoachInputOrigin } from './coachInputOrigin';
 export { commandInputMode } from './coachInputOrigin';
 
 export function useCoachInputOrigin(setCommandText: Dispatch<SetStateAction<string>>) {
@@ -16,5 +16,12 @@ export function useCoachInputOrigin(setCommandText: Dispatch<SetStateAction<stri
       return nextValue;
     });
   }, [setCommandText]);
-  return { inputOrigin, setInputOrigin, setTrackedCommandText };
+  const setVoiceCommandText = useCallback((next: SetStateAction<string>) => {
+    setCommandText((current) => {
+      const nextValue = typeof next === 'function' ? next(current) : next;
+      setInputOrigin((origin) => mergeVoiceCaptureOrigin(origin, current, nextValue));
+      return nextValue;
+    });
+  }, [setCommandText]);
+  return { inputOrigin, setInputOrigin, setTrackedCommandText, setVoiceCommandText };
 }

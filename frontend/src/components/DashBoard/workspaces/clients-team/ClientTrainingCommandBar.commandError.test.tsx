@@ -36,6 +36,10 @@ vi.mock('../../../../hooks/useCoachCommand', () => ({
 
 import ClientTrainingCommandBar from './ClientTrainingCommandBar';
 
+vi.mock('../../../CoachConfirm/ConfirmationSheet', () => ({
+  default: () => <button>Confirm synthetic operation</button>,
+}));
+
 describe('ClientTrainingCommandBar command errors', () => {
   beforeEach(() => {
     chatMock.clearError.mockReset();
@@ -66,5 +70,20 @@ describe('ClientTrainingCommandBar command errors', () => {
     );
     expect(chatMock.sendMessageWithConversation).not.toHaveBeenCalled();
     expect(input).toHaveValue('Log bench press 3 sets of 10 at 135');
+  });
+
+  it('retains the draft and refuses a confirmation without an operation identity', async () => {
+    commandMock.executeCommand.mockResolvedValueOnce({ type: 'confirmation_required',
+      operationId: null, command: 'log_workout', message: 'Review workout', params: {},
+      client: { id: 424242 }, details: null, isDestructive: false });
+    render(<ClientTrainingCommandBar clientId={424242} clientName="Fixture Client" />);
+    const input = screen.getByLabelText(/ask coach about fixture client/i);
+    fireEvent.change(input, { target: { value: 'Log bench press 3 sets of 10 at 135' } });
+    fireEvent.click(screen.getByRole('button', { name: /send to coach/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/confirmation is unavailable/i);
+    expect(input).toHaveValue('Log bench press 3 sets of 10 at 135');
+    expect(screen.queryByRole('button', { name: 'Confirm synthetic operation' })).not.toBeInTheDocument();
+    expect(commandMock.confirmCommand).not.toHaveBeenCalled();
+    expect(chatMock.sendMessageWithConversation).not.toHaveBeenCalled();
   });
 });

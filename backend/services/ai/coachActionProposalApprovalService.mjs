@@ -6,11 +6,9 @@
 import sequelize from '../../database.mjs';
 import { applyPlanEditProposal, resolveActiveEditablePlan } from './coachPlanEditApprovalService.mjs';
 import { createClientFromCoachOnboardingProposal } from '../coachClientOnboardingApprovalService.mjs';
-import { ensureClientAccess } from '../../utils/clientAccess.mjs';
-import {
-  submitAiWorkoutLogAsDailyForm,
-  AiWorkoutDailyFormError,
-} from '../workout/aiWorkoutDailyFormService.mjs';
+import { approveWorkoutProposal } from './coachWorkoutProposalApprovalService.mjs';
+import { isVerifiedWorkoutProposal } from './coachWorkoutIntentService.mjs';
+import { reviewWorkoutIntentProposal, rejectWorkoutIntentProposal } from './coachWorkoutIntentReviewService.mjs';
 import { COACH_PROPOSAL_STATUS, COACH_PROPOSAL_TYPE } from './coachActionProposalService.mjs';
 import {
   decryptProposalPayload,
@@ -52,6 +50,7 @@ export async function getCoachActionProposal({ id, req, sequelizeOverride = null
   const db = sequelizeOverride || sequelize;
   const row = await loadOwnedProposal({ id, userId: req.user.id, db });
   if (!row) return { status: 404, body: { success: false, code: 'PROPOSAL_NOT_FOUND' } };
+  if (isVerifiedWorkoutProposal(row)) return reviewWorkoutIntentProposal({ id, req, db });
   const proposal = decryptProposalPayload(row);
   // TRUST FIX: for a plan_edit proposal, load the SAME editable plan the apply
   // path would mutate, so the referee judges every item against the plan's real
@@ -76,6 +75,8 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
   const db = sequelizeOverride || sequelize;
   const row = await loadOwnedProposal({ id, userId: req.user.id, db });
   if (!row) return { status: 404, body: { success: false, code: 'PROPOSAL_NOT_FOUND' } };
+  if (isVerifiedWorkoutProposal(row)) return approveWorkoutProposal({ id, req, db, row,
+    proposal: decryptProposalPayload(row), verified: true });
   if (row.status !== COACH_PROPOSAL_STATUS.PENDING) {
     return { status: 409, body: { success: false, code: 'PROPOSAL_NOT_PENDING' } };
   }
@@ -214,43 +215,7 @@ export async function approveCoachActionProposal({ id, req, sequelizeOverride = 
     });
   }
 
-  const payload = proposal.payload || {};
-  const clientId = parseProposalClientId(payload.clientId, proposal.targetUserId);
-  if (!clientId) return invalidProposalClientId();
-  const access = await ensureClientAccess(req, clientId);
-  if (!access.allowed) {
-    return { status: access.status, body: { success: false, code: 'CLIENT_ACCESS_DENIED', error: access.message } };
-  }
-
-  try {
-    if (!await claimPendingProposal({ id, userId: req.user.id, db })) return proposalNotPending();
-    const workout = await submitAiWorkoutLogAsDailyForm({
-      clientId: access.clientId,
-      exercises: payload.exercises,
-      date: payload.date,
-      notes: payload.notes,
-      title: payload.title,
-      duration: payload.duration,
-      intensity: payload.intensity,
-      plannedAssignment: payload.plannedAssignment,
-      scheduledSessionId: payload.scheduledSessionId,
-      source: payload.source,
-      trainerId: req.user.id,
-      userRole: req.user.role,
-      sequelize: db,
-    });
-    const updated = await updateProposalStatus({
-      id,
-      status: COACH_PROPOSAL_STATUS.APPLIED,
-      result: { workout },
-      db,
-    });
-    return { status: 200, body: { success: true, proposal: updated, applied: true, workout } };
-  } catch (err) {
-    const code = err instanceof AiWorkoutDailyFormError ? err.code : 'WORKOUT_APPLY_FAILED';
-    await updateProposalStatus({ id, status: COACH_PROPOSAL_STATUS.FAILED, errorCode: code, db });
-    return { status: 400, body: buildCoachProposalApplyErrorBody({ kind: 'workout', code }) };
-  }
+  return approveWorkoutProposal({ id, req, proposal, db });
 }
 
 export async function answerCoachActionProposalClarification({ id, answer, req, sequelizeOverride = null }) {
@@ -287,6 +252,7 @@ export async function rejectCoachActionProposal({ id, req, sequelizeOverride = n
   const db = sequelizeOverride || sequelize;
   const row = await loadOwnedProposal({ id, userId: req.user.id, db });
   if (!row) return { status: 404, body: { success: false, code: 'PROPOSAL_NOT_FOUND' } };
+  if (isVerifiedWorkoutProposal(row)) return rejectWorkoutIntentProposal({ id, req, db });
   if (row.status !== COACH_PROPOSAL_STATUS.PENDING) {
     return { status: 409, body: { success: false, code: 'PROPOSAL_NOT_PENDING' } };
   }

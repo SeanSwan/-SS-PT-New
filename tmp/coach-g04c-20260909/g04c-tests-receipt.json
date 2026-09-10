@@ -1,0 +1,32 @@
+{
+  "status": "PASS",
+  "digest": "c917c7562cc5f77f890ab60f59c6bdd850901056deb15f9c6eb47fabd8fead96",
+  "command": "WSL Node22.23.2: node node_modules/vitest/vitest.mjs run --reporter=verbose on the 7 G04c Session Desk test files; 42 tests passed, exit 0. Card compatibility suites re-run post-change: 53/53 PASS, exit 0. TypeScript no-emit passed with NODE_OPTIONS=--max-old-space-size=12288 (TSC_EXIT=0).",
+  "scope": "G04c Session Desk S6 presentation layer: surface identity, context status, receipts timeline, editable workout draft, desk state machine + Floor Mode, feature gate, page-shell mount; two component bugs repaired by the tests (validateDraftForDesk ok-flag, timeline reveal cap)",
+  "files": [
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.test.harness.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.floorMode.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.deskMount.test.tsx"
+  ],
+  "results": {
+    "scopedSuite": "42/42 PASS across 7 files, exit 0 (/tmp/g04c-suite6.log)",
+    "compatReRun": "53/53 PASS across the 4 Card suites, exit 0 (/tmp/g04c-compat-post.log)",
+    "types": "PASS (NODE_OPTIONS=--max-old-space-size=12288; default-heap OOM under 9p is environmental, recorded in evidence)"
+  },
+  "toolEvidence": {
+    "path": "tmp/coach-g04c-20260909/g04c-tests-evidence.md",
+    "sha256": "db3d5cb472d567f15fcf226498dd492c94ac86a71b60cc1cc4ef4a7ec72e8415"
+  }
+}

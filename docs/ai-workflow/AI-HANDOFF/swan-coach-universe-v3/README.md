@@ -1,8 +1,36 @@
-# Swan Coach Universe V3 — Luna execution package
+<!-- USER-WORKFLOW-MIGRATION:20260908 -->
+> **Controller blocker resolved, 2026-09-08.** Sean explicitly changed this task
+> to finish the implementation slices and required tests, then Astra hostile
+> review and repairs of the combined result. This supersedes older mandatory
+> GLM/Flash and per-slice review gates and STALE_POLICY blocker text below.
+> Use `tmp/coach-g02-robustness-20260908/workflow-state-user-override.json`.
+> The supported migration and current-session enrollment were executed and
+> verified: status active, cadence final-astra, 9 consumed calls preserved, task
+> cap 24. The old state and history remain intact as evidence.
+> G04a's approved architecture is retained; continue the bounded build/test
+> gates and append subsequent planned slices using the updated controller.
+> Deferred review is pending, not approval. This is not a claim that G04-G11
+> are implemented. No push or deployment has occurred.
 
-Owner: Sean (product), Codex (planning), Luna (future builder). Version: 3.0, 2026-09-04.
+# Swan Coach Universe V3 — execution package
+
+Owner: Sean (product), Astra (architecture, all reviews and review repairs), Luna Extra High (implementation). Version: 3.5, 2026-09-08.
 Status: IMPLEMENTATION IN PROGRESS; implementation_authorized: true (Sean request, 2026-09-04).
 Historical planning snapshot (superseded): implementation_authorized: false.
+
+## Current execution authority
+
+Latest checkpoint: [37 — G02 source approval and controller conflict](37-g02-review-and-workflow-checkpoint.md). The [frozen G02 plan36](36-g02-confirmation-robustness.md) is implemented and scoped-source Astra-approved; final workflow advancement is BLOCKED by a mid-run global policy replacement that rejects this task's explicit Astra-only rule. [38 — G04a architecture draft](38-g04a-architecture-draft.md) retains the next design; no G04 code started.
+
+
+Start with [Astra's hostile review and repair evidence](34-astra-hostile-review-and-repairs.md) and the [premium Luna Extra High / Astra loop](35-luna-astra-review-loop.md). These amend builder/reviewer roles, relocated paths and gate status. Then follow [the preserved comprehensive handoff](31-gwen-execution-handoff.md) and its
+[mandatory domain/test contract](32-gwen-domain-and-verification-contract.md).
+Sean explicitly requested this transfer. These supersede older builder assignments,
+kickoff paths, restart instructions and stale status paragraphs in this packet.
+[Checkpoint29](29-implementation-checkpoint.md) and [repair30](30-input-origin-execution.md)
+record the latest implementation; 25/26/28 contain actual transaction/read-back proof.
+Current entry: reconcile the controller compatibility blocker in37 without changing Sean's Astra-only authority or resetting evidence/counters. Then close the exact A-B-A regression/final G02 gate and activate G04a. G04-G11 remain open; Astra clears each slice and Luna Extra High builds it.
+The background below preserves the original product rationale and historical entry.
 
 ## Plain-English Summary
 
@@ -26,7 +54,7 @@ GitHub main observed: `53120649f356c3efccee32872b530096d386642f`.
 This package supersedes v2’s **future build instructions**, not existing runtime
 contracts or review evidence. Never replay v2 cards 1.0–1.5 as if all were absent.
 
-## Read in this order
+## Original v3.0 background read order (current entry is31/32 above)
 
 1. [Reality, history, and review adjudication](01-audit.md).
 2. [Product blueprint and capability boundaries](02-blueprint.md).
@@ -38,6 +66,7 @@ contracts or review evidence. Never replay v2 cards 1.0–1.5 as if all were abs
 8. [Foundation build cards S0–S5](08-foundation-cards.md).
 9. [Experience build cards S6–S11](09-experience-cards.md).
 10. [Luna kickoff and readiness receipt](10-readiness.md).
+11. [Comprehensive implementation handoff](11-comprehensive-handoff.md).
 
 Supporting files: `tests/`, `evidence/`, and `wireframes.html` are part of this
 package. The HTML is a static synthetic design artifact, not the application.
@@ -53,9 +82,9 @@ or bypass the proposal service. No new generic SQL or arbitrary tool executor.
 
 Historical planning boundary: the pre-authorization package began with S0 as a
 probe and reconciliation step, and prohibited implementation. Sean has now
-authorized the current S1/S3 pass. The next builder starts with S3 route-wide
-claim/transaction integration after Astral's hostile review; the remaining
-cards stay blocked until their named tests and real caller paths are built.
+authorized implementation and subsequently the Gwen handoff. The old S3-first
+kickoff is superseded: atomic integration has passed scoped review. Follow31/32
+for the remaining sequence and per-slice gates; no new production authorization.
 
 ## Current implementation receipt
 

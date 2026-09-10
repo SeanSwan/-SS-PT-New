@@ -1,0 +1,29 @@
+{
+  "slice": {
+    "id": "G04c",
+    "files": [
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachWorkoutDraft.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachIntentTimeline.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachContextStatus.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDeskGate.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachSurfaceContext.test.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSessionDesk.floorMode.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.deskMount.test.tsx",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/38-g04a-architecture-draft.md"
+  ],
+  "reason": "G04c: Session Desk B presentation layer per S6 (doc 31 lane table G04 + doc 38/14): CoachSessionDesk + Gate, ContextStatus, IntentTimeline, editable WorkoutDraft (canonical rows via G04a owner), useCoachSurfaceContext, Floor Mode, target-switch choices, all 12 UI states, Logger bridge emission, mounted desktop/mobile evidence. Consumes the frozen G04a shell owner; no parallel draft store."
+}

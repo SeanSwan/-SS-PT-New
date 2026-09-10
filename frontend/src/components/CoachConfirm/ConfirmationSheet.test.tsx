@@ -177,10 +177,10 @@ describe('ConfirmationSheet', () => {
    */
   const READY_NOW = input({ isDestructive: false, affectedCount: 1 });
 
-  async function driveToRefusal(code: string) {
+  async function driveToRefusal(code: string, onAcknowledge?: () => void) {
     const user = userEvent.setup();
     post.mockRejectedValue({ response: { data: { code, error: 'refused' } } });
-    render(<ConfirmationSheet operationId={OP_ID} input={READY_NOW} lockedClientId={61} />);
+    render(<ConfirmationSheet operationId={OP_ID} input={READY_NOW} lockedClientId={61} onAcknowledge={onAcknowledge} />);
     await waitFor(() => expect(screen.getByTestId('confirm-button').hasAttribute('disabled')).toBe(false));
     await user.click(screen.getByTestId('confirm-button'));
     return user;
@@ -217,12 +217,16 @@ describe('ConfirmationSheet', () => {
     expect(screen.getByTestId('sheet-status').textContent).toMatch(/do not repeat it/i);
   });
 
-  it('an EXPIRED approval DOES offer re-issue — nothing happened, so asking again is safe', async () => {
-    await driveToRefusal('expired');
+  it('an EXPIRED approval has unknown outcome and only offers history acknowledgement', async () => {
+    const onAcknowledge = vi.fn();
+    const user = await driveToRefusal('expired', onAcknowledge);
 
     await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('expired'));
-    expect(screen.getByTestId('reissue-button')).toBeTruthy();
-    expect(screen.queryByTestId('acknowledge-button')).toBeNull();
+    expect(screen.queryByTestId('reissue-button')).toBeNull();
+    expect(screen.getByTestId('acknowledge-button')).toBeTruthy();
+    expect(screen.getByTestId('sheet-status').textContent).toMatch(/check (the )?history/i);
+    await user.click(screen.getByTestId('acknowledge-button'));
+    expect(onAcknowledge).toHaveBeenCalledTimes(1);
   });
 
   it('the confirm control declares a physical channel to the server', async () => {
