@@ -461,6 +461,18 @@
       "planFiles": [
         "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/41-g07-real-evidence-metrics.md"
       ]
+    },
+    {
+      "id": "G08",
+      "files": [
+        "backend/services/ai/dashboardSurfaceRegistry.mjs",
+        "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
+        "frontend/src/services/dashboardSurfaceContext.ts",
+        "frontend/src/services/dashboardSurfaceContext.test.ts"
+      ],
+      "planFiles": [
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/42-g08-domain-adapter-registry.md"
+      ]
     }
   ],
   "calls": 9,
@@ -907,11 +919,64 @@
       "type": "advance",
       "slice": "G07",
       "at": "2026-09-11T19:14:09.195Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "G08",
+        "files": [
+          "backend/services/ai/dashboardSurfaceRegistry.mjs",
+          "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
+          "frontend/src/services/dashboardSurfaceContext.ts",
+          "frontend/src/services/dashboardSurfaceContext.test.ts"
+        ],
+        "planFiles": [
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/42-g08-domain-adapter-registry.md"
+        ]
+      },
+      "reason": "Sean 2026-09-11: continue slices one by one. G08/domains surface adapter registry per contract 32 waves and packet 19 adapter shapes: 24 declared domains, receipt-gated activation, explain-only defaults, server-validated manifest, DA contract tests. Action adapters already exist via commandRegistry (G01-G05 receipts).",
+      "previousContractDigest": "2de613376c82661b9e3eb3fde9f05c05c320f19b8597160aae4fb31d8744a2de",
+      "contractDigest": "8e73151b62833e1a5e0fa23d369b850a304287f57c0cd29d68b85f0a2786dcbd"
+    },
+    {
+      "type": "append-slice",
+      "slice": "FINAL",
+      "at": "2026-09-11T19:19:00.284Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G08",
+      "digest": "01008753d55e76e3530998a643d023e366928e77019df2ee87077c449b06545c",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g08-20260911/g08-tests-receipt.json",
+          "sha256": "a4486a419604df6c64853fa8454b41a5ceab7671d5aeb007ee8be838a0fbe786"
+        },
+        "build": {
+          "path": "tmp/coach-g08-20260911/g08-build-receipt.json",
+          "sha256": "cd77a104f3bcad5e3f46f9eceddb5fb1d00672a0b0a2d679b2dfadebcfa5b249"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G08",
+      "at": "2026-09-11T19:33:37.442Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G08",
+      "digest": "01008753d55e76e3530998a643d023e366928e77019df2ee87077c449b06545c"
+    },
+    {
+      "type": "advance",
+      "slice": "G08",
+      "at": "2026-09-11T19:33:37.523Z"
     }
   ],
   "status": "active",
   "stage": "final",
-  "index": 6,
+  "index": 7,
   "inFlight": null,
   "slices": [
     {
@@ -1225,9 +1290,41 @@
         }
       },
       "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "G08",
+      "allowedFiles": [
+        "backend/services/ai/dashboardSurfaceRegistry.mjs",
+        "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
+        "frontend/src/services/dashboardSurfaceContext.ts",
+        "frontend/src/services/dashboardSurfaceContext.test.ts"
+      ],
+      "files": [
+        "backend/services/ai/dashboardSurfaceRegistry.mjs",
+        "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
+        "frontend/src/services/dashboardSurfaceContext.ts",
+        "frontend/src/services/dashboardSurfaceContext.test.ts",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/42-g08-domain-adapter-registry.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "01008753d55e76e3530998a643d023e366928e77019df2ee87077c449b06545c",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g08-20260911/g08-tests-receipt.json",
+          "sha256": "a4486a419604df6c64853fa8454b41a5ceab7671d5aeb007ee8be838a0fbe786"
+        },
+        "build": {
+          "path": "tmp/coach-g08-20260911/g08-build-receipt.json",
+          "sha256": "cd77a104f3bcad5e3f46f9eceddb5fb1d00672a0b0a2d679b2dfadebcfa5b249"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
     }
   ],
-  "contractDigest": "2de613376c82661b9e3eb3fde9f05c05c320f19b8597160aae4fb31d8744a2de",
+  "contractDigest": "8e73151b62833e1a5e0fa23d369b850a304287f57c0cd29d68b85f0a2786dcbd",
   "finalReview": {
     "id": "FINAL",
     "files": [
@@ -1303,7 +1400,12 @@
       "backend/tests/unit/coachProgressEvidenceTool.t33.test.mjs",
       "backend/tests/unit/coachSubstitutionDraft.test.mjs",
       "backend/tests/unit/coachMilestoneShareDraft.test.mjs",
-      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/41-g07-real-evidence-metrics.md"
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/41-g07-real-evidence-metrics.md",
+      "backend/services/ai/dashboardSurfaceRegistry.mjs",
+      "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
+      "frontend/src/services/dashboardSurfaceContext.ts",
+      "frontend/src/services/dashboardSurfaceContext.test.ts",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/42-g08-domain-adapter-registry.md"
     ],
     "allowedFiles": [
       "frontend/src/components/CoachConfirm/confirmationProjection.ts",
@@ -1375,7 +1477,11 @@
       "backend/tests/unit/coachProgressRecordReader.test.mjs",
       "backend/tests/unit/coachProgressEvidenceTool.t33.test.mjs",
       "backend/tests/unit/coachSubstitutionDraft.test.mjs",
-      "backend/tests/unit/coachMilestoneShareDraft.test.mjs"
+      "backend/tests/unit/coachMilestoneShareDraft.test.mjs",
+      "backend/services/ai/dashboardSurfaceRegistry.mjs",
+      "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
+      "frontend/src/services/dashboardSurfaceContext.ts",
+      "frontend/src/services/dashboardSurfaceContext.test.ts"
     ],
     "status": "build",
     "round": 0,

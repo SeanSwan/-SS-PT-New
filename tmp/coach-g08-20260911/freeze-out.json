@@ -1,0 +1,38 @@
+{
+  "status": "active",
+  "stage": "slice",
+  "index": 7,
+  "calls": 9,
+  "active": {
+    "id": "G08",
+    "allowedFiles": [
+      "backend/services/ai/dashboardSurfaceRegistry.mjs",
+      "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
+      "frontend/src/services/dashboardSurfaceContext.ts",
+      "frontend/src/services/dashboardSurfaceContext.test.ts"
+    ],
+    "files": [
+      "backend/services/ai/dashboardSurfaceRegistry.mjs",
+      "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
+      "frontend/src/services/dashboardSurfaceContext.ts",
+      "frontend/src/services/dashboardSurfaceContext.test.ts",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/42-g08-domain-adapter-registry.md"
+    ],
+    "status": "tested",
+    "round": 0,
+    "reviews": [],
+    "findings": {},
+    "digest": "01008753d55e76e3530998a643d023e366928e77019df2ee87077c449b06545c",
+    "frozen": {
+      "tests": {
+        "path": "tmp/coach-g08-20260911/g08-tests-receipt.json",
+        "sha256": "a4486a419604df6c64853fa8454b41a5ceab7671d5aeb007ee8be838a0fbe786"
+      },
+      "build": {
+        "path": "tmp/coach-g08-20260911/g08-build-receipt.json",
+        "sha256": "cd77a104f3bcad5e3f46f9eceddb5fb1d00672a0b0a2d679b2dfadebcfa5b249"
+      }
+    }
+  },
+  "inFlight": null
+}
