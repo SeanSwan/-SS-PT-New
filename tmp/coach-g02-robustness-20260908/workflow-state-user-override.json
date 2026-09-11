@@ -443,6 +443,24 @@
       "planFiles": [
         "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/40-g06-voice-lifecycle.md"
       ]
+    },
+    {
+      "id": "G07",
+      "files": [
+        "backend/services/ai/coachProgressRecordReader.mjs",
+        "backend/services/ai/coachProgressEvidence.mjs",
+        "backend/services/ai/coachEvidenceTools.mjs",
+        "backend/services/ai/coachSubstitutionDraft.mjs",
+        "backend/services/ai/coachMilestoneShareDraft.mjs",
+        "backend/tests/unit/coachProgressEvidence.test.mjs",
+        "backend/tests/unit/coachProgressRecordReader.test.mjs",
+        "backend/tests/unit/coachProgressEvidenceTool.t33.test.mjs",
+        "backend/tests/unit/coachSubstitutionDraft.test.mjs",
+        "backend/tests/unit/coachMilestoneShareDraft.test.mjs"
+      ],
+      "planFiles": [
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/41-g07-real-evidence-metrics.md"
+      ]
     }
   ],
   "calls": 9,
@@ -830,11 +848,70 @@
       "type": "advance",
       "slice": "G06",
       "at": "2026-09-11T08:45:24.950Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "G07",
+        "files": [
+          "backend/services/ai/coachProgressRecordReader.mjs",
+          "backend/services/ai/coachProgressEvidence.mjs",
+          "backend/services/ai/coachEvidenceTools.mjs",
+          "backend/services/ai/coachSubstitutionDraft.mjs",
+          "backend/services/ai/coachMilestoneShareDraft.mjs",
+          "backend/tests/unit/coachProgressEvidence.test.mjs",
+          "backend/tests/unit/coachProgressRecordReader.test.mjs",
+          "backend/tests/unit/coachProgressEvidenceTool.t33.test.mjs",
+          "backend/tests/unit/coachSubstitutionDraft.test.mjs",
+          "backend/tests/unit/coachMilestoneShareDraft.test.mjs"
+        ],
+        "planFiles": [
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/41-g07-real-evidence-metrics.md"
+        ]
+      },
+      "reason": "Sean 2026-09-11: continue slices one by one. G07/S8 real evidence + deterministic metrics per packet 31 G07 row, card 09 S8a-c, contract 32 T33/T34/T48. Source-linked reader fixes the broken progressEvidenceTool join; T34 substitution draft gate; T48 share-draft separation.",
+      "previousContractDigest": "5c039276dc362455eb5f9e0a49c23f3a64665e2c2f23bcd60228b0ecb9fed0d5",
+      "contractDigest": "2de613376c82661b9e3eb3fde9f05c05c320f19b8597160aae4fb31d8744a2de"
+    },
+    {
+      "type": "append-slice",
+      "slice": "FINAL",
+      "at": "2026-09-11T08:57:05.653Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G07",
+      "digest": "15fbd2413ff7bad84420cc1e3d0317ece50c1eb389ea61fb2832e8729597b1e5",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g07-20260911/g07-tests-receipt.json",
+          "sha256": "e17072bb3f0e7766ada67d14e2de1d4dbb84863cc394b21aac973c1263f1d728"
+        },
+        "build": {
+          "path": "tmp/coach-g07-20260911/g07-build-receipt.json",
+          "sha256": "2d5d2de58d80a17ead7fa042c3f8a7bcc20179e7b84abe8a510c64f7fd4a35cf"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G07",
+      "at": "2026-09-11T19:13:58.992Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G07",
+      "digest": "15fbd2413ff7bad84420cc1e3d0317ece50c1eb389ea61fb2832e8729597b1e5"
+    },
+    {
+      "type": "advance",
+      "slice": "G07",
+      "at": "2026-09-11T19:14:09.195Z"
     }
   ],
   "status": "active",
   "stage": "final",
-  "index": 5,
+  "index": 6,
   "inFlight": null,
   "slices": [
     {
@@ -1104,9 +1181,53 @@
         }
       },
       "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "G07",
+      "allowedFiles": [
+        "backend/services/ai/coachProgressRecordReader.mjs",
+        "backend/services/ai/coachProgressEvidence.mjs",
+        "backend/services/ai/coachEvidenceTools.mjs",
+        "backend/services/ai/coachSubstitutionDraft.mjs",
+        "backend/services/ai/coachMilestoneShareDraft.mjs",
+        "backend/tests/unit/coachProgressEvidence.test.mjs",
+        "backend/tests/unit/coachProgressRecordReader.test.mjs",
+        "backend/tests/unit/coachProgressEvidenceTool.t33.test.mjs",
+        "backend/tests/unit/coachSubstitutionDraft.test.mjs",
+        "backend/tests/unit/coachMilestoneShareDraft.test.mjs"
+      ],
+      "files": [
+        "backend/services/ai/coachProgressRecordReader.mjs",
+        "backend/services/ai/coachProgressEvidence.mjs",
+        "backend/services/ai/coachEvidenceTools.mjs",
+        "backend/services/ai/coachSubstitutionDraft.mjs",
+        "backend/services/ai/coachMilestoneShareDraft.mjs",
+        "backend/tests/unit/coachProgressEvidence.test.mjs",
+        "backend/tests/unit/coachProgressRecordReader.test.mjs",
+        "backend/tests/unit/coachProgressEvidenceTool.t33.test.mjs",
+        "backend/tests/unit/coachSubstitutionDraft.test.mjs",
+        "backend/tests/unit/coachMilestoneShareDraft.test.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/41-g07-real-evidence-metrics.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "15fbd2413ff7bad84420cc1e3d0317ece50c1eb389ea61fb2832e8729597b1e5",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g07-20260911/g07-tests-receipt.json",
+          "sha256": "e17072bb3f0e7766ada67d14e2de1d4dbb84863cc394b21aac973c1263f1d728"
+        },
+        "build": {
+          "path": "tmp/coach-g07-20260911/g07-build-receipt.json",
+          "sha256": "2d5d2de58d80a17ead7fa042c3f8a7bcc20179e7b84abe8a510c64f7fd4a35cf"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
     }
   ],
-  "contractDigest": "5c039276dc362455eb5f9e0a49c23f3a64665e2c2f23bcd60228b0ecb9fed0d5",
+  "contractDigest": "2de613376c82661b9e3eb3fde9f05c05c320f19b8597160aae4fb31d8744a2de",
   "finalReview": {
     "id": "FINAL",
     "files": [
@@ -1172,7 +1293,17 @@
       "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.uniqueFinals.test.tsx",
       "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx",
       "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx",
-      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/40-g06-voice-lifecycle.md"
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/40-g06-voice-lifecycle.md",
+      "backend/services/ai/coachProgressRecordReader.mjs",
+      "backend/services/ai/coachProgressEvidence.mjs",
+      "backend/services/ai/coachSubstitutionDraft.mjs",
+      "backend/services/ai/coachMilestoneShareDraft.mjs",
+      "backend/tests/unit/coachProgressEvidence.test.mjs",
+      "backend/tests/unit/coachProgressRecordReader.test.mjs",
+      "backend/tests/unit/coachProgressEvidenceTool.t33.test.mjs",
+      "backend/tests/unit/coachSubstitutionDraft.test.mjs",
+      "backend/tests/unit/coachMilestoneShareDraft.test.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/41-g07-real-evidence-metrics.md"
     ],
     "allowedFiles": [
       "frontend/src/components/CoachConfirm/confirmationProjection.ts",
@@ -1235,7 +1366,16 @@
       "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.test.tsx",
       "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.uniqueFinals.test.tsx",
       "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx",
-      "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx"
+      "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx",
+      "backend/services/ai/coachProgressRecordReader.mjs",
+      "backend/services/ai/coachProgressEvidence.mjs",
+      "backend/services/ai/coachSubstitutionDraft.mjs",
+      "backend/services/ai/coachMilestoneShareDraft.mjs",
+      "backend/tests/unit/coachProgressEvidence.test.mjs",
+      "backend/tests/unit/coachProgressRecordReader.test.mjs",
+      "backend/tests/unit/coachProgressEvidenceTool.t33.test.mjs",
+      "backend/tests/unit/coachSubstitutionDraft.test.mjs",
+      "backend/tests/unit/coachMilestoneShareDraft.test.mjs"
     ],
     "status": "build",
     "round": 0,

@@ -1,0 +1,31 @@
+✔ a verified milestone yields a DRAFT with no recipients and no send (0.8667ms)
+✔ an unverified or non-milestone session is not eligible for a share draft (0.573ms)
+✔ the log lane never imports a share/send path (structural separation) (0.6416ms)
+✔ counts only verified, completed, non-voided sessions and returns record refs (1.4776ms)
+✔ keeps incompatible units in separate evidence buckets (0.125ms)
+✔ rows exist but none verified -> no_verified_records, not unavailable (0.0751ms)
+✔ truly zero sessions -> empty (a real zero, not an unavailable source) (0.0756ms)
+✔ no sessions input at all -> unavailable (source context missing) (0.0634ms)
+✔ does not invent adherence when scheduled count is absent (0.0727ms)
+✔ adherence denominator of zero planned sessions yields no invented rate (0.0699ms)
+✔ null load or reps never counts as zero volume (0.0563ms)
+✔ assembles joined rows into calculator-contract sessions with derived verification (1.682ms)
+✔ a missing weight unit is reported, never guessed (0.6249ms)
+✔ zero planned sessions yields null-denominator scheduledCount inputs (0.1362ms)
+✔ missing reader context is unavailable, not empty (0.0791ms)
+✔ an active hard contraindication blocks and cannot be bypassed (0.6985ms)
+✔ an inactive contraindication does not block (0.1287ms)
+✔ a plan swap with UNKNOWN contraindication data requires review — no fabricated clearance (0.0606ms)
+✔ unknown pain and readiness data require review (0.0519ms)
+✔ active pain at or above the review threshold requires review; below yields a draft (0.0749ms)
+✔ low readiness requires review (0.0469ms)
+✔ a clean draft preserves identity, equipment and media metadata with mandatory review (0.4275ms)
+✔ a missing planned exercise never produces a draft (0.0534ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 79.4723

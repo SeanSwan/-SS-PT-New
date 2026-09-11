@@ -147,48 +147,42 @@ export async function recentWorkoutTool({ sequelize, userId, limit = RECENT_WORK
 }
 
 // ── Tool: progress evidence ──────────────────────────────────────────────────
-// Deterministic metrics from completed sessions + scheduled adherence, via the
-// frozen S5 progress-evidence builder. Zero sessions -> empty (not zero
-// progress); reader failure -> unavailable.
+// G07/T33: deterministic metrics via the source-linked record reader (real
+// joined workout_sessions -> workout_exercises -> sets rows) and the frozen
+// S8a progress-evidence builder. Zero logged sessions -> empty (a real zero);
+// rows but none completed -> no_verified_records; reader failure ->
+// unavailable. The scheduled denominator comes from 'planned' sessions in the
+// same window — never a count of all logged sessions.
 export async function progressEvidenceTool({ sequelize, userId, deps = {} } = {}) {
   const toolId = 'progress_evidence';
   const builder = deps.buildProgressEvidence
     ?? (await import('./coachProgressEvidence.mjs')).buildCoachProgressEvidence;
+  const reader = deps.readProgressRecords
+    ?? (await import('./coachProgressRecordReader.mjs')).readCoachProgressRecords;
   if (!sequelize || !Number(userId)) {
     return envelope(toolId, 'unavailable', { reason: 'no authorized session reader context' });
   }
-  const sessionsSql = [
-    'SELECT ws.id, ws.date, ws.duration, ws.intensity',
-    " FROM workout_sessions ws",
-    " WHERE ws.\"userId\" = :userId AND ws.status = 'completed'",
-    ' ORDER BY ws.date DESC LIMIT 60',
-  ].join('\n');
   try {
-    const [sessionRows] = await safeQuery(sequelize, sessionsSql, { userId });
-    const sessions = Array.isArray(sessionRows) ? sessionRows : [];
-    let scheduledCount = null;
-    try {
-      const [scheduled] = await safeQuery(
-        sequelize,
-        "SELECT COUNT(*)::int AS n FROM workout_sessions WHERE \"userId\" = :userId",
-        { userId },
-      );
-      const first = Array.isArray(scheduled) ? scheduled[0] : scheduled;
-      const n = Number(first?.n ?? first?.N ?? 0);
-      scheduledCount = Number.isSafeInteger(n) ? n : null;
-    } catch {
-      scheduledCount = null;
-    }
-    const evidence = builder({ sessions, scheduledCount });
+    const records = await reader({ sequelize, userId });
+    const sessions = Array.isArray(records?.sessions) ? records.sessions : [];
+    const evidence = builder({
+      sessions,
+      scheduledCount: records?.scheduledCount ?? null,
+    });
     if (!evidence) {
       return envelope(toolId, 'empty', { payload: {}, rows: sessions.length, bytes: 0, truncated: false });
     }
+    // Reader-level missing inputs (e.g. a missing weight unit) must reach the
+    // planner: merge without duplicating the builder's own entries.
+    const readerMissing = Array.isArray(records?.missingInputs) ? records.missingInputs : [];
+    if (readerMissing.length > 0) {
+      evidence.missingInputs = [...new Set([...(evidence.missingInputs || []), ...readerMissing])];
+    }
     const capped = truncatePayload([evidence]);
-    // Zero rows from the reader is `empty` (no data, reader fine). When rows
-    // exist, the tool state mirrors the S8 evidence status: verified -> ok,
-    // unavailable (no *verified* records) -> unavailable. The builder's state
-    // is data the planner reads; the envelope state is not re-interpreted.
-    const state = sessions.length === 0 ? 'empty' : (evidence.status === 'verified' ? 'ok' : 'unavailable');
+    // Envelope state mirrors the builder's data status: verified -> ok,
+    // 'empty' -> empty (real zero), 'no_verified_records'/'unavailable' ->
+    // unavailable. Payload always carries the precise status.
+    const state = evidence.status === 'verified' ? 'ok' : evidence.status === 'empty' ? 'empty' : 'unavailable';
     return envelope(toolId, state, {
       payload: evidence,
       rows: sessions.length,

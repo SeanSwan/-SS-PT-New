@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "digest": "15fbd2413ff7bad84420cc1e3d0317ece50c1eb389ea61fb2832e8729597b1e5",
+  "actor": "session-agent-subscription",
+  "summary": "G07/S8 real evidence + deterministic metrics: new source-linked record reader (model-verified join, honest unit/verification derivation, matched planned denominator, LIMIT+1 cap marker), calculator status semantics split, tool rewired off its broken select, T34 substitution draft gate (blocked/requires_review/draft, no bypass, no fabricated clearance), T48 milestone share draft structurally separated from log approval. Hostile review fixed 5 findings incl. silent truncation and missing-input propagation.",
+  "toolEvidence": {
+    "path": "tmp/coach-g07-20260911/g07-build-evidence.md",
+    "sha256": "4812d606fefb839f238576f6034746d60b6a9367f5a682acc73a3ff015561062"
+  }
+}

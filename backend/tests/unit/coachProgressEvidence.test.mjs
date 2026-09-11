@@ -1,5 +1,5 @@
 /**
- * SCU S8a — verified progress evidence tests.
+ * SCU S8a — verified progress evidence tests (G07 updates: empty != unavailable).
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -45,13 +45,26 @@ test('keeps incompatible units in separate evidence buckets', () => {
   assert.equal(result.comparability.squat, 'mixed_units');
 });
 
-test('returns unavailable instead of an invented zero when no verified source exists', () => {
+test('rows exist but none verified -> no_verified_records, not unavailable', () => {
   const result = buildCoachProgressEvidence({
     sessions: [{ id: 'pending', status: 'completed', verified: false, exercises: [] }],
   });
-  assert.equal(result.status, 'unavailable');
+  assert.equal(result.status, 'no_verified_records');
   assert.deepEqual(result.missingInputs, ['verified_workout_records']);
   assert.equal(result.completedSessionCount, 0);
+});
+
+test('truly zero sessions -> empty (a real zero, not an unavailable source)', () => {
+  const result = buildCoachProgressEvidence({ sessions: [] });
+  assert.equal(result.status, 'empty');
+  assert.deepEqual(result.missingInputs, []);
+  assert.equal(result.completedSessionCount, 0);
+});
+
+test('no sessions input at all -> unavailable (source context missing)', () => {
+  const result = buildCoachProgressEvidence({});
+  assert.equal(result.status, 'unavailable');
+  assert.deepEqual(result.missingInputs, ['verified_workout_records']);
 });
 
 test('does not invent adherence when scheduled count is absent', () => {
@@ -59,4 +72,25 @@ test('does not invent adherence when scheduled count is absent', () => {
     sessions: [SESSIONS[0]],
   });
   assert.equal(result.adherence, null);
+});
+
+test('adherence denominator of zero planned sessions yields no invented rate', () => {
+  const result = buildCoachProgressEvidence({
+    sessions: [SESSIONS[0]],
+    scheduledCount: 0,
+  });
+  assert.equal(result.adherence, null);
+});
+
+test('null load or reps never counts as zero volume', () => {
+  const result = buildCoachProgressEvidence({
+    sessions: [{
+      id: 'session-null', date: '2026-08-20', status: 'completed', verified: true,
+      exercises: [{
+        exerciseKey: 'press', unit: 'kg',
+        sets: [{ reps: null, load: 50 }, { reps: 8, load: null }, { reps: 8, load: 60 }],
+      }],
+    }],
+  });
+  assert.equal(result.volumeByExercise.press.kg, 480);
 });

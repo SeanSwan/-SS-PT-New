@@ -4,30 +4,40 @@
  * This calculator accepts already-authorized, verified workout records. It
  * excludes voided/unverified rows and keeps units separate, so a planner never
  * receives a fabricated trend from incomparable loads or missing history.
+ *
+ * G07 status semantics (empty != unavailable, null != zero):
+ * - 'unavailable'         no source rows were supplied at all (reader context missing)
+ * - 'empty'               a real, confirmed zero: zero logged sessions
+ * - 'no_verified_records' rows exist but none completed/verified
+ * - 'verified'            at least one verified completed session
  */
 const asPositiveNumber = (value) => {
   const number = Number(value);
   return Number.isFinite(number) && number >= 0 ? number : null;
 };
 
-const emptyEvidence = () => ({
-  status: 'unavailable',
+const emptyEvidence = (status, missingInputs) => ({
+  status,
   completedSessionCount: 0,
   volumeByExercise: {},
   comparability: {},
   adherence: null,
   recordRefs: [],
-  missingInputs: ['verified_workout_records'],
+  missingInputs,
 });
 
 export function buildCoachProgressEvidence({ sessions, scheduledCount = null } = {}) {
-  const rows = Array.isArray(sessions) ? sessions : [];
-  const valid = rows.filter((session) => (
+  if (!Array.isArray(sessions)) return emptyEvidence('unavailable', ['verified_workout_records']);
+  const valid = sessions.filter((session) => (
     session?.status === 'completed'
     && session?.verified === true
     && session?.voided !== true
   ));
-  if (valid.length === 0) return emptyEvidence();
+  if (valid.length === 0) {
+    return sessions.length === 0
+      ? emptyEvidence('empty', [])
+      : emptyEvidence('no_verified_records', ['verified_workout_records']);
+  }
 
   // Exercise/library keys are data, including names that collide with Object's
   // prototype. Maps prevent inherited reads and writes during accumulation.
@@ -42,6 +52,8 @@ export function buildCoachProgressEvidence({ sessions, scheduledCount = null } =
       const volume = sets.reduce((total, set) => {
         const reps = asPositiveNumber(set?.reps);
         const load = asPositiveNumber(set?.load);
+        // Null reps or load is "not recorded", never zero: the set contributes
+        // nothing rather than inventing a 0-rep or 0-load fact.
         return reps === null || load === null ? total : total + (reps * load);
       }, 0);
       if (!volumes.has(exerciseKey)) volumes.set(exerciseKey, new Map());
@@ -64,7 +76,8 @@ export function buildCoachProgressEvidence({ sessions, scheduledCount = null } =
       key,
       units.size > 1 ? 'mixed_units' : 'comparable',
     ])),
-    adherence: boundedScheduled === null
+    // Zero planned sessions is "no schedule data", not a 0% rate.
+    adherence: boundedScheduled === null || boundedScheduled === 0
       ? null
       : { scheduledCount: boundedScheduled, completedCount: valid.length, rate: valid.length / boundedScheduled },
     recordRefs: valid.map((session) => String(session.id || '')).filter(Boolean),
