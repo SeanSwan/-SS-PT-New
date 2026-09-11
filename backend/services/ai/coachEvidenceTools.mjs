@@ -159,7 +159,7 @@ export async function progressEvidenceTool({ sequelize, userId, deps = {} } = {}
     ?? (await import('./coachProgressEvidence.mjs')).buildCoachProgressEvidence;
   const reader = deps.readProgressRecords
     ?? (await import('./coachProgressRecordReader.mjs')).readCoachProgressRecords;
-  if (!sequelize || !Number(userId)) {
+  if (!sequelize || !(Number.isInteger(Number(userId)) && Number(userId) > 0)) {
     return envelope(toolId, 'unavailable', { reason: 'no authorized session reader context' });
   }
   try {

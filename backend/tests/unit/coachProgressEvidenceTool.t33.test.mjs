@@ -138,4 +138,12 @@ describe('G07/T33 — source-linked progress evidence', () => {
     await progressEvidenceTool({ sequelize: db, userId: 42 });
     expect(db.calls.length).toBeGreaterThan(afterFirst);
   });
+
+  it('hostile round 3: non-positive actor ids are not an authorized reader context', async () => {
+    for (const bad of [-42, 0, 4.5, 'abc']) {
+      const out = await progressEvidenceTool({ sequelize: makeSequelize({ routes: { 'JOIN': [] } }), userId: bad });
+      expect(out.state).toBe('unavailable');
+      expect(out.reason).toBe('no authorized session reader context');
+    }
+  });
 });
