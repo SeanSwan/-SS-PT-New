@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "digest": "8520b611152331ba0abb0e414bb3e1d7dea65e38a928247c1c25abc2862b05c2",
+  "command": "full backend vitest (10,232 pass / 15 proven-pre-existing fail), full frontend vitest (8,529 pass / 5 proven-pre-existing fail), node:test calculator 8/8, tsc --noEmit exit 0, vite build exit 0, node --check both coach_facts migrations OK, modelRegistryDrift 8/8 after wiring",
+  "scope": "G11/S11 clean-candidate verification: full-suite execution with baseline-proven failure disclosure, CoachFact registry wiring completing the G09 reconciliation, migration syntax gates, release matrix + rollback documentation; real-DB/Redis/browser/eval acceptance remains with the final combined Astra review",
+  "files": [
+    "backend/models/associations.mjs",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+  ],
+  "results": {
+    "backendFull": "10,232 pass / 15 fail (all proven pre-existing at 0c96142f2)",
+    "frontendFull": "8,529 pass / 5 fail (all proven pre-existing)",
+    "types": "exit 0",
+    "build": "exit 0"
+  },
+  "toolEvidence": {
+    "path": "tmp/coach-g11-20260911/g11-tests-evidence.md",
+    "sha256": "5ab0d679e0c271102132a5f52d4fbbf3b621d53cfa0b2b9325e9317bb6d81156"
+  }
+}

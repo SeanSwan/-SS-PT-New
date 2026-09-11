@@ -1,0 +1,27 @@
+vitest.config.mjs (5:29) [33m[UNRESOLVED_IMPORT] [0mCould not resolve 'vitest/config' in vitest.config.mjs
+   [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m vitest.config.mjs:5:30 [38;5;246m][0m
+   [38;5;246m│[0m
+ [38;5;246m5 │[0m [38;5;249mi[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m{[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249mf[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249me[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mf[0m[38;5;249mi[0m[38;5;249mg[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m [0m'vitest/config'[38;5;249m;[0m
+ [38;5;240m  │[0m                              ───────┬───────  
+ [38;5;240m  │[0m                                     ╰───────── Module not found, treating it as an external dependency
+[38;5;246m───╯[0m
+
+[31mfailed to load config from C:\Users\BigotSmasher\Desktop\@Everything\quick-pt\SS-PT\tmp\worktrees\g11-base2\backend\vitest.config.mjs[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Startup Error [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯⎯[39m
+Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'vitest' imported from C:\Users\BigotSmasher\Desktop\@Everything\quick-pt\SS-PT\tmp\worktrees\swan-coach-astra-owned-20260906\backend\node_modules\.vite-temp\vitest.config.mjs.timestamp-1789156555163-2b62d593dbcaf.mjs
+    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+    at packageResolve (node:internal/modules/esm/resolve:768:81)
+    at moduleResolve (node:internal/modules/esm/resolve:859:18)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:701:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:721:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:759:56)
+    at #resolve (node:internal/modules/esm/loader:683:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:603:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:163:33) {
+  code: 'ERR_MODULE_NOT_FOUND'
+}
+
+
+

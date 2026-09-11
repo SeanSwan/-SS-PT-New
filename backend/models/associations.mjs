@@ -124,6 +124,7 @@ const setupAssociations = async () => {
     const ClientNutritionPlanModule = await import('./ClientNutritionPlan.mjs');
     const ClientPhotoModule = await import('./ClientPhoto.mjs');
     const ClientNoteModule = await import('./ClientNote.mjs');
+    const CoachFactModule = await import('./CoachFact.mjs');
     const AutomationSequenceModule = await import('./AutomationSequence.mjs');
     const AutomationLogModule = await import('./AutomationLog.mjs');
 
@@ -345,6 +346,7 @@ const setupAssociations = async () => {
     const ClientNutritionPlan = ClientNutritionPlanModule.default;
     const ClientPhoto = ClientPhotoModule.default;
     const ClientNote = ClientNoteModule.default;
+    const CoachFact = CoachFactModule.default;
     const AutomationSequence = AutomationSequenceModule.default;
     const AutomationLog = AutomationLogModule.default;
 
@@ -520,7 +522,7 @@ const setupAssociations = async () => {
         FinancialTransaction, BusinessMetrics, AdminNotification, TrainerCommission,
         ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, WorkoutPlanCompletionReceipt, ClientOnboardingQuestionnaire,
         PersonalRecord, RecoveryCompletion, HistoryBackfillRun,
-        ClientOnboardingCoverageItem, ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
+        ClientOnboardingCoverageItem, ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote, CoachFact,
         AutomationSequence, AutomationLog,
         // AI Privacy Models
         AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog, AdminAccountAuditLog, CoachIntent,
@@ -1057,6 +1059,13 @@ const setupAssociations = async () => {
     ClientNote.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
     ClientNote.belongsTo(Session, { foreignKey: 'relatedSessionId', as: 'session' });
     Session.hasMany(ClientNote, { foreignKey: 'relatedSessionId', as: 'sessionNotes' });
+
+    // Coach Fact Associations (durable client memory — adopted from commit 21ed0554ba, G09)
+    User.hasMany(CoachFact, { foreignKey: 'userId', as: 'coachFacts' });
+    CoachFact.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+    CoachFact.belongsTo(User, { foreignKey: 'createdByUserId', as: 'createdBy' });
+    CoachFact.belongsTo(User, { foreignKey: 'approvedByUserId', as: 'approvedBy' });
+    CoachFact.belongsTo(CoachFact, { foreignKey: 'invalidatedByFactId', as: 'supersededBy' });
     
     // Workout Exercise Associations
     WorkoutSession.hasMany(WorkoutLog, { foreignKey: 'sessionId', as: 'logs' });
@@ -1530,6 +1539,7 @@ const setupAssociations = async () => {
       ClientNutritionPlan,
       ClientPhoto,
       ClientNote,
+      CoachFact,
       AutomationSequence,
       AutomationLog,
 

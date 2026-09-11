@@ -1,0 +1,2223 @@
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.10 [39m[90mC:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/tmp/worktrees/g11-baseline-0c96142f2/backend[39m
+
+[90mstdout[2m | __tests__/equipmentScanService.multi.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/phase1bControllers.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/unit/modelRegistryDrift.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/historyBackfill.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/phase1cXpIntegration.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/unit/aiCommandRouteFallbackSource.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | __tests__/equipmentScanService.retry.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/workoutPrDetection.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/associationsModelRegistryParity.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/unit/adminWorkoutLoggerHistoryDate.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/api/idorAuditReaderControls.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+[90mstdout[2m | tests/unit/editWorkoutDateParsing.test.mjs
+[22m[39m[Test Setup] Backend test environment initialized
+
+ [31m❯[39m tests/unit/aiCommandRouteFallbackSource.test.mjs [2m([22m[2m6 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 8[2mms[22m[39m
+     [32m✓[39m routes selected not-wired commands back to chat instead of dead-ending[32m 1[2mms[22m[39m
+[31m     [31m×[31m keeps route-level command failures off raw exception messages and stacks[39m[32m 5[2mms[22m[39m[33m (retry x1)[39m
+     [32m✓[39m records the chat/clarification fallthrough instead of discarding it[32m 0[2mms[22m[39m
+     [32m✓[39m records UNKNOWN_INTENT with the phantom intent name[32m 0[2mms[22m[39m
+     [32m✓[39m feeds the MOST-SCRUBBED text: executor PHI-stripped + route identity-sanitized, never raw body[32m 0[2mms[22m[39m
+     [32m✓[39m gates the unhandled report behind the admin role like /metrics/summary[32m 0[2mms[22m[39m
+ [31m❯[39m tests/api/associationsModelRegistryParity.test.mjs [2m([22m[2m2 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 7[2mms[22m[39m
+[31m     [31m×[31m early-return and full-setup return expose the SAME model set[39m[32m 5[2mms[22m[39m[33m (retry x1)[39m
+     [32m✓[39m both literals include the trainer pay ledger (TrainerCommission)[32m 0[2mms[22m[39m
+ [31m❯[39m tests/api/idorAuditReaderControls.test.mjs [2m([22m[2m0 test[22m[2m)[22m
+ [31m❯[39m __tests__/equipmentScanService.retry.test.mjs [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 7[2mms[22m[39m
+[31m     [31m×[31m asks Gemini a second direct question when the first pass returns Unknown at zero confidence[39m[32m 4[2mms[22m[39m[33m (retry x1)[39m
+     [32m✓[39m uses a plain Gemini caption fallback when both strict JSON passes return Unknown[32m 1[2mms[22m[39m
+     [32m✓[39m uses caption fallback when strict Gemini JSON is malformed before identification[32m 1[2mms[22m[39m
+ [31m❯[39m __tests__/equipmentScanService.multi.test.mjs [2m([22m[2m5 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 8[2mms[22m[39m
+     [32m✓[39m uses a multi-inventory prompt instead of a primary-item prompt[32m 1[2mms[22m[39m
+     [32m✓[39m parses and normalizes multiple candidates without collapsing to the first object[32m 1[2mms[22m[39m
+     [32m✓[39m matches duplicate candidates against existing profile equipment before insert[32m 0[2mms[22m[39m
+     [32m✓[39m keeps the scan route backward-compatible while exposing V2 metadata[32m 1[2mms[22m[39m
+[31m     [31m×[31m returns all reviewable items while the legacy wrapper keeps the best single item[39m[32m 4[2mms[22m[39m[33m (retry x1)[39m
+[90mstdout[2m | tests/api/historyBackfill.test.mjs
+[22m[39mEnvironment: DEVELOPMENT
+Development database connection parameters:
+Host: localhost
+Port: 5432
+Database: swanstudios
+User: swanadmin
+Password: (not set)
+Development database configuration applied (local PostgreSQL)
+
+[90mstdout[2m | tests/api/phase1cXpIntegration.test.mjs[2m > [22m[2mawardWorkoutXP service — structure
+[22m[39mEnvironment: DEVELOPMENT
+Development database connection parameters:
+Host: localhost
+Port: 5432
+Database: swanstudios
+User: swanadmin
+Password: (not set)
+Development database configuration applied (local PostgreSQL)
+
+[90mstdout[2m | tests/api/phase1bControllers.test.mjs[2m > [22m[2monboardingController.mjs named exports
+[22m[39mEnvironment: DEVELOPMENT
+Development database connection parameters:
+Host: localhost
+Port: 5432
+Database: swanstudios
+User: swanadmin
+Password: (not set)
+Development database configuration applied (local PostgreSQL)
+
+[90mstdout[2m | tests/api/workoutPrDetection.test.mjs
+[22m[39mEnvironment: DEVELOPMENT
+Development database connection parameters:
+Host: localhost
+Port: 5432
+Database: swanstudios
+User: swanadmin
+Password: (not set)
+Development database configuration applied (local PostgreSQL)
+
+ [31m❯[39m tests/api/workoutPrDetection.test.mjs [2m([22m[2m11 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 6[2mms[22m[39m
+     [32m✓[39m takes the heaviest set for weight and best Brzycki for est1rm[32m 1[2mms[22m[39m
+     [32m✓[39m excludes >15-rep sets from est-1RM but not from top-weight[32m 0[2mms[22m[39m
+     [32m✓[39m ignores bodyweight/zero/junk sets and unnamed exercises[32m 0[2mms[22m[39m
+     [32m✓[39m dedupes by exercise across duplicate entries[32m 0[2mms[22m[39m
+     [32m✓[39m merges case-variant names into ONE candidate (no duplicate baselines)[32m 0[2mms[22m[39m
+     [32m✓[39m the canonical route runs detection pre-response and ships prEvents in the 201[32m 0[2mms[22m[39m
+[31m     [31m×[31m the unified adapter runs detection post-commit and returns prEvents[39m[32m 3[2mms[22m[39m[33m (retry x1)[39m
+     [32m✓[39m prior-best lookup and award keys are case-insensitive (lower(), not LIKE)[32m 0[2mms[22m[39m
+     [32m✓[39m awards are idempotent, sliced, and first-ever lifts earn no points[32m 0[2mms[22m[39m
+     [32m✓[39m model + migration agree on the unique (user, exercise, metric) identity[32m 0[2mms[22m[39m
+     [32m✓[39m DB uniqueness is case-insensitive: lower() index migration + model mirror agree[32m 0[2mms[22m[39m
+ [31m❯[39m tests/api/phase1cXpIntegration.test.mjs [2m([22m[2m17 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 549[2mms[22m[39m
+     [32m✓[39m 1 — exports an async function[32m 1[2mms[22m[39m
+     [32m✓[39m 2 — function accepts expected params (6 named + transaction)[32m 0[2mms[22m[39m
+     [32m✓[39m 3 — module also exports default with awardWorkoutXP[32m 0[2mms[22m[39m
+     [32m✓[39m 4 — imports the central point ledger once[32m 1[2mms[22m[39m
+     [32m✓[39m 4 — service rejects if user not found (throws Error)[32m 0[2mms[22m[39m
+     [32m✓[39m 5 — day-level guard uses WorkoutSession.date (not PointTransaction.createdAt)[32m 1[2mms[22m[39m
+     [32m✓[39m 6 — service checks lastActivityDate for same-day guard[32m 1[2mms[22m[39m
+     [32m✓[39m 7 — service returns alreadyAwarded when PointTransaction.sourceId matches[32m 1[2mms[22m[39m
+     [32m✓[39m 8 — consecutive day extends streak (daysSinceLast === 1)[32m 1[2mms[22m[39m
+     [32m✓[39m 9 — >2 day gap resets streak to 1[32m 1[2mms[22m[39m
+     [32m✓[39m 10 — grace day logic uses 30-day window + STREAK_GRACE prefix[32m 1[2mms[22m[39m
+     [32m✓[39m 11 — newly eligible milestones are queried and returned[32m 1[2mms[22m[39m
+     [32m✓[39m 12 — already-awarded milestones are filtered out[32m 1[2mms[22m[39m
+[31m     [31m×[31m 13 — service catches XP errors and still returns session data; controller returns 201[39m[32m 5[2mms[22m[39m[33m (retry x1)[39m
+     [32m✓[39m 14 — lastActivityDate only updated when workoutDate is newer[32m 1[2mms[22m[39m
+     [32m✓[39m 15 — sameDay XP result maps to xp: null in service return value[32m 1[2mms[22m[39m
+     [32m✓[39m 16 — alreadyAwarded XP result maps to xp: null in service return value[32m 1[2mms[22m[39m
+ [31m❯[39m tests/unit/adminWorkoutLoggerHistoryDate.test.mjs [2m([22m[2m0 test[22m[2m)[22m
+ [31m❯[39m tests/unit/editWorkoutDateParsing.test.mjs [2m([22m[2m0 test[22m[2m)[22m
+ [31m❯[39m tests/api/historyBackfill.test.mjs [2m([22m[2m12 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 17[2mms[22m[39m
+     [32m✓[39m spreads sessions across the range at the requested cadence[32m 2[2mms[22m[39m
+     [32m✓[39m is deterministic — same inputs produce identical output[32m 0[2mms[22m[39m
+     [32m✓[39m samples from the real pool with realistic loads (never above their max)[32m 4[2mms[22m[39m
+     [32m✓[39m skips break windows and conflict dates[32m 1[2mms[22m[39m
+     [32m✓[39m enforces the hard caps[32m 1[2mms[22m[39m
+     [32m✓[39m refuses an empty exercise pool honestly[32m 0[2mms[22m[39m
+     [32m✓[39m the source class derives FULL suppression (billing, plan, engagement)[32m 0[2mms[22m[39m
+[31m     [31m×[31m the adapter PR step honors suppression (records, never awards)[39m[32m 4[2mms[22m[39m[33m (retry x1)[39m
+[31m     [31m×[31m the adapter challenge step honors suppression (backfill never moves live challenges)[39m[32m 2[2mms[22m[39m[33m (retry x1)[39m
+     [32m✓[39m commit requires attestation and undo deletes in FK-safe order[32m 1[2mms[22m[39m
+     [32m✓[39m backfill routes are mounted on the trainer/admin-gated router[32m 1[2mms[22m[39m
+     [32m✓[39m run model FKs PascalCase "Users" (never legacy lowercase)[32m 1[2mms[22m[39m
+[90mstdout[2m | tests/api/phase1bControllers.test.mjs[2m > [22m[2monboardingController.mjs named exports
+[22m[39m🚀 [Stripe Config] Initializing Stripe configuration validator...
+
+🔧 STRIPE CONFIG VALIDATOR: Starting validation...
+==================================================
+📋 Checking Stripe Environment Variables:
+   ✅ STRIPE_SECRET_KEY: Valid (12 chars, sk_test_...)
+   ✅ STRIPE_WEBHOOK_SECRET: Valid (10 chars, whsec_...)
+   ✅ VITE_STRIPE_PUBLISHABLE_KEY: Valid (12 chars, pk_test_...)
+   ✅ KEY ENVIRONMENT MATCH: Both keys are from test environment
+   ✅ ACCOUNT MATCH: Both keys are from the same Stripe account
+
+📊 Validation Summary:
+   - Configuration status: ✅ VALID
+   - Environment: test
+   - Errors found: 0
+==================================================
+
+
+[90mstdout[2m | tests/api/phase1bControllers.test.mjs[2m > [22m[2mModel index getters[2m > [22m[2m15 — getWorkoutSession() returns WorkoutSession model (not Session)
+[22m[39m🚀 ASSOCIATION SINGLETON: Starting first-time initialization...
+Starting Sequelize model imports...
+
+ [32m✓[39m tests/unit/modelRegistryDrift.test.mjs [2m([22m[2m8 tests[22m[2m)[22m[33m 1300[2mms[22m[39m
+     [33m[2m✓[22m[39m every getModel() call site names a REGISTERED model [33m 547[2mms[22m[39m
+     [33m[2m✓[22m[39m no dormant acknowledgement hides a guaranteed runtime throw [33m 442[2mms[22m[39m
+[90mstdout[2m | tests/api/phase1bControllers.test.mjs[2m > [22m[2mModel index getters[2m > [22m[2m15 — getWorkoutSession() returns WorkoutSession model (not Session)
+[22m[39mExtracting Sequelize models...
+Setting up Sequelize associations only...
+✅ Sequelize model associations established successfully
+✅ Financial Intelligence models integrated
+✅ NASM Workout Tracking models integrated
+✅ Content Moderation models integrated
+✅ Video Catalog models integrated
+✅ AI Privacy models integrated
+✅ Long-Horizon Planning models integrated
+✅ Waiver + Consent models integrated
+✅ Body Measurement & Milestone models integrated
+✅ Wearable Data model integrated
+✅ Pain/Injury Tracking models integrated
+✅ Movement Analysis models integrated
+✅ Form Analysis models integrated
+✅ Custom Exercise Builder models integrated
+✅ Equipment Profile Manager models integrated
+✅ Workout Variation Engine models integrated
+✅ Boot Camp Class Builder models integrated
+✅ Boot Camp Sprint Planner models integrated
+✅ Photo Gallery & Lead Generation models integrated
+✅ CRM Lead Management models integrated
+✅ Marketing Calendar model integrated
+✅ Native Social Publishing models integrated
+
+[90mstdout[2m | tests/api/phase1bControllers.test.mjs[2m > [22m[2mModel index getters[2m > [22m[2m15 — getWorkoutSession() returns WorkoutSession model (not Session)
+[22m[39m✅ ASSOCIATION SINGLETON: Initialization completed successfully
+
+ [31m❯[39m tests/api/phase1bControllers.test.mjs [2m([22m[2m32 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 2479[2mms[22m[39m
+     [32m✓[39m 1 — completion scoring keeps the 85-question denominator[32m 1[2mms[22m[39m
+     [32m✓[39m 2 — isPlainObject identifies objects correctly[32m 0[2mms[22m[39m
+     [32m✓[39m 3 — toNumber parses valid numbers and rejects garbage[32m 0[2mms[22m[39m
+     [32m✓[39m 4 — extractPrimaryGoal finds nested and flat keys[32m 0[2mms[22m[39m
+     [32m✓[39m 5 — extractTrainingTier finds nested and flat keys[32m 0[2mms[22m[39m
+     [32m✓[39m 6 — extractCommitmentLevel returns rounded integer or null[32m 0[2mms[22m[39m
+     [32m✓[39m 7 — extractNutritionPrefs returns defaults for empty input[32m 0[2mms[22m[39m
+     [32m✓[39m 8 — calculateHealthRisk returns correct risk levels[32m 0[2mms[22m[39m
+     [32m✓[39m 8b - nutrition and health derivation use shared fallback helpers[32m 0[2mms[22m[39m
+     [32m✓[39m 9 — computeDerivedFields returns all five summary fields[32m 0[2mms[22m[39m
+     [32m✓[39m 10 — calculateCompletionPercentage returns 0 for empty, clamped to 100[32m 0[2mms[22m[39m
+     [32m✓[39m 11 — completion scoring handles nested objects, arrays, and strings[32m 0[2mms[22m[39m
+     [32m✓[39m 11b - normalizeOnboardingQueueStatus treats canonical completed records as complete[32m 0[2mms[22m[39m
+     [32m✓[39m 12a - keeps master prompt mapping outside the route controller[32m 1[2mms[22m[39m
+[31m     [31m×[31m 12 — transformQuestionnaireToMasterPrompt is exported and callable[39m[32m 4[2mms[22m[39m[33m (retry x1)[39m
+     [32m✓[39m 13 — generateSpiritName is exported and returns a string[32m 0[2mms[22m[39m
+     [32m✓[39m 14 — generateSpiritName respects preferredAlias[32m 0[2mms[22m[39m
+     [33m[2m✓[22m[39m 15 — getWorkoutSession() returns WorkoutSession model (not Session) [33m 1307[2mms[22m[39m
+     [32m✓[39m 16 — rejects invalid clientId with 400[32m 6[2mms[22m[39m
+     [32m✓[39m 17 — rejects unauthenticated request with 401[32m 0[2mms[22m[39m
+     [32m✓[39m 18 — adminOnboardingRoutes exports a router with client-scoped routes[32m 118[2mms[22m[39m
+     [32m✓[39m 19 — adminWorkoutLoggerRoutes exports a router[32m 163[2mms[22m[39m
+     [32m✓[39m 20 — saveOrSubmitOnboarding rejects invalid mode[32m 0[2mms[22m[39m
+     [32m✓[39m 21 — saveOrSubmitOnboarding rejects null responsesJson[32m 0[2mms[22m[39m
+     [32m✓[39m 22 — logWorkout rejects non-numeric clientId with 400[32m 0[2mms[22m[39m
+     [32m✓[39m 23 — getClientWorkouts rejects non-numeric clientId with 400[32m 0[2mms[22m[39m
+     [32m✓[39m workout-log validation errors do not echo raw service details[32m 1[2mms[22m[39m
+     [32m✓[39m 24 — controller module loads and exports createClient[32m 51[2mms[22m[39m
+     [32m✓[39m 25 — crypto.randomBytes generates base64url passwords of expected length[32m 0[2mms[22m[39m
+     [32m✓[39m 26 — extractNutritionPrefs reads flat keys (dietaryPreferences, foodAllergies)[32m 0[2mms[22m[39m
+     [32m✓[39m 27 — calculateHealthRisk reads flat keys (medicalConditions, pastInjuries)[32m 0[2mms[22m[39m
+     [32m✓[39m 28 — workout logger accepts exerciseName field[32m 1[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Suites 3 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m tests/api/idorAuditReaderControls.test.mjs[2m [ tests/api/idorAuditReaderControls.test.mjs ][22m
+[31m[1mSyntaxError[22m: Invalid or unexpected token[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/21]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/adminWorkoutLoggerHistoryDate.test.mjs[2m [ tests/unit/adminWorkoutLoggerHistoryDate.test.mjs ][22m
+[41m[1m FAIL [22m[49m tests/unit/editWorkoutDateParsing.test.mjs[2m [ tests/unit/editWorkoutDateParsing.test.mjs ][22m
+[31m[1mTypeError[22m: default.define is not a function[39m
+[36m [2m❯[22m models/PointTransaction.mjs:[2m4:29[22m[39m
+    [90m  2|[39m [35mimport[39m db [35mfrom[39m [32m'../database.mjs'[39m[33m;[39m
+    [90m  3|[39m
+    [90m  4|[39m [35mconst[39m [33mPointTransaction[39m [33m=[39m db[33m.[39m[34mdefine[39m([32m'PointTransaction'[39m[33m,[39m {
+    [90m   |[39m                             [31m^[39m
+    [90m  5|[39m   id[33m:[39m {
+    [90m  6|[39m     type[33m:[39m [33mDataTypes[39m[33m.[39m[33mINTEGER[39m[33m,[39m
+[90m [2m❯[22m services/gamification/GamificationPointsService.mjs:[2m26:1[22m[39m
+[90m [2m❯[22m services/badgeRewardPointsService.mjs:[2m16:1[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/21]⎯[22m[39m
+
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 9 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m __tests__/equipmentScanService.multi.test.mjs[2m > [22mequipment scan multi-item V2 contract[2m > [22mreturns all reviewable items while the legacy wrapper keeps the best single item
+[41m[1m FAIL [22m[49m __tests__/equipmentScanService.multi.test.mjs[2m > [22mequipment scan multi-item V2 contract[2m > [22mreturns all reviewable items while the legacy wrapper keeps the best single item
+[31m[1mAssertionError[22m: expected "vi.fn()" to be called 1 times, but got 2 times[39m
+[36m [2m❯[22m __tests__/equipmentScanService.multi.test.mjs:[2m151:33[22m[39m
+    [90m149|[39m     const multi = await scanEquipmentImageMulti(Buffer.from('fake imag…
+    [90m150|[39m
+    [90m151|[39m     [34mexpect[39m(generateContentMock)[33m.[39m[34mtoHaveBeenCalledTimes[39m([34m1[39m)[33m;[39m
+    [90m   |[39m                                 [31m^[39m
+    [90m152|[39m     [34mexpect[39m(multi[33m.[39mschemaVersion)[33m.[39m[34mtoBe[39m([32m'equipment_scan_v2'[39m)[33m;[39m
+    [90m153|[39m     [34mexpect[39m(multi[33m.[39mitems)[33m.[39m[34mtoHaveLength[39m([34m2[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/21]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m __tests__/equipmentScanService.retry.test.mjs[2m > [22mequipment scan retry behavior[2m > [22masks Gemini a second direct question when the first pass returns Unknown at zero confidence
+[41m[1m FAIL [22m[49m __tests__/equipmentScanService.retry.test.mjs[2m > [22mequipment scan retry behavior[2m > [22masks Gemini a second direct question when the first pass returns Unknown at zero confidence
+[31m[1mError[22m: AI could not identify visible workout equipment[39m
+[36m [2m❯[22m captionFallbackScan services/equipmentScanService.mjs:[2m145:11[22m[39m
+    [90m143|[39m   [35mconst[39m captionResult [33m=[39m [34mscanResultFromCaption[39m(caption)[33m;[39m
+    [90m144|[39m   [35mif[39m ([33m![39mcaptionResult) {
+    [90m145|[39m     [35mthrow[39m [35mnew[39m [33mError[39m([32m'AI could not identify visible workout equipment'[39m)[33m;[39m
+    [90m   |[39m           [31m^[39m
+    [90m146|[39m   }
+    [90m147|[39m   [35mreturn[39m [34mbuildMultiScanResult[39m({
+[90m [2m❯[22m scanEquipmentImageMulti services/equipmentScanService.mjs:[2m178:24[22m[39m
+[90m [2m❯[22m scanEquipmentImage services/equipmentScanService.mjs:[2m206:21[22m[39m
+[90m [2m❯[22m __tests__/equipmentScanService.retry.test.mjs:[2m55:20[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/21]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api/associationsModelRegistryParity.test.mjs[2m > [22massociations.mjs return-literal parity[2m > [22mearly-return and full-setup return expose the SAME model set
+[41m[1m FAIL [22m[49m tests/api/associationsModelRegistryParity.test.mjs[2m > [22massociations.mjs return-literal parity[2m > [22mearly-return and full-setup return expose the SAME model set
+[31m[1mAssertionError[22m: models present only in the full-setup literal (add them to the early return too): expected [ 'RenewalAlert' ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [][39m
+[31m+ [[39m
+[31m+   "RenewalAlert",[39m
+[31m+ ][39m
+
+[36m [2m❯[22m tests/api/associationsModelRegistryParity.test.mjs:[2m43:106[22m[39m
+    [90m 41|[39m
+    [90m 42|[39m     expect(earlyOnly, 'models present only in the early-return literal…
+    [90m 43|[39m     expect(fullOnly, 'models present only in the full-setup literal (a…
+    [90m   |[39m                                                                                                          [31m^[39m
+    [90m 44|[39m   })[33m;[39m
+    [90m 45|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/21]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api/historyBackfill.test.mjs[2m > [22mintegrity rails[2m > [22mthe adapter PR step honors suppression (records, never awards)
+[41m[1m FAIL [22m[49m tests/api/historyBackfill.test.mjs[2m > [22mintegrity rails[2m > [22mthe adapter PR step honors suppression (records, never awards)
+[31m[1mAssertionError[22m: expected '/**\r\n * AI Workout Daily Form Servi…' to match /awardPoints: !sourcePolicy\.suppressE…/[39m
+
+[32m- Expected:[39m
+/awardPoints: !sourcePolicy\.suppressEngagementSideEffects/
+
+[31m+ Received:[39m
+"/**
+ * AI Workout Daily Form Service
+ * =============================
+ * Canonical write adapter for Swan Coach workout-log commands.
+ *
+ * The older AI command lane wrote only WorkoutSession and WorkoutLog rows.
+ * This adapter writes the same diary/billing truth that the trainer-facing
+ * daily workout form route depends on: DailyWorkoutForm, WorkoutSession,
+ * WorkoutLog, and paid-session deduction policy.
+ */
+import { randomUUID } from 'node:crypto';
+import { getAllModels } from '../../models/index.mjs';
+import {
+  buildWorkoutSessionBillingDecision,
+  buildWorkoutBillingSummary,
+  normalizePaidSessionCount,
+} from '../sessionBillingPolicy.mjs';
+import {
+  AiWorkoutDailyFormError,
+  buildWorkoutRows,
+  ensureWorkoutModels,
+  normalizeAiExercises,
+  normalizeIntensity,
+  normalizeText,
+  parseNonNegativeInteger,
+  parsePositiveInteger,
+} from './aiWorkoutDailyFormPayloadService.mjs';
+import {
+  advanceAiPlannedAssignmentAfterLog,
+  isAiNonBillablePlannedAssignment,
+  resolveAiPlannedAssignmentForLog,
+} from './aiWorkoutPlannedAssignmentService.mjs';
+import {
+  completeAiLinkedScheduledSession,
+  resolveAiScheduledSessionForLog,
+  scheduledWorkoutDate,
+  scheduledWorkoutSessionFields,
+} from './aiWorkoutScheduledSessionService.mjs';
+import { deriveWorkoutLogSourcePolicy } from './workoutLogSourcePolicy.mjs';
+import { resolveClientTrainingDateContext } from '../clientTrainingDateService.mjs';
+import { persistCoachIntentReceipt } from './coachIntentTransactionHook.mjs';
+
+import { runAiWorkoutPostCommit } from './aiWorkoutPostCommitService.mjs';
+import { buildAiWorkoutDailyFormResult } from './aiWorkoutDailyFormResult.mjs';
+
+export { AiWorkoutDailyFormError } from './aiWorkoutDailyFormPayloadService.mjs';
+
+export async function submitAiWorkoutLogAsDailyForm({
+  clientId,
+  exercises,
+  date,
+  notes,
+  title,
+  duration,
+  intensity,
+  plannedAssignment,
+  scheduledSessionId,
+  trainerId,
+  userRole = 'trainer',
+  source,
+  coachIntent = null,
+  beforeWrite = null,
+  beforeCommit = null,
+  sequelize,
+}) {
+  const parsedClientId = parsePositiveInteger(clientId);
+  const parsedTrainerId = parsePositiveInteger(trainerId);
+  if (!parsedClientId || !parsedTrainerId) {
+    throw new AiWorkoutDailyFormError('Valid client and trainer IDs are required');
+  }
+  if (!sequelize?.transaction) throw new AiWorkoutDailyFormError(
+    'Sequelize transaction boundary is required',
+    'WORKOUT_APPLY_FAILED',
+  );
+
+  const sourcePolicy = deriveWorkoutLogSourcePolicy(source);
+  if (
+    sourcePolicy.isHistoricalImport
+    && scheduledSessionId !== undefined
+    && scheduledSessionId !== null
+    && scheduledSessionId !== ''
+  ) {
+    throw new AiWorkoutDailyFormError('Historical workout imports cannot be linked to scheduled sessions');
+  }
+
+  const normalizedExercises = normalizeAiExercises(exercises, {
+    policy: coachIntent?.proofVersion === 2 ? 'coach_verified_v1' : undefined,
+  });
+  const requestedDuration = parseNonNegativeInteger(duration, null);
+  if (duration !== undefined && duration !== null && duration !== '' && requestedDuration === null) {
+    throw new AiWorkoutDailyFormError('duration must be a non-negative integer');
+  }
+  const overallIntensity = normalizeIntensity(intensity);
+  const pendingRows = buildWorkoutRows(normalizedExercises, null);
+  const totalSets = pendingRows.length;
+  const totalReps = pendingRows.reduce((sum, row) => sum + row.reps, 0);
+  const totalWeight = pendingRows.reduce((sum, row) => sum + (row.reps * row.weight), 0);
+  const estimatedDuration = requestedDuration ?? Math.min(totalSets * 3, 120);
+  const sessionNotes = normalizeText(notes, '');
+  const transaction = await sequelize.transaction();
+  let committedWorkout, postCommitContext;
+  let commitStarted = false;
+
+  try {
+    const models = getAllModels();
+    ensureWorkoutModels(models);
+    const { User, DailyWorkoutForm, WorkoutSession, WorkoutLog, CoachIntent } = models;
+    // Internal hooks share this transaction; proposal/intent locks precede domain locks.
+    if (beforeWrite) await beforeWrite({ transaction, models });
+
+    const client = await User.findByPk(parsedClientId, { transaction, lock: transaction.LOCK?.UPDATE });
+    if (!client) throw new AiWorkoutDailyFormError('Client not found', 'VALIDATION_ERROR');
+    const trainingReferenceDate = new Date();
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client.timeZone,
+      storedTimeZoneConfigured: client.timeZoneConfigured,
+      actorId: parsedTrainerId,
+      targetClientId: parsedClientId,
+      referenceDate: trainingReferenceDate,
+    });
+
+    const { linkedScheduledSession, creditsRequired: scheduledCreditsRequired } = await resolveAiScheduledSessionForLog({
+      Session: models.Session,
+      SessionType: models.SessionType,
+      scheduledSessionId,
+      clientId: parsedClientId,
+      trainerId: parsedTrainerId,
+      userRole,
+      transaction,
+    });
+    const workoutDateIso = scheduledWorkoutDate(linkedScheduledSession, date);
+    if (!workoutDateIso) throw new AiWorkoutDailyFormError('Valid workout date is required');
+
+    if (workoutDateIso > trainingDateContext.localDate) {
+      throw new AiWorkoutDailyFormError('Workout date cannot be in the future');
+    }
+    const workoutDate = new Date(workoutDateIso + 'T00:00:00.000Z');
+
+    const existingForm = await DailyWorkoutForm.findOne({
+      where: { clientId: parsedClientId, date: workoutDateIso },
+      transaction,
+    });
+    if (existingForm) throw new AiWorkoutDailyFormError(
+      'A workout form already exists for this client on this date',
+      'DUPLICATE_DATE',
+    );
+
+    const plannedAssignmentMetadata = await resolveAiPlannedAssignmentForLog({
+      WorkoutPlan: models.WorkoutPlan,
+      rawAssignment: plannedAssignment,
+      clientId: parsedClientId,
+      workoutDateValue: workoutDateIso,
+      hasScheduledSession: Boolean(linkedScheduledSession),
+      clientTimeZone: client.timeZone,
+      clientTimeZoneConfigured: client.timeZoneConfigured,
+      actorId: parsedTrainerId,
+      referenceDate: trainingReferenceDate,
+      transaction,
+    });
+    const availableSessionsBeforeSave = normalizePaidSessionCount(client.availableSessions);
+    const billingDecision = buildWorkoutSessionBillingDecision(client, {
+      scheduledSessionAlreadyDeducted: linkedScheduledSession?.sessionDeducted === true,
+      nonBillablePlannedAssignment: sourcePolicy.suppressPaidSessionDeduction
+        || isAiNonBillablePlannedAssignment(plannedAssignmentMetadata),
+      creditsRequired: scheduledCreditsRequired,
+    });
+    if (!billingDecision.canLogWorkout) {
+      throw new AiWorkoutDailyFormError(billingDecision.message, 'VALIDATION_ERROR');
+    }
+
+    const sessionTitle = normalizeText(title, `Personal Training Session - ${workoutDateIso}`);
+    const linkedSessionFields = scheduledWorkoutSessionFields(linkedScheduledSession, parsedTrainerId);
+    const completionFields = {
+      status: 'completed',
+      completedAt: new Date(),
+      duration: estimatedDuration,
+      totalSets,
+      totalReps,
+      totalWeight,
+      intensity: overallIntensity,
+      notes: sessionNotes,
+      sessionType: 'trainer-led',
+      trainerId: parsedTrainerId,
+      ...linkedSessionFields,
+    };
+    const [workoutSession, created] = await WorkoutSession.findOrCreate({
+      where: { userId: parsedClientId, date: workoutDateIso },
+      defaults: {
+        id: randomUUID(),
+        userId: parsedClientId,
+        title: sessionTitle,
+        date: workoutDateIso,
+        ...completionFields,
+      },
+      transaction,
+    });
+    if (!created) await workoutSession.update(completionFields, { transaction });
+
+    const workoutRows = buildWorkoutRows(normalizedExercises, workoutSession.id);
+    await WorkoutLog.destroy({ where: { sessionId: workoutSession.id }, transaction });
+    const persistedWorkoutLogs = await WorkoutLog.bulkCreate(workoutRows, { transaction, validate: true });
+
+    const formData = {
+      exercises: normalizedExercises,
+      sessionNotes,
+      submittedBy: parsedTrainerId,
+      submittedAt: new Date(),
+      totalSets,
+      estimatedDuration,
+      source: sourcePolicy.source,
+      historicalImport: sourcePolicy.isHistoricalImport,
+    };
+    if (overallIntensity !== null) formData.overallIntensity = overallIntensity;
+    if (plannedAssignmentMetadata) formData.plannedAssignment = plannedAssignmentMetadata;
+    if (linkedScheduledSession) formData.scheduledSessionId = linkedScheduledSession.id;
+
+    const dailyForm = await DailyWorkoutForm.create({
+      sessionId: workoutSession.id,
+      clientId: parsedClientId,
+      trainerId: parsedTrainerId,
+      date: workoutDateIso,
+      formData,
+      sessionDeducted: false,
+      mcpProcessed: false,
+    }, { transaction });
+
+    if (billingDecision.shouldDeduct && billingDecision.creditsToDeduct > 0) {
+      await client.decrement('availableSessions', { by: billingDecision.creditsToDeduct, transaction });
+    }
+    if (billingDecision.sessionDeducted) {
+      await dailyForm.update({ sessionDeducted: true }, { transaction });
+    }
+    const planProgress = sourcePolicy.suppressPlanAdvancement
+      ? null
+      : await advanceAiPlannedAssignmentAfterLog({
+        WorkoutPlan: models.WorkoutPlan,
+        WorkoutPlanCompletionReceipt: models.WorkoutPlanCompletionReceipt,
+        assignment: plannedAssignmentMetadata,
+        clientId: parsedClientId,
+        dailyWorkoutFormId: dailyForm.id,
+        workoutSessionId: workoutSession.id,
+        completedAt: dailyForm.submittedAt || new Date().toISOString(),
+        hasScheduledSession: Boolean(linkedScheduledSession),
+        transaction,
+      });
+
+    await completeAiLinkedScheduledSession({
+      linkedScheduledSession,
+      billingDecision,
+      trainerId: parsedTrainerId,
+      userRole,
+      transaction,
+    });
+
+    const billing = buildWorkoutBillingSummary({
+      billingDecision,
+      sourcePolicy,
+      scheduledCreditsRequired,
+      availableSessionsBeforeSave,
+    });
+    if (coachIntent?.intentId) {
+      await persistCoachIntentReceipt({
+        model: CoachIntent,
+        intentId: coachIntent.intentId,
+        result: coachIntent.result,
+        transaction,
+      });
+    }
+    committedWorkout = buildAiWorkoutDailyFormResult({
+      dailyForm, workoutSession, parsedClientId, parsedTrainerId, sessionTitle,
+      workoutDateIso, estimatedDuration, overallIntensity, normalizedExercises,
+      totalSets, totalReps, totalWeight, sourcePolicy, billing, billingDecision,
+      linkedScheduledSession, plannedAssignmentMetadata, planProgress,
+    });
+    if (beforeCommit) await beforeCommit({
+      transaction, models, dailyForm, workoutSession, workoutLogs: persistedWorkoutLogs,
+      normalizedExercises, workout: committedWorkout,
+    });
+    postCommitContext = { sequelize, models, parsedClientId, parsedTrainerId, dailyForm,
+      workoutSession, workoutDateIso, workoutDate, estimatedDuration, normalizedExercises,
+      linkedScheduledSession, sourcePolicy };
+    commitStarted = true;
+    await transaction.commit();
+  } catch (error) {
+    // Sequelize marks commit before sending COMMIT. An interrupted commit is
+    // uncertain even if a best-effort rollback is possible; never advertise retry.
+    if (!transaction.finished) {
+      try { await transaction.rollback(); } catch { /* preserve original failure */ }
+    }
+    if (commitStarted) {
+      throw new AiWorkoutDailyFormError('Save confirmation was interrupted', 'WORKOUT_COMMIT_UNKNOWN');
+    }
+    throw error;
+  }
+  // Deliberately outside the rollback catch: secondary failures cannot undo save.
+  const secondary = await runAiWorkoutPostCommit(postCommitContext);
+  return { ...committedWorkout, ...secondary };
+}
+"
+
+[36m [2m❯[22m tests/api/historyBackfill.test.mjs:[2m120:21[22m[39m
+    [90m118|[39m   it('the adapter PR step honors suppression (records, never awards)',…
+    [90m119|[39m     const adapter = read('../../services/workout/aiWorkoutDailyFormSer…
+    [90m120|[39m     expect(adapter).toMatch(/awardPoints: !sourcePolicy\.suppressEngag…
+    [90m   |[39m                     [31m^[39m
+    [90m121|[39m     const pr = read('../../services/workout/workoutPrDetectionService.…
+    [90m122|[39m     [34mexpect[39m(pr)[33m.[39m[34mtoMatch[39m([36m/awardPoints/[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/21]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api/historyBackfill.test.mjs[2m > [22mintegrity rails[2m > [22mthe adapter challenge step honors suppression (backfill never moves live challenges)
+[41m[1m FAIL [22m[49m tests/api/historyBackfill.test.mjs[2m > [22mintegrity rails[2m > [22mthe adapter challenge step honors suppression (backfill never moves live challenges)
+[31m[1mAssertionError[22m: expected '/**\r\n * AI Workout Daily Form Servi…' to match /sourcePolicy\.suppressEngagementSideE…/[39m
+
+[32m- Expected:[39m
+/sourcePolicy\.suppressEngagementSideEffects\s*\n?\s*\?\s*\{ status: 'suppressed_historical'/
+
+[31m+ Received:[39m
+"/**
+ * AI Workout Daily Form Service
+ * =============================
+ * Canonical write adapter for Swan Coach workout-log commands.
+ *
+ * The older AI command lane wrote only WorkoutSession and WorkoutLog rows.
+ * This adapter writes the same diary/billing truth that the trainer-facing
+ * daily workout form route depends on: DailyWorkoutForm, WorkoutSession,
+ * WorkoutLog, and paid-session deduction policy.
+ */
+import { randomUUID } from 'node:crypto';
+import { getAllModels } from '../../models/index.mjs';
+import {
+  buildWorkoutSessionBillingDecision,
+  buildWorkoutBillingSummary,
+  normalizePaidSessionCount,
+} from '../sessionBillingPolicy.mjs';
+import {
+  AiWorkoutDailyFormError,
+  buildWorkoutRows,
+  ensureWorkoutModels,
+  normalizeAiExercises,
+  normalizeIntensity,
+  normalizeText,
+  parseNonNegativeInteger,
+  parsePositiveInteger,
+} from './aiWorkoutDailyFormPayloadService.mjs';
+import {
+  advanceAiPlannedAssignmentAfterLog,
+  isAiNonBillablePlannedAssignment,
+  resolveAiPlannedAssignmentForLog,
+} from './aiWorkoutPlannedAssignmentService.mjs';
+import {
+  completeAiLinkedScheduledSession,
+  resolveAiScheduledSessionForLog,
+  scheduledWorkoutDate,
+  scheduledWorkoutSessionFields,
+} from './aiWorkoutScheduledSessionService.mjs';
+import { deriveWorkoutLogSourcePolicy } from './workoutLogSourcePolicy.mjs';
+import { resolveClientTrainingDateContext } from '../clientTrainingDateService.mjs';
+import { persistCoachIntentReceipt } from './coachIntentTransactionHook.mjs';
+
+import { runAiWorkoutPostCommit } from './aiWorkoutPostCommitService.mjs';
+import { buildAiWorkoutDailyFormResult } from './aiWorkoutDailyFormResult.mjs';
+
+export { AiWorkoutDailyFormError } from './aiWorkoutDailyFormPayloadService.mjs';
+
+export async function submitAiWorkoutLogAsDailyForm({
+  clientId,
+  exercises,
+  date,
+  notes,
+  title,
+  duration,
+  intensity,
+  plannedAssignment,
+  scheduledSessionId,
+  trainerId,
+  userRole = 'trainer',
+  source,
+  coachIntent = null,
+  beforeWrite = null,
+  beforeCommit = null,
+  sequelize,
+}) {
+  const parsedClientId = parsePositiveInteger(clientId);
+  const parsedTrainerId = parsePositiveInteger(trainerId);
+  if (!parsedClientId || !parsedTrainerId) {
+    throw new AiWorkoutDailyFormError('Valid client and trainer IDs are required');
+  }
+  if (!sequelize?.transaction) throw new AiWorkoutDailyFormError(
+    'Sequelize transaction boundary is required',
+    'WORKOUT_APPLY_FAILED',
+  );
+
+  const sourcePolicy = deriveWorkoutLogSourcePolicy(source);
+  if (
+    sourcePolicy.isHistoricalImport
+    && scheduledSessionId !== undefined
+    && scheduledSessionId !== null
+    && scheduledSessionId !== ''
+  ) {
+    throw new AiWorkoutDailyFormError('Historical workout imports cannot be linked to scheduled sessions');
+  }
+
+  const normalizedExercises = normalizeAiExercises(exercises, {
+    policy: coachIntent?.proofVersion === 2 ? 'coach_verified_v1' : undefined,
+  });
+  const requestedDuration = parseNonNegativeInteger(duration, null);
+  if (duration !== undefined && duration !== null && duration !== '' && requestedDuration === null) {
+    throw new AiWorkoutDailyFormError('duration must be a non-negative integer');
+  }
+  const overallIntensity = normalizeIntensity(intensity);
+  const pendingRows = buildWorkoutRows(normalizedExercises, null);
+  const totalSets = pendingRows.length;
+  const totalReps = pendingRows.reduce((sum, row) => sum + row.reps, 0);
+  const totalWeight = pendingRows.reduce((sum, row) => sum + (row.reps * row.weight), 0);
+  const estimatedDuration = requestedDuration ?? Math.min(totalSets * 3, 120);
+  const sessionNotes = normalizeText(notes, '');
+  const transaction = await sequelize.transaction();
+  let committedWorkout, postCommitContext;
+  let commitStarted = false;
+
+  try {
+    const models = getAllModels();
+    ensureWorkoutModels(models);
+    const { User, DailyWorkoutForm, WorkoutSession, WorkoutLog, CoachIntent } = models;
+    // Internal hooks share this transaction; proposal/intent locks precede domain locks.
+    if (beforeWrite) await beforeWrite({ transaction, models });
+
+    const client = await User.findByPk(parsedClientId, { transaction, lock: transaction.LOCK?.UPDATE });
+    if (!client) throw new AiWorkoutDailyFormError('Client not found', 'VALIDATION_ERROR');
+    const trainingReferenceDate = new Date();
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client.timeZone,
+      storedTimeZoneConfigured: client.timeZoneConfigured,
+      actorId: parsedTrainerId,
+      targetClientId: parsedClientId,
+      referenceDate: trainingReferenceDate,
+    });
+
+    const { linkedScheduledSession, creditsRequired: scheduledCreditsRequired } = await resolveAiScheduledSessionForLog({
+      Session: models.Session,
+      SessionType: models.SessionType,
+      scheduledSessionId,
+      clientId: parsedClientId,
+      trainerId: parsedTrainerId,
+      userRole,
+      transaction,
+    });
+    const workoutDateIso = scheduledWorkoutDate(linkedScheduledSession, date);
+    if (!workoutDateIso) throw new AiWorkoutDailyFormError('Valid workout date is required');
+
+    if (workoutDateIso > trainingDateContext.localDate) {
+      throw new AiWorkoutDailyFormError('Workout date cannot be in the future');
+    }
+    const workoutDate = new Date(workoutDateIso + 'T00:00:00.000Z');
+
+    const existingForm = await DailyWorkoutForm.findOne({
+      where: { clientId: parsedClientId, date: workoutDateIso },
+      transaction,
+    });
+    if (existingForm) throw new AiWorkoutDailyFormError(
+      'A workout form already exists for this client on this date',
+      'DUPLICATE_DATE',
+    );
+
+    const plannedAssignmentMetadata = await resolveAiPlannedAssignmentForLog({
+      WorkoutPlan: models.WorkoutPlan,
+      rawAssignment: plannedAssignment,
+      clientId: parsedClientId,
+      workoutDateValue: workoutDateIso,
+      hasScheduledSession: Boolean(linkedScheduledSession),
+      clientTimeZone: client.timeZone,
+      clientTimeZoneConfigured: client.timeZoneConfigured,
+      actorId: parsedTrainerId,
+      referenceDate: trainingReferenceDate,
+      transaction,
+    });
+    const availableSessionsBeforeSave = normalizePaidSessionCount(client.availableSessions);
+    const billingDecision = buildWorkoutSessionBillingDecision(client, {
+      scheduledSessionAlreadyDeducted: linkedScheduledSession?.sessionDeducted === true,
+      nonBillablePlannedAssignment: sourcePolicy.suppressPaidSessionDeduction
+        || isAiNonBillablePlannedAssignment(plannedAssignmentMetadata),
+      creditsRequired: scheduledCreditsRequired,
+    });
+    if (!billingDecision.canLogWorkout) {
+      throw new AiWorkoutDailyFormError(billingDecision.message, 'VALIDATION_ERROR');
+    }
+
+    const sessionTitle = normalizeText(title, `Personal Training Session - ${workoutDateIso}`);
+    const linkedSessionFields = scheduledWorkoutSessionFields(linkedScheduledSession, parsedTrainerId);
+    const completionFields = {
+      status: 'completed',
+      completedAt: new Date(),
+      duration: estimatedDuration,
+      totalSets,
+      totalReps,
+      totalWeight,
+      intensity: overallIntensity,
+      notes: sessionNotes,
+      sessionType: 'trainer-led',
+      trainerId: parsedTrainerId,
+      ...linkedSessionFields,
+    };
+    const [workoutSession, created] = await WorkoutSession.findOrCreate({
+      where: { userId: parsedClientId, date: workoutDateIso },
+      defaults: {
+        id: randomUUID(),
+        userId: parsedClientId,
+        title: sessionTitle,
+        date: workoutDateIso,
+        ...completionFields,
+      },
+      transaction,
+    });
+    if (!created) await workoutSession.update(completionFields, { transaction });
+
+    const workoutRows = buildWorkoutRows(normalizedExercises, workoutSession.id);
+    await WorkoutLog.destroy({ where: { sessionId: workoutSession.id }, transaction });
+    const persistedWorkoutLogs = await WorkoutLog.bulkCreate(workoutRows, { transaction, validate: true });
+
+    const formData = {
+      exercises: normalizedExercises,
+      sessionNotes,
+      submittedBy: parsedTrainerId,
+      submittedAt: new Date(),
+      totalSets,
+      estimatedDuration,
+      source: sourcePolicy.source,
+      historicalImport: sourcePolicy.isHistoricalImport,
+    };
+    if (overallIntensity !== null) formData.overallIntensity = overallIntensity;
+    if (plannedAssignmentMetadata) formData.plannedAssignment = plannedAssignmentMetadata;
+    if (linkedScheduledSession) formData.scheduledSessionId = linkedScheduledSession.id;
+
+    const dailyForm = await DailyWorkoutForm.create({
+      sessionId: workoutSession.id,
+      clientId: parsedClientId,
+      trainerId: parsedTrainerId,
+      date: workoutDateIso,
+      formData,
+      sessionDeducted: false,
+      mcpProcessed: false,
+    }, { transaction });
+
+    if (billingDecision.shouldDeduct && billingDecision.creditsToDeduct > 0) {
+      await client.decrement('availableSessions', { by: billingDecision.creditsToDeduct, transaction });
+    }
+    if (billingDecision.sessionDeducted) {
+      await dailyForm.update({ sessionDeducted: true }, { transaction });
+    }
+    const planProgress = sourcePolicy.suppressPlanAdvancement
+      ? null
+      : await advanceAiPlannedAssignmentAfterLog({
+        WorkoutPlan: models.WorkoutPlan,
+        WorkoutPlanCompletionReceipt: models.WorkoutPlanCompletionReceipt,
+        assignment: plannedAssignmentMetadata,
+        clientId: parsedClientId,
+        dailyWorkoutFormId: dailyForm.id,
+        workoutSessionId: workoutSession.id,
+        completedAt: dailyForm.submittedAt || new Date().toISOString(),
+        hasScheduledSession: Boolean(linkedScheduledSession),
+        transaction,
+      });
+
+    await completeAiLinkedScheduledSession({
+      linkedScheduledSession,
+      billingDecision,
+      trainerId: parsedTrainerId,
+      userRole,
+      transaction,
+    });
+
+    const billing = buildWorkoutBillingSummary({
+      billingDecision,
+      sourcePolicy,
+      scheduledCreditsRequired,
+      availableSessionsBeforeSave,
+    });
+    if (coachIntent?.intentId) {
+      await persistCoachIntentReceipt({
+        model: CoachIntent,
+        intentId: coachIntent.intentId,
+        result: coachIntent.result,
+        transaction,
+      });
+    }
+    committedWorkout = buildAiWorkoutDailyFormResult({
+      dailyForm, workoutSession, parsedClientId, parsedTrainerId, sessionTitle,
+      workoutDateIso, estimatedDuration, overallIntensity, normalizedExercises,
+      totalSets, totalReps, totalWeight, sourcePolicy, billing, billingDecision,
+      linkedScheduledSession, plannedAssignmentMetadata, planProgress,
+    });
+    if (beforeCommit) await beforeCommit({
+      transaction, models, dailyForm, workoutSession, workoutLogs: persistedWorkoutLogs,
+      normalizedExercises, workout: committedWorkout,
+    });
+    postCommitContext = { sequelize, models, parsedClientId, parsedTrainerId, dailyForm,
+      workoutSession, workoutDateIso, workoutDate, estimatedDuration, normalizedExercises,
+      linkedScheduledSession, sourcePolicy };
+    commitStarted = true;
+    await transaction.commit();
+  } catch (error) {
+    // Sequelize marks commit before sending COMMIT. An interrupted commit is
+    // uncertain even if a best-effort rollback is possible; never advertise retry.
+    if (!transaction.finished) {
+      try { await transaction.rollback(); } catch { /* preserve original failure */ }
+    }
+    if (commitStarted) {
+      throw new AiWorkoutDailyFormError('Save confirmation was interrupted', 'WORKOUT_COMMIT_UNKNOWN');
+    }
+    throw error;
+  }
+  // Deliberately outside the rollback catch: secondary failures cannot undo save.
+  const secondary = await runAiWorkoutPostCommit(postCommitContext);
+  return { ...committedWorkout, ...secondary };
+}
+"
+
+[36m [2m❯[22m tests/api/historyBackfill.test.mjs:[2m131:21[22m[39m
+    [90m129|[39m     [90m// challenges. AD-2 review catch.[39m
+    [90m130|[39m     const adapter = read('../../services/workout/aiWorkoutDailyFormSer…
+    [90m131|[39m     expect(adapter).toMatch(/sourcePolicy\.suppressEngagementSideEffec…
+    [90m   |[39m                     [31m^[39m
+    [90m132|[39m   })[33m;[39m
+    [90m133|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/21]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api/phase1bControllers.test.mjs[2m > [22monboardingController.mjs named exports[2m > [22m12 — transformQuestionnaireToMasterPrompt is exported and callable
+[41m[1m FAIL [22m[49m tests/api/phase1bControllers.test.mjs[2m > [22monboardingController.mjs named exports[2m > [22m12 — transformQuestionnaireToMasterPrompt is exported and callable
+[31m[1mAssertionError[22m: expected '<client_reported>strength</client_rep…' to be 'strength' // Object.is equality[39m
+
+Expected: [32m"strength"[39m
+Received: [31m"<client_reported>strength</client_reported>"[39m
+
+[36m [2m❯[22m tests/api/phase1bControllers.test.mjs:[2m171:34[22m[39m
+    [90m169|[39m     [34mexpect[39m(result[33m.[39mversion)[33m.[39m[34mtoBe[39m([32m'3.0'[39m)[33m;[39m
+    [90m170|[39m     [34mexpect[39m(result[33m.[39mclient)[33m.[39m[34mtoBeDefined[39m()[33m;[39m
+    [90m171|[39m     [34mexpect[39m(result[33m.[39mgoals[33m.[39mprimary)[33m.[39m[34mtoBe[39m([32m'strength'[39m)[33m;[39m
+    [90m   |[39m                                  [31m^[39m
+    [90m172|[39m   })[33m;[39m
+    [90m173|[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/21]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api/phase1cXpIntegration.test.mjs[2m > [22mworkoutLogService — XP failure isolation[2m > [22m13 — service catches XP errors and still returns session data; controller returns 201
+[41m[1m FAIL [22m[49m tests/api/phase1cXpIntegration.test.mjs[2m > [22mworkoutLogService — XP failure isolation[2m > [22m13 — service catches XP errors and still returns session data; controller returns 201
+[31m[1mAssertionError[22m: expected -1 to be greater than 11356[39m
+[36m [2m❯[22m tests/api/phase1cXpIntegration.test.mjs:[2m247:21[22m[39m
+    [90m245|[39m     [35mconst[39m stepIdx [33m=[39m unifiedSource[33m.[39m[34mlastIndexOf[39m([32m'runWorkoutXpAwardStep'[39m)[33m;[39m
+    [90m246|[39m     [34mexpect[39m(commitIdx)[33m.[39m[34mtoBeGreaterThan[39m([33m-[39m[34m1[39m)[33m;[39m
+    [90m247|[39m     [34mexpect[39m(stepIdx)[33m.[39m[34mtoBeGreaterThan[39m(commitIdx)[33m;[39m
+    [90m   |[39m                     [31m^[39m
+    [90m248|[39m
+    [90m249|[39m     [90m// Controller thin adapter must still return 201[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/21]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/api/workoutPrDetection.test.mjs[2m > [22mwiring + safety contracts[2m > [22mthe unified adapter runs detection post-commit and returns prEvents
+[41m[1m FAIL [22m[49m tests/api/workoutPrDetection.test.mjs[2m > [22mwiring + safety contracts[2m > [22mthe unified adapter runs detection post-commit and returns prEvents
+[31m[1mAssertionError[22m: expected '/**\r\n * AI Workout Daily Form Servi…' to match /detectAndRecordPersonalRecords\(\{/[39m
+
+[32m- Expected:[39m
+/detectAndRecordPersonalRecords\(\{/
+
+[31m+ Received:[39m
+"/**
+ * AI Workout Daily Form Service
+ * =============================
+ * Canonical write adapter for Swan Coach workout-log commands.
+ *
+ * The older AI command lane wrote only WorkoutSession and WorkoutLog rows.
+ * This adapter writes the same diary/billing truth that the trainer-facing
+ * daily workout form route depends on: DailyWorkoutForm, WorkoutSession,
+ * WorkoutLog, and paid-session deduction policy.
+ */
+import { randomUUID } from 'node:crypto';
+import { getAllModels } from '../../models/index.mjs';
+import {
+  buildWorkoutSessionBillingDecision,
+  buildWorkoutBillingSummary,
+  normalizePaidSessionCount,
+} from '../sessionBillingPolicy.mjs';
+import {
+  AiWorkoutDailyFormError,
+  buildWorkoutRows,
+  ensureWorkoutModels,
+  normalizeAiExercises,
+  normalizeIntensity,
+  normalizeText,
+  parseNonNegativeInteger,
+  parsePositiveInteger,
+} from './aiWorkoutDailyFormPayloadService.mjs';
+import {
+  advanceAiPlannedAssignmentAfterLog,
+  isAiNonBillablePlannedAssignment,
+  resolveAiPlannedAssignmentForLog,
+} from './aiWorkoutPlannedAssignmentService.mjs';
+import {
+  completeAiLinkedScheduledSession,
+  resolveAiScheduledSessionForLog,
+  scheduledWorkoutDate,
+  scheduledWorkoutSessionFields,
+} from './aiWorkoutScheduledSessionService.mjs';
+import { deriveWorkoutLogSourcePolicy } from './workoutLogSourcePolicy.mjs';
+import { resolveClientTrainingDateContext } from '../clientTrainingDateService.mjs';
+import { persistCoachIntentReceipt } from './coachIntentTransactionHook.mjs';
+
+import { runAiWorkoutPostCommit } from './aiWorkoutPostCommitService.mjs';
+import { buildAiWorkoutDailyFormResult } from './aiWorkoutDailyFormResult.mjs';
+
+export { AiWorkoutDailyFormError } from './aiWorkoutDailyFormPayloadService.mjs';
+
+export async function submitAiWorkoutLogAsDailyForm({
+  clientId,
+  exercises,
+  date,
+  notes,
+  title,
+  duration,
+  intensity,
+  plannedAssignment,
+  scheduledSessionId,
+  trainerId,
+  userRole = 'trainer',
+  source,
+  coachIntent = null,
+  beforeWrite = null,
+  beforeCommit = null,
+  sequelize,
+}) {
+  const parsedClientId = parsePositiveInteger(clientId);
+  const parsedTrainerId = parsePositiveInteger(trainerId);
+  if (!parsedClientId || !parsedTrainerId) {
+    throw new AiWorkoutDailyFormError('Valid client and trainer IDs are required');
+  }
+  if (!sequelize?.transaction) throw new AiWorkoutDailyFormError(
+    'Sequelize transaction boundary is required',
+    'WORKOUT_APPLY_FAILED',
+  );
+
+  const sourcePolicy = deriveWorkoutLogSourcePolicy(source);
+  if (
+    sourcePolicy.isHistoricalImport
+    && scheduledSessionId !== undefined
+    && scheduledSessionId !== null
+    && scheduledSessionId !== ''
+  ) {
+    throw new AiWorkoutDailyFormError('Historical workout imports cannot be linked to scheduled sessions');
+  }
+
+  const normalizedExercises = normalizeAiExercises(exercises, {
+    policy: coachIntent?.proofVersion === 2 ? 'coach_verified_v1' : undefined,
+  });
+  const requestedDuration = parseNonNegativeInteger(duration, null);
+  if (duration !== undefined && duration !== null && duration !== '' && requestedDuration === null) {
+    throw new AiWorkoutDailyFormError('duration must be a non-negative integer');
+  }
+  const overallIntensity = normalizeIntensity(intensity);
+  const pendingRows = buildWorkoutRows(normalizedExercises, null);
+  const totalSets = pendingRows.length;
+  const totalReps = pendingRows.reduce((sum, row) => sum + row.reps, 0);
+  const totalWeight = pendingRows.reduce((sum, row) => sum + (row.reps * row.weight), 0);
+  const estimatedDuration = requestedDuration ?? Math.min(totalSets * 3, 120);
+  const sessionNotes = normalizeText(notes, '');
+  const transaction = await sequelize.transaction();
+  let committedWorkout, postCommitContext;
+  let commitStarted = false;
+
+  try {
+    const models = getAllModels();
+    ensureWorkoutModels(models);
+    const { User, DailyWorkoutForm, WorkoutSession, WorkoutLog, CoachIntent } = models;
+    // Internal hooks share this transaction; proposal/intent locks precede domain locks.
+    if (beforeWrite) await beforeWrite({ transaction, models });
+
+    const client = await User.findByPk(parsedClientId, { transaction, lock: transaction.LOCK?.UPDATE });
+    if (!client) throw new AiWorkoutDailyFormError('Client not found', 'VALIDATION_ERROR');
+    const trainingReferenceDate = new Date();
+    const trainingDateContext = resolveClientTrainingDateContext({
+      storedTimeZone: client.timeZone,
+      storedTimeZoneConfigured: client.timeZoneConfigured,
+      actorId: parsedTrainerId,
+      targetClientId: parsedClientId,
+      referenceDate: trainingReferenceDate,
+    });
+
+    const { linkedScheduledSession, creditsRequired: scheduledCreditsRequired } = await resolveAiScheduledSessionForLog({
+      Session: models.Session,
+      SessionType: models.SessionType,
+      scheduledSessionId,
+      clientId: parsedClientId,
+      trainerId: parsedTrainerId,
+      userRole,
+      transaction,
+    });
+    const workoutDateIso = scheduledWorkoutDate(linkedScheduledSession, date);
+    if (!workoutDateIso) throw new AiWorkoutDailyFormError('Valid workout date is required');
+
+    if (workoutDateIso > trainingDateContext.localDate) {
+      throw new AiWorkoutDailyFormError('Workout date cannot be in the future');
+    }
+    const workoutDate = new Date(workoutDateIso + 'T00:00:00.000Z');
+
+    const existingForm = await DailyWorkoutForm.findOne({
+      where: { clientId: parsedClientId, date: workoutDateIso },
+      transaction,
+    });
+    if (existingForm) throw new AiWorkoutDailyFormError(
+      'A workout form already exists for this client on this date',
+      'DUPLICATE_DATE',
+    );
+
+    const plannedAssignmentMetadata = await resolveAiPlannedAssignmentForLog({
+      WorkoutPlan: models.WorkoutPlan,
+      rawAssignment: plannedAssignment,
+      clientId: parsedClientId,
+      workoutDateValue: workoutDateIso,
+      hasScheduledSession: Boolean(linkedScheduledSession),
+      clientTimeZone: client.timeZone,
+      clientTimeZoneConfigured: client.timeZoneConfigured,
+      actorId: parsedTrainerId,
+      referenceDate: trainingReferenceDate,
+      transaction,
+    });
+    const availableSessionsBeforeSave = normalizePaidSessionCount(client.availableSessions);
+    const billingDecision = buildWorkoutSessionBillingDecision(client, {
+      scheduledSessionAlreadyDeducted: linkedScheduledSession?.sessionDeducted === true,
+      nonBillablePlannedAssignment: sourcePolicy.suppressPaidSessionDeduction
+        || isAiNonBillablePlannedAssignment(plannedAssignmentMetadata),
+      creditsRequired: scheduledCreditsRequired,
+    });
+    if (!billingDecision.canLogWorkout) {
+      throw new AiWorkoutDailyFormError(billingDecision.message, 'VALIDATION_ERROR');
+    }
+
+    const sessionTitle = normalizeText(title, `Personal Training Session - ${workoutDateIso}`);
+    const linkedSessionFields = scheduledWorkoutSessionFields(linkedScheduledSession, parsedTrainerId);
+    const completionFields = {
+      status: 'completed',
+      completedAt: new Date(),
+      duration: estimatedDuration,
+      totalSets,
+      totalReps,
+      totalWeight,
+      intensity: overallIntensity,
+      notes: sessionNotes,
+      sessionType: 'trainer-led',
+      trainerId: parsedTrainerId,
+      ...linkedSessionFields,
+    };
+    const [workoutSession, created] = await WorkoutSession.findOrCreate({
+      where: { userId: parsedClientId, date: workoutDateIso },
+      defaults: {
+        id: randomUUID(),
+        userId: parsedClientId,
+        title: sessionTitle,
+        date: workoutDateIso,
+        ...completionFields,
+      },
+      transaction,
+    });
+    if (!created) await workoutSession.update(completionFields, { transaction });
+
+    const workoutRows = buildWorkoutRows(normalizedExercises, workoutSession.id);
+    await WorkoutLog.destroy({ where: { sessionId: workoutSession.id }, transaction });
+    const persistedWorkoutLogs = await WorkoutLog.bulkCreate(workoutRows, { transaction, validate: true });
+
+    const formData = {
+      exercises: normalizedExercises,
+      sessionNotes,
+      submittedBy: parsedTrainerId,
+      submittedAt: new Date(),
+      totalSets,
+      estimatedDuration,
+      source: sourcePolicy.source,
+      historicalImport: sourcePolicy.isHistoricalImport,
+    };
+    if (overallIntensity !== null) formData.overallIntensity = overallIntensity;
+    if (plannedAssignmentMetadata) formData.plannedAssignment = plannedAssignmentMetadata;
+    if (linkedScheduledSession) formData.scheduledSessionId = linkedScheduledSession.id;
+
+    const dailyForm = await DailyWorkoutForm.create({
+      sessionId: workoutSession.id,
+      clientId: parsedClientId,
+      trainerId: parsedTrainerId,
+      date: workoutDateIso,
+      formData,
+      sessionDeducted: false,
+      mcpProcessed: false,
+    }, { transaction });
+
+    if (billingDecision.shouldDeduct && billingDecision.creditsToDeduct > 0) {
+      await client.decrement('availableSessions', { by: billingDecision.creditsToDeduct, transaction });
+    }
+    if (billingDecision.sessionDeducted) {
+      await dailyForm.update({ sessionDeducted: true }, { transaction });
+    }
+    const planProgress = sourcePolicy.suppressPlanAdvancement
+      ? null
+      : await advanceAiPlannedAssignmentAfterLog({
+        WorkoutPlan: models.WorkoutPlan,
+        WorkoutPlanCompletionReceipt: models.WorkoutPlanCompletionReceipt,
+        assignment: plannedAssignmentMetadata,
+        clientId: parsedClientId,
+        dailyWorkoutFormId: dailyForm.id,
+        workoutSessionId: workoutSession.id,
+        completedAt: dailyForm.submittedAt || new Date().toISOString(),
+        hasScheduledSession: Boolean(linkedScheduledSession),
+        transaction,
+      });
+
+    await completeAiLinkedScheduledSession({
+      linkedScheduledSession,
+      billingDecision,
+      trainerId: parsedTrainerId,
+      userRole,
+      transaction,
+    });
+
+    const billing = buildWorkoutBillingSummary({
+      billingDecision,
+      sourcePolicy,
+      scheduledCreditsRequired,
+      availableSessionsBeforeSave,
+    });
+    if (coachIntent?.intentId) {
+      await persistCoachIntentReceipt({
+        model: CoachIntent,
+        intentId: coachIntent.intentId,
+        result: coachIntent.result,
+        transaction,
+      });
+    }
+    committedWorkout = buildAiWorkoutDailyFormResult({
+      dailyForm, workoutSession, parsedClientId, parsedTrainerId, sessionTitle,
+      workoutDateIso, estimatedDuration, overallIntensity, normalizedExercises,
+      totalSets, totalReps, totalWeight, sourcePolicy, billing, billingDecision,
+      linkedScheduledSession, plannedAssignmentMetadata, planProgress,
+    });
+    if (beforeCommit) await beforeCommit({
+      transaction, models, dailyForm, workoutSession, workoutLogs: persistedWorkoutLogs,
+      normalizedExercises, workout: committedWorkout,
+    });
+    postCommitContext = { sequelize, models, parsedClientId, parsedTrainerId, dailyForm,
+      workoutSession, workoutDateIso, workoutDate, estimatedDuration, normalizedExercises,
+      linkedScheduledSession, sourcePolicy };
+    commitStarted = true;
+    await transaction.commit();
+  } catch (error) {
+    // Sequelize marks commit before sending COMMIT. An interrupted commit is
+    // uncertain even if a best-effort rollback is possible; never advertise retry.
+    if (!transaction.finished) {
+      try { await transaction.rollback(); } catch { /* preserve original failure */ }
+    }
+    if (commitStarted) {
+      throw new AiWorkoutDailyFormError('Save confirmation was interrupted', 'WORKOUT_COMMIT_UNKNOWN');
+    }
+    throw error;
+  }
+  // Deliberately outside the rollback catch: secondary failures cannot undo save.
+  const secondary = await runAiWorkoutPostCommit(postCommitContext);
+  return { ...committedWorkout, ...secondary };
+}
+"
+
+[36m [2m❯[22m tests/api/workoutPrDetection.test.mjs:[2m99:21[22m[39m
+    [90m 97|[39m
+    [90m 98|[39m   it('the unified adapter runs detection post-commit and returns prEve…
+    [90m 99|[39m     [34mexpect[39m([33mADAPTER[39m)[33m.[39m[34mtoMatch[39m([36m/detectAndRecordPersonalRecords\(\{/[39m)[33m;[39m
+    [90m   |[39m                     [31m^[39m
+    [90m100|[39m     [34mexpect[39m([33mADAPTER[39m)[33m.[39m[34mtoMatch[39m([36m/prEvents,/[39m)[33m;[39m
+    [90m101|[39m     [34mexpect[39m([33mADAPTER[39m)[33m.[39m[34mtoMatch[39m([36m/PR detection failed \(non-critical\)/[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/21]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m tests/unit/aiCommandRouteFallbackSource.test.mjs[2m > [22maiCommandRoutes not-wired fallback source guard[2m > [22mkeeps route-level command failures off raw exception messages and stacks
+[41m[1m FAIL [22m[49m tests/unit/aiCommandRouteFallbackSource.test.mjs[2m > [22maiCommandRoutes not-wired fallback source guard[2m > [22mkeeps route-level command failures off raw exception messages and stacks
+[31m[1mAssertionError[22m: expected '/**\r\n * AI Command Routes — God-Lev…' not to contain 'error: err.message'[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- error: err.message[39m
+[31m+ /**[39m
+[31m+  * AI Command Routes — God-Level AI Secretary Endpoints[39m
+[31m+  * =====================================================[39m
+[31m+  * Exposes the command execution pipeline via REST API.[39m
+[31m+  * Integrates with existing aiChatRoutes for conversational fallback.[39m
+[31m+  *[39m
+[31m+  * Endpoints:[39m
+[31m+  *   POST /api/ai-command/execute    — Execute a natural language command[39m
+[31m+  *   POST /api/ai-command/confirm    — Confirm a pending destructive operation[39m
+[31m+  *   POST /api/ai-command/cancel     — Cancel a pending operation[39m
+[31m+  *   GET  /api/ai-command/commands   — List available commands for current role[39m
+[31m+  *   GET  /api/ai-command/intents    — Read bounded durable intent receipts[39m
+[31m+  *   GET  /api/ai-command/intents/:intentId — Read one authorized receipt[39m
+[31m+  *   GET  /api/ai-command/health     — Command engine health check[39m
+[31m+  *[39m
+[31m+  * All routes require authentication via `protect` middleware.[39m
+[31m+  */[39m
+[31m+ import express from 'express';[39m
+[31m+ import logger from '../utils/logger.mjs';[39m
+[31m+ import { protect } from '../middleware/authMiddleware.mjs';[39m
+[31m+ import { aiCommandLaneKillSwitch, aiCommandRateLimiter } from '../middleware/aiCommandGuards.mjs';[39m
+[31m+ import { assertAssignmentOrAdmin, listAssignedClientIds } from '../middleware/verifyClientAccess.mjs';[39m
+[31m+ import { recordCommandAudit } from '../services/ai/commandAudit.mjs';[39m
+[31m+ import { recordUnhandledUtterance } from '../services/ai/unhandledUtteranceAudit.mjs';[39m
+[31m+ import { gateCommandFrontendDispatch, buildDispatchRefusalResponse } from '../services/ai/commandDispatchEligibility.mjs';[39m
+[31m+ import sequelize from '../database.mjs';[39m
+[31m+ import { getModel } from '../models/index.mjs';[39m
+[31m+ import { createAccessibleClientIdentitySanitizer } from '../services/ai/accessibleClientIdentityPrivacy.mjs';[39m
+[31m+ import {[39m
+[31m+   executeCommandPipeline,[39m
+[31m+   executeConfirmedOperation,[39m
+[31m+   checkForConfirmation,[39m
+[31m+ } from '../services/ai/commandExecutor.mjs';[39m
+[31m+ import { buildCommandContextEnvelope } from '../services/ai/commandContextEnvelope.mjs';[39m
+[31m+ import { cancelOperation, getPendingCount, peekOperation } from '../services/ai/destructiveOperations.mjs';[39m
+[31m+ import { renderDigestOf, digestMatches } from '../services/ai/renderDigest.mjs';[39m
+[31m+ import { recheckEntityOwnership } from '../services/ai/entityOwnershipRecheck.mjs';[39m
+[31m+ import { describeLaneControls } from '../services/ai/commandLaneControls.mjs';[39m
+[31m+ import { getPendingOperationStore } from '../services/ai/pendingOperationStore.mjs';[39m
+[31m+ import { recordApprovalEvent, APPROVAL_EVENTS } from '../services/ai/approvalEvents.mjs';[39m
+[31m+ import {[39m
+[31m+   getCommandsForRole,[39m
+[31m+   getAllCommandTypes,[39m
+[31m+   initializeRegistry,[39m
+[31m+ } from '../services/ai/commandRegistry/index.mjs';[39m
+[31m+ import { shouldFallbackNotWiredCommandToChat } from '../services/ai/commandFallbackPolicy.mjs';[39m
+[31m+ import { getCommandExecutionLane } from '../services/ai/commandExecutionLane.mjs';[39m
+[31m+ import {[39m
+[31m+   readCoachIntent,[39m
+[31m+   toPublicCoachIntent,[39m
+[31m+ } from '../services/ai/coachIntentService.mjs';[39m
+[31m+ import { listCoachIntents, isCoachReceiptReader, CoachIntentListError } from '../services/ai/coachIntentListing.mjs';[39m
+[31m+ [39m
+[31m+ const router = express.Router();[39m
+[31m+ const AI_COMMAND_MESSAGE_MAX_CHARS = 2000;[39m
+[31m+ const INTENT_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;[39m
+[31m+ [39m
+[31m+ const parseIntentLimit = (value) => {[39m
+[31m+   if (value !== undefined && typeof value !== 'string' && typeof value !== 'number') return null;[39m
+[31m+   const parsed = Number(value ?? 20);[39m
+[31m+   return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 50 ? parsed : null;[39m
+[31m+ };[39m
+[31m+ [39m
+[31m+ const intentNotFound = (res) => res.status(404).json({[39m
+[31m+   success: false,[39m
+[31m+   error: 'Intent not found or unavailable.',[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ const canReadIntent = async (intent, user) => {[39m
+[31m+   if (!intent || !isCoachReceiptReader(user)) return false;[39m
+[31m+   if (Number(intent.actorId) === Number(user.id) && intent.targetClientId == null) return true;[39m
+[31m+   if (intent.targetClientId == null) return false;[39m
+[31m+   try {[39m
+[31m+     return await assertAssignmentOrAdmin(user.id, user.role, intent.targetClientId);[39m
+[31m+   } catch {[39m
+[31m+     return false;[39m
+[31m+   }[39m
+[31m+ };[39m
+[31m+ [39m
+[31m+ const toAICommandRouteErrorMetadata = (err) => ({[39m
+[31m+   errorName: err?.name || 'Error',[39m
+[31m+   errorCode: err?.code || err?.type || 'ai_command_route_error',[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ const logAICommandRouteError = (message, err, req, metadata = {}) => {[39m
+[31m+   logger.error(message, {[39m
+[31m+     userId: req?.user?.id,[39m
+[31m+     role: req?.user?.role,[39m
+[31m+     route: req?.originalUrl || req?.path,[39m
+[31m+     ...metadata,[39m
+[31m+     ...toAICommandRouteErrorMetadata(err),[39m
+[31m+   });[39m
+[31m+ };[39m
+[31m+ [39m
+[31m+ const normalizeSelectedClientId = (value) => {[39m
+[31m+   if (typeof value === 'number') {[39m
+[31m+     return Number.isSafeInteger(value) && value > 0 ? value : null;[39m
+[31m+   }[39m
+[31m+ [39m
+[31m+   if (typeof value !== 'string') return null;[39m
+[31m+ [39m
+[31m+   const trimmed = value.trim();[39m
+[31m+   if (!/^[1-9]\d*$/.test(trimmed)) return null;[39m
+[31m+ [39m
+[31m+   const parsed = Number(trimmed);[39m
+[31m+   return Number.isSafeInteger(parsed) ? parsed : null;[39m
+[31m+ };[39m
+[31m+ [39m
+[31m+ // previousContext reaches the classifier prompt verbatim — cap it so a caller[39m
+[31m+ // can never inflate LLM cost or smuggle a mega-prompt through this channel.[39m
+[31m+ // 2000 chars comfortably fits the Coach Command Center's recent-context use[39m
+[31m+ // and the planner's structural plan snapshot (~600 chars by contract).[39m
+[31m+ const PREVIOUS_CONTEXT_MAX_CHARS = 2000;[39m
+[31m+ /** Exported for tests (same precedent as resolveVoiceUploadScope). */[39m
+[31m+ export const normalizePreviousContext = (value) => {[39m
+[31m+   if (typeof value !== 'string') return undefined;[39m
+[31m+   const trimmed = value.trim();[39m
+[31m+   if (!trimmed) return undefined;[39m
+[31m+   return trimmed.length > PREVIOUS_CONTEXT_MAX_CHARS[39m
+[31m+     ? trimmed.slice(0, PREVIOUS_CONTEXT_MAX_CHARS)[39m
+[31m+     : trimmed;[39m
+[31m+ };[39m
+[31m+ [39m
+[31m+ // `inputMode` (card 1.2) tells the tier resolver WHICH CHANNEL produced the[39m
+[31m+ // utterance, so an identity-crossing write by voice can demand a physical[39m
+[31m+ // confirm (M3). It is a hint about provenance, never about authority: the tier[39m
+[31m+ // itself is computed server-side, and a `tier` field in the body is ignored and[39m
+[31m+ // audited (see stepConfirmation).[39m
+[31m+ const ROUTE_CONTEXT_KEYS = ['source', 'intent', 'surface', 'inputMode', 'commandType'];[39m
+[31m+ const ROUTE_CONTEXT_TOKEN_PATTERN = /^[a-z0-9_-]{1,80}$/i;[39m
+[31m+ const ISO_DATE_PREFIX_PATTERN = /^\d{4}-\d{2}-\d{2}/;[39m
+[31m+ [39m
+[31m+ const normalizePositiveIntegerString = (value) => {[39m
+[31m+   if (value === undefined || value === null || value === '') return null;[39m
+[31m+   const trimmed = String(value).trim();[39m
+[31m+   if (!/^[1-9]\d*$/.test(trimmed)) return null;[39m
+[31m+   return Number.isSafeInteger(Number(trimmed)) ? trimmed : null;[39m
+[31m+ };[39m
+[31m+ [39m
+[31m+ const normalizeIsoDate = (value) => {[39m
+[31m+   if (typeof value !== 'string') return null;[39m
+[31m+   const trimmed = value.trim();[39m
+[31m+   if (!ISO_DATE_PREFIX_PATTERN.test(trimmed)) return null;[39m
+[31m+   const dateOnly = trimmed.slice(0, 10);[39m
+[31m+   const parsed = new Date(`${dateOnly}T00:00:00.000Z`);[39m
+[31m+   return Number.isNaN(parsed.getTime()) ? null : dateOnly;[39m
+[31m+ };[39m
+[31m+ [39m
+[31m+ const normalizeRouteContext = (value) => {[39m
+[31m+   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;[39m
+[31m+ [39m
+[31m+   const normalized = {};[39m
+[31m+   for (const key of ROUTE_CONTEXT_KEYS) {[39m
+[31m+     const raw = value[key];[39m
+[31m+     if (typeof raw !== 'string') continue;[39m
+[31m+     const token = raw.trim();[39m
+[31m+     if (!ROUTE_CONTEXT_TOKEN_PATTERN.test(token)) continue;[39m
+[31m+     normalized[key] = token;[39m
+[31m+   }[39m
+[31m+ [39m
+[31m+   const scheduledSessionId = normalizePositiveIntegerString(value.scheduledSessionId);[39m
+[31m+   if (scheduledSessionId) normalized.scheduledSessionId = scheduledSessionId;[39m
+[31m+   const scheduledSessionDate = normalizeIsoDate(value.scheduledSessionDate);[39m
+[31m+   if (scheduledSessionDate) normalized.scheduledSessionDate = scheduledSessionDate;[39m
+[31m+   const workoutDate = normalizeIsoDate(value.workoutDate);[39m
+[31m+   if (workoutDate) normalized.workoutDate = workoutDate;[39m
+[31m+   const scheduledSessionCredits = Number(value.scheduledSessionCredits);[39m
+[31m+   if (Number.isSafeInteger(scheduledSessionCredits) && scheduledSessionCredits >= 0) {[39m
+[31m+     normalized.scheduledSessionCredits = scheduledSessionCredits;[39m
+[31m+   }[39m
+[31m+ [39m
+[31m+   return Object.keys(normalized).length ? normalized : null;[39m
+[31m+ };[39m
+[31m+ const sanitizeCommandPromptInputs = async ({ message, previousContext, user }) => {[39m
+[31m+   const { sanitize } = await createAccessibleClientIdentitySanitizer({ requester: user, sequelize });[39m
+[31m+   const normalizedPreviousContext = normalizePreviousContext(previousContext);[39m
+[31m+   return {[39m
+[31m+     message: sanitize(message).sanitizedMessage,[39m
+[31m+     previousContext: normalizedPreviousContext[39m
+[31m+       ? sanitize(normalizedPreviousContext).sanitizedMessage[39m
+[31m+       : undefined,[39m
+[31m+   };[39m
+[31m+ };[39m
+[31m+ [39m
+[31m+ const IDENTITY_REDACTION_UNAVAILABLE_RESPONSE = {[39m
+[31m+   success: false,[39m
+[31m+   code: 'AI_IDENTITY_REDACTION_UNAVAILABLE',[39m
+[31m+   error: 'Client identity protection is temporarily unavailable. Please try again.',[39m
+[31m+ };[39m
+[31m+ [39m
+[31m+ // Initialize command registry on first import[39m
+[31m+ initializeRegistry();[39m
+[31m+ [39m
+[31m+ // ── POST /execute — Main command pipeline ───────────────────────────────────[39m
+[31m+ [39m
+[31m+ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {[39m
+[31m+   try {[39m
+[31m+     const {[39m
+[31m+       message, selectedClientId, previousContext, routeContext, entityId, entityVersion, correlationId,[39m
+[31m+     } = req.body;[39m
+[31m+ [39m
+[31m+     if (!message || typeof message !== 'string') {[39m
+[31m+       return res.status(400).json({[39m
+[31m+         success: false,[39m
+[31m+         code: 'COMMAND_MESSAGE_REQUIRED',[39m
+[31m+         error: 'Message is required',[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     if (message.length > AI_COMMAND_MESSAGE_MAX_CHARS) {[39m
+[31m+       return res.status(400).json({[39m
+[31m+         success: false,[39m
+[31m+         code: 'COMMAND_MESSAGE_TOO_LONG',[39m
+[31m+         error: `Message exceeds ${AI_COMMAND_MESSAGE_MAX_CHARS} character limit`,[39m
+[31m+         maxChars: AI_COMMAND_MESSAGE_MAX_CHARS,[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     const normalizedSelectedClientId = normalizeSelectedClientId(selectedClientId);[39m
+[31m+     const hasSelectedClientId = Object.prototype.hasOwnProperty.call(req.body, 'selectedClientId');[39m
+[31m+     if ([39m
+[31m+       hasSelectedClientId[39m
+[31m+       && selectedClientId !== null[39m
+[31m+       && selectedClientId !== undefined[39m
+[31m+       && normalizedSelectedClientId === null[39m
+[31m+     ) {[39m
+[31m+       return res.status(400).json({[39m
+[31m+         success: false,[39m
+[31m+         code: 'COMMAND_SELECTED_CLIENT_ID_INVALID',[39m
+[31m+         error: 'selectedClientId must be a positive integer when provided',[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     const user = {[39m
+[31m+       id: req.user.id,[39m
+[31m+       role: req.user.role,[39m
+[31m+       firstName: req.user.firstName,[39m
+[31m+       lastName: req.user.lastName,[39m
+[31m+     };[39m
+[31m+ [39m
+[31m+     let promptInputs;[39m
+[31m+     try {[39m
+[31m+       promptInputs = await sanitizeCommandPromptInputs({ message, previousContext, user });[39m
+[31m+     } catch (error) {[39m
+[31m+       logger.error('[AICommand] Identity redaction failed closed', {[39m
+[31m+         userId: user.id,[39m
+[31m+         role: user.role,[39m
+[31m+         errorName: error?.name ?? 'Error',[39m
+[31m+       });[39m
+[31m+       return res.status(503).json(IDENTITY_REDACTION_UNAVAILABLE_RESPONSE);[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     // Card 1.2: a `tier` in the request body is IGNORED — the server resolves it[39m
+[31m+     // from the pre-collapse client pair. Recorded because naming your own tier is[39m
+[31m+     // the shape of an attack on the ceremony, not a client bug.[39m
+[31m+     if (req.body?.tier !== undefined || routeContext?.tier !== undefined) {[39m
+[31m+       void recordApprovalEvent({[39m
+[31m+         event: APPROVAL_EVENTS.TIER_SPOOF, userId: req.user.id, userRole: req.user.role,[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+     const normalizedRouteContext = normalizeRouteContext(routeContext);[39m
+[31m+     const contextEnvelope = await buildCommandContextEnvelope({[39m
+[31m+       actor: user,[39m
+[31m+       request: {[39m
+[31m+         surfaceHint: normalizedRouteContext?.surface ?? null,[39m
+[31m+         selectedClientId: normalizedSelectedClientId,[39m
+[31m+         entityId,[39m
+[31m+         entityVersion,[39m
+[31m+         correlationId,[39m
+[31m+       },[39m
+[31m+       loadPlan: async (id) => {[39m
+[31m+         const WorkoutPlan = getModel('WorkoutPlan');[39m
+[31m+         return WorkoutPlan.findByPk(id);[39m
+[31m+       },[39m
+[31m+       authorizeClient: assertAssignmentOrAdmin,[39m
+[31m+     });[39m
+[31m+ [39m
+[31m+     const ctx = await executeCommandPipeline(promptInputs.message, user, {[39m
+[31m+       selectedClientName: null,[39m
+[31m+       selectedClientId: normalizedSelectedClientId,[39m
+[31m+       previousContext: promptInputs.previousContext,[39m
+[31m+       routeContext: normalizedRouteContext,[39m
+[31m+       contextEnvelope,[39m
+[31m+       sequelize,[39m
+[31m+     });[39m
+[31m+ [39m
+[31m+     if (ctx.error) {[39m
+[31m+       // F1: an intent the classifier INVENTED (no registry match) is the[39m
+[31m+       // classifier-drift signal. Fire-and-forget — NOT awaited, so it is not[39m
+[31m+       // guaranteed to have landed before the response is sent; it is guaranteed[39m
+[31m+       // not to block or fail the response (recordUnhandledUtterance never throws).[39m
+[31m+       // Input is ctx.sanitizedInput: identity-sanitized by the route AND[39m
+[31m+       // PHI-stripped by the executor — the most-scrubbed form of the text that[39m
+[31m+       // exists (round-1 fix; an earlier version used the pre-PHI-scrub message).[39m
+[31m+       if ((ctx.result?.code || '') === 'UNKNOWN_INTENT') {[39m
+[31m+         void recordUnhandledUtterance({[39m
+[31m+           userId: user.id,[39m
+[31m+           userRole: user.role,[39m
+[31m+           input: ctx.sanitizedInput ?? promptInputs.message,[39m
+[31m+           kind: 'unknown_intent',[39m
+[31m+           surface: normalizedRouteContext?.surface ?? null,[39m
+[31m+           phantomIntent: ctx.intent?.intent ?? null,[39m
+[31m+         });[39m
+[31m+       }[39m
+[31m+       return res.json({[39m
+[31m+         success: false,[39m
+[31m+         type: 'error',[39m
+[31m+         error: ctx.error,[39m
+[31m+         code: ctx.result?.code || 'EXECUTION_FAILED',[39m
+[31m+         stage: ctx.stage,[39m
+[31m+         suggestions: ctx.result?.suggestions || null,[39m
+[31m+         intent: ctx.intent,[39m
+[31m+         fallbackToChat: false,[39m
+[31m+         timing: ctx.metadata.timing,[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     // Handle different result types[39m
+[31m+     if (ctx.intent?.intent === 'chat' || ctx.intent?.intent === 'clarification_needed') {[39m
+[31m+       // F1: the utterance did not become a command — the product's richest[39m
+[31m+       // roadmap signal, previously discarded here (see unhandledUtteranceAudit.mjs).[39m
+[31m+       // `chat` means "classified as ordinary conversation", which is NOT a failure;[39m
+[31m+       // the report keeps kinds separate so readers can filter it out. Same[39m
+[31m+       // fire-and-forget + most-scrubbed-input rules as the UNKNOWN_INTENT site.[39m
+[31m+       void recordUnhandledUtterance({[39m
+[31m+         userId: user.id,[39m
+[31m+         userRole: user.role,[39m
+[31m+         input: ctx.sanitizedInput ?? promptInputs.message,[39m
+[31m+         kind: ctx.intent.intent === 'chat' ? 'chat' : 'clarification_needed',[39m
+[31m+         surface: normalizedRouteContext?.surface ?? null,[39m
+[31m+       });[39m
+[31m+       return res.json({[39m
+[31m+         success: true,[39m
+[31m+         type: ctx.intent.intent,[39m
+[31m+         message: ctx.intent.intent === 'clarification_needed'[39m
+[31m+           ? ctx.intent.params?.suggestion || 'Could you rephrase that?'[39m
+[31m+           : null,[39m
+[31m+         intent: ctx.intent,[39m
+[31m+         fallbackToChat: true,[39m
+[31m+         timing: ctx.metadata.timing,[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     if (ctx.result?.type === 'debate_started') {[39m
+[31m+       return res.json({[39m
+[31m+         success: true,[39m
+[31m+         type: 'debate_started',[39m
+[31m+         message: ctx.result.message,[39m
+[31m+         jobId: ctx.result.jobId,[39m
+[31m+         debateType: ctx.result.debateType,[39m
+[31m+         client: ctx.resolvedClient,[39m
+[31m+         timing: ctx.metadata.timing,[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     if (ctx.result?.type === 'not_wired') {[39m
+[31m+       if (ctx.command?.method === 'FRONTEND_DISPATCH' && !ctx.command?.requiresConfirmation) {[39m
+[31m+         // H6: the chat lane's eligibility gate, applied to the command lane.[39m
+[31m+         const gate = await gateCommandFrontendDispatch({[39m
+[31m+           event: ctx.command.frontendEvent || ctx.command.endpoint,[39m
+[31m+           payload: ctx.intent?.params || {},[39m
+[31m+           targetClientId: normalizedSelectedClientId ?? ctx.resolvedClient?.id ?? null,[39m
+[31m+           user,[39m
+[31m+         });[39m
+[31m+         if (!gate.allowed) {[39m
+[31m+           recordCommandAudit({[39m
+[31m+             userId: user.id, userRole: user.role, commandType: ctx.command.type,[39m
+[31m+             targetClientId: normalizedSelectedClientId ?? null, outcome: 'denied',[39m
+[31m+             errorCode: 'DISPATCH_INELIGIBLE', params: ctx.intent?.params || null,[39m
+[31m+           });[39m
+[31m+           return res.json({ ...buildDispatchRefusalResponse(ctx.command, gate.refusals), timing: ctx.metadata.timing });[39m
+[31m+         }[39m
+[31m+         return res.json({[39m
+[31m+           success: true,[39m
+[31m+           type: 'frontend_dispatch',[39m
+[31m+           message: `Sent ${ctx.command.description.toLowerCase()} to the workout form.`,[39m
+[31m+           command: ctx.command.type,[39m
+[31m+           event: ctx.command.frontendEvent || ctx.command.endpoint,[39m
+[31m+           payload: ctx.intent?.params || {},[39m
+[31m+           fallbackToChat: false,[39m
+[31m+           timing: ctx.metadata.timing,[39m
+[31m+         });[39m
+[31m+       }[39m
+[31m+       if (shouldFallbackNotWiredCommandToChat(ctx.command?.type)) {[39m
+[31m+         return res.json({[39m
+[31m+           success: true,[39m
+[31m+           type: 'chat',[39m
+[31m+           message: 'Routing this draft request through Swan Coach review.',[39m
+[31m+           intent: ctx.intent,[39m
+[31m+           fallbackToChat: true,[39m
+[31m+           timing: ctx.metadata.timing,[39m
+[31m+         });[39m
+[31m+       }[39m
+[31m+       return res.json({[39m
+[31m+         success: true,[39m
+[31m+         type: 'not_wired',[39m
+[31m+         message: ctx.result.message,[39m
+[31m+         command: ctx.command?.type,[39m
+[31m+         manualOnly: ctx.result.manualOnly ?? false,[39m
+[31m+         reason: ctx.result.reason || null,[39m
+[31m+         client: ctx.resolvedClient,[39m
+[31m+         timing: ctx.metadata.timing,[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     if (ctx.result?.type === 'confirmation_required') {[39m
+[31m+       return res.json({[39m
+[31m+         success: true,[39m
+[31m+         type: 'confirmation_required',[39m
+[31m+         message: ctx.result.message,[39m
+[31m+         operationId: ctx.result.operationId || null,[39m
+[31m+         expiresAt: ctx.result.expiresAt || null,[39m
+[31m+         command: ctx.command?.type,[39m
+[31m+         params: ctx.intent?.params,[39m
+[31m+         client: ctx.resolvedClient,[39m
+[31m+         details: ctx.result.details || null,[39m
+[31m+         isDestructive: ctx.result.isDestructive ?? ctx.command?.destructive ?? false,[39m
+[31m+         // Card 1.2: the SERVER's tier verdict travels with the envelope so the[39m
+[31m+         // sheet renders the ceremony the server actually resolved — a client[39m
+[31m+         // that computed its own could soften a deliberate write into a silent one.[39m
+[31m+         tier: ctx.confirmationTier?.tier ?? null,[39m
+[31m+         tierReasons: ctx.confirmationTier?.reasons ?? [],[39m
+[31m+         physical: ctx.confirmationTier?.physical ?? false,[39m
+[31m+         readBackSlots: ctx.confirmationTier?.readBackSlots ?? [],[39m
+[31m+         timing: ctx.metadata.timing,[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     // Backstop: if a command reached this point with null result, be honest (should not happen after stepExecute fix)[39m
+[31m+     if (ctx.command && ctx.result === null) {[39m
+[31m+       return res.json({[39m
+[31m+         success: true,[39m
+[31m+         type: 'not_wired',[39m
+[31m+         message: `${ctx.command.type.replace(/_/g, ' ')} is not yet wired for execution. No data was changed.`,[39m
+[31m+         command: ctx.command.type,[39m
+[31m+         manualOnly: false,[39m
+[31m+         reason: null,[39m
+[31m+         client: ctx.resolvedClient,[39m
+[31m+         timing: ctx.metadata.timing,[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     // Direct execution result[39m
+[31m+     return res.json({[39m
+[31m+       success: true,[39m
+[31m+       type: 'executed',[39m
+[31m+       command: ctx.command?.type,[39m
+[31m+       result: ctx.result,[39m
+[31m+       client: ctx.resolvedClient,[39m
+[31m+       timing: ctx.metadata.timing,[39m
+[31m+     });[39m
+[31m+ [39m
+[31m+   } catch (err) {[39m
+[31m+     logAICommandRouteError('[AICommand] Execute route error', err, req, {[39m
+[31m+       selectedClientId: normalizeSelectedClientId(req.body?.selectedClientId),[39m
+[31m+     });[39m
+[31m+     res.status(500).json({[39m
+[31m+       success: false,[39m
+[31m+       error: 'Internal server error processing your command',[39m
+[31m+     });[39m
+[31m+   }[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ // ── POST /confirm — Confirm a pending destructive operation ─────────────────[39m
+[31m+ [39m
+[31m+ // ── GET /pending/:operationId — read-back of the STORED operation (card 1.1) ──[39m
+[31m+ // The confirmation UI must render what the server will EXECUTE, not what the user[39m
+[31m+ // asked for. Owner-gated, non-consuming, signature never returned. Not-found and[39m
+[31m+ // not-owner are indistinguishable so this is not an existence oracle.[39m
+[31m+ router.get('/pending/:operationId', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {[39m
+[31m+   try {[39m
+[31m+     const { found, operation } = await peekOperation(req.params.operationId, req.user.id);[39m
+[31m+     if (!found) {[39m
+[31m+       return res.status(404).json({ success: false, error: 'Operation not found or expired.' });[39m
+[31m+     }[39m
+[31m+     void recordApprovalEvent({[39m
+[31m+       event: APPROVAL_EVENTS.READ_BACK, userId: req.user.id, userRole: req.user.role,[39m
+[31m+       commandType: operation.commandType ?? null, operationId: operation.id,[39m
+[31m+       // F-09, corrected by R2-7: the record now actually carries this (the[39m
+[31m+       // destructive mint stamps it; a pending confirmation is non-destructive by[39m
+[31m+       // construction and stamps nothing). No fallback heuristic, because there[39m
+[31m+       // is no longer anything to fall back FROM.[39m
+[31m+       destructive: Boolean(operation.destructive),[39m
+[31m+     });[39m
+[31m+     res.json({ success: true, operation });[39m
+[31m+   } catch (err) {[39m
+[31m+     logAICommandRouteError('[AICommand] Pending read-back error', err, req);[39m
+[31m+     res.status(500).json({ success: false, error: 'Failed to read the pending operation' });[39m
+[31m+   }[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ // ── GET /intents — bounded durable receipt list (S3/C5) ────────────────────[39m
+[31m+ // The default scope is the authenticated actor. Staff may request one target[39m
+[31m+ // client only after a fresh assignment check; there is no unscoped roster.[39m
+[31m+ router.get('/intents', protect, aiCommandRateLimiter, async (req, res) => {[39m
+[31m+   try {[39m
+[31m+     const limit = parseIntentLimit(req.query.limit);[39m
+[31m+     if (!limit) return res.status(400).json({ success: false, error: 'limit must be an integer from 1 to 50.' });[39m
+[31m+ [39m
+[31m+     const requestedTarget = req.query.targetClientId === undefined[39m
+[31m+       ? null[39m
+[31m+       : normalizeSelectedClientId(req.query.targetClientId);[39m
+[31m+     if (req.query.targetClientId !== undefined && !requestedTarget) {[39m
+[31m+       return res.status(400).json({ success: false, error: 'targetClientId must be a positive integer.' });[39m
+[31m+     }[39m
+[31m+     const page = await listCoachIntents({ model: getModel('CoachIntent'), user: req.user,[39m
+[31m+       targetClientId: requestedTarget, limit, cursor: req.query.cursor,[39m
+[31m+       readAssignedClientIds: listAssignedClientIds });[39m
+[31m+     return res.json({ success: true, ...page });[39m
+[31m+   } catch (err) {[39m
+[31m+     if (err instanceof CoachIntentListError) return res.status(err.status).json({ success: false, error: err.message });[39m
+[31m+     logAICommandRouteError('[AICommand] Intent list error', err, req);[39m
+[31m+     return res.status(503).json({ success: false, error: 'Failed to read coach intents.' });[39m
+[31m+   }[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ // ── GET /intents/:intentId — owner/assignment-gated receipt (S3/C5) ────────[39m
+[31m+ router.get('/intents/:intentId', protect, aiCommandRateLimiter, async (req, res) => {[39m
+[31m+   try {[39m
+[31m+     if (!INTENT_ID_PATTERN.test(String(req.params.intentId || ''))) return intentNotFound(res);[39m
+[31m+     const Model = getModel('CoachIntent');[39m
+[31m+     const intent = await readCoachIntent({ model: Model, intentId: req.params.intentId });[39m
+[31m+     if (!(await canReadIntent(intent, req.user))) return intentNotFound(res);[39m
+[31m+     return res.json({ success: true, intent: toPublicCoachIntent(intent) });[39m
+[31m+   } catch (err) {[39m
+[31m+     logAICommandRouteError('[AICommand] Intent read error', err, req);[39m
+[31m+     return res.status(500).json({ success: false, error: 'Failed to read coach intent.' });[39m
+[31m+   }[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {[39m
+[31m+   try {[39m
+[31m+     const { operationId, renderedDigest, confirmChannel } = req.body;[39m
+[31m+ [39m
+[31m+     if (!operationId) {[39m
+[31m+       return res.status(400).json({[39m
+[31m+         success: false,[39m
+[31m+         error: 'operationId is required',[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     // Card 1.1 / M1 — proof-of-render. The client sends a digest of the operation[39m
+[31m+     // it RENDERED; the server recomputes from the operation it STORED and refuses[39m
+[31m+     // on mismatch, so a stale tab cannot confirm op A while displaying op B.[39m
+[31m+     //[39m
+[31m+     // MODE: `observe` (default) accepts a missing digest and only counts it, so[39m
+[31m+     // this can ship before the sheet does; `enforce` requires one. Either way a[39m
+[31m+     // digest that is PRESENT and WRONG is always refused — accepting a known-bad[39m
+[31m+     // digest would make the check theatre.[39m
+[31m+     const digestMode = process.env.APPROVAL_RENDER_DIGEST === 'enforce' ? 'enforce' : 'observe';[39m
+[31m+     // One read serves both the render proof and the channel split below; two[39m
+[31m+     // peeks meant two store round-trips per confirmation for the same record.[39m
+[31m+     const { found, operation: peeked } = await peekOperation(operationId, req.user.id);[39m
+[31m+     if (renderedDigest !== undefined && renderedDigest !== null) {[39m
+[31m+       const stored = peeked;[39m
+[31m+       // SELF-REVIEW FIX (Opus, 2026-09-02): an operation that EXPIRED between[39m
+[31m+       // render and confirm was reported as `render_mismatch` — "what you approved[39m
+[31m+       // does not match" — which sends the operator hunting for a discrepancy that[39m
+[31m+       // does not exist. The remedies differ (re-open vs re-issue), so the codes[39m
+[31m+       // must too. `expired` is also what the sheet's state machine already[39m
+[31m+       // distinguishes from `mismatch`.[39m
+[31m+       if (!found) {[39m
+[31m+         void recordApprovalEvent({[39m
+[31m+           event: APPROVAL_EVENTS.EXPIRED, userId: req.user.id, userRole: req.user.role, operationId,[39m
+[31m+         });[39m
+[31m+         return res.status(400).json({[39m
+[31m+           success: false,[39m
+[31m+           code: 'expired',[39m
+[31m+           error: 'This approval expired or is no longer available. Re-issue the request.',[39m
+[31m+         });[39m
+[31m+       }[39m
+[31m+       if (!digestMatches(String(renderedDigest), renderDigestOf(stored))) {[39m
+[31m+         void recordApprovalEvent({[39m
+[31m+           event: APPROVAL_EVENTS.RENDER_MISMATCH, userId: req.user.id, userRole: req.user.role,[39m
+[31m+           operationId, commandType: stored?.commandType ?? null,[39m
+[31m+         });[39m
+[31m+         return res.status(400).json({[39m
+[31m+           success: false,[39m
+[31m+           code: 'render_mismatch',[39m
+[31m+           error: 'What you approved does not match the pending operation. Re-open it and confirm again.',[39m
+[31m+         });[39m
+[31m+       }[39m
+[31m+     } else if (digestMode === 'observe') {[39m
+[31m+       /**[39m
+[31m+        * R2-2 (GLM 5.3 round 2): the comment above promised observe mode[39m
+[31m+        * "accepts a missing digest and only counts it". Nothing counted it. The[39m
+[31m+        * ONLY record of a missing digest lived in the enforce branch, so in the[39m
+[31m+        * DEFAULT configuration a confirmation with no render proof was accepted[39m
+[31m+        * in silence — and the number an operator would use to decide whether it[39m
+[31m+        * is safe to flip enforce (how many callers still send no digest?) did not[39m
+[31m+        * exist. An observe mode that observes nothing is not a rollout plan, it[39m
+[31m+        * is an off switch with a comment on it.[39m
+[31m+        *[39m
+[31m+        * Same shape as APPROVAL_CHANNEL_MODE's observe branch, which I did get[39m
+[31m+        * right one commit earlier in this same file.[39m
+[31m+        */[39m
+[31m+       void recordApprovalEvent({[39m
+[31m+         event: APPROVAL_EVENTS.RENDER_MISMATCH, userId: req.user.id, userRole: req.user.role,[39m
+[31m+         operationId, commandType: peeked?.commandType ?? null,[39m
+[31m+         errorCode: 'render_digest_absent_observed',[39m
+[31m+       });[39m
+[31m+     } else if (digestMode === 'enforce') {[39m
+[31m+       void recordApprovalEvent({[39m
+[31m+         event: APPROVAL_EVENTS.RENDER_MISMATCH, userId: req.user.id, userRole: req.user.role, operationId,[39m
+[31m+       });[39m
+[31m+       return res.status(400).json({[39m
+[31m+         success: false,[39m
+[31m+         code: 'render_digest_required',[39m
+[31m+         error: 'This confirmation is missing its render proof. Re-open the operation and confirm again.',[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     /**[39m
+[31m+      * M3 CHANNEL SPLIT — enforced (F-03, GLM 5.3 round 1).[39m
+[31m+      *[39m
+[31m+      * The rule "the mishearing channel cannot authorize an identity-crossing[39m
+[31m+      * act" existed as an exported client helper that nothing called, plus a[39m
+[31m+      * comment. Both halves are now real: the mint stamped[39m
+[31m+      * `requiresPhysicalConfirm` (signed), and this refuses a voice-declared[39m
+[31m+      * confirmation of such an operation.[39m
+[31m+      *[39m
+[31m+      * HONEST SCOPE — read this before describing the guarantee. `confirmChannel`[39m
+[31m+      * is the CLIENT'S WORD. A hostile client omits it or says 'tap' and passes.[39m
+[31m+      * What this closes is the ACCIDENTAL path, which is the one the incident[39m
+[31m+      * actually took: ambient speech, a misheard "yes", a surface that never knew[39m
+[31m+      * the rule. Making it unforgeable needs a second factor the audio channel[39m
+[31m+      * cannot produce (card 4.2), and until that lands nobody may call this[39m
+[31m+      * authentication. It is a seatbelt, not a lock.[39m
+[31m+      *[39m
+[31m+      * A MISSING channel is treated as unproven, not as safe: an operation that[39m
+[31m+      * requires physical confirmation is refused unless the caller positively[39m
+[31m+      * declares a non-voice channel. Fail-closed, so a surface that has not been[39m
+[31m+      * taught the contract cannot confirm by silence.[39m
+[31m+      */[39m
+[31m+     const channelMode = process.env.APPROVAL_CHANNEL_MODE === 'observe' ? 'observe' : 'enforce';[39m
+[31m+     if (peeked?.requiresPhysicalConfirm) {[39m
+[31m+       const declared = typeof confirmChannel === 'string' ? confirmChannel : null;[39m
+[31m+       const permitted = declared === 'tap' || declared === 'keyboard';[39m
+[31m+       if (!permitted && channelMode === 'observe') {[39m
+[31m+         /**[39m
+[31m+          * OBSERVE — count who WOULD have been refused, and let them through.[39m
+[31m+          *[39m
+[31m+          * The default is `enforce`, unlike the render digest next door, and the[39m
+[31m+          * asymmetry is deliberate: `requiresPhysicalConfirm` can only be true on[39m
+[31m+          * operations minted by THIS release, and both confirm callers in the[39m
+[31m+          * repo declare a channel as of this commit (swept:[39m
+[31m+          * useConfirmationSheet and useCoachCommand). Shipping a security control[39m
+[31m+          * switched off is how `allowedConfirmChannels` became decoration in the[39m
+[31m+          * first place.[39m
+[31m+          *[39m
+[31m+          * The hatch exists so an incident — a caller nobody swept, a client we[39m
+[31m+          * do not build — can be defused by env var instead of a deploy, while[39m
+[31m+          * still recording every occurrence so the gap is visible rather than[39m
+[31m+          * merely survivable.[39m
+[31m+          */[39m
+[31m+         void recordApprovalEvent({[39m
+[31m+           event: APPROVAL_EVENTS.TIER_SPOOF, userId: req.user.id, userRole: req.user.role,[39m
+[31m+           operationId, commandType: peeked?.commandType ?? null,[39m
+[31m+           errorCode: 'physical_confirm_observed',[39m
+[31m+         });[39m
+[31m+       }[39m
+[31m+       if (!permitted && channelMode === 'enforce') {[39m
+[31m+         void recordApprovalEvent({[39m
+[31m+           event: APPROVAL_EVENTS.TIER_SPOOF, userId: req.user.id, userRole: req.user.role,[39m
+[31m+           operationId, commandType: peeked?.commandType ?? null,[39m
+[31m+           errorCode: 'physical_confirm_required',[39m
+[31m+         });[39m
+[31m+         return res.status(400).json({[39m
+[31m+           success: false,[39m
+[31m+           code: 'physical_confirm_required',[39m
+[31m+           error: 'This action affects a different client than the one you have open. Tap to confirm — saying so is not enough.',[39m
+[31m+         });[39m
+[31m+       }[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     // Current authority is required before consuming the stored approval.[39m
+[31m+     // A failed read preserves the operation for a later explicit confirmation.[39m
+[31m+     const recheck = await recheckEntityOwnership({ operation: peeked, user: req.user, sequelize });[39m
+[31m+     if (recheck.refuse) {[39m
+[31m+       const unavailable = recheck.reason === 'db_error';[39m
+[31m+       void recordApprovalEvent({[39m
+[31m+         event: APPROVAL_EVENTS.TIER_SPOOF, userId: req.user.id, userRole: req.user.role,[39m
+[31m+         operationId, commandType: peeked?.commandType ?? null,[39m
+[31m+         errorCode: 'entity_recheck_' + recheck.reason,[39m
+[31m+       });[39m
+[31m+       return res.status(unavailable ? 503 : 403).json({[39m
+[31m+         success: false,[39m
+[31m+         code: unavailable ? 'ACCESS_CHECK_UNAVAILABLE' : 'ACCESS_CHANGED',[39m
+[31m+         error: unavailable[39m
+[31m+           ? 'Current access could not be checked. Nothing was executed. Try reviewing again shortly.'[39m
+[31m+           : 'Your access to this action changed. Review a new request with your current access.',[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     const result = await executeConfirmedOperation(operationId, req.user, sequelize);[39m
+[31m+ [39m
+[31m+     // H6: a confirmed frontend dispatch gets the same eligibility gate as an[39m
+[31m+     // unconfirmed one — confirmation is about intent, not about client safety.[39m
+[31m+     if (result?.type === 'frontend_dispatch' && result?.event) {[39m
+[31m+       const gate = await gateCommandFrontendDispatch({[39m
+[31m+         event: result.event, payload: result.payload || {},[39m
+[31m+         targetClientId: result.client?.id ?? null, user: req.user,[39m
+[31m+       });[39m
+[31m+       if (!gate.allowed) {[39m
+[31m+         return res.json(buildDispatchRefusalResponse({ type: result.command }, gate.refusals));[39m
+[31m+       }[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     res.json(result);[39m
+[31m+   } catch (err) {[39m
+[31m+     logAICommandRouteError('[AICommand] Confirm route error', err, req, {[39m
+[31m+       operationIdPresent: Boolean(req.body?.operationId),[39m
+[31m+     });[39m
+[31m+     res.status(500).json({ success: false, error: 'Failed to execute confirmed operation' });[39m
+[31m+   }[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ // ── POST /cancel — Cancel a pending operation ───────────────────────────────[39m
+[31m+ [39m
+[31m+ // Card 1.5 (finding F14g): /cancel ran with `protect` ONLY while /execute and[39m
+[31m+ // /confirm both carried the kill switch and the rate limiter — so a paused lane[39m
+[31m+ // still mutated pending-operation state, and an authenticated endpoint whose[39m
+[31m+ // failures are unaudited had no rate limit at all. A kill switch that does not[39m
+[31m+ // kill the whole lane is a footnote waiting to become an incident.[39m
+[31m+ // aiCommandRouteGuardContract.test.mjs now walks the router and fails any[39m
+[31m+ // mutating route missing either guard, so this cannot regress one route at a time.[39m
+[31m+ router.post('/cancel', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {[39m
+[31m+   try {[39m
+[31m+     const { operationId } = req.body;[39m
+[31m+ [39m
+[31m+     if (!operationId) {[39m
+[31m+       return res.status(400).json({ success: false, error: 'operationId is required' });[39m
+[31m+     }[39m
+[31m+ [39m
+[31m+     const cancelled = await cancelOperation(operationId, req.user.id, req.user?.role ?? null);[39m
+[31m+     if (cancelled) {[39m
+[31m+       /**[39m
+[31m+        * F-11 (GLM 5.3 round 1): this wrote a bare `cancelled` outcome while[39m
+[31m+        * every other lifecycle point wrote `approval:*`. The approval funnel[39m
+[31m+        * reads by prefix, so cancellations — the denominator that says how often[39m
+[31m+        * operators back out — were invisible to it, and the funnel looked[39m
+[31m+        * complete while missing an entire exit. The write was also a floating[39m
+[31m+        * promise; `void` marks the best-effort contract deliberately rather than[39m
+[31m+        * leaving an unhandled rejection to chance.[39m
+[31m+        */[39m
+[31m+       void recordApprovalEvent({[39m
+[31m+         event: APPROVAL_EVENTS.CANCELLED,[39m
+[31m+         userId: req.user.id,[39m
+[31m+         userRole: req.user.role,[39m
+[31m+         operationId,[39m
+[31m+       });[39m
+[31m+     }[39m
+[31m+     res.json({[39m
+[31m+       success: cancelled,[39m
+[31m+       message: cancelled ? 'Operation cancelled.' : 'Operation not found or already expired.',[39m
+[31m+     });[39m
+[31m+   } catch (err) {[39m
+[31m+     logAICommandRouteError('[AICommand] Cancel route error', err, req, {[39m
+[31m+       operationIdPresent: Boolean(req.body?.operationId),[39m
+[31m+     });[39m
+[31m+     res.status(500).json({ success: false, error: 'Failed to cancel operation' });[39m
+[31m+   }[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ // ── GET /metrics/summary — Command success metrics (admin-only) ──────────────[39m
+[31m+ // v2 P2.2: read-side aggregation over the append-only AiCommandAuditLog.[39m
+[31m+ // Lazy service import keeps this route's module graph unchanged for existing[39m
+[31m+ // test harnesses that mock only the execute/confirm dependencies.[39m
+[31m+ [39m
+[31m+ router.get('/metrics/summary', protect, async (req, res) => {[39m
+[31m+   if (req.user?.role !== 'admin') {[39m
+[31m+     return res.status(403).json({ success: false, error: 'Admin access required' });[39m
+[31m+   }[39m
+[31m+   try {[39m
+[31m+     const { buildCoachCommandMetricsSummary } = await import('../services/ai/coachCommandMetricsSummary.mjs');[39m
+[31m+     const summary = await buildCoachCommandMetricsSummary({ days: req.query.days });[39m
+[31m+     res.json({ success: true, ...summary });[39m
+[31m+   } catch (err) {[39m
+[31m+     logAICommandRouteError('[AICommand] Metrics summary error', err, req);[39m
+[31m+     res.status(500).json({ success: false, error: 'Failed to build command metrics summary' });[39m
+[31m+   }[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ // ── GET /metrics/unhandled — Top asks Swan Coach could not act on (admin-only) ─[39m
+[31m+ // F1: the weekly product-discovery read. Cadence: read top-10 weekly, convert[39m
+[31m+ // 2-3 recurring asks per sprint into registry commands. Same lazy-import pattern[39m
+[31m+ // as /metrics/summary, same admin gate.[39m
+[31m+ [39m
+[31m+ router.get('/metrics/unhandled', protect, async (req, res) => {[39m
+[31m+   if (req.user?.role !== 'admin') {[39m
+[31m+     return res.status(403).json({ success: false, error: 'Admin access required' });[39m
+[31m+   }[39m
+[31m+   try {[39m
+[31m+     const { buildUnhandledUtteranceTop } = await import('../services/ai/unhandledUtteranceAudit.mjs');[39m
+[31m+     const report = await buildUnhandledUtteranceTop({ days: req.query.days, limit: req.query.limit });[39m
+[31m+     res.json({ success: true, ...report });[39m
+[31m+   } catch (err) {[39m
+[31m+     logAICommandRouteError('[AICommand] Unhandled-utterance report error', err, req);[39m
+[31m+     res.status(500).json({ success: false, error: 'Failed to build unhandled-utterance report' });[39m
+[31m+   }[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ // ── GET /commands — List available commands for current role ─────────────────[39m
+[31m+ [39m
+[31m+ router.get('/commands', protect, (req, res) => {[39m
+[31m+   try {[39m
+[31m+     const commands = getCommandsForRole(req.user.role);[39m
+[31m+     res.json({[39m
+[31m+       success: true,[39m
+[31m+       role: req.user.role,[39m
+[31m+       commandCount: commands.length,[39m
+[31m+       commands: commands.map(cmd => {[39m
+[31m+         const execution = getCommandExecutionLane(cmd);[39m
+[31m+         return {[39m
+[31m+           type: cmd.type,[39m
+[31m+           description: cmd.description,[39m
+[31m+           category: cmd.category,[39m
+[31m+           examples: cmd.naturalLanguagePatterns.slice(0, 2),[39m
+[31m+           destructive: cmd.destructive,[39m
+[31m+           requiresClientRef: cmd.requiresClientRef || false,[39m
+[31m+           policy: {[39m
+[31m+             ...cmd.policy,[39m
+[31m+             requiredDomainStates: [...(cmd.policy?.requiredDomainStates || [])],[39m
+[31m+           },[39m
+[31m+           ...execution,[39m
+[31m+         };[39m
+[31m+       }),[39m
+[31m+     });[39m
+[31m+   } catch (err) {[39m
+[31m+     logAICommandRouteError('[AICommand] Commands list error', err, req);[39m
+[31m+     res.status(500).json({ success: false, error: 'Failed to list commands' });[39m
+[31m+   }[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ // ── GET /health — Command engine health check ───────────────────────────────[39m
+[31m+ [39m
+[31m+ router.get('/health', protect, async (req, res) => {[39m
+[31m+   // 0.4b: async — the store contract is async now; a sync handler here would[39m
+[31m+   // serialise a Promise into the JSON (the exact trap the S2 handoff named).[39m
+[31m+   const allCommands = getAllCommandTypes();[39m
+[31m+ [39m
+[31m+   /**[39m
+[31m+    * The operational posture is ADMIN-ONLY (self-review, 2026-09-03).[39m
+[31m+    *[39m
+[31m+    * This block answers "is the destructive-approval proof actually enforcing,[39m
+[31m+    * and are approvals durable?" — which is exactly the reconnaissance an insider[39m
+[31m+    * wants before trying a stale-tab replay. It was behind `protect` alone, so[39m
+[31m+    * any authenticated account, including a CLIENT, could read it. Health for[39m
+[31m+    * everyone; posture for the people who respond to incidents.[39m
+[31m+    *[39m
+[31m+    * The endpoint still answers 200 for every authenticated caller so an existing[39m
+[31m+    * uptime monitor cannot be broken by this narrowing — the detail disappears,[39m
+[31m+    * the liveness signal does not.[39m
+[31m+    */[39m
+[31m+   const isOperator = req.user?.role === 'admin' || req.user?.role === 'trainer';[39m
+[31m+ [39m
+[31m+   res.json({[39m
+[31m+     success: true,[39m
+[31m+     engine: 'god-level-ai-command-v1',[39m
+[31m+     registeredCommands: allCommands.length,[39m
+[31m+     pendingOperations: await getPendingCount(req.user.id),[39m
+[31m+     status: allCommands.length > 0 ? 'operational' : 'no_commands_registered',[39m
+[31m+     ...(isOperator ? {[39m
+[31m+       // Card 1.5: during an incident the operator needs the EFFECTIVE state, not[39m
+[31m+       // the env string they think they set — and needs to know whether approvals[39m
+[31m+       // are durable, because an in-process store silently voids them on deploy.[39m
+[31m+       controls: describeLaneControls(),[39m
+[31m+       // F-06: a control that defaults to advisory and is invisible in /health is[39m
+[31m+       // a rollout plan, not a control. An incident commander must be able to see[39m
+[31m+       // whether each check is ENFORCING or merely counting.[39m
+[31m+       approvalModes: {[39m
+[31m+         renderDigest: process.env.APPROVAL_RENDER_DIGEST === 'enforce' ? 'enforce' : 'observe',[39m
+[31m+         /**[39m
+[31m+          * ADVISORY ONLY — say so, because an incident commander will otherwise[39m
+[31m+          * flip it and believe they hardened something.[39m
+[31m+          *[39m
+[31m+          * Self-review round 3, 2026-09-03: `APPROVAL_TIER_MODE` is read in[39m
+[31m+          * exactly one place in the executor, a LOG LINE. F-01 made a tier[39m
+[31m+          * refusal short-circuit in BOTH modes (authorization must never be a[39m
+[31m+          * rollout flag), and the ceremony the sheet renders comes from the[39m
+[31m+          * envelope regardless of mode. So the flag changes a log field and this[39m
+[31m+          * string, and nothing else.[39m
+[31m+          *[39m
+[31m+          * Reporting it beside renderDigest and channel — which DO gate[39m
+[31m+          * behaviour — invited exactly the wrong inference during the one moment[39m
+[31m+          * you cannot afford it. Either wire it or retire it; until then it says[39m
+[31m+          * what it is.[39m
+[31m+          */[39m
+[31m+         tier: {[39m
+[31m+           mode: process.env.APPROVAL_TIER_MODE === 'enforce' ? 'enforce' : 'observe',[39m
+[31m+           effect: 'advisory — refusals short-circuit in both modes; this flag changes logging only',[39m
+[31m+         },[39m
+[31m+         // Added after catching myself: I wrote the rule directly above, then[39m
+[31m+         // shipped APPROVAL_CHANNEL_MODE one commit later without surfacing it —[39m
+[31m+         // an invisible control, by the same definition, in the same file.[39m
+[31m+         channel: process.env.APPROVAL_CHANNEL_MODE === 'observe' ? 'observe' : 'enforce',[39m
+[31m+       },[39m
+[31m+       approvalStore: getPendingOperationStore().kind,[39m
+[31m+       approvalStoreDurable: Boolean(getPendingOperationStore().durable),[39m
+[31m+     } : {}),[39m
+[31m+   });[39m
+[31m+ });[39m
+[31m+ [39m
+[31m+ export default router;[39m
+[31m+[39m
+
+[36m [2m❯[22m tests/unit/aiCommandRouteFallbackSource.test.mjs:[2m24:30[22m[39m
+    [90m 22|[39m   it('keeps route-level command failures off raw exception messages an…
+    [90m 23|[39m     [34mexpect[39m([33mROUTE_SOURCE[39m)[33m.[39m[34mtoContain[39m([32m'const logAICommandRouteError ='[39m)[33m;[39m
+    [90m 24|[39m     [34mexpect[39m([33mROUTE_SOURCE[39m)[33m.[39mnot[33m.[39m[34mtoContain[39m([32m'error: err.message'[39m)[33m;[39m
+    [90m   |[39m                              [31m^[39m
+    [90m 25|[39m     [34mexpect[39m([33mROUTE_SOURCE[39m)[33m.[39mnot[33m.[39m[34mtoContain[39m([32m'stack: err.stack'[39m)[33m;[39m
+    [90m 26|[39m   })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/21]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m11 failed[39m[22m[2m | [22m[1m[32m1 passed[39m[22m[90m (12)[39m
+[2m      Tests [22m [1m[31m9 failed[39m[22m[2m | [22m[1m[32m87 passed[39m[22m[90m (96)[39m
+[2m   Start at [22m 12:53:25
+[2m   Duration [22m 2.69s[2m (transform 2.19s, setup 219ms, import 1.69s, tests 4.38s, environment 1ms)[22m
+

@@ -500,6 +500,16 @@
       "planFiles": [
         "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/44-g10-proactive-nudges.md"
       ]
+    },
+    {
+      "id": "G11",
+      "files": [
+        "backend/models/associations.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+      ],
+      "planFiles": [
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+      ]
     }
   ],
   "calls": 9,
@@ -1108,11 +1118,62 @@
       "type": "advance",
       "slice": "G10",
       "at": "2026-09-11T19:48:48.432Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "G11",
+        "files": [
+          "backend/models/associations.mjs",
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+        ],
+        "planFiles": [
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+        ]
+      },
+      "reason": "Sean 2026-09-11: continue slices. G11/S11 clean-candidate verification: full backend+frontend suites executed with baseline-proven failure disclosure, adopted CoachFact registered in the model registry (completing the G09 reconciliation), migrations syntax-checked, tsc/build green, release matrix + rollback documented. Real-DB/Redis/browser/eval harness stays with the final combined Astra review.",
+      "previousContractDigest": "838387458cc196e80045461c12b8725528ecca79d494d398c0e22d327bab0060",
+      "contractDigest": "3fb7ad75f8a47e15d12fdf570d8bc3f25d7caf02e315e2b64d41d9ff7f218448"
+    },
+    {
+      "type": "append-slice",
+      "slice": "FINAL",
+      "at": "2026-09-11T20:08:09.936Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G11",
+      "digest": "8520b611152331ba0abb0e414bb3e1d7dea65e38a928247c1c25abc2862b05c2",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g11-20260911/g11-tests-receipt.json",
+          "sha256": "4037843e774b5c1d6bcfb6b4f5cf177c1baca879fde60e503c96429e5cdfdc0d"
+        },
+        "build": {
+          "path": "tmp/coach-g11-20260911/g11-build-receipt.json",
+          "sha256": "8f2dfc4b2562de5ffdb5e89ad49f6211d8c2f4899a1bd557b512f3c947e74234"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G11",
+      "at": "2026-09-11T20:08:49.420Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G11",
+      "digest": "8520b611152331ba0abb0e414bb3e1d7dea65e38a928247c1c25abc2862b05c2"
+    },
+    {
+      "type": "advance",
+      "slice": "G11",
+      "at": "2026-09-11T20:08:49.487Z"
     }
   ],
   "status": "active",
   "stage": "final",
-  "index": 9,
+  "index": 10,
   "inFlight": null,
   "slices": [
     {
@@ -1528,9 +1589,36 @@
         }
       },
       "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "G11",
+      "allowedFiles": [
+        "backend/models/associations.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+      ],
+      "files": [
+        "backend/models/associations.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "8520b611152331ba0abb0e414bb3e1d7dea65e38a928247c1c25abc2862b05c2",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g11-20260911/g11-tests-receipt.json",
+          "sha256": "4037843e774b5c1d6bcfb6b4f5cf177c1baca879fde60e503c96429e5cdfdc0d"
+        },
+        "build": {
+          "path": "tmp/coach-g11-20260911/g11-build-receipt.json",
+          "sha256": "8f2dfc4b2562de5ffdb5e89ad49f6211d8c2f4899a1bd557b512f3c947e74234"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
     }
   ],
-  "contractDigest": "838387458cc196e80045461c12b8725528ecca79d494d398c0e22d327bab0060",
+  "contractDigest": "3fb7ad75f8a47e15d12fdf570d8bc3f25d7caf02e315e2b64d41d9ff7f218448",
   "finalReview": {
     "id": "FINAL",
     "files": [
@@ -1624,7 +1712,9 @@
       "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/43-g09-coachfact-scoped-memory.md",
       "backend/services/ai/coachProactiveNudge.mjs",
       "backend/tests/unit/coachProactiveNudge.test.mjs",
-      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/44-g10-proactive-nudges.md"
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/44-g10-proactive-nudges.md",
+      "backend/models/associations.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
     ],
     "allowedFiles": [
       "frontend/src/components/CoachConfirm/confirmationProjection.ts",
@@ -1711,7 +1801,9 @@
       "backend/tests/unit/coachFactsMigration.test.mjs",
       "backend/tests/unit/coachFactMemoryPolicy.test.mjs",
       "backend/services/ai/coachProactiveNudge.mjs",
-      "backend/tests/unit/coachProactiveNudge.test.mjs"
+      "backend/tests/unit/coachProactiveNudge.test.mjs",
+      "backend/models/associations.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
     ],
     "status": "build",
     "round": 0,
