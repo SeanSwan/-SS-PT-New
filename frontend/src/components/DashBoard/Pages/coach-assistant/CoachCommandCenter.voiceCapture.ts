@@ -138,7 +138,9 @@ export function useCoachCommandVoiceCapture({
 
   // G06/S7 — one foreground lifecycle over both capture lanes + TTS output.
   // The lifecycle never touches the action lane (cancel/abort of in-flight
-  // writes stays owned by CoachCommand/useAIChat).
+  // writes stays owned by CoachCommand/useAIChat). Gates are deliberately
+  // unconditional: every lane stop is a safe no-op when idle, so no
+  // active-state signal is needed.
   const { user } = useAuth();
   const lifecycle = useCoachVoiceLifecycle({
     authenticated: Boolean(user),
@@ -147,7 +149,6 @@ export function useCoachCommandVoiceCapture({
       setVoiceOverlayOpen(false);
     }, [speech]),
     stopSpeechOutput: speechOutputStop,
-    voiceActive: speech.listening || voiceOverlayOpen,
   });
 
   const handleVoice = useCallback(() => {

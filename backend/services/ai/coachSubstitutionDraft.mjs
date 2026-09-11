@@ -25,13 +25,16 @@ const READINESS_REVIEW_FLOOR = 3;
 
 /** A contraindication is ACTIVE only when explicitly marked active; unknown
  * activity (null/undefined active) is treated as requiring review, never as
- * safe and never as blocked. */
+ * safe and never as blocked. Returns 'metadata_missing' when the planned
+ * exercise carries no pattern/muscle/joint to match against — a vacuous
+ * check must never read as "no contraindication found". */
 function activeHardMatch(contraindications, plannedExercise) {
   const patterns = [
     String(plannedExercise?.pattern || '').toLowerCase(),
     String(plannedExercise?.muscleGroup || '').toLowerCase(),
     String(plannedExercise?.joint || '').toLowerCase(),
   ].filter(Boolean);
+  if (patterns.length === 0) return 'metadata_missing';
   for (const contra of Array.isArray(contraindications) ? contraindications : []) {
     if (contra?.active !== true) continue;
     const targets = [contra.pattern, contra.muscleGroup, contra.joint]
@@ -55,6 +58,13 @@ export function buildSubstitutionDraft({
   }
 
   const hard = activeHardMatch(contraindications, plannedExercise);
+  if (hard === 'metadata_missing') {
+    return {
+      status: 'requires_review',
+      reasons: ['planned_exercise_metadata_unknown'],
+      substitution: null,
+    };
+  }
   if (hard) {
     return {
       status: 'blocked',

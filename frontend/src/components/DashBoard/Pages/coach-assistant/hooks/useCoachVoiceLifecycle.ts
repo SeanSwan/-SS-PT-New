@@ -31,15 +31,12 @@ interface UseCoachVoiceLifecycleParams {
   stopCapture: () => void;
   /** Auth signal; a true -> false flip is treated as logout. */
   authenticated: boolean;
-  /** Whether any voice lane is currently foreground-active. */
-  voiceActive: boolean;
 }
 
 export function useCoachVoiceLifecycle({
   stopSpeechOutput,
   stopCapture,
   authenticated,
-  voiceActive,
 }: UseCoachVoiceLifecycleParams) {
   const outputStopRef = useRef(stopSpeechOutput);
   const captureStopRef = useRef(stopCapture);

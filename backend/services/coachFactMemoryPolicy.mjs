@@ -21,7 +21,6 @@ import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { invalidateCoachContextCache } from './ai/coachContextCache.mjs';
 import {
-  invalidateFact,
   CoachFactError,
   getActiveFactsForContext,
   proposeFacts,
@@ -30,23 +29,42 @@ import {
 export const PURGE_DEADLINE_HOURS = 24;
 
 /**
- * T35 — forget a fact: invalidate + tombstone timestamps + 24h purge clock +
- * immediate context-cache recheck for the client.
+ * T35 — forget a fact: tombstone + purge clock + immediate context-cache
+ * recheck for the client. Forget is a DELETION operation, not a status
+ * transition: it must work for any existing row (proposed, active, or
+ * already invalidated/superseded), because those rows still hold the
+ * client's content. An active row additionally transitions to invalidated
+ * through the adopted conditional update so retrieval excludes it instantly;
+ * the human-activation invariant is untouched (forget never activates).
  */
 export async function forgetFact({ factId, byUserId, now = new Date() } = {}) {
+  if (!Number(factId)) throw new CoachFactError('factId is required.', 400, 'COACH_FACT_ID_REQUIRED');
+  if (!Number.isInteger(Number(byUserId)) || Number(byUserId) <= 0) {
+    throw new CoachFactError('A human actor (byUserId) is required to forget a fact.', 400, 'COACH_FACT_ACTOR_REQUIRED');
+  }
   const CoachFact = getModel('CoachFact');
-  const fact = await invalidateFact({ factId, byUserId });
+  const existing = await CoachFact.findByPk(Number(factId));
+  if (!existing) throw new CoachFactError('Fact not found.', 404, 'COACH_FACT_NOT_FOUND');
+
+  if (existing.status === 'active') {
+    // Conditional update preserves the S1 invariant: only a human actor
+    // moves a fact out of the coach-visible set.
+    await CoachFact.update(
+      { status: 'invalidated' },
+      { where: { id: existing.id, status: 'active' } },
+    );
+  }
   const forgottenAt = now instanceof Date ? now : new Date(now);
   const purgeAfterAt = new Date(forgottenAt.getTime() + PURGE_DEADLINE_HOURS * 60 * 60 * 1000);
   await CoachFact.update(
     { forgottenAt, purgeAfterAt },
-    { where: { id: fact.id, status: 'invalidated' } },
+    { where: { id: existing.id } },
   );
   // Immediate cache recheck: any cached context envelope that embedded this
   // fact is dropped for this client.
-  const dropped = invalidateCoachContextCache({ targetClientId: fact.userId });
+  const dropped = invalidateCoachContextCache({ targetClientId: existing.userId });
   if (dropped > 0) logger.info(`[coachFactMemoryPolicy] forget recheck dropped ${dropped} cached context entries`);
-  return { ...fact, forgottenAt, purgeAfterAt };
+  return { ...existing, status: existing.status === 'active' ? 'invalidated' : existing.status, forgottenAt, purgeAfterAt };
 }
 
 /**

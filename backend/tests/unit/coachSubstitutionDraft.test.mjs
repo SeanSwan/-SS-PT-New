@@ -58,6 +58,21 @@ test('a plan swap with UNKNOWN contraindication data requires review — no fabr
   assert.equal(result.substitution, null);
 });
 
+test('hostile round 1: a planned exercise with no pattern metadata never clears', () => {
+  // No pattern/muscle/joint => the contraindication match is vacuous; clean
+  // pain/readiness and an empty contra list must still require review.
+  const result = buildSubstitutionDraft({
+    plannedExercise: { exerciseKey: 'mystery-move', equipment: {}, media: {} },
+    substitutions: CANDIDATES,
+    pain: 0,
+    readiness: 9,
+    contraindications: [],
+  });
+  assert.equal(result.status, 'requires_review');
+  assert.ok(result.reasons.includes('planned_exercise_metadata_unknown'));
+  assert.equal(result.substitution, null);
+});
+
 test('unknown pain and readiness data require review', () => {
   const result = buildSubstitutionDraft({
     plannedExercise: PLANNED,

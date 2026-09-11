@@ -22,7 +22,7 @@
 const DEFAULT_WINDOW_DAYS = 28;
 const SESSION_ROW_LIMIT = 240;
 
-const joinedSessionSql = (sinceIso) => [
+const joinedSessionSql = () => [
   'SELECT ws.id AS session_id, ws.status, ws.date,',
   '       we.id AS workout_exercise_id, we.exercise_id,',
   '       s.id AS set_id, s.reps_completed, s.weight_used',
@@ -69,7 +69,7 @@ export async function readCoachProgressRecords({ sequelize, userId, windowDays: 
   const options = { replacements: { userId: Number(userId), sinceDate } };
 
   const [flatRows, plannedRows, unitRows] = await Promise.all([
-    query(joinedSessionSql(sinceDate), options),
+    query(joinedSessionSql(), options),
     query(plannedSql, options),
     query(unitSql, options),
   ]);

@@ -30,7 +30,6 @@ describe('useCoachVoiceLifecycle', () => {
       authenticated: true,
       stopCapture,
       stopSpeechOutput,
-      voiceActive: true,
     }));
 
     setHidden(true);
@@ -50,7 +49,6 @@ describe('useCoachVoiceLifecycle', () => {
       authenticated: true,
       stopCapture,
       stopSpeechOutput,
-      voiceActive: false,
     }));
 
     act(() => {
@@ -68,7 +66,6 @@ describe('useCoachVoiceLifecycle', () => {
       authenticated,
       stopCapture,
       stopSpeechOutput,
-      voiceActive: true,
     }), { initialProps: { authenticated: true } });
 
     view.rerender({ authenticated: true });
@@ -86,7 +83,6 @@ describe('useCoachVoiceLifecycle', () => {
       authenticated: true,
       stopCapture,
       stopSpeechOutput,
-      voiceActive: true,
     }));
 
     view.unmount();
@@ -101,7 +97,6 @@ describe('useCoachVoiceLifecycle', () => {
       authenticated: true,
       stopCapture,
       stopSpeechOutput,
-      voiceActive: true,
     }));
 
     act(() => {

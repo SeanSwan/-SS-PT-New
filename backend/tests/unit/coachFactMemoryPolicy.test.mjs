@@ -130,6 +130,32 @@ describe('G09/T35 — remember, correct, forget with 24h purge', () => {
     expect(holder.model.rows.map((row) => row.id)).toEqual([4]);
   });
 
+  it('hostile round 1: forget works for non-active facts too (privacy deletion)', async () => {
+    // A PROPOSED fact was never retrievable, but it still holds the client's
+    // content — a privacy delete must tombstone and schedule its purge.
+    holder.model.rows.push(activeFact({ id: 20, status: 'proposed' }));
+    const proposedForget = await forgetFact({ factId: 20, byUserId: 7 });
+    expect(proposedForget.forgottenAt).toBeTruthy();
+    expect(new Date(proposedForget.purgeAfterAt).getTime())
+      .toBeGreaterThan(new Date(proposedForget.forgottenAt).getTime());
+    // Status untouched: forget never activates and never rewrites history.
+    expect(proposedForget.status).toBe('proposed');
+
+    // An already-superseded (invalidated) fact can also be forgotten.
+    holder.model.rows.push(activeFact({ id: 21, status: 'invalidated' }));
+    const invalidatedForget = await forgetFact({ factId: 21, byUserId: 7 });
+    expect(invalidatedForget.status).toBe('invalidated');
+    expect(invalidatedForget.purgeAfterAt).toBeTruthy();
+  });
+
+  it('hostile round 1: forget requires a human actor and rejects unknown facts', async () => {
+    holder.model.rows.push(activeFact({ id: 22, status: 'active' }));
+    await expect(forgetFact({ factId: 22, byUserId: null })).rejects.toThrow(/human actor/i);
+    await expect(forgetFact({ factId: 999, byUserId: 7 })).rejects.toThrow(/not found/i);
+    // Nothing was mutated by the rejected calls.
+    expect(holder.model.rows[0].forgottenAt).toBeUndefined();
+  });
+
   it('correcting a fact supersedes the old version (versioned edits)', async () => {
     // S1 lifecycle: correct = new version + invalidate(old, supersededBy=new).
     holder.model.rows.push(activeFact({ id: 5, status: 'active', approvedByUserId: 7, content: 'prefers morning sessions' }));
