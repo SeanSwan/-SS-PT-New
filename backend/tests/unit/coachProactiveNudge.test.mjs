@@ -134,6 +134,17 @@ describe('G10/T39 — DST quiet hours, duplicates, snooze, caps, dedupe', () => 
     }).decision).toBe(DELIVERY_DECISIONS.DUE);
   });
 
+  it('hostile round 2: every decision carries the candidate local hour for support', () => {
+    const quiet = planNudgeDelivery({
+      now: new Date('2026-07-15T19:00:00Z'), timezoneOffsetMinutes: 120, consented: true,
+    });
+    expect(quiet.localHourAtCandidate).toBe(21);
+    const due = planNudgeDelivery({
+      now: new Date('2026-07-15T17:00:00Z'), timezoneOffsetMinutes: 60, consented: true,
+    });
+    expect(due.localHourAtCandidate).toBe(18);
+  });
+
   it('never delivers without explicit opt-in and never against a master disable', () => {
     expect(planNudgeDelivery({
       now: new Date('2026-07-15T17:00:00Z'), consented: false,

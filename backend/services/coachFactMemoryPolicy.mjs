@@ -107,7 +107,16 @@ export async function getMemoryForTask({ actorId, targetUserId, taskPrivate = fa
     return { facts: [], disabled: 'private_task', targetUserId: Number(targetUserId) };
   }
   void actorId; // authorization is enforced upstream by the task context.
-  const facts = await getActiveFactsForContext({ userId: Number(targetUserId), ...(cap ? { cap } : {}) });
+  // Cap honesty: 0 means "no facts" (it must never fall through to the
+  // service's default cap via a falsy skip); only positive integers pass.
+  const capNumber = Number(cap);
+  if (Number.isInteger(capNumber) && capNumber <= 0) {
+    return { facts: [], disabled: null, targetUserId: Number(targetUserId) };
+  }
+  const facts = await getActiveFactsForContext({
+    userId: Number(targetUserId),
+    ...(Number.isInteger(capNumber) && capNumber > 0 ? { cap: capNumber } : {}),
+  });
   return { facts, disabled: null, targetUserId: Number(targetUserId) };
 }
 

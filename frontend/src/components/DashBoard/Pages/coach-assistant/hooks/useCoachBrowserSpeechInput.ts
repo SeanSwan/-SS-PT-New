@@ -98,25 +98,24 @@ function appendTranscript(previous: string, chunk: string): string {
 }
 
 /**
- * G06/T30 — append one final chunk unless it repeats one of the last two
- * finals of this session (speaker echo / restart re-emission): one final
- * draft segment per spoken segment. The two-final window catches restarts
- * that re-emit an adjacent [A, B] pair; non-adjacent repeats are legitimate
- * speech and pass. Returns the joined text plus the cursor to persist.
+ * G06/T30 — append one final chunk unless it was already appended this
+ * SESSION (speaker echo / restart re-emission): one final draft segment per
+ * spoken segment. The session-scoped Set catches a full re-emission of any
+ * number of finals, not just the adjacent pair; it is bounded by the armed
+ * session itself and reset on arm/stop. Returns the joined text plus the
+ * cursor Set to persist.
  */
 export function appendUniqueFinal(
   previous: string,
   chunk: string,
-  recentFinals: string[],
-): { text: string; recentFinals: string[] } {
+  recentFinals: Set<string>,
+): { text: string; recentFinals: Set<string> } {
   const trimmed = chunk.trim();
-  if (!trimmed || recentFinals.includes(trimmed)) {
+  if (!trimmed || recentFinals.has(trimmed)) {
     return { text: previous, recentFinals };
   }
-  return {
-    text: appendTranscript(previous, trimmed),
-    recentFinals: [trimmed, ...recentFinals].slice(0, 2),
-  };
+  recentFinals.add(trimmed);
+  return { text: appendTranscript(previous, trimmed), recentFinals };
 }
 
 interface UseCoachBrowserSpeechInputParams {
@@ -140,8 +139,8 @@ export function useCoachBrowserSpeechInput({
   const lastStartAtRef = useRef(0);
   // Fallback dedupe cursor for engines whose events omit resultIndex.
   const seenResultsRef = useRef(0);
-  // G06/T30 — last two finals appended this session; an adjacent repeat is echo.
-  const recentFinalsRef = useRef<string[]>([]);
+  // G06/T30 — finals appended this armed session; any repeat is echo.
+  const recentFinalsRef = useRef<Set<string>>(new Set());
 
   const clearInterim = useCallback(() => {
     setInterim('');
@@ -252,7 +251,7 @@ export function useCoachBrowserSpeechInput({
     setInterim('');
     // G06/T32 — a stop ends the session: resumption starts a fresh dedupe
     // cursor so a resumed session is a new capture, never a continuation.
-    recentFinalsRef.current = [];
+    recentFinalsRef.current = new Set();
   }, []);
 
   const toggleListening = useCallback(() => {
@@ -269,7 +268,7 @@ export function useCoachBrowserSpeechInput({
       setInputError(null);
       armedRef.current = true;
       restartsRef.current = 0;
-      recentFinalsRef.current = [];
+      recentFinalsRef.current = new Set();
       startRecognition(SpeechRecognition);
       setListening(true);
     } catch {

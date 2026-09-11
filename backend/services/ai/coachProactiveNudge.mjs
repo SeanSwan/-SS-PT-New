@@ -76,24 +76,26 @@ export function planNudgeDelivery({
   category = 'general',
 } = {}) {
   const instant = now instanceof Date ? now : new Date(now);
-  if (!enabled) return { decision: DELIVERY_DECISIONS.DISABLED, reason: 'nudges_disabled' };
-  if (!consented) return { decision: DELIVERY_DECISIONS.NOT_CONSENTED, reason: 'no_active_consent' };
+  const localHourAtCandidate = localHour(instant, timezoneOffsetMinutes);
+  const withContext = (outcome) => ({ ...outcome, localHourAtCandidate });
+  if (!enabled) return withContext({ decision: DELIVERY_DECISIONS.DISABLED, reason: 'nudges_disabled' });
+  if (!consented) return withContext({ decision: DELIVERY_DECISIONS.NOT_CONSENTED, reason: 'no_active_consent' });
 
   if (snoozedUntil) {
     const snoozeUntil = snoozedUntil instanceof Date ? snoozedUntil : new Date(snoozedUntil);
     if (snoozeUntil.getTime() > instant.getTime()) {
-      return { decision: DELIVERY_DECISIONS.SNOOZED, reason: 'snoozed_until_future' };
+      return withContext({ decision: DELIVERY_DECISIONS.SNOOZED, reason: 'snoozed_until_future' });
     }
   }
 
   if (isQuietHour(instant, timezoneOffsetMinutes)) {
-    return { decision: DELIVERY_DECISIONS.QUIET_HOURS, reason: 'local_quiet_hours_20_08' };
+    return withContext({ decision: DELIVERY_DECISIONS.QUIET_HOURS, reason: 'local_quiet_hours_20_08' });
   }
 
   if (lastDeliveredAt) {
     const last = lastDeliveredAt instanceof Date ? lastDeliveredAt : new Date(lastDeliveredAt);
     if (sameLocalDay(last, instant, timezoneOffsetMinutes)) {
-      return { decision: DELIVERY_DECISIONS.DAILY_CAP, reason: 'one_per_local_day' };
+      return withContext({ decision: DELIVERY_DECISIONS.DAILY_CAP, reason: 'one_per_local_day' });
     }
   }
 
@@ -103,11 +105,11 @@ export function planNudgeDelivery({
       : new Date(lastCategoryAt[category]);
     const days = clearDaysBetween(lastForCategory, instant, timezoneOffsetMinutes);
     if (days < WEEKLY_DEDUPE_DAYS) {
-      return { decision: DELIVERY_DECISIONS.WEEKLY_DEDUPE, reason: `same_category_within_${WEEKLY_DEDUPE_DAYS}_days` };
+      return withContext({ decision: DELIVERY_DECISIONS.WEEKLY_DEDUPE, reason: `same_category_within_${WEEKLY_DEDUPE_DAYS}_days` });
     }
   }
 
-  return { decision: DELIVERY_DECISIONS.DUE, reason: 'opted_in_and_due' };
+  return withContext({ decision: DELIVERY_DECISIONS.DUE, reason: 'opted_in_and_due' });
 }
 
 /**

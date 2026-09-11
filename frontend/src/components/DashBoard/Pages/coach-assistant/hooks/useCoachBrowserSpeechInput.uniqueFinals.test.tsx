@@ -156,6 +156,30 @@ describe('useCoachBrowserSpeechInput unique final segments (G06/T30)', () => {
     expect(composedText(setText)).toBe('program push day then mobility');
   });
 
+  it('hostile round 2: a full-session re-emission of three finals lands once each', async () => {
+    (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition = MockRecognition;
+    const { setText } = await renderSpeechProbe();
+    armDictation();
+
+    const first = MockRecognition.latest as MockRecognition;
+    act(() => emitResults(first, [
+      final_('program push day'),
+      final_('then mobility'),
+      final_('then core'),
+    ]));
+    act(() => {
+      first.onend?.();
+    });
+    const restarted = MockRecognition.latest as MockRecognition;
+    act(() => emitResults(restarted, [
+      final_('program push day'),
+      final_('then mobility'),
+      final_('then core'),
+    ]));
+
+    expect(composedText(setText)).toBe('program push day then mobility then core');
+  });
+
   it('resets the dedupe cursor on a fresh arm so resumption is a new session', async () => {
     (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition = MockRecognition;
     const { setText } = await renderSpeechProbe();

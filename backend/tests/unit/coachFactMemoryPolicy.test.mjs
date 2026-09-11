@@ -201,6 +201,14 @@ describe('G09/T36 — private tasks and cross-client scoping', () => {
     expect(memory.facts[0].userId).toBe(42);
     expect(memory.facts.some((fact) => fact.userId === 99)).toBe(false);
   });
+
+  it('hostile round 2: cap 0 means zero facts, not the default cap', async () => {
+    holder.model.rows.push(activeFact({ id: 15, userId: 42, status: 'active', approvedByUserId: 7 }));
+    const zero = await getMemoryForTask({ actorId: 7, targetUserId: 42, cap: 0 });
+    expect(zero.facts).toEqual([]);
+    const one = await getMemoryForTask({ actorId: 7, targetUserId: 42, cap: 1 });
+    expect(one.facts).toHaveLength(1);
+  });
 });
 
 describe('G09/T37 — stale memory vs authoritative record', () => {
