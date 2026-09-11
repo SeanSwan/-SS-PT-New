@@ -1,6 +1,5 @@
 /**
  * useCoachBrowserSpeechInput.ts
- * =============================
  * Browser Web Speech dictation for the Swan Coach composer.
  *
  * Contract (2026-07-13 rework — "stops early / places partial text" fix):
@@ -11,11 +10,10 @@
  * breath and submitted half a thought. Chrome also ends continuous
  * sessions on its own (~60s / service blips), so while armed the hook
  * transparently restarts recognition instead of dying silently.
- *
  * Runtime support is stricter than constructor detection: browsers can
- * expose SpeechRecognition while the backing service is unavailable
- * (Brave). Those failures surface so the recorder/transcription lane can
- * take over.
+ * expose SpeechRecognition while the backing service is unavailable (Brave).
+ * Those failures surface so the recorder/transcription lane can take over.
+ * G06: session-scoped echo dedupe (appendUniqueFinal), reset on stop.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
@@ -69,26 +67,23 @@ function getBrowserSpeechRecognition(): SpeechRecognitionCtor | null {
   return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null;
 }
 
+const RUNTIME_FAILURES: Record<string, CoachSpeechRuntimeFailure> = {
+  'not-allowed': {
+    message: 'Microphone access was blocked. Allow microphone permission, then try again.',
+    canTryRecorder: false,
+  },
+  'audio-capture': {
+    message: 'No working microphone was detected. Check the input device and browser permission.',
+    canTryRecorder: false,
+  },
+  network: {
+    message: 'The browser speech service lost its connection. Recorder fallback is available.',
+    canTryRecorder: true,
+  },
+};
+
 function runtimeFailureFor(error?: string): CoachSpeechRuntimeFailure {
-  if (error === 'not-allowed') {
-    return {
-      message: 'Microphone access was blocked. Allow microphone permission, then try again.',
-      canTryRecorder: false,
-    };
-  }
-  if (error === 'audio-capture') {
-    return {
-      message: 'No working microphone was detected. Check the input device and browser permission.',
-      canTryRecorder: false,
-    };
-  }
-  if (error === 'network') {
-    return {
-      message: 'The browser speech service lost its connection. Recorder fallback is available.',
-      canTryRecorder: true,
-    };
-  }
-  return {
+  return RUNTIME_FAILURES[error ?? ''] ?? {
     message: 'Browser dictation stopped unexpectedly. Recorder fallback is available.',
     canTryRecorder: true,
   };
@@ -100,6 +95,28 @@ function appendTranscript(previous: string, chunk: string): string {
   if (!trimmedChunk) return previous;
   if (!previous) return trimmedChunk;
   return /\s$/.test(previous) ? previous + trimmedChunk : `${previous} ${trimmedChunk}`;
+}
+
+/**
+ * G06/T30 — append one final chunk unless it repeats one of the last two
+ * finals of this session (speaker echo / restart re-emission): one final
+ * draft segment per spoken segment. The two-final window catches restarts
+ * that re-emit an adjacent [A, B] pair; non-adjacent repeats are legitimate
+ * speech and pass. Returns the joined text plus the cursor to persist.
+ */
+export function appendUniqueFinal(
+  previous: string,
+  chunk: string,
+  recentFinals: string[],
+): { text: string; recentFinals: string[] } {
+  const trimmed = chunk.trim();
+  if (!trimmed || recentFinals.includes(trimmed)) {
+    return { text: previous, recentFinals };
+  }
+  return {
+    text: appendTranscript(previous, trimmed),
+    recentFinals: [trimmed, ...recentFinals].slice(0, 2),
+  };
 }
 
 interface UseCoachBrowserSpeechInputParams {
@@ -123,6 +140,8 @@ export function useCoachBrowserSpeechInput({
   const lastStartAtRef = useRef(0);
   // Fallback dedupe cursor for engines whose events omit resultIndex.
   const seenResultsRef = useRef(0);
+  // G06/T30 — last two finals appended this session; an adjacent repeat is echo.
+  const recentFinalsRef = useRef<string[]>([]);
 
   const clearInterim = useCallback(() => {
     setInterim('');
@@ -154,10 +173,19 @@ export function useCoachBrowserSpeechInput({
         : seenResultsRef.current;
       let finalText = '';
       let interimText = '';
+      // Per-result dedupe: the cursor persists across events and engine
+      // restarts for the whole armed session, so echoed/re-emitted finals
+      // land once while distinct finals still append with spacing.
+      let recentFinals = recentFinalsRef.current;
       for (let i = startIndex; i < event.results.length; i += 1) {
         const result = event.results[i];
-        if (result.isFinal) finalText += result[0].transcript;
-        else interimText += result[0].transcript;
+        if (result.isFinal) {
+          const merged = appendUniqueFinal(finalText, result[0].transcript, recentFinals);
+          finalText = merged.text;
+          recentFinals = merged.recentFinals;
+        } else {
+          interimText += result[0].transcript;
+        }
       }
       // Advance the fallback cursor past every finalized result.
       let finalizedCount = 0;
@@ -169,6 +197,7 @@ export function useCoachBrowserSpeechInput({
       if (finalText) {
         setText((previous) => appendTranscript(previous, finalText));
       }
+      recentFinalsRef.current = recentFinals;
       setInterim(interimText);
     };
 
@@ -221,6 +250,9 @@ export function useCoachBrowserSpeechInput({
     current?.stop();
     setListening(false);
     setInterim('');
+    // G06/T32 — a stop ends the session: resumption starts a fresh dedupe
+    // cursor so a resumed session is a new capture, never a continuation.
+    recentFinalsRef.current = [];
   }, []);
 
   const toggleListening = useCallback(() => {
@@ -237,6 +269,7 @@ export function useCoachBrowserSpeechInput({
       setInputError(null);
       armedRef.current = true;
       restartsRef.current = 0;
+      recentFinalsRef.current = [];
       startRecognition(SpeechRecognition);
       setListening(true);
     } catch {

@@ -15,7 +15,7 @@
  *   → useGeminiTranscription → POST /api/ai-chat/transcribe → text result
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { safeMicrophoneFailure } from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
@@ -30,6 +30,10 @@ export interface UseVoiceRecorderReturn {
   error: string | null;
   start: () => Promise<void>;
   stop: () => void;
+  /** G06/T31 hard teardown: stop tracks and reset WITHOUT publishing a blob
+   * (so no transcription can fire). Used when the surface loses the
+   * foreground (background/logout/switch). */
+  abort: () => void;
   reset: () => void;
   /** Live mic RMS 0..1 for level-reactive UI; 0 when unavailable. */
   getAudioLevel: () => number;
@@ -74,6 +78,9 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const levelBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  // G06/T31 — set by abort() so a resolve() racing an abort cannot start an
+  // invisible recording with no UI attached.
+  const cancelledRef = useRef(false);
 
   const cleanup = useCallback(() => {
     if (timerRef.current) {
@@ -96,12 +103,19 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
   const start = useCallback(async () => {
     try {
+      cancelledRef.current = false;
       setError(null);
       setAudioBlob(null);
       setDuration(0);
       setState('requesting');
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Abort raced the permission prompt: release the mic immediately and
+      // stay idle — no recorder, no UI, no orphan track.
+      if (cancelledRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       streamRef.current = stream;
 
       // Optional level meter — recording works fine without it.
@@ -164,6 +178,22 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     }
   }, []);
 
+  const abort = useCallback(() => {
+    // Detach the async handlers first: a plain stop() would publish an empty
+    // blob into the transcription lane when onstop fires after cleanup.
+    cancelledRef.current = true;
+    if (recorderRef.current && recorderRef.current.state === 'recording') {
+      recorderRef.current.onstop = null;
+      recorderRef.current.ondataavailable = null;
+      recorderRef.current.stop();
+    }
+    cleanup();
+    setState('idle');
+    setAudioBlob(null);
+    setDuration(0);
+    setError(null);
+  }, [cleanup]);
+
   const getAudioLevel = useCallback((): number => {
     const analyser = analyserRef.current;
     const buffer = levelBufferRef.current;
@@ -179,6 +209,9 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   }, []);
 
   const reset = useCallback(() => {
+    // Same race guard as abort(): a pending getUserMedia must not attach a
+    // stream after the surface threw the capture away.
+    cancelledRef.current = true;
     cleanup();
     setState('idle');
     setAudioBlob(null);
@@ -186,5 +219,20 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     setError(null);
   }, [cleanup]);
 
-  return { state, audioBlob, duration, error, start, stop, reset, getAudioLevel };
+  // G06/T31 — surface teardown must release the mic even when no stop()/abort()
+  // ran: cleanup previously only fired from onstop/reset, so unmounting
+  // mid-recording (route switch, parent teardown) leaked the live track.
+  useEffect(() => () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      void audioContextRef.current.close().catch(() => undefined);
+      audioContextRef.current = null;
+    }
+  }, []);
+
+  return { state, audioBlob, duration, error, start, stop, abort, reset, getAudioLevel };
 }

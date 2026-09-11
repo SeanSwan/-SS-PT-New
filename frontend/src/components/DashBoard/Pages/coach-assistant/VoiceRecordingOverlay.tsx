@@ -77,6 +77,30 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
     onClose();
   }, [recorder, transcription, onClose]);
 
+  // G06/T31 — backgrounding mid-capture hard-stops the mic tracks and tears
+  // the capture down WITHOUT transcribing: nothing auto-sends, no track keeps
+  // recording, and an audio stop is never an action cancel. A finished
+  // transcript preview has no live tracks, so it survives a background flip.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onBackground = () => {
+      if (!document.hidden) return;
+      if (recorder.state !== 'recording' && recorder.state !== 'requesting') return;
+      recorder.abort();
+      transcription.reset();
+      setPreviewReady(false);
+      onClose();
+    };
+
+    document.addEventListener('visibilitychange', onBackground);
+    window.addEventListener('pagehide', onBackground);
+    return () => {
+      document.removeEventListener('visibilitychange', onBackground);
+      window.removeEventListener('pagehide', onBackground);
+    };
+  }, [isOpen, onClose, recorder, transcription]);
+
   const handlePreviewSend = useCallback(() => {
     onTranscribed(transcription.text);
     handleClose();

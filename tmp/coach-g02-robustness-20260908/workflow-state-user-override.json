@@ -425,6 +425,24 @@
         "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
         "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
       ]
+    },
+    {
+      "id": "G06",
+      "files": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useVoiceRecorder.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.voiceCapture.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.uniqueFinals.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx"
+      ],
+      "planFiles": [
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/40-g06-voice-lifecycle.md"
+      ]
     }
   ],
   "calls": 9,
@@ -753,11 +771,70 @@
       "type": "advance",
       "slice": "G05",
       "at": "2026-09-10T00:57:57.492Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "G06",
+        "files": [
+          "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useVoiceRecorder.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.voiceCapture.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.test.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.uniqueFinals.test.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx",
+          "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx"
+        ],
+        "planFiles": [
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/40-g06-voice-lifecycle.md"
+        ]
+      },
+      "reason": "Sean 2026-09-11: continue slices one by one with per-slice hostile review until clean. G06/S7 foreground speech lifecycle per packet 31 (G06 row) and verification contract 32 (T30-T32).",
+      "previousContractDigest": "69ed890dffa19e558aecfc60a31b19dd5ab462f7b908e166bd1b211f7c53cb4f",
+      "contractDigest": "5c039276dc362455eb5f9e0a49c23f3a64665e2c2f23bcd60228b0ecb9fed0d5"
+    },
+    {
+      "type": "append-slice",
+      "slice": "FINAL",
+      "at": "2026-09-11T08:02:57.678Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G06",
+      "digest": "b887c9ccdb58be803459bcb24383717a89dafc0b96909cbb61d9e02f8f9f8054",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g06-20260911/g06-tests-receipt.json",
+          "sha256": "9cb7e0e0610ff85a6917ea101f8c860c7d97eebff463415399482b9b846dd3d5"
+        },
+        "build": {
+          "path": "tmp/coach-g06-20260911/g06-build-receipt.json",
+          "sha256": "009df2c0109a8909b4e53d353dd8d7cbe27c729f8a1b7e840c513a1b24baed94"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G06",
+      "at": "2026-09-11T08:45:07.765Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G06",
+      "digest": "b887c9ccdb58be803459bcb24383717a89dafc0b96909cbb61d9e02f8f9f8054"
+    },
+    {
+      "type": "advance",
+      "slice": "G06",
+      "at": "2026-09-11T08:45:24.950Z"
     }
   ],
   "status": "active",
   "stage": "final",
-  "index": 4,
+  "index": 5,
   "inFlight": null,
   "slices": [
     {
@@ -983,9 +1060,53 @@
         }
       },
       "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "G06",
+      "allowedFiles": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useVoiceRecorder.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.voiceCapture.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.uniqueFinals.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx"
+      ],
+      "files": [
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useVoiceRecorder.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.voiceCapture.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.uniqueFinals.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx",
+        "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/40-g06-voice-lifecycle.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "b887c9ccdb58be803459bcb24383717a89dafc0b96909cbb61d9e02f8f9f8054",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g06-20260911/g06-tests-receipt.json",
+          "sha256": "9cb7e0e0610ff85a6917ea101f8c860c7d97eebff463415399482b9b846dd3d5"
+        },
+        "build": {
+          "path": "tmp/coach-g06-20260911/g06-build-receipt.json",
+          "sha256": "009df2c0109a8909b4e53d353dd8d7cbe27c729f8a1b7e840c513a1b24baed94"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
     }
   ],
-  "contractDigest": "69ed890dffa19e558aecfc60a31b19dd5ab462f7b908e166bd1b211f7c53cb4f",
+  "contractDigest": "5c039276dc362455eb5f9e0a49c23f3a64665e2c2f23bcd60228b0ecb9fed0d5",
   "finalReview": {
     "id": "FINAL",
     "files": [
@@ -1040,7 +1161,18 @@
       "backend/tests/unit/coachEvidenceTools.test.mjs",
       "backend/tests/unit/coachContextCache.test.mjs",
       "backend/tests/unit/coachCallerInventory.test.mjs",
-      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useVoiceRecorder.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.voiceCapture.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.uniqueFinals.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/40-g06-voice-lifecycle.md"
     ],
     "allowedFiles": [
       "frontend/src/components/CoachConfirm/confirmationProjection.ts",
@@ -1093,7 +1225,17 @@
       "backend/tests/unit/coachEvidenceTools.test.mjs",
       "backend/tests/unit/coachContextCache.test.mjs",
       "backend/tests/unit/coachCallerInventory.test.mjs",
-      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useVoiceRecorder.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.voiceCapture.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.uniqueFinals.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx"
     ],
     "status": "build",
     "round": 0,

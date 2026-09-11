@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CoachCommandCenterPage from './CoachCommandCenterPage';
+import { CoachSessionDraftProvider } from './CoachSessionDraftContext';
 
 const useCoachIntakeQueueMock = vi.hoisted(() => vi.fn());
 const useAIChatMock = vi.hoisted(() => vi.fn());
@@ -17,6 +18,7 @@ const speechMock = vi.hoisted(() => ({
   interim: '',
   listening: false,
   speechSupported: true,
+  stopListening: vi.fn(),
   toggleListening: vi.fn(),
 }));
 
@@ -123,7 +125,11 @@ function setRecorderSupport(supported: boolean) {
 function renderPage() {
   return render(
     <MemoryRouter initialEntries={['/dashboard/admin/coach-assistant']}>
-      <CoachCommandCenterPage />
+      {/* G06 baseline repair: the G04a shell-owned draft provider wraps every
+          dashboard surface; this test predated it and threw on mount. */}
+      <CoachSessionDraftProvider actorId={1} actorRole="admin">
+        <CoachCommandCenterPage />
+      </CoachSessionDraftProvider>
     </MemoryRouter>,
   );
 }
@@ -136,6 +142,7 @@ describe('CoachCommandCenter voice input', () => {
     confirmCommandMock.mockReset();
     cancelCommandMock.mockReset();
     speechMock.clearInterim.mockReset();
+    speechMock.stopListening.mockReset();
     speechMock.toggleListening.mockReset();
     speechMock.interim = '';
     speechMock.listening = false;

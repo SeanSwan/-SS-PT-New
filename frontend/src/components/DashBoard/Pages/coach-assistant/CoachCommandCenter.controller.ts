@@ -170,7 +170,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     setSelectedStatus('Guide prompt staged for review');
     window.setTimeout(() => commandTextRef.current?.focus(), 0);
   }, []);
-  const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setInputOrigin, setSelectedStatus });
+  const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setInputOrigin, setSelectedStatus, speechOutputStop: tts.stop });
   const notebook = useCoachClientNotebook({ actorId, clientId: effectiveClientId, clientLabel: selectedClientLabel,
     commandText, commandTextRef, setCommandText, setSelectedStatus });
   const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });

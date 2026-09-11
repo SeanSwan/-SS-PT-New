@@ -1,0 +1,21 @@
+{
+  "slice": {
+    "id": "G06",
+    "files": [
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useVoiceRecorder.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.voiceCapture.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.uniqueFinals.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx",
+      "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx"
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/40-g06-voice-lifecycle.md"
+  ],
+  "reason": "Sean 2026-09-11: continue slices one by one with per-slice hostile review until clean. G06/S7 foreground speech lifecycle per packet 31 (G06 row) and verification contract 32 (T30-T32)."
+}

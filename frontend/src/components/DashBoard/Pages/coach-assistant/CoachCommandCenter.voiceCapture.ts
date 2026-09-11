@@ -5,11 +5,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { mergeVoiceCaptureOrigin, type CoachInputOrigin } from '../../../../hooks/coachInputOrigin';
+import { useAuth } from '../../../../hooks/useAuth';
 import { capturedVoiceText, resolveVoiceCommandText } from './CoachCommandCenter.voiceText';
 import {
   useCoachBrowserSpeechInput,
   type CoachSpeechRuntimeFailure,
 } from './hooks/useCoachBrowserSpeechInput';
+import { useCoachVoiceLifecycle } from './hooks/useCoachVoiceLifecycle';
 
 type VoiceCaptureMode = 'browser' | 'recorder' | 'none';
 
@@ -25,6 +27,9 @@ type VoiceCaptureParams = {
   setCommandText: Dispatch<SetStateAction<string>>;
   setInputOrigin: Dispatch<SetStateAction<CoachInputOrigin>>;
   setSelectedStatus: Dispatch<SetStateAction<string>>;
+  /** G06 — TTS output stop, composed here so the foreground lifecycle owns
+   * barge-in and the background/logout stops for both lanes. */
+  speechOutputStop: () => void;
 };
 
 function buildVoiceStatus(
@@ -51,9 +56,11 @@ function runCoachVoiceCommand(
     speechSupported: boolean;
     toggleListening: () => void;
   },
+  bargeIn: () => void,
   setSelectedStatus: (status: string) => void,
 ) {
   if (speech.speechSupported) {
+    bargeIn();
     speech.toggleListening();
     setSelectedStatus(speech.listening
       ? 'Dictation finished - review the composer, then press Send'
@@ -61,6 +68,7 @@ function runCoachVoiceCommand(
     return;
   }
   if (speech.recorderSupported) {
+    bargeIn();
     speech.openRecorder();
     setSelectedStatus('Voice recorder opened - review transcript before sending');
     return;
@@ -73,6 +81,7 @@ export function useCoachCommandVoiceCapture({
   setCommandText,
   setInputOrigin,
   setSelectedStatus,
+  speechOutputStop,
 }: VoiceCaptureParams) {
   const [voiceInputError, setVoiceInputError] = useState<string | null>(null);
   const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
@@ -127,6 +136,20 @@ export function useCoachCommandVoiceCapture({
     setText: setVoiceCommandText,
   });
 
+  // G06/S7 — one foreground lifecycle over both capture lanes + TTS output.
+  // The lifecycle never touches the action lane (cancel/abort of in-flight
+  // writes stays owned by CoachCommand/useAIChat).
+  const { user } = useAuth();
+  const lifecycle = useCoachVoiceLifecycle({
+    authenticated: Boolean(user),
+    stopCapture: useCallback(() => {
+      speech.stopListening();
+      setVoiceOverlayOpen(false);
+    }, [speech]),
+    stopSpeechOutput: speechOutputStop,
+    voiceActive: speech.listening || voiceOverlayOpen,
+  });
+
   const handleVoice = useCallback(() => {
     runCoachVoiceCommand({
       listening: speech.listening,
@@ -134,8 +157,8 @@ export function useCoachCommandVoiceCapture({
       recorderSupported,
       speechSupported: speech.speechSupported,
       toggleListening: speech.toggleListening,
-    }, setSelectedStatus);
-  }, [recorderSupported, setSelectedStatus, speech]);
+    }, lifecycle.bargeIn, setSelectedStatus);
+  }, [lifecycle.bargeIn, recorderSupported, setSelectedStatus, speech]);
 
   const voiceCaptureMode: VoiceCaptureMode = speech.speechSupported ? 'browser' : recorderSupported ? 'recorder' : 'none';
   const voiceOverlay: VoiceOverlayProps = useMemo(() => ({
