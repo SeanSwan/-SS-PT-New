@@ -1,0 +1,20 @@
+{
+  "slice": {
+    "id": "G09",
+    "files": [
+      "backend/models/CoachFact.mjs",
+      "backend/migrations/20260831200000-create-coach-facts.cjs",
+      "backend/migrations/20260911000000-add-coach-fact-forget-purge.cjs",
+      "backend/services/coachFactService.mjs",
+      "backend/services/coachFactMemoryPolicy.mjs",
+      "backend/tests/unit/coachContextTableNames.test.mjs",
+      "backend/tests/unit/coachFactService.test.mjs",
+      "backend/tests/unit/coachFactsMigration.test.mjs",
+      "backend/tests/unit/coachFactMemoryPolicy.test.mjs"
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/43-g09-coachfact-scoped-memory.md"
+  ],
+  "reason": "Sean 2026-09-11: continue slices. G09/S9: contract-mandated CoachFact history reconciliation executed - adopted commit 21ed0554ba S1 files (106/106 tests pass unmodified), then S9 layer: forget with 24h purge deadline + cache recheck, private-task extraction lockout, scoped task memory, conflict detection. T35/T36/T37."
+}

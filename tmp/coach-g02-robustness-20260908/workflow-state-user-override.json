@@ -473,6 +473,23 @@
       "planFiles": [
         "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/42-g08-domain-adapter-registry.md"
       ]
+    },
+    {
+      "id": "G09",
+      "files": [
+        "backend/models/CoachFact.mjs",
+        "backend/migrations/20260831200000-create-coach-facts.cjs",
+        "backend/migrations/20260911000000-add-coach-fact-forget-purge.cjs",
+        "backend/services/coachFactService.mjs",
+        "backend/services/coachFactMemoryPolicy.mjs",
+        "backend/tests/unit/coachContextTableNames.test.mjs",
+        "backend/tests/unit/coachFactService.test.mjs",
+        "backend/tests/unit/coachFactsMigration.test.mjs",
+        "backend/tests/unit/coachFactMemoryPolicy.test.mjs"
+      ],
+      "planFiles": [
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/43-g09-coachfact-scoped-memory.md"
+      ]
     }
   ],
   "calls": 9,
@@ -972,11 +989,69 @@
       "type": "advance",
       "slice": "G08",
       "at": "2026-09-11T19:33:37.523Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "G09",
+        "files": [
+          "backend/models/CoachFact.mjs",
+          "backend/migrations/20260831200000-create-coach-facts.cjs",
+          "backend/migrations/20260911000000-add-coach-fact-forget-purge.cjs",
+          "backend/services/coachFactService.mjs",
+          "backend/services/coachFactMemoryPolicy.mjs",
+          "backend/tests/unit/coachContextTableNames.test.mjs",
+          "backend/tests/unit/coachFactService.test.mjs",
+          "backend/tests/unit/coachFactsMigration.test.mjs",
+          "backend/tests/unit/coachFactMemoryPolicy.test.mjs"
+        ],
+        "planFiles": [
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/43-g09-coachfact-scoped-memory.md"
+        ]
+      },
+      "reason": "Sean 2026-09-11: continue slices. G09/S9: contract-mandated CoachFact history reconciliation executed - adopted commit 21ed0554ba S1 files (106/106 tests pass unmodified), then S9 layer: forget with 24h purge deadline + cache recheck, private-task extraction lockout, scoped task memory, conflict detection. T35/T36/T37.",
+      "previousContractDigest": "8e73151b62833e1a5e0fa23d369b850a304287f57c0cd29d68b85f0a2786dcbd",
+      "contractDigest": "948725cef693325bbecfb24af0e5e8efd01736acb13c438ce8168c6e3f6a7719"
+    },
+    {
+      "type": "append-slice",
+      "slice": "FINAL",
+      "at": "2026-09-11T19:39:24.818Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G09",
+      "digest": "30f12ac75527a3c7fcc08498768166a8510c195894d85b8df4cc87d29781a239",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g09-20260911/g09-tests-receipt.json",
+          "sha256": "0b9a3565841f717cc0d5241eacc8dbbd7cdc6901bd39be1013fcd0a2e558bf14"
+        },
+        "build": {
+          "path": "tmp/coach-g09-20260911/g09-build-receipt.json",
+          "sha256": "dba43dcbc6ff78435fec0f51d92a4881131f5a27c25b9c1a15be50ddc661a5a4"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G09",
+      "at": "2026-09-11T19:44:31.010Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G09",
+      "digest": "30f12ac75527a3c7fcc08498768166a8510c195894d85b8df4cc87d29781a239"
+    },
+    {
+      "type": "advance",
+      "slice": "G09",
+      "at": "2026-09-11T19:44:31.083Z"
     }
   ],
   "status": "active",
   "stage": "final",
-  "index": 7,
+  "index": 8,
   "inFlight": null,
   "slices": [
     {
@@ -1322,9 +1397,51 @@
         }
       },
       "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "G09",
+      "allowedFiles": [
+        "backend/models/CoachFact.mjs",
+        "backend/migrations/20260831200000-create-coach-facts.cjs",
+        "backend/migrations/20260911000000-add-coach-fact-forget-purge.cjs",
+        "backend/services/coachFactService.mjs",
+        "backend/services/coachFactMemoryPolicy.mjs",
+        "backend/tests/unit/coachContextTableNames.test.mjs",
+        "backend/tests/unit/coachFactService.test.mjs",
+        "backend/tests/unit/coachFactsMigration.test.mjs",
+        "backend/tests/unit/coachFactMemoryPolicy.test.mjs"
+      ],
+      "files": [
+        "backend/models/CoachFact.mjs",
+        "backend/migrations/20260831200000-create-coach-facts.cjs",
+        "backend/migrations/20260911000000-add-coach-fact-forget-purge.cjs",
+        "backend/services/coachFactService.mjs",
+        "backend/services/coachFactMemoryPolicy.mjs",
+        "backend/tests/unit/coachContextTableNames.test.mjs",
+        "backend/tests/unit/coachFactService.test.mjs",
+        "backend/tests/unit/coachFactsMigration.test.mjs",
+        "backend/tests/unit/coachFactMemoryPolicy.test.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/43-g09-coachfact-scoped-memory.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "30f12ac75527a3c7fcc08498768166a8510c195894d85b8df4cc87d29781a239",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g09-20260911/g09-tests-receipt.json",
+          "sha256": "0b9a3565841f717cc0d5241eacc8dbbd7cdc6901bd39be1013fcd0a2e558bf14"
+        },
+        "build": {
+          "path": "tmp/coach-g09-20260911/g09-build-receipt.json",
+          "sha256": "dba43dcbc6ff78435fec0f51d92a4881131f5a27c25b9c1a15be50ddc661a5a4"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
     }
   ],
-  "contractDigest": "8e73151b62833e1a5e0fa23d369b850a304287f57c0cd29d68b85f0a2786dcbd",
+  "contractDigest": "948725cef693325bbecfb24af0e5e8efd01736acb13c438ce8168c6e3f6a7719",
   "finalReview": {
     "id": "FINAL",
     "files": [
@@ -1405,7 +1522,17 @@
       "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
       "frontend/src/services/dashboardSurfaceContext.ts",
       "frontend/src/services/dashboardSurfaceContext.test.ts",
-      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/42-g08-domain-adapter-registry.md"
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/42-g08-domain-adapter-registry.md",
+      "backend/models/CoachFact.mjs",
+      "backend/migrations/20260831200000-create-coach-facts.cjs",
+      "backend/migrations/20260911000000-add-coach-fact-forget-purge.cjs",
+      "backend/services/coachFactService.mjs",
+      "backend/services/coachFactMemoryPolicy.mjs",
+      "backend/tests/unit/coachContextTableNames.test.mjs",
+      "backend/tests/unit/coachFactService.test.mjs",
+      "backend/tests/unit/coachFactsMigration.test.mjs",
+      "backend/tests/unit/coachFactMemoryPolicy.test.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/43-g09-coachfact-scoped-memory.md"
     ],
     "allowedFiles": [
       "frontend/src/components/CoachConfirm/confirmationProjection.ts",
@@ -1481,7 +1608,16 @@
       "backend/services/ai/dashboardSurfaceRegistry.mjs",
       "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
       "frontend/src/services/dashboardSurfaceContext.ts",
-      "frontend/src/services/dashboardSurfaceContext.test.ts"
+      "frontend/src/services/dashboardSurfaceContext.test.ts",
+      "backend/models/CoachFact.mjs",
+      "backend/migrations/20260831200000-create-coach-facts.cjs",
+      "backend/migrations/20260911000000-add-coach-fact-forget-purge.cjs",
+      "backend/services/coachFactService.mjs",
+      "backend/services/coachFactMemoryPolicy.mjs",
+      "backend/tests/unit/coachContextTableNames.test.mjs",
+      "backend/tests/unit/coachFactService.test.mjs",
+      "backend/tests/unit/coachFactsMigration.test.mjs",
+      "backend/tests/unit/coachFactMemoryPolicy.test.mjs"
     ],
     "status": "build",
     "round": 0,
