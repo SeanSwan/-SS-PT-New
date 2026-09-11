@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "digest": "a4c53d2867749a40d7cdf81597c0103c4b7e1edd914c03abad24453bc3efc577",
+  "command": "npx vitest run tests/unit/coachProactiveNudge.test.mjs (8/8 pass, exit 0); ESM import smoke SMOKE_PASS",
+  "scope": "G10/S10 opt-in proactive nudge engine: explicit opt-in only, DST-safe local quiet hours 20:00-08:00, one per local day, per-category weekly dedupe, snooze/disable, delivery-time consent/access/freshness recheck with injected writer (T38: queued opt-out delivers nothing); exits T38/T39",
+  "files": [
+    "backend/services/ai/coachProactiveNudge.mjs",
+    "backend/tests/unit/coachProactiveNudge.test.mjs"
+  ],
+  "results": {
+    "engineSuite": "8/8 PASS",
+    "smoke": "SMOKE_PASS"
+  },
+  "toolEvidence": {
+    "path": "tmp/coach-g10-20260911/g10-tests-evidence.md",
+    "sha256": "534a8708107cce56688b5c02c72ab79ddae48d9d2874244a2b9d87cc8d8473d3"
+  }
+}

@@ -490,6 +490,16 @@
       "planFiles": [
         "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/43-g09-coachfact-scoped-memory.md"
       ]
+    },
+    {
+      "id": "G10",
+      "files": [
+        "backend/services/ai/coachProactiveNudge.mjs",
+        "backend/tests/unit/coachProactiveNudge.test.mjs"
+      ],
+      "planFiles": [
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/44-g10-proactive-nudges.md"
+      ]
     }
   ],
   "calls": 9,
@@ -1047,11 +1057,62 @@
       "type": "advance",
       "slice": "G09",
       "at": "2026-09-11T19:44:31.083Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "G10",
+        "files": [
+          "backend/services/ai/coachProactiveNudge.mjs",
+          "backend/tests/unit/coachProactiveNudge.test.mjs"
+        ],
+        "planFiles": [
+          "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/44-g10-proactive-nudges.md"
+        ]
+      },
+      "reason": "Sean 2026-09-11: continue slices. G10/S10 opt-in proactive nudges per packet 31 G10 row and contract 32 T38/T39: deterministic engine over the existing in-app worker pattern - opt-in only, DST-safe local quiet hours 20:00-08:00, one/day cap, weekly dedupe, snooze/disable, delivery-time consent/access/freshness recheck.",
+      "previousContractDigest": "948725cef693325bbecfb24af0e5e8efd01736acb13c438ce8168c6e3f6a7719",
+      "contractDigest": "838387458cc196e80045461c12b8725528ecca79d494d398c0e22d327bab0060"
+    },
+    {
+      "type": "append-slice",
+      "slice": "FINAL",
+      "at": "2026-09-11T19:46:18.570Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "G10",
+      "digest": "a4c53d2867749a40d7cdf81597c0103c4b7e1edd914c03abad24453bc3efc577",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g10-20260911/g10-tests-receipt.json",
+          "sha256": "b131e543e10e5d5c7560e298af80bf796f7b1da0c57d535aba58135ec40e2ba6"
+        },
+        "build": {
+          "path": "tmp/coach-g10-20260911/g10-build-receipt.json",
+          "sha256": "da068e6cd254897b30fead4ddcca1a14d96ce52991802b17c9ab35c7e7276492"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "G10",
+      "at": "2026-09-11T19:48:48.358Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "G10",
+      "digest": "a4c53d2867749a40d7cdf81597c0103c4b7e1edd914c03abad24453bc3efc577"
+    },
+    {
+      "type": "advance",
+      "slice": "G10",
+      "at": "2026-09-11T19:48:48.432Z"
     }
   ],
   "status": "active",
   "stage": "final",
-  "index": 8,
+  "index": 9,
   "inFlight": null,
   "slices": [
     {
@@ -1439,9 +1500,37 @@
         }
       },
       "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "G10",
+      "allowedFiles": [
+        "backend/services/ai/coachProactiveNudge.mjs",
+        "backend/tests/unit/coachProactiveNudge.test.mjs"
+      ],
+      "files": [
+        "backend/services/ai/coachProactiveNudge.mjs",
+        "backend/tests/unit/coachProactiveNudge.test.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/44-g10-proactive-nudges.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "a4c53d2867749a40d7cdf81597c0103c4b7e1edd914c03abad24453bc3efc577",
+      "frozen": {
+        "tests": {
+          "path": "tmp/coach-g10-20260911/g10-tests-receipt.json",
+          "sha256": "b131e543e10e5d5c7560e298af80bf796f7b1da0c57d535aba58135ec40e2ba6"
+        },
+        "build": {
+          "path": "tmp/coach-g10-20260911/g10-build-receipt.json",
+          "sha256": "da068e6cd254897b30fead4ddcca1a14d96ce52991802b17c9ab35c7e7276492"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
     }
   ],
-  "contractDigest": "948725cef693325bbecfb24af0e5e8efd01736acb13c438ce8168c6e3f6a7719",
+  "contractDigest": "838387458cc196e80045461c12b8725528ecca79d494d398c0e22d327bab0060",
   "finalReview": {
     "id": "FINAL",
     "files": [
@@ -1532,7 +1621,10 @@
       "backend/tests/unit/coachFactService.test.mjs",
       "backend/tests/unit/coachFactsMigration.test.mjs",
       "backend/tests/unit/coachFactMemoryPolicy.test.mjs",
-      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/43-g09-coachfact-scoped-memory.md"
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/43-g09-coachfact-scoped-memory.md",
+      "backend/services/ai/coachProactiveNudge.mjs",
+      "backend/tests/unit/coachProactiveNudge.test.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/44-g10-proactive-nudges.md"
     ],
     "allowedFiles": [
       "frontend/src/components/CoachConfirm/confirmationProjection.ts",
@@ -1617,7 +1709,9 @@
       "backend/tests/unit/coachContextTableNames.test.mjs",
       "backend/tests/unit/coachFactService.test.mjs",
       "backend/tests/unit/coachFactsMigration.test.mjs",
-      "backend/tests/unit/coachFactMemoryPolicy.test.mjs"
+      "backend/tests/unit/coachFactMemoryPolicy.test.mjs",
+      "backend/services/ai/coachProactiveNudge.mjs",
+      "backend/tests/unit/coachProactiveNudge.test.mjs"
     ],
     "status": "build",
     "round": 0,
