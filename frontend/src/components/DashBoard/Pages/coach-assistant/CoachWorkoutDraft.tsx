@@ -15,7 +15,7 @@
  *          Floor Mode: renders one exercise at a time with large set rows; the transcript
  *          remains reachable via Talk (desk-level).
  */
-import React, { useMemo } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   type CoachWorkoutDraftContent,
   type CoachWorkoutExerciseDraft,
@@ -23,12 +23,17 @@ import {
   type CoachWorkoutUnit,
   validateCoachWorkoutContent,
 } from './coachWorkoutDraftContract';
+import NASMExerciseRolodex, { isCanonicalExerciseSelection } from '../../../WorkoutLogger/NASMExerciseRolodex';
+import type { ExerciseSlim } from '../../../WorkoutLogger/useExerciseSearch';
+import { DraftError, DraftForm, LibraryPanel, LibraryToggle } from './CoachWorkoutDraft.styles';
 
 export interface CoachWorkoutDraftProps {
   /** Current draft content from the shell owner (frozen). */
   content: CoachWorkoutDraftContent;
   /** Draft editing disabled (review preview / frozen submitted snapshot). */
   disabled?: boolean;
+  /** Defaults to memory-only for Coach; standalone Rolodex keeps true. */
+  persistRecentSelections?: boolean;
   floorMode?: boolean;
   activeFloorExerciseId?: string | null;
   onFloorExerciseSelect?: (exerciseInstanceId: string) => void;
@@ -49,6 +54,17 @@ const createInstanceId = (): string => {
   throw new Error('UUID_FACTORY_UNAVAILABLE');
 };
 
+const CANONICAL_EXERCISE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export const buildExerciseFromLibrary = (exercise: ExerciseSlim): CoachWorkoutExerciseDraft => ({
+  exerciseInstanceId: createInstanceId(),
+  exerciseId: exercise.id,
+  exerciseKey: exercise.exerciseKey,
+  exerciseName: exercise.name,
+  unit: 'lb',
+  sets: [],
+});
+
 const toNumeric = (raw: string): number | null => {
   const trimmed = raw.trim();
   if (trimmed === '') return null;
@@ -60,6 +76,13 @@ export const validateDraftForDesk = (content: unknown, mode: 'draft' | 'review')
   const allowIncomplete = mode === 'draft';
   try {
     const validated = validateCoachWorkoutContent(content, { allowIncomplete });
+    if (validated.exercises.some((exercise) => exercise.unit === 'kg')) {
+      return {
+        ok: false,
+        content: null,
+        errors: [{ code: 'UNIT_MAPPING_REQUIRED', message: 'Kilogram input requires an approved unit mapping before review or save.' }],
+      };
+    }
     return { ok: true, content: validated, errors: [] };
   } catch (error) {
     if (error instanceof Error && 'code' in error && typeof (error as { code?: unknown }).code === 'string') {
@@ -73,18 +96,10 @@ export const validateDraftForDesk = (content: unknown, mode: 'draft' | 'review')
   }
 };
 
-const buildEmptyExercise = (library: { exerciseId?: string | null; exerciseKey?: string | null; name: string; unit?: CoachWorkoutUnit } = { name: '' }): CoachWorkoutExerciseDraft => ({
-  exerciseInstanceId: createInstanceId(),
-  exerciseId: library.exerciseId ?? undefined,
-  exerciseKey: library.exerciseKey ?? undefined,
-  exerciseName: library.name,
-  unit: (library.unit as CoachWorkoutUnit | undefined) ?? 'lb',
-  sets: [],
-});
-
 const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
   content,
   disabled = false,
+  persistRecentSelections = false,
   floorMode = false,
   activeFloorExerciseId = null,
   onFloorExerciseSelect,
@@ -92,6 +107,28 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
   validationMode = 'draft',
 }) => {
   const exercises = Array.isArray(content?.exercises) ? content.exercises : [];
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+  const [libraryTargetIndex, setLibraryTargetIndex] = useState<number | null>(null);
+  const [librarySessionId, setLibrarySessionId] = useState(0);
+  const libraryOpenRef = useRef(false);
+  const librarySessionRef = useRef(0);
+  const libraryTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const livePropsRef = useRef({ content, disabled, floorMode });
+  livePropsRef.current = { content, disabled, floorMode };
+  useLayoutEffect(() => {
+    if (disabled || floorMode) {
+      libraryOpenRef.current = false;
+      librarySessionRef.current += 1;
+      setLibraryOpen(false);
+      setLibraryTargetIndex(null);
+    }
+  }, [disabled, floorMode]);
+  useLayoutEffect(() => () => {
+    libraryOpenRef.current = false;
+    librarySessionRef.current += 1;
+  }, []);
+
   const validation = useMemo(
     () => validateDraftForDesk(content, validationMode),
     [content, validationMode],
@@ -109,13 +146,58 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
     patchContent({ ...content, exercises: copy });
   };
 
-  const addExercise = (library?: { exerciseId?: string | null; exerciseKey?: string | null; name?: string; unit?: CoachWorkoutUnit }) => {
-    const exercise = buildEmptyExercise(
-      library && (library.name || library.exerciseId || library.exerciseKey)
-        ? { exerciseId: library.exerciseId ?? null, exerciseKey: library.exerciseKey ?? null, name: library.name ?? '', unit: library.unit }
-        : { name: '' },
-    );
-    patchContent({ ...content, exercises: [...content.exercises, exercise] });
+  const handleLibrarySelection = (library: ExerciseSlim, sessionId: number) => {
+    // A delayed callback from a picker that was closed must not mutate the draft.
+    const current = livePropsRef.current;
+    if (!libraryOpenRef.current || sessionId !== librarySessionRef.current
+      || current.disabled || current.floorMode || current.content !== content) return;
+    if (!isCanonicalExerciseSelection(library)
+      || !CANONICAL_EXERCISE_UUID.test(library.id)
+      || typeof library.exerciseKey !== 'string'
+      || library.exerciseKey.trim() === '') {
+      setLibraryError('Choose a canonical exercise with a valid id, key, and name.');
+      return;
+    }
+    setLibraryError(null);
+    let exercise: CoachWorkoutExerciseDraft;
+    try {
+      exercise = buildExerciseFromLibrary(library);
+    } catch (error) {
+      setLibraryError(error instanceof Error && error.message === 'UUID_FACTORY_UNAVAILABLE'
+        ? 'Exercise selection is temporarily unavailable. Close and try again.'
+        : 'Exercise selection failed. Close and try again.');
+      return;
+    }
+    const nextExercises = content.exercises.slice();
+    if (libraryTargetIndex === null) nextExercises.push(exercise);
+    else if (libraryTargetIndex >= 0 && libraryTargetIndex < nextExercises.length) nextExercises[libraryTargetIndex] = exercise;
+    else return;
+    patchContent({ ...content, exercises: nextExercises });
+    closeLibrary();
+  };
+
+  const openLibrary = (targetIndex: number | null = null, trigger: HTMLButtonElement | null = null) => {
+    if (livePropsRef.current.disabled || livePropsRef.current.floorMode) return;
+    const nextSessionId = librarySessionRef.current + 1;
+    librarySessionRef.current = nextSessionId;
+    libraryOpenRef.current = true;
+    libraryTriggerRef.current = trigger;
+    setLibraryError(null);
+    setLibraryTargetIndex(targetIndex);
+    setLibrarySessionId(nextSessionId);
+    setLibraryOpen(true);
+  };
+
+  const closeLibrary = () => {
+    librarySessionRef.current += 1;
+    libraryOpenRef.current = false;
+    setLibrarySessionId(librarySessionRef.current);
+    setLibraryOpen(false);
+    setLibraryTargetIndex(null);
+    const trigger = libraryTriggerRef.current;
+    if (trigger) requestAnimationFrame(() => {
+      if (trigger.isConnected && !trigger.disabled && !libraryOpenRef.current) trigger.focus();
+    });
   };
 
   const removeExercise = (index: number) => {
@@ -129,7 +211,7 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
     const sets =
       unit === 'bodyweight'
         ? exercise.sets.map((set) => ({ ...set, weight: 0 }))
-        : exercise.sets.map((set) => ({ ...set, weight: set.weight ?? 0 }));
+        : exercise.sets.map((set) => ({ ...set, weight: set.weight }));
     setExercise(index, { ...exercise, unit, sets });
   };
 
@@ -158,6 +240,7 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
   };
 
   const visibleExercises = useMemo(() => {
+    if (!exercises.length) return [];
     if (!floorMode) return exercises.map((exercise, index) => ({ exercise, index }));
     const active = exercises.findIndex((exercise) => exercise.exerciseInstanceId === activeFloorExerciseId);
     const single = active >= 0 ? [active] : [0];
@@ -170,7 +253,7 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
   const floorNext = floorNavigation && floorActiveIndex < exercises.length - 1 ? exercises[floorActiveIndex + 1] : null;
 
   return (
-    <form
+    <DraftForm
       className={`coach-workout-draft${floorMode ? ' coach-workout-draft--floor' : ''}`}
       data-testid="coach-workout-draft"
       onSubmit={(event: React.FormEvent<HTMLFormElement>) => event.preventDefault()}
@@ -209,6 +292,7 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
         </label>
       </div>
 
+      {floorMode && exercises.length === 0 ? <p role="status">Add an exercise in Draft to begin Floor Mode.</p> : null}
       <ul className="coach-workout-draft-exercises" role="list">
         {visibleExercises.map(({ exercise, index }) => (
           <li
@@ -222,9 +306,9 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
                 aria-label={`Exercise ${index + 1} canonical name`}
                 data-testid={`coach-workout-exercise-name-${index}`}
                 value={exercise.exerciseName}
-                placeholder="Exercise (resolve from library)"
+                placeholder="Select from library"
                 disabled={disabled}
-                onChange={(event) => setExercise(index, { ...exercise, exerciseName: event.target.value })}
+                readOnly
               />
               <select
                 aria-label={`Exercise ${index + 1} load unit`}
@@ -243,14 +327,24 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
                 </span>
               ) : null}
               {!disabled && !floorMode ? (
-                <button
-                  type="button"
-                  className="coach-workout-draft-remove-exercise"
-                  data-testid={`coach-workout-remove-exercise-${index}`}
-                  onClick={() => removeExercise(index)}
-                >
-                  Remove exercise
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="coach-workout-draft-replace-exercise"
+                    data-testid={`coach-workout-replace-exercise-${index}`}
+                    onClick={(event) => openLibrary(index, event.currentTarget)}
+                  >
+                    Replace from library
+                  </button>
+                  <button
+                    type="button"
+                    className="coach-workout-draft-remove-exercise"
+                    data-testid={`coach-workout-remove-exercise-${index}`}
+                    onClick={() => removeExercise(index)}
+                  >
+                    Remove exercise
+                  </button>
+                </>
               ) : null}
             </div>
 
@@ -267,30 +361,34 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
                 <tbody>
                   {exercise.sets.map((set, setIndex) => (
                     <tr key={`${exercise.exerciseInstanceId}-${set.setNumber}`} data-testid={`coach-workout-set-${index}-${set.setNumber}`}>
-                      <td>{set.setNumber}</td>
-                      <td>
+                      <td data-label="Set">{set.setNumber}</td>
+                      <td data-label="Reps">
                         <input
-                          type="text"
+                          type="number"
+                          min={0}
+                          step={1}
                           inputMode="numeric"
                           aria-label={`Set ${set.setNumber} reps`}
                           data-testid={`coach-workout-set-reps-${index}-${set.setNumber}`}
-                          value={set.reps === null ? '' : String(set.reps)}
+                          value={set.reps ?? ''}
                           disabled={disabled}
                           onChange={(event) => patchSet(index, setIndex, { reps: toNumeric(event.target.value) })}
                         />
                       </td>
-                      <td>
+                      <td data-label={`Load (${exercise.unit})`}>
                         <input
-                          type="text"
+                          type="number"
+                          min={0}
+                          step="any"
                           inputMode="decimal"
                           aria-label={`Set ${set.setNumber} ${exercise.unit}`}
                           data-testid={`coach-workout-set-weight-${index}-${set.setNumber}`}
-                          value={set.weight === null ? '' : String(set.weight)}
+                          value={set.weight ?? ''}
                           disabled={disabled || exercise.unit === 'bodyweight'}
                           onChange={(event) => patchSet(index, setIndex, { weight: toNumeric(event.target.value) })}
                         />
                       </td>
-                      <td>
+                      <td data-label="Actions">
                         {!disabled ? (
                           <button
                             type="button"
@@ -322,9 +420,30 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
       </ul>
 
       {!disabled && !floorMode ? (
-        <button type="button" className="coach-workout-draft-add-exercise" data-testid="coach-workout-add-exercise" onClick={() => addExercise()}>
-          Add exercise
-        </button>
+        <>
+          <LibraryToggle
+            type="button"
+            className="coach-workout-draft-add-exercise"
+            data-testid="coach-workout-open-library"
+            onClick={(event) => openLibrary(null, event.currentTarget)}
+          >
+            Add exercise from library
+          </LibraryToggle>
+          {libraryError ? <DraftError data-testid="coach-workout-library-error" role="alert">{libraryError}</DraftError> : null}
+          {libraryOpen ? (
+            <LibraryPanel className="coach-workout-draft-library-panel" role="dialog" aria-label="Select exercise from canonical library" data-testid="coach-workout-library">
+              <LibraryToggle type="button" data-testid="coach-workout-library-close" onClick={closeLibrary}>
+                Close exercise library
+              </LibraryToggle>
+              <NASMExerciseRolodex
+                isOpen
+                onClose={closeLibrary}
+                onSelectExercise={(library) => handleLibrarySelection(library, librarySessionId)}
+                persistRecentSelections={persistRecentSelections}
+              />
+            </LibraryPanel>
+          ) : null}
+        </>
       ) : null}
 
       {floorNavigation ? (
@@ -362,7 +481,7 @@ const CoachWorkoutDraft: React.FC<CoachWorkoutDraftProps> = ({
             ))
           : null}
       </div>
-    </form>
+    </DraftForm>
   );
 };
 

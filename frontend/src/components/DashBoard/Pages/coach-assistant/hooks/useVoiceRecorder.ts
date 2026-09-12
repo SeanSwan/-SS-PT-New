@@ -80,9 +80,14 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const levelBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   // G06/T31 — set by abort() so a resolve() racing an abort cannot start an
   // invisible recording with no UI attached.
-  const cancelledRef = useRef(false);
+  const generationRef = useRef(0);
 
   const cleanup = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (recorder) {
+      recorder.onstop = null; recorder.ondataavailable = null; recorder.onerror = null;
+      if (recorder.state === 'recording') recorder.stop();
+    }
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -102,8 +107,9 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   }, []);
 
   const start = useCallback(async () => {
+    const generation = ++generationRef.current;
+    cleanup();
     try {
-      cancelledRef.current = false;
       setError(null);
       setAudioBlob(null);
       setDuration(0);
@@ -112,7 +118,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       // Abort raced the permission prompt: release the mic immediately and
       // stay idle — no recorder, no UI, no orphan track.
-      if (cancelledRef.current) {
+      if (generation !== generationRef.current) {
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
@@ -141,10 +147,11 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
+        if (generation === generationRef.current && e.data.size > 0) chunksRef.current.push(e.data);
       };
 
       recorder.onstop = () => {
+        if (generation !== generationRef.current) return;
         const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' });
         setAudioBlob(blob);
         setState('stopped');
@@ -152,6 +159,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       };
 
       recorder.onerror = () => {
+        if (generation !== generationRef.current) return;
         setError('Recording failed');
         setState('error');
         cleanup();
@@ -166,6 +174,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
       }, 500);
     } catch {
+      if (generation !== generationRef.current) return;
       setError(safeMicrophoneFailure());
       setState('error');
       cleanup();
@@ -181,7 +190,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const abort = useCallback(() => {
     // Detach the async handlers first: a plain stop() would publish an empty
     // blob into the transcription lane when onstop fires after cleanup.
-    cancelledRef.current = true;
+    generationRef.current += 1;
     if (recorderRef.current && recorderRef.current.state === 'recording') {
       recorderRef.current.onstop = null;
       recorderRef.current.ondataavailable = null;
@@ -211,7 +220,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const reset = useCallback(() => {
     // Same race guard as abort(): a pending getUserMedia must not attach a
     // stream after the surface threw the capture away.
-    cancelledRef.current = true;
+    generationRef.current += 1;
     cleanup();
     setState('idle');
     setAudioBlob(null);
@@ -223,16 +232,9 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   // ran: cleanup previously only fired from onstop/reset, so unmounting
   // mid-recording (route switch, parent teardown) leaked the live track.
   useEffect(() => () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    if (audioContextRef.current) {
-      void audioContextRef.current.close().catch(() => undefined);
-      audioContextRef.current = null;
-    }
-  }, []);
+    generationRef.current += 1;
+    cleanup();
+  }, [cleanup]);
 
   return { state, audioBlob, duration, error, start, stop, abort, reset, getAudioLevel };
 }

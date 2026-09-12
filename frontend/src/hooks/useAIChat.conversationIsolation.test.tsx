@@ -3,6 +3,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import apiService from '../services/api.service';
 import { useAIChat } from './useAIChat';
 
+const paywallState = vi.hoisted(() => ({ showPaywall: vi.fn() }));
+
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: '7', role: 'admin' },
+    isAuthenticated: true,
+    loading: false,
+    error: null,
+    token: 'test-token',
+    logout: vi.fn(),
+  }),
+}));
+
+vi.mock('../context/PaywallContext', () => ({
+  usePaywall: () => paywallState,
+}));
+
 vi.mock('../services/api.service', () => ({
   default: {
     post: vi.fn(),
@@ -25,6 +42,7 @@ function conversationResponse(id: number, title: string) {
         title,
         context: 'coach_assistant',
         role: 'admin',
+        targetUserId: null,
         status: 'active',
         messages: [{ role: 'assistant', content: `${title} loaded`, timestamp: '2026-05-26T00:00:00.000Z' }],
         messageCount: 1,
@@ -39,6 +57,7 @@ describe('useAIChat conversation target isolation', () => {
   beforeEach(() => {
     postMock.mockReset();
     getMock.mockReset();
+    paywallState.showPaywall.mockReset();
     let nextConversationId = 700;
 
     postMock.mockImplementation((url: string, payload: Record<string, unknown>) => {
@@ -79,6 +98,7 @@ describe('useAIChat conversation target isolation', () => {
             timestamp: '2026-05-26T00:00:02.000Z',
           },
           messageCount: 2,
+          conversationId: Number(String(url).match(/conversations\/(\d+)/)?.[1]),
         },
       });
     });
@@ -116,6 +136,10 @@ describe('useAIChat conversation target isolation', () => {
       expect.objectContaining({ message: 'Log today for client B' }),
       expect.any(Object)
     );
+    expect(postMock.mock.calls[0][2]).toEqual(expect.objectContaining({
+      _isBackgroundRequest: true,
+      signal: expect.any(AbortSignal),
+    }));
   });
 
   it('posts selected equipment profile as structured message context', async () => {
@@ -185,7 +209,10 @@ describe('useAIChat conversation target isolation', () => {
       await result.current.sendMessageWithConversation('Plan my next workout', 'coach_assistant');
     });
 
-    expect(getMock).toHaveBeenCalledWith('/api/ai-chat/conversations?status=active&limit=20&audienceRole=client');
+    expect(getMock).toHaveBeenCalledWith(
+      '/api/ai-chat/conversations?status=active&limit=20&audienceRole=client',
+      expect.any(Object),
+    );
     expect(postMock).toHaveBeenCalledWith(
       '/api/ai-chat/conversations',
       expect.objectContaining({ audienceRole: 'client', context: 'coach_assistant' }),

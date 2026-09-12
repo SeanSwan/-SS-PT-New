@@ -17,6 +17,7 @@
  *   authoritative value. Nothing is silently mutated.
  */
 
+import { Op } from 'sequelize';
 import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { invalidateCoachContextCache } from './ai/coachContextCache.mjs';
@@ -46,25 +47,15 @@ export async function forgetFact({ factId, byUserId, now = new Date() } = {}) {
   const existing = await CoachFact.findByPk(Number(factId));
   if (!existing) throw new CoachFactError('Fact not found.', 404, 'COACH_FACT_NOT_FOUND');
 
-  if (existing.status === 'active') {
-    // Conditional update preserves the S1 invariant: only a human actor
-    // moves a fact out of the coach-visible set.
-    await CoachFact.update(
-      { status: 'invalidated' },
-      { where: { id: existing.id, status: 'active' } },
-    );
-  }
   const forgottenAt = now instanceof Date ? now : new Date(now);
-  const purgeAfterAt = new Date(forgottenAt.getTime() + PURGE_DEADLINE_HOURS * 60 * 60 * 1000);
-  await CoachFact.update(
-    { forgottenAt, purgeAfterAt },
-    { where: { id: existing.id } },
-  );
-  // Immediate cache recheck: any cached context envelope that embedded this
-  // fact is dropped for this client.
-  const dropped = invalidateCoachContextCache({ targetClientId: existing.userId });
-  if (dropped > 0) logger.info(`[coachFactMemoryPolicy] forget recheck dropped ${dropped} cached context entries`);
-  return { ...existing, status: existing.status === 'active' ? 'invalidated' : existing.status, forgottenAt, purgeAfterAt };
+  if (!Number.isFinite(forgottenAt.getTime())) throw new CoachFactError('Invalid forget time.', 400, 'COACH_FACT_TIME_INVALID');
+  const purgeAfterAt = new Date(forgottenAt.getTime() + PURGE_DEADLINE_HOURS * 3600000);
+  // A single conditional write wins against concurrent activation. All states
+  // become invalidated; repeated forget cannot extend the original deadline.
+  await CoachFact.update({ status: 'invalidated', forgottenAt, purgeAfterAt },
+    { where: { id: existing.id, forgottenAt: null } });
+  invalidateCoachContextCache({ targetClientId: existing.userId });
+  return CoachFact.findByPk(existing.id);
 }
 
 /**
@@ -74,10 +65,10 @@ export async function forgetFact({ factId, byUserId, now = new Date() } = {}) {
  */
 export async function purgeDueFacts({ now = new Date() } = {}) {
   const CoachFact = getModel('CoachFact');
-  const due = await CoachFact.findAll({ where: { purgeAfterAt: { lte: now } } });
-  if (due.length === 0) return { purged: 0 };
-  await CoachFact.destroy({ where: { purgeAfterAt: { lte: now } } });
-  return { purged: due.length };
+  const instant = now instanceof Date ? now : new Date(now);
+  if (!Number.isFinite(instant.getTime())) throw new CoachFactError('Invalid purge time.', 400, 'COACH_FACT_TIME_INVALID');
+  const purged = await CoachFact.destroy({ where: { forgottenAt: { [Op.ne]: null }, purgeAfterAt: { [Op.lte]: instant } } });
+  return { purged };
 }
 
 /**
@@ -132,13 +123,13 @@ export function detectFactConflicts({ facts = [], authoritative = {} } = {}) {
     const key = String(fact.category || '');
     const authoritativeValue = authoritative[key];
     if (authoritativeValue === undefined || authoritativeValue === null) continue;
-    const claim = String(fact.content || '').trim().toLowerCase();
+    const claim = String(fact.statement ?? fact.content ?? '').trim().toLowerCase();
     const truth = String(authoritativeValue).trim().toLowerCase();
     if (claim && truth && claim !== truth) {
       conflicts.push({
         factId: fact.id,
         category: key,
-        factClaim: fact.content,
+        factClaim: fact.statement ?? fact.content,
         authoritativeValue,
         resolution: 'use_authoritative_record',
       });

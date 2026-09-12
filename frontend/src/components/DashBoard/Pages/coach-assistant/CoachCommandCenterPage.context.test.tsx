@@ -137,6 +137,8 @@ describe('CoachCommandCenterPage route context', () => {
 
     await waitFor(() => {
       expect(executeCommandMock).toHaveBeenCalledWith('Log workout: squats 3 sets of 10.', {
+        inputMode: 'text',
+        commandType: undefined,
         selectedClientId: 424242,
         routeContext: {
           source: 'coach-command-center',

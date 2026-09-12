@@ -40,6 +40,8 @@ interface NASMExerciseRolodexProps {
   onSelectExercise: (exercise: ExerciseSlim) => void;
   isOpen: boolean;
   onClose: () => void;
+  /** Coach's draft is memory-only; standalone Logger keeps the historic default. */
+  persistRecentSelections?: boolean;
   sectionContext?: SectionContext;
   /** Slice 11 deep-link: prefill the search (e.g. ?exercise= from /progress). */
   initialQuery?: string | null;
@@ -47,10 +49,23 @@ interface NASMExerciseRolodexProps {
   autoSelectExact?: boolean;
 }
 
+/** Runtime guard for records returned by the canonical library boundary. */
+export const isCanonicalExerciseSelection = (value: unknown): value is ExerciseSlim => {
+  if (!value || typeof value !== 'object') return false;
+  const item = value as Partial<ExerciseSlim>;
+  return typeof item.id === 'string'
+    && item.id.trim().length > 0
+    && typeof item.name === 'string'
+    && item.name.trim().length > 0
+    // Older standalone fixtures may omit exerciseKey; Coach validates it before install.
+    && (item.exerciseKey === undefined || (typeof item.exerciseKey === 'string' && item.exerciseKey.trim().length > 0));
+};
+
 const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   onSelectExercise,
   isOpen,
   onClose,
+  persistRecentSelections = true,
   sectionContext,
   initialQuery = null,
   autoSelectExact = false,
@@ -77,11 +92,14 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   const listRef = useListRef();
   const maxVisibleRows = useVisibleRowCount();
 
+  const canonicalResults = useMemo(() => results.filter(isCanonicalExerciseSelection), [results]);
+  const canonicalAllExercises = useMemo(() => allExercises.filter(isCanonicalExerciseSelection), [allExercises]);
+
   const sectionFiltered = useMemo(() => (
     !sectionContext || sectionContext === 'main'
-      ? results
-      : results.filter(ex => matchesSectionContext(ex, sectionContext))
-  ), [results, sectionContext]);
+      ? canonicalResults
+      : canonicalResults.filter(ex => matchesSectionContext(ex, sectionContext))
+  ), [canonicalResults, sectionContext]);
 
   const filteredResults = useMemo(
     () => applyEquipTypeFilters(sectionFiltered, typeFilter, equipFilter),
@@ -90,9 +108,9 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
 
   const filteredAllExercises = useMemo(() => (
     !sectionContext || sectionContext === 'main'
-      ? allExercises
-      : allExercises.filter(ex => matchesSectionContext(ex, sectionContext))
-  ), [allExercises, sectionContext]);
+      ? canonicalAllExercises
+      : canonicalAllExercises.filter(ex => matchesSectionContext(ex, sectionContext))
+  ), [canonicalAllExercises, sectionContext]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { All: filteredAllExercises.length };
@@ -125,18 +143,18 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   }, [isOpen, onClose]);
 
   const handleSelect = useCallback((exercise: ExerciseSlim) => {
-    recordRecentExercise(exercise);
+    if (persistRecentSelections) recordRecentExercise(exercise);
     onSelectExercise(exercise);
     setQuery('');
     onClose();
-  }, [onSelectExercise, setQuery, onClose]);
+  }, [onSelectExercise, persistRecentSelections, setQuery, onClose]);
 
   // Slice 10 one-tap recents (catalog = truth; stale ids drop; isOpen dep re-reads storage per open)
   const recentExercises = useMemo(() => {
-    if (query || allExercises.length === 0) return [];
-    const byId = new Map(allExercises.map(ex => [String(ex.id), ex]));
+    if (!persistRecentSelections || query || canonicalAllExercises.length === 0) return [];
+    const byId = new Map(canonicalAllExercises.map(ex => [String(ex.id), ex]));
     return readRecentExercises().map(r => byId.get(r.id)).filter((ex): ex is ExerciseSlim => Boolean(ex));
-  }, [query, allExercises]);
+  }, [persistRecentSelections, query, canonicalAllExercises]);
 
   useRolodexDeepLink({
     isOpen, initialQuery, autoSelectExact,
@@ -202,6 +220,10 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
 
   const activeFilterCount = [equipFilter, typeFilter].filter(Boolean).length;
   const listHeight = Math.min(filteredResults.length, maxVisibleRows) * ROW_HEIGHT;
+  const invalidLibraryData = !isLoading
+    && !loadError
+    && allExercises.length > 0
+    && canonicalAllExercises.length === 0;
 
   return (
     <Wrapper ref={wrapperRef}>
@@ -270,6 +292,8 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
                     Try again
                   </RetryButton>
                 </>
+              ) : invalidLibraryData ? (
+                <span data-testid="coach-workout-library-error">The exercise library returned no valid canonical exercise identity.</span>
               ) : query.length >= 1 ? 'No exercises found. Try a different search.' : 'Start typing to search exercises...'}
             </EmptyState>
           )}

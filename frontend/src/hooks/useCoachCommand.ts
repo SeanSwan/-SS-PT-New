@@ -17,7 +17,12 @@
  * PRIVACY: selectedClientId passed as an ID — no names sent to backend.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { usePaywall } from '../context/PaywallContext';
+import { audienceAllowedForActor, freezePublicationSnapshot, isAllowedRawRole, isPublicationSnapshot,
+  parseStrictPositiveId, parseStrictNullableId, samePublicationToken,
+  type PublicationBinding, type PublicationSnapshot } from './coachPublicationScope';
 import apiService from '../services/api.service';
 import { dispatchAIWorkoutEvent } from '../utils/aiWorkoutEvents';
 
@@ -39,6 +44,7 @@ export type CommandResponse =
       tier?: 'fire_and_forget' | 'read_back' | 'deliberate' | 'refusal' | null;
       physical?: boolean;
       tierReasons?: string[];
+      readBackSlots?: unknown[];
     }
   | {
       type: 'executed';
@@ -56,9 +62,10 @@ export type CommandResponse =
     }
   | { type: 'not_wired'; message: string; command: string; manualOnly: boolean; reason: string | null }
   | { type: 'debate_started'; message: string; jobId: string; debateType: string }
-  | { type: 'error'; error: string };
+  | { type: 'error'; error: string; superseded?: boolean };
 
 export interface ConfirmResult {
+  superseded?: boolean;
   success: boolean;
   type: 'executed' | 'error' | 'not_wired' | 'frontend_dispatch' | 'debate_started';
   message: string;
@@ -97,8 +104,104 @@ const commandRequestErrorReceipt = (error: unknown, fallback: string): string =>
 
 // ── Hook ────────────────────────────────────────────────────────────────────
 
-export function useCoachCommand() {
+type CommandOperation = { scope: object; token: PublicationSnapshot; controller: AbortController };
+const record = (value: unknown): value is Record<string, any> => Boolean(value && typeof value === 'object' && !Array.isArray(value));
+const responseText = (value: unknown, fallback = ''): string => typeof value === 'string' ? value : fallback;
+const retiredCommand = (): CommandResponse => ({ type: 'error', error: 'Command request superseded.', superseded: true });
+const retiredConfirmation = (): ConfirmResult => ({ success: false, type: 'error', message: 'Confirmation request superseded.', result: null, superseded: true });
+const invalidCommand = (): CommandResponse => ({ type: 'error', error: 'Swan Coach returned an invalid command response.' });
+const invalidConfirmation = (): ConfirmResult => ({ success: false, type: 'error', message: 'Swan Coach returned an invalid confirmation response.', result: null });
+
+function readCommandPublication(binding?: PublicationBinding): PublicationSnapshot | null {
+  if (!binding) return null;
+  try { const value = binding.getSnapshot(); return isPublicationSnapshot(value) ? freezePublicationSnapshot(value) : null; }
+  catch { return null; }
+}
+
+export function useCoachCommand(binding?: PublicationBinding) {
+  const auth = useAuth();
+  const { showPaywall } = usePaywall();
+  const actorId = parseStrictPositiveId(auth.user?.id) ?? null;
+  const rawRole = typeof auth.user?.role === 'string' ? auth.user.role : null;
+  const authenticated = Boolean(auth.isAuthenticated && auth.user && !auth.loading);
+  const observed = readCommandPublication(binding);
+  const renderScope = useMemo(() => Object.freeze({}), [
+    actorId, rawRole, authenticated, Boolean(binding), observed?.actorId, observed?.rawRole,
+    observed?.audienceRole, observed?.generation, observed?.targetUserId, observed?.threadId, observed?.enabled,
+  ]);
   const [executingCommand, setExecutingCommand] = useState(false);
+  const [busyScope, setBusyScope] = useState(renderScope);
+  const active = useRef<CommandOperation | null>(null);
+  const mounted = useRef(true);
+  const committedScope = useRef(renderScope);
+  const generation = useRef(1);
+  const actualAuth = useRef({ actorId, rawRole, authenticated });
+  const bindingRef = useRef(binding);
+
+  const retire = useCallback(() => {
+    active.current?.controller.abort();
+    active.current = null;
+    setExecutingCommand(false);
+  }, []);
+
+  useLayoutEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; generation.current += 1; retire(); };
+  }, [retire]);
+  useLayoutEffect(() => {
+    actualAuth.current = { actorId, rawRole, authenticated };
+    bindingRef.current = binding;
+    if (committedScope.current !== renderScope) {
+      committedScope.current = renderScope;
+      generation.current += 1;
+      retire();
+    }
+  });
+
+  const capture = useCallback((): PublicationSnapshot | null => {
+    const identity = actualAuth.current;
+    if (!mounted.current || committedScope.current !== renderScope || !identity.authenticated
+      || identity.actorId === null || !isAllowedRawRole(identity.rawRole)) return null;
+    if (bindingRef.current) {
+      const token = readCommandPublication(bindingRef.current);
+      return token && token.enabled && samePublicationToken(token, observed)
+        && token.actorId === identity.actorId && token.rawRole === identity.rawRole
+        && audienceAllowedForActor(identity.rawRole, token.audienceRole) ? token : null;
+    }
+    return freezePublicationSnapshot({ actorId: identity.actorId, rawRole: identity.rawRole,
+      audienceRole: identity.rawRole, generation: generation.current, targetUserId: null, threadId: null, enabled: true });
+  }, [renderScope, observed]);
+
+  const begin = useCallback((token: PublicationSnapshot): CommandOperation => {
+    retire();
+    const operation = { scope: committedScope.current, token, controller: new AbortController() };
+    active.current = operation;
+    setBusyScope(committedScope.current);
+    setExecutingCommand(true);
+    return operation;
+  }, [retire]);
+
+  const isCurrent = useCallback((operation: CommandOperation): boolean => {
+    const identity = actualAuth.current;
+    if (!mounted.current || active.current !== operation || operation.controller.signal.aborted
+      || operation.scope !== committedScope.current || !identity.authenticated
+      || identity.actorId !== operation.token.actorId || identity.rawRole !== operation.token.rawRole) return false;
+    if (!bindingRef.current) return operation.token.generation === generation.current;
+    const token = readCommandPublication(bindingRef.current);
+    return Boolean(token?.enabled && samePublicationToken(token, operation.token));
+  }, []);
+
+  const finish = useCallback((operation: CommandOperation) => {
+    if (active.current !== operation) return;
+    active.current = null;
+    setExecutingCommand(false);
+  }, []);
+
+  const currentPaywall = useCallback((error: unknown, operation: CommandOperation) => {
+    if (!isCurrent(operation)) return;
+    const response = (error as { response?: { status?: number; data?: unknown } } | null)?.response;
+    if (response?.status === 402) showPaywall('Swan Coach', record(response.data) ? response.data : {});
+  }, [isCurrent, showPaywall]);
 
   const executeCommand = useCallback(async (
     message: string,
@@ -106,99 +209,66 @@ export function useCoachCommand() {
       selectedClientId?: number | null;
       previousContext?: string;
       routeContext?: Record<string, unknown> | null;
-      /** Exact server-registry type selected from the mounted command catalog. */
       commandType?: string;
-      /**
-       * Which channel produced this utterance. This transport serves both typed
-       * and voice callers; absence is unknown. Producers declare their origin
-       * so the server can apply its existing physical-confirmation policy.
-       */
       inputMode?: 'text' | 'voice' | 'ui' | 'unknown' | null;
-      /** Active surface for intent disambiguation (planner / logger / CC-3 dock surfaces). */
       surface?: 'workout-planner' | 'workout-logger' | 'bootcamp-builder' | 'pain-chart';
     },
   ): Promise<CommandResponse> => {
-    setExecutingCommand(true);
+    const token = capture();
+    if (!token) return retiredCommand();
+    const explicitTarget = opts?.selectedClientId === undefined ? undefined : parseStrictNullableId(opts.selectedClientId);
+    if (opts?.selectedClientId !== undefined && explicitTarget === undefined) return { type: 'error', error: 'selectedClientId must be a positive integer or null.' };
+    if (bindingRef.current && explicitTarget !== undefined && explicitTarget !== token.targetUserId) return retiredCommand();
+    const target = bindingRef.current ? token.targetUserId : explicitTarget;
+    const operation = begin(token);
     try {
+      if (!isCurrent(operation)) return retiredCommand();
       const res = await apiService.post('/api/ai-command/execute', {
         message,
-        selectedClientId: opts?.selectedClientId ?? undefined,
+        selectedClientId: target ?? undefined,
         previousContext: opts?.previousContext ?? undefined,
-        // Surface rides the existing allowlisted routeContext token channel
-        // (aiCommandRoutes normalizeRouteContext → intent surface remap).
-        routeContext: {
-          ...(opts?.routeContext ?? {}),
-          ...(opts?.commandType ? { commandType: opts.commandType } : {}),
-          ...(opts?.surface ? { surface: opts.surface } : {}),
-          inputMode: opts?.inputMode ?? 'unknown',
-        },
-      });
+        routeContext: { ...(opts?.routeContext ?? {}), ...(opts?.commandType ? { commandType: opts.commandType } : {}),
+          ...(opts?.surface ? { surface: opts.surface } : {}), inputMode: opts?.inputMode ?? 'unknown' },
+      }, { signal: operation.controller.signal, _isBackgroundRequest: true } as never);
+      if (!isCurrent(operation)) return retiredCommand();
       const data = res.data;
-
-      if (!data.success) return { type: 'error', error: data.error || 'Command failed' };
-
-      if (data.fallbackToChat) return { type: 'fallback_to_chat' };
-
+      if (!record(data)) return invalidCommand();
+      if (data.success !== true) return { type: 'error', error: responseText(data.error, 'Command failed') };
+      if (data.type === 'chat' || data.type === 'clarification_needed') return { type: 'fallback_to_chat' };
+      if (data.fallbackToChat === true) return invalidCommand();
       if (data.type === 'confirmation_required') {
-        return {
-          type: 'confirmation_required',
-          message: data.message,
-          operationId: data.operationId ?? null,
-          command: data.command ?? '',
-          params: data.params ?? {},
-          client: data.client ?? null,
-          details: data.details ?? null,
+        if (data.params !== undefined && !record(data.params)) return invalidCommand();
+        return { type: 'confirmation_required', message: responseText(data.message),
+          operationId: typeof data.operationId === 'string' ? data.operationId : null, command: responseText(data.command),
+          params: data.params ?? {}, client: data.client ?? null, details: data.details ?? null,
           expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : undefined,
-          isDestructive: !!(data.isDestructive),
-          tier: data.tier ?? null,
-          physical: Boolean(data.physical),
-          tierReasons: Array.isArray(data.tierReasons) ? data.tierReasons.filter((reason: unknown): reason is string => typeof reason === 'string') : [],
+          isDestructive: Boolean(data.isDestructive), tier: data.tier ?? null, physical: Boolean(data.physical),
+          tierReasons: Array.isArray(data.tierReasons) ? data.tierReasons.filter((x: unknown) => typeof x === 'string') : [],
+          readBackSlots: Array.isArray(data.readBackSlots) ? data.readBackSlots : [],
         };
       }
-
-      if (data.type === 'executed') {
-        return { type: 'executed', command: data.command ?? '', result: data.result ?? null, client: data.client ?? null };
-      }
-
+      if (data.type === 'executed') return { type: 'executed', command: responseText(data.command), result: data.result ?? null, client: data.client ?? null };
       if (data.type === 'frontend_dispatch') {
-        const event = data.event ?? '';
-        const payload = data.payload ?? {};
-        const dispatched = event ? dispatchAIWorkoutEvent(event, payload) : false;
-        return {
-          type: 'frontend_dispatch',
-          message: frontendDispatchReceipt(event, dispatched, data.message ?? 'Sent to the workout form.'),
-          command: data.command ?? '',
-          event,
-          payload,
-          dispatched,
-        };
+        if (typeof data.event !== 'string' || !data.event || !record(data.payload)) return invalidCommand();
+        if (!isCurrent(operation)) return retiredCommand();
+        const dispatched = dispatchAIWorkoutEvent(data.event, data.payload);
+        if (!isCurrent(operation)) return retiredCommand();
+        return { type: 'frontend_dispatch', message: frontendDispatchReceipt(data.event, dispatched, responseText(data.message, 'Sent to the workout form.')),
+          command: responseText(data.command), event: data.event, payload: data.payload, dispatched };
       }
-
-      if (data.type === 'not_wired') {
-        return {
-          type: 'not_wired',
-          message: data.message ?? 'Command not yet wired.',
-          command: data.command ?? '',
-          manualOnly: !!data.manualOnly,
-          reason: data.reason ?? null,
-        };
+      if (data.type === 'not_wired') return { type: 'not_wired', message: responseText(data.message, 'Command not yet wired.'),
+        command: responseText(data.command), manualOnly: Boolean(data.manualOnly), reason: typeof data.reason === 'string' ? data.reason : null };
+      if (data.type === 'debate_started' && typeof data.jobId === 'string' && data.jobId && typeof data.debateType === 'string') {
+        return { type: 'debate_started', message: responseText(data.message), jobId: data.jobId, debateType: data.debateType };
       }
-
-      if (data.type === 'debate_started') {
-        return { type: 'debate_started', message: data.message, jobId: data.jobId, debateType: data.debateType };
-      }
-
-      // chat / clarification_needed — both are chat fallbacks
-      return { type: 'fallback_to_chat' };
+      return invalidCommand();
     } catch (error) {
-      return {
-        type: 'error',
-        error: commandRequestErrorReceipt(error, COMMAND_TRANSPORT_FAILED),
-      };
-    } finally {
-      setExecutingCommand(false);
-    }
-  }, []);
+      if (!isCurrent(operation)) return retiredCommand();
+      currentPaywall(error, operation);
+      if (!isCurrent(operation)) return retiredCommand();
+      return { type: 'error', error: commandRequestErrorReceipt(error, COMMAND_TRANSPORT_FAILED) };
+    } finally { finish(operation); }
+  }, [begin, capture, currentPaywall, finish, isCurrent]);
 
   /**
    * @param renderedDigest proof that the caller displayed the STORED operation
@@ -220,56 +290,60 @@ export function useCoachCommand() {
    *   never declared. That is the whole reason the gate note above exists: this
    *   hook was already the caller that quietly lacked the OTHER proof.
    */
+  // The server remains authoritative for digest and physical-confirmation rules.
+  // Missing channel is forwarded as missing; this hook never invents a gesture.
   const confirmCommand = useCallback(async (
-    operationId: string,
-    renderedDigest?: string,
-    confirmChannel?: 'tap' | 'keyboard' | 'voice',
+    operationId: string, renderedDigest?: string, confirmChannel?: 'tap' | 'keyboard' | 'voice',
   ): Promise<ConfirmResult> => {
+    const token = capture();
+    if (!token) return retiredConfirmation();
+    if (typeof operationId !== 'string' || !operationId.trim()) return invalidConfirmation();
+    const operation = begin(token);
     try {
-      const res = await apiService.post('/api/ai-command/confirm', {
-        operationId, renderedDigest, confirmChannel,
-      });
+      if (!isCurrent(operation)) return retiredConfirmation();
+      const res = await apiService.post('/api/ai-command/confirm', { operationId, renderedDigest, confirmChannel },
+        { signal: operation.controller.signal, _isBackgroundRequest: true } as never);
+      if (!isCurrent(operation)) return retiredConfirmation();
       const data = res.data;
+      if (!record(data)) return invalidConfirmation();
+      if (data.success !== true) return { success: false, type: data.type === 'not_wired' ? 'not_wired' : 'error',
+        message: responseText(data.message, responseText(data.error, 'The command was not confirmed.')),
+        result: null, command: typeof data.command === 'string' ? data.command : undefined };
       if (data.type === 'frontend_dispatch') {
-        const event = data.event ?? '';
-        const payload = data.payload ?? {};
-        const dispatched = event ? dispatchAIWorkoutEvent(event, payload) : false;
-        const message = frontendDispatchReceipt(event, dispatched, data.message || '');
-        return {
-          success: !!data.success,
-          type: 'frontend_dispatch',
-          message,
-          result: { dispatched, event },
-          command: data.command ?? undefined,
-          event,
-          payload,
-          dispatched,
-        };
+        if (typeof data.event !== 'string' || !data.event || !record(data.payload)) return invalidConfirmation();
+        if (!isCurrent(operation)) return retiredConfirmation();
+        const dispatched = dispatchAIWorkoutEvent(data.event, data.payload);
+        if (!isCurrent(operation)) return retiredConfirmation();
+        return { success: true, type: 'frontend_dispatch', message: frontendDispatchReceipt(data.event, dispatched, responseText(data.message)),
+          result: { dispatched, event: data.event }, command: typeof data.command === 'string' ? data.command : undefined,
+          event: data.event, payload: data.payload, dispatched };
       }
-      return {
-        success: !!data.success,
-        type: data.type ?? (data.success ? 'executed' : 'error'),
-        message: data.message || '',
-        result: data.result ?? null,
-        command: data.command ?? undefined,
-      };
+      if (!['executed', 'debate_started'].includes(data.type)) return invalidConfirmation();
+      return { success: true, type: data.type, message: responseText(data.message), result: data.result ?? null,
+        command: typeof data.command === 'string' ? data.command : undefined };
     } catch (error) {
-      return {
-        success: false,
-        type: 'error',
-        message: commandRequestErrorReceipt(error, 'Confirm request failed.'),
-        result: null,
-      };
-    }
-  }, []);
+      if (!isCurrent(operation)) return retiredConfirmation();
+      currentPaywall(error, operation);
+      if (!isCurrent(operation)) return retiredConfirmation();
+      return { success: false, type: 'error', message: commandRequestErrorReceipt(error, 'Confirm request failed.'), result: null };
+    } finally { finish(operation); }
+  }, [begin, capture, currentPaywall, finish, isCurrent]);
 
   const cancelCommand = useCallback(async (operationId: string): Promise<void> => {
+    const token = capture();
+    if (!token || typeof operationId !== 'string' || !operationId.trim()) return;
+    const operation = begin(token);
     try {
-      await apiService.post('/api/ai-command/cancel', { operationId });
-    } catch {
-      // best-effort — operation will expire server-side in 120 s anyway
-    }
-  }, []);
+      if (!isCurrent(operation)) return;
+      await apiService.post('/api/ai-command/cancel', { operationId },
+        { signal: operation.controller.signal, _isBackgroundRequest: true } as never);
+    } catch (error) { currentPaywall(error, operation); }
+    finally { finish(operation); }
+  }, [begin, capture, currentPaywall, finish, isCurrent]);
 
-  return { executeCommand, confirmCommand, cancelCommand, executingCommand };
+  const visible = authenticated && actorId !== null && isAllowedRawRole(rawRole)
+    && (!binding || (observed?.enabled && observed.actorId === actorId && observed.rawRole === rawRole
+      && audienceAllowedForActor(rawRole, observed.audienceRole)));
+  return { executeCommand, confirmCommand, cancelCommand,
+    executingCommand: Boolean(visible && busyScope === renderScope && executingCommand) };
 }

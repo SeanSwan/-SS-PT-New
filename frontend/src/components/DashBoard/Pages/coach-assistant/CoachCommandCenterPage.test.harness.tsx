@@ -69,6 +69,11 @@ vi.mock('../../../../hooks/useAuth', () => ({
   useAuth: coachCommandCenterMocks.useAuthMock,
 }));
 
+// Both real auth entry points observe the same synthetic actor in page tests.
+vi.mock('../../../../context/AuthContext', () => ({
+  useAuth: coachCommandCenterMocks.useAuthMock,
+}));
+
 vi.mock('../../../../context/GlobalClientContext', () => ({
   useGlobalClient: coachCommandCenterMocks.useGlobalClientMock,
 }));

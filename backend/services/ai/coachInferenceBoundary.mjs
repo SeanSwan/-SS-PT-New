@@ -20,22 +20,15 @@
  *      Policy/IDs/approval and commit truth are assigned server-side after
  *      schema validation (requiresServerResolution).
  *
- * Cache: evidence envelopes are cached per (actor, target, role/access-version,
- * capability, private-mode); denied data is never cached. Role/target/forget/
- * logout invalidate through coachContextCache.
+ * Every request refreshes access and source records; no evidence cache is used.
  */
 import { normalizeCoachProviderPolicy, guardCoachProviderRequest } from './coachProviderBoundary.mjs';
+import { checkClientAccess, parseContextClientId } from './contextEngine/clientAccess.mjs';
 import { normalizeCoachModelResponse } from './coachModelResponseContract.mjs';
 import {
   COACH_EVIDENCE_TOOLS,
   COACH_EVIDENCE_TOOL_IDS,
 } from './coachEvidenceTools.mjs';
-import {
-  coachContextCacheKey,
-  getCachedCoachContext,
-  setCachedCoachContext,
-  invalidateCoachContextCache,
-} from './coachContextCache.mjs';
 
 export const COACH_INFERENCE_BUDGET = Object.freeze({
   maxToolCalls: 6,
@@ -71,7 +64,7 @@ export function buildCoachInferencePolicy({
   const budget = COACH_INFERENCE_BUDGET.defaultBudgetMs;
   return {
     actorId,
-    targetClientId: Number.isSafeInteger(Number(targetClientId)) ? Number(targetClientId) : null,
+    targetClientId: parseContextClientId(targetClientId),
     role: role ? String(role) : null,
     capability: typeof capability === 'string' && capability.trim() ? capability.trim().slice(0, 80) : 'coach_chat',
     policy: normalizeCoachProviderPolicy({
@@ -109,7 +102,7 @@ function remainingBudgetMs(startedAt, budgetMs) {
  *   system prompt, sanitized history, and the new message — it passes it here
  *   and the boundary appends nothing of its own; evidence findings are folded
  *   into the existing system message instead.
- * @param {object} [args.deps] test seams { evidenceTools, contextCacheEnabled }
+ * @param {object} [args.deps] test seams { evidenceTools, budgetMs }
  * @returns {Promise<{
  *   result: ReturnType<typeof normalizeCoachModelResponse>,
  *   toolFindings: Array<object>,
@@ -118,168 +111,132 @@ function remainingBudgetMs(startedAt, budgetMs) {
  *   budget: { toolCalls: number, modelRounds: number, elapsedMs: number, exhausted: boolean },
  * }>}
  */
-export async function runCoachInference({
-  actor = null,
-  targetClientId = null,
-  sequelize = null,
-  message = '',
-  providerName = '',
-  providerGenerate = null,
-  bodyPolicy = null,
-  capability = 'coach_chat',
-  privateMode = false,
-  promptMessagesOverride = null,
-  deps = {},
-} = {}) {
-  const startedAt = Date.now();
-  const role = actor && typeof actor.role === 'string' ? actor.role : null;
-  const scope = {
-    actorId: actor && Number.isSafeInteger(actor.id) ? actor.id : null,
-    targetClientId,
-    role,
-    capability,
-    privateMode,
-  };
-  const budget = { toolCalls: 0, modelRounds: 0, elapsedMs: 0, exhausted: false };
 
-  // 1 — server-owned policy; body policy is shape-checked only.
-  const built = buildCoachInferencePolicy({
-    actor,
-    targetClientId,
-    role,
-    capability,
-    privacyClass: bodyPolicy && bodyPolicy.privacyClass,
-    allowedProviders: bodyPolicy && bodyPolicy.allowedProviders,
-    budgetMs: bodyPolicy && bodyPolicy.budgetMs,
-  });
-  const guard = guardCoachProviderRequest({ policy: built.policy, providerName });
-  if (!guard.allowed) {
-    budget.elapsedMs = Date.now() - startedAt;
-    return {
-      result: normalizeCoachModelResponse({ type: 'unavailable', message: 'Coach context is temporarily unavailable.' }),
-      toolFindings: [],
-      providerUsed: null,
-      reasonCode: guard.reasonCode,
-      budget,
-    };
+// Current authorization is deliberately separate from optional context data.
+// Preserve the existing onboarding rule: an absent privacy row permits AI;
+// an explicit withdrawal or a failed query denies it.
+export async function checkCoachInferenceAccess({ actor, targetClientId, sequelize, signal } = {}) {
+  signal?.throwIfAborted();
+  if (!actor || !['admin','trainer','client','user'].includes(actor.role) || !parseContextClientId(actor.id)) return { allowed: false };
+  if (targetClientId != null) {
+    const access = await checkClientAccess(actor, targetClientId, sequelize);
+    signal?.throwIfAborted();
+    if (!access.allowed) return { allowed: false };
   }
+  if (!sequelize?.query) return { allowed: false };
+  try {
+    const rows = await sequelize.query('SELECT "aiEnabled", "withdrawnAt" FROM ai_privacy_profiles WHERE "userId" = :userId LIMIT 1', {
+      replacements: { userId: targetClientId ?? actor.id }, type: 'SELECT',
+    });
+    signal?.throwIfAborted();
+    if (!Array.isArray(rows)) return { allowed: false };
+    const consent = rows[0];
+    return { allowed: !consent || (consent.aiEnabled === true && !consent.withdrawnAt) };
+  } catch { signal?.throwIfAborted(); return { allowed: false }; }
+}
 
+async function withinBudget(work, startedAt, budgetMs, budget, parentSignal) {
+  const remaining = remainingBudgetMs(startedAt, budgetMs);
+  const controller = new AbortController();
+  let timer; let abortListener;
+  try {
+    parentSignal?.throwIfAborted();
+    if (remaining <= 0) { budget.exhausted = true; throw new Error('COACH_BUDGET_EXHAUSTED'); }
+    const cancelled = new Promise((_, reject) => {
+      abortListener = () => { controller.abort(parentSignal.reason); reject(new Error('COACH_REQUEST_CANCELLED')); };
+      parentSignal?.addEventListener('abort', abortListener, { once: true });
+      timer = setTimeout(() => { budget.exhausted = true; controller.abort(); reject(new Error('COACH_BUDGET_EXHAUSTED')); }, remaining);
+    });
+    return await Promise.race([Promise.resolve().then(() => { controller.signal.throwIfAborted(); return work(controller.signal); }), cancelled]);
+  } finally { clearTimeout(timer); parentSignal?.removeEventListener('abort', abortListener); }
+}
+
+export async function runCoachInference({
+  actor = null, targetClientId = null, sequelize = null, message = '',
+  providerName = '', providerGenerate = null, bodyPolicy = null,
+  capability = 'coach_chat', privateMode = false, promptMessagesOverride = null,
+  signal = null, deps = {},
+} = {}) {
+  void privateMode;
+  const startedAt = Date.now();
+  const role = typeof actor?.role === 'string' ? actor.role : null;
+  const built = buildCoachInferencePolicy({ actor, targetClientId, role, capability,
+    privacyClass: bodyPolicy?.privacyClass, allowedProviders: bodyPolicy?.allowedProviders, budgetMs: bodyPolicy?.budgetMs });
+  const target = built.targetClientId;
+  const budget = { toolCalls: 0, modelRounds: 0, elapsedMs: 0, exhausted: false };
+  const unavailable = (reasonCode, toolFindings = []) => {
+    budget.elapsedMs = Date.now() - startedAt;
+    return { result: normalizeCoachModelResponse({ type: 'unavailable', message: reasonCode === 'CONTEXT_ACCESS_DENIED'
+      ? 'Coach cannot access this client context.' : 'Coach context is temporarily unavailable.' }), toolFindings, providerUsed: null, reasonCode, budget };
+  };
+  if (signal?.aborted) return unavailable('REQUEST_CANCELLED');
+  if (targetClientId != null && target === null) return unavailable('CONTEXT_ACCESS_DENIED');
+  const guard = guardCoachProviderRequest({ policy: built.policy, providerName });
+  if (!guard.allowed) return unavailable(guard.reasonCode);
   const tools = deps.evidenceTools && typeof deps.evidenceTools === 'object' ? deps.evidenceTools : COACH_EVIDENCE_TOOLS;
-  // deps.budgetMs is a SERVER-side test/ops seam (not caller-controlled); in
-  // production the wall budget is always the policy's 20s.
-  const budgetMs = Number.isSafeInteger(deps.budgetMs) && deps.budgetMs > 0
-    ? deps.budgetMs
-    : (built.policy.budgetMs || COACH_INFERENCE_BUDGET.defaultBudgetMs);
-
-  // 2 — bounded evidence round (reads cache; refreshes permission per tool).
+  const budgetMs = Number.isSafeInteger(deps.budgetMs) && deps.budgetMs > 0 ? deps.budgetMs : built.policy.budgetMs;
+  const authorize = deps.authorizationCheck ?? checkCoachInferenceAccess;
+  const verifyAccess = async (activeSignal = signal) => {
+    const access = await withinBudget((checkSignal) => authorize({ actor, targetClientId: target, sequelize, signal: checkSignal }), startedAt, budgetMs, budget, activeSignal);
+    activeSignal?.throwIfAborted();
+    if (access?.allowed !== true) throw new Error('CONTEXT_ACCESS_DENIED');
+  };
   const toolFindings = [];
-  const cacheEnabled = deps.contextCacheEnabled !== false;
-  for (const toolId of COACH_EVIDENCE_TOOL_IDS) {
-    if (budget.toolCalls >= COACH_INFERENCE_BUDGET.maxToolCalls) {
-      budget.exhausted = true;
-      break;
-    }
-    if (remainingBudgetMs(startedAt, budgetMs) <= 0) {
-      budget.exhausted = true;
-      break;
-    }
-    const cacheKey = cacheEnabled
-      ? coachContextCacheKey({ ...scope, accessVersion: 'v1' })
-      : null;
-    let finding = null;
-    if (cacheKey) {
-      const hit = getCachedCoachContext(cacheKey);
-      if (hit && Array.isArray(hit.findings) && hit.findings[toolId]) {
-        finding = hit.findings[toolId];
-      }
-    }
-    if (!finding) {
-      const tool = tools[toolId];
-      if (!tool || typeof tool !== 'function') {
-        finding = { toolId, state: 'unavailable', reason: 'tool not registered' };
-      } else {
-        const argsByTool = {
-          context_summary: { sequelize, user: actor, targetClientId },
-          exercise_lookup: { sequelize, query: String(message).slice(0, 120) },
-          recent_workout: { sequelize, userId: scope.targetClientId ?? scope.actorId },
-          progress_evidence: { sequelize, userId: scope.targetClientId ?? scope.actorId },
-        };
-        try {
-          finding = await tool(argsByTool[toolId]);
-        } catch (error) {
-          finding = { toolId, state: 'unavailable', reason: String(error?.message || error).slice(0, 200) };
-        }
+  try {
+    await verifyAccess();
+    for (const toolId of COACH_EVIDENCE_TOOL_IDS) {
+      // Staff general chat has no personal subject. Self coaching must bind an
+      // explicit target; never silently substitute the actor's health records.
+      if (target === null && toolId !== 'exercise_lookup') continue;
+      if (budget.toolCalls >= COACH_INFERENCE_BUDGET.maxToolCalls || remainingBudgetMs(startedAt, budgetMs) <= 0) { budget.exhausted = true; break; }
+      await verifyAccess();
+      const argsByTool = {
+        context_summary: { sequelize, user: actor, targetClientId: target },
+        exercise_lookup: { sequelize, query: String(message).slice(0, 120) },
+        recent_workout: { sequelize, userId: target }, progress_evidence: { sequelize, userId: target },
+      };
+      let finding;
+      try {
+        finding = typeof tools[toolId] === 'function'
+          ? await withinBudget((toolSignal) => tools[toolId]({ ...argsByTool[toolId], signal: toolSignal }), startedAt, budgetMs, budget, signal) : null;
+      } catch (error) {
+        if (signal?.aborted || budget.exhausted) throw error;
+        finding = { toolId, state: 'unavailable', reason: 'reader_unavailable' };
       }
       budget.toolCalls += 1;
-      // Denied data never enters the provider payload; only stable states
-      // (ok/empty) are cache-worthy.
-      if (cacheKey && (finding.state === 'ok' || finding.state === 'empty')) {
-        const existing = getCachedCoachContext(cacheKey);
-        const next = { ...(existing && existing.findings ? existing.findings : {}), [toolId]: finding, state: 'cached' };
-        setCachedCoachContext(cacheKey, { state: 'cached', findings: next });
+      if (!finding || typeof finding !== 'object') finding = { toolId, state: 'unavailable', reason: 'invalid_tool_result' };
+      toolFindings.push(finding);
+      if (toolId === 'context_summary' && (finding.state !== 'ok' || finding.accessDenied === true)) {
+        const denied = finding.state === 'denied' || finding.accessDenied === true;
+        return unavailable(denied ? 'CONTEXT_ACCESS_DENIED' : 'CONTEXT_UNAVAILABLE', denied ? [] : toolFindings);
       }
     }
-    toolFindings.push(finding);
-  }
-  // The wall clock is authoritative: if the evidence round consumed the whole
-  // budget, mark it exhausted so the provider round is skipped and the caller
-  // sees BUDGET_EXHAUSTED (partial findings), not a generic unavailable.
-  if (!budget.exhausted && remainingBudgetMs(startedAt, budgetMs) <= 0) {
-    budget.exhausted = true;
-  }
-
-  // 3 — provider round through the injected adapter (never a second provider).
-  let promptMessages;
-  if (Array.isArray(promptMessagesOverride) && promptMessagesOverride.length > 0) {
-    // Route-supplied prompt: keep it intact; the findings block is already
-    // carried by the route's system prompt assembly (it passes its own
-    // messages) OR we append the evidence block as a system message so tool
-    // output still travels as fenced data.
-    const evidenceBlock = buildCoachPromptMessages({ message: '', toolFindings, role, targetClientId: scope.targetClientId })[0].content;
-    const hasSystem = promptMessagesOverride.some((m) => m && m.role === 'system');
-    promptMessages = hasSystem
-      ? [...promptMessagesOverride.slice(0, 1).map((m) => ({ ...m, content: `${m.content}\n\n${evidenceBlock}` })), ...promptMessagesOverride.slice(1)]
-      : [{ role: 'system', content: evidenceBlock }, ...promptMessagesOverride];
-  } else {
-    promptMessages = buildCoachPromptMessages({ message, toolFindings, role, targetClientId: scope.targetClientId });
-  }
-  let raw = null;
-  let errorReason = null;
-  if (typeof providerGenerate === 'function' && remainingBudgetMs(startedAt, budgetMs) > 0) {
+    if (budget.exhausted || remainingBudgetMs(startedAt, budgetMs) <= 0) { budget.exhausted = true; return unavailable('BUDGET_EXHAUSTED', toolFindings); }
+    await verifyAccess();
+    const evidenceMessages = buildCoachPromptMessages({ message, toolFindings, role, targetClientId: target });
+    // Keep complete bounded JSON and quality markers; slicing serialized JSON
+    // could drop missing-input warnings or turn partial data into a full claim.
+    const promptMessages = Array.isArray(promptMessagesOverride) && promptMessagesOverride.length
+      ? [{ role: 'system', content: evidenceMessages[0].content }, ...promptMessagesOverride]
+      : evidenceMessages;
+    if (typeof providerGenerate !== 'function') return unavailable('PROVIDER_UNAVAILABLE', toolFindings);
     budget.modelRounds += 1;
-    try {
-      raw = await providerGenerate(promptMessages);
-    } catch (error) {
-      errorReason = String(error?.message || error).slice(0, 200);
+    const raw = await withinBudget((providerSignal) => providerGenerate(promptMessages, {
+      signal: providerSignal, verifyAccess: () => verifyAccess(providerSignal),
+    }), startedAt, budgetMs, budget, signal);
+    await verifyAccess();
+    if (raw?.ok && typeof raw.content === 'string' && raw.content.trim()) {
+      budget.elapsedMs = Date.now() - startedAt;
+      return { result: normalizeCoachModelResponse(parseCoachModelEnvelope(raw.content)), rawContent: raw.content,
+        toolFindings, providerUsed: String(providerName), providerModel: raw.model ?? null, tokenUsage: raw.tokenUsage ?? null, reasonCode: null, budget };
     }
-  } else if (!providerGenerate) {
-    errorReason = 'no provider adapter configured';
+    return unavailable('PROVIDER_UNAVAILABLE', toolFindings);
+  } catch (error) {
+    if (signal?.aborted) return unavailable('REQUEST_CANCELLED');
+    if (budget.exhausted) return unavailable('BUDGET_EXHAUSTED', toolFindings);
+    if (error?.message === 'CONTEXT_ACCESS_DENIED') return unavailable('CONTEXT_ACCESS_DENIED');
+    return unavailable('PROVIDER_ERROR', toolFindings);
   }
-
-  if (raw && raw.ok && typeof raw.content === 'string' && raw.content.trim()) {
-    // 4 — validate the final union; server assigns authority fields after.
-    const parsed = parseCoachModelEnvelope(raw.content);
-    const result = normalizeCoachModelResponse(parsed);
-    budget.elapsedMs = Date.now() - startedAt;
-    return { result, rawContent: raw.content, toolFindings, providerUsed: String(providerName || ''), reasonCode: null, budget };
-  }
-
-  // Provider failed or budget ran out: partial findings ride along so the
-  // caller can present them instead of a blank "try again".
-  budget.elapsedMs = Date.now() - startedAt;
-  const partial = toolFindings.filter((f) => f && (f.state === 'ok' || f.state === 'empty'));
-  return {
-    result: normalizeCoachModelResponse({
-      type: 'unavailable',
-      message: partial.length > 0
-        ? 'I gathered some context but could not finish the answer this time.'
-        : 'Coach context is temporarily unavailable.',
-    }),
-    toolFindings,
-    providerUsed: raw && raw.ok ? String(providerName || '') : null,
-    reasonCode: errorReason ? 'PROVIDER_ERROR' : (budget.exhausted ? 'BUDGET_EXHAUSTED' : 'PROVIDER_UNAVAILABLE'),
-    budget,
-  };
 }
 
 /**
@@ -300,9 +257,10 @@ export function buildCoachPromptMessages({ message, toolFindings = [], role = nu
       continue;
     }
     const payloadText = state === 'ok'
-      ? String(JSON.stringify(finding.payload ?? null)).slice(0, 4000)
+      ? String(JSON.stringify(finding.payload ?? null))
       : '';
-    lines.push(`[${finding.toolId}: ${state}]${payloadText ? '\n' + payloadText : ''}`);
+    const boundedText = Buffer.byteLength(payloadText, 'utf8') <= 8192 ? payloadText : '{"omitted":true,"reason":"evidence_payload_limit"}';
+    lines.push(`[${finding.toolId}: ${state}]${finding.truncated ? ' PARTIAL: evidence was truncated; do not infer missing details.' : ''}${boundedText ? '\n' + boundedText : ''}`);
   }
   lines.push('--- END EVIDENCE ---');
   const system = lines.join('\n');

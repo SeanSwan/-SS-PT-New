@@ -56,6 +56,7 @@ const DOMAIN_LOADERS = {
      FROM workout_sessions ws
      JOIN workout_logs wl ON wl."sessionId" = ws.id
      WHERE ws."userId" = :clientId AND ws.status = 'completed'
+        AND ws.date <= :now
      GROUP BY ws.id, ws.title, ws.date, ws.duration, ws.intensity
      ORDER BY ws.date DESC
      LIMIT 5`,
@@ -142,9 +143,11 @@ function summarizeSchedule(rows) {
  *   accessVia?: string,
  * }>}
  */
-export async function buildCoachContext({ user, targetClientId, sequelize }) {
+export async function buildCoachContext({ user, targetClientId, sequelize, signal }) {
+  signal?.throwIfAborted();
   // 1. AUTHORIZATION FIRST — denied access loads zero domains.
   const access = await checkClientAccess(user, targetClientId, sequelize);
+  signal?.throwIfAborted();
   if (!access.allowed) {
     return {
       ok: false,
@@ -165,12 +168,18 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
       message: CLIENT_ACCESS_DENIED_MESSAGE,
     };
   }
-  const replacements = { clientId };
+  const replacements = { clientId, now: new Date().toISOString() };
 
   // 2. Load all domains in parallel; per-domain failure degrades, never throws.
   const settled = await Promise.allSettled(
-    DOMAIN_NAMES.map((domain) => DOMAIN_LOADERS[domain](sequelize, replacements)),
+    DOMAIN_NAMES.map((domain) => {
+      signal?.throwIfAborted();
+      return DOMAIN_LOADERS[domain](sequelize, replacements);
+    }),
   );
+  // The SQL driver may keep an already-issued query running. Cancellation
+  // stops dependent work and discards its result; no driver abort is claimed.
+  signal?.throwIfAborted();
 
   const results = {};
   const dataQuality = [];

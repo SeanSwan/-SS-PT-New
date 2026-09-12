@@ -94,3 +94,24 @@ test('null load or reps never counts as zero volume', () => {
   });
   assert.equal(result.volumeByExercise.press.kg, 480);
 });
+
+
+test('HR1-4 absent and malformed set values never publish comparable zero volume', () => {
+  for (const missing of [null, undefined, '', ' ', false, {}, []]) {
+    const out = buildCoachProgressEvidence({ sessions: [{ id: 'missing', status: 'completed', verified: true, exercises: [{ exerciseKey: 'squat', unit: 'lbs', sets: [{ reps: missing, load: 100 }, { reps: 5, load: missing }] }] }] });
+    assert.deepEqual(out.volumeByExercise, {}, `unexpected volume for ${JSON.stringify(missing)}`);
+    assert.deepEqual(out.comparability, {});
+    assert.ok(out.missingInputs.includes('workout_set_values'));
+  }
+});
+test('HR1-4 recorded zero load remains a real zero, with partial records disclosed separately', () => {
+  const make = sets => buildCoachProgressEvidence({ sessions: [{ id: 'zero', status: 'completed', verified: true, exercises: [{ exerciseKey: 'squat', unit: 'lbs', sets }] }] });
+  const zero = make([{ reps: 5, load: 0 }]);
+  assert.equal(zero.volumeByExercise.squat.lbs, 0);
+  assert.equal(zero.comparability.squat, 'comparable');
+  assert.deepEqual(zero.missingInputs, []);
+  const partial = make([{ reps: 5, load: 100 }, { reps: 5, load: null }]);
+  assert.equal(partial.volumeByExercise.squat.lbs, 500);
+  assert.equal(partial.completeness, 'partial');
+  assert.ok(partial.missingInputs.includes('workout_set_values'));
+});

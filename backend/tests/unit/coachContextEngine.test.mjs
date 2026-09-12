@@ -237,3 +237,28 @@ describe('buildCoachContext', () => {
     expect(JSON.stringify(r.context.nutrition)).not.toMatch(/description|items|Maria|Lopez/i);
   });
 });
+
+
+describe('HR1 context reader abort boundary', () => {
+  it('does not start authorization or domains for an already aborted request', async () => {
+    const controller = new AbortController(); controller.abort();
+    const sequelize = fakeSequelize();
+    await expect(buildCoachContext({ user: TRAINER, targetClientId: 7, sequelize, signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
+    expect(accessMock).not.toHaveBeenCalled(); expect(sequelize.query).not.toHaveBeenCalled();
+  });
+  it('does not start domains after abort during authorization', async () => {
+    const controller = new AbortController();
+    accessMock.mockImplementation(async () => { controller.abort(); return { allowed: true, via: 'assignment' }; });
+    const sequelize = fakeSequelize();
+    await expect(buildCoachContext({ user: TRAINER, targetClientId: 7, sequelize, signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
+    expect(sequelize.query).not.toHaveBeenCalled();
+  });
+  it('discards completed domain queries after cancellation', async () => {
+    const controller = new AbortController();
+    accessMock.mockResolvedValue({ allowed: true, via: 'assignment' });
+    const sequelize = fakeSequelize();
+    const query = sequelize.query.getMockImplementation();
+    sequelize.query.mockImplementation(async (...args) => { const rows = await query(...args); controller.abort(); return rows; });
+    await expect(buildCoachContext({ user: TRAINER, targetClientId: 7, sequelize, signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});

@@ -30,9 +30,9 @@ const READINESS_REVIEW_FLOOR = 3;
  * check must never read as "no contraindication found". */
 function activeHardMatch(contraindications, plannedExercise) {
   const patterns = [
-    String(plannedExercise?.pattern || '').toLowerCase(),
-    String(plannedExercise?.muscleGroup || '').toLowerCase(),
-    String(plannedExercise?.joint || '').toLowerCase(),
+    String(plannedExercise?.pattern || '').trim().toLowerCase(),
+    String(plannedExercise?.muscleGroup || '').trim().toLowerCase(),
+    String(plannedExercise?.joint || '').trim().toLowerCase(),
   ].filter(Boolean);
   if (patterns.length === 0) return 'metadata_missing';
   for (const contra of Array.isArray(contraindications) ? contraindications : []) {
@@ -74,15 +74,16 @@ export function buildSubstitutionDraft({
   }
 
   const reasons = [];
-  if (contraindications === null || contraindications === undefined) {
+  if (!Array.isArray(contraindications) || contraindications.some(item => !item || typeof item.active !== 'boolean'
+      || (item.active && ![item.pattern, item.muscleGroup, item.joint].some(value => typeof value === 'string' && value.trim())))) {
     reasons.push('contraindication_data_unknown');
   }
-  if (pain === null || pain === undefined) {
+  if (typeof pain !== 'number' || !Number.isFinite(pain) || pain < 0 || pain > 10) {
     reasons.push('pain_data_unknown');
   } else if (Number(pain) >= PAIN_REVIEW_THRESHOLD) {
     reasons.push(`active_pain_${Number(pain)}`);
   }
-  if (readiness === null || readiness === undefined) {
+  if (typeof readiness !== 'number' || !Number.isFinite(readiness) || readiness < 0 || readiness > 10) {
     reasons.push('readiness_data_unknown');
   } else if (Number(readiness) <= READINESS_REVIEW_FLOOR) {
     reasons.push(`low_readiness_${Number(readiness)}`);
@@ -98,16 +99,21 @@ export function buildSubstitutionDraft({
     return { status: 'requires_review', reasons: ['no_substitution_candidate'], substitution: null };
   }
 
-  // Draft substitution: identity + equipment/media metadata preserved from the
-  // PLANNED exercise context; trainer review is mandatory before any write.
+  const replacementMatch = activeHardMatch(contraindications, candidate);
+  if (replacementMatch === 'metadata_missing') return { status: 'requires_review', reasons: ['replacement_metadata_unknown'], substitution: null };
+  if (replacementMatch) return { status: 'blocked', reasons: ['replacement_contraindication_active'], substitution: null };
+
+  // Draft substitution: replacement metadata comes from the selected candidate.
+  // Preserve the planned key separately for the review diff.
+
   return {
     status: 'draft',
     reasons: [],
     substitution: {
       fromExerciseKey: exerciseKey,
       exerciseKey: String(candidate.exerciseKey),
-      equipment: plannedExercise.equipment ?? null,
-      media: plannedExercise.media ?? null,
+      equipment: candidate.equipment ?? null,
+      media: candidate.media ?? null,
       requiresTrainerReview: true,
       policySource: 'G07-S8b-draft-gate',
     },

@@ -52,17 +52,22 @@ import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
 import { requireSubscription } from '../middleware/requireSubscription.mjs';
 import AiConversation from '../models/AiConversation.mjs';
+import { getUser } from '../models/index.mjs';
+import {
+  createCoachReadScope, parseCoachReadRequest, sendCoachReadFailure,
+  readCoachTargetAdmission, readCoachConversationList, readCoachConversationDetail,
+} from '../services/ai/coachConversationReadAccess.mjs';
 import {
   getSystemPrompt,
   buildPromptMessages,
   sendChatMessage,
-  coachProviderCompatAdapter,
+  getCoachProviderAdapter,
   enrichWithUserData,
   getAIChatDiagnostics,
   sanitizeAiChatMetadataForClient,
   sanitizeAiFailoverTrace,
 } from '../services/aiChatService.mjs';
-import { runCoachInference } from '../services/ai/coachInferenceBoundary.mjs';
+import { runCoachInference, checkCoachInferenceAccess } from '../services/ai/coachInferenceBoundary.mjs';
 import { transcribeAudio, isAudioFile, checkAndRecordTranscription } from '../services/voiceTranscriptionService.mjs';
 import { stripIdentityFromMessage, stripIdentityFromResponse, scrubGenericPII } from '../services/aiPrivacyService.mjs';
 import { createAccessibleClientIdentitySanitizer } from '../services/ai/accessibleClientIdentityPrivacy.mjs';
@@ -357,6 +362,11 @@ function resolveConversationAudienceRole(userRole, requestedRole) {
  * Create a new conversation thread
  */
 router.post('/conversations', async (req, res) => {
+  const unavailable = {
+    success: false,
+    code: 'COACH_CONVERSATION_CREATE_UNAVAILABLE',
+    error: 'Swan Coach cannot create this conversation right now. Please try again later.',
+  };
   try {
     const { context = 'general', title, targetUserId, responseStyle = 'both', audienceRole } = req.body;
     const userRole = req.user.role || 'client';
@@ -410,8 +420,7 @@ router.post('/conversations', async (req, res) => {
         }
       }
     }
-    // Build create payload — only include targetUserId if it has a value
-    // (column may not exist yet if migration hasn't run)
+    // Preserve the requested scope in one create attempt, including on failure.
     const createPayload = {
       userId: req.user.id,
       role: conversationRole,
@@ -426,23 +435,18 @@ router.post('/conversations', async (req, res) => {
       createPayload.targetUserId = resolvedTargetUserId;
     }
 
-    let conversation;
-    try {
-      conversation = await AiConversation.create(createPayload);
-    } catch (createErr) {
-      // If targetUserId column doesn't exist yet, retry without it
-      if (createErr.message?.includes('targetUserId') || createErr.original?.code === '42703') {
-        logger.error('MIGRATION REQUIRED: targetUserId column missing from ai_conversations table', {
-          environment: process.env.NODE_ENV,
-          timestamp: new Date().toISOString(),
-        });
-        delete createPayload.targetUserId;
-        conversation = await AiConversation.create(createPayload);
-      } else {
-        throw createErr;
-      }
+    const conversation = await AiConversation.create(createPayload);
+    const storedTargetUserId = conversation?.targetUserId === null
+      ? null
+      : parseContextClientId(conversation?.targetUserId);
+    if (!conversation
+      || (conversation.targetUserId !== null && storedTargetUserId === null)
+      || storedTargetUserId !== resolvedTargetUserId) {
+      logger.error('[AIChatRoutes] Conversation creation unavailable', { operation: 'conversation_create', category: 'target_integrity' });
+      // An inconsistent returned record may already be committed. Do not
+      // publish a false success, retry, or attempt an unproven rollback.
+      return res.status(503).json(unavailable);
     }
-
     return res.status(201).json({
       success: true,
       conversation: {
@@ -450,7 +454,7 @@ router.post('/conversations', async (req, res) => {
         title: conversation.title,
         context: conversation.context,
         role: conversation.role,
-        targetUserId: conversation.targetUserId,
+        targetUserId: storedTargetUserId,
         status: conversation.status,
         messageCount: 0,
         createdAt: conversation.createdAt,
@@ -458,7 +462,11 @@ router.post('/conversations', async (req, res) => {
       },
     });
   } catch (err) {
-    logger.error('[AIChatRoutes] Create conversation error:', err.message);
+    const schemaUnavailable = [err?.code, err?.original?.code, err?.parent?.code].includes('42703');
+    logger.error('[AIChatRoutes] Conversation creation failed', {
+      operation: 'conversation_create', category: schemaUnavailable ? 'schema_unavailable' : 'create_failed',
+    });
+    if (schemaUnavailable) return res.status(503).json(unavailable);
     return res.status(500).json({ success: false, error: 'Failed to create conversation' });
   }
 });
@@ -467,87 +475,29 @@ router.post('/conversations', async (req, res) => {
  * GET /api/ai-chat/conversations
  * List user's conversations (most recent first)
  */
-router.get('/conversations', async (req, res) => {
+// Read receipts and data are request-time observations, never write grants.
+const handleCoachRead = (kind, reader) => async (req, res) => {
+  const scope = createCoachReadScope(req, res);
+  res.set('Cache-Control', 'no-store');
+  res.vary('Authorization');
   try {
-    const { status = 'active', limit = 20, offset = 0, audienceRole } = req.query;
-    const conversationRole = audienceRole ? resolveConversationAudienceRole(req.user.role || 'client', audienceRole) : null;
-    if (audienceRole && !conversationRole) {
-      return res.status(403).json({ success: false, code: 'INVALID_AUDIENCE_ROLE', error: 'Conversation audience is not available for this account.' });
-    }
-
-    // Only allow listing active or archived conversations (not deleted)
-    const allowedStatuses = ['active', 'archived'];
-    const resolvedStatus = allowedStatuses.includes(status) ? status : 'active';
-
-    const conversations = await AiConversation.findAndCountAll({
-      where: {
-        userId: req.user.id,
-        status: resolvedStatus,
-        ...(conversationRole ? { role: conversationRole } : {}),
-      },
-      attributes: ['id', 'title', 'context', 'role', 'status', 'messageCount', 'lastMessageAt', 'createdAt', 'targetUserId'],
-      order: [['lastMessageAt', 'DESC NULLS LAST'], ['createdAt', 'DESC']],
-      limit: Math.min(Number(limit) || 20, 50),
-      offset: Number(offset) || 0,
+    const input = parseCoachReadRequest(req, kind, resolveConversationAudienceRole);
+    const body = await reader(scope, input, {
+      Conversation: AiConversation, db: sequelize, getUser,
+      sanitizeMetadata: sanitizeAiChatMetadataForClient,
     });
+    const payload = JSON.stringify(body);
+    scope.assertCurrent();
+    // end avoids Express's implicit ETag/304 shortcut for authorization receipts.
+    return res.type('json').end(payload);
+  } catch (error) {
+    return sendCoachReadFailure(res, error, scope);
+  } finally { scope.dispose(); }
+};
 
-    return res.json({
-      success: true,
-      conversations: conversations.rows,
-      total: conversations.count,
-    });
-  } catch (err) {
-    logger.error('[AIChatRoutes] List conversations error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to list conversations' });
-  }
-});
-
-/**
- * GET /api/ai-chat/conversations/:id
- * Get a conversation with full message history
- */
-router.get('/conversations/:id', async (req, res) => {
-  try {
-    const conversationRole = req.query.audienceRole
-      ? resolveConversationAudienceRole(req.user.role || 'client', req.query.audienceRole)
-      : null;
-    if (req.query.audienceRole && !conversationRole) {
-      return res.status(403).json({ success: false, code: 'INVALID_AUDIENCE_ROLE', error: 'Conversation audience is not available for this account.' });
-    }
-    const conversation = await AiConversation.findOne({
-      where: {
-        id: req.params.id,
-        userId: req.user.id,
-        status: { [Op.ne]: 'deleted' },
-        ...(conversationRole ? { role: conversationRole } : {}),
-      },
-    });
-
-    if (!conversation) {
-      return res.status(404).json({ success: false, error: 'Conversation not found' });
-    }
-
-    return res.json({
-      success: true,
-      conversation: {
-        id: conversation.id,
-        title: conversation.title,
-        context: conversation.context,
-        role: conversation.role,
-        targetUserId: conversation.targetUserId,
-        status: conversation.status,
-        messages: conversation.messages,
-        messageCount: conversation.messageCount,
-        metadata: sanitizeAiChatMetadataForClient(conversation.metadata),
-        lastMessageAt: conversation.lastMessageAt,
-        createdAt: conversation.createdAt,
-      },
-    });
-  } catch (err) {
-    logger.error('[AIChatRoutes] Get conversation error:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to get conversation' });
-  }
-});
+router.get('/target-access', handleCoachRead('admission', readCoachTargetAdmission));
+router.get('/conversations', handleCoachRead('list', readCoachConversationList));
+router.get('/conversations/:id', handleCoachRead('detail', readCoachConversationDetail));
 
 /**
  * POST /api/ai-chat/conversations/:id/messages
@@ -559,7 +509,14 @@ router.get('/conversations/:id', async (req, res) => {
  * - Inbound PII stripping: AI responses scrubbed for any leaked identity data
  */
 router.post('/conversations/:id/messages', requireSubscription('pro', { feature: 'chat' }), aiRateLimiter, strictPiiMiddleware, async (req, res) => {
+  const requestController = new AbortController();
+  const requestSignal = requestController.signal;
+  const cancelRequest = () => { if (!res.writableFinished) requestController.abort(); };
+  req.once('aborted', cancelRequest);
+  res.once('close', cancelRequest);
+  const releaseConcurrency = req.deferAiConcurrencyRelease?.();
   try {
+    requestSignal.throwIfAborted();
     const { message, foodContext, requestContext } = req.body;
 
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
@@ -669,6 +626,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       return res.status(404).json({ success: false, error: 'Active conversation not found' });
     }
 
+    requestSignal.throwIfAborted();
     // ── PHASE 1: CONSENT ENFORCEMENT ──
     // Check that the target user (or self) has granted AI consent
     const consentTargetId = conversation.targetUserId || req.user.id;
@@ -712,6 +670,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       });
     }
 
+    requestSignal.throwIfAborted();
     // Guard against unbounded conversation growth
     if (conversation.messages && conversation.messages.length >= 200) {
       return res.status(400).json({ success: false, error: 'Conversation limit reached (100 exchanges). Please start a new conversation.' });
@@ -763,6 +722,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
         }
       }
     }
+    requestSignal.throwIfAborted();
     let generalIdentitySanitizer = null;
     if (requesterIsStaff) {
       try {
@@ -782,6 +742,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       }
     }
 
+    requestSignal.throwIfAborted();
     let sanitizedMessage = message.trim();
     let piiStripped = false;
     // Strip client-identity terms only when we have a target client to name-map.
@@ -815,6 +776,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       if (stripResult.identitiesStripped > 0) piiStripped = true;
     }
 
+    requestSignal.throwIfAborted();
     // Build system prompt based on role + context, enriched with user data
     // For trainer/admin conversations with a target client, enrich with the CLIENT's data
     const responseStyle = conversation.metadata?.responseStyle || 'both';
@@ -868,10 +830,19 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       }
     }
     // Only enrich with client data if a client is actually selected
+    requestSignal.throwIfAborted();
     if (enrichUserId) {
       const userDataContext = await enrichWithUserData(
         enrichUserId, conversation.role, conversation.context, sequelize,
-        sanitizeFoodContext(foodContext)
+        sanitizeFoodContext(foodContext),
+        {
+          signal: requestSignal,
+          coachEvidence: requesterIsStaff && ['coach_assistant', 'workout_generation'].includes(conversation.context),
+          verifyAccess: async () => {
+            const access = await checkCoachInferenceAccess({ actor: req.user, targetClientId: enrichUserId, sequelize, signal: requestSignal });
+            if (!access.allowed) throw new Error('CONTEXT_ACCESS_DENIED');
+          },
+        }
       );
       if (userDataContext) {
         systemPrompt += userDataContext;
@@ -898,6 +869,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
       systemPrompt = systemStrip.sanitizedMessage;
       if (systemStrip.identitiesStripped > 0) piiStripped = true;
     }
+    requestSignal.throwIfAborted();
     const promptHistory = await sanitizePromptHistory({
       messages: conversation.messages,
       enrichUserId,
@@ -906,6 +878,7 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     });
     if (promptHistory.identitiesStripped > 0) piiStripped = true;
 
+    requestSignal.throwIfAborted();
     // Use sanitized message/history (identity stripped) for the AI prompt
     const promptMessages = buildPromptMessages(systemPrompt, promptHistory.messages, sanitizedMessage);
 
@@ -917,13 +890,28 @@ const AI_CHAT_COACH_INFERENCE_CONTEXTS = new Set(['coach_assistant', 'workout_ge
 let aiResult;
 if (requesterIsStaff && AI_CHAT_COACH_INFERENCE_CONTEXTS.has(conversation.context)) {
   try {
+    const provider = getCoachProviderAdapter();
     const boundaryOut = await runCoachInference({
       actor: req.user,
+      signal: requestSignal,
       targetClientId: conversation.targetUserId || null,
       sequelize,
       message: sanitizedMessage,
-      providerName: 'coach_boundary',
-      providerGenerate: coachProviderCompatAdapter,
+      providerName: provider?.name || '',
+      providerGenerate: provider ? async (messages, options) => {
+        // Evidence is appended after the initial history scrub. Re-scrub the
+        // final complete prompt so titles and other source text cannot leak identity.
+        const safeMessages = await Promise.all(messages.map(async (entry) => {
+          const named = generalIdentitySanitizer ? generalIdentitySanitizer(entry.content).sanitizedMessage : entry.content;
+          const scrubbed = await scrubGenericPII(named);
+          if (typeof scrubbed?.sanitizedText !== 'string') throw new Error('COACH_EGRESS_PRIVACY_UNAVAILABLE');
+          return { ...entry, content: scrubbed.sanitizedText };
+        }));
+        options?.signal?.throwIfAborted();
+        await options.verifyAccess();
+        options.signal.throwIfAborted();
+        return provider.generate(safeMessages, options);
+      } : null,
       capability: 'coach_chat',
       promptMessagesOverride: promptMessages,
     });
@@ -935,7 +923,7 @@ if (requesterIsStaff && AI_CHAT_COACH_INFERENCE_CONTEXTS.has(conversation.contex
         provider: 'fallback',
         model: null,
         tokenUsage: null,
-        failoverTrace: [`coach_boundary:${boundaryOut.reasonCode === 'BUDGET_EXHAUSTED' ? 'budget_exhausted' : 'provider_error'}`],
+        failoverTrace: [`coach_boundary:${boundaryOut.reasonCode || 'unavailable'}`],
       };
     } else {
       // Raw model content is preserved so the downstream proposal parser sees
@@ -945,19 +933,22 @@ if (requesterIsStaff && AI_CHAT_COACH_INFERENCE_CONTEXTS.has(conversation.contex
         ok: true,
         content: boundaryOut.rawContent,
         provider: boundaryOut.providerUsed || 'fallback',
-        model: null,
-        tokenUsage: null,
+        model: boundaryOut.providerModel ?? null,
+        tokenUsage: boundaryOut.tokenUsage ?? null,
         failoverTrace: [`coach_boundary:success`],
       };
     }
   } catch (boundaryErr) {
-    logger.warn('[AIChatRoutes] Coach inference boundary failed; legacy adapter fallback:', boundaryErr.message);
-    aiResult = await sendChatMessage(promptMessages);
+    requestSignal.throwIfAborted();
+    logger.warn('[AIChatRoutes] Coach inference boundary failed closed.');
+    aiResult = { ok: false, content: 'Coach context is temporarily unavailable. Please try again.',
+      provider: 'fallback', model: null, tokenUsage: null, failoverTrace: ['coach_boundary:provider_error'] };
   }
 } else {
   aiResult = await sendChatMessage(promptMessages);
 }
 
+    requestSignal.throwIfAborted();
     // ── PHASE 2b: Strip identity from AI response (bidirectional scrubbing) ──
     let aiContent = aiResult.content;
     if (enrichUserId) {
@@ -1010,6 +1001,7 @@ if (requesterIsStaff && AI_CHAT_COACH_INFERENCE_CONTEXTS.has(conversation.contex
       failoverTrace: safeFailoverTrace,
     });
 
+    requestSignal.throwIfAborted();
     await conversation.update({
       messages: updatedMessages,
       messageCount: updatedMessages.length,
@@ -1018,6 +1010,7 @@ if (requesterIsStaff && AI_CHAT_COACH_INFERENCE_CONTEXTS.has(conversation.contex
       title: conversation.title || generateTitle(message.trim()),
     });
 
+    requestSignal.throwIfAborted();
     let proposalResult = { proposals: [], frontendActions: [] };
     let proposalError = null;
     const proposalContent = aiContent === RESPONSE_MESSAGE_WITHHELD ? '' : aiContent;
@@ -1059,10 +1052,14 @@ if (requesterIsStaff && AI_CHAT_COACH_INFERENCE_CONTEXTS.has(conversation.contex
         : undefined,
     });
   } catch (err) {
+    if (requestSignal.aborted || res.destroyed) return;
     logger.error('[AIChatRoutes] Send message error:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to send message' });
+  } finally {
+    req.removeListener('aborted', cancelRequest);
+    res.removeListener('close', cancelRequest);
+    releaseConcurrency?.();
   }
-  // Lock auto-released by aiRateLimiter middleware on res finish/close
 });
 
 /**

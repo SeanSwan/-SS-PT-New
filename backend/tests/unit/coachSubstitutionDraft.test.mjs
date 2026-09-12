@@ -17,7 +17,7 @@ const PLANNED = {
 };
 
 const CANDIDATES = [
-  { fromExerciseKey: 'barbell-squat', exerciseKey: 'goblet-squat' },
+  { fromExerciseKey: 'barbell-squat', exerciseKey: 'goblet-squat', pattern: 'squat', joint: 'knee', equipment: { dumbbell: true }, media: { videoId: 'goblet-video' } },
 ];
 
 test('an active hard contraindication blocks and cannot be bypassed', () => {
@@ -130,8 +130,8 @@ test('a clean draft preserves identity, equipment and media metadata with mandat
   assert.equal(result.status, 'draft');
   assert.equal(result.substitution.fromExerciseKey, 'barbell-squat');
   assert.equal(result.substitution.exerciseKey, 'goblet-squat');
-  assert.deepEqual(result.substitution.equipment, { barbell: true, rack: true });
-  assert.deepEqual(result.substitution.media, { videoId: 'vid-123' });
+  assert.deepEqual(result.substitution.equipment, { dumbbell: true });
+  assert.deepEqual(result.substitution.media, { videoId: 'goblet-video' });
   assert.equal(result.substitution.requiresTrainerReview, true);
 });
 
@@ -139,4 +139,21 @@ test('a missing planned exercise never produces a draft', () => {
   const result = buildSubstitutionDraft({ plannedExercise: null });
   assert.equal(result.status, 'requires_review');
   assert.equal(result.substitution, null);
+});
+
+
+describe('Astra malformed safety and replacement metadata regressions',()=>{
+  const plannedExercise={exerciseKey:'squat',pattern:'squat',equipment:'barbell',media:'old-squat-video'};
+  const candidate={fromExerciseKey:'squat',exerciseKey:'step-up',pattern:'step',equipment:'bench',media:'step-up-video'};
+  const input={plannedExercise,substitutions:[candidate],pain:0,readiness:8,contraindications:[]};
+  it.each([{pain:'unknown'},{pain:-1},{readiness:NaN},{readiness:11},{contraindications:{}},{contraindications:[{pattern:'squat'}]}])('requires review for invalid safety evidence %s',patch=>{
+    expect(buildSubstitutionDraft({...input,...patch}).status).toBe('requires_review');
+  });
+  it('shows the selected replacement equipment and media, preserving original identity separately',()=>{
+    const out=buildSubstitutionDraft(input);
+    expect(out.substitution).toMatchObject({exerciseKey:'step-up',fromExerciseKey:'squat',equipment:'bench',media:'step-up-video'});
+  });
+  it('blocks a replacement that matches an active contraindication',()=>{
+    expect(buildSubstitutionDraft({...input,contraindications:[{active:true,pattern:'step'}]}).status).toBe('blocked');
+  });
 });

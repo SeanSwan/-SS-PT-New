@@ -154,3 +154,13 @@ describe('G10/T39 — DST quiet hours, duplicates, snooze, caps, dedupe', () => 
     }).decision).toBe(DELIVERY_DECISIONS.DISABLED);
   });
 });
+
+
+describe('Astra malformed scheduling and consent regressions',()=>{
+  it.each(['false',1,{},[]])('rejects nonboolean consent %s',consented=>{
+    expect(planNudgeDelivery({now:'2026-09-12T12:00:00Z',consented}).decision).not.toBe(DELIVERY_DECISIONS.DUE);
+  });
+  it.each([{now:'invalid'}, {timezoneOffsetMinutes:Infinity}, {lastDeliveredAt:'invalid'}, {snoozedUntil:'invalid'}])('cannot schedule from corrupt clock/history %s',patch=>{
+    expect(planNudgeDelivery({now:'2026-09-12T12:00:00Z',consented:true,...patch}).decision).not.toBe(DELIVERY_DECISIONS.DUE);
+  });
+});

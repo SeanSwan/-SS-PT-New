@@ -4,6 +4,9 @@ import { COMMAND_TRANSPORT_FAILED, commandErrorReceiptText, useCoachCommand } fr
 import apiService from '../services/api.service';
 import { dispatchAIWorkoutEvent } from '../utils/aiWorkoutEvents';
 
+vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: { id: '7', role: 'trainer' }, isAuthenticated: true, loading: false }) }));
+vi.mock('../context/PaywallContext', () => ({ usePaywall: () => ({ showPaywall: vi.fn() }) }));
+
 vi.mock('../services/api.service', () => ({
   default: {
     post: vi.fn(),

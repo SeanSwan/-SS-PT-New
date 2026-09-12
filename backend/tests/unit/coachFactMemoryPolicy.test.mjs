@@ -4,13 +4,14 @@
  * CoachFact model, matching the adopted coachFactService.test.mjs harness.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Op } from 'sequelize';
 
 /** In-memory stand-in for the CoachFact Sequelize model (superset of the
  * adopted harness: adds destroy + lte comparisons for the purge clock). */
 function makeFakeModel(seed = []) {
   let nextId = seed.reduce((max, row) => Math.max(max, row.id || 0), 0) + 1;
   const makeInstance = (values) => {
-    const inst = { ...values };
+    const inst = { validFrom:'2026-01-01', ...values };
     inst.update = vi.fn(async (patch) => {
       Object.assign(inst, patch);
       return inst;
@@ -19,11 +20,14 @@ function makeFakeModel(seed = []) {
   };
   const rows = seed.map(makeInstance);
   const matches = (row, where = {}) =>
-    Object.entries(where).every(([key, want]) => {
+    Reflect.ownKeys(where).every((key) => {
+      const want = where[key];
+      if(key===Op.or)return want.some(branch=>matches(row,branch));
       const have = row[key];
-      if (want && typeof want === 'object' && !Array.isArray(want) && 'lte' in want) {
-        return have != null && new Date(have) <= new Date(want.lte);
-      }
+      if (want && typeof want === 'object' && Op.gte in want) return have != null && new Date(have) >= new Date(want[Op.gte]);
+      if (want === null) return have == null;
+      if (want && typeof want === 'object' && Op.lte in want) return have != null && new Date(have) <= new Date(want[Op.lte]);
+      if (want && typeof want === 'object' && Op.ne in want) return have != null;
       if (Array.isArray(want)) return want.includes(have);
       return have === want;
     });
@@ -80,6 +84,7 @@ function activeFact(overrides = {}) {
     id: 1,
     userId: 42,
     category: 'preference',
+    validFrom: '2026-01-01',
     content: 'prefers morning sessions',
     status: 'active',
     ...overrides,
@@ -121,7 +126,7 @@ describe('G09/T35 — remember, correct, forget with 24h purge', () => {
 
   it('purgeDueFacts hard-destroys only rows past their 24h deadline', async () => {
     holder.model.rows.push(
-      activeFact({ id: 3, status: 'invalidated', purgeAfterAt: new Date(Date.now() - 1000) }),
+      activeFact({ id: 3, status: 'invalidated', forgottenAt: new Date(Date.now() - 86400000), purgeAfterAt: new Date(Date.now() - 1000) }),
       activeFact({ id: 4, status: 'invalidated', purgeAfterAt: new Date(Date.now() + 60_000) }),
     );
 
@@ -138,8 +143,8 @@ describe('G09/T35 — remember, correct, forget with 24h purge', () => {
     expect(proposedForget.forgottenAt).toBeTruthy();
     expect(new Date(proposedForget.purgeAfterAt).getTime())
       .toBeGreaterThan(new Date(proposedForget.forgottenAt).getTime());
-    // Status untouched: forget never activates and never rewrites history.
-    expect(proposedForget.status).toBe('proposed');
+    // Tombstoned proposals cannot later be activated; the row remains until purge.
+    expect(proposedForget.status).toBe('invalidated');
 
     // An already-superseded (invalidated) fact can also be forgotten.
     holder.model.rows.push(activeFact({ id: 21, status: 'invalidated' }));

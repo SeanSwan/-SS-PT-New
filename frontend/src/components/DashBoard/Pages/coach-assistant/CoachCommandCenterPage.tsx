@@ -1,15 +1,10 @@
-/**
- * FILE: CoachCommandCenterPage.tsx
- * PURPOSE: Mounted Swan Coach Floor Mode shell for talk-first coaching, review, history, and More tools.
- * Review-gated: Swan Coach prepares operator drafts; final writes need approval.
- */
+/** Mounted talk-first Coach shell. Domain writes retain explicit approval. */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../hooks/useAuth';
 import { CommandBridgeShell } from './CoachCommandCenter.bridgeStyles';
 import { useCoachCommandCenterController } from './CoachCommandCenter.controller';
 import CoachChatTranscript from './CoachChatTranscript';
-import CoachSessionDeskGate from './CoachSessionDeskGate';
 import CoachClientBar from './CoachClientBar';
 import CoachCommandLeftRail from './CoachCommandLeftRail';
 import CoachCommandOpsSurface from './CoachCommandOpsSurface';
@@ -81,15 +76,10 @@ const CoachCommandCenterPage: React.FC = () => {
     [commandCenter.routeClientId, searchParams, userRole],
   );
   const workoutPlannerRoute = useMemo(
-    () => {
-      if (isClientMode) return CLIENT_WORKOUTS_ROUTE;
-      return buildSwanCoachWorkoutPlannerRoute({
-        userRole,
-        selectedClientId: commandCenter.routeClientId,
-        workflowReturnTo: commandCenter.workflowReturnTo,
-        searchParams,
-      });
-    },
+    () => isClientMode ? CLIENT_WORKOUTS_ROUTE : buildSwanCoachWorkoutPlannerRoute({
+      userRole, selectedClientId: commandCenter.routeClientId,
+      workflowReturnTo: commandCenter.workflowReturnTo, searchParams,
+    }),
     [commandCenter.routeClientId, commandCenter.workflowReturnTo, isClientMode, searchParams, userRole],
   );
   const workoutLoggerScopeLabel = commandCenter.routeClientId ? selectedDisplayLabel : 'My workout log';
@@ -178,15 +168,7 @@ const CoachCommandCenterPage: React.FC = () => {
                 onSubmit={handleIntentSubmit}
                 onVoice={commandCenter.handleVoice}
               />
-              {!isClientMode ? (
-                <CoachSessionDeskGate
-                  enabled
-                  targetUserId={commandCenter.routeClientId ?? null}
-                  onOpenLogger={(_payload) => {
-                    commandCenter.shellRef.current?.focus();
-                  }}
-                />
-              ) : null}
+              {/* Session Desk activation awaits its canonical Logger and approval/readback integration (packet 47). */}
               <CoachChatTranscript
                 activeThread={commandCenter.activeThread}
                 busy={commandCenter.commandBusy}

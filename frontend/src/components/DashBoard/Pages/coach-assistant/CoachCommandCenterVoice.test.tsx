@@ -31,9 +31,9 @@ vi.mock('../../../../hooks/useAIChat', () => ({
   useAIChat: useAIChatMock,
 }));
 
-vi.mock('../../../../hooks/useAuth', () => ({
-  useAuth: () => ({ user: { role: 'admin' } }),
-}));
+const authIdentity = vi.hoisted(() => ({ user: { id: 1, role: 'admin' }, isAuthenticated: true, loading: false }));
+vi.mock('../../../../hooks/useAuth', () => ({ useAuth: () => authIdentity }));
+vi.mock('../../../../context/AuthContext', () => ({ useAuth: () => authIdentity }));
 
 vi.mock('../../../../hooks/useCoachCommand', () => ({
   useCoachCommand: () => ({

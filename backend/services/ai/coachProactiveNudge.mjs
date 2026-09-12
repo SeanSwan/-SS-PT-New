@@ -24,6 +24,7 @@ export const QUIET_HOURS = { start: 20, end: 8 };
 export const WEEKLY_DEDUPE_DAYS = 7;
 
 export const DELIVERY_DECISIONS = {
+  INVALID: 'invalid',
   DISABLED: 'disabled',
   NOT_CONSENTED: 'not_consented',
   SNOOZED: 'snoozed',
@@ -78,8 +79,16 @@ export function planNudgeDelivery({
   const instant = now instanceof Date ? now : new Date(now);
   const localHourAtCandidate = localHour(instant, timezoneOffsetMinutes);
   const withContext = (outcome) => ({ ...outcome, localHourAtCandidate });
-  if (!enabled) return withContext({ decision: DELIVERY_DECISIONS.DISABLED, reason: 'nudges_disabled' });
-  if (!consented) return withContext({ decision: DELIVERY_DECISIONS.NOT_CONSENTED, reason: 'no_active_consent' });
+  if (enabled !== true) return withContext({ decision: DELIVERY_DECISIONS.DISABLED, reason: 'nudges_disabled' });
+  if (consented !== true) return withContext({ decision: DELIVERY_DECISIONS.NOT_CONSENTED, reason: 'no_active_consent' });
+
+  const validDate = value => (value instanceof Date || (typeof value === 'string' && value.trim() !== ''))
+    && Number.isFinite(new Date(value).getTime());
+  const history = [snoozedUntil, lastDeliveredAt, ...Object.values(lastCategoryAt || {})].filter(value => value != null);
+  if (!validDate(now) || !Number.isFinite(timezoneOffsetMinutes) || Math.abs(timezoneOffsetMinutes) > 840
+      || history.some(value => !validDate(value)) || typeof category !== 'string' || !category.trim()) {
+    return { decision: DELIVERY_DECISIONS.INVALID, reason: 'invalid_delivery_context', localHourAtCandidate: null };
+  }
 
   if (snoozedUntil) {
     const snoozeUntil = snoozedUntil instanceof Date ? snoozedUntil : new Date(snoozedUntil);

@@ -7,15 +7,12 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  apiPostMock,
   renderPage,
   resetCoachCommandCenterMocks,
   sendMessageWithConversationMock,
 } from './CoachCommandCenterPage.test.harness';
 
-const apiPostMock = vi.hoisted(() => vi.fn());
-vi.mock('../../../../services/api.service', () => ({
-  default: { post: apiPostMock },
-}));
 
 const openCommandTools = () => {
   fireEvent.click(screen.getByRole('button', { name: /more command tools/i }));

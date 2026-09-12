@@ -17,6 +17,14 @@ import {
 } from '../../services/ai/coachInferenceBoundary.mjs';
 import { clearCoachContextCache, invalidateCoachContextCache } from '../../services/ai/coachContextCache.mjs';
 
+import { Op } from 'sequelize';
+const { hr7Db, hr7Exercise } = vi.hoisted(() => {
+  const db = { query: vi.fn() };
+  const exercise = { sequelize: db, rawAttributes: { id: {}, name: {}, exercise_key: {}, isActive: {} }, findAll: vi.fn() };
+  return { hr7Db: db, hr7Exercise: exercise };
+});
+vi.mock('../../models/index.mjs', () => ({ getModel: name => name === 'Exercise' ? hr7Exercise : null }));
+
 const FINDINGS_ALL_OK = {
   context_summary: { toolId: 'context_summary', state: 'ok', payload: { profile: { fitnessGoals: ['strength'] } } },
   exercise_lookup: { toolId: 'exercise_lookup', state: 'empty', payload: [] },
@@ -70,7 +78,7 @@ describe('S5 coach inference boundary', () => {
       message: 'how am I progressing?',
       providerName: 'gemini',
       providerGenerate,
-      deps: { evidenceTools: fakeTools(), contextCacheEnabled: false },
+      deps: { authorizationCheck: async () => ({ allowed: true }), evidenceTools: fakeTools(), contextCacheEnabled: false },
     });
     expect(out.result.type).toBe('answer');
     expect(out.providerUsed).toBe('gemini');
@@ -97,7 +105,7 @@ describe('S5 coach inference boundary', () => {
       message: 'plan my week',
       providerName: 'gemini',
       providerGenerate,
-      deps: { evidenceTools: fakeTools(), contextCacheEnabled: false },
+      deps: { authorizationCheck: async () => ({ allowed: true }), evidenceTools: fakeTools(), contextCacheEnabled: false },
     });
     expect(out.result.type).toBe('unavailable');
     expect(out.providerUsed).toBeNull();
@@ -134,7 +142,7 @@ describe('S5 coach inference boundary', () => {
       message: 'slow round',
       providerName: 'gemini',
       providerGenerate,
-      deps: { budgetMs: 20, evidenceTools: slowFindings, contextCacheEnabled: false },
+      deps: { authorizationCheck: async () => ({ allowed: true }), budgetMs: 20, evidenceTools: slowFindings, contextCacheEnabled: false },
     });
     vi.useRealTimers();
     expect(out.result.type).toBe('unavailable');
@@ -157,7 +165,7 @@ describe('S5 coach inference boundary', () => {
       message: 'hi',
       providerName: 'rogue-llm',
       providerGenerate,
-      deps: { evidenceTools: fakeTools(), contextCacheEnabled: false },
+      deps: { authorizationCheck: async () => ({ allowed: true }), evidenceTools: fakeTools(), contextCacheEnabled: false },
     });
     expect(out.result.type).toBe('unavailable');
     expect(out.reasonCode).toBe('PROVIDER_NOT_ALLOWED');
@@ -182,7 +190,7 @@ describe('S5 coach inference boundary', () => {
       message: 'review',
       providerName: 'gemini',
       providerGenerate,
-      deps: { evidenceTools: fakeTools({ recent_workout: hostile }), contextCacheEnabled: false },
+      deps: { authorizationCheck: async () => ({ allowed: true }), evidenceTools: fakeTools({ recent_workout: hostile }), contextCacheEnabled: false },
     });
     expect(out.result.type).toBe('answer');
     const system = providerGenerate.mock.calls[0][0].find((m) => m.role === 'system').content;
@@ -203,7 +211,7 @@ describe('S5 coach inference boundary', () => {
       message: 'x',
       providerName: 'gemini',
       providerGenerate,
-      deps: { evidenceTools: fakeTools(), contextCacheEnabled: false },
+      deps: { authorizationCheck: async () => ({ allowed: true }), evidenceTools: fakeTools(), contextCacheEnabled: false },
     });
     expect(out.result.type).toBe('answer');
     expect(out.result.message).toBe('not json at all');
@@ -226,13 +234,13 @@ describe('S5 coach inference boundary', () => {
       providerName: 'gemini',
       providerGenerate,
       promptMessagesOverride: routePrompt,
-      deps: { evidenceTools: fakeTools(), contextCacheEnabled: false },
+      deps: { authorizationCheck: async () => ({ allowed: true }), evidenceTools: fakeTools(), contextCacheEnabled: false },
     });
     const sent = providerGenerate.mock.calls[0][0];
     expect(sent[0].role).toBe('system');
-    expect(sent[0].content).toContain('You are the route system prompt.');
+    expect(sent[1].content).toContain('You are the route system prompt.');
     expect(sent[0].content).toContain('QUOTED DATA');
-    expect(sent[1].content).toBe('route message');
+    expect(sent[2].content).toBe('route message');
   });
 
   it('prompt assembly fences every finding state including denied', () => {
@@ -253,5 +261,55 @@ describe('S5 coach inference boundary', () => {
     const parsed = parseCoachModelEnvelope('Sure! {"type":"clarification","message":"Which day?"} Let me know.');
     expect(parsed.type).toBe('clarification');
     expect(parsed.message).toBe('Which day?');
+  });
+});
+
+describe('HR7 default inference reader with unit registry seam', () => {
+  const row = { id: '99999999-9999-4999-8999-999999999999', name: 'Canonical Bench Press', exercise_key: 'canonical-bench-press', isActive: true };
+  const actor = { id: 7, role: 'trainer' };
+  beforeEach(() => {
+    hr7Db.query.mockReset(); hr7Db.query.mockResolvedValue([]);
+    hr7Exercise.findAll.mockReset(); hr7Exercise.findAll.mockResolvedValue([row]);
+  });
+  it('uses real default tools/reader and quotes the canonical exercise without personal reads or writes', async () => {
+    const providerGenerate = vi.fn(async () => ({ ok: true, content: 'Reference available.' }));
+    const out = await runCoachInference({ actor, sequelize: hr7Db, message: 'bench', providerName: 'gemini', providerGenerate });
+    expect(out.result.type).toBe('answer'); expect(out.budget.toolCalls).toBe(1);
+    expect(out.toolFindings[0]).toMatchObject({ toolId: 'exercise_lookup', state: 'ok', rows: 1 });
+    expect(hr7Exercise.findAll).toHaveBeenCalledTimes(1);
+    expect(providerGenerate).toHaveBeenCalledTimes(1);
+    const messages = providerGenerate.mock.calls[0][0];
+    expect(messages[0].content).toContain('QUOTED DATA');
+    expect(messages[0].content).toContain(row.id); expect(messages[0].content).toContain(row.exercise_key);
+    expect(messages[1].content).toBe('bench');
+    expect(hr7Db.query.mock.calls.every(([sql]) => /^SELECT /.test(sql) && sql.includes('ai_privacy_profiles'))).toBe(true);
+  });
+  it.each(['actor', 'disabled consent', 'withdrawn consent'])('denied %s prevents default library access and egress', async mode => {
+    if (mode !== 'actor') hr7Db.query.mockResolvedValue([{ aiEnabled: mode !== 'disabled consent', withdrawnAt: mode === 'withdrawn consent' ? new Date() : null }]);
+    const providerGenerate = vi.fn();
+    const out = await runCoachInference({ actor: mode === 'actor' ? { id: 7, role: 'unknown' } : actor, sequelize: hr7Db, message: 'bench', providerName: 'gemini', providerGenerate });
+    expect(out.reasonCode).toBe('CONTEXT_ACCESS_DENIED'); expect(out.toolFindings).toEqual([]);
+    expect(hr7Exercise.findAll).not.toHaveBeenCalled(); expect(providerGenerate).not.toHaveBeenCalled();
+    if (mode === 'actor') expect(hr7Db.query).not.toHaveBeenCalled();
+  });
+  it('characterizes full-message literal lookup and current upstream truncation without claiming extraction', async () => {
+    hr7Exercise.findAll.mockResolvedValue([]);
+    const providerGenerate = vi.fn(async () => ({ ok: true, content: 'No matching literal reference.' }));
+    for (const message of ['show me bench press options', 'x'.repeat(121)]) {
+      const out = await runCoachInference({ actor, sequelize: hr7Db, message, providerName: 'gemini', providerGenerate });
+      expect(out.toolFindings[0]).toMatchObject({ state: 'empty', rows: 0 });
+      const options = hr7Exercise.findAll.mock.lastCall[0];
+      expect(options.where.name[Op.iLike]).toBe(`%${message.slice(0, 120)}%`);
+    }
+  });
+  it('budget retires a hung default model read before provider work or late publication', async () => {
+    let release;
+    hr7Exercise.findAll.mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+    const providerGenerate = vi.fn();
+    const out = await runCoachInference({ actor, sequelize: hr7Db, message: 'bench', providerName: 'gemini', providerGenerate, deps: { budgetMs: 30 } });
+    expect(out.reasonCode).toBe('BUDGET_EXHAUSTED'); expect(out.budget.modelRounds).toBe(0);
+    expect(hr7Exercise.findAll).toHaveBeenCalledTimes(1); expect(providerGenerate).not.toHaveBeenCalled();
+    release([row]); await new Promise(resolve => setImmediate(resolve));
+    expect(providerGenerate).not.toHaveBeenCalled(); expect(out.toolFindings).toEqual([]);
   });
 });

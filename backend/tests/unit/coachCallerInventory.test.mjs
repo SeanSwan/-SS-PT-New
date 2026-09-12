@@ -20,12 +20,14 @@ const REPO = path.resolve(HERE, '..', '..');
 const read = (rel) => fs.readFileSync(path.join(REPO, rel), 'utf8');
 
 describe('S5 caller inventory (static)', () => {
-  it('aiChatRoutes wires the Coach contexts through runCoachInference with the compat adapter', () => {
+  it('aiChatRoutes wires the Coach contexts through runCoachInference with one selected provider', () => {
     const src = read('routes/aiChatRoutes.mjs');
-    expect(src).toContain("import { runCoachInference } from '../services/ai/coachInferenceBoundary.mjs'");
-    expect(src).toContain('coachProviderCompatAdapter');
+    expect(src).toContain("import { runCoachInference, checkCoachInferenceAccess } from '../services/ai/coachInferenceBoundary.mjs'");
+    expect(src).toContain('getCoachProviderAdapter');
     expect(src).toContain("runCoachInference({");
-    expect(src).toContain('providerGenerate: coachProviderCompatAdapter');
+    expect(src).toContain('providerGenerate: provider ? async');
+    expect(src).not.toContain("providerName: 'coach_boundary'");
+    expect(src).not.toContain('legacy adapter fallback:');
     // The coach contexts are exactly the two Staff inference surfaces.
     expect(src).toContain("new Set(['coach_assistant', 'workout_generation'])");
     // Non-coach fallback keeps the legacy provider loop.

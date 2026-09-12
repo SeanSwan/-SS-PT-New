@@ -11,6 +11,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import CoachWorkoutDraft, { type CoachWorkoutDraftProps } from './CoachWorkoutDraft';
 import type { CoachWorkoutDraftContent } from './coachWorkoutDraftContract';
 
+const { canonicalExercise } = vi.hoisted(() => ({ canonicalExercise: {
+  id: '66666666-6666-4666-8666-666666666666', exerciseKey: 'cable-row', name: 'Cable Row',
+  exerciseType: 'strength', bodyPartCategory: 'Back', primaryMuscles: ['Back'], difficulty: 1,
+} }));
+
+vi.mock('../../../WorkoutLogger/NASMExerciseRolodex', () => ({
+  default: ({ onSelectExercise }: { onSelectExercise: (exercise: typeof canonicalExercise) => void }) => (
+    <button type="button" data-testid="legacy-test-library-select" onClick={() => onSelectExercise(canonicalExercise)}>
+      Select test library exercise
+    </button>
+  ),
+  isCanonicalExerciseSelection: () => true,
+}));
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const baseContent = (): CoachWorkoutDraftContent => ({
@@ -51,13 +65,17 @@ describe('G04c editable workout draft', () => {
     });
   });
 
-  it('adds a client-generated exercise instance (UUID, not a library id)', () => {
+  it('adds a client-generated instance from a canonical library selection', () => {
     const { onContentChange } = renderDraft();
-    fireEvent.click(screen.getByTestId('coach-workout-add-exercise'));
+    fireEvent.click(screen.getByTestId('coach-workout-open-library'));
+    fireEvent.click(screen.getByTestId('legacy-test-library-select'));
     const next = onContentChange.mock.calls[0]?.[0] as CoachWorkoutDraftContent;
     expect(next.exercises).toHaveLength(2);
     const added = next.exercises[1];
     expect(added.exerciseInstanceId).toMatch(UUID);
+    expect(added.exerciseId).toBe(canonicalExercise.id);
+    expect(added.exerciseKey).toBe(canonicalExercise.exerciseKey);
+    expect(added.exerciseName).toBe(canonicalExercise.name);
     expect(added.unit).toBe('lb');
     expect(added.sets).toEqual([]);
   });
@@ -158,4 +176,16 @@ describe('G04c editable workout draft', () => {
     const next = onContentChange.mock.calls[0]?.[0] as CoachWorkoutDraftContent;
     expect(next.exercises).toHaveLength(0);
   });
+  it('empty Floor Mode renders its empty state without inventing an exercise',()=>{
+    renderDraft({content:{...baseContent(),exercises:[]},floorMode:true});
+    expect(screen.getByText('Add an exercise in Draft to begin Floor Mode.')).toBeTruthy();
+    expect(screen.queryAllByTestId(/^coach-workout-exercise-/)).toHaveLength(0);
+  });
+  it('changing a loaded unit preserves an unrecorded weight as null',()=>{
+    const content=baseContent();content.exercises[0].sets[0].weight=null;
+    const {onContentChange}=renderDraft({content});
+    fireEvent.change(screen.getByTestId('coach-workout-exercise-unit-0'),{target:{value:'kg'}});
+    expect(onContentChange.mock.calls[0][0].exercises[0].sets[0].weight).toBeNull();
+  });
+
 });

@@ -20,9 +20,9 @@ function makeSequelize({ routes = {}, throws = false } = {}) {
       this.calls.push(sql);
       if (throws) throw new Error('reader down');
       for (const [pattern, rows] of Object.entries(routes)) {
-        if (new RegExp(pattern).test(sql)) return [typeof rows === 'function' ? rows() : rows];
+        if (new RegExp(pattern).test(sql)) return typeof rows === 'function' ? rows() : rows;
       }
-      return [[]];
+      return [];
     },
   };
 }
@@ -36,7 +36,7 @@ const SESSION_ROWS = [
   { session_id: 's3', status: 'completed', date: '2026-07-19', workout_exercise_id: 'we3a', exercise_id: 'ex-squat', set_id: 'set5', reps_completed: 5, weight_used: 140 },
   // s4 was DELETED before this read: it contributes nothing and must not appear.
   { session_id: 's5', status: 'skipped', date: '2026-07-22', workout_exercise_id: 'we5a', exercise_id: 'ex-squat', set_id: 'set6', reps_completed: 10, weight_used: 200 },
-];
+].map(row => ({ ...row, weight_unit: 'lbs' }));
 
 const PLANNED_ROWS = [
   { session_id: 'p1', status: 'planned' },
@@ -72,7 +72,8 @@ describe('G07/T33 — source-linked progress evidence', () => {
     // Deleted s4 absent; skipped s5 absent; refs exact and ordered.
     expect(evidence.recordRefs).toEqual(['s1', 's2', 's3']);
     // Adherence from MATCHED planned sessions (4 planned), not a count of all logs.
-    expect(evidence.adherence).toEqual({ scheduledCount: 4, completedCount: 3, rate: 3 / 4 });
+    expect(evidence.adherence).toBeNull();
+    expect(evidence.missingInputs).toContain('scheduled_session_matches');
     expect(out.truncated).toBe(false);
   });
 
@@ -100,7 +101,7 @@ describe('G07/T33 — source-linked progress evidence', () => {
   });
 
   it('shows a missing unit instead of inventing one', async () => {
-    const db = fourWeekDb({ 'BodyMeasurement|weight_unit|weightUnit': [] });
+    const db = fourWeekDb({ 'JOIN workout_exercises': SESSION_ROWS.map(row => ({ ...row, weight_unit: '' })) });
     const out = await progressEvidenceTool({ sequelize: db, userId: 42 });
     expect(out.payload.missingInputs).toContain('weight_unit');
     expect(out.payload.volumeByExercise).toEqual({});

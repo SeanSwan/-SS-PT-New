@@ -22,6 +22,7 @@ import CoachIntentTimeline, { type CoachTimelineEntry } from './CoachIntentTimel
 import CoachWorkoutDraft, { validateDraftForDesk } from './CoachWorkoutDraft';
 import type { CoachWorkoutDraftContent, CoachWorkoutUnit } from './coachWorkoutDraftContract';
 import type { CoachSessionDraft } from './coachSessionDraftState';
+import { DeskSection } from './CoachSessionDesk.styles';
 
 export type CoachDeskState =
   | 'empty'
@@ -62,6 +63,11 @@ export interface CoachSessionDeskProps {
   onFloorExerciseSelect?: (exerciseInstanceId: string) => void;
   /** Called when the desk begins a new task for the current target. */
   onBeginTask?: (targetUserId: number, origin: string) => void;
+  /** Optional real workflows. Absent callbacks render as unavailable, never no-op actions. */
+  onAsk?: (targetUserId: number) => void;
+  onReviewProgress?: (targetUserId: number) => void;
+  onContextRetry?: (source: string) => void;
+  onContextManualReview?: (source: string) => void;
 }
 
 const STATE_COPY: Record<CoachDeskState, string> = {
@@ -69,8 +75,8 @@ const STATE_COPY: Record<CoachDeskState, string> = {
   draft: 'Draft — not saved',
   unavailable: 'Current context is unavailable.',
   review: 'Review this workout',
-  executing: 'Saving…',
-  committed: 'Saved; checking result.',
+  executing: 'Preparing review…',
+  committed: 'Ready for approval',
   unknown: 'Checking whether it saved.',
   verified: 'Saved and checked.',
   rolled_back: 'Nothing was saved.',
@@ -88,12 +94,24 @@ const EMPTY_CONTENT = (): CoachWorkoutDraftContent => ({
 const contentFromDraft = (draft: CoachSessionDraft | null): CoachWorkoutDraftContent => {
   if (!draft) return EMPTY_CONTENT();
   const raw = (draft.content ?? {}) as Partial<CoachWorkoutDraftContent>;
-  return {
+  const content: CoachWorkoutDraftContent = {
     date: typeof raw.date === 'string' ? raw.date : EMPTY_CONTENT().date,
     title: typeof raw.title === 'string' || raw.title === null ? raw.title : null,
     notes: typeof raw.notes === 'string' || raw.notes === null ? raw.notes : null,
     exercises: Array.isArray(raw.exercises) ? raw.exercises : [],
   };
+  // Keep optional session fields exactly as supplied by the owner. Do not add
+  // null placeholders to older drafts, while retaining explicit nulls/values.
+  if (Object.prototype.hasOwnProperty.call(raw, 'duration')) {
+    content.duration = typeof raw.duration === 'number' || raw.duration === null ? raw.duration : null;
+  }
+  if (Object.prototype.hasOwnProperty.call(raw, 'intensity')) {
+    content.intensity = typeof raw.intensity === 'number' || raw.intensity === null ? raw.intensity : null;
+  }
+  if (Object.prototype.hasOwnProperty.call(raw, 'source')) {
+    content.source = typeof raw.source === 'string' || raw.source === null ? raw.source : null;
+  }
+  return content;
 };
 
 const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
@@ -109,12 +127,17 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
   activeFloorExerciseId = null,
   onFloorExerciseSelect,
   onBeginTask,
+  onAsk,
+  onReviewProgress,
+  onContextRetry,
+  onContextManualReview,
 }) => {
-  const { draft, submitted, pendingTargetChange, begin, edit, freezeForSubmit, resolveTargetChange, discard, actorId, generation } =
+  const { draft, submitted, pendingTargetChange, begin, edit, freezeForSubmit, resolveTargetChange, discard, generation } =
     useCoachSessionDraft();
   const surface = useCoachSurfaceContext();
   const { submitting, error, lastResponse, submit } = useCoachWorkoutDraftSubmit();
-  const [view, setView] = useState<'work' | 'review'>('work');
+  const [view, setView] = useState<'work' | 'review'>(() => (submitted ? 'review' : 'work'));
+  const [validationAttempted, setValidationAttempted] = useState(false);
   const [activeReceiptId, setActiveReceiptId] = useState<string | null>(null);
 
   const deskState = useMemo<CoachDeskState>(() => {
@@ -148,13 +171,13 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
   const ensureDraft = useCallback(
     (targetUserId: number | null, origin: string): boolean => {
       if (draft) return true;
-      const target = targetUserId ?? actorId;
+      const target = targetUserId;
       if (target == null) return false;
       const token = begin(target, origin);
       onBeginTask?.(target, origin);
       return token !== null;
     },
-    [draft, actorId, begin, onBeginTask],
+    [draft, begin, onBeginTask],
   );
 
   const handleContentChange = useCallback(
@@ -181,9 +204,11 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
     if (!draft) return;
     const validated = validateDraftForDesk(contentFromDraft(draft), 'review');
     if (!validated.ok) {
+      setValidationAttempted(true);
       setView('work');
       return;
     }
+    setValidationAttempted(false);
     const frozen = freezeForSubmit(draft.scopeToken, draft.revision);
     if (frozen) setView('review');
   }, [draft, freezeForSubmit]);
@@ -203,25 +228,27 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
 
   const handleBeginWork = useCallback(
     (origin: string) => {
-      ensureDraft(draft?.targetUserId ?? surface.targetUserId ?? actorId, origin);
+      ensureDraft(draft?.targetUserId ?? surface.targetUserId ?? null, origin);
       setView('work');
     },
-    [ensureDraft, draft, surface.targetUserId, actorId],
+    [ensureDraft, draft, surface.targetUserId],
   );
 
-  const unavailableSources = contextSources.filter((source) => source.quality === 'unavailable');
-  const showWork = deskState === 'draft' || deskState === 'empty' || deskState === 'offline';
-  const showReview = deskState === 'review' || deskState === 'executing' || deskState === 'committed' || deskState === 'unknown' || deskState === 'verified' || deskState === 'rolled_back';
+  const showWork = deskState === 'draft' || deskState === 'empty' || deskState === 'offline'
+    || (deskState === 'review' && view === 'work');
+  const showReview = (deskState === 'review' && view === 'review')
+    || deskState === 'executing' || deskState === 'committed' || deskState === 'unknown' || deskState === 'verified' || deskState === 'rolled_back';
   const stateCopy = STATE_COPY[deskState];
-
-  const beginWorkAction = () => {
-    if (deskState === 'empty' || deskState === 'offline') handleBeginWork('desk');
-  };
+  const visibleStateCopy = deskState === 'review' && view === 'work' ? STATE_COPY.draft : stateCopy;
+  const primaryReceipt = receipts[0] ?? null;
+  const canCheckPrimaryReceipt = Boolean(primaryReceipt && onCheckResult);
+  const canOpenPrimaryReceipt = Boolean(primaryReceipt && onOpenRecord);
+  const hasTarget = surface.targetUserId != null;
 
   const terminal = deskState === 'verified' || deskState === 'rolled_back';
 
   return (
-    <section
+    <DeskSection
       className={`coach-session-desk coach-session-desk--${deskState}${floorMode ? ' coach-session-desk--floor' : ''}`}
       data-testid="coach-session-desk"
       data-desk-state={deskState}
@@ -230,7 +257,7 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
     >
       <header className="coach-session-desk-header">
         <p className="coach-session-desk-state" data-testid="coach-session-desk-state" aria-live="polite">
-          {stateCopy}
+          {visibleStateCopy}
         </p>
         {draft ? (
           <span className="coach-session-desk-task" data-testid="coach-session-desk-task">
@@ -246,26 +273,9 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
 
       <CoachContextStatus
         sources={contextSources}
-        onRetry={(source) => undefined}
-        onManualReview={(source) => undefined}
+        onRetry={onContextRetry}
+        onManualReview={onContextManualReview}
       />
-
-      {unavailableSources.length > 0 && deskState === 'empty' ? (
-        <div className="coach-session-desk-unavailable" data-testid="coach-session-desk-unavailable">
-          <p>Some context sources are unavailable.</p>
-          {unavailableSources.slice(0, 4).map((source) => (
-            <button
-              key={source.source}
-              type="button"
-              className="coach-session-desk-unavailable-action"
-              data-testid={`coach-session-desk-retry-${source.source}`}
-              onClick={beginWorkAction}
-            >
-              Manual review: {source.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
 
       {showWork ? (
         draft ? (
@@ -276,21 +286,41 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
             activeFloorExerciseId={activeFloorExerciseId}
             onFloorExerciseSelect={onFloorExerciseSelect}
             onContentChange={handleContentChange}
-            validationMode="draft"
+            persistRecentSelections={false}
+            validationMode={validationAttempted ? 'review' : 'draft'}
           />
         ) : (
           <div className="coach-session-desk-empty" data-testid="coach-session-desk-empty">
-            <p className="coach-session-desk-empty-title">{stateCopy}</p>
+            <p className="coach-session-desk-empty-title">{visibleStateCopy}</p>
             <div className="coach-session-desk-empty-actions">
-              <button type="button" data-testid="coach-session-desk-log" onClick={() => handleBeginWork('log')}>
+              <button type="button" data-testid="coach-session-desk-log" disabled={!hasTarget} onClick={() => handleBeginWork('log')}>
                 Log workout
               </button>
-              <button type="button" data-testid="coach-session-desk-review-progress" onClick={() => handleBeginWork('review')}>
+              <button
+                type="button"
+                data-testid="coach-session-desk-review-progress"
+                disabled={!onReviewProgress || !hasTarget}
+                onClick={() => { if (onReviewProgress && surface.targetUserId != null) onReviewProgress(surface.targetUserId); }}
+              >
                 Review progress
               </button>
-              <button type="button" data-testid="coach-session-desk-ask" onClick={() => handleBeginWork('ask')}>
+              <button
+                type="button"
+                data-testid="coach-session-desk-ask"
+                disabled={!onAsk || !hasTarget}
+                onClick={() => { if (onAsk && surface.targetUserId != null) onAsk(surface.targetUserId); }}
+              >
                 Ask
               </button>
+              {!hasTarget ? (
+                <span data-testid="coach-session-desk-unavailable-action-reason" role="status">
+                  Choose a coaching target before starting a workout or connected progress workflow.
+                </span>
+              ) : !onAsk || !onReviewProgress ? (
+                <span data-testid="coach-session-desk-unavailable-action-reason" role="status">
+                  Ask and Review progress workflows are unavailable until connected.
+                </span>
+              ) : null}
             </div>
           </div>
         )
@@ -299,12 +329,13 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
       {showReview ? (
         <div className="coach-session-desk-review" data-testid="coach-session-desk-review">
           {frozenContent ? (
-            <CoachWorkoutDraft
-              content={frozenContent}
-              disabled={view !== 'work' || deskState !== 'review'}
+              <CoachWorkoutDraft
+                content={frozenContent}
+              disabled
               floorMode={floorMode}
               onContentChange={handleContentChange}
-              validationMode="review"
+                persistRecentSelections={false}
+                validationMode="review"
             />
           ) : (
             <p data-testid="coach-session-desk-no-draft">No submitted draft preview.</p>
@@ -325,30 +356,58 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
             ) : null}
             {deskState === 'executing' ? (
               <>
-                <span data-testid="coach-session-desk-saving">Saving…</span>
+                <span data-testid="coach-session-desk-saving">Preparing review…</span>
                 <button type="button" data-testid="coach-session-desk-stop-response" disabled>
                   Stop response
                 </button>
-                <button type="button" data-testid="coach-session-desk-inspect-task">
+                <button type="button" data-testid="coach-session-desk-inspect-task" disabled>
                   Inspect task
                 </button>
+                <span data-testid="coach-session-desk-inspect-task-unavailable" role="status">
+                  Task inspection is unavailable until connected.
+                </span>
               </>
             ) : null}
             {deskState === 'committed' ? (
               <>
-                <button type="button" data-testid="coach-session-desk-check-result">
+                <button
+                  type="button"
+                  data-testid="coach-session-desk-check-result"
+                  disabled={!canCheckPrimaryReceipt}
+                  onClick={() => { if (primaryReceipt && onCheckResult) onCheckResult(primaryReceipt); }}
+                >
                   Check result
                 </button>
-                <button type="button" data-testid="coach-session-desk-open-record">
+                <button
+                  type="button"
+                  data-testid="coach-session-desk-open-record"
+                  disabled={!canOpenPrimaryReceipt}
+                  onClick={() => { if (primaryReceipt && onOpenRecord) onOpenRecord(primaryReceipt); }}
+                >
                   Open record
                 </button>
+                {!canCheckPrimaryReceipt || !canOpenPrimaryReceipt ? (
+                  <span data-testid="coach-session-desk-receipt-action-unavailable" role="status">
+                    Receipt actions are unavailable until a server receipt and connected workflow are available.
+                  </span>
+                ) : null}
               </>
             ) : null}
             {deskState === 'unknown' ? (
               <>
-                <button type="button" data-testid="coach-session-desk-check-result-unknown">
+                <button
+                  type="button"
+                  data-testid="coach-session-desk-check-result-unknown"
+                  disabled={!canCheckPrimaryReceipt}
+                  onClick={() => { if (primaryReceipt && onCheckResult) onCheckResult(primaryReceipt); }}
+                >
                   Check result
                 </button>
+                {!canCheckPrimaryReceipt ? (
+                  <span data-testid="coach-session-desk-unknown-action-unavailable" role="status">
+                    Check result is unavailable until a server receipt and connected workflow are available.
+                  </span>
+                ) : null}
                 <button type="button" data-testid="coach-session-desk-close-unknown" onClick={() => setView('work')}>
                   Close
                 </button>
@@ -356,12 +415,25 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
             ) : null}
             {deskState === 'verified' ? (
               <>
-                <button type="button" data-testid="coach-session-desk-open-verified">
+                <button
+                  type="button"
+                  data-testid="coach-session-desk-open-verified"
+                  disabled={!canOpenPrimaryReceipt}
+                  onClick={() => { if (primaryReceipt && onOpenRecord) onOpenRecord(primaryReceipt); }}
+                >
                   Open record
                 </button>
-                <button type="button" data-testid="coach-session-desk-approved-correction">
+                <button type="button" data-testid="coach-session-desk-approved-correction" disabled>
                   Approved correction
                 </button>
+                {!canOpenPrimaryReceipt ? (
+                  <span data-testid="coach-session-desk-verified-action-unavailable" role="status">
+                    Open record is unavailable until a verified server receipt and connected workflow are available.
+                  </span>
+                ) : null}
+                <span data-testid="coach-session-desk-correction-unavailable" role="status">
+                  Approved correction is unavailable until a correction workflow is connected.
+                </span>
               </>
             ) : null}
             {deskState === 'rolled_back' ? (
@@ -429,7 +501,7 @@ const CoachSessionDesk: React.FC<CoachSessionDeskProps> = ({
           Terminal receipt retained on the timeline.
         </span>
       ) : null}
-    </section>
+    </DeskSection>
   );
 };
 

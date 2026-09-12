@@ -88,15 +88,20 @@ export function parseContextClientId(targetClientId) {
  */
 export async function checkClientAccess(user, targetClientId, sequelize) {
   const clientId = parseContextClientId(targetClientId);
-  if (!user?.id || !user?.role || clientId === null) {
+  const actorId = parseContextClientId(user?.id);
+  if (actorId === null || !user?.role || clientId === null) {
     return { allowed: false, via: null, reason: 'invalid_request' };
+  }
+
+  if (!['admin', 'trainer', 'client', 'user'].includes(user.role)) {
+    return { allowed: false, via: null, reason: 'role_not_permitted' };
   }
 
   if (user.role === 'admin') {
     return { allowed: true, via: 'admin', reason: null };
   }
 
-  if (user.id === clientId) {
+  if (actorId === clientId) {
     return { allowed: true, via: 'self', reason: null };
   }
 
@@ -113,7 +118,7 @@ export async function checkClientAccess(user, targetClientId, sequelize) {
   }
 
   const selectType = sequelize.QueryTypes?.SELECT || 'SELECT';
-  const replacements = { trainerId: user.id, clientId };
+  const replacements = { trainerId: actorId, clientId };
 
   try {
     const assignmentRows = await sequelize.query(
@@ -149,7 +154,7 @@ export async function checkClientAccess(user, targetClientId, sequelize) {
     return { allowed: false, via: null, reason: 'not_assigned' };
   } catch (err) {
     logger.error('[ClientAccess] Verification query failed — DENYING (fail-closed)', {
-      trainerId: user.id,
+      trainerId: actorId,
       clientId,
       error: err?.message,
     });

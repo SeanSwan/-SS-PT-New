@@ -39,6 +39,7 @@
  * extractor enforces that at its own boundary.
  */
 
+import { Op } from 'sequelize';
 import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -359,7 +360,7 @@ async function transitionStatus({ factId, from, to, values, action }) {
 
   const [affected] = await CoachFact.update(
     { status: to, ...values },
-    { where: { id: Number(factId), status: from } },
+    { where: { id: Number(factId), status: from, forgottenAt: null } },
   );
 
   if (affected === 0) {
@@ -519,7 +520,10 @@ export async function getActiveFactsForContext({ userId, cap = DEFAULT_CONTEXT_C
   const CoachFact = getModel('CoachFact');
 
   const rows = await CoachFact.findAll({
-    where: { userId: clientId, status: 'active' },
+    where: { userId: clientId, status: 'active', forgottenAt: null,
+      validFrom: { [Op.lte]: today() },
+      [Op.or]: [{ validTo: null }, { validTo: { [Op.gte]: today() } }],
+    },
     limit: MAX_FETCH_ROWS,
   });
   return [...rows].sort(byCategoryPriorityThenRecency).slice(0, take);

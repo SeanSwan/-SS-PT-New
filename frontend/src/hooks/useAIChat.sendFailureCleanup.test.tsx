@@ -9,6 +9,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import apiService from '../services/api.service';
 import { useAIChat } from './useAIChat';
 
+const paywallState = vi.hoisted(() => ({ showPaywall: vi.fn() }));
+
+vi.mock('../context/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: '7', role: 'admin' },
+    isAuthenticated: true,
+    loading: false,
+    error: null,
+    token: 'test-token',
+    logout: vi.fn(),
+  }),
+}));
+
+vi.mock('../context/PaywallContext', () => ({
+  usePaywall: () => paywallState,
+}));
+
 vi.mock('../services/api.service', () => ({
   default: {
     post: vi.fn(),
@@ -44,6 +61,7 @@ function creationResponse(id: number) {
 describe('useAIChat send-failure cleanup', () => {
   beforeEach(() => {
     postMock.mockReset();
+    paywallState.showPaywall.mockReset();
   });
 
   it('removes the optimistic bubble on a failed sendMessageWithConversation without throwing', async () => {
@@ -59,6 +77,10 @@ describe('useAIChat send-failure cleanup', () => {
     });
 
     expect(outcome).toMatchObject({ failed: true, originalMessage: 'hello coach' });
+    expect(postMock.mock.calls[0][2]).toEqual(expect.objectContaining({
+      _isBackgroundRequest: true,
+      signal: expect.any(AbortSignal),
+    }));
     // The optimistic user message must be gone — no stranded "sent" bubble.
     expect(result.current.activeConversation?.messages ?? []).toHaveLength(0);
   });
@@ -73,6 +95,7 @@ describe('useAIChat send-failure cleanup', () => {
           userMessage: { role: 'user', content: 'hello coach', timestamp: '2026-07-16T00:01:00.000Z' },
           assistantMessage: { role: 'assistant', content: 'Ready.', timestamp: '2026-07-16T00:01:01.000Z' },
           messageCount: 2,
+          conversationId: 902,
         },
       });
     });

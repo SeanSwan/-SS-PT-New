@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   findConversation: vi.fn(),
   query: vi.fn(),
   sendChatMessage: vi.fn(),
+  providerGenerate: vi.fn(),
+  getCoachProviderAdapter: vi.fn(),
   buildPromptMessages: vi.fn(),
   enrichWithUserData: vi.fn(),
   logger: {
@@ -57,6 +59,7 @@ vi.mock('../../services/aiChatService.mjs', () => ({
   getSystemPrompt: vi.fn(() => ''),
   buildPromptMessages: mocks.buildPromptMessages,
   sendChatMessage: mocks.sendChatMessage,
+  getCoachProviderAdapter: mocks.getCoachProviderAdapter,
   enrichWithUserData: mocks.enrichWithUserData,
   getAIChatDiagnostics: vi.fn(),
   sanitizeAiChatMetadataForClient: vi.fn((value) => value),
@@ -140,6 +143,8 @@ describe('AI chat conversation target guard', () => {
     delete process.env.AI_CHAT_CLIENT_ACCESS_SOFT;
     mocks.findConversation.mockReset();
     mocks.sendChatMessage.mockReset();
+    mocks.getCoachProviderAdapter.mockReset().mockReturnValue({name:"gemini",generate:mocks.providerGenerate});
+    mocks.providerGenerate.mockReset().mockImplementation(async(...args)=>({ok:true,...await mocks.sendChatMessage(...args)}));
     mocks.buildPromptMessages.mockReset();
     mocks.buildPromptMessages.mockImplementation((_system, history, current) => [...history, { role: 'user', content: current }]);
     mocks.enrichWithUserData.mockReset();
@@ -412,4 +417,150 @@ describe('AI chat conversation target guard', () => {
     expect(mocks.createConversation).not.toHaveBeenCalled();
     expect(mocks.query).toHaveBeenCalledTimes(2);
   });
+  it('uses the selected provider through real inference and preserves provider metadata',async()=>{
+    mocks.findConversation.mockResolvedValue({id:9001,userId:7,role:'admin',context:'coach_assistant',targetUserId:null,title:null,messages:[],metadata:{},update:vi.fn()});
+    mocks.providerGenerate.mockResolvedValue({ok:true,content:'Synthetic evidence response',model:'fixture-model',tokenUsage:{totalTokens:12}});
+    const response=await request(buildApp()).post('/api/ai-chat/conversations/9001/messages').send({message:'Show progress'});
+    expect(response.status).toBe(200);
+    expect(mocks.providerGenerate).toHaveBeenCalledTimes(1);
+    expect(mocks.sendChatMessage).not.toHaveBeenCalled();
+    expect(response.body.assistantMessage.content).toBe('Synthetic evidence response');
+    expect(JSON.stringify(mocks.providerGenerate.mock.calls[0][0])).toContain('END EVIDENCE');
+  });
+  it('does not bypass the boundary when provider selection throws',async()=>{
+    mocks.findConversation.mockResolvedValue({id:9001,userId:7,role:'admin',context:'coach_assistant',targetUserId:null,title:null,messages:[],metadata:{},update:vi.fn()});
+    mocks.getCoachProviderAdapter.mockImplementation(()=>{throw new Error('synthetic adapter unavailable');});
+    const response=await request(buildApp()).post('/api/ai-chat/conversations/9001/messages').send({message:'Show progress'});
+    expect(response.status).toBe(200);
+    expect(response.body.assistantMessage.content).toContain('temporarily unavailable');
+    expect(mocks.sendChatMessage).not.toHaveBeenCalled();
+    expect(mocks.providerGenerate).not.toHaveBeenCalled();
+  });
+
+  it('scrubs identities added by evidence tools after initial prompt sanitization',async()=>{
+    mocks.findConversation.mockResolvedValue({id:9001,userId:7,role:'admin',context:'coach_assistant',targetUserId:61,title:null,messages:[],metadata:{},update:vi.fn()});
+    mocks.query.mockImplementation(async(sql)=>{
+      if(sql.includes('json_agg'))return [{id:'synthetic-session',title:'Jackie Reed training',createdAt:new Date().toISOString(),exercises:[]}];
+      if(sql.includes('"Users"'))return [{id:61,firstName:'Jackie',lastName:'Reed',email:'jackie.reed@example.com'}];
+      return [];
+    });
+    mocks.providerGenerate.mockResolvedValue({ok:true,content:'Synthetic response'});
+    const response=await request(buildApp()).post('/api/ai-chat/conversations/9001/messages').send({message:'Show progress'});
+    expect(response.status).toBe(200);
+    expect(mocks.providerGenerate).toHaveBeenCalledTimes(1);
+    const prompt=JSON.stringify(mocks.providerGenerate.mock.calls[0][0]);
+    expect(prompt).toContain('synthetic-session');
+    expect(prompt).not.toContain('Jackie');
+    expect(prompt).not.toContain('jackie.reed@example.com');
+  });
+
+  it.each(['admin','trainer'])('unpinned mounted %s chat queries no personal evidence',async(role)=>{
+    mocks.findConversation.mockResolvedValue({id:9001,userId:7,role,context:'coach_assistant',targetUserId:null,title:null,messages:[],metadata:{},update:vi.fn()});
+    const response=await request(buildApp()).post('/api/ai-chat/conversations/9001/messages').set('x-test-user-role',role).send({message:'Help me use the Coach'});
+    expect(response.status).toBe(200);expect(mocks.providerGenerate).toHaveBeenCalledTimes(1);
+    expect(mocks.query.mock.calls.filter(([sql])=>/workout_sessions|client_pain_entries|daily_macro_logs|FROM goals/.test(sql))).toEqual([]);
+  });
+  it('does not send evidence after consent is withdrawn during the final prompt scrub',async()=>{
+    const {scrubGenericPII}=await import('../../services/aiPrivacyService.mjs');let withdrawn=false;
+    mocks.findConversation.mockResolvedValue({id:9001,userId:7,role:'admin',context:'coach_assistant',targetUserId:61,title:null,messages:[],metadata:{},update:vi.fn()});
+    mocks.query.mockImplementation(async(sql)=>sql.includes('ai_privacy_profiles')?[{aiEnabled:!withdrawn,withdrawnAt:withdrawn?new Date():null}]:[]);
+    scrubGenericPII.mockImplementation(async(message)=>{if(message.includes('END EVIDENCE'))withdrawn=true;return {sanitizedText:message,piiRemoved:0};});
+    try{
+      await request(buildApp()).post('/api/ai-chat/conversations/9001/messages').send({message:'Show progress'});
+      expect(mocks.providerGenerate).not.toHaveBeenCalled();
+    }finally{scrubGenericPII.mockImplementation(async(message)=>({sanitizedText:message,piiRemoved:0}));}
+  });
+  it('disconnect aborts provider, prevents late save, and allows a clean retry',async()=>{
+    const update=vi.fn();mocks.findConversation.mockResolvedValue({id:9001,userId:7,role:'admin',context:'coach_assistant',targetUserId:null,title:null,messages:[],metadata:{},update});
+    let start;const started=new Promise(resolve=>{start=resolve;});let finish;let providerSignal;
+    mocks.providerGenerate.mockImplementationOnce((_messages,{signal})=>{providerSignal=signal;start();return new Promise(resolve=>{finish=resolve;});});
+    const app=buildApp();const httpRequest=request(app).post('/api/ai-chat/conversations/9001/messages').send({message:'Cancelled turn'});
+    httpRequest.end(()=>{});await started;httpRequest.abort();
+    await vi.waitFor(()=>expect(providerSignal.aborted).toBe(true));
+    finish({ok:true,content:'late response'});
+    await new Promise(resolve=>setTimeout(resolve,20));expect(update).not.toHaveBeenCalled();
+    mocks.providerGenerate.mockResolvedValueOnce({ok:true,content:'retry response'});
+    const response=await request(app).post('/api/ai-chat/conversations/9001/messages').send({message:'Retry turn'});
+    expect(response.status).toBe(200);expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0][0].messages.map(m=>m.content)).toEqual(['Retry turn','retry response']);
+  });
+
+
+  describe('HR11 created target integrity', () => {
+    const unavailable = { success: false, code: 'COACH_CONVERSATION_CREATE_UNAVAILABLE', error: 'Swan Coach cannot create this conversation right now. Please try again later.' };
+    const create = (body = { context: 'coach_assistant', targetUserId: '42' }) => request(buildApp()).post('/api/ai-chat/conversations').send(body);
+    const expectNoProvider = () => { expect(mocks.providerGenerate).not.toHaveBeenCalled(); expect(mocks.sendChatMessage).not.toHaveBeenCalled(); };
+
+    it.each(['original', 'parent', 'direct'])('schema failure in %s never retries without target and never leaks diagnostics', async shape => {
+      const diagnostic = 'HR11_PRIVATE_SQL_SENTINEL';
+      const error = new Error(diagnostic);
+      if (shape === 'direct') error.code = '42703';
+      else error[shape] = { code: '42703', message: diagnostic, sql: diagnostic };
+      mocks.createConversation.mockRejectedValueOnce(error);
+      const response = await create();
+      expect(response.status).toBe(503); expect(response.body).toEqual(unavailable);
+      expect(mocks.createConversation).toHaveBeenCalledTimes(1);
+      expect(mocks.createConversation.mock.calls[0][0].targetUserId).toBe(42);
+      expect(JSON.stringify([response.body, mocks.logger.error.mock.calls, mocks.logger.warn.mock.calls])).not.toContain(diagnostic);
+      expectNoProvider();
+      const retry = await create();
+      expect(retry.status).toBe(201); expect(retry.body.conversation.targetUserId).toBe(42);
+      expect(mocks.createConversation).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not classify arbitrary targetUserId text as a schema retry', async () => {
+      const diagnostic = 'targetUserId HR11_PRIVATE_TEXT_SENTINEL';
+      mocks.createConversation.mockRejectedValueOnce(new Error(diagnostic));
+      const response = await create();
+      expect(response.status).toBe(500); expect(response.body).toEqual({ success: false, error: 'Failed to create conversation' });
+      expect(mocks.createConversation).toHaveBeenCalledTimes(1);
+      expect(mocks.createConversation.mock.calls[0][0].targetUserId).toBe(42);
+      expect(JSON.stringify([response.body, mocks.logger.error.mock.calls])).not.toContain(diagnostic);
+      expectNoProvider();
+    });
+
+    it('keeps generic failure details out of route logs as well as the response', async () => {
+      const diagnostic = 'HR11_PRIVATE_CONNECTION_SENTINEL';
+      mocks.createConversation.mockRejectedValueOnce(Object.assign(new Error(diagnostic), { original: { code: '08006', sql: diagnostic } }));
+      const response = await create();
+      expect(response.status).toBe(500); expect(response.body.error).toBe('Failed to create conversation');
+      expect(mocks.createConversation).toHaveBeenCalledTimes(1);
+      expect(JSON.stringify([response.body, mocks.logger.error.mock.calls])).not.toContain(diagnostic);
+      expectNoProvider();
+    });
+
+    it.each([43, null, undefined, '042', true, 0, 'invalid'])('does not publish a created row with wrong/malformed target %j', async target => {
+      mocks.createConversation.mockImplementationOnce(async payload => ({ ...mockCreatedConversation(payload), targetUserId: target }));
+      const response = await create();
+      expect(response.status).toBe(503); expect(response.body).toEqual(unavailable);
+      expect(mocks.createConversation).toHaveBeenCalledTimes(1);
+      expect(mocks.createConversation.mock.calls[0][0].targetUserId).toBe(42);
+      expectNoProvider();
+    });
+
+    it('declines a missing created record without retry', async () => {
+      mocks.createConversation.mockResolvedValueOnce(null);
+      const response = await create();
+      expect(response.status).toBe(503); expect(response.body).toEqual(unavailable);
+      expect(mocks.createConversation).toHaveBeenCalledTimes(1); expectNoProvider();
+    });
+
+    it.each([42, undefined, false])('does not attach an unscoped request to an unexpected returned target %j', async target => {
+      mocks.createConversation.mockImplementationOnce(async payload => ({ ...mockCreatedConversation(payload), targetUserId: target }));
+      const response = await create({ context: 'coach_assistant', targetUserId: null });
+      expect(response.status).toBe(503); expect(response.body).toEqual(unavailable);
+      expect(mocks.createConversation).toHaveBeenCalledTimes(1);
+      expect(mocks.createConversation.mock.calls[0][0]).not.toHaveProperty('targetUserId'); expectNoProvider();
+    });
+
+    it('normalizes the actual canonical string target and preserves explicit unscoped success', async () => {
+      mocks.createConversation.mockImplementationOnce(async payload => ({ ...mockCreatedConversation(payload), targetUserId: '42' }));
+      const targeted = await create();
+      expect(targeted.status).toBe(201); expect(targeted.body.conversation.targetUserId).toBe(42);
+      const unscoped = await create({ context: 'coach_assistant', targetUserId: null });
+      expect(unscoped.status).toBe(201); expect(unscoped.body.conversation.targetUserId).toBeNull();
+      expect(mocks.createConversation).toHaveBeenCalledTimes(2); expectNoProvider();
+    });
+  });
+
 });

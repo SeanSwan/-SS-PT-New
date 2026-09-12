@@ -29,7 +29,7 @@ describe('CoachActionProposalSplitPlanPanel identity contract', () => {
     expect(pageSource).toContain('<SwanCoachMessagesPanel');
     expect(messagesSource).toContain('<CoachMessage');
     expect(messageSource).toContain('<CoachActionProposalCard key={proposal.id}');
-    expect(proposalCardSource).toContain('<CoachActionProposalSplitPlanPanel detail={detail} />');
+    expect(proposalCardSource).toContain('<CoachActionProposalSplitPlanPanel detail={detailHidden ? null : detail} />');
     expect(proposalServiceSource).toContain('/api/coach/proposals/');
   });
 

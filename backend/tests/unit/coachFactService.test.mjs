@@ -17,6 +17,7 @@
  * trainer's review queue becomes noise they stop reading — which silently
  * disables the human gate above rather than announcing it.
  */
+import { Op } from 'sequelize';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /** In-memory stand-in for the CoachFact Sequelize model. */
@@ -36,8 +37,13 @@ function makeFakeModel(seed = []) {
   const rows = seed.map(makeInstance);
 
   const matches = (row, where = {}) =>
-    Object.entries(where).every(([key, want]) => {
+    Reflect.ownKeys(where).every((key) => {
+      const want=where[key];
+      if(key===Op.or)return want.some(branch=>matches(row,branch));
       const have = row[key];
+      if(want?.[Op.lte]!==undefined)return (have ?? '2026-01-01') <= want[Op.lte];
+      if(want?.[Op.gte]!==undefined)return have!=null && have >= want[Op.gte];
+      if (want === null) return have == null;
       if (Array.isArray(want)) return want.includes(have);
       if (want && typeof want === 'object' && Array.isArray(want.in)) return want.in.includes(have);
       return have === want;

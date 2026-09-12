@@ -10,7 +10,7 @@ const FLAT = [
   { session_id: 's1', status: 'completed', date: '2026-07-05', workout_exercise_id: 'we1', exercise_id: 'ex-squat', set_id: 'b', reps_completed: 5, weight_used: 110 },
   { session_id: 's1', status: 'completed', date: '2026-07-05', workout_exercise_id: 'we2', exercise_id: 'ex-bench', set_id: 'c', reps_completed: null, weight_used: 60 },
   { session_id: 's2', status: 'in_progress', date: '2026-07-10', workout_exercise_id: 'we3', exercise_id: 'ex-squat', set_id: 'd', reps_completed: 9, weight_used: 95 },
-];
+].map(row => ({ ...row, weight_unit: 'lbs' }));
 
 function readerWithDb(rowsByPattern) {
   const queries = [];
@@ -55,20 +55,20 @@ test('assembles joined rows into calculator-contract sessions with derived verif
   assert.equal(s2.verified, false);
   assert.equal(s2.voided, true);
 
-  assert.equal(records.scheduledCount, 2);
-  assert.deepEqual(records.missingInputs, []);
+  assert.equal(records.scheduledCount, null);
+  assert.deepEqual(records.missingInputs, ['scheduled_session_matches']);
   assert.ok(db.queries.some((sql) => sql.includes('workout_exercises')));
-  assert.ok(db.queries.some((sql) => sql.includes("'planned'")));
+  assert.ok(db.queries.every((sql) => sql.includes('ws.date <= :now')));
 });
 
-test('a missing weight unit is reported, never guessed', async () => {
+test('a missing persisted lifting unit is reported, never borrowed from body measurements', async () => {
   const db = readerWithDb({
-    'JOIN workout_exercises': FLAT,
+    'JOIN workout_exercises': FLAT.map(row => ({ ...row, weight_unit: '' })),
     "status = 'planned'": [],
     'body_measurements': [],
   });
   const records = await db.read();
-  assert.deepEqual(records.missingInputs, ['weight_unit']);
+  assert.deepEqual(records.missingInputs, ['scheduled_session_matches', 'weight_unit']);
   assert.equal(records.sessions[0].exercises[0].unit, '');
 });
 
@@ -79,7 +79,7 @@ test('zero planned sessions yields null-denominator scheduledCount inputs', asyn
     'body_measurements': [{ weightUnit: 'kg' }],
   });
   const records = await db.read();
-  assert.equal(records.scheduledCount, 0);
+  assert.equal(records.scheduledCount, null);
   assert.deepEqual(records.sessions, []);
 });
 

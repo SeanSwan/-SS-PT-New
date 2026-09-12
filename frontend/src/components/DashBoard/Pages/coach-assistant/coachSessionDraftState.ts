@@ -1,10 +1,20 @@
 export type ScopeToken = string;
 export type TargetChangeDecision = 'return' | 'discard';
+export type TargetChangeOrigin = 'pin' | 'thread' | 'route' | 'observed-pin';
+
+export interface SelectionAnchor {
+  pathname: string;
+  search: string;
+  hash: string;
+  targetUserId: number;
+  pinnedClientId: number | null;
+  threadId: number | null;
+}
 
 export type SelectionIntent =
-  | { kind: 'return'; targetUserId: number }
-  | { kind: 'discard'; targetUserId: number }
-  | { kind: 'none'; reason: 'NO_PENDING_CHANGE' | 'STALE_SCOPE' | 'INVALID_DECISION' };
+  | { kind: 'return'; targetUserId: number; anchor?: SelectionAnchor }
+  | { kind: 'discard'; targetUserId: number | null; anchor?: SelectionAnchor }
+  | { kind: 'none'; reason: 'NO_PENDING_CHANGE' | 'STALE_SCOPE' | 'STALE_REQUEST' | 'INVALID_DECISION' };
 
 export interface CoachSessionDraft {
   taskId: string;
@@ -30,8 +40,12 @@ export interface SubmittedDraft {
 
 export interface TargetChange {
   scopeToken: ScopeToken;
+  requestId: string;
   fromTargetUserId: number;
-  nextTargetUserId: number;
+  nextTargetUserId: number | null;
+  origin: TargetChangeOrigin;
+  nextThreadId: number | null;
+  anchor: SelectionAnchor | null;
 }
 
 export interface DraftState {
@@ -41,6 +55,7 @@ export interface DraftState {
   draft: CoachSessionDraft | null;
   submitted: SubmittedDraft | null;
   pendingTargetChange: TargetChange | null;
+  selectionAnchor: SelectionAnchor | null;
 }
 
 export interface DraftPatch {
@@ -48,13 +63,20 @@ export interface DraftPatch {
 }
 
 type IdFactory = () => string;
+const targetChangeOrigins = new Set<string>(['pin', 'thread', 'route', 'observed-pin']);
+const isTargetChangeOrigin = (value: unknown): value is TargetChangeOrigin => (
+  typeof value === 'string' && targetChangeOrigins.has(value)
+);
 type FailureCode =
   | 'NO_ACTOR'
+  | 'ROLE_NOT_AUTHORIZED'
   | 'INVALID_TARGET'
   | 'STALE_SCOPE'
   | 'STALE_REVISION'
   | 'NO_DRAFT'
-  | 'INVALID_ORIGIN';
+  | 'INVALID_ORIGIN'
+  | 'INVALID_SELECTION_ANCHOR'
+  | 'UUID_FACTORY_UNAVAILABLE';
 
 export type DraftOperationFailure = {
   ok: false;
@@ -92,6 +114,39 @@ export const toPositiveSafeInteger = (value: unknown): number | null => {
   return Number.isSafeInteger(numberValue) && numberValue > 0 ? numberValue : null;
 };
 
+const toStrictPositiveSafeInteger = (value: unknown): number | null => {
+  if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0 ? value : null;
+  if (typeof value !== 'string' || !/^[1-9][0-9]*$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const toStrictNullablePositiveSafeInteger = (value: unknown): number | null | undefined => {
+  if (value === null) return null;
+  if (value === undefined) return undefined;
+  const parsed = toStrictPositiveSafeInteger(value);
+  return parsed === null ? undefined : parsed;
+};
+
+const hasControlCharacter = (value: string): boolean => /[\u0000-\u001f\u007f]/.test(value);
+
+const normalizeSelectionAnchor = (value: unknown, expectedTargetUserId?: number): SelectionAnchor | null => {
+  if (!isRecord(value)) return null;
+  const pathname = value.pathname;
+  const search = value.search;
+  const hash = value.hash;
+  if (typeof pathname !== 'string' || pathname.length === 0 || pathname.length > 512
+      || !/^\/(?!\/)/.test(pathname) || /[\\?#]/.test(pathname) || hasControlCharacter(pathname)) return null;
+  if (typeof search !== 'string' || search.length > 1024 || (search !== '' && !/^\?[^#]*$/.test(search)) || hasControlCharacter(search)) return null;
+  if (typeof hash !== 'string' || hash.length > 512 || (hash !== '' && !/^#[^?]*$/.test(hash)) || hasControlCharacter(hash)) return null;
+  const targetUserId = toStrictNullablePositiveSafeInteger(value.targetUserId);
+  const pinnedClientId = toStrictNullablePositiveSafeInteger(value.pinnedClientId);
+  const threadId = toStrictNullablePositiveSafeInteger(value.threadId);
+  if (targetUserId === undefined || targetUserId === null || pinnedClientId === undefined || threadId === undefined) return null;
+  if (expectedTargetUserId !== undefined && targetUserId !== expectedTargetUserId) return null;
+  return freezeDeep({ pathname, search, hash, targetUserId, pinnedClientId, threadId });
+};
+
 const failure = (state: DraftState, code: FailureCode): DraftOperationFailure => ({
   ok: false,
   state,
@@ -113,6 +168,7 @@ export const createInitialDraftState = (
   draft: null,
   submitted: null,
   pendingTargetChange: null,
+  selectionAnchor: null,
 });
 
 export type BeginDraftResult =
@@ -126,6 +182,7 @@ export const beginDraft = (
   createId: IdFactory = defaultIdFactory,
 ): BeginDraftResult => {
   if (!state.actorId || !state.actorRole) return failure(state, 'NO_ACTOR');
+  if (state.actorRole !== 'admin' && state.actorRole !== 'trainer') return failure(state, 'ROLE_NOT_AUTHORIZED');
   const target = toPositiveSafeInteger(targetUserId);
   if (!target) return failure(state, 'INVALID_TARGET');
   if (typeof origin !== 'string' || !origin.trim()) return failure(state, 'INVALID_ORIGIN');
@@ -152,6 +209,7 @@ export const beginDraft = (
       draft,
       submitted: null,
       pendingTargetChange: null,
+      selectionAnchor: null,
     },
   };
 };
@@ -222,38 +280,110 @@ export type TargetChangeResult =
   | { ok: true; state: DraftState; change: TargetChange }
   | DraftOperationFailure;
 
+export interface TargetChangeMetadata {
+  origin?: TargetChangeOrigin;
+  nextThreadId?: unknown;
+  anchor?: unknown;
+}
+
+export type RememberSelectionResult =
+  | { ok: true; state: DraftState; selectionAnchor: SelectionAnchor }
+  | DraftOperationFailure;
+
+export const rememberSelection = (
+  state: DraftState,
+  scopeToken: ScopeToken,
+  anchor: unknown,
+): RememberSelectionResult => {
+  const draft = currentDraft(state, scopeToken);
+  if (!draft) return failure(state, 'STALE_SCOPE');
+  const normalized = normalizeSelectionAnchor(anchor, draft.targetUserId);
+  if (!normalized) return failure(state, 'INVALID_SELECTION_ANCHOR');
+  return {
+    ok: true,
+    state: { ...state, selectionAnchor: normalized },
+    selectionAnchor: normalized,
+  };
+};
+
 export const requestTargetChange = (
   state: DraftState,
   nextTargetUserId: unknown,
+  metadata: TargetChangeMetadata | IdFactory = {},
+  createId: IdFactory = defaultIdFactory,
 ): TargetChangeResult => {
   if (!state.draft) return failure(state, 'NO_DRAFT');
-  const target = toPositiveSafeInteger(nextTargetUserId);
-  if (!target || target === state.draft.targetUserId) return failure(state, 'INVALID_TARGET');
-  const change = {
+  const options: TargetChangeMetadata = typeof metadata === 'function' ? {} : metadata;
+  if (!isRecord(options) || ![Object.prototype, null].includes(Object.getPrototypeOf(options))) {
+    return failure(state, 'INVALID_ORIGIN');
+  }
+  const idFactory: IdFactory = typeof metadata === 'function' ? metadata : createId;
+  const target = nextTargetUserId === null ? null : toStrictPositiveSafeInteger(nextTargetUserId);
+  if (nextTargetUserId !== null && target === null) return failure(state, 'INVALID_TARGET');
+  if (target === state.draft.targetUserId) return failure(state, 'INVALID_TARGET');
+  const origin = options.origin === undefined ? 'route' : options.origin;
+  if (!isTargetChangeOrigin(origin)) return failure(state, 'INVALID_ORIGIN');
+  const nextThreadId = options.nextThreadId === undefined
+    ? null
+    : toStrictNullablePositiveSafeInteger(options.nextThreadId);
+  if (nextThreadId === undefined) return failure(state, 'INVALID_TARGET');
+  if (origin === 'thread' && nextThreadId === null) return failure(state, 'INVALID_TARGET');
+  let anchor = state.selectionAnchor;
+  if (Object.prototype.hasOwnProperty.call(options, 'anchor')) {
+    anchor = normalizeSelectionAnchor(options.anchor, state.draft.targetUserId);
+    if (!anchor) return failure(state, 'INVALID_SELECTION_ANCHOR');
+  }
+  if (state.pendingTargetChange) {
+    return { ok: true, state, change: state.pendingTargetChange };
+  }
+  let requestId: string;
+  try {
+    requestId = idFactory();
+  } catch (error) {
+    if (error instanceof Error && error.message === 'UUID_FACTORY_UNAVAILABLE') return failure(state, 'UUID_FACTORY_UNAVAILABLE');
+    throw error;
+  }
+  const change = freezeDeep({
     scopeToken: state.draft.scopeToken,
+    requestId,
     fromTargetUserId: state.draft.targetUserId,
     nextTargetUserId: target,
-  };
+    origin,
+    nextThreadId,
+    anchor,
+  }) as TargetChange;
   return { ok: true, state: { ...state, pendingTargetChange: change }, change };
 };
 
-export const resolveTargetChange = (
+export function resolveTargetChange(
   state: DraftState,
   scopeToken: ScopeToken,
+  requestId: string,
   decision: TargetChangeDecision,
-): { state: DraftState; intent: SelectionIntent } => {
+): { state: DraftState; intent: SelectionIntent };
+export function resolveTargetChange(
+  state: DraftState,
+  scopeToken: ScopeToken,
+  requestId: string,
+  decision: TargetChangeDecision,
+): { state: DraftState; intent: SelectionIntent } {
   const change = state.pendingTargetChange;
   if (!change) return { state, intent: { kind: 'none', reason: 'NO_PENDING_CHANGE' } };
   if (change.scopeToken !== scopeToken || !state.draft || state.draft.scopeToken !== scopeToken) {
     return { state, intent: { kind: 'none', reason: 'STALE_SCOPE' } };
   }
+  if (requestId !== change.requestId) return { state, intent: { kind: 'none', reason: 'STALE_REQUEST' } };
   if (decision === 'return') {
+    const intent: SelectionIntent = { kind: 'return', targetUserId: change.fromTargetUserId };
+    if (change.anchor) intent.anchor = change.anchor;
     return {
       state: { ...state, pendingTargetChange: null },
-      intent: { kind: 'return', targetUserId: change.fromTargetUserId },
+      intent,
     };
   }
   if (decision === 'discard') {
+    const intent: SelectionIntent = { kind: 'discard', targetUserId: change.nextTargetUserId };
+    if (change.anchor) intent.anchor = change.anchor;
     return {
       state: {
         ...state,
@@ -261,12 +391,13 @@ export const resolveTargetChange = (
         draft: null,
         submitted: null,
         pendingTargetChange: null,
+        selectionAnchor: null,
       },
-      intent: { kind: 'discard', targetUserId: change.nextTargetUserId },
+      intent,
     };
   }
   return { state, intent: { kind: 'none', reason: 'INVALID_DECISION' } };
-};
+}
 
 export const discardDraft = (state: DraftState, scopeToken: ScopeToken): DraftState => {
   if (!state.draft || state.draft.scopeToken !== scopeToken) return state;
@@ -276,5 +407,6 @@ export const discardDraft = (state: DraftState, scopeToken: ScopeToken): DraftSt
     draft: null,
     submitted: null,
     pendingTargetChange: null,
+    selectionAnchor: null,
   };
 };

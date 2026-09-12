@@ -26,6 +26,7 @@ describe('CoachCommandCenterPage shell', () => {
   it('renders Floor Mode with Talk, Review, History, and a minimal command dock', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
     expect(listConversationsMock).toHaveBeenCalledWith('active', true);
+    expect(screen.queryByTestId('coach-session-desk')).toBeNull();
     expect(screen.getByText(/Now coaching/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^New chat$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^More coach actions$/i })).toBeInTheDocument();

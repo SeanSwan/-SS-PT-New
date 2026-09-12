@@ -7,7 +7,7 @@
  *          Wraps the desk in CoachSurfaceProvider so the desk can derive its surface
  *          identity (route/surface token + shell generation) without a second draft store.
  */
-import React, { useCallback } from 'react';
+import React from 'react';
 import CoachSessionDesk, { type CoachSessionDeskProps } from './CoachSessionDesk';
 import { CoachSurfaceProvider } from './useCoachSurfaceContext';
 
@@ -27,20 +27,12 @@ const CoachSessionDeskGate: React.FC<CoachSessionDeskGateProps> = ({
   onOpenLogger,
   ...deskProps
 }) => {
-  const renderDesk = useCallback(
-    () => (
-      <CoachSurfaceProvider routeKey={routeKey} surfaceKey={surfaceKey} targetUserId={targetUserId}>
-        <CoachSessionDesk {...deskProps} onOpenLogger={onOpenLogger} />
-      </CoachSurfaceProvider>
-    ),
-    // deskProps are plain serializable props from the page; onOpenLogger is the only
-    // stable-callback surface the gate manages.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [routeKey, surfaceKey, targetUserId, onOpenLogger],
-  );
-
   if (!enabled) return null;
-  return renderDesk();
+  return (
+    <CoachSurfaceProvider routeKey={routeKey} surfaceKey={surfaceKey} targetUserId={targetUserId}>
+      <CoachSessionDesk {...deskProps} onOpenLogger={onOpenLogger} />
+    </CoachSurfaceProvider>
+  );
 };
 
 export default CoachSessionDeskGate;
