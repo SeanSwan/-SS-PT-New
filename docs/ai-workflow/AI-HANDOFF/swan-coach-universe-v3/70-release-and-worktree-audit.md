@@ -8,7 +8,7 @@ The reviewed release consists of three independent runtime fixes, one evaluation
 
 Unfinished Coach work is preserved locally in commit 346373264f84e00e392914fdb035d8ac5a1ca8ef (108 files; 12,824 insertions and 1,931 deletions at checkpoint). Source remains in the original worktree. Two pre-existing local items remain visible: AGENTS.md and frontend/.hermes/environment.json. Neither is concealed with assume-unchanged, skip-worktree, or ignore rules.
 
-The original 167 registered worktrees were inventoried: 90 dirty, 77 clean. 165 stale Git pointers were repaired after reciprocal metadata verification; all heads stayed unchanged, and no source file was moved or deleted. The added release tree brings the total to 168. The source inventory is complete; the other tasks are not collectively certified for release.
+The original 167 registered worktrees were inventoried: 90 dirty, 77 clean. 165 stale Git pointers were repaired after reciprocal metadata verification; all heads stayed unchanged, and no source file was moved or deleted. The added release tree initially brought the total to 168. A concurrent full-site-repair task created one more tree during the release; the final inventory is 169 trees, 91 dirty and 78 clean. The source inventory is complete; the other tasks are not collectively certified for release.
 
 The primary shared checkout alone has 2,956 dirty/untracked entries. This is separate from the Coach worktree. Claiming the entire repository is now clean would be false. Of the original clean trees, 28 have no commits absent from current main; this is only a future archival candidate list, not authority to remove their directories or ignored data.
 
@@ -28,7 +28,7 @@ Base: 53120649f356c3efccee32872b530096d386642f. Final reviewed release head: 46e
 
 - 47 backend tests PASS across five files: permission regression, route security, schema drift, schedule/billing and planned-assignment compatibility. Earlier main-source regression run: 2 FAIL / 3 PASS, including erroneous 200 allowance after lookup failure.
 - 40 frontend tests PASS across four files, including positive recording/retry and active-recording unmount. Initial main-source run: 32 FAIL / 5 PASS; these are expected regressions and missing-contract failures, not 32 unique security bugs.
-- Canonical frontend TypeScript PASS. Vite build PASS, including a separate production NODE_ENV build. Clean-main package locks and configuration retained.
+- Canonical frontend TypeScript PASS. Vite build PASS, including a separate production NODE_ENV build. Frontend package locks and configuration retained.
 - Local actual production-build browser PASS: sessions/analytics remained 3/1 at 2.5, 5 and 7.5 seconds. Chromium synthetic microphone produced one 7,906-byte multipart upload. Native tracks ended after stop, cancel and SPA unmount; no page errors; source hashes stayed fixed. Transcription was stubbed and external writes denied.
 - Browser harness failures are preserved separately: production API hostname routing, stale locator for an unmounted composer, and synthetic microphone permission setup. They were not presented as product fixes. CSP was bypassed only for loopback fixture routing, so this is not a production CSP proof.
 - Main and initial PR both failed warnings_02 (one unwanted self-heal warning); local RED reproduced. Corrected evaluation: 57 gated scenarios PASS, five known gaps, no threshold failures. This is a deterministic fixture evaluation, not a live model quality benchmark.
@@ -44,10 +44,10 @@ Existing builder/reviewer assignments persist: Luna Extra High builds bounded sl
 | Priority / packet | Owner role | Next work and exit evidence |
 |---|---|---|
 | M68 / 68 | Luna implementation; Astra review | Fix chat-panel column geometry; assert transcript width/text bounds on 390x844 and desktop. Body overflow alone missed real clipping. Keep Desk unmounted until integration. |
-| HR12 / 58 | Luna; Astra | Retire asynchronous Planner callbacks on actor/client/route changes; prove old responses cannot mutate current plan. |
+| HR12 / 58 | Astra repair; no new builder assignment | Retire asynchronous Planner callbacks on actor/client/route changes; prove old responses cannot mutate current plan. |
 | HR13 / 59 | Luna; Astra | Make rest-adjust contracts exact; distinguish absolute values from deltas, validate boundaries and actual receiver result. |
 | HR14 / 62 | Luna; Astra | Resolve duplicate context-hook runtime/type resolution; prove Vite and TypeScript use the same owner. |
-| R60-A / 60 | Luna; Astra | Bind confirmed command to actual current Logger submission and saved readback; close legacy save-event path. |
+| R60-A / 60 | Luna; Astra | Reject legacy/unbound AI submit before mutations; preserve manual Save. Connected binding/readback remains later R60 work. |
 | C1-C4 / 49,51,55,61,63 | Luna; Astra | Connect one admitted actor/client/thread/route/pin selection through chat, command, TTS, Desk and receivers. Prove A-B-A, late responses, cancellation, retry, approval and saved-result journeys. |
 | P64 / 64 | Luna test repair; Astra | Replace two obsolete source-guard failures with real route privacy regressions. Previous broader local backend result was 1086 PASS, 2 FAIL, 4 speech SKIP; do not call it all green. |
 | HR15 / 65 | Luna; Astra | Repair normal client null-target conversation list/detail. Actual local reproduction was 3 PASS / 2 FAIL. Preserve other-client/staff denial. |
@@ -67,7 +67,7 @@ Requirements SR1-SR6, contracts, source preservation, test traceability, release
 
 This selective operational track does not advance the original M68 controller. Its evidence/counters and deferred full Coach review remain intact. A structural plan receipt checks evidence references only; it is not a claim that the original full-program implementation workflow has completed.
 
-Production integration requires reviewed exact commit, current-main comparison and completed release CI adjudication. Render CLI token was expired; existing authenticated browser access succeeded. The pre-release live backend is 86e66cd, frontend 3887c8e. Backend main deploy 5312064 failed on native zod resolution. Exact settings and failure are in render-baseline-receipt.json. The account displays a payment-failed warning; no payment action is authorized or performed here. Do not sync the inert render.yaml or provision services. Rollback is an ordinary revert of the selective release commits after verification; never reset/delete the WIP branch.
+Production integration requires reviewed exact commit, current-main comparison and completed release CI adjudication. Render CLI token was expired; existing authenticated browser access succeeded. The pre-release live backend is 86e66cd, frontend 3887c8e. Backend main deploy 5312064 failed on native zod resolution. Exact settings and failure are in render-baseline-receipt.json. The account displays a payment-failed warning; no payment action is authorized or performed here. Do not sync the inert render.yaml or provision services. For a behavior rollback, retain the native shared-schema installation repair: the previous main revision 5312064 is a confirmed failing backend boot target. Revert only the affected runtime change after review, or deliberately restore a previously verified Render deployment (backend baseline 86e66cd) after assessing compatibility. Never blindly revert the entire release to the broken base, reset/delete the WIP branch, or run package reseeding as rollback. Existing startup migrations and non-package seeders remain unchanged; this release does not claim zero startup database writes.
 
 ## Non-destructive hygiene disposition
 
@@ -92,6 +92,20 @@ The full original Coach dirty-path set and branch history are inventoried below;
 - Account owner: resolve Render's payment-failed warning through the billing page. This audit has not changed cards, paid invoices, or purchased services.
 
 Local test preview on port 5010 has been stopped after its browser evidence was recorded. Other task processes and fixture databases were not stopped or repurposed.
+
+## Final-head CI failure adjudication and follow-up
+
+Final source head 46e581d0d10640f90d93c32ddaa7ebb45e025aa8 passed backend CI: 1,208 files passed and one skipped; 9,832 tests passed and 11 skipped, plus 179 native Node tests passed. The exact install lifecycle and the new native shared-schema test passed on Linux Node 22.
+
+The first final-head frontend run completed all 323 batches and failed three pre-existing tests. Their source, components, configuration and frontend lockfile are unchanged from main. The frontend tree is identical to the earlier fully passing a96e768 candidate; the final three-file backend installation patch runs in a separate CI job and cannot change the frontend install.
+
+- Equipment has a confirmed test readiness race: a transient empty CTA can appear between profile resolution and the item-fetch effect. The failure DOM contains Loading your gear. A follow-up test should defer listItems, await loading, resolve an empty result inside asynchronous act, and retain the CTA, narrative and footnote assertions together.
+- Nutrition lazy completion is a plausible timing explanation, not proven: the failure DOM is truncated before the relevant panel. Investigate if repeated, keeping the awaited content assertion.
+- Exercise diary exceeded five seconds without a demonstrated content mismatch. The unchanged local rerun completed that test in 2,103 ms. Runner contention remains an inference.
+
+All 15 files from the three failed batches passed unchanged locally: 64 tests. Astra independently reviewed causality and admitted one unchanged-SHA retry. No assertions, timeouts, skips or production code were changed to obtain that retry. Original failures remain in final-ci-failure.log; local result is failed-ci-shards-local.log; adjudication is ci-failure-adjudication.json. The retry result is recorded in the final outcome below. If it fails, investigate the new failure rather than blindly retrying or waiving CI.
+
+For the next Coach implementation task, use a fresh isolated tree based on the final production main, then import the next bounded, dependency-complete slice from the local preservation branch. Keep its existing architecture, builder/reviewer roles and gate history. Do not merge all 81 preserved WIP commits into main as a shortcut.
 
 ## Every original Coach dirty path
 
@@ -473,6 +487,12 @@ All 81 original Coach-only commits are preserved. Titles are historical claims, 
 | 45d72ad71622 | fix(coach): hostile review round 3 — reader-context validation tightened | Local preservation; no wholesale release |
 | 48d792da5351 | docs(coach): hostile review rounds 1-3 record — 9 findings fixed, round 4 dry | Local preservation; no wholesale release |
 
+## Concurrent worktree discovered at final inventory
+
+The final read-only inventory (2026-09-12T20:14:55.027Z) discovered C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/full-site-repair-20260912, branch codex/full-site-repair-20260912, at 53120649f356c3efccee32872b530096d386642f. It has 23 untracked planning/evidence/regression-test paths, no commits absent from current main, and is four commits behind the deployed main. Its owner is not verified by this audit; none of its files was changed, staged or committed here.
+
+That owner should reconcile its bounded full-site repair with deployed main c0cbe538d8ed2ca519bb494cdf3282bf43b76699 before implementation/release, preserve its current tests and artifacts, and avoid duplicating the permission-error fix already released. Existing task authority and tests still govern its remaining logger/offline repairs. Source inventory is in final-worktree-inventory/worktree-inventory.json; this addendum accounts for the one new tree beyond the earlier 168-row table. Final counts are 169 total, 91 dirty, 78 clean. This is a timestamped inventory, not a claim that concurrent tasks have stopped.
+
 ## Closeout evidence lock
 
 Claim scope: selective release source/tests and local preservation only. Canonical mounted path: UniversalDashboardLayout.routes.tsx -> CoachCommandCenterPage -> CoachConsoleDock -> VoiceRecordingOverlay -> useVoiceRecorder; App -> SessionProvider. Browser receipt verifies the selected lifecycle boundaries, not the whole Coach workflow.
@@ -483,4 +503,12 @@ Future re-review triggers: actor-role representation changes, API response/stora
 
 ## Outcome addendum
 
-PENDING FINAL CI AND DEPLOYMENT RECEIPT. The report will be appended with exact GitHub/main/Render status; do not infer deployment from the PR or local tests.
+VERIFIED SELECTIVE RELEASE — 2026-09-12T20:14:16.940Z. [PR 118](https://github.com/SeanSwan/-SS-PT-New/pull/118) merged to main as c0cbe538d8ed2ca519bb494cdf3282bf43b76699; its tree exactly equals reviewed head 46e581d0d10640f90d93c32ddaa7ebb45e025aa8. All final-head PR checks passed. The frontend required one unchanged-SHA retry after the three documented failures; neither original failure nor the 11 backend skipped tests is concealed.
+
+Render backend dep-dair2k9594qs739s3ks0 and frontend dep-dair20ou01pc738jk8sg both report Live at that exact main commit. Public read-only checks returned HTTP 200 for backend /health (healthy), /health/ready (ready=true, store=ready and matching build commit), and the application homepage. Production authenticated role journeys, physical-device microphone behavior and real transcription/provider calls were not exercised by this release smoke.
+
+Backend auto-deploy was restored to On Commit and read back. Pre-deploy remains DISABLE_PROD_SEEDER=true npm run production-seed; start remains USE_BULLMQ_RECONCILIATION=false npm start. The normal build command and existing startup migration/non-package seeder code are unchanged. No manual production DB operation or package reseed was run. Render's payment-failed warning remains an account-owner action; deployment success does not resolve billing.
+
+Unfinished Coach source remains local in checkpoint 346373264f84e00e392914fdb035d8ac5a1ca8ef. The final documentation checkpoint is recorded in final-audit-report-checkpoint.json; it is not pushed. The clean release tree contains only the reviewed eleven-file patch. The original Coach tree retains two visible local exceptions: AGENTS.md and frontend/.hermes/environment.json. Latest complete inventory: 169 registered trees, 91 dirty and 78 clean, including the release tree. The shared primary tree still has 2,956 dirty/untracked entries. No other task's work was committed, stashed, deleted or certified for production.
+
+Authoritative local receipts: github-production-merge-receipt.json, final-pr-ci.json, final-ci-retry.json, ci-failure-adjudication.json, render-production-deploy-receipt.json, render-release-settings.json, public-postdeploy.json and selective-release-plan-receipt.json. The latter remains a structural plan/reference check; this operational release does not complete the original M68/Universe controller or its held requirements.

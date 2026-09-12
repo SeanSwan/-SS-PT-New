@@ -18,11 +18,15 @@ Owner: Sean (product), Astra (architecture, all reviews and review repairs), Lun
 Status: IMPLEMENTATION IN PROGRESS; implementation_authorized: true (Sean request, 2026-09-04).
 Historical planning snapshot (superseded): implementation_authorized: false.
 
+## Selective release and hygiene authority — 2026-09-12
+
+[70 — release and worktree audit](70-release-and-worktree-audit.md) records the eleven-file production release, preserved local checkpoint, all worktree dispositions and next-agent exit criteria. [69 — selective release packet](69-selective-release-audit.md) contains its requirements and operations contract. This release does not complete Universe V3 or authorize merging the held branch wholesale.
+
 ## Current execution authority
 
 Start with [47 — current Astra runtime hostile review](47-astra-runtime-hostile-review.md) and [48 — capability truth and release gaps](48-capability-truth-and-release-gaps.md). Source work for G04–G11 exists, but the previous completion claims exceed the mounted behavior. Review and repairs are in progress; Universe release is NOT READY. Session Desk is withdrawn from the default mount until its real integration is complete. Existing chat, reviewed proposals and canonical Logger/Planner remain.
 
-Current controller: tmp/coach-astra-hostile-20260912/workflow-state-v2.json. Supported migration preserves the predecessor, 9 historical admissions and the Astra-only final-review override. Original packet snapshots and hashes are in tmp/coach-astra-hostile-20260912/preservation.json. Architecture and domain contracts in [31](31-gwen-execution-handoff.md) and [32](32-gwen-domain-and-verification-contract.md) remain binding. Older checkpoints and the migration banner above are historical evidence.
+Current controller: tmp/coach-astra-hostile-20260912/workflow-state-v3.json. Supported migration preserves the predecessor and 10 historical admissions and the Astra-only final-review override. Original packet snapshots and hashes are in tmp/coach-astra-hostile-20260912/preservation.json. Architecture and domain contracts in [31](31-gwen-execution-handoff.md) and [32](32-gwen-domain-and-verification-contract.md) remain binding. Older checkpoints and the migration banner above are historical evidence.
 
 ## Plain-English Summary
 
