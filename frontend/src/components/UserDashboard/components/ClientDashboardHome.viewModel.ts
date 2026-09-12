@@ -96,14 +96,18 @@ export function buildTodaySnapshot({
     return Number.isFinite(time) && time >= todayStart.getTime() && time <= now.getTime();
   }).length;
   const calories = macroLoading ? 'Loading' : macroSummary ? `${safeWhole(macroSummary.totalCalories)} cal` : 'Not available';
+  // Progressive disclosure (audit 2026-09-12 A-2/D6): "Not available"
+  // placeholder rows stay off the card until a real data source exists —
+  // never a wall of tombstones on day one.
+  const rows = [
+    { label: 'Workouts Logged', value: String(todayCount), meta: todayCount ? 'Today' : 'No log yet' },
+    { label: 'Total Workout Time', value: `${proof.minutesThisWeek || 0} min`, meta: 'This week' },
+    { label: 'Calories Burned', value: calories, meta: macroSummary ? 'Nutrition log' : 'No live burn source' },
+    { label: 'Average Heart Rate', value: 'Not available', meta: 'No wearable source' },
+  ].filter((row) => row.value !== 'Not available');
   return {
     dateLabel: now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }),
-    rows: [
-      { label: 'Workouts Logged', value: String(todayCount), meta: todayCount ? 'Today' : 'No log yet' },
-      { label: 'Total Workout Time', value: `${proof.minutesThisWeek || 0} min`, meta: 'This week' },
-      { label: 'Calories Burned', value: calories, meta: macroSummary ? 'Nutrition log' : 'No live burn source' },
-      { label: 'Average Heart Rate', value: 'Not available', meta: 'No wearable source' },
-    ],
+    rows,
     weeklyCompleted: Math.min(proof.thisWeekCount, WEEKLY_GOAL),
     weeklyGoal: WEEKLY_GOAL,
   };
@@ -200,12 +204,14 @@ export function buildSessionPreview({
 export function buildInsights(proof: HomeTrainingProof, progressPercent: number, streakDays: number): InsightRow[] {
   const volumeTarget = WEEKLY_GOAL * MINUTES_PER_WORKOUT_GOAL;
   const volumePct = clampDashboardPercent((proof.minutesThisWeek / volumeTarget) * 100);
+  // Same progressive-disclosure rule as buildTodaySnapshot: metrics without a
+  // live source wait until they can show truth, not "Not available".
   return [
     { label: 'Strength Score', value: 'Not available', status: 'Awaiting lift data', points: proof.weeklyCounts },
     { label: 'Training Volume', value: `${proof.minutesThisWeek || 0} min`, status: `${volumePct}% of weekly target`, points: proof.weeklyCounts },
     { label: 'Consistency', value: `${Math.min(streakDays, 30)}d`, status: `${clampDashboardPercent(progressPercent)}% level momentum`, points: proof.weeklyCounts },
     { label: 'Recovery', value: 'Not available', status: 'No wearable source', points: proof.weeklyCounts },
-  ];
+  ].filter((insight) => insight.value !== 'Not available');
 }
 
 export function buildPerformanceScore(proof: HomeTrainingProof, progressPercent: number, streakDays: number): number | null {

@@ -27,16 +27,20 @@ export function ClientRightRail({ activeChallenge, challengeLoading, badges, lea
   return (
     <>
       <RailChallenge activeChallenge={activeChallenge} challengeLoading={challengeLoading} onTarget={onTarget} />
-      <RailList
-        title="Recent unlocks"
-        empty="No recent unlocks yet."
-        items={badges.map((badge) => [badge.name, badge.icon])}
-      />
-      <RailList
-        title="Community rank"
-        empty="Leaderboard is not populated yet."
-        items={leaderboardRows.map((row, index) => [`${index + 1}. ${row.name}`, row.points.toLocaleString()])}
-      />
+      {/* Progressive disclosure (audit 2026-09-12 A-2/D6): rail panels appear
+          when they have something real to show — no standing tombstones. */}
+      {badges.length > 0 && (
+        <RailList
+          title="Recent unlocks"
+          items={badges.map((badge) => [badge.name, badge.icon])}
+        />
+      )}
+      {leaderboardRows.length > 0 && (
+        <RailList
+          title="Community rank"
+          items={leaderboardRows.map((row, index) => [`${index + 1}. ${row.name}`, row.points.toLocaleString()])}
+        />
+      )}
       <PanelCard>
         <PanelHeader><Kicker>Trending tags</Kicker>{trendingLoading && <TinyText>Loading</TinyText>}</PanelHeader>
         <TagGrid>{(trendingTags.length ? trendingTags : [{ name: 'SwanStudios', count: 0 }]).map((tag) => <TagPill key={tag.name}>#{tag.name}</TagPill>)}</TagGrid>
@@ -109,13 +113,13 @@ function RailChallenge({ activeChallenge, challengeLoading, onTarget }: Pick<Cli
   );
 }
 
-function RailList({ title, items, empty }: { title: string; items: string[][]; empty: string }) {
+function RailList({ title, items }: { title: string; items: string[][] }) {
   return (
     <PanelCard>
       <PanelHeader><Kicker>{title}</Kicker></PanelHeader>
       <CardBody>
         <ListStack>
-          {(items.length ? items : [[empty, '']]).map(([left, right]) => (
+          {items.map(([left, right]) => (
             <RowItem key={left}>
               <StatusDot />
               <span>{left}</span>

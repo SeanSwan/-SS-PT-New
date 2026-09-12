@@ -32,7 +32,14 @@ export type ClientDashboardTarget =
   | 'challenges'
   | 'notifications'
   | 'messages'
-  | 'search';
+  | 'search'
+  | 'signout';
+
+export interface NextBestActionView {
+  streakAtRisk: boolean;
+  streakDays: number;
+  onLogWorkout: () => void;
+}
 
 export interface ClientDashboardAction {
   label: string;
@@ -45,6 +52,8 @@ export interface ClientDashboardHomeProps {
   embedded?: boolean;
   backgroundSettings?: ReactNode;
   communicationInbox?: ReactNode;
+  /** Dominant "your next step" card (streak rescue included). Omitted when the home wants a calm row. */
+  nextBestAction?: NextBestActionView;
   logoSrc: string;
   swanHeroSrc: string;
   featureImageSrc: string;

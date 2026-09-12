@@ -29,6 +29,7 @@ import {
 import { useHomeTabLiveWidgets } from './useHomeTabLiveWidgets';
 import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
 import {
+  assessStreakRisk,
   buildHomeTopBarActions,
   buildHomeTrainingProof,
   buildLatestPostView,
@@ -76,7 +77,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   backgroundSettings,
 }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { profile: gamProfile, levelProgress, leaderboard } = useGamificationData();
   const { isElite } = useSubscription();
   const { summary: macroSummary, loading: macroSummaryLoading } = useMacroSummary();
@@ -153,6 +154,14 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     () => findClientRank(liveWidgets.leaderboardRows, points, displayName),
     [displayName, liveWidgets.leaderboardRows, points],
   );
+  const nextBestAction = useMemo(
+    () => ({
+      streakAtRisk: assessStreakRisk(workoutSessions.data, streakDays, Date.now()),
+      streakDays,
+      onLogWorkout: () => navigate(logWorkoutPath),
+    }),
+    [logWorkoutPath, navigate, streakDays, workoutSessions.data],
+  );
 
   const quickActions = useMemo<ClientDashboardAction[]>(() => [
     { label: 'Log Workout', path: logWorkoutPath },
@@ -174,6 +183,10 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     if (target === 'workouts') navigate('/dashboard/client/workouts');
     if (target === 'coach') navigate(homeTrainingCoachPath);
     if (target === 'sessions') navigate('/dashboard/client/schedule');
+    if (target === 'signout') {
+      logout();
+      navigate('/login');
+    }
   };
 
   const shareProgress = () => {
@@ -188,6 +201,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         embedded={embedded}
         backgroundSettings={backgroundSettings}
         communicationInbox={<CommunicationsInboxStrip />}
+        nextBestAction={nextBestAction}
         logoSrc={brandLogo}
         swanHeroSrc={crystalSwan}
         featureImageSrc={featureWorkoutImage}

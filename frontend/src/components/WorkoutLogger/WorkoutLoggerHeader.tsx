@@ -22,12 +22,13 @@ import styled from 'styled-components';
 import { User, Calendar, Activity, Clock, BarChart3 } from 'lucide-react';
 import { CS, withAlpha } from './WorkoutLoggerCS';
 import OPTPhaseIndicator from './OPTPhaseIndicator';
-import { getClientSessionSignal } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
+import { getClientSessionSignal, isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 
 interface WorkoutLoggerHeaderProps {
   clientFirstName: string;
   clientLastName: string;
-  availableSessions: number;
+  /** null = balance could not be verified (fetch failure) — never shown as 0. */
+  availableSessions: number | null;
   clientSource?: string | null;
   totalSets: number;
   estimatedDuration: number;
@@ -49,7 +50,14 @@ const WorkoutLoggerHeader: React.FC<WorkoutLoggerHeaderProps> = React.memo(({
   currentOPTPhase = 1,
   onOPTPhaseChange,
 }) => {
-  const sessionSignal = getClientSessionSignal({ clientSource: clientSource || undefined, availableSessions });
+  const balanceUnverified = availableSessions === null && !isNonDeductingClientSource(clientSource || undefined);
+  const sessionSignal = balanceUnverified
+    ? {
+        label: 'Balance unverified',
+        note: "Session balance couldn't load — the server confirms it when you save.",
+        tone: 'neutral' as const,
+      }
+    : getClientSessionSignal({ clientSource: clientSource || undefined, availableSessions });
   const sessionBadgeType = sessionSignal.tone === 'warning' ? 'warning' : 'success';
   const parsedWorkoutDate = workoutDate ? new Date(`${workoutDate}T00:00:00`) : null;
   const displayDate = parsedWorkoutDate && !Number.isNaN(parsedWorkoutDate.getTime())

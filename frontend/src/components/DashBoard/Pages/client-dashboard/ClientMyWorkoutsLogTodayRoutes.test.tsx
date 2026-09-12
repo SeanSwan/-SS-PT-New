@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  useLocation: () => ({ pathname: '/dashboard/client/workouts', search: '', hash: '', state: null, key: 'test' }),
 }));
 
 const mockUseWorkoutSessions = vi.fn();

@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mocks.navigate,
+  useLocation: () => ({ pathname: '/dashboard/client/workouts', search: '', hash: '', state: null, key: 'test' }),
 }));
 
 vi.mock('../../../../hooks/useDashboardQueries', () => ({

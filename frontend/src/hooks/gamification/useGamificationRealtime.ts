@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { io, Socket } from 'socket.io-client';
 
@@ -10,17 +10,31 @@ import {
 } from '../../utils/realtimeSocketUrl';
 import { useToast } from '../use-toast';
 
-type GamificationRealtimeEvent =
+export type GamificationRealtimeEvent =
   | 'gamification:points_awarded'
   | 'gamification:workout_completed'
   | 'gamification:achievement_unlocked'
   | 'gamification:level_up'
   | 'gamification:streak_milestone';
 
-type GamificationRealtimePayload = {
+export type GamificationRealtimePayload = {
   userId?: string | number;
+  username?: unknown;
   points?: unknown;
   xpEarned?: unknown;
+  workoutName?: unknown;
+  newLevel?: unknown;
+  newTier?: unknown;
+  achievementName?: unknown;
+  rarity?: unknown;
+  streakDays?: unknown;
+};
+
+export type GamificationRealtimeOptions = {
+  /** Called for events belonging to the current user, before the fallback
+   * toast. Return true when the event was surfaced (e.g. as a celebration)
+   * so the duplicate fallback toast is skipped. */
+  onEvent?: (event: GamificationRealtimeEvent, data: GamificationRealtimePayload) => boolean | void;
 };
 
 const GAMIFICATION_EVENTS: GamificationRealtimeEvent[] = [
@@ -57,11 +71,18 @@ export const normalizeRealtimeXp = (value: unknown): number => {
   return Number.isSafeInteger(rounded) ? rounded : 0;
 };
 
-export const useGamificationRealtime = () => {
+export const useGamificationRealtime = (options?: GamificationRealtimeOptions) => {
   const { token: authToken, user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isConnected, setIsConnected] = useState(false);
+
+  // Keep the latest callback in a ref so providing an inline handler never
+  // tears down and re-opens the socket connection.
+  const onEventRef = useRef(options?.onEvent);
+  useEffect(() => {
+    onEventRef.current = options?.onEvent;
+  }, [options?.onEvent]);
 
   const handleGamificationEvent = useCallback((
     event: GamificationRealtimeEvent,
@@ -70,15 +91,18 @@ export const useGamificationRealtime = () => {
     if (!user?.id || String(data?.userId ?? '') !== String(user.id)) return;
 
     void queryClient.invalidateQueries({ queryKey: ['gamification'] });
+    const handled = onEventRef.current?.(event, data) === true;
 
     const points = normalizeRealtimeXp(data.points ?? data.xpEarned);
-    toast({
-      title: eventTitle(event),
-      description: points > 0
-        ? `Your rewards profile refreshed with ${points} XP.`
-        : 'Your rewards profile has fresh progress.',
-      variant: 'default',
-    });
+    if (!handled) {
+      toast({
+        title: eventTitle(event),
+        description: points > 0
+          ? `Your rewards profile refreshed with ${points} XP.`
+          : 'Your rewards profile has fresh progress.',
+        variant: 'default',
+      });
+    }
   }, [queryClient, toast, user?.id]);
 
   useEffect(() => {

@@ -23,6 +23,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
+  // ClientMyWorkoutsPage reads location.state for the post-save challenge
+  // receipt; tests exercise the plain-navigation shape.
+  useLocation: () => ({ pathname: '/dashboard/client/workouts', search: '', hash: '', state: null, key: 'test' }),
 }));
 
 // ── Mock useWorkoutSessions so we can drive page=1 vs page=2 payloads ────

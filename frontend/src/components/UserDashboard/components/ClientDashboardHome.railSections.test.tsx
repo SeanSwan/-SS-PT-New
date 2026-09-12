@@ -19,6 +19,46 @@ const activeChallenge: HomeChallengeSummary = {
   impactLabel: 'Last workout added 45 minutes | 45 active min | 6 exercises | 2 PRs | assigned session',
 };
 
+describe('ClientRightRail progressive disclosure (audit 2026-09-12 A-2/D6)', () => {
+  it('keeps unlock and leaderboard panels off the rail while they have no real data', () => {
+    render(
+      <ClientRightRail
+        activeChallenge={null}
+        challengeLoading={false}
+        badges={[]}
+        leaderboardRows={[]}
+        trendingTags={[]}
+        trendingLoading={false}
+        onTarget={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Recent unlocks')).toBeNull();
+    expect(screen.queryByText('Community rank')).toBeNull();
+    expect(screen.queryByText(/no recent unlocks yet/i)).toBeNull();
+    expect(screen.getByText('Trending tags')).toBeInTheDocument();
+  });
+
+  it('shows unlock and rank panels once real data exists', () => {
+    render(
+      <ClientRightRail
+        activeChallenge={null}
+        challengeLoading={false}
+        badges={[{ name: 'First Workout', icon: '🏅' }]}
+        leaderboardRows={[{ name: 'Ana', points: 120 }]}
+        trendingTags={[]}
+        trendingLoading={false}
+        onTarget={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Recent unlocks')).toBeInTheDocument();
+    expect(screen.getByText('First Workout')).toBeInTheDocument();
+    expect(screen.getByText('Community rank')).toBeInTheDocument();
+    expect(screen.getByText('1. Ana')).toBeInTheDocument();
+  });
+});
+
 describe('ClientRightRail active challenge context', () => {
   it('renders workout impact, progress, participation, countdown, and reward in the rail card', () => {
     render(

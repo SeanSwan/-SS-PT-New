@@ -30,6 +30,7 @@ import {
   WeeklyInsightsCard,
 } from './ClientDashboardHome.feedSections';
 import { ThreeColumnGrid, TwoColumnGrid } from './ClientDashboardHome.cardStyles';
+import HomeTabNextBestAction from './HomeTabNextBestAction';
 import type { ClientDashboardHomeProps } from './ClientDashboardHome.types';
 import SocialProgressAnalyticsPreview from './SocialProgressAnalyticsPreview';
 
@@ -46,6 +47,13 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
           <ContentGrid>
             <PrimaryStack>
               <ClientProfileHero {...props} />
+              {props.nextBestAction && (
+                <HomeTabNextBestAction
+                  streakAtRisk={props.nextBestAction.streakAtRisk}
+                  streakDays={props.nextBestAction.streakDays}
+                  onLogWorkout={props.nextBestAction.onLogWorkout}
+                />
+              )}
               {props.communicationInbox}
               <ClientQuickActions actions={props.quickActions} onNavigate={props.onNavigate} onTarget={props.onTarget} />
               <SocialProgressAnalyticsPreview onNavigate={props.onNavigate} onTarget={props.onTarget} />

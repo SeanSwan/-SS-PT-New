@@ -175,16 +175,20 @@ export function WeeklyInsightsCard({ insights }: Pick<ClientDashboardHomeProps, 
     <PanelCard>
       <PanelHeader><Kicker><BarChart3 size={13} /> Weekly insights</Kicker></PanelHeader>
       <CardBody>
-        <InsightGrid>
-          {insights.map((insight) => (
-            <InsightTile key={insight.label}>
-              <TinyText>{insight.label}</TinyText>
-              <CardTitle>{insight.value}</CardTitle>
-              <MutedText>{insight.status}</MutedText>
-              <Sparkline>{insight.points.map((point, index) => <SparkBar key={`${insight.label}-${index}`} $height={point * 7 + 5} />)}</Sparkline>
-            </InsightTile>
-          ))}
-        </InsightGrid>
+        {insights.length ? (
+          <InsightGrid>
+            {insights.map((insight) => (
+              <InsightTile key={insight.label}>
+                <TinyText>{insight.label}</TinyText>
+                <CardTitle>{insight.value}</CardTitle>
+                <MutedText>{insight.status}</MutedText>
+                <Sparkline>{insight.points.map((point, index) => <SparkBar key={`${insight.label}-${index}`} $height={point * 7 + 5} />)}</Sparkline>
+              </InsightTile>
+            ))}
+          </InsightGrid>
+        ) : (
+          <MutedText>Log a few workouts to unlock strength, volume, and recovery insights.</MutedText>
+        )}
       </CardBody>
     </PanelCard>
   );

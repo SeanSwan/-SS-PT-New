@@ -35,6 +35,7 @@ import { initPerformanceMonitoring } from './core/perf/performanceMonitor';
 
 // Gamification Celebrations
 import { CelebrationProvider } from './context/CelebrationContext';
+import GamificationCelebrationBridge from './components/Celebrations/GamificationCelebrationBridge';
 
 // Development Tools
 import { DevToolsProvider } from './components/DevTools';
@@ -253,6 +254,8 @@ const App = () => {
                           <SessionProvider>
                             <TouchGestureProvider>
                               <CelebrationProvider>
+                                {/* Server gamification events → CelebrationPortal (audit 2026-09-12 P0-1) */}
+                                <GamificationCelebrationBridge />
                                 <DevToolsProvider>
                                   <SocketProvider>
                                     <AppContent />

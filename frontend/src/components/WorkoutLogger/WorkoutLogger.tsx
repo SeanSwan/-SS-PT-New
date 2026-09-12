@@ -536,12 +536,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       }
     } catch (error: unknown) {
       console.error('Failed to load client data:', error);
+      // Session-credit truth (audit 2026-09-12 P0-2): an unknown balance stays
+      // null — fabricating 0 here used to block saves with a false
+      // "no sessions remaining" billing error on transient fetch failures.
       setClient({
         id: effectiveClientId ?? 0,
         firstName: 'Client',
         lastName: typeof effectiveClientId === 'number' ? `#${effectiveClientId}` : '',
         email: '',
-        availableSessions: 0,
+        availableSessions: null,
         clientSource: null,
         phone: ''
       });
@@ -744,7 +747,11 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
 
     if (exercises.length === 0) { toast.error('Please add at least one exercise'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
     if (!client) { toast.error('Client information not loaded'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
-    if (
+    if (client.availableSessions === null && user?.role !== 'admin' && !isNonDeductingClientSource(client.clientSource)) {
+      // Unknown balance is not a zero balance: stay server-authoritative
+      // instead of repeating the billing error from a fetch failure.
+      toast.warning("Session balance couldn't be verified — the server will confirm it when you save.");
+    } else if (
       client.availableSessions === 0 &&
       user?.role !== 'admin' &&
       !isNonDeductingClientSource(client.clientSource)
@@ -966,7 +973,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         <WorkoutLoggerHeader
           clientFirstName={client.firstName}
           clientLastName={client.lastName}
-          availableSessions={client.availableSessions ?? 0}
+          availableSessions={client.availableSessions}
           clientSource={client.clientSource}
           totalSets={totalSets}
           estimatedDuration={estimatedDuration}

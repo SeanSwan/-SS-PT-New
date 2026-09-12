@@ -8,7 +8,7 @@ export const PanelCard = styled.section`
   position: relative;
   min-width: 0;
   border: 1px solid var(--client-line);
-  border-radius: 8px;
+  border-radius: 20px;
   background:
     linear-gradient(145deg, color-mix(in srgb, var(--client-panel-strong) 72%, transparent), transparent),
     color-mix(in srgb, var(--client-panel) 92%, var(--client-black));
@@ -99,7 +99,7 @@ export const ActionButton = styled.button<{ $primary?: boolean }>`
   width: 100%;
   padding: 0 14px;
   border: 1px solid ${({ $primary }) => ($primary ? 'transparent' : 'var(--client-line)')};
-  border-radius: 8px;
+  border-radius: 12px;
   background: ${({ $primary }) => (
     $primary ? 'linear-gradient(135deg, var(--client-mint), var(--client-blue))' : 'color-mix(in srgb, var(--client-panel-soft) 72%, transparent)'
   )};
@@ -114,6 +114,10 @@ export const ActionButton = styled.button<{ $primary?: boolean }>`
     transform: translateY(-1px);
     border-color: var(--client-line-strong);
     outline: none;
+  }
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--client-mint) 65%, transparent);
   }
 
   &:disabled {
@@ -158,7 +162,7 @@ export const MetricTile = styled.div`
   min-height: 74px;
   padding: 11px;
   border: 1px solid var(--client-line);
-  border-radius: 8px;
+  border-radius: 12px;
   background: color-mix(in srgb, var(--client-panel-soft) 72%, transparent);
 `;
 

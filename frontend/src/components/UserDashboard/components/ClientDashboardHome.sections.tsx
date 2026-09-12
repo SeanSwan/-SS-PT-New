@@ -10,11 +10,9 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
-  CreditCard,
   Dumbbell,
   Flame,
   Grid2X2,
-  HelpCircle,
   LineChart,
   LogOut,
   MessageSquare,
@@ -74,7 +72,7 @@ type PickProps = Pick<ClientDashboardHomeProps, 'onNavigate' | 'onTarget'>;
 type RailItem = [string, ClientDashboardTarget | undefined, LucideIcon];
 type RailGroup = { label: string; items: RailItem[] };
 
-const topLinks = [['Home', '/'], ['Programs', '/dashboard/client/workouts'], ['Store', '/store'], ['Video Library', '/video-library'], ['Waiver', '/waiver'], ['Photography', '/gallery'], ['Community', '/user-dashboard'], ['About', '/about']] as const;
+const topLinks = [['Home', '/'], ['Programs', '/dashboard/client/workouts'], ['Store', '/store'], ['Video Library', '/video-library'], ['Waiver', '/waiver'], ['Photography', '/gallery'], ['Community', '/dashboard/client/community'], ['About', '/about']] as const;
 const railGroups: RailGroup[] = [
   { label: 'Client',
     items: [
@@ -96,9 +94,7 @@ const railGroups: RailGroup[] = [
   { label: 'Account',
     items: [
       ['Profile & Settings', 'profile', UserRound],
-      ['Billing & Plans', undefined, CreditCard],
-      ['Help Center', undefined, HelpCircle],
-      ['Sign Out', undefined, LogOut],
+      ['Sign Out', 'signout', LogOut],
     ],
   },
 ] as const;
