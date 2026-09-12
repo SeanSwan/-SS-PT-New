@@ -15,7 +15,7 @@
  *   → useGeminiTranscription → POST /api/ai-chat/transcribe → text result
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { safeMicrophoneFailure } from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
@@ -30,6 +30,10 @@ export interface UseVoiceRecorderReturn {
   error: string | null;
   start: () => Promise<void>;
   stop: () => void;
+  /** G06/T31 hard teardown: stop tracks and reset WITHOUT publishing a blob
+   * (so no transcription can fire). Used when the surface loses the
+   * foreground (background/logout/switch). */
+  abort: () => void;
   reset: () => void;
   /** Live mic RMS 0..1 for level-reactive UI; 0 when unavailable. */
   getAudioLevel: () => number;
@@ -74,8 +78,16 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const levelBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
+  // G06/T31 — set by abort() so a resolve() racing an abort cannot start an
+  // invisible recording with no UI attached.
+  const generationRef = useRef(0);
 
   const cleanup = useCallback(() => {
+    const recorder = recorderRef.current;
+    if (recorder) {
+      recorder.onstop = null; recorder.ondataavailable = null; recorder.onerror = null;
+      if (recorder.state === 'recording') recorder.stop();
+    }
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -95,6 +107,8 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   }, []);
 
   const start = useCallback(async () => {
+    const generation = ++generationRef.current;
+    cleanup();
     try {
       setError(null);
       setAudioBlob(null);
@@ -102,6 +116,12 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       setState('requesting');
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Abort raced the permission prompt: release the mic immediately and
+      // stay idle — no recorder, no UI, no orphan track.
+      if (generation !== generationRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
       streamRef.current = stream;
 
       // Optional level meter — recording works fine without it.
@@ -127,10 +147,11 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       chunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
+        if (generation === generationRef.current && e.data.size > 0) chunksRef.current.push(e.data);
       };
 
       recorder.onstop = () => {
+        if (generation !== generationRef.current) return;
         const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' });
         setAudioBlob(blob);
         setState('stopped');
@@ -138,6 +159,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       };
 
       recorder.onerror = () => {
+        if (generation !== generationRef.current) return;
         setError('Recording failed');
         setState('error');
         cleanup();
@@ -152,6 +174,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
       }, 500);
     } catch {
+      if (generation !== generationRef.current) return;
       setError(safeMicrophoneFailure());
       setState('error');
       cleanup();
@@ -163,6 +186,22 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       recorderRef.current.stop();
     }
   }, []);
+
+  const abort = useCallback(() => {
+    // Detach the async handlers first: a plain stop() would publish an empty
+    // blob into the transcription lane when onstop fires after cleanup.
+    generationRef.current += 1;
+    if (recorderRef.current && recorderRef.current.state === 'recording') {
+      recorderRef.current.onstop = null;
+      recorderRef.current.ondataavailable = null;
+      recorderRef.current.stop();
+    }
+    cleanup();
+    setState('idle');
+    setAudioBlob(null);
+    setDuration(0);
+    setError(null);
+  }, [cleanup]);
 
   const getAudioLevel = useCallback((): number => {
     const analyser = analyserRef.current;
@@ -179,6 +218,9 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   }, []);
 
   const reset = useCallback(() => {
+    // Same race guard as abort(): a pending getUserMedia must not attach a
+    // stream after the surface threw the capture away.
+    generationRef.current += 1;
     cleanup();
     setState('idle');
     setAudioBlob(null);
@@ -186,5 +228,13 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     setError(null);
   }, [cleanup]);
 
-  return { state, audioBlob, duration, error, start, stop, reset, getAudioLevel };
+  // G06/T31 — surface teardown must release the mic even when no stop()/abort()
+  // ran: cleanup previously only fired from onstop/reset, so unmounting
+  // mid-recording (route switch, parent teardown) leaked the live track.
+  useEffect(() => () => {
+    generationRef.current += 1;
+    cleanup();
+  }, [cleanup]);
+
+  return { state, audioBlob, duration, error, start, stop, abort, reset, getAudioLevel };
 }

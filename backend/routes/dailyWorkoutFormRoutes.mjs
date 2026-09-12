@@ -545,15 +545,11 @@ const checkTrainerPermission = async (trainerId, permissionType) => {
 
     return false;
   } catch (error) {
-    // Schema drift / DB error: log + permissive default. Better to
-    // allow a legitimate trainer than to lock out the whole platform
-    // due to a model file mismatch.
-    logger.warn('Trainer permission check errored — falling back to permissive default', {
-      trainerId,
-      permissionType,
-      ...toWorkoutFormErrorMetadata(error, 'trainer_permission_check_failed'),
+    // A failed verification is not a successful zero-row default-policy lookup.
+    logger.warn('Trainer permission verification failed; access denied', {
+      code: 'trainer_permission_check_failed',
     });
-    return true;
+    return false;
   }
 };
 
