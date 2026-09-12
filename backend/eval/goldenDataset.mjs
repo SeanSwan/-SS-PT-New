@@ -501,7 +501,12 @@ export const GOLDEN_SCENARIOS = [
     input: validWorkout({
       days: [{
         dayNumber: 1, name: 'Day 1', exercises: [
-          { name: 'Squat', restPeriod: 600 },
+          // tempo/setScheme/repGoal supplied: the pipeline reports self-heal
+          // corrections AS warnings (outputValidator merges corrections into
+          // warnings), so a tempo-less exercise can never satisfy warningCount 0 —
+          // the missing-tempo correction was masking this scenario's actual
+          // assertion, that a 600s rest is the inclusive boundary and warning-free.
+          { name: 'Squat', setScheme: '3x10', repGoal: '10', tempo: '2/0/2', restPeriod: 600 },
         ],
       }],
     }),
