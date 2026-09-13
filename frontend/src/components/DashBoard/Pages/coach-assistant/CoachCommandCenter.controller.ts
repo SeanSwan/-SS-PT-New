@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
 import { useCoachIntakeQueue } from '../../../../hooks/useCoachIntakeQueue';
@@ -7,7 +7,8 @@ import { useCoachCommand } from '../../../../hooks/useCoachCommand';
 import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import { parsePlaudMergeRequestId } from '../../../../utils/plaudRouteGuards';
 import { createCoachCommandCenterActions } from './CoachCommandCenter.actions';
-import { useApplyRouteContextPrompt, useAutoSelectCoachThread, useLoadCoachConversations, useLoadRoutedCoachThread, usePlaudReviewScroll } from './CoachCommandCenter.controllerEffects';
+import { useApplyRouteContextPrompt, useAutoSelectCoachThread, useCoachGuidePrompt, useCoachWorkoutPlannerRoute, useLoadCoachConversations, useLoadRoutedCoachThread, usePlaudReviewScroll } from './CoachCommandCenter.controllerEffects';
+import { useCoachCommandCenterSelection } from './hooks/useCoachCommandCenterSelection';
 import { INITIAL_COMMAND_LOGS, type CommandLogEntry } from './CoachCommandCenter.data';
 import { buildConversationLogs, mergeTranscriptLogs } from './CoachCommandCenter.chatLogs';
 import {
@@ -37,17 +38,23 @@ import { useCoachPinnedClient } from './hooks/useCoachPinnedClient';
 import type { DrawerSide } from './CoachCommandCenter.types';
 import { useCoachCommandVoiceCapture } from './CoachCommandCenter.voiceCapture';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
-import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
 import { commandInputMode, useCoachInputOrigin } from '../../../../hooks/useCoachInputOrigin';
-export function useCoachCommandCenterController({ actorId, userRole = 'admin' }: { actorId?: string | number | null; userRole?: CoachCommandRole } = {}) {
+export function useCoachCommandCenterController({
+  actorId, userRole = 'admin', rawRole,
+}: { actorId?: string | number | null; userRole?: CoachCommandRole; rawRole?: string | null } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const chat = useAIChat(userRole);
-  const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand();
-  const tts = usePremiumTTS();
-  const operatorEnabled = userRole !== 'client';
-  const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
   const initialRouteThreadId = parseRouteThreadId(searchParams.get('threadId'));
   const [activeThreadId, setActiveThreadId] = useState<number | null>(initialRouteThreadId);
+  // Plan 55 §3 C3 — the metadata-only selection adapter is mounted BEFORE the
+  // transports, so every one of them is constructed with the SAME live
+  // publication binding. `rawRole` is the ACTUAL authenticated role, passed
+  // separately from the `userRole` presentation/audience role.
+  const { selection, binding } = useCoachCommandCenterSelection({ actorId, rawRole, audienceRole: userRole, setActiveThreadId });
+  const chat = useAIChat(userRole, binding);
+  const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand(binding);
+  const tts = usePremiumTTS(binding);
+  const operatorEnabled = userRole !== 'client';
+  const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
   const [autoSelectSuppressed, setAutoSelectSuppressed] = useState(false);
   const [commandText, setCommandText] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('No coach thread selected');
@@ -106,17 +113,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   const workflowReturnSource = routeSource
     || (workflowReturnTo?.startsWith('/dashboard/client/') ? 'client-dashboard' : null);
   const workflowReturnLabel = buildWorkflowReturnLabel(workflowReturnTo, workflowReturnSource);
-  const workoutPlannerRoute = useMemo(
-    () => userRole === 'client'
-      ? null
-      : buildSwanCoachWorkoutPlannerRoute({
-        userRole,
-        selectedClientId: effectiveClientId,
-        workflowReturnTo,
-        searchParams,
-      }),
-    [effectiveClientId, searchKey, userRole, workflowReturnTo],
-  );
+  const workoutPlannerRoute = useCoachWorkoutPlannerRoute({ userRole, selectedClientId: effectiveClientId, workflowReturnTo, searchParams });
   const routeClientLabel = buildRouteClientLabel(routeClientId);
   const effectiveClientLabel = clientPin.selectedClientName || routeClientLabel || buildRouteClientLabel(activeThreadClientId);
   const routeTeachPrompt = searchParams.get('teachPrompt')?.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS) || null;
@@ -163,18 +160,12 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   const dossierTiles = useMemo(() => buildDossierTiles(initialReviewMergeRequestId, selectedClientLabel, summary), [initialReviewMergeRequestId, selectedClientLabel, summary]);
   const queueHealthRows = useMemo(() => buildQueueHealthRows(summary), [summary]);
   const rightRailItems = useMemo(() => buildRightRailItems(coachQueue.items), [coachQueue.items]);
-  const handleGuidePrompt = useCallback((prompt: string) => {
-    const trimmed = prompt.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS);
-    if (!trimmed) return;
-    setCommandText((current) => current.trim() ? current : trimmed);
-    setSelectedStatus('Guide prompt staged for review');
-    window.setTimeout(() => commandTextRef.current?.focus(), 0);
-  }, []);
-  const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setInputOrigin, setSelectedStatus, speechOutputStop: tts.stop });
+  const handleGuidePrompt = useCoachGuidePrompt(setCommandText, setSelectedStatus, commandTextRef);
+  const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setInputOrigin, setSelectedStatus, speechOutputStop: tts.stop, binding });
   const notebook = useCoachClientNotebook({ actorId, clientId: effectiveClientId, clientLabel: selectedClientLabel,
-    commandText, commandTextRef, setCommandText, setSelectedStatus });
-  const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });
-  useCoachComposerDraft(activeThreadId, commandText, setCommandText, { actorId, clientId: effectiveClientId },
+    commandText, commandTextRef, setCommandText, setSelectedStatus, binding });
+  const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId, binding });
+  useCoachComposerDraft(activeThreadId, commandText, setCommandText, { actorId, clientId: effectiveClientId, binding },
     !notebook.dockControls.active);
   const actions = createCoachCommandCenterActions({
     activeThread,
@@ -216,7 +207,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     setSelectedStatus,
   });
   useLoadCoachConversations(chat);
-  useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus);
+  useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus, selection, selection.accepted?.threadId ?? null);
   useAutoSelectCoachThread(autoSelectedThread, chat, setActiveThreadId, setSelectedStatus);
   useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setTrackedCommandText);
   usePlaudReviewScroll(
@@ -241,6 +232,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     closeDrawer: actions.closeDrawer,
     dossierTiles,
     drawer,
+    publicationBinding: binding,
     handleReviewIntake: actions.handleReviewIntake,
     handleIntentSubmit: actions.handleIntentSubmit,
     handleCancelCommand: actions.handleCancelCommand,
@@ -272,6 +264,8 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     rightRailItems,
     rightRailRef,
     selectedClientLabel,
+    selection,
+    selectionPhase: selection.phase,
     selectedStatus: displaySelectedStatus(voiceCapture.voiceStatus, selectedStatus),
     sendMessageWithFood,
     inputMode: commandInputMode(inputOrigin), setCommandText: setTrackedCommandText,

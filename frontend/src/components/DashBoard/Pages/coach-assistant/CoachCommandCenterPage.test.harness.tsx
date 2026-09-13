@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import CoachCommandCenterPage from './CoachCommandCenterPage';
@@ -25,6 +25,8 @@ const coachCommandCenterMocks = vi.hoisted(() => ({
   clearActiveClientMock: vi.fn(),
   apiGetMock: vi.fn(),
   apiPostMock: vi.fn(),
+  committedReference: null as number | null,
+  committedReferenceCount: 0,
 }));
 
 export const {
@@ -166,6 +168,25 @@ export function renderPage(route = '/dashboard/admin/coach-assistant', role: Coa
   );
 }
 
+/**
+ * Plan 55 C3 — the mounted Coach surface ADMITS its selection through one plan 52
+ * read before private content, sends, voice, notebook or prefill are enabled.
+ * Suites that exercise the ADMITTED surface await this instead of racing it.
+ * `min` waits for a specific commit ordinal, which is what a client switch needs.
+ */
+export async function waitForCoachSelectionAdmission(min = 1) {
+  await waitFor(() => {
+    expect(coachCommandCenterMocks.committedReferenceCount).toBeGreaterThanOrEqual(min);
+  });
+}
+
+/** `renderPage` + wait until the first admitted commit has been applied. */
+export async function renderAdmittedPage(route = '/dashboard/admin/coach-assistant', role: CoachCommandTestRole = 'admin') {
+  const result = renderPage(route, role);
+  await waitForCoachSelectionAdmission();
+  return result;
+}
+
 const defaultCoachConversations = [
   {
     id: 101,
@@ -242,6 +263,8 @@ export function resetCoachCommandCenterMocks() {
   clearActiveClientMock.mockReset();
   apiGetMock.mockReset();
   apiPostMock.mockReset();
+  coachCommandCenterMocks.committedReference = null;
+  coachCommandCenterMocks.committedReferenceCount = 0;
 
   listConversationsMock.mockResolvedValue([]);
   loadConversationMock.mockResolvedValue(null);
@@ -255,8 +278,26 @@ export function resetCoachCommandCenterMocks() {
   executeCommandMock.mockResolvedValue({ type: 'fallback_to_chat' });
   confirmCommandMock.mockResolvedValue({ success: true, type: 'executed', message: '', result: null });
   cancelCommandMock.mockResolvedValue(undefined);
-  apiGetMock.mockImplementation(async (url: string) => {
+  apiGetMock.mockImplementation(async (url: string, config?: { params?: Record<string, string> }) => {
     if (url === '/api/ai-command/commands') return { data: { commands: [] } };
+    // Plan 52 read receipt. It echoes the requested ids, exactly as the real
+    // endpoint does for an authorised read, so the C2 adapter can admit them.
+    if (url === '/api/ai-chat/target-access') {
+      const requestedTarget = config?.params?.targetUserId;
+      const requestedThread = config?.params?.conversationId;
+      return {
+        data: {
+          success: true,
+          access: {
+            scope: 'coach_target_read',
+            actorUserId: useAuthMock.getMockImplementation()?.()?.user?.id ?? 1,
+            actorRole: useAuthMock.getMockImplementation()?.()?.user?.role ?? 'admin',
+            targetUserId: requestedTarget === undefined ? null : Number(requestedTarget),
+            conversationId: requestedThread === undefined ? null : Number(requestedThread),
+          },
+        },
+      };
+    }
     if (url.startsWith('/api/ai-command/pending/')) {
       const operationId = url.split('/').pop() || 'unknown';
       const match = operationId.match(/(\d+)$/);
@@ -332,6 +373,18 @@ export function resetCoachCommandCenterMocks() {
     ],
     loadingClients: false,
     refreshClients: vi.fn(),
+    // Plan 55 C1 reference API. The controller mounts the C2 selection adapter,
+    // which needs the REAL provider surface; the harness models it faithfully
+    // (the commit port is stateful so an acknowledged admission is observable).
+    pinnedClientId: null,
+    referenceOrigin: null,
+    actorGeneration: 1,
+    commitClientReference: (commit: { targetUserId: number | null }) => {
+      coachCommandCenterMocks.committedReference = commit.targetUserId;
+      coachCommandCenterMocks.committedReferenceCount += 1;
+      return true;
+    },
+    registerSelectionInterceptor: () => () => {},
   });
   setCoachCommandCenterRole('admin');
   useCoachIntakeQueueMock.mockReturnValue({

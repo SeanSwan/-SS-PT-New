@@ -9,6 +9,7 @@ import CoachClientBar from './CoachClientBar';
 import CoachCommandLeftRail from './CoachCommandLeftRail';
 import CoachCommandOpsSurface from './CoachCommandOpsSurface';
 import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
+import CoachSelectionDecisionGate from './CoachSelectionDecision';
 import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanelLazy';
 import CoachConsoleDock from './CoachConsoleDock';
 import CoachIntentBar from '../../../CoachIntentBar/CoachIntentBar';
@@ -40,9 +41,12 @@ const CoachCommandCenterPage: React.FC = () => {
   const { user: authUser } = useAuth();
   const authenticatedRole = normalizeCoachCommandRole(authUser?.role);
   const userRole = resolveCoachCommandDashboardRole(useLocation().pathname, authenticatedRole);
-  const commandCenter = useCoachCommandCenterController({ actorId: authUser?.id, userRole });
+  // Plan 55 §3 C3 — the page passes the ACTUAL raw role SEPARATELY from the
+  // dashboard presentation role. `resolveCoachCommandDashboardRole` can map a raw
+  // 'user' onto the client presentation; that must never become staff authority.
+  const commandCenter = useCoachCommandCenterController({ actorId: authUser?.id, userRole, rawRole: authUser?.role });
   const commandCatalog = useCoachCommandCatalog(true);
-  useSwanCoachPendingFoodQuery(commandCenter.sendMessageWithFood);
+  useSwanCoachPendingFoodQuery(commandCenter.sendMessageWithFood, { binding: commandCenter.publicationBinding });
   const [searchParams, setSearchParams] = useSearchParams();
   const isClientMode = isClientCoachRole(userRole);
   const routeForcedTab = routeForcedTabForRole(searchParams, userRole);
@@ -284,6 +288,9 @@ const CoachCommandCenterPage: React.FC = () => {
           />
         ) : null}
       </div>
+      {/* Plan 55 §3 C3 — the dirty cross-target decision. The private surface
+          behind it stays masked until the admitted commit is acknowledged. */}
+      <CoachSelectionDecisionGate selection={commandCenter.selection} currentLabel={commandCenter.selectedClientLabel} />
     </CommandBridgeShell>
   );
 };

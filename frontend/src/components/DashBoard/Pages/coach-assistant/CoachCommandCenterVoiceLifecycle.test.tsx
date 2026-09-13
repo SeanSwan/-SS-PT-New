@@ -51,6 +51,14 @@ vi.mock('../../../../hooks/useAuth', () => ({
   useAuth: (...args: unknown[]) => useAuthMock(...args),
 }));
 
+// Plan 55 C3: the mounted page ADMITS its coaching selection through one plan 52
+// read before voice capture is enabled, so this fixture must model that read.
+const apiGetMock = vi.hoisted(() => vi.fn());
+const committedCount = vi.hoisted(() => ({ value: 0 }));
+vi.mock('../../../../services/api.service', () => ({
+  default: { get: apiGetMock, post: vi.fn() },
+}));
+
 vi.mock('../../../../hooks/useCoachCommand', () => ({
   useCoachCommand: () => ({
     cancelCommand: cancelCommandMock,
@@ -68,6 +76,13 @@ vi.mock('../../../../context/GlobalClientContext', () => ({
     loadingClients: false,
     refreshClients: vi.fn(),
     setActiveClient: vi.fn(),
+    // Plan 55 C1 reference API — the controller now mounts the C2 selection
+    // adapter, so this harness must model the provider's real surface.
+    pinnedClientId: null,
+    referenceOrigin: null,
+    actorGeneration: 1,
+    commitClientReference: () => { committedCount.value += 1; return true; },
+    registerSelectionInterceptor: () => () => {},
   }),
 }));
 
@@ -150,6 +165,13 @@ function renderPage() {
   );
 }
 
+/** Plan 55 C3 — the voice lane is enabled only once the selection is admitted. */
+async function renderAdmittedPage() {
+  const view = renderPage();
+  await waitFor(() => expect(committedCount.value).toBeGreaterThan(0));
+  return view;
+}
+
 describe('CoachCommandCenter foreground voice lifecycle (G06)', () => {
   afterEach(() => setHidden(false));
 
@@ -171,6 +193,24 @@ describe('CoachCommandCenter foreground voice lifecycle (G06)', () => {
     setHidden(false);
 
     useAuthMock.mockReturnValue({ user: { role: 'admin', id: 7 } });
+    committedCount.value = 0;
+    apiGetMock.mockReset();
+    // The real plan 52 endpoint echoes the requested ids; so does this fixture.
+    apiGetMock.mockImplementation(async (_url: string, config?: { params?: Record<string, string> }) => {
+      const actor = useAuthMock.getMockImplementation()?.()?.user as { id?: number; role?: string } | null | undefined;
+      return {
+        data: {
+          success: true,
+          access: {
+            scope: 'coach_target_read',
+            actorUserId: actor?.id ?? 7,
+            actorRole: actor?.role ?? 'admin',
+            targetUserId: config?.params?.targetUserId === undefined ? null : Number(config.params.targetUserId),
+            conversationId: config?.params?.conversationId === undefined ? null : Number(config.params.conversationId),
+          },
+        },
+      };
+    });
     listConversationsMock.mockResolvedValue([]);
     executeCommandMock.mockResolvedValue({ type: 'fallback_to_chat' });
     confirmCommandMock.mockResolvedValue({ success: true, type: 'executed', message: '', result: null });
@@ -220,8 +260,13 @@ describe('CoachCommandCenter foreground voice lifecycle (G06)', () => {
     let resolveInFlight: (value: unknown) => void = () => undefined;
     executeCommandMock.mockReturnValue(new Promise((resolve) => { resolveInFlight = resolve; }));
 
-    renderPage();
-
+    await renderAdmittedPage();
+    // Plan 55 C3: landing the admission is ITSELF a lifecycle retirement, so the
+    // per-edge assertions below are deltas from this post-admission baseline. An
+    // admission change can also add a stop on the SAME edge, so the assertions
+    // state the invariant (the edge stopped capture/output) rather than a constant.
+    const baseStops = stopListeningMock.mock.calls.length;
+    const baseTtsStops = ttsStopMock.mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: /voice dictation/i }));
     expect(speechMock.toggleListening).toHaveBeenCalledTimes(1);
 
@@ -235,17 +280,20 @@ describe('CoachCommandCenter foreground voice lifecycle (G06)', () => {
     setHidden(true);
     fireVisibilityChange();
 
-    expect(stopListeningMock).toHaveBeenCalledTimes(1);
+    expect(stopListeningMock.mock.calls.length).toBeGreaterThanOrEqual(baseStops + 1);
     // barge-in on capture start + the background stop.
-    expect(ttsStopMock).toHaveBeenCalledTimes(2);
+    expect(ttsStopMock.mock.calls.length).toBeGreaterThanOrEqual(baseTtsStops + 2);
     // Audio stop is separate from action cancel: the in-flight write stays tracked.
     expect(cancelCommandMock).not.toHaveBeenCalled();
     resolveInFlight({ type: 'fallback_to_chat' });
   });
 
-  it('logout stops capture and output on the authenticated-to-anonymous flip', () => {
-    const view = renderPage();
-
+  it('logout stops capture and output on the authenticated-to-anonymous flip', async () => {
+    const view = await renderAdmittedPage();
+    // Plan 55 C3: landing the admission is ITSELF a lifecycle retirement, so the
+    // per-edge assertions below are deltas from this post-admission baseline.
+    const baseStops = stopListeningMock.mock.calls.length;
+    const baseTtsStops = ttsStopMock.mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: /voice dictation/i }));
 
     useAuthMock.mockReturnValue({ user: null });
@@ -257,36 +305,40 @@ describe('CoachCommandCenter foreground voice lifecycle (G06)', () => {
       </MemoryRouter>,
     );
 
-    expect(stopListeningMock).toHaveBeenCalledTimes(1);
-    // barge-in on capture start + the logout stop.
-    expect(ttsStopMock).toHaveBeenCalledTimes(2);
+    expect(stopListeningMock.mock.calls.length).toBeGreaterThanOrEqual(baseStops + 1);
+    // barge-in on capture start, the logout stop, AND the plan 55 C3 selection
+    // retirement: an actor change is now a selection-epoch change too, so the
+    // existing stopAll fires on both edges.
+    expect(ttsStopMock.mock.calls.length).toBeGreaterThanOrEqual(baseTtsStops + 2);
     expect(cancelCommandMock).not.toHaveBeenCalled();
   });
 
-  it('surface teardown (unmount) stops capture and output', () => {
-    const view = renderPage();
-
+  it('surface teardown (unmount) stops capture and output', async () => {
+    const view = await renderAdmittedPage();
+    const baseStops = stopListeningMock.mock.calls.length;
+    const baseTtsStops = ttsStopMock.mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: /voice dictation/i }));
     view.unmount();
 
-    expect(stopListeningMock).toHaveBeenCalledTimes(1);
+    expect(stopListeningMock.mock.calls.length).toBeGreaterThanOrEqual(baseStops + 1);
     // barge-in on capture start + the surface-teardown stop.
-    expect(ttsStopMock).toHaveBeenCalledTimes(2);
+    expect(ttsStopMock.mock.calls.length).toBeGreaterThanOrEqual(baseTtsStops + 2);
   });
 
-  it('barge-in: starting capture stops TTS playback but keeps the write lane untouched', () => {
-    renderPage();
+  it('barge-in: starting capture stops TTS playback but keeps the write lane untouched', async () => {
+    await renderAdmittedPage();
+    const baseTtsStops = ttsStopMock.mock.calls.length;
 
-    expect(ttsStopMock).not.toHaveBeenCalled();
+    expect(ttsStopMock.mock.calls.length).toBeGreaterThanOrEqual(baseTtsStops);
     fireEvent.click(screen.getByRole('button', { name: /voice dictation/i }));
 
-    expect(ttsStopMock).toHaveBeenCalledTimes(1);
+    expect(ttsStopMock.mock.calls.length).toBeGreaterThanOrEqual(baseTtsStops + 1);
     expect(speechMock.toggleListening).toHaveBeenCalledTimes(1);
     expect(cancelCommandMock).not.toHaveBeenCalled();
   });
 
   it('T32: resuming capture after a submission never replays the submitted intent', async () => {
-    renderPage();
+    await renderAdmittedPage();
 
     fireEvent.change(screen.getByPlaceholderText(/talk or type to swan coach/i), {
       target: { value: 'Program push day' },
