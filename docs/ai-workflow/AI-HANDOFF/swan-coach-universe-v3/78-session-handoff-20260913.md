@@ -183,9 +183,18 @@ generalised.
    growing the list would hide three failures that are fixable today.
 6. **HR13** — gated: it needs an exclusive `useCoachCommand.ts` window, must land
    after C1-C4, and plan 59 marks it "plan only, no implementation enqueue".
-7. **G07's residual** (mounted substitution/share integration; exercise-matching
-   quality) and **G09's residual** (purge scheduler, T37 conflict writer, memory UI).
-8. **G11's release gates.** Then, and only then, talk about release readiness.
+7. **G07's and G09's residuals — both are now classified as needing a spec or a
+   product decision, not a mechanical repair. Read the register before starting.**
+   G07's exercise-matching gap is pinned to exact code (`name: { [Op.iLike]:
+   '%<whole query>%' }` — the entire sentence matched as one substring against `name`
+   alone), and its mounted-integration half needs a chosen route and UI placement.
+   G09-R1 now has a tested scheduler that is **default-OFF**, so the purge still does
+   not happen until an operator flips it. G09-R2's conflict writer has no defined
+   behaviour to implement — `conflictMetadata` is documented as written "only by an
+   explicit reconcile step" and nothing says what that step should do.
+8. **G11's release gates.** The disposable-Postgres gate is partially executed (7 of
+   10 suites); everything else is NOT RUN. Then, and only then, talk about release
+   readiness.
 
 ## Working rules that earned their place today
 
