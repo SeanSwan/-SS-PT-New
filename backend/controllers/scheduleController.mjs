@@ -124,8 +124,8 @@ export const getScheduleEvents = async (req, res) => {
     const query = `
       SELECT ${selectFields}
       FROM sessions s
-      LEFT JOIN users c ON s."userId" = c.id
-      LEFT JOIN users t ON s."trainerId" = t.id
+      LEFT JOIN "Users" c ON s."userId" = c.id
+      LEFT JOIN "Users" t ON s."trainerId" = t.id
       WHERE ${whereClause}
       ORDER BY s."sessionDate" ASC
     `;

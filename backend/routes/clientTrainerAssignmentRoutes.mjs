@@ -314,6 +314,24 @@ const attachOnboardingReadiness = (assignments, progressMap) => assignments.map(
   };
 });
 
+// Attach the batched roster summary (Slice 1 trainer-truth-feeds 2026-09-12).
+// Additive: consumers that don't know the field are unaffected. A client
+// missing from the map (summary query failed or no sessions) keeps no
+// rosterSummary key so the frontend can fall back instead of fabricating.
+const attachRosterSummary = (assignments, summaryMap) => assignments.map((assignment) => {
+  const clientData = assignment?.client;
+  if (!clientData) return assignment;
+  const summary = summaryMap[Number(clientData.id)];
+  if (!summary) return assignment;
+  return {
+    ...assignment,
+    client: {
+      ...clientData,
+      rosterSummary: summary
+    }
+  };
+});
+
 const getClientOnboardingQuestionnaireModel = () => {
   try {
     return typeof getModel === 'function' ? getModel('ClientOnboardingQuestionnaire') : null;
@@ -616,6 +634,50 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
 
     const enrichedAssignments = attachOnboardingReadiness(assignments, onboardingProgressMap);
 
+    // Batched roster summary (Slice 1 trainer-truth-feeds 2026-09-12):
+    // ONE grouped query over the same Session truth the frontend's old
+    // per-client fan-out sampled (history?limit=5 capped "completed
+    // sessions" at 5 and fired 2 requests per client). Completed count is
+    // all-time; last session mirrors the fan-out's latest-past semantics;
+    // next session mirrors upcoming (future, non-cancelled/blocked).
+    let rosterSummaryMap = {};
+    if (clientIds.length > 0) {
+      try {
+        const Session = getModel('Session');
+        if (Session) {
+          const rosterSummaryRows = await Session.findAll({
+            where: {
+              trainerId: parsedTrainerId,
+              userId: { [Op.in]: clientIds }
+            },
+            attributes: [
+              'userId',
+              [Session.sequelize.fn('COUNT', Session.sequelize.literal("CASE WHEN status = 'completed' THEN 1 END")), 'completedSessions'],
+              [Session.sequelize.fn('MAX', Session.sequelize.col('sessionDate')), 'lastSessionDate'],
+              [Session.sequelize.fn('MIN', Session.sequelize.literal("CASE WHEN \"sessionDate\" > NOW() AND status NOT IN ('cancelled', 'blocked') THEN \"sessionDate\" END")), 'nextSessionDate']
+            ],
+            group: ['userId'],
+            raw: true
+          });
+          rosterSummaryMap = Object.fromEntries(
+            (Array.isArray(rosterSummaryRows) ? rosterSummaryRows : []).map((row) => [
+              Number(row.userId),
+              {
+                totalCompletedSessions: Number(row.completedSessions ?? 0),
+                lastSessionDate: row.lastSessionDate ?? null,
+                nextSessionDate: row.nextSessionDate ?? null
+              }
+            ])
+          );
+        }
+      } catch (summaryError) {
+        logger.warn(`Trainer roster summary unavailable: ${summaryError?.message}`);
+        rosterSummaryMap = {};
+      }
+    }
+
+    const withRosterSummary = attachRosterSummary(enrichedAssignments, rosterSummaryMap);
+
     logger.info(`Trainer ${parsedTrainerId} retrieved ${assignments.length} assigned clients`, {
       requestingUserId,
       trainerId: parsedTrainerId
@@ -623,8 +685,8 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
 
     res.json({
       success: true,
-      assignments: enrichedAssignments,
-      totalClients: enrichedAssignments.length
+      assignments: withRosterSummary,
+      totalClients: withRosterSummary.length
     });
 
   } catch (error) {

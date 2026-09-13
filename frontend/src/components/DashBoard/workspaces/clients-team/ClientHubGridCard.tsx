@@ -90,9 +90,8 @@ const workoutCountFor = (client: ClientOption) => {
   return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
 };
 
-const workoutProofLabelFor = (client: ClientOption) => (
-  workoutCountFor(client) > 0 ? `${workoutCountFor(client)} logged` : 'No logs yet'
-);
+const workoutsKnownFor = (client: ClientOption) => client.workoutCount != null;
+const workoutProofLabelFor = (client: ClientOption) => (!workoutsKnownFor(client) ? 'Logs unavailable' : workoutCountFor(client) > 0 ? `${workoutCountFor(client)} logged` : 'No logs yet');
 
 const lastLoggedLabelFor = (client: ClientOption) => {
   if (!client.lastSessionDate || workoutCountFor(client) <= 0) return null;
@@ -149,7 +148,7 @@ const ClientCardMetrics = ({
   <MetricGrid data-swan-card-section="admin-metrics">
     <Metric>
       <Dumbbell size={14} aria-hidden="true" />
-      {workoutCountFor(client)} workouts
+      {workoutsKnownFor(client) ? `${workoutCountFor(client)} workouts` : 'Logs unavailable'}
     </Metric>
     <Metric $tone={sessionSignal.tone}>
       <Activity size={14} aria-hidden="true" />
@@ -217,7 +216,7 @@ const ClientWorkoutProofPanel = ({ client }: { client: ClientOption }) => (
     </ProofHeader>
     <ProofValue>
       <span>{workoutProofLabelFor(client)}</span>
-      <small>{workoutCountFor(client) > 0 ? 'chart-ready activity' : 'log first session'}</small>
+      <small>{!workoutsKnownFor(client) ? 'log data unavailable' : workoutCountFor(client) > 0 ? 'chart-ready activity' : 'log first session'}</small>
       {lastLoggedLabelFor(client) && <small>{lastLoggedLabelFor(client)}</small>}
     </ProofValue>
   </ProofPanel>

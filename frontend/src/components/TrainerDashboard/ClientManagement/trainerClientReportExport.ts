@@ -11,7 +11,8 @@ export interface TrainerClientReportAssignment {
     membershipLevel?: string;
     clientSource?: 'swanstudios' | 'move_fitness' | 'external';
     availableSessions?: number;
-    totalSessionsCompleted?: number;
+    /** null = stats unknown (fetch failed); the report exports "unknown", never a fabricated zero. */
+    totalSessionsCompleted?: number | null;
     lastSessionDate?: string;
     nextSessionDate?: string;
   };
@@ -51,7 +52,7 @@ export const buildTrainerClientReportCsv = (
       client.membershipLevel,
       sessionSignal.label,
       sessionSignal.note,
-      client.totalSessionsCompleted ?? 0,
+      client.totalSessionsCompleted ?? 'unknown',
       client.lastSessionDate,
       client.nextSessionDate,
       assignedAt,

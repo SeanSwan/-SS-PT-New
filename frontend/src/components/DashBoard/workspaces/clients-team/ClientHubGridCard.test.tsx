@@ -138,6 +138,24 @@ describe('ClientHubGridCard', () => {
     expect(screen.queryByText('-3.8 logged')).not.toBeInTheDocument();
   });
 
+  it('renders Logs unavailable — never a fabricated zero — when workout data is unknown', () => {
+    render(
+      <ClientHubGridCard
+        client={{
+          ...fixtureClient,
+          workoutCount: null,
+          lastSessionDate: null,
+        }}
+        onSelect={vi.fn()}
+      />
+    );
+
+    expect(screen.getAllByText('Logs unavailable')).toHaveLength(2);
+    expect(screen.queryByText('No logs yet')).not.toBeInTheDocument();
+    expect(screen.queryByText('0 workouts')).not.toBeInTheDocument();
+    expect(screen.queryByText('log first session')).not.toBeInTheDocument();
+  });
+
   it('selects the client from the whole card', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
