@@ -53,8 +53,12 @@ export const workoutCountFor = (client: ClientOption) => {
   return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
 };
 
+/** Data truth: `null`/undefined workoutCount means the feed could not say —
+ * distinct from a real zero, which means the client genuinely has no logs. */
+export const workoutsKnownFor = (client: ClientOption) => client.workoutCount != null;
+
 export const workoutProofLabelFor = (client: ClientOption) => (
-  workoutCountFor(client) > 0 ? `${workoutCountFor(client)} logged` : 'No logs yet'
+  !workoutsKnownFor(client) ? 'Logs unavailable' : workoutCountFor(client) > 0 ? `${workoutCountFor(client)} logged` : 'No logs yet'
 );
 
 const formatUtcMonthDay = (timestamp: number) =>

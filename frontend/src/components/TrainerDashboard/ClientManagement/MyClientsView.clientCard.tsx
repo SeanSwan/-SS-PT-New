@@ -67,7 +67,7 @@ const toClientOption = (assignment: ClientAssignment): ClientOption => {
     clientSource: client.clientSource ?? 'swanstudios',
     isActive: assignment.isActive && client.status !== 'inactive',
     availableSessions: numberOrFallback(client.availableSessions),
-    workoutCount: numberOrFallback(client.totalSessionsCompleted),
+    workoutCount: client.totalSessionsCompleted ?? null,
     lastSessionDate: client.lastSessionDate ?? null,
     // Pass through as-is: on the trainer surface an absent value means
     // "unknown here", not "none booked" — the card renders neutral guidance.
