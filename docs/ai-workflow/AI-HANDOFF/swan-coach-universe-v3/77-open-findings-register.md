@@ -251,6 +251,47 @@ The pairing guard added with the third-wave fix asserts `>150 files` and `>0
 pairings` for exactly this reason, and this register treats a silent `catch` in a
 probe as a defect rather than a convenience.
 
+### INF-4. PRODUCTION-SAFETY — the pre-push baseline gate runs the suite with no isolation `[LIKELY risk, mechanism VERIFIED; no incident observed]`
+
+`backend/scripts/test-baseline-gate.mjs` is the repo's own push gate: it runs the
+suite, compares failing test **files** against `known-failing-baseline.json`, exits
+1 on a file that used to pass, and reports baseline entries that now pass as
+"prune them" (`:102-103`, `:108-122`). The design is good and the comment at
+`:108-111` — *"a baseline nobody prunes becomes a place to hide new breakage"* — is
+correct.
+
+**Its isolation is the problem.** At `:43` it spawns `npx vitest run --reporter dot`
+**inheriting the ambient environment**, with no dotenv-disabling preload and no
+network restriction. Three verified facts combine:
+
+1. Two backend modules call `dotenv.config()` at module scope, so importing them
+   loads `.env`: `authController.mjs:249` and `userManagementController.mjs:328`.
+2. `tests/setup.mjs` does **not** load dotenv (it assigns test-only values directly
+   at `:10-16`) — so nothing in the normal test path guards this either way. The
+   exposure comes from the imported application modules, not the setup file.
+3. CLAUDE.md states plainly that local dev uses the **production** database via
+   `DATABASE_URL`.
+
+So a test that imports either controller can acquire the production connection
+string, and nothing in the gate prevents subsequent egress. **Root did not observe
+an incident** — no test was run this way and no production query was made. This is
+recorded as a mechanism-verified hazard, `[LIKELY]` risk rather than a confirmed
+breach, because the missing piece is proof that some test actually reaches a DB
+call on that path.
+
+**Why this session never hit it.** Every backend run here used the isolated runner
+(`tmp/coach-astra-hostile-20260912/p64s66-isolated-run.ps1`), whose preload
+"disables dotenv BEFORE the backend base imports, and denies any TCP connect that is
+not loopback on a high ephemeral port". That runner is the mitigation. **Prefer it
+over `test-baseline-gate.mjs` for any run on a machine whose `.env` points at
+production**, and treat the gate as a convenience for CI-like environments where
+`DATABASE_URL` is known not to be production.
+
+Related, and safe: `backend/vitest.config.mjs:35` excludes `tests/integration/**`,
+which is why the 10 `.postgres.test.mjs` files need their own configs and never run
+in a default suite. Note also `retry: 1` at `:80` — a default that can mask a flaky
+failure, which is why the isolated runner overrides it with `--retry 0`.
+
 ## F. G11 release gates — all NOT RUN at this revision
 
 Frozen all-role/scenario/holdout provider evaluation · privacy and
