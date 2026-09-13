@@ -13,6 +13,19 @@ raised, and four were corrected outright (see "Corrections" at the end). In ever
 case the first reading was directionally alarming and the measured reading was
 smaller. **Treat any severity here without a linked measurement as a hypothesis.**
 
+**Re-verified after the citation audit (rule 53 sweep, 2026-09-13).** Because six
+statuses in this register had already gone stale, root re-checked the remaining
+OPEN rows against the tree rather than trusting them. Confirmed still open:
+G09-R1 (`purgeDueFacts` is called only from `coachRuntimeEvidence.postgres.test.mjs`
+and `coachFactMemoryPolicy.test.mjs` — no route, cron or worker invokes it),
+G09-R2 (`detectFactConflicts` likewise has no production caller, and
+`conflictMetadata` appears only in the `CoachFact.mjs:157` column definition and a
+test fixture, so T37's writer is genuinely unbuilt), G10-R (zero frontend
+references to `coach-nudges`/`coachNudges` anywhere under `frontend/src`, so the
+consent surface remains API-only), and CT-7 (zero backend references to
+`checksumVerified`; see that row for the corrected consequence). **A row that is
+OPEN here has been checked, not merely carried forward.**
+
 ---
 
 ## A. The `'user'`-role class — FIVE instances, one root cause
@@ -189,7 +202,7 @@ same failure mode as the two Vite hazards in §E, arriving by a different route.
 | CT-4 | MINOR | `/job-queue-health` shadowed by `/:id` — **FIXED**, upgraded from `[LIKELY]` to measured (404 before, 200 after; in production it would be a 500 from an invalid-UUID PK). | `d05e9eaa0` | Closed. |
 | CT-5 | MAJOR→latent | Against a **reachable-but-silent** Redis, `initVideoJobQueue()` was still pending after **16012 ms**. Unreachable today because nothing calls it. | [76](76-correction-phantom-bullmq-control.md) | Open. **Bound this BEFORE wiring any caller to `videoJobQueue.mjs:328`.** |
 | CT-6 | MINOR | `redisClient` has no `'error'` listener (`videoJobQueue.mjs:356`). | same | Open; no test demonstrates the defect it causes. |
-| CT-7 | MINOR | **Dangling read:** `frontend/.../useR2Upload.ts:196-204` reads `result.checksumVerified`, which the backend **never sets** — always `undefined`. | P77-B report | Open. |
+| CT-7 | MINOR | **Dangling read:** `frontend/src/hooks/useR2Upload.ts:203` reads `result.checksumVerified ?? false`, and the backend **never sets the field anywhere** — root grepped all of `backend/**/*.mjs` and found zero occurrences. Precise consequence: because of the `?? false` default the normalised value is permanently `false` (not an `undefined` that propagates), so the upload UI reports "not verified" on every successful upload and no integrity signal is ever surfaced. Also note the read is normalised at `:203` into a `checksumVerified: boolean` field declared at `:31` with a `false` default at `:47`. | P77-B report; root re-verified | Open. |
 
 ## C. Slice residuals (the real remaining work)
 
