@@ -42,6 +42,15 @@ If either fails, stop and re-derive state from git rather than from prose.
    Doc 80 records the per-file shift, which citations were repaired, which were left
    alone on purpose, and the two probes — including that those probes are gitignored
    and therefore local to this machine.
+7. **[82 — checkpoint handoff](82-checkpoint-handoff-20260913.md).** Written later, for a
+   takeover: the full file map (including which evidence is gitignored and therefore
+   local-only), the complete slice ledger, the prioritized OPEN list with exact next
+   actions, the reproducibility commands, and every environment trap that bites silently.
+   Where this file and doc 82 disagree, **doc 82 is later and wins.**
+8. [81 — external hostile review (GLM 5.3)](81-external-hostile-review-glm-20260913.md).
+   The first review of this slice by a model that did not write it. It found a
+   shipped-code trap that neither the author nor root had — read it before assuming the
+   internal review was sufficient.
 
 ## What this session did, in one paragraph
 
