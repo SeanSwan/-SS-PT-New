@@ -5,31 +5,23 @@
  */
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
 import type { TierDefinition } from '../../../hooks/useSubscription';
+import MembershipSummary, { deriveAnnualSavings } from '../../shop/components/MembershipSummary';
 import DonationSlider from './DonationSlider';
 import {
   BillingOption,
   BillingToggle,
   Card,
-  CheckIcon,
   CrystallineBorder,
   CTAButton,
   CTAArea,
   CurrentPlanBadge,
-  FeatureItem,
-  FeatureList,
-  Period,
-  Price,
-  PriceRow,
   SaveBadge,
-  Tagline,
-  TierName,
   TrialButton,
   type VaultCardVariant,
 } from './VaultCard.styles';
 
-interface VaultCardProps {
+export interface VaultCardProps {
   tier: TierDefinition;
   variant: VaultCardVariant;
   donationAmount?: number;
@@ -40,6 +32,8 @@ interface VaultCardProps {
   onStartTrial?: () => void;
   showTrialButton?: boolean;
   isCurrentTier?: boolean;
+  isActionPending?: boolean;
+  actionError?: string | null;
   index: number;
 }
 
@@ -52,10 +46,12 @@ const cardVariant = {
   }),
 };
 
+const GUARDIAN_BILLING_MODE = 'one-time - pay what you can';
+
 const VaultCard: React.FC<VaultCardProps> = ({
   tier,
   variant,
-  donationAmount = 5,
+  donationAmount,
   onDonationChange,
   isAnnual = false,
   onToggleBilling,
@@ -63,22 +59,16 @@ const VaultCard: React.FC<VaultCardProps> = ({
   onStartTrial,
   showTrialButton,
   isCurrentTier,
+  isActionPending = false,
+  actionError = null,
   index,
 }) => {
-  const crystallinePrice = isAnnual && tier.annualPrice ? tier.annualPrice : tier.price;
-
-  const priceLabel = variant === 'starter'
-    ? 'Free'
-    : variant === 'guardian'
-      ? `$${donationAmount}`
-      : `$${crystallinePrice.toFixed(2)}`;
-
-  const periodLabel = variant === 'starter'
-    ? 'forever'
-    : variant === 'guardian'
-      ? 'one-time - pay what you can'
-      : isAnnual ? '/yr' : '/mo';
-
+  const annualAvailable = typeof tier.annualPrice === 'number'
+    && Number.isFinite(tier.annualPrice)
+    && tier.annualPrice > 0;
+  const activeDonation = Number.isFinite(donationAmount)
+    ? donationAmount!
+    : (tier.suggestedPrice || tier.minimumPrice || 1);
   const ctaLabel = variant === 'starter'
     ? 'Get Started - Free'
     : variant === 'guardian'
@@ -94,34 +84,34 @@ const VaultCard: React.FC<VaultCardProps> = ({
       whileInView="visible"
       viewport={{ once: true, margin: '-50px' }}
       $variant={variant}
+      data-billing-mode={variant === 'guardian' ? GUARDIAN_BILLING_MODE : undefined}
     >
       {variant === 'crystalline' && <CrystallineBorder aria-hidden="true" />}
 
-      <TierName $variant={variant}>{tier.name}</TierName>
-      <Tagline>{tier.tagline}</Tagline>
-
-      <PriceRow>
-        <Price>{priceLabel}</Price>
-        <Period>{periodLabel}</Period>
-      </PriceRow>
+      <MembershipSummary
+        tier={tier}
+        billingInterval={isAnnual && annualAvailable ? 'year' : 'month'}
+        donationAmount={variant === 'guardian' ? activeDonation : undefined}
+      />
 
       {variant === 'guardian' && onDonationChange && (
         <DonationSlider
-          min={tier.minimumPrice || 1}
-          max={tier.maximumPrice || 50}
-          value={donationAmount}
-          suggested={tier.suggestedPrice || 5}
+          min={Number.isFinite(tier.minimumPrice) ? tier.minimumPrice! : 1}
+          max={Number.isFinite(tier.maximumPrice) ? tier.maximumPrice! : 50}
+          value={activeDonation}
+          suggested={Number.isFinite(tier.suggestedPrice) ? tier.suggestedPrice! : (tier.minimumPrice || 1)}
           donationTiers={tier.donationTiers}
           onChange={onDonationChange}
         />
       )}
 
-      {variant === 'crystalline' && onToggleBilling && (
+      {variant === 'crystalline' && annualAvailable && onToggleBilling && (
         <BillingToggle aria-label="Billing interval">
           <BillingOption
             $active={!isAnnual}
             aria-pressed={!isAnnual}
             onClick={() => isAnnual && onToggleBilling()}
+            disabled={isActionPending}
             type="button"
           >
             Monthly
@@ -130,23 +120,16 @@ const VaultCard: React.FC<VaultCardProps> = ({
             $active={isAnnual}
             aria-pressed={isAnnual}
             onClick={() => !isAnnual && onToggleBilling()}
+            disabled={isActionPending}
             type="button"
           >
-            Annual <SaveBadge>Save $50</SaveBadge>
+            Annual
+            {deriveAnnualSavings(tier) !== null && (
+              <SaveBadge>Save ${deriveAnnualSavings(tier)!.toFixed(2)}</SaveBadge>
+            )}
           </BillingOption>
         </BillingToggle>
       )}
-
-      <FeatureList>
-        {tier.features.map((feature, i) => (
-          <FeatureItem key={`${feature}-${i}`} $variant={variant}>
-            <CheckIcon $variant={variant}>
-              <Check size={14} aria-hidden="true" focusable="false" />
-            </CheckIcon>
-            <span>{feature}</span>
-          </FeatureItem>
-        ))}
-      </FeatureList>
 
       <CTAArea>
         {isCurrentTier ? (
@@ -154,15 +137,16 @@ const VaultCard: React.FC<VaultCardProps> = ({
         ) : (
           <>
             {showTrialButton && onStartTrial && (
-              <TrialButton onClick={onStartTrial} type="button">
-                Start 30-Day Free Trial
+              <TrialButton onClick={onStartTrial} type="button" disabled={isActionPending} aria-busy={isActionPending}>
+                {isActionPending ? 'Starting trial…' : 'Start 30-Day Free Trial'}
               </TrialButton>
             )}
-            <CTAButton $variant={variant} onClick={onCheckout} type="button">
-              {ctaLabel}
+            <CTAButton $variant={variant} onClick={onCheckout} type="button" disabled={isActionPending} aria-busy={isActionPending}>
+              {isActionPending ? 'Please wait…' : ctaLabel}
             </CTAButton>
           </>
         )}
+        {actionError && <p role="alert">{actionError}</p>}
       </CTAArea>
     </Card>
   );

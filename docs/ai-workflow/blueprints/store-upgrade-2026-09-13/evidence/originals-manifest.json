@@ -1,0 +1,22 @@
+[
+  {
+    "snapshot": "docs\\ai-workflow\\blueprints\\store-upgrade-2026-09-13\\originals\\KIMI-STORE-BLUEPRINT-2026-07-17.md",
+    "sha256": "30fc9d54c8f5612e70a80dad722ae035a19f3820be7b40bde5cdc43b431c7200",
+    "source": "docs/ai-workflow/AI-HANDOFF/KIMI-STORE-BLUEPRINT-2026-07-17.md"
+  },
+  {
+    "snapshot": "docs\\ai-workflow\\blueprints\\store-upgrade-2026-09-13\\originals\\KIMI-STORE-REGROUND-SEED-2026-07-18.md",
+    "sha256": "99605245cf248d1d88bd5f43364a49f5d66f49c77cd3f06d6fe571b24176630a",
+    "source": "docs/ai-workflow/AI-HANDOFF/KIMI-STORE-REGROUND-SEED-2026-07-18.md"
+  },
+  {
+    "snapshot": "docs\\ai-workflow\\blueprints\\store-upgrade-2026-09-13\\originals\\KIMI-STORE-CORRECTED-2026-07-18.md",
+    "sha256": "3c3ea5d392d6222f9fabca4c608de769456b331ed1e8dffbe664664aa234af0c",
+    "source": "docs/ai-workflow/AI-HANDOFF/KIMI-STORE-CORRECTED-2026-07-18.md"
+  },
+  {
+    "snapshot": "docs\\ai-workflow\\blueprints\\store-upgrade-2026-09-13\\originals\\CART-500-ROOT-CAUSE-AND-READINESS-GATE-BLUEPRINT-2026-09-03.md",
+    "sha256": "3e9b96b320d911ed0111ca6bdac44f44cb0fbce0c15fbc1b4dfab93ff14d2570",
+    "source": "docs/ai-workflow/AI-HANDOFF/CART-500-ROOT-CAUSE-AND-READINESS-GATE-BLUEPRINT-2026-09-03.md"
+  }
+]

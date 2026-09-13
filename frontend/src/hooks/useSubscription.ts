@@ -1,19 +1,7 @@
-/**
- * ============================================================================
- * FILE: useSubscription.ts
- * PURPOSE: React hook for subscription status, usage tracking, and tier checks
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-22
- * ============================================================================
- */
-
+/** Shared public tier and current subscription state for storefront surfaces. */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import apiService from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Types
-// ─────────────────────────────────────────────────────────────
-
 export interface DonationTier {
   minAmount: number;
   maxAmount: number;
@@ -21,7 +9,6 @@ export interface DonationTier {
   aiMessagesPerMonth?: number;
   aiGenerationsPerMonth?: number;
 }
-
 export interface TierDefinition {
   id: string;
   name: string;
@@ -42,9 +29,8 @@ export interface TierDefinition {
     aiGenerationsPerMonth: number;
   };
 }
-
 export interface SubscriptionStatus {
-  tier: 'free' | 'pro' | 'elite' | 'supporter' | 'premium'; // supporter/premium kept for migration compat
+  tier: 'free' | 'pro' | 'elite' | 'supporter' | 'premium';
   tierName: string;
   status: 'active' | 'trial' | 'past_due' | 'cancelled' | 'paused';
   hasFullAIAccess: boolean;
@@ -52,7 +38,6 @@ export interface SubscriptionStatus {
   trialDaysRemaining: number;
   trialEndDate: string | null;
   currentPeriodEnd: string | null;
-  /** Set when a cancel is scheduled (cancel_at_period_end) — will not renew. */
   cancelledAt?: string | null;
   amount: number | null;
   paymentMethod: string | null;
@@ -60,7 +45,6 @@ export interface SubscriptionStatus {
   crystallinePromoEligible?: boolean;
   isAdmin?: boolean;
 }
-
 export interface UsageStatus {
   aiMessagesUsed: number;
   aiMessagesLimit: number;
@@ -68,157 +52,238 @@ export interface UsageStatus {
   aiGenerationsLimit: number;
   resetDate: string | null;
 }
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Hook
-// ─────────────────────────────────────────────────────────────
-
+type ActionResult = {
+  success?: boolean;
+  message?: string;
+  checkoutUrl?: string;
+  [key: string]: unknown;
+};
+const safeMessage = (error: unknown, fallback: string): string => {
+  if (typeof error === 'object' && error !== null) {
+    const record = error as { response?: { data?: { message?: unknown } }; message?: unknown };
+    if (typeof record.response?.data?.message === 'string') return record.response.data.message;
+    if (typeof record.message === 'string') return record.message;
+  }
+  return fallback;
+};
+const resultMessage = (data: ActionResult | undefined, fallback: string): string => typeof data?.message === 'string' ? data.message : fallback;
+let publicTiersRequest: Promise<TierDefinition[]> | null = null;
+const requestPublicTiers = async (): Promise<TierDefinition[]> => {
+  if (publicTiersRequest) return publicTiersRequest;
+  publicTiersRequest = apiService.get('/api/subscriptions/tiers')
+    .then(response => {
+      const data = response.data as { success?: boolean; tiers?: unknown };
+      if (!data.success || !Array.isArray(data.tiers)) {
+        throw new Error('Membership tiers are unavailable right now.');
+      }
+      return data.tiers as TierDefinition[];
+    })
+    .finally(() => {
+      publicTiersRequest = null;
+    });
+  return publicTiersRequest;
+};
 export function useSubscription(options: { withTiers?: boolean } = {}) {
   const { withTiers = true } = options;
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const identityKey = isAuthenticated ? `user:${user?.id ?? 'authenticated'}` : 'anonymous';
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [usage, setUsage] = useState<UsageStatus | null>(null);
   const [tiers, setTiers] = useState<TierDefinition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tiersLoading, setTiersLoading] = useState(withTiers);
+  const [statusLoading, setStatusLoading] = useState(isAuthenticated);
   const [error, setError] = useState<string | null>(null);
-  const tiersFetchedRef = useRef(false);
-  const statusFetchedRef = useRef(false);
-
-  /** Fetch current subscription status + usage */
-  const fetchStatus = useCallback(async () => {
-    try {
-      const response = await apiService.get('/api/subscriptions/status');
-      const data = response.data;
-      if (data.success) {
-        setSubscription(data.subscription);
-        setUsage(data.usage);
-      }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err.message);
-    } finally {
-      setLoading(false);
-    }
+  const mountedRef = useRef(true);
+  const generationRef = useRef(0);
+  const identityRef = useRef(identityKey);
+  const latestIdentityRef = useRef(identityKey);
+  const subscriptionOwnerRef = useRef<string | null>(null);
+  const usageOwnerRef = useRef<string | null>(null);
+  const statusRequestRef = useRef<{ key: string; promise: Promise<void> } | null>(null);
+  const checkoutPendingRef = useRef(false);
+  const trialPendingRef = useRef(false);
+  const cancelPendingRef = useRef(false);
+  latestIdentityRef.current = identityKey;
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      generationRef.current += 1;
+    };
   }, []);
-
-  /** Fetch available tiers */
   const fetchTiers = useCallback(async () => {
+    if (!withTiers) return [] as TierDefinition[];
+    setTiersLoading(true);
     try {
-      const response = await apiService.get('/api/subscriptions/tiers');
-      const data = response.data;
-      if (data.success) setTiers(data.tiers);
-    } catch {
-      // Non-critical — tiers can be shown from cache
+      const nextTiers = await requestPublicTiers();
+      if (mountedRef.current) setTiers(nextTiers);
+      return nextTiers;
+    } catch (requestError) {
+      if (mountedRef.current) setError(safeMessage(requestError, 'Membership tiers are unavailable right now.'));
+      return [] as TierDefinition[];
+    } finally {
+      if (mountedRef.current) setTiersLoading(false);
     }
-  }, []);
-
-  /** Start free trial */
-  const startTrial = useCallback(async () => {
+  }, [withTiers]);
+  const fetchStatus = useCallback(async () => {
+    if (!isAuthenticated) return;
+    const requestKey = identityKey;
+    const requestGeneration = generationRef.current;
+    const existing = statusRequestRef.current;
+    if (existing?.key === requestKey) return existing.promise;
+    setStatusLoading(true);
+    const promise = apiService.get('/api/subscriptions/status')
+      .then(response => {
+        const data = response.data as { success?: boolean; subscription?: SubscriptionStatus; usage?: UsageStatus | null };
+        if (!mountedRef.current || latestIdentityRef.current !== requestKey || identityRef.current !== requestKey || generationRef.current !== requestGeneration) return;
+        if (data.success) {
+          subscriptionOwnerRef.current = requestKey;
+          usageOwnerRef.current = requestKey;
+          setSubscription(data.subscription ?? null);
+          setUsage(data.usage ?? null);
+          setError(null);
+        } else {
+          setError('Unable to load your membership status.');
+        }
+      })
+      .catch(requestError => {
+        if (mountedRef.current && latestIdentityRef.current === requestKey && identityRef.current === requestKey && generationRef.current === requestGeneration) {
+          setError(safeMessage(requestError, 'Unable to load your membership status.'));
+        }
+      })
+      .finally(() => {
+        if (statusRequestRef.current?.promise === promise) statusRequestRef.current = null;
+        if (mountedRef.current && latestIdentityRef.current === requestKey && identityRef.current === requestKey && generationRef.current === requestGeneration) {
+          setStatusLoading(false);
+        }
+      });
+    statusRequestRef.current = { key: requestKey, promise };
+    return promise;
+  }, [identityKey, isAuthenticated]);
+  useEffect(() => {
+    identityRef.current = identityKey;
+    generationRef.current += 1;
+    statusRequestRef.current = null;
+    subscriptionOwnerRef.current = null;
+    usageOwnerRef.current = null;
+    setSubscription(null);
+    setUsage(null);
+    setError(null);
+    setStatusLoading(isAuthenticated);
+    if (isAuthenticated) void fetchStatus();
+  }, [fetchStatus, identityKey, isAuthenticated]);
+  useEffect(() => {
+    if (withTiers) void fetchTiers();
+    else setTiersLoading(false);
+  }, [fetchTiers, withTiers]);
+  const startTrial = useCallback(async (): Promise<ActionResult> => {
+    if (trialPendingRef.current) return { success: false, code: 'DUPLICATE_ACTION', message: 'Trial is already starting.' };
+    trialPendingRef.current = true;
+    setError(null);
+    const requestKey = identityKey;
+    const requestGeneration = generationRef.current;
     try {
-      const response = await apiService.post('/api/subscriptions/start-trial');
-      const data = response.data;
-      if (data.success) {
-        await fetchStatus();
+      const data = (await apiService.post('/api/subscriptions/start-trial')).data as ActionResult;
+      if (!mountedRef.current || latestIdentityRef.current !== requestKey || identityRef.current !== requestKey || generationRef.current !== requestGeneration) {
+        return { success: false, code: 'STALE_REQUEST', message: 'Trial request expired. Please try again.' };
       }
+      if (!data.success) setError(resultMessage(data, 'Unable to start your trial.'));
+      else await fetchStatus();
       return data;
-    } catch (err: any) {
-      return err?.response?.data || { success: false, message: err.message || 'Failed to start trial' };
+    } catch (requestError) {
+      if (!mountedRef.current || latestIdentityRef.current !== requestKey || identityRef.current !== requestKey || generationRef.current !== requestGeneration) {
+        return { success: false, code: 'STALE_REQUEST', message: 'Trial request expired. Please try again.' };
+      }
+      const message = safeMessage(requestError, 'Unable to start your trial.');
+      setError(message);
+      return { success: false, message };
+    } finally {
+      trialPendingRef.current = false;
     }
-  }, [fetchStatus]);
-
-  /** Create Stripe checkout session for subscription */
-  const checkout = useCallback(async (tier: 'pro' | 'elite', amount?: number, billingInterval: 'month' | 'year' = 'month') => {
+  }, [fetchStatus, identityKey]);
+const checkout = useCallback(async (tier: 'pro' | 'elite', amount?: number, billingInterval: 'month' | 'year' = 'month'): Promise<ActionResult> => {
+    if (checkoutPendingRef.current) return { success: false, code: 'DUPLICATE_ACTION', message: 'Checkout is already starting.' };
+    checkoutPendingRef.current = true;
+    setError(null);
+    const requestKey = identityKey;
+    const requestGeneration = generationRef.current;
     try {
-      const response = await apiService.post('/api/subscriptions/checkout', { tier, amount, billingInterval });
-      const data = response.data;
-      if (data.success && data.checkoutUrl) {
+      const data = (await apiService.post('/api/subscriptions/checkout', { tier, amount, billingInterval })).data as ActionResult;
+      if (!mountedRef.current || latestIdentityRef.current !== requestKey || identityRef.current !== requestKey || generationRef.current !== requestGeneration) {
+        checkoutPendingRef.current = false;
+        return { success: false, code: 'STALE_REQUEST', message: 'Checkout request expired. Please try again.' };
+      }
+      if (!data.success) {
+        setError(resultMessage(data, 'Unable to start checkout.'));
+        checkoutPendingRef.current = false;
+      } else if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
+      } else {
+        setError('Checkout did not return a payment session. Please try again.');
+        checkoutPendingRef.current = false;
       }
       return data;
-    } catch (err: any) {
-      return err?.response?.data || { success: false, message: err.message || 'Failed to start checkout' };
+    } catch (requestError) {
+      if (!mountedRef.current || latestIdentityRef.current !== requestKey || identityRef.current !== requestKey || generationRef.current !== requestGeneration) {
+        checkoutPendingRef.current = false;
+        return { success: false, code: 'STALE_REQUEST', message: 'Checkout request expired. Please try again.' };
+      }
+      const message = safeMessage(requestError, 'Unable to start checkout.');
+      setError(message);
+      checkoutPendingRef.current = false;
+      return { success: false, message };
     }
-  }, []);
-
-  /** Cancel subscription */
-  const cancel = useCallback(async (reason?: string) => {
+  }, [identityKey]);
+  const cancel = useCallback(async (reason?: string): Promise<ActionResult> => {
+    if (cancelPendingRef.current) return { success: false, code: 'DUPLICATE_ACTION', message: 'Cancellation is already processing.' };
+    cancelPendingRef.current = true;
+    setError(null);
+    const requestKey = identityKey;
+    const requestGeneration = generationRef.current;
     try {
-      const response = await apiService.post('/api/subscriptions/cancel', { reason });
-      const data = response.data;
-      if (data.success) {
-        await fetchStatus();
+      const data = (await apiService.post('/api/subscriptions/cancel', { reason })).data as ActionResult;
+      if (!mountedRef.current || latestIdentityRef.current !== requestKey || identityRef.current !== requestKey || generationRef.current !== requestGeneration) {
+        return { success: false, code: 'STALE_REQUEST', message: 'Cancellation request expired. Please try again.' };
       }
+      if (!data.success) setError(resultMessage(data, 'Unable to cancel your membership.'));
+      else await fetchStatus();
       return data;
-    } catch (err: any) {
-      return err?.response?.data || { success: false, message: err.message || 'Failed to cancel subscription' };
+    } catch (requestError) {
+      if (!mountedRef.current || latestIdentityRef.current !== requestKey || identityRef.current !== requestKey || generationRef.current !== requestGeneration) {
+        return { success: false, code: 'STALE_REQUEST', message: 'Cancellation request expired. Please try again.' };
+      }
+      const message = safeMessage(requestError, 'Unable to cancel your membership.');
+      setError(message);
+      return { success: false, message };
+    } finally {
+      cancelPendingRef.current = false;
     }
-  }, [fetchStatus]);
-
-  // ─────────────────────────────────────────────────────────────
-  // SECTION: Computed Helpers
-  // ─────────────────────────────────────────────────────────────
-
-  const canUseAI = subscription?.hasFullAIAccess ||
-    subscription?.isInTrial ||
-    (usage && (usage.aiMessagesUsed < usage.aiMessagesLimit));
-
-  const aiMessagesRemaining = usage
-    ? Math.max(0, usage.aiMessagesLimit - usage.aiMessagesUsed)
-    : 0;
-
-  const aiGenerationsRemaining = usage
-    ? Math.max(0, usage.aiGenerationsLimit - usage.aiGenerationsUsed)
-    : 0;
-
-  const isFreeTier = subscription?.tier === 'free' && !subscription?.isInTrial;
-  const isTrial = subscription?.isInTrial || false;
-  const isPaid = subscription?.tier === 'pro' || subscription?.tier === 'elite' ||
-    subscription?.tier === 'supporter' || subscription?.tier === 'premium'; // migration compat
-  const isElite = subscription?.tier === 'elite' || subscription?.tier === 'premium';
-  const isPro = subscription?.tier === 'pro' || subscription?.tier === 'supporter';
-
-  // Ascension promise alignment: an active 30-day trial unlocks premium feature
-  // surfaces for the user while the backend middleware treats the same trial as
-  // an elite-equivalent temporary entitlement.
+  }, [fetchStatus, identityKey]);
+  const visibleSubscription = subscriptionOwnerRef.current === identityKey ? subscription : null;
+  const visibleUsage = usageOwnerRef.current === identityKey ? usage : null;
+  const canUseAI = visibleSubscription?.hasFullAIAccess || visibleSubscription?.isInTrial || Boolean(visibleUsage && visibleUsage.aiMessagesUsed < visibleUsage.aiMessagesLimit);
+  const aiMessagesRemaining = visibleUsage ? Math.max(0, visibleUsage.aiMessagesLimit - visibleUsage.aiMessagesUsed) : 0;
+  const aiGenerationsRemaining = visibleUsage ? Math.max(0, visibleUsage.aiGenerationsLimit - visibleUsage.aiGenerationsUsed) : 0;
+  const isFreeTier = visibleSubscription?.tier === 'free' && !visibleSubscription?.isInTrial;
+  const isTrial = visibleSubscription?.isInTrial || false;
+  const isPaid = visibleSubscription?.tier === 'pro' || visibleSubscription?.tier === 'elite' || visibleSubscription?.tier === 'supporter' || visibleSubscription?.tier === 'premium';
+  const isElite = visibleSubscription?.tier === 'elite' || visibleSubscription?.tier === 'premium';
+  const isPro = visibleSubscription?.tier === 'pro' || visibleSubscription?.tier === 'supporter';
   const hasGuardianAccess = isPro || isElite || isTrial;
   const hasCrystallineAccess = isElite || isTrial;
-
-  useEffect(() => {
-    // Tiers are a PUBLIC endpoint — store/ascension tier cards need them
-    // even for signed-out visitors.
-    if (withTiers && !tiersFetchedRef.current) {
-      tiersFetchedRef.current = true;
-      fetchTiers();
-    }
-    if (isAuthenticated) {
-      if (!statusFetchedRef.current) {
-        statusFetchedRef.current = true;
-        fetchStatus();
-      }
-    } else {
-      // /api/subscriptions/status is auth-only: calling it signed-out just
-      // logged a guaranteed 401 + console error on the public store page
-      // (2026-07-28 launch audit). Present signed-out defaults without the
-      // network call, and allow a fresh fetch after the next sign-in.
-      statusFetchedRef.current = false;
-      setSubscription(null);
-      setUsage(null);
-      setLoading(false);
-    }
-  }, [isAuthenticated, withTiers, fetchStatus, fetchTiers]);
-
   return {
-    subscription,
-    usage,
+    subscription: visibleSubscription,
+    usage: visibleUsage,
     tiers,
-    loading,
+    loading: tiersLoading || statusLoading,
+    tiersLoading,
+    statusLoading,
     error,
-    // Actions
     fetchStatus,
     fetchTiers,
     startTrial,
     checkout,
     cancel,
-    // Computed
     canUseAI,
     aiMessagesRemaining,
     aiGenerationsRemaining,
@@ -231,5 +296,4 @@ export function useSubscription(options: { withTiers?: boolean } = {}) {
     hasCrystallineAccess,
   };
 }
-
 export default useSubscription;

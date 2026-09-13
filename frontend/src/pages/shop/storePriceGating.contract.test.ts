@@ -14,6 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8');
 
 const storeV3 = read('./StoreV3.tsx');
+const catalogHook = read('./useStorefrontCatalog.ts');
 const storeV2 = read('./StoreV2.tsx');
 const packageCard = read('./components/PackageCard.tsx');
 const featureAccess = read(
@@ -22,12 +23,18 @@ const featureAccess = read(
 
 describe('store price gating — server-truth contract', () => {
   it.each([
-    ['StoreV3', storeV3],
     ['StoreV2', storeV2],
   ])('%s derives canViewPrices from the server signal, not isAuthenticated', (_name, src) => {
     expect(src).not.toMatch(/canViewPrices = isAuthenticated/);
     expect(src).toMatch(/setPricesVisible\(response\.data\?\.pricesVisible === true\)/);
     expect(src).toMatch(/const canViewPrices = pricesVisible/);
+  });
+
+  it('StoreV3 passes the server-owned hook signal to training surfaces', () => {
+    expect(catalogHook).toContain('pricesVisible: response.data?.pricesVisible === true');
+    expect(storeV3).toContain('canViewPrices={catalog.pricesVisible}');
+    expect(storeV3).not.toMatch(/canViewPrices[= ]+\{?isAuthenticated/);
+    expect(catalogHook).not.toMatch(/pricesVisible:\s*isAuthenticated/);
   });
 
   it('non-granted fallback copy asks for an invitation instead of promising login reveals prices', () => {

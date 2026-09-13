@@ -16,7 +16,7 @@ const noMotion = css`
 `;
 
 export const SectionContainer = styled.section`
-  padding: 5rem 2rem;
+  padding: 2rem 1rem 4rem;
   max-width: 1400px;
   margin: 0 auto;
   position: relative;
@@ -41,7 +41,11 @@ export const SectionContainer = styled.section`
 `;
 
 export const PackageSection = styled(motion.section)`
-  margin-bottom: 5rem;
+  margin: 1rem auto 2.5rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid rgba(198, 168, 75, 0.16);
+  border-radius: 1.25rem;
+  background: radial-gradient(circle at 8% 0%, rgba(96, 192, 240, 0.08), transparent 34%);
 
   @media (max-width: 768px) {
     margin-bottom: 3rem;
@@ -50,7 +54,7 @@ export const PackageSection = styled(motion.section)`
 
 export const SectionTitle = styled(motion.h2)`
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 1.4rem;
   font-family: var(--font-drama, "Cormorant Garamond", Georgia, serif);
   font-size: 2.8rem;
   font-weight: 600;
@@ -92,10 +96,10 @@ export const SectionTitle = styled(motion.h2)`
 export const GalaxyGrid = styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-  gap: 24px;
+  gap: 18px;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 12px;
   position: relative;
   z-index: 15;
 

@@ -18,7 +18,7 @@
  *
  * ARCHITECTURE: CheckoutView -> CheckoutView.sections -> CheckoutView.styles + payment services.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../hooks/use-toast';
@@ -26,6 +26,7 @@ import api from '../../services/api.service';
 import { logger } from '@/utils/logger';
 import { readAcquisitionParams } from '../../utils/acquisitionAttribution';
 import { AuthRequiredCheckout, CheckoutReadyView } from './CheckoutView.sections';
+import { diagnosticFromUnknownError, toCheckoutDiagnostic } from './checkoutDiagnostics';
 import type { CheckoutState } from './CheckoutView.types';
 import type { CheckoutFulfillmentDetails } from './CheckoutView.logic';
 import {
@@ -45,8 +46,9 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
   onCancel,
 }) => {
   const { user, isAuthenticated } = useAuth();
-  const { cart, refreshCart } = useCart();
+  const { cart, refreshCart, loading: cartLoading, error: cartError } = useCart();
   const { success: toastSuccess, error: toastError } = useToast();
+  const checkoutInFlight = useRef(false);
 
   const [checkoutState, setCheckoutState] = useState<CheckoutState>({
     isProcessing: false,
@@ -113,6 +115,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
   }, [baseFulfillmentIntent]);
 
   const handleCreateCheckoutSession = useCallback(async () => {
+    if (checkoutInFlight.current) return;
     if (!isAuthenticated || !user) {
       setCheckoutState(prev => ({
         ...prev,
@@ -139,6 +142,8 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       return;
     }
 
+    checkoutInFlight.current = true;
+
     setCheckoutState(prev => ({
       ...prev,
       isProcessing: true,
@@ -147,21 +152,23 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
     }));
 
     try {
-      logger.log('[Checkout] Creating Stripe Checkout Session');
-      logger.log('[Checkout] Total:', total.toFixed(2));
-      logger.log('[Checkout] Sessions:', sessionCount);
-      logger.log('[Checkout] Cart ID:', cart.id);
-      logger.log('[Checkout] User ID:', user.id);
+      logger.log('[Checkout]', toCheckoutDiagnostic({
+        operation: 'create_session',
+        status: 'started',
+        itemCount: cart.items.length,
+        sessionCount,
+        totalCents: Math.round(total * 100),
+      }));
 
       try {
         const healthResponse = await api.get('/api/v2/payments/health');
-        logger.log('[Checkout] Payment system health:', healthResponse.data);
+        logger.log('[Checkout]', toCheckoutDiagnostic({ operation: 'health', status: healthResponse.data?.success && healthResponse.data?.data?.status === 'healthy' ? 'succeeded' : 'unavailable' }));
 
         if (!healthResponse.data?.success || healthResponse.data?.data?.status !== 'healthy') {
-          logger.warn('[Checkout] Payment system not fully healthy:', healthResponse.data);
+          logger.warn('[Checkout]', toCheckoutDiagnostic({ operation: 'health', status: 'unavailable', code: 'UNAVAILABLE', retryable: true }));
         }
       } catch (healthError) {
-        logger.warn('[Checkout] Payment health check failed:', healthError);
+        logger.warn('[Checkout]', diagnosticFromUnknownError('health', healthError));
       }
 
       const response = await api.post('/api/v2/payments/create-checkout-session', {
@@ -186,16 +193,14 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
         // The diagnostic detail belongs in the log, not in front of a buyer. The
         // previous throw interpolated the two boolean flags into its message and
         // that string rendered verbatim on the payment screen.
-        logger.error('[Checkout] Incomplete session payload', {
+        logger.error('[Checkout]', toCheckoutDiagnostic({ operation: 'create_session', status: 'failed', code: 'INVALID_PAYLOAD', retryable: true,
           hasSessionId: !!sessionId,
           hasCheckoutUrl: !!checkoutUrl,
-        });
+        }));
         throw new Error('We could not start the secure payment page. Please try again.');
       }
 
-      logger.log('[Checkout] Session created successfully');
-      logger.log('[Checkout] Session ID:', sessionId);
-      logger.log('[Checkout] Redirecting to Stripe');
+      logger.log('[Checkout]', toCheckoutDiagnostic({ operation: 'create_session', status: 'succeeded', hasSessionId: !!sessionId, hasCheckoutUrl: !!checkoutUrl }));
 
       try {
         await api.post('/api/financial/track-checkout-start', {
@@ -206,9 +211,9 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
           sessionCount,
           timestamp: new Date().toISOString(),
         });
-        logger.log('[Admin Dashboard] Checkout tracked for analytics');
+        logger.log('[Checkout]', toCheckoutDiagnostic({ operation: 'track_start', status: 'succeeded' }));
       } catch (trackingError) {
-        logger.warn('[Admin Dashboard] Checkout tracking failed:', trackingError);
+        logger.warn('[Checkout]', diagnosticFromUnknownError('track_start', trackingError));
       }
 
       // isProcessing deliberately stays TRUE through the redirect. Clearing it
@@ -226,9 +231,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
         window.location.href = checkoutUrl;
       }, 1000);
     } catch (error: any) {
-      logger.error('[Checkout] Failed:', error);
-      logger.error('[Checkout] Error response:', error.response);
-      logger.error('[Checkout] Error data:', error.response?.data);
+      logger.error('[Checkout]', diagnosticFromUnknownError('create_session', error));
 
       let errorMessage = 'Checkout failed. Please try again.';
       let errorDetails = '';
@@ -284,6 +287,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
         isProcessing: false,
       }));
 
+      checkoutInFlight.current = false;
       toastError(`Checkout Error: ${fullErrorMessage}`);
     }
   }, [
@@ -337,6 +341,9 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       taxLabel={taxLabel}
       total={total}
       fulfillmentIntent={fulfillmentIntent}
+      cartLoading={cartLoading}
+      cartError={cartError}
+      onRetryCart={refreshCart}
     />
   );
 };
