@@ -165,3 +165,21 @@ generalised.
   browser gate fail for reasons unrelated to the change under test.
 - **Annotate, do not rewrite** dated records. Every correction in this session left
   the original claim visible next to its correction.
+- **A diagnostic must prove it looked.** A probe root wrote reported `"0 files
+  scanned"` with `coverageComplete: true` — indistinguishable from an all-clear —
+  because a mangled path made it walk a directory that does not exist and a
+  `catch { return out; }` swallowed the ENOENT. Never swallow an error in a probe,
+  and derive paths from `import.meta.url` rather than hardcoding Windows paths:
+  writing `\\` through tooling is unreliable, and `\B` in `\BigotSmasher` was eaten.
+  Full write-up: register §E INF-3.
+- **Three Windows/PowerShell traps this session actually hit.** (1) `Measure-Object
+  -Line` skips blank lines — use `split('\n').length` or you under-report a line
+  count and a Rule-4 check silently passes. (2) Double quotes inside
+  `git commit -m "..."` terminate the PowerShell string and truncate the message —
+  use `git commit -F <file>`. (3) `Set-Content -Encoding UTF8` on Windows
+  PowerShell prepends a **BOM**, which lands in the commit subject (`d9a38cff4`
+  has one and cannot be amended under rule 45); write commit-message files with a
+  no-BOM writer instead.
+- **Do not commit a code slice whose own doc still says it is unfixed.** The
+  third-wave commit carries its register update in the same commit, because the
+  moment the code landed the register's "still unfixed" line became false.
