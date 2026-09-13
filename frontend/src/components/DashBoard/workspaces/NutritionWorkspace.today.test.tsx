@@ -1,8 +1,8 @@
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import NutritionWorkspace from './NutritionWorkspace';
 
 const mocks = vi.hoisted(() => ({
@@ -90,9 +90,12 @@ vi.mock('../../FoodTracker/NutritionReviewDrawer', () => ({
 }));
 
 describe('NutritionWorkspace Today landing', () => {
-  beforeAll(async () => {
-    await import('./NutritionTodayPanel');
-  });
+  const renderWorkspace = async () => {
+    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
+    await act(async () => {
+      await vi.dynamicImportSettled();
+    });
+  };
 
   beforeEach(() => {
     mocks.apiGet.mockClear();
@@ -105,7 +108,7 @@ describe('NutritionWorkspace Today landing', () => {
 
   it('defaults to Today and lets the Today panel route into existing tabs', async () => {
     const user = userEvent.setup();
-    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
+    await renderWorkspace();
 
     expect(screen.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByLabelText(/nutrition today diary/i)).toBeInTheDocument();
@@ -121,7 +124,7 @@ describe('NutritionWorkspace Today landing', () => {
     mocks.macroSummary.summary = null;
     mocks.macroSummary.error = 'Macro summary unavailable. Try refreshing your dashboard.';
 
-    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
+    await renderWorkspace();
 
     const alert = await screen.findByRole('alert', { name: /nutrition totals unavailable/i });
     expect(alert).toHaveTextContent(/Macro summary unavailable/i);
@@ -137,7 +140,7 @@ describe('NutritionWorkspace Today landing', () => {
 
   it('returns to Today and refreshes the diary after a reviewed save', async () => {
     const user = userEvent.setup();
-    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
+    await renderWorkspace();
 
     const captureRail = screen.getByRole('navigation', { name: /nutrition capture modes/i });
     await user.click(within(captureRail).getByRole('button', { name: /manual meal/i }));
@@ -158,7 +161,7 @@ describe('NutritionWorkspace Today landing', () => {
     };
     mocks.workoutSessions.data = [{ id: 'workout-1', date: '2026-06-20T18:00:00.000Z' }];
 
-    render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
+    await renderWorkspace();
 
     expect(await screen.findByText(/training-day support/i)).toBeInTheDocument();
     expect(screen.getByText(/protein-forward meal and a water check-in/i)).toBeInTheDocument();
