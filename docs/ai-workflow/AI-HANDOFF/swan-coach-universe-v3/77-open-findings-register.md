@@ -24,6 +24,31 @@ hand-roll a role check that forgets it. Three were fixed early (CA-1, CA-2, and
 the photo/profile pair); a hostile review then found three more; the G10 consent
 probe found a fifth.
 
+**The ownership layer was never the bug — read this before proposing a fix.**
+`assertAssignmentOrAdmin` already treats the two roles identically at
+`middleware/verifyClientAccess.mjs:91-93`:
+
+```js
+if (userRole === 'client' || userRole === 'user') {
+  return requesterId === targetClientId;
+}
+```
+
+It is also fail-closed throughout — a missing target id or a non-admin with no
+requester id returns `false` at `:89`, any role that is not admin/client/user/trainer
+returns `false` at `:94`, and the trainer assignment lookup routes **any** throw
+through `return false` at `:108-113`. Its own docstring lists `'user'` as a valid
+role (`:81`).
+
+So every instance of this class is a **coarse `authorize([...])` role list sitting
+in front of a correct ownership check**. The guard that knows about `'user'` never
+got to run, because a literal `roles.includes(...)` rejected the request first.
+That is why the fix is always "add `'user'` to the list in front of it" and never
+"change the ownership logic" — and why widening `authorize` globally would be the
+wrong repair, since it would loosen gates that are currently the *only* thing
+protecting paths where no ownership check follows (see §A3, where exactly that
+mistake was measured and rejected).
+
 | ID | Sev | Finding | Evidence | Status |
 |---|---|---|---|---|
 | F1 | **MAJOR — live privacy disclosure** | `clientDataOverviewQueryService.mjs:26` (was `:21` before `474b3524c` shifted the file — see [80](80-citation-drift-and-reanchoring-20260913.md)); the pre-fix form was `requesterRole !== 'client'`, which meant a `user` requester got trainer-note **existence, count and latest-note timestamp** where an explicit `client` got `0`/`null`. Probe: `client` → 0/null, 0 queries; `user` → 4/PRESENT, 2 queries; trainer/admin → 4/PRESENT. The file's own docstrings state the intent being violated. | reviewer probe `tmp/authz-review/probe-trainer-note-gate.mjs`; root read the line | **CLOSED** (`474b3524c`) — root re-verified `:26` = `!isClientEquivalentRole(requesterRole)`. |
