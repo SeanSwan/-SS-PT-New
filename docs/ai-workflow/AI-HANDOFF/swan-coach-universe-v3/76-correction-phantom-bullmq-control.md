@@ -114,6 +114,70 @@ range that do not exist will send the next agent looking for a component that wa
 never built, and — worse — it will read as evidence that a safety control is **in
 place and switched off**, when in fact there is no control.
 
+## RESOLVED 2026-09-13 — the residual Redis question is closed: **no defect on any request path**
+
+A probe was run under the reviewed isolated runner (dotenv disabled, sensitive env
+scrubbed, non-loopback TCP denied, no real Redis). `REDIS_URL` was set *inside* the
+probe to a loopback port with nothing listening, and the refusal was verified as
+`ECONNREFUSED` before anything was measured.
+
+**Answer: neither blocks. The request path never contacts Redis at all.**
+
+| Measurement | Result |
+|---|---|
+| lazy `import('../services/videoJobQueue.mjs')` | 189 ms standalone / 1385.9 ms cold in vitest, **0 connect attempts** |
+| `addJob('checksum_verify', …)` — the exact call the upload path makes | returned `null` in **0.1 ms**, **0 connect attempts** |
+| `initVideoJobQueue()` against a refusing port | settled in 8.3 ms → `{queue: null, isLeader: false}` |
+
+**Why: `initVideoJobQueue()` (`videoJobQueue.mjs:328`) is the only code that reads
+`REDIS_URL` or constructs a client, and it has ZERO callers.** Root confirmed
+independently: `git grep -n initVideoJobQueue` over all `*.mjs/*.js/*.ts/*.tsx`
+returns exactly one hit — the definition itself. So `queue` stays `null` forever and
+`addJob` short-circuits at `:424` before touching the network.
+
+**On `maxRetriesPerRequest: null`:** the probe proved it *does* make commands queue
+rather than fail fast — the `null` connection's `.get()` was still pending at
+4014.0 ms while the bounded connection rejected at 326.7 ms on the same endpoint.
+But it is **inert on this path**: `initVideoJobQueue`'s first await is
+`redisClient.connect()` on the *bounded* client, which rejects in ~1 ms whether the
+option is `null` or `3` (measured 0.9 ms vs 3.2 ms). `new Queue()` at `:375` is never
+reached.
+
+**Conclusion: the packet's Redis concern does not materialise, because the component
+it worried about is not on any request path — it is not on any path at all.** No
+production code was changed.
+
+### Findings the probe produced (all unfixed, out of this correction's scope)
+
+1. **The whole BullMQ video queue is dead code.** `initVideoJobQueue` has zero
+   callers, so `addJob` always returns `null` and **no video job has ever been
+   enqueued**. `startWorker`/`routeJob` and all six job processors are `TODO` stubs
+   anyway (`videoJobQueue.mjs:231-264`).
+2. **A false success log on the upload path.** `videoCatalogController.mjs:653-663`
+   `await`s `addJob(...)` but never inspects the result — `addJob` returns `null`
+   rather than throwing, so the `catch` at `:660` never fires and `:659` logs
+   `"Enqueued checksum_verify job for video <id>"` unconditionally. Root verified
+   this directly. The sibling `youtubeImportController.mjs:224` *does* capture the
+   result and returns an honest `503 "Job queue unavailable"` — so the two callers
+   of the same function disagree about whether silence is success.
+3. **The health surface reports the queue as available while every enqueue no-ops.**
+   `videoCatalogController.mjs:41-45` sets `jobQueueAvailable = true` on *import*
+   success, and `:58-63` returns `available: true`. The import cannot fail for Redis
+   reasons, so this is effectively hardcoded `true`.
+4. **`/job-queue-health` appears shadowed by `/:id`.** `routes/videoCatalogRoutes.mjs:16`
+   registers `router.get('/:id')` before `:22` `router.get('/job-queue-health')`, so
+   ordered matching sends the request to `getVideo`. Runtime consequence tagged
+   `[LIKELY]` — registration order was verified, the HTTP response was not.
+5. **`redisClient` has no `'error'` listener** (`videoJobQueue.mjs:356`) → ioredis
+   emits `[ioredis] Unhandled error event` (observed in probe stderr).
+6. **Latent unbounded wait, NOT on a request path.** Against a *reachable-but-silent*
+   Redis (TCP accepted, never replies — the partition case, not the refusing case),
+   `initVideoJobQueue()` was still pending after **16012 ms**; ioredis's 10 s
+   `connectTimeout` does not bound the ready-check handshake and there is no RST to
+   reject on. Unreachable today because nothing calls it. **If anyone ever wires a
+   caller to `videoJobQueue.mjs:328`, bound this first** — that is the one item worth
+   escalating at that moment, not now.
+
 ## Recommended follow-up (a real, small slice)
 
 1. Establish the **actual** Redis-unavailable behaviour of `videoJobQueue.mjs`: does a
