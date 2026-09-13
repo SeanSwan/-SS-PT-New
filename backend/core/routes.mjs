@@ -92,6 +92,7 @@ import sprintRoutes from '../routes/sprintRoutes.mjs';
 import workoutLogUploadRoutes from '../routes/workoutLogUploadRoutes.mjs';
 import coachIntakeRoutes from '../routes/coachIntakeRoutes.mjs';
 import coachProposalRoutes from '../routes/coachProposalRoutes.mjs';
+import coachMemoryRoutes from '../routes/coachMemoryRoutes.mjs'; // G09/S9: inspect / correct / forget client memory
 import scheduleAiRoutes from '../routes/scheduleAiRoutes.mjs';
 // Phase 3 PLAUD multi-clip merge ingestion (Slice 3.5 + 3.7)
 import plaudClipsRoutes from '../routes/plaud/plaudClipsRoutes.mjs';
@@ -441,6 +442,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/workout-logs', workoutLogUploadRoutes);
   app.use('/api/coach/intake', coachIntakeRoutes);
   app.use('/api/coach/proposals', coachProposalRoutes);
+  app.use('/api/coach/memory', coachMemoryRoutes); // G09/S9 scoped visible memory (plan 43 / T35-T37)
   // Phase 3 PLAUD: clip lifecycle (upload, list, delete) + merge orchestration.
   // Router is mounted always; plaudFeatureFlag middleware returns structured 503 when off.
   app.use('/api/plaud/clips', plaudClipsRoutes);
