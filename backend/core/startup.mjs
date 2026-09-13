@@ -710,6 +710,17 @@ export const initializeServer = async (app) => {
         }
 
         try {
+          // Swan Coach G09-R1/T35. No-op unless ENABLE_COACH_FACT_PURGE=true
+          // (kill switch). This is the ONLY production caller of purgeDueFacts;
+          // until it existed, a user's "forget" was never actually destroyed.
+          // Destroys rows only, and logs a count — never fact text.
+          const { startCoachFactPurgeScheduler } = await import('../services/coachFactPurgeCron.mjs');
+          startCoachFactPurgeScheduler();
+        } catch (coachFactPurgeErr) {
+          logger.warn(`Coach fact purge scheduler failed to start: ${coachFactPurgeErr.message}`);
+        }
+
+        try {
           const { registerEventListeners } = await import('../services/eventBus.mjs');
           registerEventListeners();
         } catch (eventErr) {
