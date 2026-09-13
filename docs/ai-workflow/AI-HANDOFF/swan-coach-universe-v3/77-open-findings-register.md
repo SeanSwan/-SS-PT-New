@@ -260,6 +260,45 @@ journeys · mounted substitution/share and dashboard adapters. See
 [73](73-g11-original-six-findings-adjudication.md) for what the six-finding
 adjudication did and did not settle.
 
+### F1. Why the real-database gate did not run — measured, not assumed
+
+Earlier wording said "no real PostgreSQL was exercised". Root established the
+precise reason, and it is **not** that no database exists:
+
+- **Two PostgreSQL instances ARE listening** on loopback ports **5432 and 5433**.
+- The disposable test database is a **separate, deliberately isolated** container.
+  `backend/tests/helpers/coachTestDatabase.mjs` is explicit at `:1`: "Never reads
+  application .env/DB URLs. Test runner supplies the port of its owned container;
+  fixed loopback/test DB." It requires `SWAN_COACH_TEST_PORT` and **throws** if the
+  port is unset or out of range (`:5-7`), then connects to a fixed database
+  `coach_test_20260906` as `coach_test_admin` on `127.0.0.1` (`:8-10`).
+- That container is **not currently running**. Root probed `5432`, `5433`, `54320`
+  and `55432` as `coach_test_admin`: 54320 and 55432 are closed, and 5432/5433 are
+  listening but reject that user (`SCRAM-SERVER-FIRST-MESSAGE: client password must
+  be a string`) — i.e. they are **some other** PostgreSQL, not the test database.
+  No credentials were attempted against them.
+
+**So the gate is blocked on a missing disposable container, not on a missing
+database** — and it is one `SWAN_COACH_TEST_PORT` away from being runnable.
+
+**Two safety facts a future runner must know before touching it.** The 10
+`.postgres.test.mjs` files run `TRUNCATE "Users" CASCADE` and truncate
+`body_measurements` and `ai_privacy_profiles` in `beforeEach`. That is destructive
+by design and is only safe because `coachTestDatabase.mjs` refuses to read
+`DATABASE_URL`. **Do not "fix" that helper to fall back to the application
+connection string, and do not point `SWAN_COACH_TEST_PORT` at 5432 or 5433** —
+CLAUDE.md states local dev uses the production database via `DATABASE_URL`, so
+either change converts this suite into a production-data wipe.
+
+Root also did **not** run `npm run test:db` (`backend/scripts/test-db.mjs`): it
+loads `.env` (`:22-28`) and connects via `DATABASE_URL` when
+`NODE_ENV=production` (`:41-50`), so it is not a safe way to answer this question.
+
+Re-run the probe with
+`node tmp/coach-astra-hostile-20260912/find-test-db-port.mjs`; it is read-only
+(`SELECT 1` / `current_database()` / an information_schema count) and exits
+non-zero when no disposable container is found.
+
 ---
 
 ## Corrections this session (each one is a lesson, not an embarrassment to bury)
