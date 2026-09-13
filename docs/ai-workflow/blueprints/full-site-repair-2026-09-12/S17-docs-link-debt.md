@@ -369,7 +369,7 @@ One robustness addition, described exactly as implemented. The re-check is
   alongside it.
 
 **This does not make external hosts reliable, and the gate can still flap.**
-Measured across four full runs of the finished gate: three exited 0, and one
+Measured across five full runs of the finished gate: four exited 0, and one
 failed on `orthoinfo.aaos.org/en/diseases--conditions/common-knee-injuries/`,
 which `curl` served as HTTP 200 throughout and which the checker saw fail on five
 consecutive attempts during that window. That residual is inherent to checking
@@ -377,6 +377,25 @@ third-party URLs on a schedule; the response is to re-run the job, not to
 suppress a working link. What changed is the size of the blast radius: a flaky
 external host now fails one job with a named link, instead of the entire check
 being permanently red and ignored.
+
+**External reachability also differs by vantage point, which the ledger has to
+absorb.** The first CI run of this branch failed on ledger growth of exactly one
+link. Diffing CI's uploaded receipt against the local one named the difference
+precisely:
+
+| Link | Locally | In CI |
+|---|---|---|
+| `fda.gov/food/nutrition-facts-label/how-understand-and-use-nutrition-facts-label` | alive | **404** |
+| `fitnessnav.com/global-digital-nutrition-report-2026` (×2) | **404** | alive |
+| `scribd.com/digital-transformation-vr` (×2) | **404** | alive |
+
+So a baseline recorded on a Windows dev box and enforced on an Ubuntu runner can
+fail on links nobody changed. The `AI-HANDOFF` row is now recorded from CI — the
+environment that enforces it — at the higher observed value, with the provenance
+written into the manifest (`baselineNote`). That is not a tolerance: no slack is
+added, and any *new* dead link beyond the recorded count still fails the run. The
+one genuinely dead link this exposed (`fda.gov`) sits inside a frozen receipt and
+is therefore recorded as debt rather than repaired.
 
 The motivating case is real: `orthoinfo.aaos.org/…/common-knee-injuries/`
 returned HTTP 200 to `curl` while the checker saw status 0 and then 520 on
