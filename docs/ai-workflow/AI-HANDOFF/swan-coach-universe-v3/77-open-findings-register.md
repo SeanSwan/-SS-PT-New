@@ -418,6 +418,87 @@ Re-run the probe with
 (`SELECT 1` / `current_database()` / an information_schema count) and exits
 non-zero when no disposable container is found.
 
+### F2. The real-database gate — PARTIALLY EXECUTED, with a precise split
+
+Root ran it. This is the first time this session the disposable-Postgres gate has
+actually executed, and the result is a split, not a pass or a fail.
+
+**A fresh container is required, and it now exists as a recipe.** The container
+`swan-coach-review-01a09491` on port 55439 *is* the coach test DB
+(`coach_test_admin` / `coach_test_20260906`, `postgres:17-alpine`), but it was
+created **2026-09-12 by a previous session**, and the session's preload
+deliberately denies that exact port (`backend-post-hr11-preload.cjs`, `port===55439`)
+— a cross-contamination guard. Root respected it rather than circumventing it, and
+created its own container instead:
+
+```
+docker run --rm -d --name swan-coach-test-20260913 \
+  -p 127.0.0.1:55440:5432 \
+  -e POSTGRES_USER=coach_test_admin \
+  -e POSTGRES_DB=coach_test_20260906 \
+  -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17-alpine
+SWAN_COACH_TEST_PORT=55440
+```
+
+Loopback-only, synthetic user, no production credentials. The container was stopped
+afterwards; the review container was verified still `Up` and untouched.
+
+**Result: 7 of 10 suites PASS under isolation, against a freshly recreated database.**
+
+| Suite | Result |
+|---|---|
+| `coachReadAuthorization` | 18 passed |
+| `coachRuntimeEvidence` | 27 passed |
+| `coachWorkoutAtomic` | 13 passed |
+| `coachWorkoutDraft` | 7 passed |
+| `coachWorkoutDraft.astraHostile` | 3 passed |
+| `coachWorkoutIntent` | 24 passed |
+| `coachWorkoutReadback` | 15 passed |
+| **Total** | **107 tests, exit 0 per file** |
+
+**3 suites CANNOT run under isolation.** `coachIntent`, `coachIntent.proof` and
+`coachIntentListing` are `node:test` files (`import { before, after, test } from
+'node:test'`) that **do not use `coachTestDatabase.mjs`** and ignore
+`SWAN_COACH_TEST_PORT`. They resolve the application's own default connection
+(`Host: localhost`, `Port: 5432`, `Database: swanstudios`, `User: swanadmin`), which
+the preload then denies: **7 of 8 tests fail with
+`COACH_UNIT_EXTERNAL_OR_DATABASE_NETWORK_DENIED`**, and the one pass is a
+model/schema assertion that needs no live query. The earlier recorded matrix shows
+`coachIntent.postgres.test.mjs` green (8/8, exit 0) with `"runner": "node:test"`.
+**Under the isolation boundary that result is not reproducible** — so it was
+obtained by some other route, and nobody should treat those three as a passing gate
+until they honour the disposable-DB contract like the other seven.
+
+**Two traps found while running this, both worth not repeating.**
+
+1. **Running all 10 in ONE vitest invocation is invalid and produces false
+   failures.** It yielded `4 failed | 6 passed`, every failure being
+   `column "bodyMapHeadPhoto" of relation "Users" does not exist`. These suites
+   share a database and are not mutually isolated: an earlier suite creates `Users`
+   with a narrower column set, so a later suite's `User.sync()` emits
+   `CREATE TABLE IF NOT EXISTS` (silently skipped) and then
+   `COMMENT ON COLUMN "Users"."bodyMapHeadPhoto"` (fails, 42703). **Proven by
+   experiment, not inferred:** `coachReadAuthorization` fails in the batch and
+   passes **18/18 alone on a fresh database**. One file per reset, always.
+2. **The `Host: localhost / Port: 5432 / Database: swanstudios / User: swanadmin`
+   banner is a CONFIG ECHO printed at import, not evidence of a connection.** Root
+   read it as a successful connection to the application database and nearly
+   recorded a production-data breach. It was not: all seven failures were the
+   preload's `DENIED` error, i.e. the connection never happened. Recorded because
+   the banner is genuinely misleading and the next reader will meet it.
+
+**The isolation boundary itself was verified, with a control.** With the preload,
+port 5432 throws `COACH_UNIT_EXTERNAL_OR_DATABASE_NETWORK_DENIED` and 55440 connects;
+without the preload both connect. So the guard is sound and the probe is meaningful
+— the boundary held in every run above. Probe:
+`tmp/coach-astra-hostile-20260912/verify-preload-boundary.mjs`.
+
+**Recreate and re-run:** start the container above, then
+`tmp/coach-astra-hostile-20260912/run-postgres-matrix-serial.ps1 -OutDir <abs> -Port 55440`.
+Per-file logs land in the OutDir. **Do not use the single-invocation config** for a
+verdict, and **do not run the three `node:test` files unisolated** to make them pass
+— that is the INF-4 hazard.
+
 ---
 
 ## Corrections this session (each one is a lesson, not an embarrassment to bury)
