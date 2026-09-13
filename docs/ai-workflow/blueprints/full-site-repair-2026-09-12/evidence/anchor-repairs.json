@@ -1,0 +1,640 @@
+{
+  "tool": ".mega-blueprints/artifacts/docs-link-debt-20260913/fix-anchors.mjs",
+  "generatedAt": "2026-09-13T08:13:38.879Z",
+  "mode": "write",
+  "inputRoot": ".mega-blueprints/artifacts/docs-link-debt-20260913/.staging",
+  "baselineContent": "git HEAD — the pre-fix worktree content of the eight files.",
+  "inputRootNote": "inputRoot is where the analysed text came from. \".\" means the live worktree. When the repair has already landed, the pre-fix content is staged under inputRoot so this change log can still be regenerated; the repaired staging file is byte-identical to the worktree file it mirrors (verified by sha256 after the run).",
+  "slugAlgorithm": "markdown-link-check@3.14.2 extractSections() port (see file header)",
+  "resolutionPrecedence": [
+    "a. unique heading whose normalised label equals the link visible text",
+    "b. unique heading whose leading number matches the anchor leading number (N- -> N. / N), excluding N.M sub-headings",
+    "c. otherwise UNRESOLVED, file untouched at that anchor"
+  ],
+  "files": [
+    {
+      "file": "AI-Village-Documentation/SWANSTUDIOS-SOCIAL-STYLING-REFERENCE.md",
+      "headings": 146,
+      "anchorsScanned": 18,
+      "brokenBefore": 6,
+      "fixed": 6,
+      "unresolved": 0,
+      "stillBrokenAfter": 0,
+      "dispositionsApplied": [],
+      "changes": [
+        {
+          "line": 17,
+          "oldAnchor": "#5-styled-components",
+          "newAnchor": "#5-styled-components--full-css-in-js-code",
+          "matchedBy": "leading heading number",
+          "headingLine": 195,
+          "headingText": "## 5. Styled Components — Full CSS-in-JS Code",
+          "linkText": "Styled Components — Full CSS-in-JS Code"
+        },
+        {
+          "line": 38,
+          "oldAnchor": "#6-component-hierarchy",
+          "newAnchor": "#6-component-hierarchy--data-flow",
+          "matchedBy": "leading heading number",
+          "headingLine": 769,
+          "headingText": "## 6. Component Hierarchy & Data Flow",
+          "linkText": "Component Hierarchy & Data Flow"
+        },
+        {
+          "line": 39,
+          "oldAnchor": "#7-haptic-moderation",
+          "newAnchor": "#7-haptic-moderation-system",
+          "matchedBy": "leading heading number",
+          "headingLine": 826,
+          "headingText": "## 7. Haptic Moderation System",
+          "linkText": "Haptic Moderation System"
+        },
+        {
+          "line": 41,
+          "oldAnchor": "#9-rarity-status-badges",
+          "newAnchor": "#9-rarity--status-badge-spec",
+          "matchedBy": "leading heading number",
+          "headingLine": 893,
+          "headingText": "## 9. Rarity / Status Badge Spec",
+          "linkText": "Rarity / Status Badge Spec"
+        },
+        {
+          "line": 42,
+          "oldAnchor": "#10-true-glass-surface",
+          "newAnchor": "#10-true-glass-surface-spec",
+          "matchedBy": "leading heading number",
+          "headingLine": 912,
+          "headingText": "## 10. True Glass Surface Spec",
+          "linkText": "True Glass Surface Spec"
+        },
+        {
+          "line": 43,
+          "oldAnchor": "#11-spring-motion-animation",
+          "newAnchor": "#11-spring-motion--animation-spec",
+          "matchedBy": "leading heading number",
+          "headingLine": 948,
+          "headingText": "## 11. Spring Motion & Animation Spec",
+          "linkText": "Spring Motion & Animation Spec"
+        }
+      ],
+      "unresolvedAnchors": [],
+      "remainingBrokenAnchors": []
+    },
+    {
+      "file": "docs/ai-workflow/ADMIN-VIDEO-LIBRARY-BACKEND-IMPLEMENTATION-PLAN.md",
+      "headings": 44,
+      "anchorsScanned": 7,
+      "brokenBefore": 0,
+      "fixed": 0,
+      "unresolved": 0,
+      "stillBrokenAfter": 0,
+      "dispositionsApplied": [
+        {
+          "id": "B",
+          "kind": "structure",
+          "status": "applied",
+          "line": 585,
+          "before": "# Import adminVideoRoutes\r\n\r\n**Total Files to Create:** 10 files",
+          "after": "# Import adminVideoRoutes\r\n```\r\n\r\n**Total Files to Create:** 10 files",
+          "expectedAnchor": "#testing-strategy",
+          "why": "The bare ``` opened at old line 565 to show the proposed backend/ file tree, but was never closed. markdown-link-check's removeCodeBlocks() therefore swallowed every line up to the next exactly-``` line (old line 622), which hid the real headings \"## Testing Strategy\" and \"### Unit Tests (Backend)\" from the checker and rendered two prose lines as code. Closing the fence immediately after the tree's last line (the `└── routes.mjs` entry) restores the intended boundary: the tree stays one code block and the javascript block that follows (previously swallowed whole) becomes a normal fenced block again."
+        }
+      ],
+      "changes": [],
+      "unresolvedAnchors": [],
+      "remainingBrokenAnchors": []
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "headings": 55,
+      "anchorsScanned": 9,
+      "brokenBefore": 7,
+      "fixed": 7,
+      "unresolved": 0,
+      "stillBrokenAfter": 0,
+      "dispositionsApplied": [
+        {
+          "id": "A1",
+          "kind": "heading",
+          "status": "applied",
+          "line": 49,
+          "before": "## 🏗️ CONTEXT & PREREQUISITES",
+          "after": "## CONTEXT & PREREQUISITES",
+          "expectedAnchor": "#context--prerequisites",
+          "why": "VS16 (U+FE0F) in the heading made the gate slug and GitHub slug differ; stripping the emoji makes both engines agree."
+        },
+        {
+          "id": "A2",
+          "kind": "heading",
+          "status": "applied",
+          "line": 1098,
+          "before": "## 🏗️ ARCHITECTURE & DATA FLOW",
+          "after": "## ARCHITECTURE & DATA FLOW",
+          "expectedAnchor": "#architecture--data-flow",
+          "why": "Same VS16 divergence as A1."
+        },
+        {
+          "id": "D",
+          "kind": "delink",
+          "status": "applied",
+          "line": 21,
+          "before": "7. [Implementation Details](#implementation-details)",
+          "after": "7. Implementation Details (no such section exists in this document — the heading below is Architecture & Data Flow)",
+          "expectedAnchor": null,
+          "why": "The TOC promises an \"Implementation Details\" section that was never written — no ## or ### heading in the file carries that meaning (the implementation work lives inside \"## 📊 TASK BREAKDOWN\"). The entry keeps its number and text; only the hyperlink is removed, with the absence stated so a reader is not left guessing."
+        }
+      ],
+      "changes": [
+        {
+          "line": 15,
+          "oldAnchor": "#executive-summary",
+          "newAnchor": "#-executive-summary",
+          "matchedBy": "visible link text",
+          "headingLine": 28,
+          "headingText": "## 🎯 EXECUTIVE SUMMARY",
+          "linkText": "Executive Summary"
+        },
+        {
+          "line": 17,
+          "oldAnchor": "#quality-standards",
+          "newAnchor": "#-quality-standards",
+          "matchedBy": "visible link text",
+          "headingLine": 102,
+          "headingText": "## 🎨 QUALITY STANDARDS",
+          "linkText": "Quality Standards"
+        },
+        {
+          "line": 18,
+          "oldAnchor": "#phase-2-objectives",
+          "newAnchor": "#-phase-2-objectives",
+          "matchedBy": "visible link text",
+          "headingLine": 244,
+          "headingText": "## 🎯 PHASE 2 OBJECTIVES",
+          "linkText": "Phase 2 Objectives"
+        },
+        {
+          "line": 19,
+          "oldAnchor": "#task-breakdown",
+          "newAnchor": "#-task-breakdown",
+          "matchedBy": "visible link text",
+          "headingLine": 262,
+          "headingText": "## 📊 TASK BREAKDOWN",
+          "linkText": "Task Breakdown"
+        },
+        {
+          "line": 22,
+          "oldAnchor": "#testing-requirements",
+          "newAnchor": "#-testing-requirements",
+          "matchedBy": "visible link text",
+          "headingLine": 1165,
+          "headingText": "## 🧪 TESTING REQUIREMENTS",
+          "linkText": "Testing Requirements"
+        },
+        {
+          "line": 23,
+          "oldAnchor": "#success-criteria",
+          "newAnchor": "#-success-criteria",
+          "matchedBy": "visible link text",
+          "headingLine": 1218,
+          "headingText": "## ✅ SUCCESS CRITERIA",
+          "linkText": "Success Criteria"
+        },
+        {
+          "line": 24,
+          "oldAnchor": "#ai-village-coordination",
+          "newAnchor": "#-ai-village-coordination",
+          "matchedBy": "visible link text",
+          "headingLine": 1248,
+          "headingText": "## 🤝 AI VILLAGE COORDINATION",
+          "linkText": "AI Village Coordination"
+        }
+      ],
+      "unresolvedAnchors": [],
+      "remainingBrokenAnchors": []
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md",
+      "headings": 127,
+      "anchorsScanned": 22,
+      "brokenBefore": 7,
+      "fixed": 7,
+      "unresolved": 0,
+      "stillBrokenAfter": 0,
+      "dispositionsApplied": [
+        {
+          "id": "C1",
+          "kind": "anchor",
+          "status": "applied",
+          "line": 34,
+          "before": "](#appendix-b-1rm-conversion-chart)",
+          "after": "](#appendix-b-1rm-conversion-chart-51000-lbs)",
+          "expectedAnchor": "#appendix-b-1rm-conversion-chart-51000-lbs",
+          "why": "Truncated prefix of the real heading slug; the parenthetical \"(5–1000 lbs)\" is part of the heading."
+        },
+        {
+          "id": "C2",
+          "kind": "anchor",
+          "status": "applied",
+          "line": 35,
+          "before": "](#appendix-c-full-exercise-database)",
+          "after": "](#appendix-c-full-exercise-database-500-exercises-by-category)",
+          "expectedAnchor": "#appendix-c-full-exercise-database-500-exercises-by-category",
+          "why": "Truncated prefix of the real heading slug; the parenthetical is part of the heading."
+        }
+      ],
+      "changes": [
+        {
+          "line": 15,
+          "oldAnchor": "#2-7-star-documentation-standard",
+          "newAnchor": "#2-7-star-documentation-standard-new-mandatory",
+          "matchedBy": "leading heading number",
+          "headingLine": 77,
+          "headingText": "## 2. 7-Star Documentation Standard (NEW MANDATORY)",
+          "linkText": "7-Star Documentation Standard (NEW MANDATORY)"
+        },
+        {
+          "line": 16,
+          "oldAnchor": "#3-no-monolith-file-rule",
+          "newAnchor": "#3-no-monolith-file-rule-new-mandatory",
+          "matchedBy": "leading heading number",
+          "headingLine": 171,
+          "headingText": "## 3. No-Monolith File Rule (NEW MANDATORY)",
+          "linkText": "No-Monolith File Rule (NEW MANDATORY)"
+        },
+        {
+          "line": 18,
+          "oldAnchor": "#5-nasm-opt-model-integration",
+          "newAnchor": "#5-nasm-opt-model-integration-new",
+          "matchedBy": "leading heading number",
+          "headingLine": 293,
+          "headingText": "## 5. NASM OPT Model Integration (NEW)",
+          "linkText": "NASM OPT Model Integration (NEW)"
+        },
+        {
+          "line": 19,
+          "oldAnchor": "#6-1rm-conversion-engine",
+          "newAnchor": "#6-1rm-conversion-engine-new",
+          "matchedBy": "leading heading number",
+          "headingLine": 451,
+          "headingText": "## 6. 1RM Conversion Engine (NEW)",
+          "linkText": "1RM Conversion Engine (NEW)"
+        },
+        {
+          "line": 20,
+          "oldAnchor": "#7-nasm-calculator-suite",
+          "newAnchor": "#7-nasm-calculator-suite-new",
+          "matchedBy": "leading heading number",
+          "headingLine": 574,
+          "headingText": "## 7. NASM Calculator Suite (NEW)",
+          "linkText": "NASM Calculator Suite (NEW)"
+        },
+        {
+          "line": 21,
+          "oldAnchor": "#8-comprehensive-exercise-database",
+          "newAnchor": "#8-comprehensive-exercise-database--500-exercises-expanded",
+          "matchedBy": "leading heading number",
+          "headingLine": 712,
+          "headingText": "## 8. Comprehensive Exercise Database — 500+ Exercises (EXPANDED)",
+          "linkText": "Comprehensive Exercise Database — 500+ Exercises (EXPANDED)"
+        },
+        {
+          "line": 22,
+          "oldAnchor": "#9-nasm-standard-workout-forms",
+          "newAnchor": "#9-nasm-standard-workout-forms-new",
+          "matchedBy": "leading heading number",
+          "headingLine": 829,
+          "headingText": "## 9. NASM-Standard Workout Forms (NEW)",
+          "linkText": "NASM-Standard Workout Forms (NEW)"
+        }
+      ],
+      "unresolvedAnchors": [],
+      "remainingBrokenAnchors": []
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT.md",
+      "headings": 79,
+      "anchorsScanned": 11,
+      "brokenBefore": 1,
+      "fixed": 1,
+      "unresolved": 0,
+      "stillBrokenAfter": 0,
+      "dispositionsApplied": [],
+      "changes": [
+        {
+          "line": 13,
+          "oldAnchor": "#2-blueprint-first-protocol",
+          "newAnchor": "#2-blueprint-first-protocol-new-mandatory",
+          "matchedBy": "leading heading number",
+          "headingLine": 49,
+          "headingText": "## 2. Blueprint-First Protocol (NEW MANDATORY)",
+          "linkText": "Blueprint-First Protocol (NEW MANDATORY)"
+        }
+      ],
+      "unresolvedAnchors": [],
+      "remainingBrokenAnchors": []
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "headings": 77,
+      "anchorsScanned": 13,
+      "brokenBefore": 12,
+      "fixed": 12,
+      "unresolved": 0,
+      "stillBrokenAfter": 0,
+      "dispositionsApplied": [],
+      "changes": [
+        {
+          "line": 15,
+          "oldAnchor": "#2-chart-data-pipeline",
+          "newAnchor": "#2-chart-data-pipeline--connect-victory-charts-to-real-api",
+          "matchedBy": "leading heading number",
+          "headingLine": 69,
+          "headingText": "## 2. CHART DATA PIPELINE — Connect Victory Charts to Real API",
+          "linkText": "Chart Data Pipeline — Connect Victory Charts to Real API"
+        },
+        {
+          "line": 16,
+          "oldAnchor": "#3-exercise-rolodex-chart",
+          "newAnchor": "#3-exercise-rolodex-chart--all-time-exercise-history",
+          "matchedBy": "leading heading number",
+          "headingLine": 128,
+          "headingText": "## 3. EXERCISE ROLODEX CHART — All-Time Exercise History",
+          "linkText": "Exercise Rolodex Chart — All-Time Exercise History"
+        },
+        {
+          "line": 17,
+          "oldAnchor": "#4-sports-goal-system",
+          "newAnchor": "#4-sports-goal-system--expanded-goal-categories",
+          "matchedBy": "leading heading number",
+          "headingLine": 235,
+          "headingText": "## 4. SPORTS GOAL SYSTEM — Expanded Goal Categories",
+          "linkText": "Sports Goal System — Expanded Goal Categories"
+        },
+        {
+          "line": 18,
+          "oldAnchor": "#5-ai-assistant-upgrades",
+          "newAnchor": "#5-ai-assistant-upgrades--swanstudios-assistant",
+          "matchedBy": "leading heading number",
+          "headingLine": 305,
+          "headingText": "## 5. AI ASSISTANT UPGRADES — SwanStudios Assistant",
+          "linkText": "AI Assistant Upgrades — SwanStudios Assistant"
+        },
+        {
+          "line": 19,
+          "oldAnchor": "#6-trainer-admin-client-panel",
+          "newAnchor": "#6-trainer--admin-client-panel--chart-visibility",
+          "matchedBy": "leading heading number",
+          "headingLine": 419,
+          "headingText": "## 6. TRAINER & ADMIN CLIENT PANEL — Chart Visibility",
+          "linkText": "Trainer & Admin Client Panel — Chart Visibility"
+        },
+        {
+          "line": 20,
+          "oldAnchor": "#7-user-dashboard-social-profile",
+          "newAnchor": "#7-user-dashboard--social-profile--chart-integration",
+          "matchedBy": "leading heading number",
+          "headingLine": 461,
+          "headingText": "## 7. USER DASHBOARD / SOCIAL PROFILE — Chart Integration",
+          "linkText": "User Dashboard / Social Profile — Chart Integration"
+        },
+        {
+          "line": 21,
+          "oldAnchor": "#8-gamification-integration",
+          "newAnchor": "#8-gamification-integration--exercise-challenges",
+          "matchedBy": "leading heading number",
+          "headingLine": 508,
+          "headingText": "## 8. GAMIFICATION INTEGRATION — Exercise Challenges",
+          "linkText": "Gamification Integration — Exercise Challenges"
+        },
+        {
+          "line": 22,
+          "oldAnchor": "#9-new-backend-endpoints",
+          "newAnchor": "#9-new-backend-endpoints-required",
+          "matchedBy": "leading heading number",
+          "headingLine": 534,
+          "headingText": "## 9. NEW BACKEND ENDPOINTS REQUIRED",
+          "linkText": "New Backend Endpoints Required"
+        },
+        {
+          "line": 23,
+          "oldAnchor": "#10-new-frontend-components",
+          "newAnchor": "#10-new-frontend-components-required",
+          "matchedBy": "leading heading number",
+          "headingLine": 565,
+          "headingText": "## 10. NEW FRONTEND COMPONENTS REQUIRED",
+          "linkText": "New Frontend Components Required"
+        },
+        {
+          "line": 24,
+          "oldAnchor": "#11-claudemd-updates",
+          "newAnchor": "#11-claudemd-updates-required",
+          "matchedBy": "leading heading number",
+          "headingLine": 580,
+          "headingText": "## 11. CLAUDE.MD UPDATES REQUIRED",
+          "linkText": "CLAUDE.md Updates Required"
+        },
+        {
+          "line": 25,
+          "oldAnchor": "#12-implementation-order",
+          "newAnchor": "#12-implementation-order-ai-village-validated--ceo-approved",
+          "matchedBy": "leading heading number",
+          "headingLine": 609,
+          "headingText": "## 12. IMPLEMENTATION ORDER (AI Village Validated + CEO Approved)",
+          "linkText": "Implementation Order"
+        },
+        {
+          "line": 26,
+          "oldAnchor": "#13-ceo-overrides",
+          "newAnchor": "#13-ceo-overrides--design-decisions",
+          "matchedBy": "leading heading number",
+          "headingLine": 661,
+          "headingText": "## 13. CEO OVERRIDES & DESIGN DECISIONS",
+          "linkText": "CEO Overrides & Design Decisions"
+        }
+      ],
+      "unresolvedAnchors": [],
+      "remainingBrokenAnchors": []
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/SUBSCRIPTION-STORE-MASTER-BUILD-PLAN.md",
+      "headings": 66,
+      "anchorsScanned": 15,
+      "brokenBefore": 6,
+      "fixed": 6,
+      "unresolved": 0,
+      "stillBrokenAfter": 0,
+      "dispositionsApplied": [],
+      "changes": [
+        {
+          "line": 22,
+          "oldAnchor": "#3-subscription-tiers",
+          "newAnchor": "#3-subscription-tiers-final",
+          "matchedBy": "leading heading number",
+          "headingLine": 73,
+          "headingText": "## 3. Subscription Tiers (FINAL)",
+          "linkText": "Subscription Tiers"
+        },
+        {
+          "line": 24,
+          "oldAnchor": "#5-build-phases",
+          "newAnchor": "#5-build-phases-priority-order",
+          "matchedBy": "leading heading number",
+          "headingLine": 280,
+          "headingText": "## 5. Build Phases (Priority Order)",
+          "linkText": "Build Phases"
+        },
+        {
+          "line": 28,
+          "oldAnchor": "#9-phase-4-global-paywall",
+          "newAnchor": "#9-phase-4-global-paywall-402-interceptor",
+          "matchedBy": "leading heading number",
+          "headingLine": 387,
+          "headingText": "## 9. Phase 4: Global Paywall (402 Interceptor)",
+          "linkText": "Phase 4: Global Paywall (402 Interceptor)"
+        },
+        {
+          "line": 31,
+          "oldAnchor": "#12-phase-7-anti-abuse",
+          "newAnchor": "#12-phase-7-usage-monitoring--anti-abuse",
+          "matchedBy": "leading heading number",
+          "headingLine": 482,
+          "headingText": "## 12. Phase 7: Usage Monitoring + Anti-Abuse",
+          "linkText": "Phase 7: Anti-Abuse & Security"
+        },
+        {
+          "line": 32,
+          "oldAnchor": "#13-phase-8-onboarding",
+          "newAnchor": "#13-phase-8-onboarding--tour",
+          "matchedBy": "leading heading number",
+          "headingLine": 556,
+          "headingText": "## 13. Phase 8: Onboarding & Tour",
+          "linkText": "Phase 8: Onboarding & Tour"
+        },
+        {
+          "line": 34,
+          "oldAnchor": "#15-risks",
+          "newAnchor": "#15-risks--mitigations",
+          "matchedBy": "leading heading number",
+          "headingLine": 621,
+          "headingText": "## 15. Risks & Mitigations",
+          "linkText": "Risks & Mitigations"
+        }
+      ],
+      "unresolvedAnchors": [],
+      "remainingBrokenAnchors": []
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "headings": 50,
+      "anchorsScanned": 10,
+      "brokenBefore": 8,
+      "fixed": 8,
+      "unresolved": 0,
+      "stillBrokenAfter": 0,
+      "dispositionsApplied": [
+        {
+          "id": "A3",
+          "kind": "heading",
+          "status": "applied",
+          "line": 99,
+          "before": "## 🖥️ USER INTERFACE LAYOUT",
+          "after": "## USER INTERFACE LAYOUT",
+          "expectedAnchor": "#user-interface-layout",
+          "why": "Same VS16 divergence as A1 (U+1F5A5 U+FE0F)."
+        },
+        {
+          "id": "A4",
+          "kind": "heading",
+          "status": "applied",
+          "line": 262,
+          "before": "## 🏋️ BOOT CAMP MODE",
+          "after": "## BOOT CAMP MODE",
+          "expectedAnchor": "#boot-camp-mode",
+          "why": "Same VS16 divergence as A1 (U+1F3CB U+FE0F)."
+        }
+      ],
+      "changes": [
+        {
+          "line": 13,
+          "oldAnchor": "#overview",
+          "newAnchor": "#-overview",
+          "matchedBy": "visible link text",
+          "headingLine": 26,
+          "headingText": "## 📚 OVERVIEW",
+          "linkText": "Overview"
+        },
+        {
+          "line": 14,
+          "oldAnchor": "#design-principles",
+          "newAnchor": "#-design-principles",
+          "matchedBy": "visible link text",
+          "headingLine": 66,
+          "headingText": "## 🎨 DESIGN PRINCIPLES",
+          "linkText": "Design Principles"
+        },
+        {
+          "line": 16,
+          "oldAnchor": "#personal-training-mode",
+          "newAnchor": "#-personal-training-mode",
+          "matchedBy": "visible link text",
+          "headingLine": 132,
+          "headingText": "## 🧑‍🏫 PERSONAL TRAINING MODE",
+          "linkText": "Personal Training Mode"
+        },
+        {
+          "line": 18,
+          "oldAnchor": "#navigation--toggle-system",
+          "newAnchor": "#-navigation--toggle-system",
+          "matchedBy": "visible link text",
+          "headingLine": 500,
+          "headingText": "## 🔀 NAVIGATION & TOGGLE SYSTEM",
+          "linkText": "Navigation & Toggle System"
+        },
+        {
+          "line": 19,
+          "oldAnchor": "#responsive-design",
+          "newAnchor": "#-responsive-design",
+          "matchedBy": "visible link text",
+          "headingLine": 555,
+          "headingText": "## 📱 RESPONSIVE DESIGN",
+          "linkText": "Responsive Design"
+        },
+        {
+          "line": 20,
+          "oldAnchor": "#galaxy-swan-theme-integration",
+          "newAnchor": "#-galaxy-swan-theme-integration",
+          "matchedBy": "visible link text",
+          "headingLine": 619,
+          "headingText": "## 🎨 GALAXY-SWAN THEME INTEGRATION",
+          "linkText": "Galaxy-Swan Theme Integration"
+        },
+        {
+          "line": 21,
+          "oldAnchor": "#data-flow--api-integration",
+          "newAnchor": "#-data-flow--api-integration",
+          "matchedBy": "visible link text",
+          "headingLine": 655,
+          "headingText": "## 🔄 DATA FLOW & API INTEGRATION",
+          "linkText": "Data Flow & API Integration"
+        },
+        {
+          "line": 22,
+          "oldAnchor": "#implementation-roadmap",
+          "newAnchor": "#-implementation-roadmap",
+          "matchedBy": "visible link text",
+          "headingLine": 732,
+          "headingText": "## 🚀 IMPLEMENTATION ROADMAP",
+          "linkText": "Implementation Roadmap"
+        }
+      ],
+      "unresolvedAnchors": [],
+      "remainingBrokenAnchors": []
+    }
+  ],
+  "totals": {
+    "dispositions": 8,
+    "changes": 47,
+    "unresolved": 0,
+    "stillBrokenAfter": 0
+  }
+}

@@ -418,20 +418,32 @@ a hard error rather than a silent behaviour change.
 
 ### Where the evidence lives
 
-Some numbers in this document are reproducible from a clone; some are not, and
-the difference is stated rather than blurred:
+The evidence is committed alongside this record, in
+[`evidence/`](evidence/README.md) (32 files, ~880 KB). That pack contains the
+reproducible tooling, the receipts the numbers are quoted from, and the RED/GREEN
+transcripts, so a reviewer without this machine can re-derive the claims.
 
-- **Reproducible from the repository:** the gate's behaviour, the scope
-  partition, and the ledger comparison (`node scripts/ci/check-docs-links.mjs`
-  and the guard tests). A reader can re-run these and get the same answers.
-- **Not reproducible from a clone:** the pre-repair baselines (105, 92, the CI
-  log's 1870/105/3740) and the analysis scripts that derive them. They live under
-  `.mega-blueprints/artifacts/docs-link-debt-20260913/`, which is **untracked and
-  not gitignored** — an earlier draft cited `.gitignore:521`, which is wrong twice
-  over (that line is blank, and `git check-ignore` does not match the path). It
-  travels as local evidence in the handoff package rather than in the repository,
-  by the packet's convention. The CI log they are derived from is itself a release
-  artifact of the parent packet.
+Two things are deliberately **not** in the pack, and are listed in its README:
+
+- the raw CI job log (~2 MB) — it belongs to the parent packet's release
+  artifacts and is not in this repository;
+- the nine `gate-*.json` run receipts (~780 KB each) and `.log` transcripts —
+  near-duplicates that one command regenerates, and the final one is attached to
+  the pull request's CI run as the `docs-link-check-receipt` artifact.
+
+Where a number depends only on committed material — the gate's behaviour, the
+scope partition, the ledger comparison, and the guard tests — it is reproducible
+from a clone:
+
+```powershell
+npm ci --ignore-scripts
+node --test scripts/ci/__tests__/docsLinkScope.test.mjs
+node scripts/ci/check-docs-links.mjs
+```
+
+Earlier drafts of this section said the evidence was gitignored and cited
+`.gitignore:521`; that was wrong twice over (the line is blank, and the path
+matches no ignore rule). It has since been committed, which is the better answer.
 
 ## 7. Acceptance criteria
 
