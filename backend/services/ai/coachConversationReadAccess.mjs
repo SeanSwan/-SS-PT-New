@@ -128,8 +128,16 @@ function metadata(row, input) {
     || !['active', 'archived'].includes(value.status) || !input.audiences.includes(value.role)) return null;
   const targetUserId = value.targetUserId === null ? null : parseContextClientId(value.targetUserId);
   if (targetUserId === null && value.targetUserId !== null) return null;
-  if (!STAFF.has(input.actor.role) && targetUserId !== input.actor.id) return null;
-  return { ...pick(value, META_ATTRIBUTES), id: parseContextClientId(value.id), userId: input.actor.id, targetUserId };
+  // HR15-R1: a client conversation is created without a target, so an explicit
+  // stored null is the normal self representation for an exact owned
+  // raw-client/role-client record. The effective authorization target is local
+  // argument state only: `targetUserId` below stays the stored representation in
+  // every predicate, comparison and serialized response. A raw `user` actor is
+  // never aliased into the client audience, and null is no grant to another row.
+  const selfNullTarget = targetUserId === null && input.actor.role === 'client' && value.role === 'client';
+  if (!STAFF.has(input.actor.role) && !selfNullTarget && targetUserId !== input.actor.id) return null;
+  return { ...pick(value, META_ATTRIBUTES), id: parseContextClientId(value.id), userId: input.actor.id, targetUserId,
+    accessTargetUserId: selfNullTarget ? input.actor.id : targetUserId };
 }
 
 async function currentTargetAccess(scope, input, targetUserId, db) {
@@ -193,7 +201,7 @@ export async function readCoachConversationList(scope, input, { Conversation, db
   }));
   if (!Array.isArray(rows) || rows.length > input.limit) throw unavailable();
   const candidates = rows.map(row => ({ row: plain(row), meta: metadata(row, input) }));
-  const targets = [...new Set(candidates.filter(item => item.meta).map(item => item.meta.targetUserId))];
+  const targets = [...new Set(candidates.filter(item => item.meta).map(item => item.meta.accessTargetUserId))];
   const decisions = new Map();
   let next = 0;
   const worker = async () => {
@@ -206,7 +214,7 @@ export async function readCoachConversationList(scope, input, { Conversation, db
   };
   await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT_CHECKS, targets.length) }, worker));
   scope.assertCurrent();
-  const conversations = candidates.filter(item => item.meta && decisions.get(item.meta.targetUserId) === true)
+  const conversations = candidates.filter(item => item.meta && decisions.get(item.meta.accessTargetUserId) === true)
     .map(item => pick({ ...item.row, targetUserId: item.meta.targetUserId }, COACH_SUMMARY_ATTRIBUTES));
   const full = rows.length === input.limit;
   return { success: true, conversations, total: null, totalIsExact: false,
@@ -216,14 +224,14 @@ export async function readCoachConversationList(scope, input, { Conversation, db
 
 export async function readCoachConversationDetail(scope, input, { Conversation, db, sanitizeMetadata }) {
   const meta = await ownedMetadata(scope, input, Conversation);
-  if (!await currentTargetAccess(scope, input, meta.targetUserId, db)) fail('COACH_TARGET_ACCESS_DENIED');
+  if (!await currentTargetAccess(scope, input, meta.accessTargetUserId, db)) fail('COACH_TARGET_ACCESS_DENIED');
   const found = plain(await scope.run(() => Conversation.findOne({
     where: pick(meta, META_ATTRIBUTES), attributes: DETAIL_ATTRIBUTES,
   })));
   const current = metadata(found, input);
   if (!current || META_ATTRIBUTES.some(key => current[key] !== meta[key])) fail('COACH_CONVERSATION_NOT_FOUND');
   // A previous receipt/memo is not a lease. Recheck after the payload read.
-  if (!await currentTargetAccess(scope, input, meta.targetUserId, db)) fail('COACH_TARGET_ACCESS_DENIED');
+  if (!await currentTargetAccess(scope, input, meta.accessTargetUserId, db)) fail('COACH_TARGET_ACCESS_DENIED');
   scope.assertCurrent();
   return { success: true, conversation: { ...pick(found, COACH_SUMMARY_ATTRIBUTES), targetUserId: meta.targetUserId,
     messages: found.messages, metadata: sanitizeMetadata(found.metadata) } };

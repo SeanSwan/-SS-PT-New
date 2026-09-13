@@ -265,7 +265,11 @@ describe('G04RA bounded work, lifecycle and publication',()=>{
   });
   it('client readers get only owned self-target permitted audience and cannot use staff admission',async()=>{
     mocks.account.role='client';mocks.rows=[row({role:'client',targetUserId:7}),row({id:9002,role:'client',targetUserId:42}),row({id:9003,role:'client',targetUserId:null})];
-    const list=await get('/conversations');expect(list.body.conversations.map(r=>r.id)).toEqual([9001]);expect((await get('/conversations/9001')).status).toBe(200);expect((await get('/conversations/9002')).status).toBe(404);
+    const list=await get('/conversations');
+    // HR15-R1/R2: 9001 is explicit-self and 9003 is the stored-null shape a
+    // normal client create produces. Both are the client's own readable threads;
+    // 9002 targets a different client and stays out.
+    expect(list.body.conversations.map(r=>r.id)).toEqual([9001,9003]);expect((await get('/conversations/9001')).status).toBe(200);expect((await get('/conversations/9003')).status).toBe(200);expect((await get('/conversations/9002')).status).toBe(404);
     expect((await get('/target-access?targetUserId=7')).status).toBe(403);
   });
   it.each(['admin','unknown','trainer&audienceRole=client',''])('denies or rejects invalid current audience %s',async audience=>{
@@ -398,5 +402,153 @@ describe('G04RA failover-trace metadata privacy through the mounted router', () 
     expect(read.status).toBe(200);
     expect(read.body.conversation.metadata.failoverTrace).toEqual(['gemini:provider_error','openai:success']);
     expect(JSON.stringify(read.body)).not.toContain(PRIVATE_DETAIL);
+  });
+});
+
+// HR15 (plan 65): POST /api/ai-chat/conversations omits targetUserId for a
+// client thread, so a normally created client conversation is stored with an
+// explicit null target (aiChatRoutes.mjs:391-436). These run the mounted router
+// with real protect/JWT, the real read helper, the real canonical client access
+// gate and the real metadata sanitizer; only model storage is mocked, exactly as
+// the suites above do. The stored null and an explicit self ID are distinct
+// representations and must both survive to the response unchanged.
+describe('HR15 client self-conversation read compatibility', () => {
+  const asClient = () => { mocks.account = { id: 7, role: 'client', isActive: true, isLocked: false }; };
+  const ownRow = (over = {}) => row({ id: 13, userId: 7, role: 'client', targetUserId: null,
+    title: 'SYNTHETIC HR15 OWN THREAD', ...over });
+  const createOwnThread = async () => {
+    mocks.createConversation.mockImplementation(async payload => ({
+      id: 13, ...payload,
+      targetUserId: payload.targetUserId === undefined ? null : payload.targetUserId,
+      status: 'active', messageCount: 0, lastMessageAt: null, createdAt: new Date('2026-09-12'),
+    }));
+    const created = await request(app).post('/api/ai-chat/conversations')
+      .set('Authorization', 'Bearer ' + token())
+      .send({ context: 'coach_assistant', audienceRole: 'client', title: 'SYNTHETIC HR15 OWN THREAD' });
+    return created;
+  };
+
+  it('HR15-R1/T01 lists and opens the normally created null-target client thread with the stored null intact', async () => {
+    asClient();
+    const created = await createOwnThread();
+    expect(created.status).toBe(201);
+    expect(created.body.conversation).toMatchObject({ id: 13, role: 'client', targetUserId: null });
+    // The normal create never sends a target for a client actor: the stored null
+    // is the real shape, not a synthetic fixture choice.
+    expect(mocks.createConversation.mock.calls[0][0]).not.toHaveProperty('targetUserId');
+    mocks.rows = [ownRow()];
+
+    const detail = await get('/conversations/13?audienceRole=client');
+    expect(detail.body.code).toBeUndefined();
+    expect(detail.status).toBe(200);
+    expect(detail.body.conversation).toMatchObject({ id: 13, role: 'client', targetUserId: null });
+    expect(detail.body.conversation.messages).toEqual(ownRow().messages);
+    expect(detail.headers['cache-control']).toBe('no-store');
+    expect(JSON.stringify(detail.body)).not.toContain('accessTarget');
+
+    const list = await get('/conversations?status=active&limit=50&audienceRole=client');
+    expect(list.status).toBe(200);
+    const listed = list.body.conversations.find(item => item.id === 13);
+    expect(listed).toBeDefined();
+    expect(listed.targetUserId).toBeNull();
+    expect(list.headers['cache-control']).toBe('no-store');
+    expect(list.headers.vary).toContain('Authorization');
+
+    // Client self access is the canonical gate's `self` branch: no relationship SQL.
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('HR15-R1 archives stay readable for the same owner', async () => {
+    asClient();
+    mocks.rows = [ownRow({ status: 'archived' })];
+    const list = await get('/conversations?status=archived&audienceRole=client');
+    expect(list.body.conversations.map(item => item.id)).toEqual([13]);
+    expect((await get('/conversations/13')).status).toBe(200);
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('HR15-R2 keeps explicit-self readable and distinct from stored null', async () => {
+    asClient();
+    mocks.rows = [ownRow(), ownRow({ id: 14, targetUserId: 7, title: 'SYNTHETIC HR15 EXPLICIT SELF' })];
+    const list = await get('/conversations?limit=50&audienceRole=client');
+    expect(list.body.conversations.map(item => [item.id, item.targetUserId])).toEqual([[13, null], [14, 7]]);
+    expect((await get('/conversations/13')).body.conversation.targetUserId).toBeNull();
+    expect((await get('/conversations/14')).body.conversation.targetUserId).toBe(7);
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('HR15-R3/T02 denies a foreign owner, another target, a staff-role thread and malformed targets', async () => {
+    asClient();
+    const deniedRow = (over = {}) => ownRow({ title: 'SYNTHETIC PRIVATE DENIED THREAD', ...over });
+    mocks.rows = [ownRow(), deniedRow({ id: 21, userId: 8 }), deniedRow({ id: 22, targetUserId: 99 }),
+      deniedRow({ id: 23, role: 'trainer' }), deniedRow({ id: 24, status: 'deleted' }),
+      deniedRow({ id: 31, targetUserId: undefined }), deniedRow({ id: 32, targetUserId: 0 }), deniedRow({ id: 33, targetUserId: 'broken' })];
+    const list = await get('/conversations?limit=50&audienceRole=client');
+    expect(list.status).toBe(200);
+    expect(list.body.conversations.map(item => item.id)).toEqual([13]);
+    expect(JSON.stringify(list.body)).not.toContain('PRIVATE');
+    for (const denied of [21, 22, 23, 24, 31, 32, 33]) {
+      const res = await get('/conversations/' + denied);
+      expect(res.status).toBe(404);
+      expect(res.body.code).toBe('COACH_CONVERSATION_NOT_FOUND');
+      expect(JSON.stringify(res.body)).not.toContain('PRIVATE');
+    }
+    // A denied metadata row never reaches the payload read or the sanitizer.
+    expect(mocks.findConversation.mock.calls.every(([opts]) => opts.attributes && !opts.attributes.includes('messages'))).toBe(true);
+    expect(mocks.metadataSanitizeCalls).toHaveLength(0);
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('HR15-R3 never aliases a raw user actor into the client audience', async () => {
+    mocks.account = { id: 7, role: 'user', isActive: true, isLocked: false };
+    mocks.rows = [ownRow()];
+    const list = await get('/conversations');
+    expect(list.status).toBe(200);
+    expect(list.body.conversations).toEqual([]);
+    expect((await get('/conversations/13')).status).toBe(404);
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('HR15-R4/R7 leaves staff unscoped and canonical trainer checks unchanged', async () => {
+    mocks.rows = [row({ id: 41, targetUserId: null }), row({ id: 42, targetUserId: 43 })];
+    mocks.query.mockImplementation(async (_sql, { replacements }) => replacements.clientId === 43 ? [{ one: 1 }] : []);
+    const list = await get('/conversations?limit=50');
+    expect(list.body.conversations.map(item => item.id)).toEqual([41, 42]);
+    expect(mocks.query).toHaveBeenCalledTimes(1);
+    expect(mocks.sendChatMessage).not.toHaveBeenCalled();
+    expect(mocks.createConversation).not.toHaveBeenCalled();
+  });
+
+  it('HR15-R5/T02 keeps client staff-target admission denied for unscoped, thread and self requests', async () => {
+    asClient();
+    mocks.rows = [ownRow()];
+    for (const url of ['/target-access', '/target-access?conversationId=13',
+      '/target-access?targetUserId=7', '/target-access?conversationId=13&audienceRole=client']) {
+      const res = await get(url);
+      expect(res.status).toBe(403);
+      expect(res.body.code).toBe('COACH_READ_FORBIDDEN');
+      expect(JSON.stringify(res.body)).not.toContain('coach_target_read');
+    }
+    expect(mocks.query).not.toHaveBeenCalled();
+  });
+
+  it('HR15-R6/T04 treats a mid-read null-to-self or self-to-null change as stale without payload', async () => {
+    asClient();
+    for (const [stored, changed] of [[null, 7], [7, null]]) {
+      mocks.findConversation.mockClear();
+      mocks.metadataSanitizeCalls.length = 0;
+      mocks.rows = [ownRow({ targetUserId: stored })];
+      mocks.findConversation.mockImplementation(async opts => opts.attributes.includes('messages')
+        ? plain(ownRow({ targetUserId: changed }), opts.attributes)
+        : plain(mocks.rows[0], opts.attributes));
+      const res = await get('/conversations/13');
+      expect(res.status).toBe(404);
+      expect(res.body.code).toBe('COACH_CONVERSATION_NOT_FOUND');
+      expect(JSON.stringify(res.body)).not.toContain('SYNTHETIC');
+      // The payload predicate still binds the ORIGINAL stored representation.
+      expect(mocks.findConversation.mock.calls[1]?.[0].where.targetUserId).toBe(stored);
+      expect(mocks.metadataSanitizeCalls).toHaveLength(0);
+      expect(mocks.query).not.toHaveBeenCalled();
+    }
   });
 });
