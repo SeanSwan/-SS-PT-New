@@ -23,6 +23,7 @@
  */
 import { useEffect, useId, useRef } from 'react';
 import styled from 'styled-components';
+import { failureTextFor, type CoachSelectionReason } from './hooks/coachSelectionContract';
 
 const Backdrop = styled.div`
   position: fixed;
@@ -69,6 +70,29 @@ const Actions = styled.div`
   margin-top: 20px;
 `;
 
+/**
+ * N6 (GLM round 2): the dialog previously gave no feedback on a failed decision,
+ * so a deterministic BLOCKED_RETURN read as a dead button. `role="alert"` so a
+ * screen reader announces it.
+ *
+ * Tokens here are deliberately limited to names the theme actually DEFINES
+ * (`--bg-primary`, `--text-primary`, `--border-elegant`). The first version of
+ * this block invented `--surface-sunken` and `--accent-warning`, and the
+ * token-registry guard blocked the commit — correctly, because an undefined token
+ * renders its fallback forever and can never respond to theming. The repo already
+ * carries a large backlog of those; this does not add to it.
+ */
+const Notice = styled.p`
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-primary, #E0ECF4);
+  background: var(--bg-primary, #0A0A0F);
+  border: 1px solid var(--border-elegant, rgba(96, 192, 240, 0.2));
+`;
+
 const Action = styled.button<{ $primary?: boolean }>`
   flex: 1 1 160px;
   min-height: 44px;
@@ -98,6 +122,13 @@ export type CoachSelectionDecisionProps = {
   currentLabel: string;
   requestedLabel: string;
   busy?: boolean;
+  /**
+   * A one-line, human-readable reason the last decision attempt did not settle.
+   * N6 (GLM round 2): without this, a deterministic BLOCKED_RETURN presented as
+   * "click Return, flash, nothing happens" — the operator could not tell that
+   * Return is permanently blocked and Discard is the exit.
+   */
+  failureText?: string | null;
   onReturn: () => void;
   onDiscard: () => void;
 };
@@ -107,6 +138,7 @@ export function CoachSelectionDecision({
   currentLabel,
   requestedLabel,
   busy = false,
+  failureText = null,
   onReturn,
   onDiscard,
 }: CoachSelectionDecisionProps) {
@@ -145,6 +177,7 @@ export function CoachSelectionDecision({
           A draft for {currentLabel} is still open. Return keeps that draft. Discard closes it and opens {requestedLabel}.
         </Body>
         <Body>No saved work is changed by either choice.</Body>
+        {!busy && failureText ? <Notice role="alert">{failureText}</Notice> : null}
         <Actions>
           <Action ref={returnRef} type="button" $primary disabled={busy} onClick={onReturn}>
             Return to original
@@ -166,6 +199,7 @@ export function CoachSelectionDecision({
 export function CoachSelectionDecisionGate({ selection, currentLabel }: {
   selection: {
     phase: string;
+    reason?: string | null;
     pending: Readonly<{ requestId: string; scopeToken: string; targetUserId: number | null }> | null;
     decide: (scopeToken: string, requestId: string, decision: 'return' | 'discard') => Promise<unknown>;
   };
@@ -192,6 +226,7 @@ export function CoachSelectionDecisionGate({ selection, currentLabel }: {
       // matches the Escape semantics: "Discard draft" is a real exit exactly
       // where a blocked Return is not.
       busy={selection.phase === 'checking' || selection.phase === 'committing'}
+      failureText={failureTextFor(selection.reason as CoachSelectionReason | null | undefined)}
       onReturn={() => { if (ticket) void selection.decide(ticket.scopeToken, ticket.requestId, 'return'); }}
       onDiscard={() => { if (ticket) void selection.decide(ticket.scopeToken, ticket.requestId, 'discard'); }}
     />

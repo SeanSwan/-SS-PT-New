@@ -135,10 +135,36 @@ export function useLoadRoutedCoachThread(
 
 /**
  * Plan 55 §3 C3 — the ONE commit consumer. Exactly one controller layout effect
- * applies each commitId once, before any private UI is enabled, and acknowledges
- * the exact observed tuple. A failed acknowledgment leaves the publication
- * DISABLED (the adapter's own `ackCommit` decides that); it is never retried
- * into a permissive fallback.
+ * applies each commitId once, before any private UI is enabled.
+ *
+ * **THE "EXACT OBSERVED TUPLE" FENCE IS WEAKER THAN IT SOUNDS — READ THIS.**
+ * `observed` below is `apply`'s OWN RETURN VALUE, not a read of the settled route.
+ * External hostile review (GLM 5.3, round 2, finding N1) settled this by elimination
+ * over every possible implementation: a live read after `setSearchParams` would see
+ * the PRE-navigation tuple (React Router does not settle synchronously), which would
+ * fail the ack on every tuple-changing commit and leave the publication permanently
+ * disabled — so that is not what happens; the applier echoes the ticket, so the
+ * strict match compares the ticket to itself. **The mismatch branch is therefore
+ * unreachable by construction, and the adapter's `ackCommit` cannot refuse on a
+ * route that failed to stick.**
+ *
+ * The harm direction is the one the check exists for: if `apply`'s mutations ever
+ * fail to take effect while it still returns the ticket tuple, the echo acks anyway
+ * and the publication enables for a scope the route does not show — a cross-target
+ * send. Two residual hazards are recorded rather than hidden:
+ *   1. The fence cannot trip (above).
+ *   2. `appliedRef` is set BEFORE `apply` runs and `consumeCommit` is one-use, so a
+ *      null `observed` strands the commit permanently — pin already mutated,
+ *      publication disabled, phase stuck in 'committing', no retry path.
+ *
+ * **The fix is a deferred ack and it is NOT applied here on purpose.** It means
+ * storing the consumed ticket and acking from a second effect that watches the
+ * SETTLED live tuple, which changes the slice's central property; getting it wrong
+ * leaves the publication permanently disabled and routed threads never hydrating,
+ * which is worse than the tautology. It needs its own slice with a can-fail test
+ * (mutate the URL between apply and settle; assert publication stays disabled).
+ * Until then this comment tells the truth instead of advertising a fence that
+ * cannot trip — see the register's N1 entry.
  */
 export function useApplyCoachSelectionCommit(
   selection: CoachSelectionPort,

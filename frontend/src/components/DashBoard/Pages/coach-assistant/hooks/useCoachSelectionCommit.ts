@@ -8,9 +8,14 @@
  *  - `consumeCommit` runs the synchronous plan 51 retirement and the plan 61
  *    commit port with NO await between the preflight and the mutation, and it is
  *    one-use per commitId.
- *  - `ackCommit` publishes the enabled plan 55 snapshot ONLY when the observed
- *    route/thread tuple matches the ticket exactly. A mismatch leaves the
- *    publication DISABLED — there is no permissive fallback.
+ *  - `ackCommit` REFUSES a tuple that does not match the ticket, and a refusal
+ *    leaves the publication DISABLED — there is no permissive fallback. **But the
+ *    tuple it receives is the applier's own echo, not a read of the settled route**
+ *    (see `useApplyCoachSelectionCommit`'s docblock, and GLM round 2 finding N1), so
+ *    in the current wiring this comparison cannot fail and the disabled-on-mismatch
+ *    branch below is unreachable. The refusal is kept as a real fence for the day a
+ *    caller passes a genuinely observed tuple; it is not evidence that one does
+ *    today. Do not cite this line as proof the route was verified.
  */
 import { useCallback } from 'react';
 import type { CoachAcceptedAdmission, CoachSelectionInstructions } from './coachSelectionContract';

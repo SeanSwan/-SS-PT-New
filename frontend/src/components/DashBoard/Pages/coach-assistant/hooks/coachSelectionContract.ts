@@ -196,6 +196,34 @@ export function mintCommitId(): string {
 }
 
 /**
+ * N6 (GLM round 2): a failed decision used to be silent — the buttons re-enabled
+ * (after the round-1 fix) but nothing said WHY, so a deterministic BLOCKED_RETURN
+ * read as "click Return, flash, nothing happens" and Escape retried a provably
+ * failing branch forever. This maps a reason to one honest line of operator-facing
+ * text. Every branch ends by saying nothing was changed, because that is the
+ * property the operator most needs to trust.
+ */
+const FAILURE_TEXT: Partial<Record<CoachSelectionReason, string>> = {
+  BLOCKED_RETURN: 'Return is blocked for this change. Discarding the draft is the way out.',
+  RECEIPT_MISMATCH: 'The admission receipt did not match this request. Nothing was changed — try again.',
+  STALE: 'A newer selection replaced this one. Nothing was changed.',
+  REPLACED: 'A newer selection replaced this one. Nothing was changed.',
+  INVALID_CANDIDATE: 'That selection could not be read. Nothing was changed.',
+  CONFLICT: 'That selection conflicts with the current one. Nothing was changed.',
+  BUSY: 'Another selection is already in progress. Wait for it, then try again.',
+  DENIED: 'You do not have access to that client. Nothing was changed.',
+  NOT_FOUND: 'That client or thread no longer exists. Nothing was changed.',
+  UNAVAILABLE: 'The selection service did not answer. Nothing was changed — try again.',
+  RETIRED: 'That selection is no longer valid. Pick the client again.',
+};
+
+/** Operator-facing text for a failed decision, or null when there is nothing to say. */
+export function failureTextFor(reason: CoachSelectionReason | null | undefined): string | null {
+  if (!reason) return null;
+  return FAILURE_TEXT[reason] ?? `The selection could not be applied (${reason}). Nothing was changed.`;
+}
+
+/**
  * The scope-identity key for "what did we last request a receipt for".
  *
  * **SCOPE IS THE TUPLE PLUS THE ACTOR — NEVER THE QUERY STRING.**

@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
+import { isAllowedRawRole } from '../../../../hooks/coachPublicationScope';
 import { useCoachIntakeQueue } from '../../../../hooks/useCoachIntakeQueue';
 import { useAIChat } from '../../../../hooks/useAIChat';
 import { useCoachCommand } from '../../../../hooks/useCoachCommand';
@@ -53,7 +54,12 @@ export function useCoachCommandCenterController({
   const chat = useAIChat(userRole, binding);
   const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand(binding);
   const tts = usePremiumTTS(binding);
-  const operatorEnabled = userRole !== 'client';
+  // N5 (GLM round 2): the RAW role must be recognised too. Presentation alone let
+  // an unrecognised actor ('ghost' -> 'admin') reach staff surfaces. The fence is
+  // role-shaped, not publication-shaped: this queue is PRE-selection discovery, so
+  // gating it on the binding borrows the wrong fence and would blink it off during
+  // admission windows. Full reasoning in the register's N5 entry.
+  const operatorEnabled = userRole !== 'client' && isAllowedRawRole(rawRole);
   const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
   const [autoSelectSuppressed, setAutoSelectSuppressed] = useState(false);
   const [commandText, setCommandText] = useState('');

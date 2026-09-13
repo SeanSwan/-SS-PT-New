@@ -121,4 +121,46 @@ describe('CoachSelectionDecisionGate — busy policy', () => {
     );
     expect(decide).not.toHaveBeenCalled();
   });
+
+  describe('N6 — a failed decision must SAY so', () => {
+    it('shows the reason for a blocked Return, naming Discard as the exit', () => {
+      render(
+        <CoachSelectionDecisionGate
+          selection={selectionWith('blocked-return', { reason: 'BLOCKED_RETURN' })}
+          currentLabel="Client #41"
+        />,
+      );
+      expect(screen.getByRole('alert').textContent).toMatch(/discard/i);
+    });
+
+    it.each(['invalid', 'retired', 'unavailable', 'denied'])('shows a reason in phase %s', (phase) => {
+      render(
+        <CoachSelectionDecisionGate
+          selection={selectionWith(phase, { reason: 'STALE' })}
+          currentLabel="Client #41"
+        />,
+      );
+      expect(screen.getByRole('alert').textContent).toMatch(/nothing was changed/i);
+    });
+
+    it('stays silent while the decide is genuinely in flight', () => {
+      render(
+        <CoachSelectionDecisionGate
+          selection={selectionWith('checking', { reason: 'STALE' })}
+          currentLabel="Client #41"
+        />,
+      );
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+
+    it('stays silent when there is no reason to report', () => {
+      render(
+        <CoachSelectionDecisionGate
+          selection={selectionWith('decision', { reason: null })}
+          currentLabel="Client #41"
+        />,
+      );
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+  });
 });

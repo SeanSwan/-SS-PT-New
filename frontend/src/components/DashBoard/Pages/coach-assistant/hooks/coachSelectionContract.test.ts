@@ -14,6 +14,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   capabilityFor,
+  failureTextFor,
   observationKeyFor,
   parseSelectionCandidate,
   parseSelectionQuery,
@@ -65,6 +66,41 @@ describe('observationKeyFor — scope identity (F2 regression guard)', () => {
   it('is a pure function — same inputs, same output, no hidden state', () => {
     const a = observationKeyFor(7, 'admin', 52, 9);
     for (let i = 0; i < 5; i += 1) expect(observationKeyFor(7, 'admin', 52, 9)).toBe(a);
+  });
+});
+
+describe('failureTextFor — N6 operator feedback', () => {
+  it('says nothing when there is no reason', () => {
+    expect(failureTextFor(null)).toBeNull();
+    expect(failureTextFor(undefined)).toBeNull();
+  });
+
+  it('tells the operator that a blocked Return has Discard as its exit', () => {
+    // This is the finding: a deterministic BLOCKED_RETURN used to present as
+    // "click Return, flash, nothing happens".
+    expect(failureTextFor('BLOCKED_RETURN')).toMatch(/discard/i);
+  });
+
+  it('reassures that NOTHING CHANGED on every reason where that is true', () => {
+    for (const reason of ['RECEIPT_MISMATCH', 'STALE', 'REPLACED', 'INVALID_CANDIDATE',
+      'CONFLICT', 'DENIED', 'NOT_FOUND', 'UNAVAILABLE'] as const) {
+      expect(failureTextFor(reason), reason).toMatch(/nothing was changed/i);
+    }
+  });
+
+  it('never returns a bare reason code as the whole message', () => {
+    // Every mapped reason must read as a sentence, not as a code.
+    for (const reason of ['BLOCKED_RETURN', 'BUSY', 'RETIRED', 'STALE'] as const) {
+      const text = failureTextFor(reason) as string;
+      expect(text.length, reason).toBeGreaterThan(20);
+      expect(text.trim(), reason).not.toBe(reason);
+    }
+  });
+
+  it('falls back to a reason-bearing line rather than silence for an unmapped code', () => {
+    const text = failureTextFor('SOMETHING_NEW' as never);
+    expect(text).toContain('SOMETHING_NEW');
+    expect(text).toMatch(/nothing was changed/i);
   });
 });
 
