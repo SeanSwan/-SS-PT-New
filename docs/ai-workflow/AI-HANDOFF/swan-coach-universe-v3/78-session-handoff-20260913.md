@@ -77,12 +77,12 @@ therefore silently exclude the most common account:
 
 1. `clientPhotoRoutes.mjs:75` — photo visibility fail-open (**fixed**, CA-1).
 2. `profileController.mjs:598` — profile update fail-closed (**fixed**, CA-2).
-3. `clientDataOverviewQueryService.mjs:21` — trainer-note metadata disclosed to the
+3. `clientDataOverviewQueryService.mjs:26` — trainer-note metadata disclosed to the
    default role (**fix in flight**, F1). Worse: `clientDataOverviewPrivacy.test.mjs`
    asserts the *source text* of the broken predicate, so a green test pins the bug.
 4. `painEntryRoutes.mjs:35,38,39,40` — `authorize([...'client'])` disagreeing with the
    ownership guard on the same line (**fix in flight**, F2).
-5. `coachProactiveNudgeCron.mjs:205,168` — delivery never reaches the default role
+5. `coachProactiveNudgeCron.mjs:220,183` — delivery never reaches the default role
    (**fix in flight**, F5).
 
 `aiChatRoutes.mjs:372` is the same class with a different symptom: the default role

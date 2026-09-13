@@ -134,14 +134,14 @@ already-criticised pattern (see P64) and must not be the only proof.
 
 **Wrong claim 1 — the URL.** The first version said
 `GET /api/ai-command/client-summary/:clientId`. That path does not exist.
-`core/routes.mjs:715` mounts `aiCommandRoutes` at `/api/ai-command`, while the
-handler lives in `aiBffRoutes`, mounted at `core/routes.mjs:718` →
+`backend/core/routes.mjs:717` mounts `aiCommandRoutes` at `/api/ai-command`, while the
+handler lives in `aiBffRoutes`, mounted at `backend/core/routes.mjs:720` →
 **`/api/admin/ai-bff/client-summary/:clientId`**. Probed: the documented path
 returns **404**; the real path returns **403**.
 
 **Wrong claim 2 — "the route has `protect` only".** True of the router *file*,
-false of the *mounted URL*. `core/routes.mjs:498` mounts `adminRoutes` at
-`/api/admin` **before** line 718, and `routes/adminRoutes.mjs:30-31` applies a
+false of the *mounted URL*. `backend/core/routes.mjs:500` mounts `adminRoutes` at
+`/api/admin` **before** line 720, and `routes/adminRoutes.mjs:30-31` applies a
 pathless `router.use(authenticateToken)` + `router.use(authorizeAdmin)`.
 `authorizeAdmin` is `adminOnly` (`middleware/auth.mjs:176`), which 403s every
 non-admin at `middleware/authMiddleware.mjs:436-451`. A `'user'` caller is

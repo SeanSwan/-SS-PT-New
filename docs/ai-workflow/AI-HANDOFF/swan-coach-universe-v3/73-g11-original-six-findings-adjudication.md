@@ -51,7 +51,7 @@ repair and at least one direct behavioural test.
 
 **Original claim.** `coachInferenceBoundary.mjs:186` substituted `scope.actorId`
 when `targetClientId` was null, overriding the mounted route's deliberate
-no-client behaviour (`aiChatRoutes.mjs:725-728`); a synthetic admin request with
+no-client behaviour (`aiChatRoutes.mjs:746-749`); a synthetic admin request with
 no selected client made context, recent-workout and progress reads with actor ID 7
 and then called the provider.
 
@@ -280,7 +280,7 @@ future-dated workout is **NOT RUN** at this revision and remains owed.
 
 ## HR1-6 [P2] — a cancelled request must cancel the mounted inference
 
-**Original claim.** `aiChatRoutes.mjs:921` passed no request-lifecycle signal; the
+**Original claim.** `aiChatRoutes.mjs:942` passed no request-lifecycle signal; the
 only abort controller was the deadline controller; evidence tools received no
 signal at `coachInferenceBoundary.mjs:194`; closing the request could leave reads
 and provider generation running, followed by conversation persistence, while the
@@ -290,7 +290,7 @@ route released its concurrency lock on response close.
 
 | Layer | Evidence |
 |---|---|
-| Route signal created | `aiChatRoutes.mjs:512-516` — `new AbortController()`; `cancelRequest` aborts only if `!res.writableFinished`; wired to **both** `req.once('aborted')` and `res.once('close')` |
+| Route signal created | `aiChatRoutes.mjs:533-537` — `new AbortController()`; `cancelRequest` aborts only if `!res.writableFinished`; wired to **both** `req.once('aborted')` and `res.once('close')` |
 | Signal threaded through the handler | `requestSignal.throwIfAborted()` at `:519, 629, 673, 725, 745, 779, 833, 872, 881, 942, 951, 1004, 1013` |
 | Signal reaches inference | `:839` and `:896` pass `signal: requestSignal`; `:842` re-runs `checkCoachInferenceAccess` with the live signal |
 | Provider transport opts in | `:910, 912` re-check `options.signal` |
@@ -336,7 +336,7 @@ the review demanded. The strongest evidence is concentrated in
    provider-bound prompt against a real fixture of future/edited/deleted workouts.
 2. **HR1-6 late conversation overwrite.** Abort delivery, discard-after-resolve and
    listener cleanup are all covered; the specific assertion that a departed caller
-   cannot cause a late conversation write is guarded by `aiChatRoutes.mjs:1055` but
+   cannot cause a late conversation write is guarded by `aiChatRoutes.mjs:1076` but
    is not itself asserted by a test I found.
 3. **This adjudication is partly executed, not purely static.** The cited suites
    were run at this revision under the reviewed isolated runner (dotenv disabled

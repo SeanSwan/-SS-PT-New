@@ -44,7 +44,7 @@ claim is provisional it is labelled provisional.
 
 | Item | Verdict | Reason it is not closed |
 |---|---|---|
-| F1 — trainer-note privacy fail-open | **CLOSED** (`474b3524c`) | `clientDataOverviewQueryService.mjs:21` now uses `!isClientEquivalentRole(requesterRole)`. Root executed 5 files / 37 tests, exit 0 |
+| F1 — trainer-note privacy fail-open | **CLOSED** (`474b3524c`) | `clientDataOverviewQueryService.mjs:26` now uses `!isClientEquivalentRole(requesterRole)`. Root executed 5 files / 37 tests, exit 0 |
 | F1b — a test pinning the broken predicate | **CLOSED** | Converted from a source-text assertion to a behavioural `'user'` vs `'client'` case through the real service |
 | F2 — pain-entry 403 on the default role | **CLOSED** | `'user'` added to the four `authorize` lists. The global `authorize` widening was **not** applied — correctly, since it is used on 100+ routes |
 | F3 — conversation-create 500 on the default role | **CLOSED** | 403 before any payload. The reasoning is sound: aliasing to `client` at the create site alone would write conversations the account could never read back |
