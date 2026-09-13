@@ -138,9 +138,76 @@ test('non-ASCII filenames are still matched by their exclusion prefix', () => {
 });
 
 test('no frozen path leaks into the checked scope', () => {
-  const { inScope } = partition(tracked, manifest);
-  const leak = inScope.filter((f) => manifest.excludedPaths.some((e) => f.startsWith(e.path)));
-  assert.deepEqual(leak, [], `excluded paths present in the checked scope: ${leak.join(', ')}`);
+  // Must use partition(), not a prefix test. A prefix test ignores
+  // freezeMode/frozenFiles, so it would flag a NEW file written into an active
+  // write target as a "leak" — the opposite of the intended behaviour, and it
+  // would fail CI on the very audit records CLAUDE.md rule 48 requires.
+  const { inScope, excluded } = partition(tracked, manifest);
+  const excludedFiles = new Set(excluded.map((x) => x.file));
+  const leak = inScope.filter((f) => excludedFiles.has(f));
+  assert.deepEqual(leak, [], `files present in both buckets: ${leak.join(', ')}`);
+  for (const f of excludedFiles) {
+    assert.ok(!inScope.includes(f), `${f} is both checked and excluded`);
+  }
+});
+
+test('a NEW file in an active write target is checked, not treated as a leak', () => {
+  const { inScope, excluded } = partition(tracked, manifest);
+  const handoff = manifest.excludedPaths.find((e) => e.path === 'docs/ai-workflow/AI-HANDOFF/');
+  const newFile = `${handoff.path}ZZZ-NEW-AUDIT-RECORD-9999-99-99.md`;
+  const withNew = partition([...tracked, newFile], manifest);
+  assert.ok(withNew.inScope.includes(newFile), 'a newly written audit record must be checked');
+  assert.ok(
+    !withNew.excluded.some((x) => x.file === newFile),
+    'a newly written audit record must not inherit the freeze',
+  );
+  // and the pre-existing files keep their exclusion
+  assert.equal(withNew.excluded.length, excluded.length);
+  void inScope;
+});
+
+test('frozen file lists are tracked files, with no ghosts or duplicates', () => {
+  const trackedSet = new Set(tracked);
+  for (const e of manifest.excludedPaths) {
+    if (!Array.isArray(e.frozenFiles)) continue;
+    const seen = new Set();
+    for (const f of e.frozenFiles) {
+      assert.ok(trackedSet.has(f), `${e.path}: frozenFiles lists a path that is not tracked: ${f}`);
+      assert.ok(f.startsWith(e.path), `${e.path}: frozen file outside its own prefix: ${f}`);
+      assert.ok(!seen.has(f), `${e.path}: duplicate frozen file: ${f}`);
+      seen.add(f);
+    }
+  }
+});
+
+test('recorded file counts agree with the frozen list and with the tree', () => {
+  const { excluded } = partition(tracked, manifest);
+  for (const e of manifest.excludedPaths) {
+    const observed = excluded.filter((x) => x.entry.path === e.path).length;
+    assert.equal(observed, e.files, `${e.path}: recorded files=${e.files} but the tree matches ${observed}`);
+    if (Array.isArray(e.frozenFiles)) {
+      assert.equal(
+        e.frozenFiles.length,
+        e.files,
+        `${e.path}: frozenFiles has ${e.frozenFiles.length} entries but files=${e.files}`,
+      );
+    }
+  }
+});
+
+test('recorded debt baselines are plausible, not one-token disarms', () => {
+  // A tripwire, not a security boundary: the manifest is a reviewed artifact and
+  // a determined edit can always inflate a number. But a baseline far larger than
+  // the number of links its own files can contain makes every comparison false
+  // forever, so bound it by something the entry cannot exceed.
+  for (const e of manifest.excludedPaths) {
+    assert.ok(
+      e.deadLinks <= e.files * 500,
+      `${e.path}: deadLinks=${e.deadLinks} is implausible for ${e.files} files`,
+    );
+    assert.ok(e.unreadable <= e.files, `${e.path}: unreadable=${e.unreadable} exceeds its ${e.files} files`);
+    assert.ok(e.deadLinks >= 0 && e.unreadable >= 0, `${e.path}: negative baseline`);
+  }
 });
 
 test('manifest: the exclusion set is pinned, so widening it is a conscious act', () => {

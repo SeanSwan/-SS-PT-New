@@ -23,16 +23,27 @@
  * the stock checker.
  *
  * What it enforces:
- *   - Every failing link in scope fails the run.                                 (the gate)
+ *   - Every failing link in scope fails the run.
+ *
  *   - Excluded files are STILL CHECKED; if a row exceeds its recorded baseline the
- *     run fails, and a row with no baseline is a hard error. This is close to, but
- *     not the same as, "debt can only shrink": the ledger is count-based, so a
- *     net-zero swap inside one already-excluded file is not detected.
- *   - A failing file is re-checked, up to three times, ONLY when its failure is
- *     transient (connection error, timeout, 429, or 5xx). A definitive 4xx fails
- *     immediately and is never re-checked, so a real 404 cannot be laundered into
- *     a pass by a host that answers differently on retry. A link that does answer
- *     successfully on retry is reported alive — that is the point of the retry.
+ *     run fails. This is close to, but not the same as, "debt can only shrink":
+ *     the ledger is count-based, so a net-zero swap inside one already-excluded
+ *     file is not detected.
+ *
+ *   - A file with a recoverable failure is re-checked up to five times, two
+ *     seconds apart, inside a five-minute aggregate budget. Recoverable means a
+ *     connection error, a timeout, 408, 429 or a 5xx; a definitive 4xx is never
+ *     retried away. The confirmed result is merged per link, so a real 404 seen on
+ *     the first pass is carried forward even if the retry happened not to
+ *     reproduce it — a dead link must not depend on retry luck, and an
+ *     intermittent link must not be reported differently depending on what else
+ *     shares its file.
+ *
+ *   - Suppression is reported in two distinct forms, because they are not the
+ *     same mechanism: links skipped by config `ignorePatterns`, and in-file
+ *     `markdown-link-check-disable` markers. The latter are stripped before link
+ *     extraction, so the number of links they hide cannot be counted from the
+ *     engine's results; the markers themselves are counted from the raw text.
  *
  * Usage (from the repository root):
  *   node scripts/ci/check-docs-links.mjs                 # full run, CI parity
@@ -112,6 +123,12 @@ function parseArgs(argv) {
     else throw new Error(`unknown argument: ${arg}`);
   }
   if (!['all', 'in'].includes(opts.scope)) throw new Error(`--scope must be all|in, got ${opts.scope}`);
+  if (opts.record && opts.scope !== 'all') {
+    // With --scope=in the excluded files are never checked, so their recorded
+    // counters would be written as zeroes — silently erasing every real baseline.
+    // Hostile review reproduced that (AI-HANDOFF 577 -> 0) with no warning.
+    throw new Error('--record requires --scope=all: recording from a partial run would overwrite real baselines with zeroes');
+  }
   if (!Number.isInteger(opts.concurrency) || opts.concurrency < 1) {
     throw new Error('--concurrency must be a positive integer');
   }
@@ -292,13 +309,17 @@ async function run() {
 
   const { inScope, excluded, entries } = partition(all, manifest);
 
-  // A manifest entry that matches nothing is dead weight and hides intent.
+  // A manifest entry that matches nothing is dead weight and hides intent — but it
+  // must not be a hard failure at runtime. If a frozen directory is ever emptied
+  // or archived away, `--scope=all` would otherwise exit 2 on every trigger, which
+  // is the "permanently red job" failure mode this slice exists to remove. The
+  // guard test asserts every entry still matches, so it is caught at review time.
   const unused = entries.filter((e) => !excluded.some((x) => x.entry.path === e.path));
-  if (unused.length) {
-    console.error(
-      `[docs-links] manifest entries match no tracked Markdown: ${unused.map((e) => e.path).join(', ')}`,
+  if (unused.length && !opts.quiet) {
+    process.stderr.write(
+      `[docs-links] warning: manifest entries match no tracked Markdown (stale exclusions): ` +
+        `${unused.map((e) => e.path).join(', ')}\n`,
     );
-    return 2;
   }
 
   const targets = opts.scope === 'in' ? inScope : all;
@@ -378,7 +399,9 @@ async function run() {
   }
   const suspect = first.filter((c) => {
     if (!fails(c)) return false;
-    if (hasDefinitiveFailure(c)) return false;
+    // Only worth re-checking if something in the file could actually recover.
+    const hasTransientFailure = Boolean(c.failure) || deadList(c).some(isTransient);
+    if (!hasTransientFailure) return false;
     if (!excludedSet.has(c.file)) return true;
     const e = entries.find((x) => c.file.startsWith(x.normalized));
     const recorded = e && Number.isFinite(e.deadLinks) ? e.deadLinks : null;
@@ -419,7 +442,22 @@ async function run() {
           `${budgetExhausted} file(s) kept their first-pass result (fail-closed)\n`,
       );
     }
-    confirmed = first.map((c) => settled.get(c.file) || c);
+    // Merge, per link: the confirmed run wins for links that can recover, but a
+    // definitive failure seen on the first pass is carried forward even if the
+    // retry did not reproduce it. Without this, a file mixing a real 404 with an
+    // intermittent 5xx reported the 5xx as dead in one run and alive in the next,
+    // for no reason a reader could explain — hostile review reproduced exactly
+    // that inconsistency. A definitive 4xx must never depend on retry luck.
+    confirmed = first.map((c) => {
+      const last = settled.get(c.file);
+      if (!last) return c;
+      const reproved = new Set(last.results.map((r) => r.link));
+      const carriedForward = c.results.filter(
+        (r) => ENGINE_FAILURE_STATUSES.has(r.status) && !isTransient(r) && !reproved.has(r.link),
+      );
+      if (!carriedForward.length) return last;
+      return { ...last, results: [...last.results, ...carriedForward] };
+    });
   }
 
   const inScopeDead = [];
@@ -457,17 +495,41 @@ async function run() {
       (r.recordedUnreadable !== null && r.observedUnreadable > r.recordedUnreadable),
   );
 
-  const ignored = confirmed
+  // Two different suppression mechanisms, reported separately because they are
+  // not the same thing and conflating them made an earlier claim false:
+  //   - engine status 'ignored' means the link matched a config `ignorePatterns`
+  //     entry (in this repo, the localhost patterns);
+  //   - a `markdown-link-check-disable` comment is stripped from the markdown
+  //     BEFORE link extraction, so it never produces a result at all and cannot be
+  //     counted from the results. It has to be found in the raw text.
+  const ignoredByIgnorePatterns = confirmed
     .map((c) => ({ file: c.file, count: ignoredList(c).length }))
     .filter((r) => r.count > 0);
 
+  const disableCommentMarkers = [];
+  for (const c of confirmed) {
+    try {
+      const raw = fs.readFileSync(path.join(opts.root, c.file), 'utf8');
+      const count = (raw.match(/markdown-link-check-disable/g) || []).length;
+      if (count) disableCommentMarkers.push({ file: c.file, count });
+    } catch {
+      /* unreadable files are already reported above */
+    }
+  }
+
   if (!opts.quiet) {
-    if (ignored.length) {
-      const total = ignored.reduce((n, r) => n + r.count, 0);
+    if (ignoredByIgnorePatterns.length) {
+      const total = ignoredByIgnorePatterns.reduce((n, r) => n + r.count, 0);
+      console.error(`\n[docs-links] ${total} link(s) skipped by config ignorePatterns:`);
+      for (const r of ignoredByIgnorePatterns) console.error(`  ${String(r.count).padStart(3)}  ${r.file}`);
+    }
+    if (disableCommentMarkers.length) {
+      const total = disableCommentMarkers.reduce((n, r) => n + r.count, 0);
       console.error(
-        `\n[docs-links] ${total} link(s) suppressed by in-file disable comments (not failures, but counted):`,
+        `\n[docs-links] ${total} in-file markdown-link-check-disable marker(s) in ${disableCommentMarkers.length} file(s).` +
+          `\n  These suppress links before the engine sees them, so the number of links they hide is NOT counted:`,
       );
-      for (const r of ignored) console.error(`  ${String(r.count).padStart(3)}  ${r.file}`);
+      for (const r of disableCommentMarkers) console.error(`  ${String(r.count).padStart(3)}  ${r.file}`);
     }
     if (inScopeDead.length) {
       console.error(`\n[docs-links] ${inScopeDead.length} dead link(s) IN SCOPE — these fail the check:\n`);
@@ -518,7 +580,8 @@ async function run() {
       excludedUnreadable: excludedErrors.length,
     },
     ledger,
-    suppressedByDisableComment: ignored,
+    ignoredByIgnorePatterns,
+    disableCommentMarkers,
     inScopeDead,
     excludedDead,
     inScopeErrors,
