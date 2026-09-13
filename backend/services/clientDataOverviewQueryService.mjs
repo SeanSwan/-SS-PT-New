@@ -8,6 +8,7 @@
  * - Preserve the trainer-note privacy gate for client-role requests.
  * - Return plain record slots consumed by clientDataOverviewPayloadService.
  */
+import { isClientEquivalentRole } from '../utils/clientAccess.mjs';
 
 export const fetchClientDataOverviewRecords = async ({ models, targetUserId, requesterRole }) => {
   const {
@@ -18,7 +19,11 @@ export const fetchClientDataOverviewRecords = async ({ models, targetUserId, req
     ClientNote,
   } = models;
 
-  const includeTrainerNoteSummary = requesterRole !== 'client';
+  // The shared predicate, not a hand-rolled `!== 'client'`: `'user'` is the
+  // default role minted by public self-registration (models/User.mjs:135) and is
+  // client-equivalent (utils/clientAccess.mjs:23), so the literal comparison
+  // failed OPEN for the most common account role.
+  const includeTrainerNoteSummary = !isClientEquivalentRole(requesterRole);
 
   const [
     questionnaire,

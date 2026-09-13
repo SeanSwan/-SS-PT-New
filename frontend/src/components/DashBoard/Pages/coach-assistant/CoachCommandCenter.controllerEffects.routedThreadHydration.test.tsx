@@ -147,4 +147,34 @@ describe('routed Coach thread hydration (StrictMode mount)', () => {
     expect(detailCalls().length).toBeGreaterThan(0);
     expect(detailCalls().length).toBeLessThanOrEqual(3);
   });
+
+  /**
+   * Defect (hostile review 2026-09-13): the case above asserts its bound against
+   * a mock that ALWAYS succeeds, so the retry branch is never taken and
+   * `ROUTED_THREAD_LOAD_ATTEMPT_LIMIT` (CoachCommandCenter.controllerEffects.ts:19)
+   * is asserted nowhere — deleting the guard at :77 left the suite green. This
+   * case makes the guarded load genuinely fail, so the retry branch runs and the
+   * cap has to hold: exactly 3 detail GETs, never a 4th.
+   */
+  it('issues exactly ROUTED_THREAD_LOAD_ATTEMPT_LIMIT detail GETs when the load keeps failing', async () => {
+    getMock.mockImplementation((url: string) => {
+      const detail = String(url).match(/^\/api\/ai-chat\/conversations\/(\d+)/);
+      if (detail) return Promise.resolve({ status: 200, data: { success: false, error: 'retired' } });
+      return Promise.resolve({ status: 200, data: { success: true, conversations: routedThreads } });
+    });
+
+    const { getByTestId } = render(
+      <React.StrictMode>
+        <RoutedCoachThreadHarness />
+      </React.StrictMode>,
+    );
+
+    await waitFor(() => expect(detailCalls().length).toBe(3));
+    // Settle, then re-assert: without the cap the loop keeps firing and this
+    // second read is what actually proves no 4th attempt was issued.
+    await new Promise((resolve) => { setTimeout(resolve, 50); });
+    expect(detailCalls().length).toBe(3);
+    // A permanently failing routed load must surface nothing, not a stale thread.
+    expect(getByTestId('active-conversation').textContent).toBe('none');
+  });
 });

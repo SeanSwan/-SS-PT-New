@@ -370,6 +370,27 @@ router.post('/conversations', async (req, res) => {
   try {
     const { context = 'general', title, targetUserId, responseStyle = 'both', audienceRole } = req.body;
     const userRole = req.user.role || 'client';
+    // `'user'` is the default role minted by public self-registration
+    // (models/User.mjs:135). It is client-equivalent for resource access
+    // (utils/clientAccess.mjs:23) but it is NOT a Coach conversation audience:
+    // resolveConversationAudienceRole would return the raw role, AiConversation
+    // rejects it (models/AiConversation.mjs:36 `isIn: [['client','trainer','admin']]`),
+    // and the catch-all below published that as a generic 500. Reject it
+    // explicitly, before any create payload exists.
+    //
+    // Aliasing it to 'client' here is deliberately NOT done: the same resolver
+    // also drives the READ path (aiChatRoutes.mjs:484 -> parseCoachReadRequest),
+    // and services/ai/coachConversationReadAccess.mjs:135-137 (HR15-R1) requires
+    // that a raw `user` actor is never aliased into the client audience. Aliasing
+    // at this call site alone would instead write conversations the creating
+    // account could never read back.
+    if (userRole === 'user') {
+      return res.status(403).json({
+        success: false,
+        code: 'COACH_CONVERSATION_AUDIENCE_UNAVAILABLE',
+        error: 'Swan Coach conversations are not available for this account.',
+      });
+    }
     const conversationRole = resolveConversationAudienceRole(userRole, audienceRole);
     if (!conversationRole) {
       return res.status(403).json({ success: false, code: 'INVALID_AUDIENCE_ROLE', error: 'Conversation audience is not available for this account.' });

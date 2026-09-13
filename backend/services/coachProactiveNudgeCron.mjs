@@ -41,6 +41,7 @@ import { getUser, getWorkoutSession } from '../models/index.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
 import { DEFAULT_CLIENT_TIME_ZONE, formatDateOnlyInTimeZone } from './clientTrainingDateService.mjs';
 import { DELIVERY_DECISIONS, deliverNudge, planNudgeDelivery } from './ai/coachProactiveNudge.mjs';
+import { isClientEquivalentRole } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 
 const START_DELAY_MS = 60 * 1000;
@@ -66,6 +67,20 @@ export const coachNudgeType = (category) => COACH_NUDGE_PREFIX + String(category
 export function isCoachProactiveNudgeEnabled(env = process.env) {
   return env.ENABLE_COACH_PROACTIVE_NUDGES === 'true';
 }
+
+/**
+ * Delivery audience. `'user'` is the DEFAULT role minted by public
+ * self-registration (models/User.mjs:135) and is client-equivalent
+ * (utils/clientAccess.mjs:23), so a literal `role === 'client'` audience let a
+ * `'user'` account opt in — the consent predicate returned true for it — and then
+ * silently skipped it at delivery.
+ *
+ * The set is DERIVED from the shared predicate rather than written out again, so
+ * the query filter below and the delivery-time recheck can never disagree about
+ * who is a client. Staff roles are deliberately excluded: a trainer or admin
+ * must not start receiving client nudges.
+ */
+const COACH_NUDGE_AUDIENCE_ROLES = ['client', 'user'].filter(isClientEquivalentRole);
 
 const parsePreferences = (user) => {
   let prefs = user?.notificationPreferences;
@@ -165,7 +180,7 @@ const readFreshEvidence = (WorkoutSession, userId, now) => WorkoutSession.findOn
   attributes: ['id'],
 });
 
-const hasDeliveryAccess = (user) => Boolean(user) && user.isActive !== false && user.role === 'client';
+const hasDeliveryAccess = (user) => Boolean(user) && user.isActive !== false && isClientEquivalentRole(user.role);
 
 const nudgeEnvelope = (userId) => ({
   userId,
@@ -202,7 +217,7 @@ export async function runCoachProactiveNudgeTick({
     const enabled = isCoachProactiveNudgeEnabled(env);
 
     const clients = await User.findAll({
-      where: { role: 'client', isActive: { [Op.not]: false } },
+      where: { role: { [Op.in]: COACH_NUDGE_AUDIENCE_ROLES }, isActive: { [Op.not]: false } },
       attributes: ['id', 'notificationPreferences', 'timeZone'],
       raw: true,
     });
