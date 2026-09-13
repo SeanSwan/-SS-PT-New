@@ -227,7 +227,66 @@ same failure mode as the two Vite hazards in §E, arriving by a different route.
 | ID | Sev | Finding | Status |
 |---|---|---|---|
 | T-1 | MINOR | **Six files this session touched exceed the Rule-4 300-line cap and are queued for splitting:** `aiChatTtsPaywallParity.test.mjs` 346; `coachConversationReadAuthorization.test.mjs` 555; `coachIntentRoutes.test.mjs` 328; `coachMemoryRoutesAuthz.test.mjs` 524; `notificationSettingsCoachNudgeConsent.test.mjs` 476; `GlobalClientContext.selectionReference.test.tsx` 332. All six are **test** files and none carries the `swan-guard-allow-long-file` opt-out. | Open. Split queued. |
-| T-1-BASELINE | **correction — this row previously overstated the guard gap and gave unsafe advice** | **Rule 4 is not a six-file problem. Measured across tracked code: 786 files exceed the 300-line cap — 438 backend / 348 frontend, of which 594 are runtime and 192 are tests.** Largest: `sessionRoutes.mjs` 5331, `gamificationController.mjs` 4099, `sessions.mjs` 3184. The earlier row said "none was caught at commit time" and that "fixing that guard gap is worth more than the six splits". Both were wrong. (1) `frontend-guards.mjs:14` marks G6 **ADVISORY — "warns, never blocks"**, so the cap never gates a commit for anyone; the frontend test file above *would* have produced a WARN when staged, and warnings nobody must read are the reason it was missed. (2) The frontend-only scope is **deliberate**, documented at `frontend-guards.mjs:5` as "never the whole repo", and consistent with Rule 34 — so it is a designed boundary, not an oversight. (3) The advice was therefore unsafe as written: making a 300-line check *blocking* over `backend/` would block commits across **438** backend files immediately, and making it advisory over `backend/` adds warnings to a mechanism that already warns on 348 frontend files of which **zero** use the opt-out. Recommend instead: split the six as ordinary debt, and treat repo-wide Rule-4 debt as its own migration with an explicit owner. Measured by `git ls-files -- backend frontend/src` filtered to code extensions, counting lines per file; no probe is committed, so re-measure rather than trust these numbers. | Recorded; recommendation reversed. |
+| T-1-BASELINE | **correction — this row previously overstated the guard gap and gave unsafe advice** | **Rule 4 is not a six-file problem. Measured across tracked code: 786 files exceed the 300-line cap — 438 backend / 348 frontend, of which 594 are runtime and 192 are tests.** Largest: `sessionRoutes.mjs` 5331, `gamificationController.mjs` 4099, `sessions.mjs` 3184. The earlier row said "none was caught at commit time" and that "fixing that guard gap is worth more than the six splits". Both were wrong. (1) `frontend-guards.mjs:14` marks G6 **ADVISORY — "warns, never blocks"**, so the cap never gates a commit for anyone. **This clause originally continued "the frontend test file above *would* have produced a WARN when staged" — that is FALSE and root disproved it by running the guard. G6 never fires for test files at all; see §D2 and correction (4) below.** (2) The frontend-only scope is **deliberate**, documented at `frontend-guards.mjs:5` as "never the whole repo", and consistent with Rule 34 — so it is a designed boundary, not an oversight. (3) The advice was therefore unsafe as written: making a 300-line check *blocking* over `backend/` would block commits across **438** backend files immediately, and making it advisory over `backend/` adds warnings to a mechanism that already warns on 348 frontend files of which **zero** use the opt-out. Recommend instead: split the six as ordinary debt, and treat repo-wide Rule-4 debt as its own migration with an explicit owner. Measured by `git ls-files -- backend frontend/src` filtered to code extensions, counting lines per file; no probe is committed, so re-measure rather than trust these numbers. | Recorded; recommendation reversed. |
+
+### D2. `frontend-guards.mjs` silently disables TWO guards for every test file — a real bug
+
+Found by running the guard rather than reasoning about it. `scripts/hooks/frontend-guards.mjs:81`
+reads:
+
+```js
+  });                              // :79  closes the per-line lines.forEach
+
+  if (isTestFile) continue;        // :81  <-- FILE-LEVEL skip
+
+  // G5 — Rule 43: a SHARED style fragment that interpolates MUST be css`` tagged.
+```
+
+Because that `continue` sits at the **per-file loop level** (`for (const { file, text }
+of targets)` opens at `:62`), everything after it is skipped for a test file:
+
+- **G5 — Rule 43 css-helper.** The guard's own comment at `:88-89` calls this "the one
+  guard whose absence costs a production outage rather than a lint nag", citing the
+  2026-04-12 `AdminOverviewPanel` incident that took down the admin dashboard. It does
+  not run on any frontend test file.
+- **G6 — Rule 4 300-line cap.** It does not run on any frontend test file either.
+
+**The intent was narrower and is already implemented elsewhere.** `:56-57` explains the
+only intended exemption — "Test files (class-targeted, Rule 73): contract/theme tests
+legitimately contain banned hexes AS BAN-LIST DATA — G3/G4 skip them" — and `:69`
+already does exactly that, per line, with `if (isTestFile) return;` **inside** the
+`lines.forEach`. So `:81` is redundant in intent and overbroad in effect. It is almost
+certainly the same exemption added a second time at the wrong level.
+
+**Proven both ways, with a control.** Same guard, same tree:
+
+| Input | Result |
+|---|---|
+| `frontend/src/components/ui/primitives/components.tsx` (2583 lines, **not** a test) | emits `WARN: G6 file-max-lines (Rule 4) — … 2583 lines exceeds the 300 cap` |
+| `…/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx` (518 lines, **test**) | `CLEAN`, **no G6 warning** |
+| `--staged` over the 19 staged C2/C3 blobs, two of them 421 and 517 lines | `CLEAN — 19 frontend file(s) checked`, **no G6 warning** |
+
+All three G6 conditions were checked directly on the 518-line test file and all three
+hold: `VENDORED` does not match, `swan-guard-allow-long-file` is absent, and
+`lines.length` is 518 > 300. So G6 *would* fire if it were reached; it is not reached.
+
+**Why this matters, and how it corrects this register again.** The T-1 row's six
+over-cap files are **all test files** — which is precisely why none was ever reported.
+The earlier explanation ("frontend files only") was wrong; so was the claim that the
+frontend one "would have produced a WARN". The true cause is this line. It also means
+the withdrawn guard-gap recommendation needs splitting in two:
+
+1. **Extending G6 to `backend/` — still correctly rejected.** 438 backend files over
+   cap, G6 is advisory, and the frontend-only scope is deliberate (`:5`).
+2. **Fixing `:81` — cheap, real, and worth doing.** It is a one-line change with no
+   blast radius: G6 is advisory so nothing new blocks, G3/G4 keep their intended
+   per-line exemption, and G5 starts covering test files for the first time. It would
+   have surfaced all six over-cap files as warnings.
+
+Not applied here: root is reporting this, not silently editing a shared repo guard
+mid-session (`frontend-guards.mjs` is used by every commit and by other agents'
+worktrees). The fix belongs with a guard test that fails if a test file silently stops
+being checked. | **NEW — open, with the fix identified** |
 | T-1b | MINOR | The P64/S66 implementer justified its three overflows by claiming packets 64/66 forbid new test files. **Root checked; no such prohibition exists.** Recorded as a genuine unfixed violation, not a packet-constrained one. | Recorded (`adf5e74c5`, [74](74-parent-adjudications-20260913.md) A5). |
 | T-2 | MINOR | `known-failing-baseline.json` was recorded **2026-09-02**. **Reconciled 2026-09-13 by a serialized quiet-tree run — see §D1 below.** The baseline is accurate (7/7 still failing, none recovered) and there are **no regressions**: nothing that used to pass now fails. Five unbaselined failures exist and are **pre-existing**, not caused by this session. | Open as burn-down, not as risk. Do **NOT** grow the list casually. |
 | T-3 | MINOR | `tests/api/clientPhotoUploadAuthzExecution.test.mjs:158` is **pre-existing RED at pristine HEAD** (`assertAssignmentOrAdmin` returns a Number where the test pins a String). Confirmed, not inferred. | Open. |
