@@ -7,20 +7,22 @@ on:
     paths:
       - '**.md'
       - 'docs/**'
-      - 'scripts/ci/check-docs-links.mjs'
-      - 'scripts/ci/docs-link-scope.json'
+      - 'scripts/ci/**'
       - '.github/markdown-link-check-config.json'
       - '.github/workflows/docs-check.yml'
+      - 'package.json'
+      - 'package-lock.json'
   pull_request:
     branches:
       - main
     paths:
       - '**.md'
       - 'docs/**'
-      - 'scripts/ci/check-docs-links.mjs'
-      - 'scripts/ci/docs-link-scope.json'
+      - 'scripts/ci/**'
       - '.github/markdown-link-check-config.json'
       - '.github/workflows/docs-check.yml'
+      - 'package.json'
+      - 'package-lock.json'
   schedule:
     # Run weekly on Mondays at 9 AM UTC
     - cron: '0 9 * * 1'
@@ -95,6 +97,7 @@ jobs:
         run: |
           echo "## ✅ Documentation Link Check Passed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Every link in checked documentation resolves. Frozen archives, generated" >> $GITHUB_STEP_SUMMARY
-          echo "transcripts and vendored skill bundles are tracked as a separate, shrink-only" >> $GITHUB_STEP_SUMMARY
-          echo "ledger — see the step log for the observed totals." >> $GITHUB_STEP_SUMMARY
+          echo "Every link in checked documentation resolved. Frozen archives, generated" >> $GITHUB_STEP_SUMMARY
+          echo "transcripts and vendored skill bundles are tracked as a separate ledger whose" >> $GITHUB_STEP_SUMMARY
+          echo "rows fail if they exceed their recorded baseline — see the step log for the" >> $GITHUB_STEP_SUMMARY
+          echo "observed totals, including any links suppressed by in-file disable comments." >> $GITHUB_STEP_SUMMARY

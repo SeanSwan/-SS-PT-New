@@ -80,17 +80,26 @@ not as a partition of one another.
 ### 2.3 Nothing reproduced CI locally
 
 Root `package.json` declared
-`check-docs-links: npx markdown-link-check docs/**/*.md docs/*.md README.md`,
-a small fraction of what CI swept. So the debt was invisible to anyone running
-the documented local command.
+`check-docs-links: npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json`
+— a small fraction of what CI swept, running a third engine version. To be
+precise about how much it hid: that command covers 23 of the 28 failing files and
+**84 of the 105** dead links, so the debt was not invisible to it — it was
+partially visible and completely unreconciled with CI, which is worse, because
+running it produced a false sense of coverage.
 
 A gate that is permanently red, unmatched by any local command, and running an
-unpinned engine protects nothing — it trains every reader to ignore it. That is
-how this check stayed red for months.
+unpinned engine protects nothing. GitHub's API settles the "for months" claim:
+across the 100 most recent `docs-check` runs (2026-04-08 to 2026-09-13) there were
+98 failures and 2 startup failures — **zero successes**.
 
 ## 3. Baseline reconciliation
 
-Parsed from the real failing job log for `e07d4b9` by
+Parsed from the failing job log captured for the parent commit `aafe387a9` — the
+last run of that workflow before the release, and the source of the "1870 dead
+links" figure. (An earlier draft called it "the log for `e07d4b9`"; the log's own
+checkout line says `aafe387a9`, and GitHub reports **zero** `docs-check` runs for
+`e07d4b9` itself. The numbers are unaffected: `e07d4b9` changes no Markdown, and
+the log's 2930 files are `e07d4b9`'s tree.) Parsed by
 `.mega-blueprints/artifacts/docs-link-debt-20260913/parse-docs-log.mjs`.
 
 | Quantity | Value |
@@ -100,22 +109,26 @@ Parsed from the real failing job log for `e07d4b9` by
 | Raw `[✖]` lines in the log | 3740 |
 | Raw lines ÷ reported, **per file** | exactly 2 for all 105 files (0 mismatches) |
 
-The action's verbose mode prints each dead link twice per file, and the two
-printings are **not always byte-identical** (11 links differ), so string
-de-duplication is wrong. The per-file `ERROR: N dead links found!` count the
-checker itself emits is authoritative; the parser takes the first N `[✖]` lines
-of each file block and reconciles to exactly 1870.
+The action's verbose mode prints each dead link twice per file. De-duplicating by
+string is wrong — **632 of the 1870** summary printings differ byte-for-byte from
+their inline counterpart (11 differ at the level of the link target). The per-file
+`ERROR: N dead links found!` count the checker itself emits is authoritative; the
+parser takes the first N `[✖]` lines of each file block and reconciles to exactly
+1870.
 
 Authoritative re-measurement with the locked engine (3.14.2), full run over the
 repaired tree:
 
 | Quantity | Value |
 |---|---|
-| Tracked Markdown files | 2930 |
-| In the checked scope | 1144 |
+| Tracked Markdown files | 2931 |
+| In the checked scope | 1145 |
 | In the excluded ledger | 1786 |
 | Dead links in scope, after repair | **0** |
 | Dead links in the excluded ledger | 1865 |
+
+(The counts are one higher than the pre-repair tree because this document is
+itself tracked Markdown and in scope.)
 
 The pre-repair in-scope figure quoted in earlier drafts was 92. That number came
 from a run made **while the repairs were being written**, so it is a snapshot of
@@ -137,10 +150,24 @@ modified Markdown), dropping in the gate and manifest, and running
 
 Receipt: `.mega-blueprints/artifacts/docs-link-debt-20260913/baseline-pristine-in-scope.json`.
 
-For comparison, under the same scope partition the CI log for `e07d4b9` (engine
-3.8.7) contains **37** in-scope dead links across 25 files: 13 external, 24
-internal. The two figures are measurements by different engines on different
-days, and are not a partition of one another.
+Two honest caveats about that receipt, both raised by hostile review:
+
+- It was produced with a **pre-review revision** of the gate (its log says
+  `confirming 28 of 28 failing file(s)`; the current gate re-checks only
+  transient failures and would confirm far fewer). The link set it records is
+  still the right set, but it does not evidence the confirmation mechanism as it
+  now stands.
+- At least one entry is **transient inflation**:
+  `https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/` was recorded as
+  dead (socket hang up) and answers HTTP 200 to `curl` and to the same engine
+  today. It was never repaired. So 105 is a slight over-count of genuine defects;
+  the true figure is a handful lower.
+
+For comparison, under the same scope partition the CI log (engine 3.8.7) contains
+**37** in-scope dead links across **17** files: 13 external, 24 internal. The two
+figures are measurements by different engines on different days, and are not a
+partition of one another. (An earlier draft said 25 files here; 25 was the
+contaminated receipt's file count, not this one's.)
 
 ## 4. Scope decision
 
@@ -214,9 +241,12 @@ it would restore whatever the generator emits at the time.
 | Share | Class |
 |---|---|
 | 62.7% | generated transcripts (both generated-output directories) |
-| 31.0% | frozen historical receipts |
+| 30.9% | frozen historical receipts |
 | 4.2% | vendored skill bundles |
-| 2.2% | frozen archived audits / pending-deletion / attic |
+| 2.1% | frozen archived audits / pending-deletion / attic |
+
+Only **89** of the 1786 excluded files contain any dead link at all; the rest are
+excluded because they are frozen, not because they are broken.
 
 ### What the exclusions do NOT buy
 
@@ -277,11 +307,17 @@ Because `markdown-link-check` computes anchors by an explicitly documented
 "simple text comparison" rather than GitHub's algorithm, every repaired anchor
 was cross-checked with `github-slugger` — the library GitHub itself uses.
 **105 of 105 distinct anchors across the eight affected files resolve under
-both.** Four anchors initially passed the checker while disagreeing with
-`github-slugger`, because `github-slugger` keeps Unicode variation selectors
-(U+FE0F) that the checker strips; those four headings had their leading emoji
-removed so that both engines produce the same plain slug. That is the only
-content change in this slice, and it affects exactly four heading lines.
+both.** Four anchors were a special case: the auto-fixer's first pass produced
+the checker's slug `#-user-interface-layout`, which the checker accepts but
+`github-slugger` does not, because `github-slugger` keeps the Unicode variation
+selector (U+FE0F) that the checker strips. Those four headings had their leading
+emoji removed so that both engines produce the same plain slug. (All four anchors
+*failed* the checker at HEAD as well — what passed was the auto-fixer's form, not
+the original.) That is one of only two content changes in this slice, and it
+affects exactly four heading lines.
+
+The second content change is the unclosed code fence described below. Every other
+edit is a link target, a link's surrounding label, or a stale index row.
 
 ### Two deliberate checker suppressions, both disclosed in-file
 
@@ -292,10 +328,14 @@ a browser. Neither is link rot, and neither can be repaired by editing the URL:
    host answered every automated client with an empty HTTP 202 bot-check,
    reproduced with two independent fetchers.
 2. `docs/ai-workflow/references/archive/ROUTER-UPGRADES-GT6.md` — `www.makemkv.com`.
-   HEAD failed on both attempts, GET failed on both attempts without a browser
-   User-Agent, and the checker hung on it past a 120-second command timeout;
-   with a browser User-Agent, GET returned HTTP 200. Measured during this slice,
-   not inferred.
+   This host answers automated clients erratically and sometimes not at all:
+   measured across this slice and two hostile reviews it returned HEAD `000`,
+   GET `000`, GET-with-browser-User-Agent `200` once and `000` on other attempts,
+   and a sibling run saw the apex `https://makemkv.com/` answered. The checker
+   also stalled on it for over 30 seconds. The earlier draft's clean
+   "browser User-Agent gets HTTP 200" is not reproducible and has been removed;
+   the suppression stands because the host is unreliable to automation, not
+   because a UA gate was demonstrated.
 
 Each suppression is a `<!-- markdown-link-check-disable-next-line -->` on one
 line with its reason written above it. No global ignore pattern was added and
@@ -312,17 +352,21 @@ Rules are unchanged: dead-link classification, `aliveStatusCodes`,
 `ignorePatterns` and timeouts all still come from
 `.github/markdown-link-check-config.json`, which this slice **did not modify**.
 
-One robustness addition, described exactly. A failure is re-checked, sequentially,
-up to three times **only if it is transient** — a connection-level fault or an
-HTTP 5xx. A definitive 4xx is never re-checked and fails immediately.
+One robustness addition, described exactly as implemented. The re-check is
+**file-scoped and transient-only**:
 
-That restriction is the whole design, and hostile review is why it exists. An
-earlier version re-checked every failure and accepted the file if any attempt came
-back clean. The reviewer built a local server that answered 404 to the gate's
-first request and 200 afterwards, and the gate reported "OK — 0 dead links": a
-real broken link laundered into a pass. Re-checking is now confined to the fault
-class that is genuinely intermittent, where it can still only remove a failure
-that was never real.
+- a file is re-checked, up to three times, only if **every** failing link in it is
+  transient — a connection-level fault, a timeout, 408, 429, or a 5xx;
+- if the file contains **any** definitive 4xx failure, the file is reported as-is
+  and never re-checked, so a real 404 cannot be laundered into a pass;
+- the outcome of the last attempt is what is reported. A link that answers
+  successfully on retry is reported alive; that is the purpose of the retry, and
+  it does mean an intermittently-available link can pass while a consistently
+  dead one cannot;
+- one consequence, found by hostile review, is that a transient fault in a file
+  that *also* holds a hard 404 is not re-confirmed. Such a file fails on the real
+  404 anyway, so the outcome is unchanged; the transient entry is reported
+  alongside it.
 
 The motivating case is real: `orthoinfo.aaos.org/…/common-knee-injuries/`
 returned HTTP 200 to `curl` while the checker saw status 0 and then 520 on
@@ -349,10 +393,12 @@ the difference is stated rather than blurred:
   and the guard tests). A reader can re-run these and get the same answers.
 - **Not reproducible from a clone:** the pre-repair baselines (105, 92, the CI
   log's 1870/105/3740) and the analysis scripts that derive them. They live under
-  `.mega-blueprints/artifacts/docs-link-debt-20260913/`, which is gitignored
-  (`.gitignore:521`) by the packet's convention that local evidence travels in the
-  handoff package rather than in the repository. The CI log they are derived from
-  is itself a release artifact of the parent packet.
+  `.mega-blueprints/artifacts/docs-link-debt-20260913/`, which is **untracked and
+  not gitignored** — an earlier draft cited `.gitignore:521`, which is wrong twice
+  over (that line is blank, and `git check-ignore` does not match the path). It
+  travels as local evidence in the handoff package rather than in the repository,
+  by the packet's convention. The CI log they are derived from is itself a release
+  artifact of the parent packet.
 
 ## 7. Acceptance criteria
 

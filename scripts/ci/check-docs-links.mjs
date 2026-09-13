@@ -23,14 +23,16 @@
  * the stock checker.
  *
  * What it enforces:
- *   - Every in-scope dead link fails the run.                                  (the gate)
- *   - Excluded files are STILL CHECKED; if their dead-link total grows past the
- *     recorded baseline the run fails. Debt can only shrink, so adding a path to
- *     the exclusion list cannot be used to hide new breakage.                 (the ledger)
- *   - Every reported failure is re-checked once, sequentially, before it is
- *     allowed to fail the run. A checker this network-dependent produces
- *     transient false "dead" results under load; a gate that cries wolf gets
- *     ignored, which is how this check died the first time.
+ *   - Every failing link in scope fails the run.                                 (the gate)
+ *   - Excluded files are STILL CHECKED; if a row exceeds its recorded baseline the
+ *     run fails, and a row with no baseline is a hard error. This is close to, but
+ *     not the same as, "debt can only shrink": the ledger is count-based, so a
+ *     net-zero swap inside one already-excluded file is not detected.
+ *   - A failing file is re-checked, up to three times, ONLY when its failure is
+ *     transient (connection error, timeout, 429, or 5xx). A definitive 4xx fails
+ *     immediately and is never re-checked, so a real 404 cannot be laundered into
+ *     a pass by a host that answers differently on retry. A link that does answer
+ *     successfully on retry is reported alive — that is the point of the retry.
  *
  * Usage (from the repository root):
  *   node scripts/ci/check-docs-links.mjs                 # full run, CI parity
@@ -54,6 +56,21 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_ROOT = path.resolve(HERE, '..', '..');
 const DEFAULT_MANIFEST = path.join(HERE, 'docs-link-scope.json');
 const DEFAULT_CONFIG = path.join('.github', 'markdown-link-check-config.json');
+
+/**
+ * A link is treated as failing when the engine reports it `dead` **or** `error`.
+ *
+ * The CLI only fails on `dead`. This gate is deliberately stricter: `error` is
+ * what the engine emits for a link it could not evaluate at all — an unsupported
+ * scheme, an unparseable target, a Windows path. Those are real defects in a
+ * document and they were previously invisible, which made the workflow's own
+ * success banner ("every link in checked documentation resolves") untrue while
+ * in-scope files full of `c:\Users\...` links sat unchecked.
+ *
+ * `ignored` (an explicit in-file disable comment) is not a failure, but it is
+ * counted and reported so self-exemption is visible rather than silent.
+ */
+const ENGINE_FAILURE_STATUSES = new Set(['dead', 'error']);
 
 const USAGE = `usage: node scripts/ci/check-docs-links.mjs [options]
 
@@ -129,23 +146,31 @@ export function listTrackedMarkdown(root) {
  * An exclusion is either:
  *   - a whole directory prefix (for generated output and vendored bundles, where
  *     a newly written file is equally not-ours and equally unrepairable), or
- *   - a directory prefix restricted to the files that existed at a recorded
- *     commit (`frozenAsOf`).
+ *   - a directory prefix restricted to an explicitly recorded file list
+ *     (`freezeMode: "files"` + `frozenFiles`).
  *
  * The second form exists because `docs/ai-workflow/AI-HANDOFF/` is an ACTIVE
  * write target: CLAUDE.md rules 48/212/251 require audit records to be written
  * there. Treating the whole directory as frozen would mean every future audit
- * record is invisible to this check. Pinning to a commit keeps the existing
+ * record is invisible to this check. Listing the frozen files keeps the existing
  * receipts as acknowledged debt while any NEW file in that directory is checked
  * like any other documentation.
  *
- * Pure: frozen sets are passed in, so this is directly unit-testable.
+ * The list is stored in the manifest rather than derived from a pinned commit on
+ * purpose. An earlier revision pinned a commit sha and resolved it with
+ * `git ls-tree`; hostile review showed that `actions/checkout` fetches a single
+ * commit by default, so the pinned commit is absent in CI and the gate exited 2
+ * on every trigger. An explicit list has no dependency on clone depth, on git
+ * history, or on how the function is called.
+ *
+ * Pure: no filesystem access, so it is directly unit-testable — and both the gate
+ * and its tests call it the same way.
  */
-export function partition(files, manifest, frozenSets = new Map()) {
+export function partition(files, manifest) {
   const entries = manifest.excludedPaths.map((e) => ({
     ...e,
     normalized: e.path.replace(/\/+$/, '') + '/',
-    frozenSet: e.frozenAsOf ? frozenSets.get(e.frozenAsOf) || null : null,
+    frozenSet: Array.isArray(e.frozenFiles) ? new Set(e.frozenFiles) : null,
   }));
   const inScope = [];
   const excluded = [];
@@ -157,33 +182,6 @@ export function partition(files, manifest, frozenSets = new Map()) {
     else inScope.push(file);
   }
   return { inScope, excluded, entries };
-}
-
-/** Resolve every `frozenAsOf` commit to the set of paths present in it. */
-export function loadFrozenSets(root, manifest) {
-  const sets = new Map();
-  for (const e of manifest.excludedPaths) {
-    if (!e.frozenAsOf || sets.has(e.frozenAsOf)) continue;
-    let out;
-    try {
-      out = execFileSync('git', ['ls-tree', '-r', '--name-only', '-z', e.frozenAsOf], {
-        cwd: root,
-        maxBuffer: 1 << 28,
-      });
-    } catch (err) {
-      // Fail closed: an unresolvable freeze point must not silently widen scope.
-      throw new Error(
-        `manifest entry ${e.path} pins frozenAsOf=${e.frozenAsOf}, which cannot be resolved in this clone ` +
-          `(${String(err && err.message ? err.message : err).split('\n')[0]}). ` +
-          'A shallow or partial clone cannot honour a frozen file set.',
-      );
-    }
-    sets.set(
-      e.frozenAsOf,
-      new Set(out.toString('utf8').split('\0').filter(Boolean)),
-    );
-  }
-  return sets;
 }
 
 /* ----------------------------------------------------------------- engine */
@@ -277,20 +275,22 @@ async function run() {
   const all = listTrackedMarkdown(opts.root);
 
   // Fail closed on an unrecorded ledger entry. Without this, an entry that lost
-  // its baseline would be silently exempt from comparison forever.
+  // its baseline would be silently exempt from comparison forever. `NaN` and
+  // `Infinity` are numbers, so check finiteness explicitly: every comparison
+  // against NaN is false, which would exempt a row without any error.
+  const recorded = (v) => Number.isFinite(v);
   const unrecorded = manifest.excludedPaths.filter(
-    (e) => typeof e.deadLinks !== 'number' || typeof e.unreadable !== 'number' || typeof e.files !== 'number',
+    (e) => !recorded(e.deadLinks) || !recorded(e.unreadable) || !recorded(e.files),
   );
   if (unrecorded.length) {
     console.error(
-      `[docs-links] manifest entries have no recorded baseline: ${unrecorded.map((e) => e.path).join(', ')}`,
+      `[docs-links] manifest entries have no usable recorded baseline: ${unrecorded.map((e) => e.path).join(', ')}`,
     );
     console.error('  Run with --record to establish it. An unrecorded entry cannot be compared and must not pass.');
     return 2;
   }
 
-  const frozenSets = loadFrozenSets(opts.root, manifest);
-  const { inScope, excluded, entries } = partition(all, manifest, frozenSets);
+  const { inScope, excluded, entries } = partition(all, manifest);
 
   // A manifest entry that matches nothing is dead weight and hides intent.
   const unused = entries.filter((e) => !excluded.some((x) => x.entry.path === e.path));
@@ -331,51 +331,56 @@ async function run() {
   // only remove false failures — a genuinely dead link is dead in every attempt.
   const CONFIRM_ATTEMPTS = 3;
   const excludedSet = new Set(excluded.map((x) => x.file));
-  const deadList = (c) => c.results.filter((r) => r.status === 'dead');
+  const deadList = (c) => c.results.filter((r) => ENGINE_FAILURE_STATUSES.has(r.status));
+  const ignoredList = (c) => c.results.filter((r) => r.status === 'ignored');
   const fails = (c) => Boolean(c.failure) || deadList(c).length > 0;
 
-  // A failure is "transient" only if it is a connection-level fault or a server
-  // error. A definitive 4xx (including a missing local file, reported as 400) is
-  // never re-checked: it does not become alive for a reason worth accepting, and
-  // re-checking is exactly how a real 404 gets laundered into a pass by a host
-  // that happens to answer differently on retry. Hostile review demonstrated
-  // that laundering against a local server before this rule existed.
+  // A failure is "transient" only if it is a connection-level fault, a timeout, a
+  // rate limit, or a server error. A definitive 4xx (including a missing local
+  // file, reported as 400) is never re-checked: it does not become alive for a
+  // reason worth accepting, and re-checking is exactly how a real 404 gets
+  // laundered into a pass by a host that happens to answer differently on retry.
+  // Hostile review demonstrated that laundering against a local server before
+  // this rule existed. 408 and 429 are included because they mean "try again",
+  // not "this is gone".
   const isTransient = (r) => {
     const code = Number(r.statusCode);
-    return !Number.isFinite(code) || code === 0 || code >= 500;
+    if (!Number.isFinite(code)) return true;
+    return code === 0 || code === 408 || code === 429 || code >= 500;
   };
   const hasDefinitiveFailure = (c) => deadList(c).some((r) => !isTransient(r));
 
   // Which failing files are worth re-checking?
   //   - in-scope transient failures: a false one would fail the gate wrongly;
   //   - an excluded transient failure only when its ledger entry is already over
-  //     baseline. Confirming every failing excluded file instead would re-check
-  //     the ledger's slowest frozen transcript files three times on every run for
-  //     no change in outcome: their dead links are acknowledged debt.
+  //     its recorded dead-link baseline. Confirming every failing excluded file
+  //     instead would re-check the ledger's slowest frozen transcript files on
+  //     every run for no change in outcome: their dead links are acknowledged debt.
+  //
+  // The comparison is dead links against dead links. An earlier revision compared
+  // a count of failing FILES against the recorded DEAD-LINK baseline, so the
+  // trigger was effectively arbitrary — hostile review caught it.
   //
   // `--record` deliberately does NOT confirm excluded files. Confirming them costs
   // minutes per file on the transcript archives. The consequence is that a recorded
   // baseline can be inflated slightly by transient network noise, which makes the
   // ledger marginally more permissive — it can never make it falsely restrictive,
   // and the manifest is a reviewed artifact, so the number is visible in the diff.
-  const baselineOf = (file) => {
-    const e = entries.find((x) => file.startsWith(x.normalized));
-    return e && typeof e.deadLinks === 'number' ? e.deadLinks : null;
-  };
-  const firstPassExcludedCount = new Map();
+  const firstPassExcludedDead = new Map();
   for (const c of first) {
-    if (!excludedSet.has(c.file) || !fails(c)) continue;
+    if (!excludedSet.has(c.file)) continue;
     const e = entries.find((x) => c.file.startsWith(x.normalized));
-    if (e) firstPassExcludedCount.set(e.path, (firstPassExcludedCount.get(e.path) || 0) + 1);
+    if (!e) continue;
+    firstPassExcludedDead.set(e.path, (firstPassExcludedDead.get(e.path) || 0) + deadList(c).length);
   }
   const suspect = first.filter((c) => {
     if (!fails(c)) return false;
     if (hasDefinitiveFailure(c)) return false;
     if (!excludedSet.has(c.file)) return true;
-    const recorded = baselineOf(c.file);
-    if (recorded === null) return false;
     const e = entries.find((x) => c.file.startsWith(x.normalized));
-    return (firstPassExcludedCount.get(e.path) || 0) > recorded;
+    const recorded = e && Number.isFinite(e.deadLinks) ? e.deadLinks : null;
+    if (recorded === null) return false;
+    return (firstPassExcludedDead.get(e.path) || 0) > recorded;
   });
 
   let confirmed = first;
@@ -431,7 +436,18 @@ async function run() {
       (r.recordedUnreadable !== null && r.observedUnreadable > r.recordedUnreadable),
   );
 
+  const ignored = confirmed
+    .map((c) => ({ file: c.file, count: ignoredList(c).length }))
+    .filter((r) => r.count > 0);
+
   if (!opts.quiet) {
+    if (ignored.length) {
+      const total = ignored.reduce((n, r) => n + r.count, 0);
+      console.error(
+        `\n[docs-links] ${total} link(s) suppressed by in-file disable comments (not failures, but counted):`,
+      );
+      for (const r of ignored) console.error(`  ${String(r.count).padStart(3)}  ${r.file}`);
+    }
     if (inScopeDead.length) {
       console.error(`\n[docs-links] ${inScopeDead.length} dead link(s) IN SCOPE — these fail the check:\n`);
       for (const d of inScopeDead) {
@@ -481,6 +497,7 @@ async function run() {
       excludedUnreadable: excludedErrors.length,
     },
     ledger,
+    suppressedByDisableComment: ignored,
     inScopeDead,
     excludedDead,
     inScopeErrors,
@@ -489,17 +506,30 @@ async function run() {
 
   if (opts.record) {
     const fileCountByEntry = new Map();
-    for (const x of excluded) fileCountByEntry.set(x.entry.path, (fileCountByEntry.get(x.entry.path) || 0) + 1);
+    const filesByEntry = new Map();
+    for (const x of excluded) {
+      fileCountByEntry.set(x.entry.path, (fileCountByEntry.get(x.entry.path) || 0) + 1);
+      if (!filesByEntry.has(x.entry.path)) filesByEntry.set(x.entry.path, []);
+      filesByEntry.get(x.entry.path).push(x.file);
+    }
     const updated = {
       ...manifest,
       toolVersion,
       recordedAt: new Date().toISOString(),
-      excludedPaths: manifest.excludedPaths.map((e) => ({
-        ...e,
-        files: fileCountByEntry.get(e.path) || 0,
-        deadLinks: deadByEntry.get(e.path) || 0,
-        unreadable: errByEntry.get(e.path) || 0,
-      })),
+      excludedPaths: manifest.excludedPaths.map((e) => {
+        const row = {
+          ...e,
+          files: fileCountByEntry.get(e.path) || 0,
+          deadLinks: deadByEntry.get(e.path) || 0,
+          unreadable: errByEntry.get(e.path) || 0,
+        };
+        // An entry that freezes a file list records the list itself, so the gate
+        // needs no git history and no clone depth to honour it.
+        if (e.freezeMode === 'files') {
+          row.frozenFiles = (filesByEntry.get(e.path) || []).slice().sort();
+        }
+        return row;
+      }),
     };
     fs.writeFileSync(opts.manifest, JSON.stringify(updated, null, 2) + '\n');
     console.error(`[docs-links] ledger baseline recorded to ${path.relative(opts.root, opts.manifest)}`);

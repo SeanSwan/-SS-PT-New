@@ -14,13 +14,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { partition, listTrackedMarkdown } from '../check-docs-links.mjs';
+import { partition, listTrackedMarkdown, readJson } from '../check-docs-links.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..', '..');
 const MANIFEST_PATH = path.join(ROOT, 'scripts', 'ci', 'docs-link-scope.json');
 
-const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8'));
+// Use the gate's own reader so the tests and the gate agree on BOM tolerance.
+const manifest = readJson(MANIFEST_PATH);
 const tracked = listTrackedMarkdown(ROOT);
 
 test('partition: files under an excluded prefix leave the checked scope', () => {
@@ -102,11 +103,17 @@ test('manifest: exclusions do not grow between recordings', () => {
   }
 });
 
-test('manifest: every recorded ledger baseline is a number', () => {
+test('manifest: every recorded ledger baseline is a finite number', () => {
   // Shrink-only ledger: an entry with no recorded baseline cannot be compared,
-  // so it would grow silently.
+  // so it would grow silently. NaN and Infinity are `typeof 'number'` and would
+  // pass a naive check while making every comparison false, so assert finiteness.
   for (const e of manifest.excludedPaths) {
-    assert.equal(typeof e.deadLinks, 'number', `missing deadLinks baseline for ${e.path}; run --record`);
+    for (const key of ['files', 'deadLinks', 'unreadable']) {
+      assert.ok(
+        Number.isFinite(e[key]),
+        `${e.path}.${key} must be a finite recorded number; run --record`,
+      );
+    }
   }
 });
 
@@ -164,36 +171,49 @@ test('manifest: the exclusion set is pinned, so widening it is a conscious act',
 test('manifest: an active write target may not be excluded by prefix alone', () => {
   // docs/ai-workflow/AI-HANDOFF/ is where CLAUDE.md rule 48 requires audit records
   // to be written. Excluding it wholesale would exempt every future audit record
-  // from the link check, so it must pin a frozen commit and let new files through.
+  // from the link check, so it must freeze an explicit file list and let new files
+  // through. The list lives in the manifest rather than being derived from a pinned
+  // commit: `actions/checkout` fetches one commit by default, so a commit-based
+  // freeze cannot be resolved in CI and exits 2 on every trigger.
   const handoff = manifest.excludedPaths.find((e) => e.path === 'docs/ai-workflow/AI-HANDOFF/');
   assert.ok(handoff, 'AI-HANDOFF entry missing');
+  assert.equal(handoff.freezeMode, 'files', 'an active write target must use freezeMode "files"');
+  assert.ok(Array.isArray(handoff.frozenFiles) && handoff.frozenFiles.length > 0, 'frozenFiles must be a non-empty recorded list');
+  for (const f of handoff.frozenFiles) {
+    assert.ok(f.startsWith(handoff.path), `frozen file outside its own prefix: ${f}`);
+  }
   assert.equal(
     typeof handoff.frozenAsOf,
-    'string',
-    'an active write target must pin frozenAsOf, not exclude the whole directory',
+    'undefined',
+    'a commit-based freeze is unresolvable in a depth-1 CI checkout',
   );
-  assert.match(handoff.frozenAsOf, /^[0-9a-f]{40}$/, 'frozenAsOf must be a full commit sha');
 });
 
-test('partition: with frozenAsOf, a NEW file in that directory is checked', () => {
+test('partition: with a frozen file list, a NEW file in that directory is checked', () => {
   const m = {
     excludedPaths: [
-      { path: 'active/', classification: 'c', reason: 'r', evidence: 'e', frozenAsOf: 'deadbeef' },
+      {
+        path: 'active/',
+        classification: 'c',
+        reason: 'r',
+        evidence: 'e',
+        freezeMode: 'files',
+        frozenFiles: ['active/old.md'],
+      },
     ],
   };
-  const frozen = new Map([['deadbeef', new Set(['active/old.md'])]]);
-  const { inScope, excluded } = partition(['active/old.md', 'active/brand-new.md'], m, frozen);
+  const { inScope, excluded } = partition(['active/old.md', 'active/brand-new.md'], m);
   assert.deepEqual(excluded.map((x) => x.file), ['active/old.md']);
   assert.deepEqual(inScope, ['active/brand-new.md'], 'a newly written file must not inherit the freeze');
 });
 
-test('partition: without frozenAsOf the whole prefix stays excluded', () => {
+test('partition: without a frozen list the whole prefix stays excluded', () => {
   const m = {
     excludedPaths: [
       { path: 'generated/', classification: 'c', reason: 'r', evidence: 'e' },
     ],
   };
-  const { inScope, excluded } = partition(['generated/a.md', 'generated/b.md'], m, new Map());
+  const { inScope, excluded } = partition(['generated/a.md', 'generated/b.md'], m);
   assert.deepEqual(inScope, []);
   assert.equal(excluded.length, 2, 'generated output stays excluded however many files appear');
 });
