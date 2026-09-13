@@ -163,9 +163,53 @@ latches its retry guard **before** the call it is guarding:
 64    void chat.loadConversation(routeThreadId);        // may silently no-op
 ```
 
-So a mount-time auth race permanently suppresses the routed thread load: the
-guard is set even though nothing was fetched, and every later effect run returns
-at line 62.
+**Root cause — CORRECTED 2026-09-13 after instrumentation; the first version of
+this section was wrong.**
+
+The first draft above asserted a *mount-time auth-binding race*: that
+`capturePublication` (`useAIChat.ts:410-442`) returned `null` because the auth
+identity was not yet published, so `loadConversation` no-opped at `:898-899`.
+**That is refuted.** A temporary `window.__coachTrace` instrumentation (since
+reverted) showed the first mount pass reaching the wire:
+
+```
+{"at":"loadConversation","requestedId":301,"source":false,"target":null,"captured":true}
+{"at":"loadConversation.REQUEST","requestedId":301}
+```
+
+`canUseRenderScope()` was true, the identity was authenticated,
+`audienceAllowedForActor` passed, and the hook **did** call
+`apiService.get('/api/ai-chat/conversations/301')`. `useAIChat.ts:898-899` is not
+where this no-ops.
+
+The real cause is two steps:
+
+1. **The request is aborted before dispatch.** `frontend/src/main.jsx:75` wraps
+   the app in `<React.StrictMode>` (React 18.3.1). StrictMode's development
+   double-invoke runs the `useAIChat` mount-layout-effect cleanup
+   (`useAIChat.ts:695-708` — `mountedRef=false`, generation bumps,
+   `retireOperationSet`). The captured stack is
+   `retireOperationSet ← useAIChat.ts:444 ← safelyCallDestroy ←
+   commitHookEffectListUnmount ← invokeLayoutEffectUnmountInDEV ←
+   invokeEffectsInDev ← commitDoubleInvokeEffectsInDEV`. The load's
+   AbortController is aborted **before axios dispatches**, axios rejects
+   `canceled`, and the catch at `useAIChat.ts:922-925` treats a cancellation as a
+   silent `null`. Trace: `{"at":"loadConversation.CATCH","msg":"canceled","canceled":true,"valid":false}`.
+2. **The latch makes step 1 permanent.** The StrictMode remount re-runs the
+   effect, but line 62 sees `lastLoadedThreadIdRef.current === 301` — a ref
+   survives the simulated remount — and returns. No retry, ever.
+
+So the *latch* half of the original hypothesis was right; the *trigger* was not.
+The sibling `useLoadCoachConversations` (empty dependency array) survives only
+because its list request had already been dispatched before the same abort; the
+load loses that race.
+
+**Environment caveat, stated rather than glossed:** StrictMode's double-invoke is
+development-only, so this exact abort path is the dev server on `:4990`. Whether
+the shipped build is broken through some other retirement path is **UNVERIFIED** —
+no production build/preview run was performed. The latch defect the abort exposes
+is real in any environment, and the bounded retry costs nothing when the first
+load lands.
 
 Probe evidence (real browser, authenticated admin fixture, all `/api` requests
 logged — `tmp/coach-m68-20260913/probe-thread-load.mjs`):
@@ -183,13 +227,10 @@ The only conversation request issued in the whole journey is
 `GET /api/ai-chat/conversations` (the list). `GET /api/ai-chat/conversations/301`
 is never sent, so the transcript renders its empty state even though the thread
 carries `messageCount: 2`. The unit suites pass because they inject a
-`loadConversation` mock (`CoachCommandCenterPage.shell.test.tsx:154` asserts the
-mock was called), so the binding gate is never exercised — a mock-covered
-boundary, not a verified one.
+`loadConversation` mock (`CoachCommandCenterPage.shell.test.tsx:154`), so the
+binding gate is never exercised — a mock-covered boundary, not a verified one.
 
-Status: **root cause identified and evidenced; not fixed in this slice** (plan 68
-scopes this slice to two files). It is promoted to the head of the HR queue as
-HR16 because it gates R68-2's remaining proof and the whole C1-C4 selection work.
+**FIXED — see "HR16 repair" below.**
 
 ### M68-F2 — message-row text containment is NOT proven by this slice
 
