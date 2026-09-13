@@ -15,9 +15,10 @@ Read this first, then `20-handoff-for-hostile-review-of-continuation.md`, then `
 | Repository | `https://github.com/SeanSwan/-SS-PT-New.git` (`origin`) |
 | Branch | `codex/rolodex-bootcamp-planner-20260913` |
 | Base commit | `c0cbe538d8ed2ca519bb494cdf3282bf43b76699` |
-| Checkpoint commit | `HEAD` of that branch — run `git log -1 --format='%H %s'` |
+| **Checkpoint commit** | **`700ffc5995db82cd0836859ee236a566cf70464b`** |
+| Remote | Pushed; branch tracks `origin/codex/rolodex-bootcamp-planner-20260913` (0 ahead / 0 behind) |
 | Worktree (real path) | `C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\tmp\worktrees\rolodex-bootcamp-planner-20260913` |
-| Main production branch | `main` — **untouched by this work** |
+| Main production branch | `main` = `e07d4b9ea9079fd909c5eb09ef40a2ccf491b429` — **untouched by this work** |
 
 **Resume:**
 
@@ -116,8 +117,45 @@ The portable copies of the RED fixtures and their replay config **are** committe
 
 ---
 
-## 4. Verified at this checkpoint (measured, isolated runs)
+## 3b. Pre-commit guard repair — frontend-guards G4 (Rule 6)
 
+The checkpoint commit was initially **blocked twice** by the mandatory pre-commit
+guard. Both blocks and their resolutions are recorded here because they changed four
+files that were not otherwise part of this continuation's scope.
+
+**Block 1 — `G4 hardcoded-hex`: 35 violations in 4 files.** 25 were pre-existing at the
+base commit; the guard checks whole modified files, so existing violations block any
+commit that touches them. Only ~10 were newly introduced (7 by Luna's H08 work, 3 by
+the concurrent agent's SprintPlanner edits).
+
+**Block 2 — token existence.** The first repair wrapped the hexes in
+`var(--token, #hex)`, and a second guard correctly rejected that: a custom property that
+is never defined renders its fallback forever, so the "fix" would have been decorative.
+That guard is the same rule enforced by `lawA.test.ts`.
+
+**Final resolution** — the guard's own three sanctioned options, applied per value:
+
+| Value | Treatment | Why |
+|---|---|---|
+| `#60C0F0` | `var(--ice-wing, #60C0F0)` | `--ice-wing` exists in `styles/tokens.css` with the identical value |
+| `#8B5CF6` | `var(--wing-purple, #8B5CF6)` | token exists, identical value |
+| `#C6A84B` | `var(--gilded-fern, #C6A84B)` | token exists, identical value |
+| `#002060`, `#003080`, `#60C0F0`, `#8B5CF6`, `#C6A84B`, `#E0ECF4` in `pdfExportService.ts` | in-line `swan-guard-allow-hex jsPDF RGB tuple…` | these are hexes inside **comments** documenting jsPDF RGB tuples; `var()` is impossible in PDF output |
+| `#f87171`, `#fecaca`, `#6082ff`, `#ffa03c`, `#00c878`, `#00ff88` | in-line `swan-guard-allow-hex … not in the Swan palette` | no palette token has these values; wrapping them in an existing token (`--status-error` is `#ef4444`, not `#f87171`) **would have changed the rendered colour** |
+
+**Rendering is unchanged by construction**: every `var()` carries the original literal as
+its fallback and references a token whose value is that same literal.
+
+Guard result after the repair: `CLEAN — 67 frontend file(s) checked`. The only remaining
+message is a non-blocking `WARN: G6 file-max-lines` for `pdfExportService.ts` (1028 lines,
+pre-existing, Rule 4).
+
+**If you touch these lines:** the allow-tags are deliberate, not debt-dodging. Adding a
+new palette token for the six unmatched accents and replacing the tags would be a genuine
+improvement — but it changes the design system, so it belongs to a styling slice with its
+own review, not to a checkpoint.
+
+## 4. Verified at this checkpoint (measured, isolated runs)
 | Boundary | Command | Result |
 |---|---|---|
 | Frontend type-check | `node --max-old-space-size=16384 ./node_modules/typescript/bin/tsc --noEmit --pretty false` | **exit 0, 0 errors** |
