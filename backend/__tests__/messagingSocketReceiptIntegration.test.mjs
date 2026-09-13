@@ -85,7 +85,7 @@ vi.mock('../models/index.mjs', () => ({
 }));
 
 const { initializeSocket } = await import('../socket/socket.mjs');
-const clientModule = await import('../../frontend/node_modules/socket.io-client/build/esm/index.js');
+const clientModule = await import('socket.io-client');
 
 const once = (socket, event, timeout = 2000) => new Promise((resolve, reject) => {
   const timer = setTimeout(() => reject(new Error(`Timed out waiting for ${event}`)), timeout);
