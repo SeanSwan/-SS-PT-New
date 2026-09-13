@@ -222,10 +222,27 @@ recorded as a missing input:
   `no_verified_records` vs `verified`), so a real zero session count is still
   distinguishable from missing inputs.
 
-**Test coverage DIRECT.** `coachProgressEvidence.test.mjs:104` asserts
-`out.missingInputs.includes('workout_set_values')` for the all-missing case and
-`:116` for the partial case. `coachProgressEvidenceTool.t33.test.mjs:103`
-("shows a missing unit instead of inventing one") covers the adjacent unit case.
+**Test coverage DIRECT, and EXECUTED.** `coachProgressEvidence.test.mjs` is a
+`node:test` file (not vitest), so it is collected by `npm run test:node` rather
+than by `vitest run` — which is why it did not appear in the vitest pass below
+and had to be run separately. It contains assertions named for this finding:
+
+- `null load or reps never counts as zero volume`
+- `HR1-4 absent and malformed set values never publish comparable zero volume`
+- `HR1-4 recorded zero load remains a real zero, with partial records disclosed separately`
+
+Executed under the reviewed isolated runner (dotenv disabled by preload, sensitive
+env scrubbed, non-loopback TCP denied):
+
+```
+node --test tests/unit/coachProgressEvidence.test.mjs
+ℹ tests 10   ℹ pass 10   ℹ fail 0   NODE_TEST_EXIT=0
+```
+
+That covers all four cases the original review's validate clause named —
+all-missing, partially-missing, legitimate zero-load, and complete sets — and it
+proves the third-party assertion directly: a **recorded** zero load stays a real
+zero while absent values never become one.
 
 ---
 
@@ -321,9 +338,18 @@ the review demanded. The strongest evidence is concentrated in
    listener cleanup are all covered; the specific assertion that a departed caller
    cannot cause a late conversation write is guarded by `aiChatRoutes.mjs:1055` but
    is not itself asserted by a test I found.
-3. This is a **static adjudication plus a read of the existing tests**. Nothing here
-   was executed against a running server at this revision. The cited tests are
-   cited as existing coverage, not as a run performed now.
+3. **This adjudication is partly executed, not purely static.** The cited suites
+   were run at this revision under the reviewed isolated runner (dotenv disabled
+   by preload, sensitive env scrubbed, non-loopback TCP denied):
+
+   | Suite | Command | Result |
+   |---|---|---|
+   | HR1 boundary + evidence + context + progress-reader + analytics | `vitest run` (isolated) over 6 files | **6 files / 108 tests passed, exit 0** |
+   | HR1-4 progress calculator | `node --test tests/unit/coachProgressEvidence.test.mjs` (isolated) | **10 tests / 10 passed / 0 failed, exit 0** |
+
+   What was **not** executed: any running server, any provider call, any database,
+   any browser. The six-finding adjudication rests on source reading plus these two
+   executed suites; it is not a runtime release gate.
 
 **Remaining G11 gates, all NOT RUN at this revision** (unchanged from the original
 review's own closing paragraph): frozen all-role/scenario/holdout provider
