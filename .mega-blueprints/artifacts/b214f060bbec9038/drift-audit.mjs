@@ -212,8 +212,17 @@ if (problems.length > 40) console.log(`  ...and ${problems.length - 40} more`);
 // Round 147 vacuity guard: every clause of `ok` below is a zero-count test, so a run that found no
 // changed modules satisfied all of them without reading an import. Forbid the empty verdict.
 if (changed.length === 0) {
-  console.log('DRIFT_AUDIT_FAILED: no changed/untracked backend modules were found, so no import was resolved;');
-  console.log('  a zero-module audit cannot pass — check the root and the git state');
+  // ROUND 210: distinguish a CLEAN TREE from a WRONG ROOT. Zero changed modules is the normal state
+  // immediately after a commit, and failing there would report a healthy tree as broken — the mirror of
+  // the false pass this guard was added to prevent. A wrong root still fails, because git status under
+  // the wrong root lists something.
+  const dirtyUnderRoot = git(['status', '--porcelain', 'backend/']).length > 0;
+  if (!dirtyUnderRoot) {
+    console.log('DRIFT_AUDIT_OK: nothing to audit — the working tree has no uncommitted backend changes');
+    process.exit(0);
+  }
+  console.log('DRIFT_AUDIT_FAILED: the working tree has changes but no changed/untracked backend modules were found,');
+  console.log('  so no import was resolved — check the root and the git state');
   process.exit(1);
 }
 const ok = unresolved === 0 && unexported === 0 && unparseable === 0;
