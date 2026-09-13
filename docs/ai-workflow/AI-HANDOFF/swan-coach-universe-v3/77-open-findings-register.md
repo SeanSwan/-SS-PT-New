@@ -429,6 +429,57 @@ which is why the 10 `.postgres.test.mjs` files need their own configs and never 
 in a default suite. Note also `retry: 1` at `:80` — a default that can mask a flaky
 failure, which is why the isolated runner overrides it with `--retry 0`.
 
+### INF-5. The GLM seat can be permanently bricked by a crash, and nothing in the repo can un-brick it
+
+**Observed 2026-09-13, and it blocked two agents at once.** The GLM consumption guard
+serializes the seat with an exclusive lock at `%LOCALAPPDATA%\SwanAI\glm-call.lock`,
+and `consult-glm.mjs` calls `lock.markUnresolved()` **before** the socket write on
+purpose — "Persist BEFORE the socket call. A crash/timeout is not proof the provider
+stopped." That is the right instinct.
+
+The gap is what happens after a crash. `acquireGlmLock` refuses on `state === 'unresolved'`
+**regardless of whether the owning pid is still alive**:
+
+```js
+if (owner.state === 'unresolved') {
+  throw new Error('GLM execution is unresolved; terminal reconciliation is required before another call.');
+}
+```
+
+There is **no reconciliation script anywhere in the repo** — a repo-wide search finds
+only that throw and the `markUnresolved` writer. And because
+`scripts/approve-glm-batch.mjs` also calls `acquireGlmLock`, the 15-round checkpoint
+**cannot even be approved** while the lock is unresolved. So the guard's demanded
+"terminal reconciliation" is a human file delete with no documented procedure.
+
+**What it looked like in practice.** Another agent's call (`call_b4709f37-…`) recorded
+`started` at `14:55:58Z` and **never recorded `finished`** — its process died mid-call.
+The lock it left behind held `pid=86480`, which was **dead**, with `state=unresolved`.
+Root's retry loop then burned **20 attempts over 23 minutes**, every one blocked, while
+the other agent's own retries (pid 81356, 69812) sat blocked behind the same file. A
+seat with no live owner was refusing everyone.
+
+**Resolution.** Owner-approved deletion after establishing: pid dead, lock age 26.4 min
+against observed call walls of 2.7–9.6 min, and a ledger `started` with no matching
+`finished`. Evidence saved to
+`tmp/astra-hostile-glm-20260913/stale-lock-recovery.json`. Deleting a dead owner's
+coordination file is stale-lock recovery, not a claim that their call succeeded.
+
+**Recommended fix, not applied** (shared tooling, and it is a design decision about a
+safety control): make `acquireGlmLock` reclaim a lock whose owner pid is **dead** once
+it is past a grace period, exactly as it already does for the non-`unresolved` case
+(`if (pidIsLive(...) || ageMs < 30 min) throw; unlinkSync(path);`) — the `unresolved`
+state currently short-circuits **before** that liveness check, which is the whole bug.
+If the stronger guarantee is wanted instead, ship a `reconcile-glm-lock.mjs` that
+requires the dead-pid + age evidence and records the reconciliation in the ledger.
+Either way the checkpoint script should not be blocked by the thing it exists to
+govern.
+
+**Related, and also worth fixing:** a blocked or failed `consult-glm.mjs` call still
+reserves its `--out` and `--out.receipt.json` with `openSync(..., 'wx')` before the
+guard check, so the next attempt against the same path fails `artifact-exists`. Any
+retry loop must use a fresh `--out` per attempt. Root's `snatch-glm.ps1` does.
+
 ## F. G11 release gates — two gates executed, the rest NOT RUN
 
 **Executed:** the disposable-Postgres gate (§F2 — 7 of 10 suites pass) and the
