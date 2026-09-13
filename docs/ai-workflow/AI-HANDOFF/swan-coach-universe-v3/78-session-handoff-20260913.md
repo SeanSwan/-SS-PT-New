@@ -21,7 +21,7 @@ If either fails, stop and re-derive state from git rather than from prose.
 | Branch | `codex/swan-coach-astra-owned-20260906` |
 | Session base | `4345b86cf` |
 | Pushed? | **No. Nothing was pushed, deployed, or sent to any provider.** |
-| Session commits | 36 (ledger below; C2/C3 and the third-wave closure were still in flight when this line was written) |
+| Session commits | **39** since base `4345b86cf` (`git rev-list --count 4345b86cf..HEAD`). The count in this row read 36 when first written and then 37; it is re-derived, not incremented by hand. C2/C3 and the third-wave closure were still in flight when this line was written. |
 | Open findings | [77 — open findings register](77-open-findings-register.md) — **read this second** |
 
 ## Read order for a fresh agent
@@ -35,6 +35,13 @@ If either fails, stop and re-derive state from git rather than from prose.
    [70 — release and worktree audit](70-release-and-worktree-audit.md).
 5. [48 — capability truth and release gaps](48-capability-truth-and-release-gaps.md)
    for the product-truth ledger.
+6. [80 — citation drift and re-anchoring](80-citation-drift-and-reanchoring-20260913.md)
+   **before following any `file:line` citation in documents 70–79.** A hostile review
+   found that many of them no longer point at the code they describe: the claims are
+   true, but later commits in this session inserted lines above the cited positions.
+   Doc 80 records the per-file shift, which citations were repaired, which were left
+   alone on purpose, and the two probes — including that those probes are gitignored
+   and therefore local to this machine.
 
 ## What this session did, in one paragraph
 
@@ -66,7 +73,7 @@ rather than quietly edited.
 | G10 wiring | `c88fa7039` | Nudge engine was green but **unconsumed**; no client could receive a nudge | 2 files / 19 tests; restart proven across 4 separate processes |
 | G10 consent | `c6de0d021` | The opt-in key was read by the cron and **written by nothing** | 31 tests; end-to-end control flips the cron predicate |
 | P77-B | `d05e9eaa0` | Video queue logged false success; health surface misreported capability; route shadowed | 3 files / 55 tests |
-| Docs | `cbb6087ea`, `a261a4fd0`, `8ccaaae71`, `86a68749b`, `ae39d6eba`, `ef2593807`, `b0399b8a6`, `c9f737087`, `040cc5a1a`, `eb5505c3a`, `c6a997a9b`, `88b2074b2`, `0f9a9fd0f`, `4848457d6`, `c4d555c63`, `609182d94` | The audit, the adjudications, the register, and four corrections | see each |
+| Docs | `cbb6087ea`, `a261a4fd0`, `8ccaaae71`, `86a68749b`, `ae39d6eba`, `ef2593807`, `b0399b8a6`, `c9f737087`, `040cc5a1a`, `eb5505c3a`, `c6a997a9b`, `88b2074b2`, `0f9a9fd0f`, `4848457d6`, `c4d555c63`, `609182d94`, `6b55f2464`, `26b74cd17`, `e49a51d47`, `88073b79b`, `5a4ea60fa` | The audit, the adjudications, the register, the citation re-anchoring ([80](80-citation-drift-and-reanchoring-20260913.md)), and six corrections. **Do not trust this enumeration — it is a hand-kept list and hand-kept lists are what rotted the citations.** Derive it: `git log --oneline 4345b86cf..HEAD -- docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/` | see each |
 
 ## The five-instance root cause — read this before touching any role check
 
