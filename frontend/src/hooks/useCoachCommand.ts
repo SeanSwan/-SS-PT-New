@@ -90,10 +90,31 @@ export const commandErrorReceiptText = (error?: string | null): string => (
 
 const frontendDispatchReceipt = (event: string, dispatched: boolean, fallback: string): string => {
   if (dispatched) return fallback || 'Sent to the active workout surface.';
-  if (event === 'AI_SUBMIT_WORKOUT') return 'No active Workout Logger was open. No workout was submitted.';
+  // R60-A containment (plan 60 §8 R60-R1). A submit event is either declined
+  // by a mounted Logger or has no receiver at all; the old copy asserted "No
+  // active Workout Logger was open", which a mounted-and-declining Logger makes
+  // false, and it read as a delivery report for a save that never happened.
+  // This states the actual capability limit and points at the manual path.
+  if (event === 'AI_SUBMIT_WORKOUT') return 'AI save is unavailable here. Review the workout and use Save.';
   if (event.startsWith('AI_PLANNER_')) return 'No Workout Planner is open. The plan was not changed.';
   return 'No active workout surface was open. No form was changed.';
 };
+
+/**
+ * R60-A containment (plan 60 §8 R60-R1) — producer side.
+ *
+ * `AI_SUBMIT_WORKOUT` carries no origin, target, Logger instance or draft
+ * revision, and bound delivery (R60-B1/B2/B3: server approval binding, owner
+ * capture + one-time local permit, exactly-one-receiver delivery) is PENDING
+ * and not authorized here. So the command lane must not put an unbound submit
+ * on the global bus AT ALL — not merely rely on every current and future
+ * listener refusing it. Both response branches (execute and confirm) decline
+ * through this one gate and report the containment receipt above. Other event
+ * families keep their existing dispatch, including a receiver that declines.
+ */
+const dispatchFrontendEvent = (event: string, payload: Record<string, unknown>): boolean => (
+  event === 'AI_SUBMIT_WORKOUT' ? false : dispatchAIWorkoutEvent(event, payload)
+);
 
 const commandRequestErrorReceipt = (error: unknown, fallback: string): string => {
   const data = (error as { response?: { data?: { error?: unknown; message?: unknown } } })?.response?.data;
@@ -251,7 +272,7 @@ export function useCoachCommand(binding?: PublicationBinding) {
       if (data.type === 'frontend_dispatch') {
         if (typeof data.event !== 'string' || !data.event || !record(data.payload)) return invalidCommand();
         if (!isCurrent(operation)) return retiredCommand();
-        const dispatched = dispatchAIWorkoutEvent(data.event, data.payload);
+        const dispatched = dispatchFrontendEvent(data.event, data.payload);
         if (!isCurrent(operation)) return retiredCommand();
         return { type: 'frontend_dispatch', message: frontendDispatchReceipt(data.event, dispatched, responseText(data.message, 'Sent to the workout form.')),
           command: responseText(data.command), event: data.event, payload: data.payload, dispatched };
@@ -312,7 +333,7 @@ export function useCoachCommand(binding?: PublicationBinding) {
       if (data.type === 'frontend_dispatch') {
         if (typeof data.event !== 'string' || !data.event || !record(data.payload)) return invalidConfirmation();
         if (!isCurrent(operation)) return retiredConfirmation();
-        const dispatched = dispatchAIWorkoutEvent(data.event, data.payload);
+        const dispatched = dispatchFrontendEvent(data.event, data.payload);
         if (!isCurrent(operation)) return retiredConfirmation();
         return { success: true, type: 'frontend_dispatch', message: frontendDispatchReceipt(data.event, dispatched, responseText(data.message)),
           result: { dispatched, event: data.event }, command: typeof data.command === 'string' ? data.command : undefined,

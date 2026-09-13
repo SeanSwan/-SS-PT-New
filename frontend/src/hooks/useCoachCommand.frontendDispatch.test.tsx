@@ -147,7 +147,13 @@ describe('useCoachCommand frontend dispatch bridge', () => {
     });
   });
 
-  it('dispatches workout-form browser events returned by confirmed commands', async () => {
+  it('does not emit an unbound AI_SUBMIT_WORKOUT from the confirmed path — even when a receiver would ack it', async () => {
+    // R60-A containment (plan 60 §8 R60-R1). The dispatcher mock returns TRUE
+    // for every event — the worst case, a mounted/global receiver that would
+    // have accepted. The producer must still refuse: bound submit delivery
+    // (origin capture + one-time local permit) is R60-B1/B2/B3 and PENDING, and
+    // a producer-side gate is the only guard that also covers a future listener
+    // without its own containment.
     vi.mocked(apiService.post).mockResolvedValue({
       data: {
         success: true,
@@ -166,28 +172,56 @@ describe('useCoachCommand frontend dispatch bridge', () => {
       response = await result.current.confirmCommand('op-2');
     });
 
-    expect(dispatchAIWorkoutEvent).toHaveBeenCalledWith('AI_SUBMIT_WORKOUT', {
-      intensity: 8,
-      notes: 'Strong finish',
-    });
+    expect(dispatchAIWorkoutEvent).not.toHaveBeenCalled();
     expect(response).toMatchObject({
       success: true,
       type: 'frontend_dispatch',
       command: 'submit_workout_form',
-      message: 'Sent confirmed workout submit to the logger.',
+      dispatched: false,
+      message: 'AI save is unavailable here. Review the workout and use Save.',
     });
+    const message = (response as { message?: string } | null)?.message ?? '';
+    expect(message).not.toMatch(/No active Workout Logger was open/);
+    expect(message).not.toMatch(/saved|submitted|sent to/i);
   });
 
-  it('returns an honest receipt when a confirmed submit has no active WorkoutLogger listener', async () => {
-    vi.mocked(dispatchAIWorkoutEvent).mockReturnValue(false);
+  it('does not emit an unbound AI_SUBMIT_WORKOUT from the execute path either', async () => {
     vi.mocked(apiService.post).mockResolvedValue({
       data: {
         success: true,
         type: 'frontend_dispatch',
         command: 'submit_workout_form',
-        message: 'Sent confirmed workout submit to the logger.',
+        message: 'Sent workout submit to the logger.',
         event: 'AI_SUBMIT_WORKOUT',
         payload: { intensity: 8 },
+      },
+    });
+
+    const { result } = renderHook(() => useCoachCommand());
+    let response: Awaited<ReturnType<typeof result.current.executeCommand>> | null = null;
+
+    await act(async () => {
+      response = await result.current.executeCommand('submit this workout');
+    });
+
+    expect(dispatchAIWorkoutEvent).not.toHaveBeenCalled();
+    expect(response).toMatchObject({
+      type: 'frontend_dispatch',
+      command: 'submit_workout_form',
+      dispatched: false,
+      message: 'AI save is unavailable here. Review the workout and use Save.',
+    });
+  });
+
+  it('confirmed non-submit dispatches still reach the bus (positive control)', async () => {
+    vi.mocked(apiService.post).mockResolvedValue({
+      data: {
+        success: true,
+        type: 'frontend_dispatch',
+        command: 'rearrange_workout',
+        message: 'Sent to the planner.',
+        event: 'AI_PLANNER_REARRANGE',
+        payload: { order: ['a', 'b'] },
       },
     });
 
@@ -195,15 +229,43 @@ describe('useCoachCommand frontend dispatch bridge', () => {
     let response: Awaited<ReturnType<typeof result.current.confirmCommand>> | null = null;
 
     await act(async () => {
-      response = await result.current.confirmCommand('op-3');
+      response = await result.current.confirmCommand('op-4');
     });
 
+    expect(dispatchAIWorkoutEvent).toHaveBeenCalledWith('AI_PLANNER_REARRANGE', { order: ['a', 'b'] });
     expect(response).toMatchObject({
       success: true,
       type: 'frontend_dispatch',
-      command: 'submit_workout_form',
+      event: 'AI_PLANNER_REARRANGE',
+      dispatched: true,
+    });
+  });
+
+  it('keeps the generic no-surface receipt for non-submit events (positive control)', async () => {
+    vi.mocked(dispatchAIWorkoutEvent).mockReturnValue(false);
+    vi.mocked(apiService.post).mockResolvedValue({
+      data: {
+        success: true,
+        type: 'frontend_dispatch',
+        command: 'add_exercise_to_form',
+        message: 'Sent to the workout form.',
+        event: 'AI_ADD_EXERCISE',
+        payload: { exerciseName: 'Push Up', sets: 3 },
+      },
+    });
+
+    const { result } = renderHook(() => useCoachCommand());
+    let response: Awaited<ReturnType<typeof result.current.executeCommand>> | null = null;
+
+    await act(async () => {
+      response = await result.current.executeCommand('add push ups');
+    });
+
+    expect(response).toMatchObject({
+      type: 'frontend_dispatch',
+      event: 'AI_ADD_EXERCISE',
       dispatched: false,
-      message: 'No active Workout Logger was open. No workout was submitted.',
+      message: 'No active workout surface was open. No form was changed.',
     });
   });
 });
