@@ -82,7 +82,9 @@ const ClientTimeline: React.FC<ClientTimelineProps> = ({
           <Calendar size={40} color={CLIENT_TIMELINE_THEME.accentPrimary} />
           <EmptyTitle>No Upcoming Sessions</EmptyTitle>
           <EmptyText>
-            Your orbit is clear. Browse available time slots to book your next session.
+            {past.length > 0
+              ? "Nothing on the books right now. Your recent sessions are below — book your next one when you're ready."
+              : 'Your orbit is clear. Browse available time slots to book your next session.'}
           </EmptyText>
         </EmptyState>
       ) : (
