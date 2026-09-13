@@ -370,13 +370,15 @@ which is why the 10 `.postgres.test.mjs` files need their own configs and never 
 in a default suite. Note also `retry: 1` at `:80` — a default that can mask a flaky
 failure, which is why the isolated runner overrides it with `--retry 0`.
 
-## F. G11 release gates — one gate partially executed, the rest NOT RUN
+## F. G11 release gates — two gates executed, the rest NOT RUN
 
-**Executed:** the disposable-Postgres gate — see §F2 for the 7-of-10 result.
+**Executed:** the disposable-Postgres gate (§F2 — 7 of 10 suites pass) and the
+migration gate (§F3 — **FAILS at the first migration**; the chain is not
+self-contained).
 **Still NOT RUN:** frozen all-role/scenario/holdout provider evaluation · privacy and
 provider-boundary evaluation · Redis-unavailable/restart at integration level ·
-migration/restore/rollback · performance budgets · real authenticated role
-journeys · mounted substitution/share and dashboard adapters. See
+performance budgets · real authenticated role journeys · mounted substitution/share
+and dashboard adapters. See
 [73](73-g11-original-six-findings-adjudication.md) for what the six-finding
 adjudication did and did not settle.
 
@@ -499,6 +501,68 @@ without the preload both connect. So the guard is sound and the probe is meaning
 Per-file logs land in the OutDir. **Do not use the single-invocation config** for a
 verdict, and **do not run the three `node:test` files unisolated** to make them pass
 — that is the INF-4 hazard.
+
+### F3. The migration gate — RUN, and it FAILS at the first migration
+
+This is the "restore" half of migration/restore/rollback, and it is now measured.
+Root pointed the app's own `test` environment at an empty disposable container and
+ran the real migration set.
+
+```
+node node_modules/sequelize-cli/lib/sequelize db:migrate \
+  --config config/config.cjs --migrations-path migrations --models-path models --env test
+```
+
+**Result: it stops immediately, before creating anything.**
+
+```
+Sequelize CLI [Node: 24.19.0, CLI: 6.6.2, ORM: 6.37.8]
+Loaded configuration file "config\config.cjs".
+Using environment "test".
+== 20240115000000-update-orientation-model: migrating =======
+ERROR: relation "orientations" does not exist
+```
+
+`SequelizeMeta` is never created, so **zero of the 376 migrations apply** to an empty
+database. Root verified the cause rather than inferring it:
+
+1. `20240115000000-update-orientation-model.cjs` **is** the earliest migration by
+   name (376 total; the next is `20250107000000-create-clients-pii.cjs`).
+2. That migration performs **only ALTERs** — `changeColumn('orientations', 'userId', …)`
+   and `addColumn('orientations', 'status' | 'assignedTrainer' | …)`.
+3. **No migration creates that table.** `createTable('orientations')` occurs **0
+   times** across all 376 migration files.
+
+**So the migration history is not self-contained: it assumes a baseline schema that
+nothing in the repository creates.** The chain was evidently layered onto a database
+provisioned some other way (`sequelize.sync()`, or a manual/earlier baseline).
+
+**What this does and does not mean — read both halves.** It does **not** mean
+production is broken: production has the tables, and `npm run migrate:production`
+runs only *pending* migrations against an existing schema, which is a different
+operation and is not exercised by this gate. What it **does** mean is that **the
+database cannot be rebuilt from the repository alone** — which is exactly what a
+disaster-recovery restore needs, and it is a release-relevant gap rather than a
+curiosity. A restore strategy that assumes "run the migrations" would produce a
+database missing `orientations` and everything downstream of it, and would fail
+before reaching any of the other 375.
+
+**Two candidate dispositions, neither applied here** (this is a schema-ownership
+decision, not a bugfix): (a) declare the baseline explicitly — document that a dump
+must be restored before `db:migrate`, and make that step non-optional in the runbook;
+or (b) add a genuine baseline migration that creates the pre-2024 schema so the chain
+is self-contained. Option (b) is the durable fix and is a real slice; option (a) is
+cheap and honest if a dump reliably exists. **Whoever takes it should first confirm
+which route production actually took, because guessing here risks a migration that
+tries to create tables production already has.**
+
+**Tooling note for the next runner:** the repo's own npm scripts use
+`npx sequelize-cli`, and **`npx` is broken in this environment** — it dies with
+`Cannot find module …node_modules\npm\bin\npm-prefix.js`, so `npm run migrate:test`
+cannot be used and the migration silently never runs. Invoke
+`node node_modules/sequelize-cli/lib/sequelize …` directly, as above. The container
+recipe is the same one F2 uses; use a *separate* container so a failed migration
+chain cannot leave the suite container half-built.
 
 ---
 
