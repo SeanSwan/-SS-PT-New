@@ -85,15 +85,29 @@ therefore silently exclude the most common account:
 1. `clientPhotoRoutes.mjs:75` — photo visibility fail-open (**fixed**, CA-1).
 2. `profileController.mjs:598` — profile update fail-closed (**fixed**, CA-2).
 3. `clientDataOverviewQueryService.mjs:26` — trainer-note metadata disclosed to the
-   default role (**fix in flight**, F1). Worse: `clientDataOverviewPrivacy.test.mjs`
-   asserts the *source text* of the broken predicate, so a green test pins the bug.
-4. `painEntryRoutes.mjs:35,38,39,40` — `authorize([...'client'])` disagreeing with the
-   ownership guard on the same line (**fix in flight**, F2).
+   default role (**fixed**, F1, `474b3524c`). Worse: `clientDataOverviewPrivacy.test.mjs`
+   asserted the *source text* of the broken predicate, so a green test pinned the bug
+   (**also fixed** — it is behavioural now, F1b).
+4. `painEntryRoutes.mjs:41,44,45,46` — `authorize([...'client'])` disagreeing with the
+   ownership guard on the same line (**fixed**, F2).
 5. `coachProactiveNudgeCron.mjs:220,183` — delivery never reaches the default role
-   (**fix in flight**, F5).
+   (**fixed**, F5).
 
 `aiChatRoutes.mjs:372` is the same class with a different symptom: the default role
-gets a **500** creating a conversation (**fix in flight**, F3).
+got a **500** creating a conversation (**fixed**, F3 — now an explicit 403 at
+`aiChatRoutes.mjs:390`).
+
+**All five, plus the 10-registration third wave, are now closed and verified** — see
+the register's §A and §A2, and `1e376a013` for the third wave. The class is closed
+**by measurement**: two independently written detectors both find 12
+`authorize([...'client'...])` lists in `backend/routes`/`controllers` and **0** that
+lack `'user'`. A repo-level pairing guard now fails on recurrence.
+
+**Do not "finish the job" by adding `'user'` to the two remaining whitelists.** That
+is a trap, not a to-do: at `aiWorkoutController.mjs:288` and
+`longHorizonController.mjs:201` the role gate is the *only* guard on the path, and
+widening it lets a `'user'` generate a plan for another user. Register §A3 records
+the mechanism and the executed counterfactual.
 
 **The durable fix is the shared helper, not six one-line patches.** A repo-wide
 guard that fails when a requester-side `role === 'client'` appears would close the

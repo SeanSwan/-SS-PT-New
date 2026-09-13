@@ -61,7 +61,7 @@ claim is provisional it is labelled provisional.
 | G09 residuals | **NOT STARTED** | `purgeDueFacts` never called; T37 conflict writer unbuilt; no memory UI |
 | G10 residual | **NOT STARTED** | Consent surface has no frontend consumer |
 | Rule-4 splits | **NOT STARTED** | Six files this session touched are over the cap. **Corrected:** the earlier claim that "the guard gap that let them through matters more than the splits" is withdrawn — G6 is advisory-by-design (`frontend-guards.mjs:14`) and frontend-scoped on purpose (`:5`), and 786 tracked files exceed the cap repo-wide, not six. See [77](77-open-findings-register.md) §D T-1-BASELINE |
-| `known-failing-baseline.json` | **NOT STARTED — deliberately** | Needs a quiet tree. Growing it under concurrent writers would produce a baseline that misrepresents the repo |
+| `known-failing-baseline.json` | **RECONCILED** | Done in a serialized quiet-tree run: 13 failed / 1265 passed files, 14 failed / 10714 passed tests. **All 7 baseline files still fail, so the baseline is accurate and nothing recovered. There are no regressions** — nothing that used to pass now fails. Five unbaselined failures are pre-existing (this session touched none of the implicated files); three are diagnosed as source-text assertions that `dailyWorkoutFormRoutes.mjs` no longer satisfies, two stay unclassified. Register §D1 |
 | **G11 release gates** | **ALL NOT RUN** | Frozen all-role/scenario/holdout provider evaluation; privacy and provider-boundary evaluation; Redis/restart at integration level; migration/restore/rollback; performance budgets; real authenticated role journeys |
 
 **Provenance caveat on the F1–F5 row, recorded rather than hidden.** That commit was
