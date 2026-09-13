@@ -352,6 +352,18 @@ The concurrent full-suite A/B in this audit observed **12** failing files, of wh
 tree, and five files' true status is **unknown** — neither confirmed pre-existing
 nor confirmed flake. **What is not established:** that they are new regressions.
 
+> **RESOLVED 2026-09-13 — the paragraph above and the slice it recommends are now
+> historical; do not re-run them.** The quiet-tree serialized run was done. Result:
+> the baseline is **accurate** (all 7 recorded files still fail, none recovered) and
+> there are **no regressions**. The five unbaselined files are **confirmed
+> pre-existing** — this session touched none of the implicated files, whose last
+> changes are 2026-07-06 to 2026-09-12. **Three of the five are diagnosed:** they are
+> source-text assertions that `dailyWorkoutFormRoutes.mjs` no longer satisfies
+> (`runWorkoutXpAwardStep` and `awardPoints` appear 0 times), which is why
+> `phase1cXpIntegration` reports `expected -1 to be greater than 11356`. Two remain
+> unclassified: `consoleRedaction` and `physicalConfirmChannelSplit`. Full detail,
+> reproduction command and disposition: register §D1.
+
 **Recommended closure (a real, small slice for a quiet tree):** run the backend
 suite serialized with no other agent active, then classify each of the five as
 *(a)* genuine pre-existing failure → record with a classification like the existing

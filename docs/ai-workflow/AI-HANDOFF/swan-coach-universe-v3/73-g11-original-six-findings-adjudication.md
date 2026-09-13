@@ -360,6 +360,17 @@ adapters, and proactive delivery. Removing the unfinished Session Desk from the
 default mount is a containment change and does not complete the Desk. Registry
 classifications still do not establish 139 usable capabilities.
 
+> **UPDATE 2026-09-13 — one gate has since been partially executed.** The
+> disposable-Postgres gate ran for the first time: **7 of 10 suites pass** against a
+> freshly recreated database (107 tests, exit 0 per file). **3 cannot run under
+> isolation** — `coachIntent`, `coachIntent.proof` and `coachIntentListing` are
+> `node:test` files that bypass `coachTestDatabase.mjs` and resolve the app's own
+> `localhost:5432/swanstudios`, which the preload denies. The purge-worker item in
+> the list above is also now partly addressed: `services/coachFactPurgeCron.mjs`
+> exists and is registered, but is **default-OFF**, so the purge still does not
+> happen in production. Everything else in this list remains NOT RUN. Details:
+> register §F2 and §A2.
+
 ## Next
 
 The two real-database variants and the late-overwrite assertion above are small and
