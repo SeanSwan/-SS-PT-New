@@ -1,0 +1,15 @@
+{
+  "npmCi": "PASS exit 0 --offline --ignore-scripts --no-audit --no-fund",
+  "typescriptVersion": "Version 5.9.3",
+  "vitestVersion": "vitest/4.1.10 win32-x64 node-v24.19.0",
+  "frontendNodeModules": "d----",
+  "rootNodeModulesExists": false,
+  "forgeTarget": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\packages\\swan-forge",
+  "schemasTarget": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\packages\\swan-schemas",
+  "forgeUsesNewCheckout": true,
+  "schemasUseNewCheckout": true,
+  "packageJsonSha256": "7cfa0bc6bfae90137fbb060cf6c69cf95d57b7a0f21bd6c152ac7e2acbb6e75c",
+  "packageLockSha256": "81bbc6b6f9af968743cd5fb9149063fe20e72295e1528dcd176268e75d3d672d",
+  "postgresDataCopied": false,
+  "dependencyJunctionCopied": false
+}

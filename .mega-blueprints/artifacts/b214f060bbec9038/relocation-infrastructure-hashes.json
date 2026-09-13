@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUtc": "2026-09-13T07:12:32.2835367Z",
+  "files": [
+    {
+      "file": "relocation-infrastructure-report.json",
+      "exists": true,
+      "sha256": "E9135127C8874FE7170103CD972E8FEB3A9E844488C99C7B2ECC7AB8D1E080BF",
+      "bytes": 4128
+    },
+    {
+      "file": "relocation-infrastructure-receipt.md",
+      "exists": true,
+      "sha256": "A81734633AB8E3D767D4BEB75D7134980C64B66843714285A2698D740618E926",
+      "bytes": 2482
+    },
+    {
+      "file": "relocation-backend-npm-ci.log",
+      "exists": true,
+      "sha256": "60FF3EA2814843D617604F28B99A753EA96CB6BA8AA44796BBCEE9D7202E0D83",
+      "bytes": 1180
+    },
+    {
+      "file": "relocation-backend-dependency-resolution.log",
+      "exists": true,
+      "sha256": "ACA2A67D59360D33E59844BC327FD4B224B76F0A9AFC32205797CE61DDB1EC08",
+      "bytes": 1207
+    },
+    {
+      "file": "relocation-postgres-port-probe.log",
+      "exists": true,
+      "sha256": "985F1D9D409AD16307D9357D9D85A22FD733BD91506E0FDA043D16D3A9B243D7",
+      "bytes": 168
+    },
+    {
+      "file": "relocation-postgres-initdb.log",
+      "exists": true,
+      "sha256": "E190C9385DE01C4694A38DA762C5A0A0ACEF9FA9C110259D7C2CFD357C63FE6F",
+      "bytes": 1265
+    },
+    {
+      "file": "relocation-postgres-start.log",
+      "exists": true,
+      "sha256": "B892224F4BBFF5461D37F8EDA2A4C6D21A29C9C53DCA215BDFD4CD13EA9CA192",
+      "bytes": 116
+    },
+    {
+      "file": "relocation-postgres-start-native.log",
+      "exists": true,
+      "sha256": "46038EFB813FBCA18A92272496901190638DEA3F97B51F7AF0DAA1CA2EB13818",
+      "bytes": 54
+    },
+    {
+      "file": "relocation-postgres-stale-pid-cleanup.log",
+      "exists": true,
+      "sha256": "54402DB55958FBDFDC1144D49BFB41FC87F574C2DDA6FC140AD5B58561DAFDDF",
+      "bytes": 172
+    },
+    {
+      "file": "relocation-postgres-provision.log",
+      "exists": true,
+      "sha256": "E9E5A0C89AC40B00C659F110287BDE4FF3B5B3F08D75098AFE80B2B9FC08E9DE",
+      "bytes": 29
+    },
+    {
+      "file": "relocation-postgres-identity.log",
+      "exists": true,
+      "sha256": "12E9068019A51DC4547DFBE9EB7B5BA80071D8A254D279033E20F82F5EC2EA96",
+      "bytes": 1189
+    },
+    {
+      "file": "relocation-postgres-client-identity.log",
+      "exists": true,
+      "sha256": "B86670353566E798275461AD16A960D39599C22590D74C4539136831D03F7495",
+      "bytes": 167
+    },
+    {
+      "file": "relocation-postgres-client-identity-success.log",
+      "exists": true,
+      "sha256": "140D6AB42AAAE68272444AB285DA8B113C98BD77FC511B9D2B25F520D7994785",
+      "bytes": 406
+    },
+    {
+      "file": "relocation-postgres-status-native.log",
+      "exists": true,
+      "sha256": "7409B49148BFD6F912E9688980B27947DFCAB68CD640D0E947BB434A7596BC1C",
+      "bytes": 262
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+# S07 architecture: calendar-safe Sprint scaffolding and legacy format fidelity
+
+This future slice specializes R-H06 in canonical documents 12/13. It is not admitted yet. Luna owns source and tests. Canonical checkout is documented in appendix 17. No active agent's older checkout is an input for implementation.
+
+## Scope and behavior
+
+Extract the existing schedule calculation from backend/services/bootcamp/sprintService.mjs into a small pure backend/services/bootcamp/sprintCalendarContract.mjs. Validate create inputs before opening the first transaction: strict YYYY-MM-DD date-only string with round-trip calendar validation; safe integer durationWeeks 1–52; one to seven unique valid weekday names; nonempty supported focusRotation; classesPerWeek, when supplied, must equal the normalized weekday count. Trim/lowercase recognized weekday tokens. Reject duplicates, malformed/non-string members, invalid dates and impossible counts instead of dropping them. Preserve the existing omitted-field defaults. Validate format against the authoritative FORMAT_CONFIG keys and style/day-type against existing supported contracts; do not invent a second registry.
+
+All date arithmetic uses UTC date-only components or equivalent calendar-day arithmetic, never local getDay/setDate followed by UTC formatting. Week one starts on the supplied start date. Each week covers seven calendar dates; each chosen weekday occurs once within that window. Sort the week's occurrence dates chronologically before assigning the rotating focus across actual session order. Persist that normalized weekday order and the actual class count. Rotation continues across weeks and never depends on host timezone. The end date is start plus durationWeeks*7-1 calendar days. Keep ordinal weekNumber, date-only strings and existing fourth-week scaffold fields. Full progression/deload semantics remain R-H20; this slice does not claim to fix them.
+
+Existing legacy FORMAT_CONFIG keys (stations_4x, stations_3x5, stations_2x7, stations_3x4, stations_5x3) remain accepted wherever an existing generation/save route validates classFormat. Their exact station, exercise, round and time values are preserved; do not remap them to similarly named modern formats. Prefer deriving route allowlists from the existing source of truth, with existing custom-structure validation retained. Invalid format/style inputs fail before generation or persistence.
+
+Existing read compatibility remains unchanged. No historical schedule rewrite, database migration, timezone preference feature, generation dispatch, provider call, or production operation is included. Schedule creation remains atomic under its existing transaction. Full object authorization is the separate Sprint service/claim slice and must remain visibly pending.
+
+## Exact candidate files and acceptance
+
+Source: backend/services/bootcamp/sprintService.mjs; new backend/services/bootcamp/sprintCalendarContract.mjs; backend/routes/bootcampRoutes.mjs only if its legacy allowlist still requires repair after S06. Enumerate the final exact scope before admission.
+
+Tests: new backend/tests/unit/sprintCalendarContract.test.mjs; new backend/tests/unit/sprintCreateCalendar.test.mjs; existing backend/tests/unit/bootcampRouteFormatContract.test.mjs; existing backend/tests/api/bootcampGenerateStyleContract.test.mjs where needed. A small isolated subprocess test probe may be added only after its exact file is enrolled.
+
+Record meaningful RED against existing create/calendar behavior before implementation. Assert identical schedules under UTC and America/Los_Angeles across both DST boundaries, leap years, year rollover and a non-Monday start. Test invalid February dates, timestamps, zero/53/fractional durations, empty/duplicate weekdays, mismatched counts, invalid focus members, omitted defaults, chronological focus assignment and exactly durationWeeks*weekdayCount slots. Service mocks must prove invalid input opens no transaction and performs no writes. Valid save tests inspect actual persisted dates/counts. Inject a late slot-write failure and assert rollback; do not claim this mock proves PostgreSQL transaction behavior.
+
+Route tests execute accepted legacy formats and assert generator inputs plus exact FORMAT_CONFIG structures; a source-string grep is insufficient. Run focused tests, existing Sprint/Bootcamp route compatibility tests and the relevant backend regression selection. Shared model integration in the owned disposable database remains part of final server proof. UI wireframes N/A for the pure date contract; existing Sprint error/retry states in appendix 14 apply to its consumer. Rollback is the exact source diff and retains already stored dates. Logs expose sanitized validation reason codes only.

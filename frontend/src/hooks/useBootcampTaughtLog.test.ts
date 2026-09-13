@@ -89,13 +89,27 @@ describe('buildTaughtLogPayload', () => {
     expect(payload!.exercisesUsed.every((entry) => typeof entry.exerciseName === 'string' && entry.exerciseName)).toBe(true);
   });
 
-  it('carries dayType and participants, uses a local YYYY-MM-DD classDate, and never flags overflow in v1', () => {
+  it('carries dayType, a local YYYY-MM-DD classDate, and an execution summary — never a false attendance claim', () => {
     const payload = buildTaughtLogPayload(
       bootcamp({ exercises: [exercise()] as GeneratedBootcamp['exercises'], dayType: 'cardio', expectedParticipants: 18 })
     );
 
     expect(payload!.dayType).toBe('cardio');
-    expect(payload!.actualParticipants).toBe(18);
+    // §5 line 222: "expectedParticipants is not actual attendance." The 18 is recorded where
+    // it belongs — inside the trainer-attested PRESCRIPTION — and the log asserts no
+    // attendance at all, because nothing observed who showed up.
+    // Asserted through `in` rather than a direct property read: the payload TYPE does not declare
+    // `actualParticipants`, and this repo excludes test files from tsc, so `payload!.actualParticipants`
+    // would have compiled while checking a field the contract says must not exist (round 114 F11).
+    expect('actualParticipants' in payload!).toBe(false);
+    expect(payload!.executionSummary).toEqual({
+      kind: 'trainer_attested_prescription',
+      // This fixture states no work interval or round count, so the summary reports NULL for
+      // them rather than inventing a number the class never carried.
+      prescribed: { workSec: null, rounds: null, targetDurationMin: 45 },
+      expectedParticipants: 18,
+      performedCount: 1,
+    });
     expect(payload!.overflowActivated).toBe(false);
     expect(payload!.classDate).toBe(localDateString(new Date()));
     expect(payload!.classDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);

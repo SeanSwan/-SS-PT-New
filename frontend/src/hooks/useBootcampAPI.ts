@@ -12,6 +12,7 @@ import type {
   GeneratedBootcamp,
   IntensityCategory,
   SpaceProfile,
+  TaughtLogExecutionSummary,
 } from './useBootcampAPI.types';
 
 export type {
@@ -29,6 +30,7 @@ export type {
   OverflowPlan,
   SpaceProfile,
   StationFlowData,
+  TaughtLogExecutionSummary,
 } from './useBootcampAPI.types';
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -107,6 +109,14 @@ export function useBootcampAPI() {
   const logClass = useCallback(async (params: {
     classDate: string;
     exercisesUsed: unknown;
+    /**
+     * H29 / R-H04 (contract §5 line 218): the taught-log endpoint REQUIRES a stable
+     * operation identity — `run:<uuid>` for a class run, minted and persisted by the
+     * caller, or `sprint-slot:<slotId>` for a Sprint confirmation. It is what lets a
+     * retry after a lost response collapse onto the same class log instead of appending
+     * a second one.
+     */
+    operationKey: string;
     templateId?: number;
     dayType?: DayType;
     actualParticipants?: number;
@@ -115,11 +125,23 @@ export function useBootcampAPI() {
     energyLevel?: string;
     overflowActivated?: boolean;
     modificationsMade?: unknown;
+    /**
+     * §5 line 222: which KIND of record this is — `trainer_attested_prescription` (the
+     * trainer attesting to a plan) or `runner_measured`. Prescribed seconds and rounds are
+     * not measured elapsed time, and expectedParticipants is not actual attendance.
+     */
+    executionSummary?: TaughtLogExecutionSummary;
   }): Promise<number> => {
-    const data = await apiFetch<{ success: boolean; logId: number }>(
+    const data = await apiFetch<{ success: boolean; logId: number; error?: string; message?: string }>(
       '/api/bootcamp/log',
       { method: 'POST', body: JSON.stringify(params) }
     );
+    // A 200 with `success:false` used to return `data.logId` = undefined, which the caller latched
+    // as a truthy-looking value and then refused to log again for the rest of the session — a stuck
+    // button with no message (hostile review, round 115 F5). Surface the refusal instead.
+    if (!data.success) {
+      throw new Error(data.error || data.message || 'The class log was refused.');
+    }
     return data.logId;
   }, []);
 

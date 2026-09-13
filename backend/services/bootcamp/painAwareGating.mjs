@@ -26,7 +26,7 @@
 import { Op } from 'sequelize';
 import { getClientPainEntry, getModel } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
-import { deriveJointFriendlyAlternative } from './classStyleModifiers.mjs';
+import { deriveRegionMatchedAlternative } from './classStyleModifiers.mjs';
 import { bootcampTargetsForRegion } from '../training-cortex/ontology/regionMuscleMap.mjs';
 
 // Severity at which flagged Board-1 exercises are swapped, not just annotated.
@@ -142,9 +142,33 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
             cautionExercises.push(ex.exerciseName);
             continue;
           }
-          const alternative = deriveJointFriendlyAlternative(ex, region);
+          // H09 / R-H09: only a REGION-MATCHED alternative may satisfy this region's pain.
+          // The generic derivation falls back to any joint modification, which would let a
+          // knee report be "resolved" by a shoulder modification — satisfying the alert
+          // without changing anything about the knee. A null here routes to the CAUTION path
+          // below, so the trainer is told there is no region-appropriate alternative.
+          const alternative = deriveRegionMatchedAlternative(ex, region);
           if (alternative && alternative !== ex.exerciseName) {
             ex.painSwap = { from: ex.exerciseName, region, severity };
+            // H09 / R-H09 — the SAME defect class `buildAlternativeExercise` had, found by an
+            // external review one round later: this rename happens IN PLACE, so the row used to
+            // keep the replaced movement's `exerciseLibraryId` (which RESOLVES) and its whole
+            // media snapshot. A rename without provenance is therefore invisible to
+            // `isSubstitution()` at read time, the clear rule cannot fire, and the template
+            // rejoin wrote the REPLACED movement's live demo and instructions onto the
+            // substitute — "the original demonstration presented as the replacement's".
+            //
+            // Recorded and cleared here, at the point of the rename, for the same reason the
+            // alternative builder does it at construction: nothing downstream can tell an
+            // inherited identity from the substitute's own, because both resolve.
+            ex.sourceExerciseName = ex.exerciseName;
+            ex.exerciseLibraryId = null;
+            ex.videoUrl = null;
+            ex.previewVideoUrl = null;
+            ex.thumbnailUrl = null;
+            ex.imageUrl = null;
+            ex.description = null;
+            ex.instructions = null;
             ex.exerciseName = alternative;
             swappedExercises.push(alternative);
           } else {

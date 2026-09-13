@@ -1,0 +1,10 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { collectImportStatements } from './lib-imports.mjs';
+import { readFileSync } from 'node:fs';
+const here = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(here, '..', '..', '..');
+const src = readFileSync(path.join(root, 'backend', 'core', 'routes.mjs'), 'utf8');
+const st = collectImportStatements(src);
+console.log('count =', st.length);
+for (const s of st.slice(0, 12)) console.log(`  line ${s.line}: ${s.specifier}   clause=${JSON.stringify(s.clause.slice(0, 60))}`);

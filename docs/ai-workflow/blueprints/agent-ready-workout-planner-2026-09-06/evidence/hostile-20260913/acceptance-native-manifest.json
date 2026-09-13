@@ -1,0 +1,50 @@
+{
+  "capturedAt": "2026-09-13T04:22:14.172Z",
+  "files": [
+    {
+      "source": "tmp/rolodex-audit-evidence/red-vitest-root-native.log",
+      "path": "evidence/hostile-20260913/red-vitest-root-native.log",
+      "sha256": "507a831936ff173da12e65a03b118a0c099eb6d89808b27993103889aa815446"
+    },
+    {
+      "source": "tmp/rolodex-audit-evidence/control-existing-filter.log",
+      "path": "evidence/hostile-20260913/control-existing-filter.log",
+      "sha256": "1be9c987329f4a7be3712e7be0699560b05b29d1e759529c59e4adb07ee13899"
+    },
+    {
+      "source": "tmp/rolodex-audit-evidence/native-metadata-preflight.json",
+      "path": "evidence/hostile-20260913/native-metadata-preflight.json",
+      "sha256": "227fed9efa6cccc2e3f24e43b9acf6afbcd26bd080c02b2300b444c2c4691e81"
+    },
+    {
+      "source": "tmp/rolodex-audit-evidence/native-dispatch-accounting.json",
+      "path": "evidence/hostile-20260913/native-dispatch-accounting.json",
+      "sha256": "86c6092cc24d28bd2224baceadc349674b12cb4db9b91019dc14c2fea29ae7d3"
+    },
+    {
+      "source": "tmp/rolodex-audit-evidence/red/blend-dialog-uuid.red.test.tsx",
+      "path": "evidence/hostile-20260913/red/blend-dialog-uuid.red.test.tsx",
+      "sha256": "4720840cd62a02a66f73ece7043183d14fc047062cbda08ef6c6126ccb5564cf"
+    },
+    {
+      "source": "tmp/rolodex-audit-evidence/red/rolodex-planner-acceptance.red.test.tsx",
+      "path": "evidence/hostile-20260913/red/rolodex-planner-acceptance.red.test.tsx",
+      "sha256": "0c4028f85ec6b7cda0a8b57c864ea80bd3af545ff70dc828818f6b31b8feb1f4"
+    },
+    {
+      "source": "tmp/rolodex-audit-evidence/red/setup.ts",
+      "path": "evidence/hostile-20260913/red/setup.ts",
+      "sha256": "b0ab5d884ce764281c81325260b9d44d8370e13b80fa875658ce36a6babab8a3"
+    },
+    {
+      "source": "tmp/rolodex-audit-evidence/red/source-hashes.json",
+      "path": "evidence/hostile-20260913/red/source-hashes.json",
+      "sha256": "b63dc4282372c7ce938d714f0f3ff63ef092d4e5d8a481a14e6d17b02ea90cef"
+    },
+    {
+      "source": "tmp/rolodex-audit-evidence/red/vitest.config.ts",
+      "path": "evidence/hostile-20260913/red/vitest.config.ts",
+      "sha256": "39dd0e055ca540e370aa2287e7298969d3e58d76f94292479a244f4ff828ee50"
+    }
+  ]
+}

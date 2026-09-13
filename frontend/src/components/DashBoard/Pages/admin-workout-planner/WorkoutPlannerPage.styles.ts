@@ -75,6 +75,38 @@ export const BuilderParamGroup = styled.div`
 `;
 
 export const ParamField = styled.div`
+  min-width: 0;
+  text-align: center;
+`;
+
+/**
+ * S04 / S02 presentation: the param group is a FOUR-column grid on mobile, so a
+ * fifth field (Intensity) used to wrap into a half-width orphan cell and a long
+ * saved legacy value had nowhere to go. This variant claims the full row on
+ * mobile and constrains its own width on desktop, so the helper text below can
+ * wrap onto its own readable line instead of clipping.
+ */
+export const ParamFieldWide = styled(ParamField)`
+  @container (max-width: 640px) {
+    grid-column: 1 / -1;
+  }
+`;
+
+/**
+ * Helper/status line for a param field. Own line, wraps anywhere, and never
+ * widens its parent — the full saved prescription text stays readable instead
+ * of collapsing to one offscreen word.
+ */
+export const ParamHelper = styled.div`
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 2px;
+  color: rgba(224, 236, 244, 0.55);
+  font-size: 0.6rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   text-align: center;
 `;
 

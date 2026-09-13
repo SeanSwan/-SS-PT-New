@@ -21,6 +21,11 @@ import {
   VirtualRow,
 } from './ExerciseRolodexList.styles';
 import { reactWindowStyleProps } from '@/components/ui/reactWindowStyleProps';
+import { RetryButton } from '../WorkoutLogger/ExerciseSetRowControls.styles';
+import {
+  LIBRARY_COPY,
+  type ExerciseLibraryState,
+} from '../WorkoutLogger/exerciseSearchLibraryState';
 
 interface ExerciseRolodexListProps {
   exercises: ExerciseSlim[];
@@ -28,6 +33,14 @@ interface ExerciseRolodexListProps {
   selectedId?: string | number | null;
   onAddExercise: (exercise: ExerciseSlim, event: MouseEvent) => void;
   onSelectExercise?: (exercise: ExerciseSlim) => void;
+  /** S04 recovery state. Optional so existing callers keep compiling. */
+  libraryState?: ExerciseLibraryState;
+  loadError?: string | null;
+  refreshError?: string | null;
+  isSearching?: boolean;
+  hasActiveFilters?: boolean;
+  onRetry?: () => void;
+  onClearFilters?: () => void;
 }
 
 const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
@@ -36,6 +49,13 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
   selectedId,
   onAddExercise,
   onSelectExercise,
+  libraryState,
+  loadError,
+  refreshError,
+  isSearching = false,
+  hasActiveFilters = false,
+  onRetry,
+  onClearFilters,
 }) => {
   const exercisePairs = useMemo(() => {
     const pairs: ExerciseSlim[][] = [];
@@ -107,12 +127,60 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
     );
   }, [exercisePairs, selectedId, onSelectExercise, onAddExercise, handleCardKeyDown]);
 
+  const state: ExerciseLibraryState = libraryState
+    ?? (isLoading ? 'loading' : exercises.length === 0 ? 'empty-catalog' : 'ready');
+
+  const retryButton = onRetry ? (
+    <RetryButton
+      type="button"
+      onClick={onRetry}
+      disabled={isLoading}
+      aria-busy={isLoading}
+      aria-label="Reload the exercise library"
+      data-testid="bootcamp-rolodex-retry"
+    >
+      {isLoading ? LIBRARY_COPY.retryBusy : LIBRARY_COPY.retry}
+    </RetryButton>
+  ) : null;
+
   return (
-    <ExerciseGrid>
-      {isLoading ? (
+    <ExerciseGrid aria-busy={isSearching}>
+      {/* A failed refresh must stay visible even though cached rows render. */}
+      {state === 'stale' && (
+        <EmptyMsg role="status" aria-live="polite" data-testid="bootcamp-rolodex-stale">
+          {LIBRARY_COPY.staleTitle}
+          {refreshError ? ` ${refreshError}` : ''}
+          {retryButton}
+        </EmptyMsg>
+      )}
+
+      {state === 'loading' ? (
         Array.from({ length: 8 }, (_, index) => <SkeletonBlock key={index} />)
-      ) : exercises.length === 0 ? (
-        <EmptyMsg>No exercises match your filters.</EmptyMsg>
+      ) : state === 'error' ? (
+        <EmptyMsg role="alert" data-testid="bootcamp-rolodex-error">
+          {LIBRARY_COPY.errorTitle}
+          {loadError ? ` ${loadError}` : ''}
+          {retryButton}
+        </EmptyMsg>
+      ) : state === 'empty-catalog' ? (
+        <EmptyMsg data-testid="bootcamp-rolodex-empty-catalog">
+          {LIBRARY_COPY.emptyCatalogTitle} {LIBRARY_COPY.emptyCatalogBody}
+          {retryButton}
+        </EmptyMsg>
+      ) : state === 'filter-empty' ? (
+        <EmptyMsg data-testid="bootcamp-rolodex-filter-empty">
+          No exercises match your filters.
+          {hasActiveFilters && onClearFilters && (
+            <RetryButton
+              type="button"
+              onClick={onClearFilters}
+              aria-label="Clear Exercise Rolodex filters"
+              data-testid="bootcamp-rolodex-clear"
+            >
+              {LIBRARY_COPY.clearFilters}
+            </RetryButton>
+          )}
+        </EmptyMsg>
       ) : (
         <List
           rowComponent={PairedRowRenderer as any}

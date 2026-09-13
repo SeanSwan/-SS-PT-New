@@ -1,0 +1,53 @@
+{
+  "slice": "S02-prescription-roundtrip",
+  "status": "build-complete-focused-tests-pass-acceptance-pending-typecheck-browser",
+  "scope": [
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerTypes.ts",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerLoadPlanHydration.ts",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.ts",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerGenerationActions.helpers.ts",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.exerciseRows.tsx",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.test.ts",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.prescription.test.tsx"
+  ],
+  "results": {
+    "red": {
+      "intendedFailures": 14,
+      "controlPasses": 1,
+      "files": 2,
+      "tests": 15,
+      "log": "s02-red-prescription.log"
+    },
+    "focusedGreen": {
+      "files": 2,
+      "tests": 26,
+      "log": "s02-green-focused-typefix.log",
+      "priorLog": "s02-green-focused-final.log"
+    },
+    "compatibilityGreen": {
+      "files": 8,
+      "tests": 63,
+      "log": "s02-green-compatibility-final.log"
+    },
+    "plannerDirectoryGreen": {
+      "files": 87,
+      "tests": 448,
+      "log": "s02-green-planner-directory.log"
+    },
+    "typecheck": {
+      "status": "blocked",
+      "reason": "first final-tree attempt found one corrected S02 defensive-rest typing error plus eight missing-module resolution errors; coordinated rerun pending isolated dependency layer",
+      "logs": [
+        "s02-typecheck.log",
+        "s02-typecheck-final.log"
+      ]
+    }
+  },
+  "hashes": "s02-hashes.json",
+  "limitations": [
+    "jsdom component render verified",
+    "browser/device responsive smoke not run",
+    "no production/provider/network/database calls"
+  ]
+}

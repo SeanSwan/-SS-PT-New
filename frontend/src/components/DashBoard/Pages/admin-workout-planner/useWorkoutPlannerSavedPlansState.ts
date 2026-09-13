@@ -13,12 +13,11 @@ import {
   createProtectedPlanPdfObjectUrl,
   type ProtectedPlanPdfAuthClient,
 } from '../../shared/plan-pdf/useProtectedPlanPdfViewer';
-import { mapSavedPlan } from './workoutPlannerSavedPlanMapping';
 import type {
-  SavedPlansApiData,
   UseWorkoutPlannerSavedPlansStateInput,
 } from './useWorkoutPlannerSavedPlansState.types';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
+import { useWorkoutPlannerSavedPlansList } from './useWorkoutPlannerSavedPlansList';
 
 const isRevisionConflict = (error: unknown) =>
   (error as { response?: { status?: number } })?.response?.status === 409;
@@ -34,16 +33,19 @@ export const useWorkoutPlannerSavedPlansState = ({
   setStatusMsg,
   setConfirmRequest,
 }: UseWorkoutPlannerSavedPlansStateInput) => {
-  const [savedPlans, setSavedPlans] = useState<SavedPlanSummary[]>([]);
-  const [savedPlansLoading, setSavedPlansLoading] = useState(false);
-  const [savedPlansClientId, setSavedPlansClientId] = useState<number | null>(null);
+  const {
+    savedPlans,
+    savedPlansClientId,
+    savedPlansStatus,
+    savedPlansLoading,
+    fetchSavedPlans,
+  } = useWorkoutPlannerSavedPlansList({ authAxios, selectedClientId });
   const [pdfDialogPlan, setPdfDialogPlan] = useState<SavedPlanSummary | null>(null);
   const [pdfDialogMode, setPdfDialogMode] = useState<WorkoutPlanPdfDialogMode>('view');
   const [pdfSaving, setPdfSaving] = useState(false);
   const [pdfOpening, setPdfOpening] = useState(false);
   const pdfObjectUrlRef = useRef<string | null>(null);
   const pdfViewRequestRef = useRef(0);
-  const savedPlansRequestRef = useRef(0);
 
   const revokePdfObjectUrl = useCallback(() => {
     if (pdfObjectUrlRef.current && typeof URL !== 'undefined') {
@@ -52,35 +54,6 @@ export const useWorkoutPlannerSavedPlansState = ({
     pdfObjectUrlRef.current = null;
   }, []);
 
-  const fetchSavedPlans = useCallback(async (clientId: number | null) => {
-    const requestId = ++savedPlansRequestRef.current;
-    if (!clientId) {
-      setSavedPlans([]);
-      setSavedPlansClientId(null);
-      setSavedPlansLoading(false);
-      return;
-    }
-
-    setSavedPlansClientId(null);
-    setSavedPlansLoading(true);
-    try {
-      const res = await authAxios.get(`/api/workout-plans?clientId=${clientId}`);
-      const data = res.data as SavedPlansApiData | undefined;
-      if (requestId !== savedPlansRequestRef.current) return;
-      if (data?.success && Array.isArray(data.plans)) {
-        setSavedPlans(data.plans.map(mapSavedPlan));
-      } else {
-        setSavedPlans([]);
-      }
-    } catch {
-      if (requestId === savedPlansRequestRef.current) setSavedPlans([]);
-    } finally {
-      if (requestId === savedPlansRequestRef.current) {
-        setSavedPlansClientId(clientId);
-        setSavedPlansLoading(false);
-      }
-    }
-  }, [authAxios]);
   const handleCardActivate = useCallback(async (planId: string, planName: string) => {
     if (!selectedClientId) return;
     try {
@@ -271,12 +244,12 @@ export const useWorkoutPlannerSavedPlansState = ({
     isWorkoutPlanActiveStatus(planStatus) && activePlanCount <= 1,
     [activePlanCount],
   );
-  useEffect(() => {
-    fetchSavedPlans(selectedClientId);
-  }, [fetchSavedPlans, selectedClientId]);
+  // The list read (including the initial fetch and every client change) is owned
+  // by useWorkoutPlannerSavedPlansList; this hook only reacts to its result.
   return {
     savedPlans,
     savedPlansClientId,
+    savedPlansStatus,
     savedPlansLoading,
     fetchSavedPlans,
     archiveBlockedFor,

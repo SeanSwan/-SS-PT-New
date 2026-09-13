@@ -1,0 +1,1732 @@
+[
+  {
+    "Name": ".agents",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".ai-workflow",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".auth",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".claude",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".codex",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".codex-direction-a-link",
+    "Mode": "l----",
+    "Length": null
+  },
+  {
+    "Name": ".codex-local",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".codex-qa-repair-v2",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".codex-smoke",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".codex-tmp-visual-review-20260725",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".codex-worktrees",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".continue",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".cursor",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".fallow",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".git",
+    "Mode": "d--h-",
+    "Length": null
+  },
+  {
+    "Name": ".githooks",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".github",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".kilo",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".panel-runs",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".playwright-mcp",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".swan",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".tmp",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".vscode",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".worktrees",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "AI-Village-Documentation",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "archive",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "backend",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "backups",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "client-data",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "config",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "deploy-style-lens",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "docs",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "frontend",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "graphify-out",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "graphify-out-swanguard",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "graphify-out-swanguard-api",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "graphify-out-swanguard-web",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "node_modules",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "output",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "scripts",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "shared",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "swanguard-graphify-corpus",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "tests",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": "tmp",
+    "Mode": "d----",
+    "Length": null
+  },
+  {
+    "Name": ".clinerules",
+    "Mode": "-a---",
+    "Length": 9320
+  },
+  {
+    "Name": ".codex-aiwrite-test-encryption-mock.patch",
+    "Mode": "-a---",
+    "Length": 375
+  },
+  {
+    "Name": ".codex-contract-test.patch",
+    "Mode": "-a---",
+    "Length": 1281
+  },
+  {
+    "Name": ".codex-e2e-helper.patch",
+    "Mode": "-a---",
+    "Length": 1166
+  },
+  {
+    "Name": ".codex-e2e-helper2.patch",
+    "Mode": "-a---",
+    "Length": 1181
+  },
+  {
+    "Name": ".codex-e2e-line-cap.patch",
+    "Mode": "-a---",
+    "Length": 260
+  },
+  {
+    "Name": ".codex-e2e-main.patch",
+    "Mode": "-a---",
+    "Length": 3394
+  },
+  {
+    "Name": ".codex-e2e-main2.patch",
+    "Mode": "-a---",
+    "Length": 2432
+  },
+  {
+    "Name": ".codex-e2e-move-delete.patch",
+    "Mode": "-a---",
+    "Length": 839
+  },
+  {
+    "Name": ".codex-e2e-move-insert.patch",
+    "Mode": "-a---",
+    "Length": 839
+  },
+  {
+    "Name": ".codex-e2e-shell-mocks.patch",
+    "Mode": "-a---",
+    "Length": 542
+  },
+  {
+    "Name": ".codex-eof-fix.patch",
+    "Mode": "-a---",
+    "Length": 812
+  },
+  {
+    "Name": ".codex-frontend-fixup1.patch",
+    "Mode": "-a---",
+    "Length": 5192
+  },
+  {
+    "Name": ".codex-frontend-fixup2.patch",
+    "Mode": "-a---",
+    "Length": 2974
+  },
+  {
+    "Name": ".codex-frontend-impl1.patch",
+    "Mode": "-a---",
+    "Length": 13013
+  },
+  {
+    "Name": ".codex-frontend-impl1b.patch",
+    "Mode": "-a---",
+    "Length": 7382
+  },
+  {
+    "Name": ".codex-frontend-impl2.patch",
+    "Mode": "-a---",
+    "Length": 6045
+  },
+  {
+    "Name": ".codex-frontend-tests1.patch",
+    "Mode": "-a---",
+    "Length": 6283
+  },
+  {
+    "Name": ".codex-frontend-tests2.patch",
+    "Mode": "-a---",
+    "Length": 10569
+  },
+  {
+    "Name": ".codex-frontend-tests3.patch",
+    "Mode": "-a---",
+    "Length": 4341
+  },
+  {
+    "Name": ".codex-generated-backend.patch",
+    "Mode": "-a---",
+    "Length": 35327
+  },
+  {
+    "Name": ".codex-generated-small.patch",
+    "Mode": "-a---",
+    "Length": 7647
+  },
+  {
+    "Name": ".codex-review-panel-impl.patch",
+    "Mode": "-a---",
+    "Length": 17308
+  },
+  {
+    "Name": ".codex-search-sequence.patch",
+    "Mode": "-a---",
+    "Length": 1297
+  },
+  {
+    "Name": ".codex-serving-test-fix.patch",
+    "Mode": "-a---",
+    "Length": 522
+  },
+  {
+    "Name": ".codex-testexpect.patch",
+    "Mode": "-a---",
+    "Length": 424
+  },
+  {
+    "Name": ".codex-tmp-aiChatService.mjs",
+    "Mode": "-a---",
+    "Length": 127784
+  },
+  {
+    "Name": ".codex-tmp-aiDataWriteService.mjs",
+    "Mode": "-a---",
+    "Length": 29742
+  },
+  {
+    "Name": ".codex-tmp-apply-custom-patch-v2.mjs",
+    "Mode": "-a---",
+    "Length": 1452
+  },
+  {
+    "Name": ".codex-tmp-apply-custom-patch.mjs",
+    "Mode": "-a---",
+    "Length": 1323
+  },
+  {
+    "Name": ".codex-tmp-auth-hostile-fix.mjs",
+    "Mode": "-a---",
+    "Length": 5420
+  },
+  {
+    "Name": ".codex-tmp-auth-hostile-fix2.mjs",
+    "Mode": "-a---",
+    "Length": 3310
+  },
+  {
+    "Name": ".codex-tmp-auth-hostile-tests.patch",
+    "Mode": "-a---",
+    "Length": 3162
+  },
+  {
+    "Name": ".codex-tmp-auth-hostile-tests2.patch",
+    "Mode": "-a---",
+    "Length": 3100
+  },
+  {
+    "Name": ".codex-tmp-auth-rate-fix.mjs",
+    "Mode": "-a---",
+    "Length": 2991
+  },
+  {
+    "Name": ".codex-tmp-auth-rate-red.mjs",
+    "Mode": "-a---",
+    "Length": 1639
+  },
+  {
+    "Name": ".codex-tmp-AuthGate.test.tsx",
+    "Mode": "-a---",
+    "Length": 3723
+  },
+  {
+    "Name": ".codex-tmp-backfill-daily-macro-encryption.cjs",
+    "Mode": "-a---",
+    "Length": 1330
+  },
+  {
+    "Name": ".codex-tmp-ClientNutritionEstimateReviewPanel.tsx",
+    "Mode": "-a---",
+    "Length": 9088
+  },
+  {
+    "Name": ".codex-tmp-dailyMacroRosterTriageRoutes.mjs",
+    "Mode": "-a---",
+    "Length": 8151
+  },
+  {
+    "Name": ".codex-tmp-dailyMacroRoutes.utils.mjs",
+    "Mode": "-a---",
+    "Length": 6630
+  },
+  {
+    "Name": ".codex-tmp-healthDataEncryption.mjs",
+    "Mode": "-a---",
+    "Length": 4439
+  },
+  {
+    "Name": ".codex-tmp-nutritionDraftIntegrity.mjs",
+    "Mode": "-a---",
+    "Length": 1992
+  },
+  {
+    "Name": ".codex-tmp-NutritionSourceRecord.mjs",
+    "Mode": "-a---",
+    "Length": 2490
+  },
+  {
+    "Name": ".codex-tmp-NutritionWorkspace.today.test.tsx",
+    "Mode": "-a---",
+    "Length": 5851
+  },
+  {
+    "Name": ".codex-tmp-phase1284-browser-runner.patch",
+    "Mode": "-a---",
+    "Length": 1712
+  },
+  {
+    "Name": ".codex-tmp-phase1284-browser.patch",
+    "Mode": "-a---",
+    "Length": 1435
+  },
+  {
+    "Name": ".codex-tmp-phase1284-civic-route.patch",
+    "Mode": "-a---",
+    "Length": 2210
+  },
+  {
+    "Name": ".codex-tmp-phase1284-client-edit.ps1",
+    "Mode": "-a---",
+    "Length": 4588
+  },
+  {
+    "Name": ".codex-tmp-phase1284-config-web-red.patch",
+    "Mode": "-a---",
+    "Length": 4211
+  },
+  {
+    "Name": ".codex-tmp-phase1284-detail-fix.ps1",
+    "Mode": "-a---",
+    "Length": 1366
+  },
+  {
+    "Name": ".codex-tmp-phase1284-detail-test-edit.ps1",
+    "Mode": "-a---",
+    "Length": 701
+  },
+  {
+    "Name": ".codex-tmp-phase1284-doc-browser-edit.ps1",
+    "Mode": "-a---",
+    "Length": 858
+  },
+  {
+    "Name": ".codex-tmp-phase1284-doc.patch",
+    "Mode": "-a---",
+    "Length": 5453
+  },
+  {
+    "Name": ".codex-tmp-phase1284-docs-edit.ps1",
+    "Mode": "-a---",
+    "Length": 5991
+  },
+  {
+    "Name": ".codex-tmp-phase1284-domain.patch",
+    "Mode": "-a---",
+    "Length": 4705
+  },
+  {
+    "Name": ".codex-tmp-phase1284-harness-edit.ps1",
+    "Mode": "-a---",
+    "Length": 841
+  },
+  {
+    "Name": ".codex-tmp-phase1284-hostile-fix.ps1",
+    "Mode": "-a---",
+    "Length": 1571
+  },
+  {
+    "Name": ".codex-tmp-phase1284-hostile-test-edit.ps1",
+    "Mode": "-a---",
+    "Length": 1438
+  },
+  {
+    "Name": ".codex-tmp-phase1284-integration-red.patch",
+    "Mode": "-a---",
+    "Length": 8066
+  },
+  {
+    "Name": ".codex-tmp-phase1284-postgres-fix.ps1",
+    "Mode": "-a---",
+    "Length": 1833
+  },
+  {
+    "Name": ".codex-tmp-phase1284-postgres-test-edit.ps1",
+    "Mode": "-a---",
+    "Length": 1951
+  },
+  {
+    "Name": ".codex-tmp-phase1284-red-tests.patch",
+    "Mode": "-a---",
+    "Length": 5378
+  },
+  {
+    "Name": ".codex-tmp-phase1284-runtime-test-edit.ps1",
+    "Mode": "-a---",
+    "Length": 1117
+  },
+  {
+    "Name": ".codex-tmp-phase1284-service-edit.ps1",
+    "Mode": "-a---",
+    "Length": 3755
+  },
+  {
+    "Name": ".codex-tmp-phase1284-stack-edit.ps1",
+    "Mode": "-a---",
+    "Length": 8494
+  },
+  {
+    "Name": ".codex-tmp-phase1284-test-type-edit.ps1",
+    "Mode": "-a---",
+    "Length": 596
+  },
+  {
+    "Name": ".codex-tmp-phase1284-ui-test.patch",
+    "Mode": "-a---",
+    "Length": 2323
+  },
+  {
+    "Name": ".codex-tmp-phase1284-web-source.patch",
+    "Mode": "-a---",
+    "Length": 3123
+  },
+  {
+    "Name": ".codex-tmp-phase1285-bundle-receipt.patch",
+    "Mode": "-a---",
+    "Length": 2663
+  },
+  {
+    "Name": ".codex-tmp-phase1285-docs.patch",
+    "Mode": "-a---",
+    "Length": 10265
+  },
+  {
+    "Name": ".codex-tmp-phase1285-edit.ps1",
+    "Mode": "-a---",
+    "Length": 7193
+  },
+  {
+    "Name": ".codex-tmp-phase1285-lazy.patch",
+    "Mode": "-a---",
+    "Length": 11153
+  },
+  {
+    "Name": ".codex-tmp-phase1285-red.patch",
+    "Mode": "-a---",
+    "Length": 8550
+  },
+  {
+    "Name": ".codex-tmp-phase1285-secret-add.patch",
+    "Mode": "-a---",
+    "Length": 5674
+  },
+  {
+    "Name": ".codex-tmp-phase1285-secret-fixtures.patch",
+    "Mode": "-a---",
+    "Length": 3062
+  },
+  {
+    "Name": ".codex-tmp-phase1285-secret-script.patch",
+    "Mode": "-a---",
+    "Length": 560
+  },
+  {
+    "Name": ".codex-tmp-phase1285-secret-untracked.patch",
+    "Mode": "-a---",
+    "Length": 3661
+  },
+  {
+    "Name": ".codex-tmp-phase1285-test-eager.patch",
+    "Mode": "-a---",
+    "Length": 8903
+  },
+  {
+    "Name": ".codex-tmp-phase1285-update.patch",
+    "Mode": "-a---",
+    "Length": 7591
+  },
+  {
+    "Name": ".codex-tmp-provenance.cjs",
+    "Mode": "-a---",
+    "Length": 6979
+  },
+  {
+    "Name": ".codex-tmp-reviewedNutritionDraftService.mjs",
+    "Mode": "-a---",
+    "Length": 10485
+  },
+  {
+    "Name": ".codex-tmp-reviewedNutritionDraftService.test.mjs",
+    "Mode": "-a---",
+    "Length": 7973
+  },
+  {
+    "Name": ".codex-tmp-swanguard-connector-config-edit.mjs",
+    "Mode": "-a---",
+    "Length": 3303
+  },
+  {
+    "Name": ".codex-tmp-swanguard-connector-config-test.patch",
+    "Mode": "-a---",
+    "Length": 2259
+  },
+  {
+    "Name": ".codex-tmp-swanguard-connector-hostile-fixes.mjs",
+    "Mode": "-a---",
+    "Length": 3296
+  },
+  {
+    "Name": ".codex-tmp-swanguard-connector-hostile-tests.mjs",
+    "Mode": "-a---",
+    "Length": 4813
+  },
+  {
+    "Name": ".codex-tmp-swanguard-connector-quota-race-red.mjs",
+    "Mode": "-a---",
+    "Length": 2105
+  },
+  {
+    "Name": ".codex-tmp-swanguard-connector-quota-reserve-fix.mjs",
+    "Mode": "-a---",
+    "Length": 4366
+  },
+  {
+    "Name": ".codex-tmp-swanguard-connector-volume-fixes.mjs",
+    "Mode": "-a---",
+    "Length": 1815
+  },
+  {
+    "Name": ".codex-tmp-swanguard-connectors-visual-qa.py",
+    "Mode": "-a---",
+    "Length": 2108
+  },
+  {
+    "Name": ".codex-tmp-swanguard-csrf-header-isolation-fix.mjs",
+    "Mode": "-a---",
+    "Length": 1167
+  },
+  {
+    "Name": ".codex-tmp-swanguard-csrf-rotation-fix-v2.mjs",
+    "Mode": "-a---",
+    "Length": 2413
+  },
+  {
+    "Name": ".codex-tmp-swanguard-csrf-rotation-fix.mjs",
+    "Mode": "-a---",
+    "Length": 2419
+  },
+  {
+    "Name": ".codex-tmp-swanguard-csrf-rotation-red-v2.mjs",
+    "Mode": "-a---",
+    "Length": 1697
+  },
+  {
+    "Name": ".codex-tmp-swanguard-csrf-rotation-red.mjs",
+    "Mode": "-a---",
+    "Length": 1649
+  },
+  {
+    "Name": ".codex-tmp-swanguard-export-fix-syntax.mjs",
+    "Mode": "-a---",
+    "Length": 823
+  },
+  {
+    "Name": ".codex-tmp-swanguard-export-red-test-syntax-fix.mjs",
+    "Mode": "-a---",
+    "Length": 945
+  },
+  {
+    "Name": ".codex-tmp-swanguard-export-redaction-fix.mjs",
+    "Mode": "-a---",
+    "Length": 841
+  },
+  {
+    "Name": ".codex-tmp-swanguard-export-redaction-red.mjs",
+    "Mode": "-a---",
+    "Length": 1649
+  },
+  {
+    "Name": ".codex-tmp-swanguard-identity-subject-green.mjs",
+    "Mode": "-a---",
+    "Length": 841
+  },
+  {
+    "Name": ".codex-tmp-swanguard-identity-subject-red.mjs",
+    "Mode": "-a---",
+    "Length": 2096
+  },
+  {
+    "Name": ".codex-tmp-swanguard-impact-optout-green.mjs",
+    "Mode": "-a---",
+    "Length": 2252
+  },
+  {
+    "Name": ".codex-tmp-swanguard-impact-optout-red.mjs",
+    "Mode": "-a---",
+    "Length": 1180
+  },
+  {
+    "Name": ".codex-tmp-swanguard-migration-0022-wire.mjs",
+    "Mode": "-a---",
+    "Length": 2048
+  },
+  {
+    "Name": ".codex-tmp-swanguard-migration-test-0022.mjs",
+    "Mode": "-a---",
+    "Length": 1836
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-clients-impl.patch",
+    "Mode": "-a---",
+    "Length": 8283
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-clients-tests.patch",
+    "Mode": "-a---",
+    "Length": 5047
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-owner-state-v2.mjs",
+    "Mode": "-a---",
+    "Length": 5163
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-owner-state.mjs",
+    "Mode": "-a---",
+    "Length": 4679
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-panel-import.mjs",
+    "Mode": "-a---",
+    "Length": 548
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-panel-test.patch",
+    "Mode": "-a---",
+    "Length": 2971
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-panel.patch",
+    "Mode": "-a---",
+    "Length": 6922
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-postgres-tests.patch",
+    "Mode": "-a---",
+    "Length": 6379
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-postgres.patch",
+    "Mode": "-a---",
+    "Length": 11687
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-route-wire-rest.mjs",
+    "Mode": "-a---",
+    "Length": 3297
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-route-wire.mjs",
+    "Mode": "-a---",
+    "Length": 4028
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-routes-tests.patch",
+    "Mode": "-a---",
+    "Length": 6514
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-routes.patch",
+    "Mode": "-a---",
+    "Length": 4505
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-runtime-test.patch",
+    "Mode": "-a---",
+    "Length": 1582
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-runtime-wire.mjs",
+    "Mode": "-a---",
+    "Length": 5438
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-service-impl.patch",
+    "Mode": "-a---",
+    "Length": 13432
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-service-tests.patch",
+    "Mode": "-a---",
+    "Length": 7021
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-web-clients.mjs",
+    "Mode": "-a---",
+    "Length": 5083
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-web-types.mjs",
+    "Mode": "-a---",
+    "Length": 3289
+  },
+  {
+    "Name": ".codex-tmp-swanguard-official-workspace-wire.mjs",
+    "Mode": "-a---",
+    "Length": 5505
+  },
+  {
+    "Name": ".codex-tmp-swanguard-owner-api-test.mjs",
+    "Mode": "-a---",
+    "Length": 2324
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-actions.patch",
+    "Mode": "-a---",
+    "Length": 4168
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-api.patch",
+    "Mode": "-a---",
+    "Length": 13197
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-components.patch",
+    "Mode": "-a---",
+    "Length": 28025
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-mount-red.patch",
+    "Mode": "-a---",
+    "Length": 3402
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-mount-v2.mjs",
+    "Mode": "-a---",
+    "Length": 742
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-mount-v3.mjs",
+    "Mode": "-a---",
+    "Length": 738
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-mount.mjs",
+    "Mode": "-a---",
+    "Length": 5160
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-props.mjs",
+    "Mode": "-a---",
+    "Length": 1479
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-qa-exact.mjs",
+    "Mode": "-a---",
+    "Length": 627
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-qa-level.mjs",
+    "Mode": "-a---",
+    "Length": 621
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-qa-owner.mjs",
+    "Mode": "-a---",
+    "Length": 1480
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-qa-port.mjs",
+    "Mode": "-a---",
+    "Length": 527
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-race-green.mjs",
+    "Mode": "-a---",
+    "Length": 4213
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-race-red.mjs",
+    "Mode": "-a---",
+    "Length": 3456
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-red.patch",
+    "Mode": "-a---",
+    "Length": 13694
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-test-fix-v2.mjs",
+    "Mode": "-a---",
+    "Length": 1116
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-test-fix.mjs",
+    "Mode": "-a---",
+    "Length": 948
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-type-fix.mjs",
+    "Mode": "-a---",
+    "Length": 1066
+  },
+  {
+    "Name": ".codex-tmp-swanguard-parity-visual-qa.py",
+    "Mode": "-a---",
+    "Length": 5798
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase128-doc-appends.mjs",
+    "Mode": "-a---",
+    "Length": 8241
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase128-docs.patch",
+    "Mode": "-a---",
+    "Length": 8831
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1283-doc-fix.mjs",
+    "Mode": "-a---",
+    "Length": 1573
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1283-doc-wire.mjs",
+    "Mode": "-a---",
+    "Length": 5982
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1283-doc.patch",
+    "Mode": "-a---",
+    "Length": 5471
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-additions.patch",
+    "Mode": "-a---",
+    "Length": 18712
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-desktop.png",
+    "Mode": "-a---",
+    "Length": 2062089
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-edit-cont.mjs",
+    "Mode": "-a---",
+    "Length": 8290
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-edit.mjs",
+    "Mode": "-a---",
+    "Length": 16980
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-harnessfix.mjs",
+    "Mode": "-a---",
+    "Length": 2888
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-hostilefix-cont.mjs",
+    "Mode": "-a---",
+    "Length": 5328
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-hostilefix.mjs",
+    "Mode": "-a---",
+    "Length": 7623
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-mobile.png",
+    "Mode": "-a---",
+    "Length": 1492421
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-red.patch",
+    "Mode": "-a---",
+    "Length": 13300
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-testfix.mjs",
+    "Mode": "-a---",
+    "Length": 527
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-typefix-cont.mjs",
+    "Mode": "-a---",
+    "Length": 1211
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-typefix.mjs",
+    "Mode": "-a---",
+    "Length": 1779
+  },
+  {
+    "Name": ".codex-tmp-swanguard-phase1284-webtestfix.mjs",
+    "Mode": "-a---",
+    "Length": 1047
+  },
+  {
+    "Name": ".codex-tmp-swanguard-preflight-stale-green.mjs",
+    "Mode": "-a---",
+    "Length": 1036
+  },
+  {
+    "Name": ".codex-tmp-swanguard-preflight-stale-red.mjs",
+    "Mode": "-a---",
+    "Length": 953
+  },
+  {
+    "Name": ".codex-tmp-swanguard-provider-config-fix.mjs",
+    "Mode": "-a---",
+    "Length": 1116
+  },
+  {
+    "Name": ".codex-tmp-swanguard-provider-config-test.mjs",
+    "Mode": "-a---",
+    "Length": 1409
+  },
+  {
+    "Name": ".codex-tmp-swanguard-provider-payload-fix.mjs",
+    "Mode": "-a---",
+    "Length": 2544
+  },
+  {
+    "Name": ".codex-tmp-swanguard-provider-payload-test.mjs",
+    "Mode": "-a---",
+    "Length": 2238
+  },
+  {
+    "Name": ".codex-tmp-swanguard-script-migration-test.mjs",
+    "Mode": "-a---",
+    "Length": 791
+  },
+  {
+    "Name": ".codex-tmp-swanguard-supporter-consent-fix.mjs",
+    "Mode": "-a---",
+    "Length": 706
+  },
+  {
+    "Name": ".codex-tmp-swanguard-supporter-consent-red.mjs",
+    "Mode": "-a---",
+    "Length": 735
+  },
+  {
+    "Name": ".codex-tmp-swanguard-supporter-key-green.mjs",
+    "Mode": "-a---",
+    "Length": 715
+  },
+  {
+    "Name": ".codex-tmp-swanguard-supporter-key-red.mjs",
+    "Mode": "-a---",
+    "Length": 1876
+  },
+  {
+    "Name": ".codex-tmp-swanguard-supporter-stale-page-fix.mjs",
+    "Mode": "-a---",
+    "Length": 1122
+  },
+  {
+    "Name": ".codex-tmp-swanguard-supporter-stale-page-red.mjs",
+    "Mode": "-a---",
+    "Length": 2003
+  },
+  {
+    "Name": ".codex-tmp-swanguard-trust-busy-fix.mjs",
+    "Mode": "-a---",
+    "Length": 1059
+  },
+  {
+    "Name": ".codex-tmp-swanguard-trust-busy-red.mjs",
+    "Mode": "-a---",
+    "Length": 1465
+  },
+  {
+    "Name": ".codex-tmp-swanguard-type-fixes.mjs",
+    "Mode": "-a---",
+    "Length": 2626
+  },
+  {
+    "Name": ".codex-tmp-swanguard-watchtower-connector-test.mjs",
+    "Mode": "-a---",
+    "Length": 3392
+  },
+  {
+    "Name": ".codex-tmp-swanguard-watchtower-connector-wire.mjs",
+    "Mode": "-a---",
+    "Length": 2742
+  },
+  {
+    "Name": ".codex-tmp-swanguard-watchtower-dispatch.mjs",
+    "Mode": "-a---",
+    "Length": 616
+  },
+  {
+    "Name": ".codex-tmp-vitest4-types-fix.mjs",
+    "Mode": "-a---",
+    "Length": 1768
+  },
+  {
+    "Name": ".codex-tmp-vitest4-types-fix2.mjs",
+    "Mode": "-a---",
+    "Length": 1878
+  },
+  {
+    "Name": ".codex-tmp-webAuthnProduction.test.ts",
+    "Mode": "-a---",
+    "Length": 6430
+  },
+  {
+    "Name": ".codex-workspace-impl.patch",
+    "Mode": "-a---",
+    "Length": 2174
+  },
+  {
+    "Name": ".codex-workspace-test-repair.patch",
+    "Mode": "-a---",
+    "Length": 12704
+  },
+  {
+    "Name": ".env",
+    "Mode": "-a---",
+    "Length": 5899
+  },
+  {
+    "Name": ".env.example",
+    "Mode": "-a---",
+    "Length": 3697
+  },
+  {
+    "Name": ".fallowrc.json",
+    "Mode": "-a---",
+    "Length": 1416
+  },
+  {
+    "Name": ".forfeit.cjs",
+    "Mode": "-a---",
+    "Length": 2940
+  },
+  {
+    "Name": ".gitattributes",
+    "Mode": "-a---",
+    "Length": 645
+  },
+  {
+    "Name": ".gitignore",
+    "Mode": "-a---",
+    "Length": 10788
+  },
+  {
+    "Name": ".mcp.json",
+    "Mode": "-a---",
+    "Length": 376
+  },
+  {
+    "Name": ".mcp.local.json",
+    "Mode": "-a---",
+    "Length": 643
+  },
+  {
+    "Name": ".p1.cjs",
+    "Mode": "-a---",
+    "Length": 1298
+  },
+  {
+    "Name": ".queue-cli-export-trim.patch",
+    "Mode": "-a---",
+    "Length": 132
+  },
+  {
+    "Name": ".queue-cli-export.patch",
+    "Mode": "-a---",
+    "Length": 292
+  },
+  {
+    "Name": ".queue-cli-export2.patch",
+    "Mode": "-a---",
+    "Length": 243
+  },
+  {
+    "Name": ".queue-cli-hardening.patch",
+    "Mode": "-a---",
+    "Length": 1414
+  },
+  {
+    "Name": ".queue-cli.patch",
+    "Mode": "-a---",
+    "Length": 5022
+  },
+  {
+    "Name": ".queue-doc.patch",
+    "Mode": "-a---",
+    "Length": 3934
+  },
+  {
+    "Name": ".queue-hardening.patch",
+    "Mode": "-a---",
+    "Length": 1437
+  },
+  {
+    "Name": ".queue-hardening2.patch",
+    "Mode": "-a---",
+    "Length": 2279
+  },
+  {
+    "Name": ".queue-impl-fix.patch",
+    "Mode": "-a---",
+    "Length": 555
+  },
+  {
+    "Name": ".queue-impl.valid.patch",
+    "Mode": "-a---",
+    "Length": 15102
+  },
+  {
+    "Name": ".queue-index.patch",
+    "Mode": "-a---",
+    "Length": 988
+  },
+  {
+    "Name": ".queue-main-direct.patch",
+    "Mode": "-a---",
+    "Length": 3092
+  },
+  {
+    "Name": ".queue-main-import.patch",
+    "Mode": "-a---",
+    "Length": 261
+  },
+  {
+    "Name": ".queue-main-split.patch",
+    "Mode": "-a---",
+    "Length": 3374
+  },
+  {
+    "Name": ".queue-main-trim.patch",
+    "Mode": "-a---",
+    "Length": 517
+  },
+  {
+    "Name": ".queue-main-trim2.patch",
+    "Mode": "-a---",
+    "Length": 389
+  },
+  {
+    "Name": ".queue-primitives.patch",
+    "Mode": "-a---",
+    "Length": 2813
+  },
+  {
+    "Name": ".queue-receipt-identity.patch",
+    "Mode": "-a---",
+    "Length": 607
+  },
+  {
+    "Name": ".queue-test-corrupt-lease.patch",
+    "Mode": "-a---",
+    "Length": 778
+  },
+  {
+    "Name": ".queue-test-hardening.patch",
+    "Mode": "-a---",
+    "Length": 2250
+  },
+  {
+    "Name": ".queue-test-list-time.patch",
+    "Mode": "-a---",
+    "Length": 272
+  },
+  {
+    "Name": ".queue-test-live-lock.patch",
+    "Mode": "-a---",
+    "Length": 431
+  },
+  {
+    "Name": ".queue-test-receipt.patch",
+    "Mode": "-a---",
+    "Length": 325
+  },
+  {
+    "Name": ".queue-test-reset.patch",
+    "Mode": "-a---",
+    "Length": 329
+  },
+  {
+    "Name": ".queue-test-tail.patch",
+    "Mode": "-a---",
+    "Length": 733
+  },
+  {
+    "Name": ".queue-test-workfingerprint.patch",
+    "Mode": "-a---",
+    "Length": 1076
+  },
+  {
+    "Name": ".queue-test.patch",
+    "Mode": "-a---",
+    "Length": 7900
+  },
+  {
+    "Name": ".queue-test.valid.patch",
+    "Mode": "-a---",
+    "Length": 8094
+  },
+  {
+    "Name": ".queue-trim3.patch",
+    "Mode": "-a---",
+    "Length": 266
+  },
+  {
+    "Name": ".secretignore",
+    "Mode": "-a---",
+    "Length": 4318
+  },
+  {
+    "Name": ".tmp_world_browser_patch.py",
+    "Mode": "-a---",
+    "Length": 15359
+  },
+  {
+    "Name": ".tmp_world_fix.py",
+    "Mode": "-a---",
+    "Length": 330
+  },
+  {
+    "Name": ".tmp_world_fix2.py",
+    "Mode": "-a---",
+    "Length": 348
+  },
+  {
+    "Name": ".tmp_world_fix3.py",
+    "Mode": "-a---",
+    "Length": 517
+  },
+  {
+    "Name": ".tmp_world_hardening_patch.py",
+    "Mode": "-a---",
+    "Length": 13427
+  },
+  {
+    "Name": ".tmp_world_tests_patch.py",
+    "Mode": "-a---",
+    "Length": 8588
+  },
+  {
+    "Name": "ACTIVE-INDEX.md",
+    "Mode": "-a---",
+    "Length": 18727
+  },
+  {
+    "Name": "AGENTS.md",
+    "Mode": "-a---",
+    "Length": 180020
+  },
+  {
+    "Name": "AGENTS.md.bak-20260802",
+    "Mode": "-a---",
+    "Length": 162219
+  },
+  {
+    "Name": "apex-branch.diff",
+    "Mode": "-a---",
+    "Length": 27557
+  },
+  {
+    "Name": "appearance-studio-mobile-414.png",
+    "Mode": "-a---",
+    "Length": 108872
+  },
+  {
+    "Name": "archive-414-hostile.png",
+    "Mode": "-a---",
+    "Length": 246665
+  },
+  {
+    "Name": "brain-slice2-final.png",
+    "Mode": "-a---",
+    "Length": 1038075
+  },
+  {
+    "Name": "CLAUDE.md",
+    "Mode": "-a---",
+    "Length": 175223
+  },
+  {
+    "Name": "coach-admin-320-current.png",
+    "Mode": "-a---",
+    "Length": 65898
+  },
+  {
+    "Name": "combined.log",
+    "Mode": "-a---",
+    "Length": 7128
+  },
+  {
+    "Name": "error.log",
+    "Mode": "-a---",
+    "Length": 0
+  },
+  {
+    "Name": "fix12.tmp.py",
+    "Mode": "-a---",
+    "Length": 2145
+  },
+  {
+    "Name": "fix3.tmp.py",
+    "Mode": "-a---",
+    "Length": 1686
+  },
+  {
+    "Name": "FOREIGN-PROBE.tmp",
+    "Mode": "-a---",
+    "Length": 5
+  },
+  {
+    "Name": "forge-editorial-capture-final.png",
+    "Mode": "-a---",
+    "Length": 32371
+  },
+  {
+    "Name": "forge-gallery-crystalline.png",
+    "Mode": "-a---",
+    "Length": 115125
+  },
+  {
+    "Name": "forge-gallery-editorial.png",
+    "Mode": "-a---",
+    "Length": 120646
+  },
+  {
+    "Name": "forge-golf-cta-preview.png",
+    "Mode": "-a---",
+    "Length": 13913
+  },
+  {
+    "Name": "graph-after-fix.png",
+    "Mode": "-a---",
+    "Length": 739574
+  },
+  {
+    "Name": "hermes-v1-414.png",
+    "Mode": "-a---",
+    "Length": 178180
+  },
+  {
+    "Name": "hero-1440.jpeg",
+    "Mode": "-a---",
+    "Length": 109998
+  },
+  {
+    "Name": "home-mobile-about-sean-clip.jpeg",
+    "Mode": "-a---",
+    "Length": 2945
+  },
+  {
+    "Name": "orbcheck-initial.png",
+    "Mode": "-a---",
+    "Length": 87872
+  },
+  {
+    "Name": "package-lock.json",
+    "Mode": "-a---",
+    "Length": 38974
+  },
+  {
+    "Name": "package.json",
+    "Mode": "-a---",
+    "Length": 3278
+  },
+  {
+    "Name": "README.md",
+    "Mode": "-a---",
+    "Length": 896
+  },
+  {
+    "Name": "render.env.example",
+    "Mode": "-a---",
+    "Length": 1487
+  },
+  {
+    "Name": "render.yaml",
+    "Mode": "-a---",
+    "Length": 4841
+  },
+  {
+    "Name": "review-glacier-cathedral.png",
+    "Mode": "-a---",
+    "Length": 1457618
+  },
+  {
+    "Name": "review-nebula-drift.png",
+    "Mode": "-a---",
+    "Length": 888857
+  },
+  {
+    "Name": "review-neon-meridian.png",
+    "Mode": "-a---",
+    "Length": 154714
+  },
+  {
+    "Name": "review-tiny-metropolis.png",
+    "Mode": "-a---",
+    "Length": 764718
+  },
+  {
+    "Name": "site21-1440-full.jpeg",
+    "Mode": "-a---",
+    "Length": 240388
+  },
+  {
+    "Name": "skills-lock.json",
+    "Mode": "-a---",
+    "Length": 10828
+  },
+  {
+    "Name": "SOUL.md",
+    "Mode": "-a---",
+    "Length": 2073
+  },
+  {
+    "Name": "SWAN-DECISION-PACKET.md",
+    "Mode": "-a---",
+    "Length": 9749
+  },
+  {
+    "Name": "SWAN-FORGE-PACKET.md",
+    "Mode": "-a---",
+    "Length": 10851
+  },
+  {
+    "Name": "SWAN-FORGE-ROUND4-PACKET.md",
+    "Mode": "-a---",
+    "Length": 6038
+  },
+  {
+    "Name": "SWAN-FORGE-ROUND5-PACKET.md",
+    "Mode": "-a---",
+    "Length": 5428
+  },
+  {
+    "Name": "SWAN-FORGE-ROUND6-PACKET.md",
+    "Mode": "-a---",
+    "Length": 5500
+  },
+  {
+    "Name": "SWAN-FORGE-ROUND7-PACKET.md",
+    "Mode": "-a---",
+    "Length": 4155
+  },
+  {
+    "Name": "SWAN-FORGE-ROUND8-PACKET.md",
+    "Mode": "-a---",
+    "Length": 4513
+  },
+  {
+    "Name": "SWAN-FORGE-ROUND9-PACKET.md",
+    "Mode": "-a---",
+    "Length": 4133
+  },
+  {
+    "Name": "SWAN-FORGE-SHIPPED-REVIEW-PACKET.md",
+    "Mode": "-a---",
+    "Length": 6595
+  },
+  {
+    "Name": "swan-home-mobile-414.png",
+    "Mode": "-a---",
+    "Length": 452314
+  },
+  {
+    "Name": "swan-lens-review-packet.tmp.md",
+    "Mode": "-a---",
+    "Length": 98813
+  },
+  {
+    "Name": "swan-public-home-desktop-viewport-20260812.png",
+    "Mode": "-a---",
+    "Length": 2211636
+  },
+  {
+    "Name": "swan-public-home-mobile-414-20260812.png",
+    "Mode": "-a---",
+    "Length": 460433
+  },
+  {
+    "Name": "SWAN-SERIALIZER-REVIEW-PACKET.md",
+    "Mode": "-a---",
+    "Length": 5031
+  },
+  {
+    "Name": "swanguard-audit-desktop.png",
+    "Mode": "-a---",
+    "Length": 873890
+  },
+  {
+    "Name": "swanguard-audit-intel-wiki-desktop.png",
+    "Mode": "-a---",
+    "Length": 592963
+  },
+  {
+    "Name": "swanguard-audit-mobile-390.png",
+    "Mode": "-a---",
+    "Length": 256495
+  },
+  {
+    "Name": "swanguard-merge-security-batches.mjs",
+    "Mode": "-a---",
+    "Length": 6461
+  },
+  {
+    "Name": "swanguard-mobile-metrics.json",
+    "Mode": "-a---",
+    "Length": 3259
+  },
+  {
+    "Name": "swanguard-slice4-entry.png",
+    "Mode": "-a---",
+    "Length": 477374
+  },
+  {
+    "Name": "three-kernels-live.png",
+    "Mode": "-a---",
+    "Length": 2321321
+  },
+  {
+    "Name": "trainer-home-4k-3840.png",
+    "Mode": "-a---",
+    "Length": 186722
+  },
+  {
+    "Name": "trainer-home-mobile-375.png",
+    "Mode": "-a---",
+    "Length": 95590
+  },
+  {
+    "Name": "viz-ai-director-panel.png",
+    "Mode": "-a---",
+    "Length": 373130
+  },
+  {
+    "Name": "viz-ai-star-final.png",
+    "Mode": "-a---",
+    "Length": 2160958
+  },
+  {
+    "Name": "viz-fullscreen.png",
+    "Mode": "-a---",
+    "Length": 2860266
+  },
+  {
+    "Name": "viz-initial.png",
+    "Mode": "-a---",
+    "Length": 245363
+  },
+  {
+    "Name": "viz-kaleido.png",
+    "Mode": "-a---",
+    "Length": 2742784
+  },
+  {
+    "Name": "viz-mag-fixed.png",
+    "Mode": "-a---",
+    "Length": 1652142
+  },
+  {
+    "Name": "viz-mag-vivid.png",
+    "Mode": "-a---",
+    "Length": 1995610
+  },
+  {
+    "Name": "viz-magnetosphere.png",
+    "Mode": "-a---",
+    "Length": 1146104
+  },
+  {
+    "Name": "viz-nebula-broken.png",
+    "Mode": "-a---",
+    "Length": 526446
+  },
+  {
+    "Name": "viz-transition-check.png",
+    "Mode": "-a---",
+    "Length": 2696955
+  },
+  {
+    "Name": "world-final-archive-mobile.png",
+    "Mode": "-a---",
+    "Length": 253266
+  }
+]

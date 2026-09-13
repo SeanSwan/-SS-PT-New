@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-09-13T06:35:29.2619884Z",
+  "statusLineCount": 168,
+  "unexpectedPackageOrConfigDiffs": [],
+  "copiedSourceHashMismatches": [],
+  "rawRelocationLogs": 6,
+  "summaryJsonSha256": "486cc2a5e069951ac74b72e150ff8f8efa93e6fae1e6d775157f0447246bf4c0",
+  "summaryMarkdownSha256": "df05f900cd651f30f0e1599de8e84030509c191e09613c7979797e1f6eb4a9be",
+  "sourceManifest": ".mega-blueprints/artifacts/b214f060bbec9038/luna-worktree-preservation.json",
+  "sourceManifestHash": "d2c26e6ddbd10ed31ca5460af6679dfe1c7333324a59f1f4865236ab99b54a1e"
+}

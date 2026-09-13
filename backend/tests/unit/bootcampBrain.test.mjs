@@ -95,6 +95,23 @@ describe('instrumented fallback — every failure has a name', () => {
     pool: basePool, dayTypeId: 'lower_body', env: { SWAN_BOOTCAMP_BRAIN: 'llm' }, ...overrides,
   });
 
+  /**
+   * A provider that ignores the deadline and settles LATE.
+   *
+   * Deliberately NOT `new Promise(() => {})`. R-H27 retains the single optional Brain occupancy until
+   * the PROVIDER settles, so a permanently unsettled provider would hold this process's only slot for
+   * the rest of the file and every later test would see `brain_busy` - which is exactly what happened
+   * when these two tests were first run against the containment. Settling late exercises the same
+   * timeout path and returns the slot.
+   */
+  const lateProvider = () => () => new Promise((resolve, reject) => {
+    // MUST exceed the 1000 ms CLAMP FLOOR, not merely the requested deadline: `TIMEOUT_MS: '50'` is
+    // clamped up to 1000 ms, so a rejection at 250 ms would win the race and report provider_error
+    // instead of exercising the timeout path this helper exists to test.
+    setTimeout(() => reject(new Error('late_provider_failure')), 1300);
+  });
+  const awaitLateSettlement = () => new Promise((resolve) => setTimeout(resolve, 1450));
+
   it('flag off -> heuristic, no fallback reason (nothing failed)', async () => {
     const r = await orderPoolWithBrain({ pool: basePool, dayTypeId: 'lower_body', env: {} });
     expect(r.brainUsed).toBe('heuristic');
@@ -118,11 +135,12 @@ describe('instrumented fallback — every failure has a name', () => {
 
   it('a hung provider -> timeout, and the class still generates', async () => {
     const r = await run({
-      completionFn: () => new Promise(() => {}),
+      completionFn: lateProvider(),
       env: { SWAN_BOOTCAMP_BRAIN: 'llm', SWAN_BOOTCAMP_BRAIN_TIMEOUT_MS: '50' },
     });
     expect(r.fallbackReason).toBe('timeout');
     expect(r.pool).toHaveLength(basePool.length);
+    await awaitLateSettlement();
   });
 
   it('a valid reply (in OPAQUE TOKENS) is used and attributed', async () => {
@@ -163,13 +181,91 @@ describe('instrumented fallback — every failure has a name', () => {
     // because it collides with vitest's own 30s test budget.)
     const start = Date.now();
     const r = await run({
-      completionFn: () => new Promise(() => {}),
+      completionFn: lateProvider(),
       env: { SWAN_BOOTCAMP_BRAIN: 'llm', SWAN_BOOTCAMP_BRAIN_TIMEOUT_MS: '50' },
     });
     expect(r.fallbackReason).toBe('timeout');
     const elapsed = Date.now() - start;
     expect(elapsed).toBeGreaterThanOrEqual(950); // clamped UP to the 1s floor, not 50ms
     expect(elapsed).toBeLessThan(3_000);
+    await awaitLateSettlement();
+  });
+
+  // ── R-H27: the provider boundary (AbortSignal, one attempt, occupancy containment) ──
+
+  it('hands the provider callback a second options argument carrying an AbortSignal', async () => {
+    let options = null;
+    await run({
+      completionFn: async (_prompt, opts) => {
+        options = opts;
+        return '{"orderedKeys":["ex_0","ex_1","ex_2","ex_3"]}';
+      },
+    });
+    expect(options).toBeTruthy();
+    expect(options.signal).toBeInstanceOf(AbortSignal);
+    expect(options.signal.aborted).toBe(false);
+    // The request and output bounds travel with the signal, per R-H27.
+    expect(options.maxOutputChars).toBe(64_000);
+    expect(options.attempt).toBe(1);
+  });
+
+  it('aborts the signal when the deadline expires', async () => {
+    let signal = null;
+    const r = await run({
+      env: { SWAN_BOOTCAMP_BRAIN: 'llm', SWAN_BOOTCAMP_BRAIN_TIMEOUT_MS: '50' },
+      completionFn: (_prompt, opts) => {
+        signal = opts?.signal;
+        // Settles LATE rather than never, so the process occupancy returns to the next test.
+        return new Promise((_, reject) => setTimeout(() => reject(new Error('late')), 1300));
+      },
+    });
+    expect(r.fallbackReason).toBe('timeout');
+    expect(signal).toBeTruthy();
+    expect(signal.aborted).toBe(true);
+    await awaitLateSettlement();
+  });
+
+  it('discards a late SUCCESS that arrives after the deadline', async () => {
+    const r = await run({
+      env: { SWAN_BOOTCAMP_BRAIN: 'llm', SWAN_BOOTCAMP_BRAIN_TIMEOUT_MS: '50' },
+      completionFn: () => new Promise((resolve) => setTimeout(
+        () => resolve('{"orderedKeys":["ex_3","ex_2","ex_1","ex_0"]}'),
+        1300,
+      )),
+    });
+    expect(r.brainUsed).toBe('heuristic');
+    expect(r.fallbackReason).toBe('timeout');
+    await awaitLateSettlement();
+  });
+
+  it('contains a concurrent operation: the second never reaches the provider', async () => {
+    let secondCalls = 0;
+    const first = run({ env: { SWAN_BOOTCAMP_BRAIN: 'llm', SWAN_BOOTCAMP_BRAIN_TIMEOUT_MS: '50' }, completionFn: lateProvider() });
+    // Issued while the first operation is still unsettled. R-H27 allows exactly one, so this one gets
+    // a DETERMINISTIC heuristic fallback without touching the adapter.
+    const second = await run({
+      completionFn: async () => { secondCalls += 1; return '{"orderedKeys":[]}'; },
+    });
+    const firstResult = await first;
+    expect(secondCalls).toBe(0);
+    expect(second.brainUsed).toBe('heuristic');
+    expect(second.fallbackReason).toBe('brain_busy');
+    // Deterministic means a real pool, not an empty day.
+    expect(second.pool).toHaveLength(basePool.length);
+    expect(firstResult.fallbackReason).toBe('timeout');
+    await awaitLateSettlement();
+  });
+
+  it('with the flag off, the provider is never called at all', async () => {
+    let calls = 0;
+    const r = await orderPoolWithBrain({
+      pool: basePool,
+      dayTypeId: 'lower_body',
+      env: {},
+      completionFn: async () => { calls += 1; return '{"orderedKeys":[]}'; },
+    });
+    expect(calls).toBe(0);
+    expect(r.brainUsed).toBe('heuristic');
   });
 });
 

@@ -8,6 +8,7 @@ import ClassPreviewAlternatives from './ClassPreviewAlternatives';
 import ClassPreviewMainBoard from './ClassPreviewMainBoard';
 import ExplanationsStrip from './ExplanationsStrip';
 import BootcampDemoMode from './BootcampDemoMode';
+import type { BootcampRunSession } from './BootcampRunnerClock';
 import type { BoardView, ClassPreviewPanelProps } from './ClassPreviewPanel.types';
 import {
   BoardTab,
@@ -51,6 +52,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
   buildMode,
   loading,
   floorMode,
+  runSession,
   saving,
   onSave,
   onSelectExercise,
@@ -76,7 +78,7 @@ const ClassPreviewPanel: React.FC<ClassPreviewPanelProps> = ({
   if (floorMode && bootcamp) {
     return (
       <Panel className="lens2-collection">
-        <BootcampDemoMode bootcamp={bootcamp} onSelectExercise={onSelectExercise} />
+        <BootcampDemoMode bootcamp={bootcamp} onSelectExercise={onSelectExercise} runSession={runSession} />
       </Panel>
     );
   }

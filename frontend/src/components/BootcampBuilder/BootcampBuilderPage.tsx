@@ -10,6 +10,7 @@ import BootcampCoachDockMount from '../CoachDock/BootcampCoachDockMount';
 import BootcampBuilderErrorBoundary from './BootcampBuilderErrorBoundary'; import BootcampBuilderLensFrame from './BootcampBuilderLensFrame';
 import BootcampFloorPresentation from './BootcampFloorPresentation';
 import type { BuildMode } from './BootcampBuilderPage.constants'; import { useBootcampWorkflowStage } from './useBootcampWorkflowStage';
+import { useBootcampRunner } from './useBootcampRunner';
 import { BootcampLeftPanel, BootcampRightPanel } from './BootcampBuilderSidePanels';
 import { exportBootcampTemplatePDF } from './BootcampBuilderPdfExport';
 import ClassPreviewPanel from './ClassPreviewPanel';
@@ -22,6 +23,10 @@ import {
   getNextMainBoardSortOrder,
 } from './BootcampBuilderPlacement';
 import { useBootcampSlotActions } from './useBootcampSlotActions';
+/** Stable identity: the runner memoises its segments on this object, so a fresh one every render
+ * would restart the clock. Used only while no class has been generated. */
+const EMPTY_BOOTCAMP = { exercises: [] } as unknown as GeneratedBootcamp;
+
 const BootcampBuilderPage: React.FC = () => {
   const api = useBootcampAPI(), classFormat = CUSTOM_BOOTCAMP_FORMAT as ClassFormat;
   const [stationCount, setStationCount] = useState(DEFAULT_BOOTCAMP_STATION_COUNT); const [exercisesPerStation, setExercisesPerStation] = useState(DEFAULT_BOOTCAMP_EXERCISES_PER_STATION);
@@ -34,6 +39,8 @@ const BootcampBuilderPage: React.FC = () => {
   const [optPhase, setOptPhase] = useState(1);
   const [includeStretch, setIncludeStretch] = useState(true);
   const [bootcamp, setBootcamp] = useState<GeneratedBootcamp | null>(null);
+  // R-H23: owned above the stage switch, so leaving Run cannot destroy the session (see ledger).
+  const runSession = useBootcampRunner(bootcamp ?? EMPTY_BOOTCAMP);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { workflowStage, floorMode, onStageChange } = useBootcampWorkflowStage();
@@ -261,6 +268,7 @@ const BootcampBuilderPage: React.FC = () => {
           buildMode={buildMode}
           loading={loading}
           floorMode={floorMode}
+          runSession={runSession}
           saving={saving}
           onSave={handleSave}
           onSelectExercise={setSelectedExercise}

@@ -25,22 +25,26 @@
  * Children:  CreateSprintModal, BootcampCalendar, SlotDetailPanel
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSprintAPI, type BootcampSprint, type SprintClassSlot, type GenerationProgress } from '../../hooks/useSprintAPI';
 import CreateSprintModal from './CreateSprintModal';
 import BootcampCalendar from './BootcampCalendar';
 import SlotDetailPanel from './SlotDetailPanel';
+// R-H17: the card moved out with its keyboard contract — the page was at 298 of the rule-4 cap of
+// 300, so the activation props could not live here (see `SprintCardTile.tsx`).
+import SprintCardTile from './SprintCardTile';
 import {
   PageContainer, PageHeader, ActionBar,
   PrimaryButton, GenerateButton,
-  SprintGrid, SprintCard, StatusBadge,
+  SprintGrid, StatusBadge,
   ProgressContainer, ProgressFill, ProgressText,
   WeekRow, WeekLabel, SlotsRow, SlotPill,
   Tab, EmptyState,
   CompactBackButton, ProgressHeader, ProgressMetric,
-  SpacedCard, SpacedTabBar, SprintCardHeader,
-  SprintCardSkeleton, SprintCardTitle, SprintDateRange,
-  SprintMeta, TimelineList, WeekTheme,
+  SpacedCard, SpacedTabBar,
+  SprintCardSkeleton, SprintDateRange,
+  TimelineList, WeekTheme,
+  TerminalNotice,
 } from './SprintPlannerStyles';
 
 type ViewMode = 'timeline' | 'calendar';
@@ -72,22 +76,40 @@ const SprintPlannerPage: React.FC = () => {
     if (detail) setActiveSprint(detail);
   }, [getSprint]);
 
-  // Handle generation
+  // The cancel handle is KEPT in a ref: React discards an onClick's return value.
+  const cancelRun = useRef<(() => void) | null>(null);
+
   const handleGenerate = useCallback(() => {
     if (!activeSprint) return;
+    const sprintId = activeSprint.id;
     setGenerating(true);
     setProgress(null);
 
-    const cancel = generateSprint(activeSprint.id, (evt) => {
+    cancelRun.current = generateSprint(sprintId, (evt) => {
+      // A frame already in flight can arrive after `leaveSprint` aborts the run;
+      // a nulled handle means the trainer left, so it must not repaint.
+      if (cancelRun.current === null) return;
       setProgress(evt);
       if (evt.type === 'complete' || evt.type === 'error') {
         setGenerating(false);
-        loadSprintDetail(activeSprint.id);
+        loadSprintDetail(sprintId);
       }
     });
-
-    return cancel;
   }, [activeSprint, generateSprint, loadSprintDetail]);
+
+  /** Leaving must STOP the run, not merely hide it: the stream keeps pushing
+   *  events, so a late terminal event painted Sprint A's failure onto Sprint B
+   *  and dragged the trainer back to A. */
+  const leaveSprint = useCallback(() => {
+    cancelRun.current?.();
+    cancelRun.current = null;
+    setActiveSprint(null);
+    setGenerating(false);
+    setProgress(null);
+  }, []);
+
+  // A run must not outlive the page either.
+  useEffect(() => () => { cancelRun.current?.(); cancelRun.current = null; }, []);
 
   // Flatten all slots for calendar
   const allSlots = useMemo(() => {
@@ -128,24 +150,11 @@ const SprintPlannerPage: React.FC = () => {
         ) : (
           <SprintGrid>
             {sprints.map(sprint => (
-              <SprintCard key={sprint.id} onClick={() => loadSprintDetail(sprint.id)}>
-                <SprintCardHeader>
-                  <SprintCardTitle>{sprint.name}</SprintCardTitle>
-                  <StatusBadge $status={sprint.status}>{sprint.status}</StatusBadge>
-                </SprintCardHeader>
-                <SprintDateRange>
-                  {sprint.startDate} &rarr; {sprint.endDate}
-                </SprintDateRange>
-                <SprintMeta>
-                  {sprint.durationWeeks} weeks &middot; {sprint.classesPerWeek} classes/week &middot; {sprint.progressionStrategy}
-                </SprintMeta>
-                <ProgressContainer>
-                  <ProgressFill $percent={Math.round((sprint.totalClassesCompleted / Math.max(1, sprint.totalClassesPlanned)) * 100)} />
-                </ProgressContainer>
-                <ProgressText>
-                  {sprint.totalClassesCompleted}/{sprint.totalClassesPlanned} classes completed
-                </ProgressText>
-              </SprintCard>
+              <SprintCardTile
+                key={sprint.id}
+                sprint={sprint}
+                onOpen={() => loadSprintDetail(sprint.id)}
+              />
             ))}
           </SprintGrid>
         )}
@@ -164,7 +173,7 @@ const SprintPlannerPage: React.FC = () => {
     <PageContainer>
       <PageHeader>
         <div>
-          <CompactBackButton onClick={() => setActiveSprint(null)}>
+          <CompactBackButton onClick={leaveSprint}>
             &larr; All Sprints
           </CompactBackButton>
           <h1>{activeSprint.name}</h1>
@@ -195,6 +204,17 @@ const SprintPlannerPage: React.FC = () => {
         </SpacedCard>
       )}
 
+      {/* R-H04: the terminal event must outlive `setGenerating(false)` — the panel
+          above renders only while `generating`, so the event explaining WHY the run
+          ended had no surface. Distinct copy for an interrupted run. */}
+      {!generating && progress?.type === 'error' && (
+        <TerminalNotice $tone="error" role="alert">
+          {progress.interrupted
+            ? 'Generation was interrupted and is not running now. Start it again.'
+            : (progress.error || 'Generation did not finish. Try again.')}
+        </TerminalNotice>
+      )}
+
       {/* Completion bar */}
       <SpacedCard>
         <ProgressHeader>
@@ -208,10 +228,13 @@ const SprintPlannerPage: React.FC = () => {
         </ProgressContainer>
       </SpacedCard>
 
-      {/* View toggle */}
-      <SpacedTabBar>
-        <Tab $active={view === 'timeline'} onClick={() => setView('timeline')}>Timeline</Tab>
-        <Tab $active={view === 'calendar'} onClick={() => setView('calendar')}>Calendar</Tab>
+      {/* View toggle — R-H17: these were real buttons but published no selected state, so a screen
+          reader could not say which view was active. `role="tab"` + `aria-selected` is what the
+          register's "selected/pressed semantics" asks for; `aria-controls` is deliberately absent
+          because the panels below are conditionally rendered siblings with no stable ids. */}
+      <SpacedTabBar role="tablist" aria-label="Sprint view">
+        <Tab role="tab" aria-selected={view === 'timeline'} $active={view === 'timeline'} onClick={() => setView('timeline')}>Timeline</Tab>
+        <Tab role="tab" aria-selected={view === 'calendar'} $active={view === 'calendar'} onClick={() => setView('calendar')}>Calendar</Tab>
       </SpacedTabBar>
 
       {/* Timeline View */}

@@ -82,6 +82,74 @@ describe('bootcamp applyPainAwareGating (Cortex P0 §5.5)', () => {
     expect(explanations.some(e => e.type === 'pain_alert')).toBe(true);
   });
 
+  it('H09 (round 99, HIGH-1): a swap records the source and carries NO inherited identity or demo', async () => {
+    // The reviewer's repro: this rename happens IN PLACE, so before the fix the row kept the
+    // replaced movement's catalog id (which RESOLVES) and its media. `isSubstitution()` at
+    // read time keys off `sourceExerciseName`, saw nothing, and the template rejoin then wrote
+    // the SOURCE's live demonstration onto the substitute. Nothing in this file asserted
+    // media or identity before, which is why the defect survived a full review round.
+    mocks.painFindAll.mockResolvedValue([
+      { bodyRegion: 'left_knee', side: 'left', painLevel: 8, painType: 'sharp', userId: 101 },
+    ]);
+    const ex = mainExercise({
+      exerciseLibraryId: '11111111-1111-4111-8111-111111111111',
+      videoUrl: 'https://cdn.test/jump-squat.mp4',
+      previewVideoUrl: 'https://cdn.test/jump-squat.webm',
+      thumbnailUrl: 'https://cdn.test/jump-squat.png',
+      imageUrl: 'https://cdn.test/jump-squat.jpg',
+      description: 'Plyometric squat.',
+      instructions: 'Jump explosively.',
+    });
+
+    await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations: [] });
+
+    expect(ex.exerciseName).toBe('Box Squat to Bench');
+    // The provenance marker the read rule needs, naming the movement that was REPLACED.
+    expect(ex.sourceExerciseName).toBe('Jump Squat');
+    // …and nothing of the replaced movement survives to be rehydrated onto the substitute.
+    expect(ex.exerciseLibraryId).toBeNull();
+    expect(ex.videoUrl).toBeNull();
+    expect(ex.previewVideoUrl).toBeNull();
+    expect(ex.thumbnailUrl).toBeNull();
+    expect(ex.imageUrl).toBeNull();
+    expect(ex.description).toBeNull();
+    expect(ex.instructions).toBeNull();
+  });
+
+  it('H09: a WRONG-REGION alternative cannot satisfy knee pain — it becomes CAUTION', async () => {
+    // The defect this locks: `deriveJointFriendlyAlternative` falls back to ANY joint
+    // modification, so an exercise with a knee report and no `kneeMod` but, say, a
+    // `shoulderMod` was SWAPPED and reported as "auto-routed for knee pain" — the alert
+    // claimed the knee was addressed while nothing about the knee changed.
+    mocks.painFindAll.mockResolvedValue([
+      { bodyRegion: 'left_knee', side: 'left', painLevel: 9, painType: 'sharp', userId: 101 },
+    ]);
+    const ex = mainExercise({
+      kneeMod: null,
+      shoulderMod: 'Landmine Press', // a perfectly good alternative — for a DIFFERENT joint
+      easyVariation: 'Bodyweight Squat',
+    });
+    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations: [] });
+
+    expect(ex.exerciseName).toBe('Jump Squat'); // NOT swapped on a wrong-region alternative
+    expect(ex.painSwap).toBeUndefined();
+    expect(ex.painCaution).toEqual(expect.objectContaining({ region: 'left_knee', severity: 9 }));
+    expect(alerts[0].swappedExercises).toEqual([]);
+    expect(alerts[0].cautionExercises).toEqual(['Jump Squat']);
+  });
+
+  it('H09: a region-MATCHED alternative still swaps (the rule does not block the good case)', async () => {
+    mocks.painFindAll.mockResolvedValue([
+      { bodyRegion: 'left_knee', side: 'left', painLevel: 9, painType: 'sharp', userId: 101 },
+    ]);
+    const ex = mainExercise({ shoulderMod: 'Landmine Press' });
+    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations: [] });
+
+    expect(ex.exerciseName).toBe('Box Squat to Bench');
+    expect(ex.painSwap).toEqual(expect.objectContaining({ region: 'left_knee' }));
+    expect(alerts[0].swappedExercises).toEqual(['Box Squat to Bench']);
+  });
+
   it('severe pain with NO available alternative marks the exercise CAUTION instead of leaving it silently unmodified', async () => {
     mocks.painFindAll.mockResolvedValue([
       { bodyRegion: 'left_knee', side: 'left', painLevel: 9, painType: 'sharp', userId: 101 },

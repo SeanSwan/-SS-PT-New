@@ -1,0 +1,307 @@
+*** Begin Patch
+*** Add File: frontend/src/components/WorkoutLogger/useExerciseSearch.test.tsx
++import { act, renderHook, waitFor } from '@testing-library/react';
++import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
++import { ApiService } from '../../services/api.service';
++import { useExerciseSearch, type ExerciseSlim } from './useExerciseSearch';
++
++const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }));
++
++vi.mock('../../services/api.service', () => ({
++  ApiService: vi.fn(function (this: { get: typeof apiGet }) {
++    this.get = apiGet;
++  }),
++}));
++
++type Deferred<T> = { promise: Promise<T>; resolve: (value: T) => void; reject: (error: unknown) => void };
++
++function deferred<T>(): Deferred<T> {
++  let resolve!: (value: T) => void;
++  let reject!: (error: unknown) => void;
++  const promise = new Promise<T>((res, rej) => {
++    resolve = res;
++    reject = rej;
++  });
++  return { promise, resolve, reject };
++}
++
++function exercise(overrides: Partial<ExerciseSlim> = {}): ExerciseSlim {
++  return {
++    id: 'bench-press',
++    name: 'Bench Press',
++    exerciseKey: 'bench-press',
++    exerciseType: 'strength',
++    bodyPartCategory: 'Chest',
++    primaryMuscles: ['Chest'],
++    difficulty: 1,
++    ...overrides,
++  };
++}
++
++const catalog = [
++  exercise(),
++  exercise({
++    id: 'back-squat',
++    name: 'Back Squat',
++    exerciseKey: 'back-squat',
++    bodyPartCategory: 'Legs',
++    primaryMuscles: ['Quadriceps'],
++  }),
++];
++
++type FakeWorker = {
++  onmessage: ((event: MessageEvent) => void) | null;
++  onerror: ((event: ErrorEvent) => void) | null;
++  onmessageerror: ((event: MessageEvent) => void) | null;
++  postMessage: ReturnType<typeof vi.fn>;
++  terminate: ReturnType<typeof vi.fn>;
++  addEventListener: ReturnType<typeof vi.fn>;
++};
++
++let worker: FakeWorker;
++let WorkerConstructor: ReturnType<typeof vi.fn>;
++
++function emitWorker(data: unknown) {
++  worker.onmessage?.({ data } as MessageEvent);
++}
++
++beforeEach(() => {
++  apiGet.mockReset();
++  worker = {
++    onmessage: null,
++    onerror: null,
++    onmessageerror: null,
++    postMessage: vi.fn(),
++    terminate: vi.fn(),
++    addEventListener: vi.fn(),
++  };
++  WorkerConstructor = vi.fn(function () {
++    return worker;
++  });
++  vi.stubGlobal('Worker', WorkerConstructor);
++  vi.stubGlobal('URL', {
++    createObjectURL: vi.fn(() => 'blob:exercise-search'),
++    revokeObjectURL: vi.fn(),
++  });
++});
++
++afterEach(() => {
++  vi.unstubAllGlobals();
++});
++
++describe('useExerciseSearch current-query engine contract', () => {
++  it('performs one fetch when query and category are chosen before delayed load', async () => {
++    const pending = deferred<{ data: { success: boolean; exercises: ExerciseSlim[] } }>();
++    apiGet.mockReturnValueOnce(pending.promise);
++
++    const { result } = renderHook(() => useExerciseSearch());
++    act(() => {
++      result.current.setQuery('bench');
++      result.current.setCategory('Chest');
++    });
++
++    expect(apiGet).toHaveBeenCalledTimes(1);
++    pending.resolve({ data: { success: true, exercises: catalog } });
++    await waitFor(() => expect(result.current.isLoading).toBe(false));
++
++    const searches = worker.postMessage.mock.calls
++      .map(([message]) => message)
++      .filter((message) => message.type === 'SEARCH');
++    expect(searches.at(-1)).toEqual(expect.objectContaining({ query: 'bench', category: 'Chest' }));
++  });
++
++  it('rejects a worker result for the old query and settles only the current search', async () => {
++    apiGet.mockResolvedValueOnce({ data: { success: true, exercises: catalog } });
++    const { result } = renderHook(() => useExerciseSearch());
++    await waitFor(() => expect(result.current.isLoading).toBe(false));
++
++    act(() => result.current.setQuery('bench'));
++    act(() => result.current.setQuery('squat'));
++    emitWorker({ type: 'RESULTS', exercises: [catalog[0]], query: 'bench' });
++
++    expect(result.current.results).toEqual([]);
++    expect(result.current.isSearching).toBe(true);
++
++    emitWorker({ type: 'RESULTS', exercises: [catalog[1]], query: 'squat' });
++    expect(result.current.results).toEqual([catalog[1]]);
++    expect(result.current.isSearching).toBe(false);
++  });
++
++  it('terminates a crashed worker and synchronously returns the latest fallback results', async () => {
++    apiGet.mockResolvedValueOnce({ data: { success: true, exercises: catalog } });
++    const { result } = renderHook(() => useExerciseSearch());
++    await waitFor(() => expect(result.current.isLoading).toBe(false));
++
++    act(() => result.current.setQuery('bench'));
++    act(() => worker.onerror?.(new ErrorEvent('error')));
++
++    expect(worker.terminate).toHaveBeenCalledTimes(1);
++    expect(result.current.results).toEqual([catalog[0]]);
++    expect(result.current.isSearching).toBe(false);
++  });
++
++  it('reapplies the current filter after an explicit refresh replaces the catalog', async () => {
++    apiGet.mockResolvedValueOnce({ data: { success: true, exercises: catalog } });
++    const { result } = renderHook(() => useExerciseSearch());
++    await waitFor(() => expect(result.current.isLoading).toBe(false));
++
++    act(() => {
++      result.current.setQuery('press');
++      result.current.setCategory('Chest');
++    });
++    await waitFor(() => expect(result.current.query).toBe('press'));
++
++    const refreshed = [exercise({ id: 'incline-bench', name: 'Incline Bench' })];
++    const refreshPending = deferred<{ data: { success: boolean; exercises: ExerciseSlim[] } }>();
++    apiGet.mockReset();
++    apiGet.mockReturnValueOnce(refreshPending.promise);
++    act(() => result.current.refresh());
++    expect(apiGet).toHaveBeenCalledTimes(1);
++    refreshPending.resolve({ data: { success: true, exercises: refreshed } });
++    await waitFor(() => expect(result.current.isLoading).toBe(false));
++
++    expect(result.current.results).toEqual(refreshed);
++    expect(result.current.query).toBe('press');
++    expect(result.current.category).toBe('Chest');
++  });
++
++  it('distinguishes a successful empty catalog from an initial load error', async () => {
++    apiGet.mockResolvedValueOnce({ data: { success: true, exercises: [] } });
++    const { result } = renderHook(() => useExerciseSearch());
++    await waitFor(() => expect(result.current.isLoading).toBe(false));
++    expect(result.current.loadState).toBe('empty');
++    expect(result.current.loadError).toBeNull();
++  });
++
++  it('filters malformed catalog members and non-string array values before search', async () => {
++    apiGet.mockResolvedValueOnce({
++      data: {
++        success: true,
++        exercises: [
++          null,
++          exercise({ primaryMuscles: ['Chest', 42 as unknown as string] }),
++        ],
++      },
++    });
++    const { result } = renderHook(() => useExerciseSearch());
++    await waitFor(() => expect(result.current.isLoading).toBe(false));
++    expect(result.current.allExercises).toHaveLength(1);
++    expect(result.current.allExercises[0].primaryMuscles).toEqual(['Chest']);
++    expect(result.current.loadError).toBeNull();
++  });
++
++  it('uses the synchronous fallback for messageerror and settles busy state', async () => {
++    apiGet.mockResolvedValueOnce({ data: { success: true, exercises: catalog } });
++    const { result } = renderHook(() => useExerciseSearch());
++    await waitFor(() => expect(result.current.isLoading).toBe(false));
++
++    act(() => result.current.setQuery('bench'));
++    act(() => worker.onmessageerror?.({ data: 'unreadable' } as MessageEvent));
++
++    expect(worker.terminate).toHaveBeenCalledTimes(1);
++    expect(result.current.results).toEqual([catalog[0]]);
++    expect(result.current.isSearching).toBe(false);
++  });
++
++  it('terminates the owned worker before late callbacks can settle an unmounted hook', async () => {
++    const pending = deferred<{ data: { success: boolean; exercises: ExerciseSlim[] } }>();
++    apiGet.mockReturnValueOnce(pending.promise);
++    const { unmount } = renderHook(() => useExerciseSearch());
++    unmount();
++    pending.resolve({ data: { success: true, exercises: catalog } });
++    await Promise.resolve();
++    expect(worker.terminate).toHaveBeenCalledTimes(1);
++  });
++});
+*** Add File: frontend/src/components/WorkoutLogger/exerciseSearchCore.test.ts
++import { describe, expect, it } from 'vitest';
++import { searchExercisesSync, type ExerciseSlim } from './exerciseSearchWorker';
++
++function exercise(overrides: Partial<ExerciseSlim> = {}): ExerciseSlim {
++  return {
++    id: 'one',
++    name: 'Neutral Move',
++    exerciseKey: 'one',
++    exerciseType: 'mobility',
++    bodyPartCategory: 'Full Body',
++    primaryMuscles: ['Hamstring'],
++    difficulty: 1,
++    ...overrides,
++  };
++}
++
++describe('exercise search scoring contract', () => {
++  it('normalizes category aliases and preserves catalog order for blank queries', () => {
++    const rows = [
++      exercise({ id: 'first', bodyPartCategory: 'full_body' }),
++      exercise({ id: 'second', bodyPartCategory: 'Full Body' }),
++      exercise({ id: 'other', bodyPartCategory: 'Chest' }),
++    ];
++    expect(searchExercisesSync(rows, '', 'Full Body').map((row) => row.id)).toEqual(['first', 'second']);
++  });
++
++  it('matches type and primary muscle fields with the same fallback scorer', () => {
++    const rows = [
++      exercise({ id: 'type', name: 'Quiet Motion', exerciseType: 'cardio' }),
++      exercise({ id: 'muscle', name: 'Quiet Motion', exerciseType: 'strength', primaryMuscles: ['Hamstring'] }),
++    ];
++    expect(searchExercisesSync(rows, 'cardio', null).map((row) => row.id)).toEqual(['type']);
++    expect(searchExercisesSync(rows, 'ham', null).map((row) => row.id)).toEqual(['muscle']);
++  });
++
++  it('ignores malformed optional token values instead of calling string methods on them', () => {
++    const malformed = exercise({
++      name: 'Unrelated',
++      exerciseType: 'strength',
++      primaryMuscles: [42 as unknown as string],
++    });
++    expect(() => searchExercisesSync([malformed], 'chest', null)).not.toThrow();
++    expect(searchExercisesSync([malformed], 'chest', null)).toEqual([]);
++  });
++});
+*** Add File: frontend/src/components/WorkoutLogger/exerciseSearchWorker.test.ts
++import { beforeEach, describe, expect, it, vi } from 'vitest';
++import { createExerciseSearchWorker, searchExercisesSync, type ExerciseSlim } from './exerciseSearchWorker';
++
++let fakeWorker: { addEventListener: ReturnType<typeof vi.fn>; terminate: ReturnType<typeof vi.fn> };
++let WorkerConstructor: ReturnType<typeof vi.fn>;
++
++beforeEach(() => {
++  fakeWorker = { addEventListener: vi.fn(), terminate: vi.fn() };
++  WorkerConstructor = vi.fn(function () {
++    return fakeWorker;
++  });
++  vi.stubGlobal('Worker', WorkerConstructor);
++  vi.stubGlobal('URL', {
++    createObjectURL: vi.fn(() => 'blob:exercise-search'),
++    revokeObjectURL: vi.fn(),
++  });
++});
++
++describe('exercise search worker boundary', () => {
++  it('constructs the Vite module worker entry with module semantics', () => {
++    expect(createExerciseSearchWorker()).toBe(fakeWorker);
++    expect(WorkerConstructor).toHaveBeenCalledWith(expect.anything(), { type: 'module' });
++  });
++
++  it('returns null when Worker construction is unavailable', () => {
++    WorkerConstructor.mockImplementationOnce(() => {
++      throw new Error('CSP');
++    });
++    expect(createExerciseSearchWorker()).toBeNull();
++  });
++
++  it('keeps synchronous fallback ranking available to non-worker consumers', () => {
++    const rows: ExerciseSlim[] = [{
++      id: 'bench',
++      name: 'Bench Press',
++      exerciseKey: 'bench',
++      exerciseType: 'strength',
++      bodyPartCategory: 'Chest',
++      primaryMuscles: ['Chest'],
++      difficulty: 1,
++    }];
++    expect(searchExercisesSync(rows, 'bench', 'Chest')).toEqual(rows);
++  });
++});
+*** End Patch

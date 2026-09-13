@@ -5,8 +5,9 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
-  buildAttendancePayloads, recordBootcampAttendance,
-} from '../../services/bootcamp/bootcampAttendance.mjs';
+  buildAttendancePayloads,
+} from '../../services/bootcamp/bootcampAttendancePayloads.mjs';
+import { recordBootcampAttendance } from '../../services/bootcamp/bootcampAttendance.mjs';
 
 const classLog = (over = {}) => ({
   id: 42,
@@ -15,8 +16,12 @@ const classLog = (over = {}) => ({
   dayType: 'lower_body',
   attendance: null,
   exercisesUsed: [
+    // Main board + a no-board legacy row, which is what the real client sends
+    // (`useBootcampTaughtLog.ts` maps `mainExercises` only). An ALTERNATIVE row used to
+    // sit here and was silently dropped — that implicit preference is what §5 line 224
+    // forbids, and it is now covered by its own test instead of being baked into every
+    // fixture in this file.
     { exerciseName: 'Goblet Squat', durationSec: 40, board: 'main' },
-    { exerciseName: 'Wall Sit (knee-friendly)', durationSec: 40, board: 'alternative' },
     { exerciseName: 'Jumping Jacks', durationSec: 30, isCardioFinisher: true },
   ],
   ...over,
@@ -41,6 +46,9 @@ const deps = (log, over = {}) => {
 };
 
 describe('buildAttendancePayloads — pure', () => {
+  // H28 (§5 line 226): this path writes DailyWorkoutForm rows directly and never ran the
+  // canonical validations, so they are mirrored at payload construction. Model refs:
+  // `clientTrainerDifferent` :404-408, `dateNotFuture` :410-415, `formDataStructure` :417-427.
   it('registered attendees get canonical form payloads; guests get roster rows only (R10c)', () => {
     const p = buildAttendancePayloads({
       classLog: classLog(),
@@ -60,6 +68,7 @@ describe('buildAttendancePayloads — pure', () => {
       classLog: classLog(), attendees: [{ userId: 11 }], nowIso: 'now',
     }).workoutForms;
     expect(form.clientId).toBe(11);
+    expect(form.trainerId).toBe(7); // H28: strict `clientId === trainerId` must be evaluable
     expect(form.date).toBe('2026-08-03');
     expect(form.idempotencyKey).toBe('bootcamp:42:11');
     const names = form.formData.exercises.map((e) => e.name);
@@ -69,11 +78,59 @@ describe('buildAttendancePayloads — pure', () => {
     expect(form.sessionDeducted).toBe(false); // points/deduction deferred, disclosed
   });
 
+  it('NEVER writes a lowImpact or unknown board row as a completed exercise (§5 line 224)', () => {
+    // The filter used to be allow-by-default (`board !== 'alternative'`), so a Board-3
+    // lowImpact OFFER — which `generateBoard2` emits into the same exercise list — became a
+    // completed set in every attendee's form, and any future board value would have too. An
+    // integration review found this (round 104); the allowlist below is what fails CLOSED.
+    const [form] = buildAttendancePayloads({
+      classLog: classLog({
+        // No `alternative` row here on purpose: mixing main WITH alternative trips the
+        // pre-existing §5 line 224 guard (which demands an explicit selection this API cannot
+        // yet express, a separate MED finding). `lowImpact` is the case that slipped THROUGH
+        // that guard, and an unknown board is the fail-closed check.
+        exercisesUsed: [
+          { exerciseName: 'Goblet Squat', durationSec: 40, board: 'main' },
+          { exerciseName: 'Step-Up', durationSec: 30, board: 'lowImpact' },
+          { exerciseName: 'Mystery Move', durationSec: 30, board: 'something_new' },
+        ],
+      }),
+      attendees: [{ userId: 11 }],
+      nowIso: 'now',
+    }).workoutForms;
+
+    expect(form.formData.exercises.map((e) => e.name)).toEqual(['Goblet Squat']);
+  });
+
+  it('an OFFERS-ONLY class has nothing to log, so it is refused rather than invented', () => {
+    expect(() => buildAttendancePayloads({
+      classLog: classLog({
+        exercisesUsed: [{ exerciseName: 'Step-Up', durationSec: 30, board: 'lowImpact' }],
+      }),
+      attendees: [{ userId: 11 }],
+      nowIso: 'now',
+    })).toThrow(/at least one exercise/i);
+  });
+
   it('the same person listed twice counts once', () => {
     const p = buildAttendancePayloads({
       classLog: classLog(), attendees: [{ userId: 11 }, { userId: 11 }], nowIso: 'now',
     });
     expect(p.workoutForms).toHaveLength(1);
+  });
+
+  // The canonical-form cases (future date, empty exercises, mixed boards, legacy rows)
+  // moved to bootcampAttendanceCanonicalForms.test.mjs when this file hit the rule-4 cap.
+
+
+  it('does not create forms for the trainer even on a mixed roster (H28)', () => {
+    const p = buildAttendancePayloads({
+      classLog: classLog(),
+      attendees: [{ userId: 7 }, { userId: 11 }, { userId: 12 }],
+      nowIso: '2026-08-03T10:00:00.000Z',
+    });
+    expect(p.registered).toEqual([7, 11, 12]); // roster keeps everyone
+    expect(p.workoutForms.map((f) => f.clientId)).toEqual([11, 12]); // forms do not
   });
 
   it('rejects empty, oversized, and shapeless attendees', () => {
@@ -133,7 +190,14 @@ describe('recordBootcampAttendance — ownership + idempotency', () => {
   });
 
   it('a second submission is a no-op returning the ORIGINAL record', async () => {
-    const original = { recordedAt: 'earlier', attendees: [{ userId: 5 }], workoutFormIds: [90] };
+    // THE FIXTURE WAS WRONG UNTIL ROUND 129, and it was hiding a defect. Its name says "a second
+    // submission", i.e. a RESEND of the same roster, but it stored `userId: 5` while submitting
+    // `args` (`userId: 11`) — a DIFFERENT roster — and then asserted `alreadyRecorded: true`. That is
+    // exactly the silent data-loss path a hostile review then found: a corrected roster answered 200
+    // with nothing written. The stored roster now matches what is submitted, so the test pins what it
+    // claims, and the differing-roster case has its own file
+    // (`bootcampAttendanceRosterConflict.test.mjs`, which asserts 409).
+    const original = { recordedAt: 'earlier', attendees: [{ userId: 11 }], workoutFormIds: [90] };
     const d = deps(classLog({ attendance: original }));
     const result = await recordBootcampAttendance(d, args);
     expect(result).toMatchObject({ alreadyRecorded: true, created: 0 });
@@ -165,11 +229,17 @@ describe('recordBootcampAttendance — ownership + idempotency', () => {
     expect(d.createWorkoutForm).not.toHaveBeenCalled();
   });
 
-  it('a trainer may always log THEMSELVES without an assignment', async () => {
+  it('rejects SELF-attendance forms: the trainer is rostered but gets NO form (H28)', async () => {
+    // §5 line 226: "Self-attendance is rejected for registered workout-form creation…
+    // no special self exception is invented." This test previously asserted
+    // `created === 1` with the comment "self short-circuits" — it ENCODED the bug.
     const d = deps(classLog(), { verifyClientAccess: vi.fn(async () => false) });
     const result = await recordBootcampAttendance(d, { ...args, attendees: [{ userId: 7 }] }); // trainerId is 7
-    expect(result.created).toBe(1);
-    expect(d.verifyClientAccess).not.toHaveBeenCalled(); // self short-circuits
+
+    expect(result.created).toBe(0);
+    expect(d.createWorkoutForm).not.toHaveBeenCalled();
+    // They WERE present, so the roster still records them — only the form is refused.
+    expect(result.attendance.attendees).toEqual([{ userId: 7 }]);
   });
 
   it('an ADMIN bypasses the per-client check', async () => {

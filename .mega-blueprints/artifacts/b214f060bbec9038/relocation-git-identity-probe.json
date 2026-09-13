@@ -1,0 +1,109 @@
+{
+  "generatedAt": "2026-09-13T06:49:09.4673212Z",
+  "fixtureRoot": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe",
+  "repo": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\repo",
+  "realWorktrees": [
+    "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\worktree-one",
+    "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\worktree-two"
+  ],
+  "fakeCopy": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\fake-copy",
+  "revParseActual": {
+    "cwd": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\worktree-one",
+    "args": "rev-parse --show-toplevel --git-common-dir --git-dir",
+    "exitCode": 0,
+    "output": [
+      "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/worktree-one",
+      "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/repo/.git",
+      "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/repo/.git/worktrees/worktree-one"
+    ]
+  },
+  "revParseFake": {
+    "cwd": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\fake-copy",
+    "args": "rev-parse --show-toplevel --git-common-dir --git-dir",
+    "exitCode": 0,
+    "output": [
+      "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/fake-copy",
+      "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/repo/.git",
+      "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/repo/.git/worktrees/worktree-one"
+    ]
+  },
+  "worktreeListFromRepo": {
+    "cwd": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\repo",
+    "args": "worktree list --porcelain",
+    "exitCode": 0,
+    "output": [
+      "worktree C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/repo",
+      "HEAD 2df21685f858216849a404a23be589679e56c8f5",
+      "branch refs/heads/master",
+      "",
+      "worktree C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/worktree-one",
+      "HEAD 2df21685f858216849a404a23be589679e56c8f5",
+      "branch refs/heads/relocation-probe-one",
+      "",
+      "worktree C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/worktree-two",
+      "HEAD 2df21685f858216849a404a23be589679e56c8f5",
+      "branch refs/heads/relocation-probe-two",
+      ""
+    ]
+  },
+  "worktreeListFromFake": {
+    "cwd": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\fake-copy",
+    "args": "worktree list --porcelain",
+    "exitCode": 0,
+    "output": [
+      "worktree C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/repo",
+      "HEAD 2df21685f858216849a404a23be589679e56c8f5",
+      "branch refs/heads/master",
+      "",
+      "worktree C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/worktree-one",
+      "HEAD 2df21685f858216849a404a23be589679e56c8f5",
+      "branch refs/heads/relocation-probe-one",
+      "",
+      "worktree C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/worktree-two",
+      "HEAD 2df21685f858216849a404a23be589679e56c8f5",
+      "branch refs/heads/relocation-probe-two",
+      ""
+    ]
+  },
+  "fakeStatus": {
+    "cwd": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\fake-copy",
+    "args": "status --short",
+    "exitCode": 0,
+    "output": []
+  },
+  "indexActual": {
+    "cwd": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\worktree-one",
+    "args": "rev-parse --path-format=absolute --git-path index",
+    "exitCode": 0,
+    "output": [
+      "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/repo/.git/worktrees/worktree-one/index"
+    ]
+  },
+  "indexFake": {
+    "cwd": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\tmp\\relocation-identity-probe\\fake-copy",
+    "args": "rev-parse --path-format=absolute --git-path index",
+    "exitCode": 0,
+    "output": [
+      "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/repo/.git/worktrees/worktree-one/index"
+    ]
+  },
+  "actualGitFile": "gitdir: C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/repo/.git/worktrees/worktree-one\n",
+  "fakeGitFile": "gitdir: C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/repo/.git/worktrees/worktree-one\n",
+  "gitdirBacklink": "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/worktree-one/.git\n",
+  "commondir": "../..\n",
+  "observations": {
+    "fakeRevParseExitZero": true,
+    "fakeTopLevel": "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/tmp/relocation-identity-probe/fake-copy",
+    "fakeUsesSameGitCommonDir": true,
+    "fakeUsesSameGitDir": true,
+    "fakeEnumeratesSameWorktrees": true,
+    "fakeSharesIndex": true,
+    "copiedGitFileMatches": true,
+    "conclusion": "A copied linked-worktree .git file is accepted by rev-parse, but it resolves to the original checkout worktree metadata/common Git directory and enumerates the original linked worktrees; rev-parse success alone does not prove an independent checkout."
+  },
+  "cleanup": {
+    "verifiedWithinNewRoot": true,
+    "removed": true,
+    "remainingPathExists": false
+  }
+}

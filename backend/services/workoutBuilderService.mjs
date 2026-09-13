@@ -318,8 +318,23 @@ function selectExercises(registry, category, count, constraints, equipmentItems,
   // H1 FIX: registry is an array of {key, name, muscles, category, equipment, nasmLevel}
   // Filter exercises for this category (movement type match)
   const movementCats = expandScheduleCategoryToMovementCategories(category);
+  // R-H19 clause 2 (round 152): the STORED MOVEMENT PATTERN beats the category label.
+  // `movementPattern` describes the movement the exercise actually is; `category` is a filing
+  // convention. Membership previously consulted only the label, so an exercise stored as a squat
+  // was invisible to the squat family when labelled otherwise, and a stored HINGE was handed to the
+  // squat family on the strength of its label.
+  // The pattern decides ONLY when it names an actual movement FAMILY. A stored pattern may also be
+  // a schedule label like `legs` — which is not a family but an alias expanding to squat + hinge +
+  // lunge (`expandScheduleCategoryToMovementCategories:311`) — and letting such a value outrank the
+  // label would make those exercises unreachable from every family slot. Trusting the pattern only
+  // inside the family vocabulary keeps the contract (the stored movement beats the filing label)
+  // without stranding exercises whose tag names no single family.
+  const MOVEMENT_FAMILIES = new Set(['push', 'pull', 'squat', 'hinge', 'lunge', 'core']);
+  const familyOf = (ex) => (ex.movementPattern && MOVEMENT_FAMILIES.has(ex.movementPattern))
+    ? ex.movementPattern
+    : ex.category;
   const categoryExercises = registry
-    .filter(ex => movementCats === null || movementCats.includes(ex.category));
+    .filter(ex => movementCats === null || movementCats.includes(familyOf(ex)));
 
   // Apply constraints (pain rejections collected for the trainer-facing report)
   const painRejections = [];
@@ -573,7 +588,6 @@ export async function generateWorkout(options) {
     ? ['push', 'pull', 'squat', 'hinge', 'lunge', 'core']
     : [CATEGORY_MOVEMENT_MAP[category] || 'core'];
 
-  const exercisesPerCategory = Math.ceil(exerciseCount / movementCategories.length);
   let selectedExercises = [];
   const qualityGateReport = [];
 
@@ -582,14 +596,76 @@ export async function generateWorkout(options) {
   const familiarity = await buildExerciseFamiliarity(clientId, registry);
   const noveltyBudget = createNoveltyBudget(familiarity);
 
+  const takeFrom = (moveCat, count) => selectExercises(
+    registry, moveCat, count,
+    context.constraints, equipmentItems, nasmPhase, goalBias, swanCoachReadiness,
+    { trainingStyleMode: trainingStyle.mode, primaryGoal },
+    qualityGateReport, familiarity, noveltyBudget
+  );
+
+  // R-H19 clause 1 — FLOOR + REMAINDER, every family asked, then TOP UP.
+  // The former `Math.ceil(exerciseCount / movementCategories.length)` gave EVERY family a rounded-up
+  // quota: a `full_body` day asking for 8 across six families selected up to 12, and the
+  // `slice(0, exerciseCount)` below then discarded whole families from the END of the list. The trainer
+  // asked for six movement families — push, pull, squat, hinge, lunge, core — and received four, with
+  // lunge and core gone. Floor+remainder distributes the EXACT requested count over the families, so
+  // the trim below can no longer be the thing that deletes a family.
+  const familyCount = movementCategories.length;
+  const baseQuota = Math.floor(exerciseCount / familyCount);
+  let remainder = exerciseCount % familyCount;
+  // ROUND 201: per-family tally of what has ALREADY been taken this day. `selectExercises` ranks a
+  // family from the TOP on every call, so a re-ask without this tally returns the picks already chosen
+  // and the dedupe filter discards all of them - deeper ranks stay unreachable however deep the pool is.
+  const takenPerFamily = new Map();
+
   for (const moveCat of movementCategories) {
-    const catExercises = selectExercises(
-      registry, moveCat, exercisesPerCategory,
-      context.constraints, equipmentItems, nasmPhase, goalBias, swanCoachReadiness,
-      { trainingStyleMode: trainingStyle.mode, primaryGoal },
-      qualityGateReport, familiarity, noveltyBudget
-    );
-    selectedExercises.push(...catExercises);
+    const quota = baseQuota + (remainder > 0 ? 1 : 0);
+    if (remainder > 0) remainder -= 1;
+    // A family whose quota rounds to zero is deferred to the top-up pass rather than never served —
+    // and the second pass is what makes that deferral safe (see below).
+    if (quota <= 0) continue;
+    const pickedQuota = takeFrom(moveCat, quota);
+    takenPerFamily.set(moveCat, pickedQuota.length);
+    selectedExercises.push(...pickedQuota);
+  }
+
+  // TOP UP — and this pass is load-bearing, not a nicety. Two things can leave the day short:
+  // a family deferred above, and a sparse registry, which is routine at cold start (a `full_body` day
+  // requests six families, but a real registry may hold nothing for push, pull or core). Without this
+  // loop, deferring a zero-quota family silently dropped it: a registry with squat, hinge and lunge
+  // returned two exercises for a four-exercise request and lost `ankle_hops` entirely.
+  //
+  // The already-chosen filter is equally load-bearing. The shared novelty budget discourages repeats
+  // across the WEEK; it does not stop this day from re-picking what it just picked. Asking an
+  // exhausted family again therefore hands back the SAME exercise, and an unfiltered top-up fills the
+  // remaining slots with duplicates of what it already had rather than moving on to a family that has
+  // something new — which is how a NASM-5 `full_body` day lost its high-impact `ankle_hops` to a second
+  // copy of `goblet_squat`. A day repeating an exercise is also wrong on its own terms.
+  const chosenKeys = new Set(selectedExercises.map((exercise) => exercise.key));
+  let progressed = true;
+  while (selectedExercises.length < exerciseCount && progressed) {
+    progressed = false;
+    for (const moveCat of movementCategories) {
+      if (selectedExercises.length >= exerciseCount) break;
+      // R-H19 clause 1 fix (round 193, from the round-191 hostile review): ask for the SHORTFALL, not 1.
+      // With a count of 1 the selection is bounded BEFORE the already-chosen filter runs, so a family
+      // whose rank-0 pick is taken can never offer its rank-1: the loop re-asks the same family and
+      // receives the same top pick indefinitely, and the day comes up short while eligible exercises go
+      // unused. Asking for the shortfall lets the filter skip a taken rank-0 and keep rank-1, and the
+      // slice keeps the bound. Measured before the fix: 5 of 7 eligible exercises; after: 7 of 7.
+      const shortfall = exerciseCount - selectedExercises.length;
+      // Ask for `alreadyTaken + shortfall`, NOT `shortfall`. Measured (round 200): with one family
+      // empty, a 30-deep pool returned 10 of 12 because every re-ask re-returned the taken picks.
+      const alreadyTaken = takenPerFamily.get(moveCat) ?? 0;
+      const picked = takeFrom(moveCat, alreadyTaken + shortfall)
+        .filter((exercise) => exercise.key && !chosenKeys.has(exercise.key))
+        .slice(0, shortfall);
+      if (picked.length === 0) continue;
+      for (const exercise of picked) chosenKeys.add(exercise.key);
+      takenPerFamily.set(moveCat, alreadyTaken + picked.length);
+      selectedExercises.push(...picked);
+      progressed = true;
+    }
   }
 
   // Trim to requested count
@@ -1175,7 +1251,18 @@ export async function generatePlan(options) {
   // each exercise with rotationFallback: true (R7 metadata).
   // ─────────────────────────────────────────────────────────────────────
   const registry = registryOverride || (await getExerciseRegistryFromDB());
-  const recentExerciseKeys = [];               // sliding window of last 7 sessions' exercises (flattened)
+
+  // R-H19 clause 3 — the window holds SESSIONS, not the last seven individual exercises.
+  // This was ONE flat array that each generated day appended its ~6 keys to, and the consumers then
+  // took `slice(-7)` of it. Seven KEYS is barely one session, so the "last 7 sessions" the comment,
+  // the contract and the fallback arithmetic all assumed collapsed to the immediately previous day.
+  // Nothing errored, because the window is a SORT KEY rather than a filter (`selectExercises:376-382`
+  // only demotes recent work): the visible effect was that an exercise used two to seven sessions ago
+  // was no longer demoted and came back ahead of fresh alternatives — in this fixture the weekly push
+  // day re-picked the same exercises for the whole horizon despite an eight-exercise pool.
+  const RECENT_SESSION_WINDOW = 7;
+  const recentSessionKeys = [];                // one entry per generated day
+  const recentWindowKeys = () => recentSessionKeys.slice(-RECENT_SESSION_WINDOW).flat();
 
   // Familiarity signal (2026-07-14) — built ONCE for the horizon; a fresh
   // novelty budget is created per generated day. Fail-open: null on error.
@@ -1242,7 +1329,7 @@ export async function generatePlan(options) {
       // immediate prior session.
       const constraintsForDay = {
         ...context.constraints,
-        recentlyUsedExercises: recentExerciseKeys.slice(-7),
+        recentlyUsedExercises: recentWindowKeys(),
       };
 
       // V3a round-2 (Codex 2026-05-03 MEDIUM-2): active-recovery days
@@ -1263,7 +1350,7 @@ export async function generatePlan(options) {
       // Detect rotation fallback: if pool size < 7 distinct AND any selected
       // exercise was in the recent-7 window, the rotation could not honor
       // strict no-repeat. Mark fallback with metadata.
-      const recentSet = new Set(recentExerciseKeys.slice(-7));
+      const recentSet = new Set(recentWindowKeys());
       const rotationFallbackForThisDay = (eligiblePoolSize < 7) && selected.some((ex) => recentSet.has(ex.key));
 
       const baseExercises = selected.map((ex, i) => {
@@ -1302,10 +1389,9 @@ export async function generatePlan(options) {
         swanCoachReadiness,
       );
 
-      // Update sliding window with this day's exercises.
-      for (const ex of selected) {
-        recentExerciseKeys.push(ex.key);
-      }
+      // Update the sliding window with this day's exercises, as ONE session. Pushing the keys
+      // individually would rebuild the flat array this clause removed.
+      recentSessionKeys.push(selected.map((ex) => ex.key));
 
       // Assignment metadata feeds the client dashboard, logger, PDFs, and
       // Swan Coach read context without touching paid-session billing.

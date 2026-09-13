@@ -1,0 +1,10 @@
+{
+  "summary": "Fresh isolated checkout: prescription26, planner448 and full TypeScript exit0; exact S02 source hashes match preserved Luna build. Metadata, visual integration and final review still pending.",
+  "toolEvidence": {
+    "sha256": "486cc2a5e069951ac74b72e150ff8f8efa93e6fae1e6d775157f0447246bf4c0",
+    "path": ".mega-blueprints/artifacts/b214f060bbec9038/relocation-green-summary.json"
+  },
+  "digest": "d087fee0611b00749d4105a4759273976651affe9721ec73419ee66e1825e374",
+  "command": "cd frontend; node node_modules/vitest/vitest.mjs run --config vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.test.ts src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.prescription.test.tsx\r\ncd frontend; node node_modules/vitest/vitest.mjs run --config vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 src/components/DashBoard/Pages/admin-workout-planner\r\ncd frontend; node --max-old-space-size=12288 node_modules/typescript/bin/tsc --noEmit --pretty false",
+  "status": "PASS"
+}

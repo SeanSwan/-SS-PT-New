@@ -10,6 +10,12 @@ const readOptional = (path: string) => {
 
 const workerSource = read('./exerciseSearchWorker.ts');
 const hookSource = read('./useExerciseSearch.ts');
+// S03 moved library-payload normalization out of the lifecycle hook into
+// exerciseSearchCatalog.ts to keep the hook inside the 300-line cap. The
+// media/logging fields must still be carried end to end, so the catalog
+// module is now the normalization source of truth and the hook must delegate
+// to it rather than re-implementing the mapping.
+const catalogSource = read('./exerciseSearchCatalog.ts');
 const rolodexSource = read('./NASMExerciseRolodex.tsx');
 const rolodexStylesSource = read('./NASMExerciseRolodex.styles.ts');
 const previewSource = read('./NASMExerciseRolodexPreview.tsx');
@@ -35,8 +41,11 @@ describe('NASMExerciseRolodex media and mobile preview contract', () => {
       'canBePerformedAtHome',
     ]) {
       expect(workerSource).toContain(`${field}?:`);
-      expect(hookSource).toContain(`${field}:`);
+      expect(catalogSource).toContain(`${field}:`);
     }
+    // The hook must consume that normalization, not duplicate or skip it.
+    expect(hookSource).toContain('normalizeExerciseCatalog(');
+    expect(hookSource).not.toContain('Unknown Exercise');
   });
 
   it('renders a dedicated playable media preview inside the shared Rolodex preview', () => {

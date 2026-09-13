@@ -8,11 +8,22 @@ import BootcampExercise from '../../models/BootcampExercise.mjs';
 import { FORMAT_CONFIG } from '../../services/bootcamp/bootcampConstants.mjs';
 import { __testing__ } from '../../services/bootcamp/bootcampGenerator.mjs';
 import { applyClassStyle, generateBoard2 } from '../../services/bootcamp/classStyleModifiers.mjs';
+// S06 moved the save path to bootcampTemplateSave.mjs and made the persisted
+// exercise columns an explicit allowlist. These assertions now check the
+// allowlist that ACTUALLY governs the INSERT (and the real normalizer), which
+// is strictly stronger than grepping for a hand-written assignment line.
+import {
+  EXERCISE_FIELDS,
+  normalizeExerciseLibraryId,
+} from '../../services/bootcamp/bootcampTemplateContract.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const bootcampCrudSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampCrud.mjs'), 'utf8');
+const bootcampTemplateSaveSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampTemplateSave.mjs'), 'utf8');
 const bootcampGeneratorSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampGenerator.mjs'), 'utf8');
 const exerciseRolodexBridgeSource = readFileSync(resolve(__dirname, '../../services/bootcamp/exerciseRolodexBridge.mjs'), 'utf8');
+
+const VALID_LIBRARY_UUID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 
 describe('bootcamp generation semantics', () => {
   it('orders calisthenics and flexibility requests around the selected intensity instead of treating it as metadata only', () => {
@@ -77,16 +88,17 @@ describe('bootcamp generation semantics', () => {
 
   it('persists the source exercise name for generated alternative boards', () => {
     expect(BootcampExercise.rawAttributes.sourceExerciseName).toBeDefined();
-    expect(bootcampCrudSource).toContain('sourceExerciseName: ex.sourceExerciseName ?? null');
+    expect(EXERCISE_FIELDS).toContain('sourceExerciseName');
+    expect(bootcampTemplateSaveSource).toContain('buildExerciseRow');
   });
 
   it('persists every joint-modification field rendered by Board 2', () => {
     expect(BootcampExercise.rawAttributes.elbowMod).toBeDefined();
     expect(BootcampExercise.rawAttributes.footMod).toBeDefined();
     expect(BootcampExercise.rawAttributes.hipMod).toBeDefined();
-    expect(bootcampCrudSource).toContain('elbowMod: ex.elbowMod');
-    expect(bootcampCrudSource).toContain('footMod: ex.footMod');
-    expect(bootcampCrudSource).toContain('hipMod: ex.hipMod');
+    for (const field of ['elbowMod', 'footMod', 'hipMod']) {
+      expect(EXERCISE_FIELDS).toContain(field);
+    }
   });
 
   it('allows every generator class format to be saved as a bootcamp template', () => {
@@ -131,17 +143,16 @@ describe('bootcamp generation semantics', () => {
     expect(BootcampExercise.rawAttributes.previewVideoUrl).toBeDefined();
     expect(BootcampExercise.rawAttributes.imageUrl).toBeDefined();
     expect(BootcampExercise.rawAttributes.thumbnailUrl).toBeDefined();
-    expect(bootcampCrudSource).toContain('videoUrl: ex.videoUrl ?? null');
-    expect(bootcampCrudSource).toContain('previewVideoUrl: ex.previewVideoUrl ?? null');
-    expect(bootcampCrudSource).toContain('imageUrl: ex.imageUrl ?? null');
-    expect(bootcampCrudSource).toContain('thumbnailUrl: ex.thumbnailUrl ?? null');
+    for (const field of ['videoUrl', 'previewVideoUrl', 'imageUrl', 'thumbnailUrl']) {
+      expect(EXERCISE_FIELDS).toContain(field);
+    }
   });
 
   it('persists real instruction text and avoids synthesizing a medium tier from the exercise name', () => {
     expect(BootcampExercise.rawAttributes.description).toBeDefined();
     expect(BootcampExercise.rawAttributes.instructions).toBeDefined();
-    expect(bootcampCrudSource).toContain('description: ex.description ?? null');
-    expect(bootcampCrudSource).toContain('instructions: ex.instructions ?? null');
+    expect(EXERCISE_FIELDS).toContain('description');
+    expect(EXERCISE_FIELDS).toContain('instructions');
     expect(bootcampGeneratorSource).toContain('mediumVariation: ex.medium ?? null');
     expect(exerciseRolodexBridgeSource).toContain('medium: ex.mediumVariation ?? null');
     expect(bootcampGeneratorSource).not.toContain('mediumVariation: ex.name ?? formatExerciseName(ex.key)');
@@ -150,7 +161,14 @@ describe('bootcamp generation semantics', () => {
 
   it('keeps shared Exercise UUIDs as bootcamp exercise library ids for live media rejoin', () => {
     expect(BootcampExercise.rawAttributes.exerciseLibraryId.type.key).toBe('UUID');
-    expect(bootcampCrudSource).toContain('exerciseLibraryId: normalizeExerciseLibraryId(ex.exerciseLibraryId)');
+    expect(EXERCISE_FIELDS).toContain('exerciseLibraryId');
+    // Behavioural, not a source grep: a malformed id is DROPPED, never stored.
+    expect(normalizeExerciseLibraryId(VALID_LIBRARY_UUID)).toBe(VALID_LIBRARY_UUID);
+    expect(normalizeExerciseLibraryId(` ${VALID_LIBRARY_UUID} `)).toBe(VALID_LIBRARY_UUID);
+    expect(normalizeExerciseLibraryId('not-a-uuid')).toBeNull();
+    expect(normalizeExerciseLibraryId('')).toBeNull();
+    expect(normalizeExerciseLibraryId(42)).toBeNull();
+    expect(normalizeExerciseLibraryId(null)).toBeNull();
     expect(bootcampGeneratorSource).toContain('const exerciseLibraryId = normalizeExerciseLibraryId(ex.exerciseLibraryId)');
   });
 });

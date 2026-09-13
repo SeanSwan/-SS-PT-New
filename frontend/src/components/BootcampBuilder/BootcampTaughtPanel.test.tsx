@@ -60,7 +60,13 @@ describe('BootcampTaughtPanel', () => {
     await waitFor(() => expect(logClass).toHaveBeenCalledTimes(1));
     const payload = logClass.mock.calls[0][0];
     expect(payload.dayType).toBe('lower_body');
-    expect(payload.actualParticipants).toBe(10);
+    // §5 line 222: the class plan's expectation is NOT attendance. Nothing observed who
+    // showed up, so no attendance is asserted — the expectation rides in executionSummary.
+    expect(payload.actualParticipants).toBeUndefined();
+    expect(payload.executionSummary).toMatchObject({
+      kind: 'trainer_attested_prescription',
+      expectedParticipants: 10,
+    });
     expect(payload.classDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(payload.exercisesUsed).toEqual([
       { exerciseName: 'Goblet Squat', stationIndex: 0, durationSec: 45 },

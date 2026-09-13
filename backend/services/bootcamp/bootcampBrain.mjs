@@ -28,8 +28,35 @@
  */
 
 import { OPPOSING_PATTERN } from '../../../shared/bootcamp-core/taxonomy.mjs';
+// R-H26: the SAME day-type enum the Sprint create/update contracts validate against, so the two
+// seams R-H26 names cannot drift apart. The `dayTypeContract` registry is built from
+// `SWAN_DAY_TYPES`, which describes itself as a registry rather than THE registry and rejects
+// `custom` - validating against it split the vocabulary in two (found in round 158).
+import { DAY_TYPES } from './bootcampTemplateRules.mjs';
 
 const DEFAULT_TIMEOUT_MS = 8000;
+
+/** Reply cap, also disclosed to the provider as an output bound (R-H27). */
+const MAX_REPLY_CHARS = 64_000;
+
+/** R-H26: the Brain seam's CLOSED mode enum. Anything else is contained to `strict`. */
+const BRAIN_MODES = Object.freeze(['strict', 'open_gym']);
+
+/** R-H27 occupancy: unsettled optional Brain provider operations in THIS process (0 or 1). */
+let unsettledOptionalBrainOps = 0;
+
+/**
+ * How long the occupancy survives a DEADLINE without provider settlement (R-H27, hostile review 171).
+ *
+ * The slot is held until the provider settles - that is the requirement, and it is what stops a
+ * timed-out-but-running adapter from being double-spent. But "until settlement" cannot be unbounded: a
+ * provider that NEVER settles (permitted by the documented contract, which does not include `signal`)
+ * would hold the process's only slot forever, so every later Brain call returns `brain_busy` with the
+ * adapter never invoked again, and only a restart clears it. After the deadline we abort, then give the
+ * adapter this bounded grace period to honour that abort, then release the slot so a healthy adapter is
+ * reachable again.
+ */
+const OCCUPANCY_GRACE_MS = 1_500;
 
 /** Deterministic judgment. Pure; rng only breaks ties. */
 export function heuristicBrain({ pool, recentKeys = new Set() }) {
@@ -92,14 +119,54 @@ export function validateBrainOrdering(keys, pool) {
   return ordered;
 }
 
-function buildBrainPrompt({ tokens, dayTypeId, headcount, mode }) {
+function buildBrainPrompt({ tokens, tokenToKey, pool, recentKeys, dayTypeId, headcount, mode }) {
+  // R-H26: NEVER DISPATCH UNSUPPORTED TEXT. Keys already travel as opaque `ex_0..ex_N` because a
+  // trainer-authored key can carry PII or a newline (see the note below). The day type and the
+  // headcount were interpolated RAW and carried the very same vector, so the seam validates them HERE,
+  // at the one place that interpolates, rather than trusting any caller:
+  //   * the day type must be a member of the SHARED `DAY_TYPES` enum - the one the Sprint
+  //     create/update contracts already validate against - else the literal `unknown`;
+  //   * the headcount must be a finite number, clamped to 1..500, else omitted entirely;
+  //   * the mode is contained to its closed enum, so a near-miss like `open_gym ` cannot open the
+  //     assumption channel, which is the channel that invites invented equipment facts.
+
+  const safeDayTypeId = DAY_TYPES.includes(dayTypeId) ? dayTypeId : 'unknown';
+  // `Number(null)` is 0, NOT NaN, so an absent headcount used to clamp UP to 1 and the prompt announced
+  // "of 1 people" as though it were a fact. Absence must stay absent.
+  const headcountAbsent = headcount === null || headcount === undefined || headcount === '';
+  const parsedHeadcount = headcountAbsent ? NaN : Number(headcount);
+  const safeHeadcount = Number.isFinite(parsedHeadcount)
+    ? Math.min(500, Math.max(1, Math.trunc(parsedHeadcount)))
+    : null;
+  const safeMode = BRAIN_MODES.includes(mode) ? mode : 'strict';
+
+  // R-H26 WIRE PAYLOAD: the opaque tokens PLUS the per-exercise decision facts the register names - a
+  // canonical movement-pattern ID or `unknown`, a recent boolean, and a setup bucket on the register's
+  // OWN boundaries (0-5, 6-20, over 20 seconds). Without them the prompt instructed the model to "push
+  // recently-used keys later" and to prefer "quick-setup exercises" while showing it neither fact, so
+  // two of its own rules were unfollowable. The boundaries are deliberately NOT the five-bucket
+  // `SETUP_TIME_CATEGORIES` from `bootcampConstants.mjs`, which answers a different question.
+  const byKey = new Map(pool.map((ex) => [ex.key, ex]));
+  const setupBucket = (seconds) => {
+    const secs = Number(seconds);
+    if (!Number.isFinite(secs)) return 'unknown';
+    if (secs <= 5) return '0-5';
+    if (secs <= 20) return '6-20';
+    return 'over-20';
+  };
+  const facts = tokens.map((token) => {
+    const ex = byKey.get(tokenToKey.get(token)) ?? {};
+    return `${token}: pattern=${ex.coreMovement?.pattern || 'unknown'}`
+      + ` recent=${recentKeys?.has(ex.key) ? 'yes' : 'no'}`
+      + ` setup=${setupBucket(ex.setupTimeSec)}`;
+  });
   // Keys + aggregate context ONLY (Rule 8). No names, no notes, no history text.
   return [
-    `Order these exercise keys for a ${dayTypeId} group class`
-      + (headcount ? ` of ${headcount} people` : '') + '.',
+    `Order these exercise keys for a ${safeDayTypeId} group class`
+      + (safeHeadcount ? ` of ${safeHeadcount} people` : '') + '.',
     'Rules: alternate movement patterns (never the same twice in a row);',
     'push recently-used keys later; quick-setup exercises earlier.',
-    mode === 'open_gym'
+    safeMode === 'open_gym'
       ? 'No equipment profile is set: assume common gym equipment and list every assumption you make.'
       : 'Equipment is pre-filtered; do not reason about it.',
     'Reply ONLY with JSON: {"orderedKeys": [...], "assumptions": [...]}.',
@@ -109,6 +176,8 @@ function buildBrainPrompt({ tokens, dayTypeId, headcount, mode }) {
     // The model sees ex_0..ex_N; the caller maps back after validation. This
     // kills both the PII side-channel and key-borne injection in one move.
     `Keys: ${tokens.join(', ')}`,
+    // One line per token: the facts above, keyed by the opaque token the model must speak back.
+    `Facts: ${facts.join('; ')}`,
   ].join('\n');
 }
 
@@ -165,16 +234,66 @@ export async function orderPoolWithBrain({
   const rawTimeout = Number(env.SWAN_BOOTCAMP_BRAIN_TIMEOUT_MS) || DEFAULT_TIMEOUT_MS;
   const timeoutMs = Math.min(30_000, Math.max(1_000, rawTimeout));
   const { tokens, tokenToKey } = buildTokenMap(pool);
+
+  // R-H27 OCCUPANCY: at most ONE unsettled optional Brain provider operation per server process.
+  // A second concurrent request gets a deterministic fallback WITHOUT reaching the adapter. The slot
+  // is released when the PROVIDER settles — not when the race returns — which is why a timed-out but
+  // still-running adapter keeps holding it. That is the requirement stated plainly ("do not release
+  // the occupancy merely because Promise.race returned"), and it is per-process containment, NOT
+  // cluster-wide spend control.
+  //
+  // PRECISION, added after the round-178 hostile review: this counter holds UNRELEASED SLOTS, not a
+  // count of running providers. The release happens either on settlement or after OCCUPANCY_GRACE_MS,
+  // so an adapter that ignores the abort can still be running when the slot is freed - the review
+  // measured maxLive = 2 in exactly that case. A fixed delay is not evidence of cancellation.
+  if (unsettledOptionalBrainOps >= 1) {
+    return { pool: heuristic(), brainUsed: 'heuristic', fallbackReason: 'brain_busy', declaredAssumptions: [] };
+  }
+  // Constructed BEFORE the increment: it used to sit between the increment and the release attachment
+  // and outside the `try`, so a throw here wedged the counter with no provider promise in existence.
+  const controller = new AbortController();
+  let occupancyReleased = false;
+  // SINGLE-RELEASE GUARD: a grace release followed by a late settlement must not decrement twice, or the
+  // counter could drift below the truth and let two providers run at once.
+  const releaseOccupancy = () => {
+    if (occupancyReleased) return;
+    occupancyReleased = true;
+    unsettledOptionalBrainOps = Math.max(0, unsettledOptionalBrainOps - 1);
+  };
+  unsettledOptionalBrainOps += 1;
   let timer = null;
+  let graceTimer = null;
   try {
+    // R-H27 ABORT: the provider callback receives a SECOND options argument carrying an AbortSignal
+    // plus the request/output bounds. One attempt, no retry.
+    const providerPromise = Promise.resolve().then(() => completionFn(
+      buildBrainPrompt({ tokens, tokenToKey, pool, recentKeys, dayTypeId, headcount, mode }),
+      { signal: controller.signal, maxOutputChars: MAX_REPLY_CHARS, attempt: 1 },
+    ));
+    // Release at ACTUAL settlement. The rejection handler is doing double duty: it stops a late
+    // provider failure from surfacing as an unhandled rejection once the race has already returned.
+    providerPromise.then(releaseOccupancy, releaseOccupancy);
     const raw = await Promise.race([
-      completionFn(buildBrainPrompt({ tokens, dayTypeId, headcount, mode })),
-      new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('brain_timeout')), timeoutMs); }),
+      providerPromise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => {
+          // Abort where supported. An adapter that ignores the signal is unharmed; one that honours
+          // it stops work the caller has already given up on.
+          controller.abort();
+          // Bounded hold (see OCCUPANCY_GRACE_MS): release the slot after the grace period even if the
+          // adapter never settles, so one hung call cannot disable the Brain for the process lifetime.
+          // `unref` keeps this timer from holding the event loop open. If the provider settles first,
+          // the single-release guard makes this a no-op.
+          graceTimer = setTimeout(releaseOccupancy, OCCUPANCY_GRACE_MS);
+          if (typeof graceTimer.unref === 'function') graceTimer.unref();
+          reject(new Error('brain_timeout'));
+        }, timeoutMs);
+      }),
     ]);
     // Cap the response BEFORE the regex/parse (Kimi F4): an unbounded body is a
     // memory/CPU event per request. 64KB is generous for a key ordering.
     const rawStr = String(raw);
-    if (rawStr.length > 64_000) {
+    if (rawStr.length > MAX_REPLY_CHARS) {
       return { pool: heuristic(), brainUsed: 'heuristic', fallbackReason: 'oversized_reply', declaredAssumptions: [] };
     }
     const match = rawStr.match(/\{[\s\S]*\}/);

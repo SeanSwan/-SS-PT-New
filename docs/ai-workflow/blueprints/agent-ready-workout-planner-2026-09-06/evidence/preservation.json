@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "non-vibe-planning-verify-receipt-v1",
+  "status": "PASS",
+  "manifestPath": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\.ai-workflow\\vault\\agent-ready-workout-planner-20260906\\manifest.json",
+  "manifestSha256": "de5f11c2aa46621203a99b62acd1e428a9b5e85a7d469f8de53fe408419ed30e",
+  "verifiedFiles": 7,
+  "sampleRestored": 2,
+  "temporaryRestoreRemoved": true,
+  "nativeInvocation": "explicit, not automatic hook proof",
+  "originalsUnchanged": true,
+  "retention": "Existing history retained; no source replacement or pruning",
+  "entries": [
+    {
+      "source": "tmp/worktrees/agent-ready-planner-audit-20260906/docs/ai-workflow/AI-HANDOFF/JARVIS-ULTIMATE-BLUEPRINT-2026-07-31.md",
+      "snapshot": "0-JARVIS-ULTIMATE-BLUEPRINT-2026-07-31.md",
+      "sha256": "76e8a79ab5362f3dceb69dfa11c47c48d222d5ef467fa06f30aa8e826c05c6bf",
+      "bytes": 11312,
+      "nativeSnapshot": "Unavailable in this source worktree; compatible verified snapshot used"
+    },
+    {
+      "source": "tmp/worktrees/agent-ready-planner-audit-20260906/docs/ai-workflow/AI-HANDOFF/JARVIS-CONSULT-OPUS5-FULL-2026-07-31.md",
+      "snapshot": "1-JARVIS-CONSULT-OPUS5-FULL-2026-07-31.md",
+      "sha256": "4330491d9d8a8c74db08bdc5633726d1e202b2d2040d340999d615d482d7633f",
+      "bytes": 53339,
+      "nativeSnapshot": "Unavailable in this source worktree; compatible verified snapshot used"
+    },
+    {
+      "source": "tmp/worktrees/agent-ready-planner-audit-20260906/docs/ai-workflow/AI-HANDOFF/UNIFIED-WORKOUT-OS-FABLE-BLUEPRINT-2026-07-29.md",
+      "snapshot": "2-UNIFIED-WORKOUT-OS-FABLE-BLUEPRINT-2026-07-29.md",
+      "sha256": "30c06cdcfb7cf632fccab083c023213c5bb997dde3a87a0b9d1c8ad6a69fcd5d",
+      "bytes": 55508,
+      "nativeSnapshot": "Unavailable in this source worktree; compatible verified snapshot used"
+    },
+    {
+      "source": "tmp/worktrees/agent-ready-planner-audit-20260906/docs/ai-workflow/blueprints/WORKOUT-PLANNER-V2-MASTER-BLUEPRINT.md",
+      "snapshot": "3-WORKOUT-PLANNER-V2-MASTER-BLUEPRINT.md",
+      "sha256": "d28fe4a79869fa440bbfdb8a916243e6c861914e54ac47c0f5fd556011c4f093",
+      "bytes": 20757,
+      "nativeSnapshot": "Unavailable in this source worktree; compatible verified snapshot used"
+    },
+    {
+      "source": "docs/ai-workflow/AI-HANDOFF/SWAN-COACH-GWEN-3.8-HANDOFF-20260906.md",
+      "snapshot": "4-SWAN-COACH-GWEN-3.8-HANDOFF-20260906.md",
+      "sha256": "0ab122e907d9d624f7163d0f0b0b43fe7d850ede53b1e888acc0d796c83ddd06",
+      "bytes": 10278,
+      "nativeSnapshot": ".ai-workflow/vault/docs/ai-workflow/AI-HANDOFF/SWAN-COACH-GWEN-3.8-HANDOFF-20260906.md/20260906T224041Z-b597f6589a33.md"
+    },
+    {
+      "source": "tmp/worktrees/swan-coach-astra-owned-20260906/docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+      "snapshot": "5-31-gwen-execution-handoff.md",
+      "sha256": "644cdcda49d83385b34a7558b98ae4f7121b8f060445d9eaaea269b4942197fa",
+      "bytes": 20788,
+      "nativeSnapshot": "Unavailable in this source worktree; compatible verified snapshot used"
+    },
+    {
+      "source": "tmp/worktrees/swan-coach-astra-owned-20260906/docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/32-gwen-domain-and-verification-contract.md",
+      "snapshot": "6-32-gwen-domain-and-verification-contract.md",
+      "sha256": "d819836bacd5a061143b92c773a69e98008531062621c384259919a666c09551",
+      "bytes": 9419,
+      "nativeSnapshot": "Unavailable in this source worktree; compatible verified snapshot used"
+    }
+  ]
+}

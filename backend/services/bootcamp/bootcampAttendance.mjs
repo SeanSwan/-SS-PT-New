@@ -6,108 +6,26 @@
  * AUTHOR: Claude Fable 5 | CREATED: 2026-08-03
  * ============================================================================
  *
- * A bootcamp that never writes to client records is a broken loop: attendees
- * train, and their charts stay empty. After class the trainer submits who was
- * there; every REGISTERED attendee gets a real DailyWorkoutForm — the same
- * document the logger, charts and streaks read — and the class log records
- * the roster immutably.
- *
- * LAWS:
- *  - IDOR-safe: the class log must belong to the requesting trainer (admins
- *    pass) — same posture as the S0 /generate hotfix.
- *  - Idempotent at the CLASS level: attendance is recorded exactly once;
- *    a second submission is a no-op that returns the original record. No
- *    force flag — re-recording history is a data-integrity decision that
- *    belongs to a human with DB access, not a button.
- *  - GUESTS (R10c): a walk-in with no user record gets an attendance row
- *    ({guest: label}) and NO workout form — there is no record to write to.
- *    Guests never block the registered attendees' log-back.
- *  - Rule 8 does not bite here: this is a server-side DB write, no LLM in
- *    the path. Client IDs are legitimate.
- *  - DEFERRED, disclosed: gamification points/MCP processing are NOT awarded
- *    by this path (forms carry sessionDeducted:false, mcpProcessed:false and
- *    source metadata). Awarding rides the canonical route's engine in a later
- *    slice — double-award through a second path is the exact bug class the
- *    idempotency-key gotcha exists for.
+ * A bootcamp that never writes to client records is a broken loop: attendees train, and their
+ * charts stay empty. After class the trainer submits who was there; every REGISTERED attendee
+ * gets a real DailyWorkoutForm — the same document the logger, charts and streaks read — and the
+ * class log records the roster immutably. LAWS:
+ *  - IDOR-safe: the class log must belong to the requesting trainer (admins pass) — same posture
+ *    as the S0 /generate hotfix.
+ *  - Idempotent at the CLASS level: attendance is recorded exactly once; a second submission is a
+ *    no-op that returns the original record. No force flag — re-recording history is a
+ *    data-integrity decision for a human with DB access, not a button.
+ *  - GUESTS (R10c): a walk-in with no user record gets an attendance row ({guest: label}) and NO
+ *    workout form — there is no record to write to. Guests never block the registered attendees.
+ *  - Rule 8 does not bite here: this is a server-side DB write, no LLM in the path.
+ *  - DEFERRED, disclosed: gamification points/MCP processing are NOT awarded by this path (forms
+ *    carry sessionDeducted:false, mcpProcessed:false and source metadata). Awarding rides the
+ *    canonical route's engine in a later slice — double-award through a second path is the exact
+ *    bug class the idempotency-key gotcha exists for.
  */
 
-const MAX_ATTENDEES = 60;
-
-/**
- * PURE: build the per-attendee payloads from a class log's exercisesUsed.
- * Exercises become time-based entries (the bootcamp truth: durations, not
- * reps), shaped for DailyWorkoutForm.formData.
- */
-export function buildAttendancePayloads({ classLog, attendees, nowIso, allowEmpty = false }) {
-  if (!Array.isArray(attendees)) {
-    throw badRequest('attendees must be an array');
-  }
-  if (attendees.length === 0 && !allowEmpty) {
-    throw badRequest('attendees must be a non-empty array unless no-show is explicitly confirmed');
-  }
-  if (attendees.length > MAX_ATTENDEES) {
-    throw badRequest(`attendees exceeds the ${MAX_ATTENDEES} cap`);
-  }
-
-  const registered = [];
-  const guests = [];
-  const seenUsers = new Set();
-
-  for (const [index, attendee] of attendees.entries()) {
-    const userId = Number(attendee?.userId);
-    const guest = typeof attendee?.guest === 'string' ? attendee.guest.trim() : '';
-
-    if (Number.isInteger(userId) && userId > 0) {
-      if (seenUsers.has(userId)) continue; // same person twice = once
-      seenUsers.add(userId);
-      registered.push(userId);
-    } else if (guest) {
-      guests.push(guest.slice(0, 60));
-    } else {
-      throw badRequest(`attendees[${index}] needs userId or guest`);
-    }
-  }
-
-  const exercises = (Array.isArray(classLog.exercisesUsed) ? classLog.exercisesUsed : [])
-    .filter((ex) => ex && (ex.exerciseName || ex.name) && ex.board !== 'alternative')
-    .map((ex, i) => ({
-      name: ex.exerciseName ?? ex.name,
-      order: i + 1,
-      durationSec: ex.durationSec ?? null,
-      isCardioFinisher: ex.isCardioFinisher ?? false,
-      sets: [{ setNumber: 1, durationSec: ex.durationSec ?? null, completed: true }],
-    }));
-
-  const workoutForms = registered.map((userId) => ({
-    clientId: userId,
-    date: classLog.classDate,
-    idempotencyKey: `bootcamp:${classLog.id}:${userId}`,
-    formData: {
-      source: 'bootcamp',
-      bootcampClassLogId: classLog.id,
-      dayType: classLog.dayType ?? null,
-      title: `Bootcamp — ${classLog.dayType ? classLog.dayType.replace(/_/g, ' ') : 'class'}`,
-      exercises,
-      submittedVia: 'bootcamp_attendance',
-    },
-    sessionDeducted: false,
-    mcpProcessed: false,
-  }));
-
-  return {
-    registered,
-    guests,
-    workoutForms,
-    attendanceRecord: {
-      recordedAt: nowIso,
-      attendees: [
-        ...registered.map((userId) => ({ userId })),
-        ...guests.map((guest) => ({ guest })),
-      ],
-      workoutFormIds: [], // filled by the persister
-    },
-  };
-}
+import { resolveRecordedAttendance } from './bootcampAttendanceRoster.mjs';
+import { buildAttendancePayloads } from './bootcampAttendancePayloads.mjs';
 
 /**
  * Record attendance for a class log. Dependency-injected for tests:
@@ -139,16 +57,22 @@ async function recordBootcampAttendanceWithin(deps, {
     && (requesterRole === 'admin' || Number(classLog.trainerId) === Number(trainerId));
   if (!owned) throw notFound('Class log not found');
 
-  if (classLog.attendance?.recordedAt) {
-    return { alreadyRecorded: true, attendance: classLog.attendance, created: 0 };
-  }
-
   const payload = buildAttendancePayloads({
     classLog,
     attendees,
     nowIso: now().toISOString(),
     allowEmpty: noShowConfirmed === true,
+    // The requester IS the form's trainer (the route writes `Number(req.user.id)`), so the
+    // self-attendance exclusion must key off this, not the class log's trainer.
+    formTrainerId: trainerId,
   });
+
+  // Already recorded: a resend is a no-op ONLY if it names the same roster. The rule and the full
+  // defect write-up (round 129 MED — a bare `recordedAt` check answered 200 to a corrected roster and
+  // silently dropped the extra attendees' forms) live in `bootcampAttendanceRoster.mjs`.
+  if (classLog.attendance?.recordedAt) {
+    return resolveRecordedAttendance(payload, classLog.attendance);
+  }
 
   // Fail-closed authorization on EVERY registered client before any write.
   // Admins pass wholesale; everyone else is checked per-client. One
@@ -216,12 +140,6 @@ export async function recordBootcampAttendance(deps, args) {
   }
 
   return recordBootcampAttendanceWithin(deps, args);
-}
-
-function badRequest(message) {
-  const error = new Error(message);
-  error.statusCode = 400;
-  return error;
 }
 
 function notFound(message) {

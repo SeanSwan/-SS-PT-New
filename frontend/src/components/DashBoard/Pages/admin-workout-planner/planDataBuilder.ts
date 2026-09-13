@@ -29,6 +29,7 @@ import {
   withTrainerSessionPlanWeeks,
 } from '../../../../utils/workoutPlanAssignmentSemantics';
 import { sanitizeWorkoutPlanDataForPersistence } from '../../../../utils/workoutPlanDataPrivacy';
+import { encodeIntensityPrescription } from './workoutPlannerPrescription';
 
 interface ManualBuildInputs {
   mode: 'manual';
@@ -118,21 +119,33 @@ export function buildPlanData(inputs: BuildPlanDataInputs): Record<string, unkno
         focus: categoryLabel,
         dayType: 'training',
         optPhase: phaseToOpt[phaseNumber] || 'strength_endurance',
-        exercises: planExercises.map((p, i) => ({
-          exerciseId: p.exerciseSlim.id,
-          exerciseName: p.exerciseSlim.name,
-          orderInWorkout: i + 1,
-          sets: p.sets,
-          reps: p.reps,
-          setScheme: `${p.sets}x${p.reps}`,
-          repGoal: p.reps,
-          restPeriod: typeof p.restSeconds === 'number'
-            ? p.restSeconds
-            : parseInt(String(p.restSeconds), 10) || 60,
-          tempo: p.tempo,
-          intensityGuideline: `${p.intensityPercent}% 1RM`,
-          notes: p.notes || '',
-        })),
+        exercises: planExercises.map((p, i) => {
+          const rawRest: unknown = p.restSeconds;
+          const parsedRest = typeof rawRest === 'number'
+            ? rawRest
+            : typeof rawRest === 'string' && rawRest.trim() !== ''
+              ? Number(rawRest)
+              : Number.NaN;
+          const prescription = encodeIntensityPrescription(
+            p.intensityPercent,
+            p.intensityGuideline,
+          );
+
+          return {
+            exerciseId: p.exerciseSlim.id,
+            exerciseKey: p.exerciseSlim.exerciseKey ?? p.exerciseSlim.id,
+            exerciseName: p.exerciseSlim.name,
+            orderInWorkout: i + 1,
+            sets: p.sets,
+            reps: p.reps,
+            setScheme: `${p.sets}x${p.reps}`,
+            repGoal: p.reps,
+            restPeriod: Number.isFinite(parsedRest) ? parsedRest : 60,
+            tempo: p.tempo,
+            ...prescription,
+            notes: p.notes ?? '',
+          };
+        }),
       })],
     }],
     goal,
@@ -172,13 +185,13 @@ export function buildContentSignature(inputs: BuildPlanDataInputs): string {
   return JSON.stringify({
     mode: 'manual',
     list: planExercises.map((p) => ({
+      prescription: encodeIntensityPrescription(p.intensityPercent, p.intensityGuideline),
       e: p.exerciseSlim?.id || '',
       s: p.sets,
       r: p.reps,
-      t: p.tempo || '',
+      t: p.tempo ?? '',
       rest: p.restSeconds,
-      i: p.intensityPercent,
-      n: p.notes || '',
+      n: p.notes ?? '',
     })),
   });
 }

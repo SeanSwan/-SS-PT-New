@@ -30,15 +30,24 @@ import {
 
 interface BootcampRunnerClockProps {
   bootcamp: GeneratedBootcamp;
+  /**
+   * R-H23: the run session, when a parent owns it. The clock used to CREATE the session itself, which
+   * meant the run lived inside a subtree the stage switch unmounts (`ClassPreviewPanel` renders the
+   * demo mode only while `floorMode`), so leaving Run silently destroyed the class in progress. The
+   * session is now owned above the switch and passed down; this prop is optional so the clock can
+   * still stand alone in tests.
+   */
+  runSession?: BootcampRunSession;
 }
+
+export type BootcampRunSession = ReturnType<typeof useBootcampRunner>;
 
 const formatEndTime = (epochMs: number): string => new Date(epochMs).toLocaleTimeString([], {
   hour: 'numeric',
   minute: '2-digit',
 });
 
-const BootcampRunnerClock: React.FC<BootcampRunnerClockProps> = ({ bootcamp }) => {
-  const runner = useBootcampRunner(bootcamp);
+const RunnerClockView: React.FC<{ runner: BootcampRunSession }> = ({ runner }) => {
   const segment = runner.currentSegment;
   const paused = runner.state.status === 'paused';
   const complete = runner.state.status === 'complete';
@@ -122,5 +131,18 @@ const BootcampRunnerClock: React.FC<BootcampRunnerClockProps> = ({ bootcamp }) =
     </ClockShell>
   );
 };
+
+/** Calls the hook itself, so a standalone clock (tests, previews) still works. */
+const StandaloneRunnerClock: React.FC<{ bootcamp: GeneratedBootcamp }> = ({ bootcamp }) => (
+  <RunnerClockView runner={useBootcampRunner(bootcamp)} />
+);
+
+/**
+ * R-H23: prefer the session the page owns. The hook is called ONLY in the standalone branch — calling
+ * it unconditionally would start a second ticking instance alongside the real one.
+ */
+const BootcampRunnerClock: React.FC<BootcampRunnerClockProps> = ({ bootcamp, runSession }) => (
+  runSession ? <RunnerClockView runner={runSession} /> : <StandaloneRunnerClock bootcamp={bootcamp} />
+);
 
 export default React.memo(BootcampRunnerClock);

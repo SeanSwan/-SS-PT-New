@@ -1,0 +1,2119 @@
+{
+  "createdAt": "2026-09-06T22:40:41.580Z",
+  "sourceRoot": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\agent-ready-planner-audit-20260906",
+  "gitHead": "53120649f356c3efccee32872b530096d386642f",
+  "files": [
+    {
+      "path": "frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx",
+      "sha256": "5a3572809e50e2c5c39e4704d4957a0dff6390f9cc135112e95092ad06a5a082",
+      "excerpts": [
+        {
+          "line": 153,
+          "text": "{ path: '/workout-planner', component: WorkoutPlannerPage, title: CANONICAL_SURFACES.workoutPlanner.name, description: `Build periodized training programs with ${EXERCISE_LIBRARY_CLAIM} exercises` },"
+        },
+        {
+          "line": 176,
+          "text": "{ path: '/build-plan', component: AdminBuildPlanToPlannerRedirect, title: 'Build Plan (moved to Workout Planner)', description: 'Redirects the retired Build Plan surface into the Workout Planner' },"
+        },
+        {
+          "line": 194,
+          "text": "{ path: '/build-plan', component: TrainerBuildPlanToPlannerRedirect, title: 'Build Plan (moved to Workout Planner)', description: 'Redirects the retired Build Plan surface into the Workout Planner' },"
+        },
+        {
+          "line": 198,
+          "text": "{ path: '/workout-planner', component: WorkoutPlannerPage, title: CANONICAL_SURFACES.workoutPlanner.name, description: `Build periodized training programs with ${EXERCISE_LIBRARY_CLAIM} exercises` },"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/UniversalDashboardLayout.shellPieces.tsx",
+      "sha256": "bd5eb919c3d32b191ffb06e6a586267d040e1f5d7ecadb5eedf1291c2ebab727",
+      "excerpts": [
+        {
+          "line": 108,
+          "text": "<Component />"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx",
+      "sha256": "63ae494ac7e53604114c3df1e21998f5230eff8570d5e2ad52d113294ba1e17b",
+      "excerpts": [
+        {
+          "line": 15,
+          "text": "<WorkoutPlannerProvider>"
+        },
+        {
+          "line": 16,
+          "text": "<WorkoutPlannerPageLayout />"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPageLayout.tsx",
+      "sha256": "be6465d8168f64d7175a067fe9f3e028f7fa4e4c029b1b1be54104ca6a9b3763",
+      "excerpts": [
+        {
+          "line": 47,
+          "text": "const plannerV2Enabled = hasFeature('workout-planner-pro');"
+        },
+        {
+          "line": 95,
+          "text": "<WorkoutPlannerLensFrame>"
+        },
+        {
+          "line": 98,
+          "text": "{iaV2 ? <WorkoutPlannerCommandPanelV2 /> : ("
+        },
+        {
+          "line": 99,
+          "text": "<WorkoutPlannerCommandPanel"
+        },
+        {
+          "line": 139,
+          "text": "<WorkoutPlannerStatusAssistantStrip"
+        },
+        {
+          "line": 152,
+          "text": "<WorkoutPlannerRolodexPanel"
+        },
+        {
+          "line": 173,
+          "text": "<WorkoutPlannerBuilderPanel"
+        },
+        {
+          "line": 221,
+          "text": "const coachDockEl = !isViewerClient && <WorkoutPlannerCoachDock {...coachDock} clientName={selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}`.trim() : null} />;"
+        },
+        {
+          "line": 225,
+          "text": "<WorkoutPlannerV2Shell"
+        },
+        {
+          "line": 227,
+          "text": "rolodex={<WorkoutPlannerRolodexPanelV2 />}"
+        },
+        {
+          "line": 254,
+          "text": "<WorkoutPlannerSavedPlansSection"
+        },
+        {
+          "line": 278,
+          "text": "<WorkoutPlannerConfirmDialog request={confirmRequest} onClose={act.closeConfirmDialog} />"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanelV2.tsx",
+      "sha256": "e3bbd5f892c6d443c1d3fdf80e60227d1d745f06da874829a9456ff6721aed09",
+      "excerpts": [
+        {
+          "line": 144,
+          "text": "const initialsById = React.useMemo(() => new Map(clients.map(c => [c.id, `${c.firstName?.[0] ?? ''}${c.lastName?.[0] ?? ''}`])), [clients]);"
+        },
+        {
+          "line": 257,
+          "text": "<WorkoutPlannerGenerationModeSection"
+        },
+        {
+          "line": 261,
+          "text": "<WorkoutPlannerTrainingStyleSection"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/plannerLogic/endpointFor.ts",
+      "sha256": "134b98e836a40565f7743246b6ec0bf6c23a954b9fd97efb54efdbfa94099298",
+      "excerpts": [
+        {
+          "line": 4,
+          "text": "export type PlannerEndpoint = '/api/workout-builder/generate' | '/api/workout-builder/plan';"
+        },
+        {
+          "line": 6,
+          "text": "single: '/api/workout-builder/generate',"
+        },
+        {
+          "line": 7,
+          "text": "multi_week: '/api/workout-builder/plan',"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerGenerationActions.helpers.ts",
+      "sha256": "fa143bca323f9a1f747cefb8c1d2064da33e9a96c51734c75c5ef73297d84cec",
+      "excerpts": [
+        {
+          "line": 115,
+          "text": "exerciseCount: 6,"
+        },
+        {
+          "line": 116,
+          "text": "rotationPattern: 'standard',"
+        },
+        {
+          "line": 215,
+          "text": "primaryMuscles: generatedExerciseMuscles(exercise),"
+        },
+        {
+          "line": 223,
+          "text": "defaultTempo: exercise.defaultTempo ?? null,"
+        },
+        {
+          "line": 224,
+          "text": "defaultRestSeconds: exercise.defaultRestSeconds ?? null,"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerRolodexState.tsx",
+      "sha256": "0e5993b74393d145f212996ac2563c2e6ef21998480d23c6354f1f30b17b88fe",
+      "excerpts": [
+        {
+          "line": 226,
+          "text": "<WorkoutPlannerExerciseRow"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerSaveActions.ts",
+      "sha256": "10e1f7ecb47f1c8fa583f67d7c1fde8464552f0c2af2c166c2a701eea84e52af",
+      "excerpts": [
+        {
+          "line": 53,
+          "text": "planData: unknown,"
+        },
+        {
+          "line": 71,
+          "text": "await authAxios.post('/api/workout-plans/' + planId + '/pdf/upload', formData);"
+        },
+        {
+          "line": 98,
+          "text": "const res = await authAxios.post('/api/workout-plans', {"
+        },
+        {
+          "line": 104,
+          "text": "status: 'draft',"
+        },
+        {
+          "line": 129,
+          "text": "const res = await authAxios.put('/api/workout-plans/' + loadedPlanId, {"
+        },
+        {
+          "line": 162,
+          "text": "'/api/workout-plans/' + planId + '/status',"
+        },
+        {
+          "line": 272,
+          "text": "await authAxios.post('/api/workout-plans', {"
+        },
+        {
+          "line": 275,
+          "text": "status: 'draft',"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerSavedPlansSection.tsx",
+      "sha256": "577113e325e0c06fb6ba5f7d24365ae46b7145a43194e683f779097d45422e81",
+      "excerpts": [
+        {
+          "line": 57,
+          "text": "const WorkoutPlannerSavedPlansSection: React.FC<WorkoutPlannerSavedPlansSectionProps> = ({"
+        },
+        {
+          "line": 113,
+          "text": "<WorkoutPlannerBackupPanel"
+        },
+        {
+          "line": 189,
+          "text": "<WorkoutPlannerBlendDialog"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBackupPanel.tsx",
+      "sha256": "1c411628dccad6e7b761c25382aedf9d6352b63dd2b306b21ba9086898acf3e0",
+      "excerpts": [
+        {
+          "line": 8,
+          "text": "* DATA: GET /api/workout-plans/backup/:userId"
+        },
+        {
+          "line": 9,
+          "text": "*       POST /api/workout-plans/backup/:userId/generate"
+        },
+        {
+          "line": 10,
+          "text": "*       POST /api/workout-plans/:id/promote-backup"
+        },
+        {
+          "line": 106,
+          "text": "const WorkoutPlannerBackupPanel: React.FC<WorkoutPlannerBackupPanelProps> = ({"
+        },
+        {
+          "line": 123,
+          "text": "const res = await authAxios.get(`/api/workout-plans/backup/${selectedClientId}`);"
+        },
+        {
+          "line": 149,
+          "text": "await authAxios.post(`/api/workout-plans/backup/${selectedClientId}/generate`, {});"
+        },
+        {
+          "line": 169,
+          "text": "await authAxios.post(`/api/workout-plans/${verdict.backup.id}/promote-backup`, {});"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.tsx",
+      "sha256": "e2942d9c742b15813a995ff4ee8ea5124baedb2415ff71ebac7afe29263c7e81",
+      "excerpts": [
+        {
+          "line": 7,
+          "text": "* DATA: GET /api/workout-plans/:id (week counts) · POST /api/workout-plans/blend"
+        },
+        {
+          "line": 139,
+          "text": "authAxios.get(`/api/workout-plans/${planId}`)"
+        },
+        {
+          "line": 153,
+          "text": "const WorkoutPlannerBlendDialog: React.FC<WorkoutPlannerBlendDialogProps> = ({"
+        },
+        {
+          "line": 226,
+          "text": "const res = await authAxios.post('/api/workout-plans/blend', body);"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts",
+      "sha256": "206388b9c34b85f6eddb3078728bd6b7c13601e9608351e5fb8a357e3db01d70",
+      "excerpts": [
+        {
+          "line": 5,
+          "text": "* Builds the `planData` JSONB payload posted to `/api/workout-plans` and"
+        },
+        {
+          "line": 6,
+          "text": "* `/api/workout-plans/:id`. Two modes:"
+        },
+        {
+          "line": 12,
+          "text": "*     by POST `/api/workout-builder/plan`. L1 additive fields are"
+        }
+      ]
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useExerciseSearch.ts",
+      "sha256": "b66723cc0865d7fa490d5c679d723b282a681a9a1484b8bbe439db1a2cdaf5ca",
+      "excerpts": [
+        {
+          "line": 97,
+          "text": "// 2026-04-17: switched from /api/exercises/all (trainer/admin-only)"
+        },
+        {
+          "line": 98,
+          "text": "// to /api/exercises/library (any authenticated user). The client"
+        },
+        {
+          "line": 102,
+          "text": "const res = await api.get('/api/exercises/library');"
+        },
+        {
+          "line": 140,
+          "text": "primaryMuscles: parseArr(ex?.primaryMuscles),"
+        },
+        {
+          "line": 144,
+          "text": "equipmentNeeded: parseArr(ex?.equipmentNeeded),"
+        },
+        {
+          "line": 152,
+          "text": "defaultTempo: toOptionalString(ex?.defaultTempo),"
+        },
+        {
+          "line": 153,
+          "text": "defaultRestSeconds: toOptionalNumber(ex?.defaultRestSeconds),"
+        },
+        {
+          "line": 159,
+          "text": "nasmMovementPattern: toOptionalString(ex?.nasmMovementPattern),"
+        }
+      ]
+    },
+    {
+      "path": "backend/core/routes.mjs",
+      "sha256": "0487f1f542a7d6234115bfa42c313d5265ca73a38c7af1f6a6abc77b34bac61d",
+      "excerpts": [
+        {
+          "line": 34,
+          "text": "// packageRoutes import retired with its mount (SWA-115) — see the /api/packages note below."
+        },
+        {
+          "line": 113,
+          "text": "// BOTH /api/v1/gamification and /api/gamification. The former legacy modules"
+        },
+        {
+          "line": 300,
+          "text": "status: 'ok',"
+        },
+        {
+          "line": 309,
+          "text": "app.use('/api/health', healthRoutes);"
+        },
+        {
+          "line": 310,
+          "text": "app.use('/api/config', publicConfigRoutes); // Dashboards v2 public feature flags (unauthenticated booleans)"
+        },
+        {
+          "line": 311,
+          "text": "app.use('/api/achievements', crystallizeRoutes); // Dashboards v2 Crystallize write (owner-scoped)"
+        },
+        {
+          "line": 312,
+          "text": "app.use('/api/dashboard', dashboardV2Routes); // Dashboards v2 summary (role-gated, finance server-flag)"
+        },
+        {
+          "line": 315,
+          "text": "app.use('/api/auth', authRoutes);"
+        },
+        {
+          "line": 316,
+          "text": "app.use('/api/profile', profileRoutes);"
+        },
+        {
+          "line": 317,
+          "text": "app.use('/api/appearance', appearanceProfileRoutes); // FUSION F1: per-user Smart Lens appearance (GET/PUT /profile, auth-scoped)"
+        },
+        {
+          "line": 318,
+          "text": "app.use('/api/user', userRoutes);"
+        },
+        {
+          "line": 321,
+          "text": "app.use('/api/auth', userManagementRoutes);"
+        },
+        {
+          "line": 328,
+          "text": "//   POST /api/sessions/allocate-from-order   GET /api/sessions/user-summary/:userId"
+        },
+        {
+          "line": 329,
+          "text": "//   POST /api/sessions/add-to-user           GET /api/sessions/allocation-health"
+        },
+        {
+          "line": 333,
+          "text": "// Anything single-segment under /api/sessions is claimed first by sessions.mjs, which is mounted"
+        },
+        {
+          "line": 335,
+          "text": "// it will either hit a real sessions.mjs route or fall into `router.get(\"/:id\")` and return"
+        },
+        {
+          "line": 338,
+          "text": "app.use('/api/session-packages', sessionPackageRoutes);"
+        },
+        {
+          "line": 339,
+          "text": "// /api/packages RETIRED (SWA-115, 2026-08-04): the Package model's `packages` table never"
+        },
+        {
+          "line": 342,
+          "text": "// StorefrontItem (/api/storefront, /api/admin/packages). Unmounting converts a guaranteed"
+        },
+        {
+          "line": 345,
+          "text": "// app.use('/api/packages', packageRoutes);"
+        },
+        {
+          "line": 350,
+          "text": "app.use('/api/onboarding', onboardingRoutes);"
+        },
+        {
+          "line": 352,
+          "text": "app.use('/api/onboarding', clientOnboardingRoutes);"
+        },
+        {
+          "line": 354,
+          "text": "app.use('/api/clients/onboard', clientOnboardRoutes);"
+        },
+        {
+          "line": 355,
+          "text": "app.use('/api/client-data', clientDataRoutes);"
+        },
+        {
+          "line": 356,
+          "text": "// (removed 2026-07-27) /api/training-sessions — trainingSessionRoutes deleted; see note at imports."
+        },
+        {
+          "line": 357,
+          "text": "app.use('/api/roles', roleRoutes);"
+        },
+        {
+          "line": 360,
+          "text": "// Place early to avoid conflicts with /api/sessions routes"
+        },
+        {
+          "line": 361,
+          "text": "app.use('/api/client-trainer-assignments', clientTrainerAssignmentRoutes);"
+        },
+        {
+          "line": 362,
+          "text": "app.use('/api/assignments', clientTrainerAssignmentRoutes);"
+        },
+        {
+          "line": 365,
+          "text": "app.use('/api/cart', cartRoutes);"
+        },
+        {
+          "line": 366,
+          "text": "app.use('/api/storefront', storefrontRoutes);"
+        },
+        {
+          "line": 369,
+          "text": "// Per hardening #14: v2 routes registered first so /api/v2/* is resolved before /api/* legacy"
+        },
+        {
+          "line": 370,
+          "text": "app.use('/api/v2/videos', videoCatalogPublicRoutes);       // Public browse + watch (optionalAuth)"
+        },
+        {
+          "line": 371,
+          "text": "app.use('/api/v2/videos', videoCatalogMemberRoutes);       // Member endpoints (protect)"
+        },
+        {
+          "line": 372,
+          "text": "app.use('/api/v2/admin/videos', videoCatalogAdminRoutes);  // Admin CRUD + upload (admin)"
+        },
+        {
+          "line": 373,
+          "text": "app.use('/api/v2/admin/youtube', youtubeImportRoutes);     // YouTube import (admin)"
+        },
+        {
+          "line": 374,
+          "text": "app.use('/api/v2/admin/video-analytics', videoAnalyticsRoutes); // Analytics + job log (admin)"
+        },
+        {
+          "line": 375,
+          "text": "app.use('/api/v2/admin/collections', videoCollectionRoutes); // Collection CRUD (admin)"
+        },
+        {
+          "line": 378,
+          "text": "app.use('/api/videos', publicVideoRoutes); // Public video library (no auth)"
+        },
+        {
+          "line": 379,
+          "text": "// Legacy /api/checkout and the legacy /api/payments router are gone (deleted in"
+        },
+        {
+          "line": 380,
+          "text": "// a4c26a9ac; see the note at the imports). NOTE: /api/payments itself is still a"
+        },
+        {
+          "line": 382,
+          "text": "// payment routes were removed\" must not be read as \"/api/payments is unmounted\"."
+        },
+        {
+          "line": 384,
+          "text": "app.use('/api/v2/payments', v2PaymentRoutes);"
+        },
+        {
+          "line": 385,
+          "text": "app.use('/api/orders', orderRoutes);"
+        },
+        {
+          "line": 386,
+          "text": "app.use('/api/financial', financialRoutes);"
+        },
+        {
+          "line": 387,
+          "text": "app.use('/api/payments', offlinePaymentRoutes);"
+        },
+        {
+          "line": 388,
+          "text": "app.use('/api/payments/ach', achPaymentRoutes);"
+        },
+        {
+          "line": 389,
+          "text": "app.use('/api/admin/payment-settings', adminPaymentSettingsRoutes);"
+        },
+        {
+          "line": 392,
+          "text": "app.use('/api/contact', contactRoutes);"
+        },
+        {
+          "line": 393,
+          "text": "app.use('/api/telemetry', telemetryRoutes); // PUBLIC funnel beacon (P0-4): client-allowlist + rate-limited"
+        },
+        {
+          "line": 394,
+          "text": "app.use('/api/newsletter', newsletterRoutes);"
+        },
+        {
+          "line": 395,
+          "text": "app.use('/api/marketing', marketingUnsubscribeRoutes); // PUBLIC lead-nurture one-click unsubscribe (CAN-SPAM)"
+        },
+        {
+          "line": 396,
+          "text": "app.use('/api/consult-request', consultRequestRoutes);  // PUBLIC \"book a free consult\" → lead scheduled + owner confirm"
+        },
+        {
+          "line": 397,
+          "text": "app.use('/api/messaging', messagingRoutes);"
+        },
+        {
+          "line": 398,
+          "text": "app.use('/api/encryption', encryptionRoutes);"
+        },
+        {
+          "line": 399,
+          "text": "app.use('/api/notifications', notificationsApiRoutes);"
+        },
+        {
+          "line": 400,
+          "text": "app.use('/api/sms/webhooks', smsWebhookRoutes);"
+        },
+        {
+          "line": 401,
+          "text": "app.use('/api/sms', smsRoutes);"
+        },
+        {
+          "line": 402,
+          "text": "app.use('/api/automation', automationRoutes);"
+        },
+        {
+          "line": 403,
+          "text": "app.use('/api/support/issues', supportIssueRoutes);"
+        },
+        {
+          "line": 404,
+          "text": "app.use('/api/admin/support/issues', adminSupportIssueRoutes);"
+        },
+        {
+          "line": 407,
+          "text": "// IMPORTANT: /api/workout/plans MUST mount BEFORE /api/workout to prevent route shadowing"
+        },
+        {
+          "line": 408,
+          "text": "// (Express matches broader mounts first — /api/workout would catch /plans requests)"
+        },
+        {
+          "line": 409,
+          "text": "app.use('/api/workout-plans', workoutPlanRoutes);"
+        },
+        {
+          "line": 410,
+          "text": "app.use('/api/workout/plans', workoutPlanRoutes); // Legacy mount point for backward compat"
+        },
+        {
+          "line": 411,
+          "text": "app.use('/api/workout', workoutRoutes);"
+        },
+        {
+          "line": 412,
+          "text": "app.use('/api/workout/sessions', workoutSessionRoutes);"
+        },
+        {
+          "line": 413,
+          "text": "app.use('/api/training-plan-projections', trainingPlanProjectionRoutes);"
+        },
+        {
+          "line": 417,
+          "text": "app.use('/api/sessions/deductions', sessionDeductionRoutes); // Auto-deduction and payment application"
+        },
+        {
+          "line": 418,
+          "text": "app.use('/api/sessions', sessionsRoutes);"
+        },
+        {
+          "line": 419,
+          "text": "app.use('/api/session-types', sessionTypeRoutes); // Session type management (Phase 5)"
+        },
+        {
+          "line": 420,
+          "text": "app.use('/api/schedule', scheduleRoutes); // Calendar view schedule endpoint"
+        },
+        {
+          "line": 421,
+          "text": "app.use('/api/schedule-ai', scheduleAiRoutes);"
+        },
+        {
+          "line": 422,
+          "text": "app.use('/api/availability', availabilityRoutes);"
+        },
+        {
+          "line": 423,
+          "text": "app.use('/api/orientation', orientationRoutes);"
+        },
+        {
+          "line": 424,
+          "text": "app.use('/api/movement-analysis', movementAnalysisRoutes);"
+        },
+        {
+          "line": 425,
+          "text": "app.use('/api/recommendations', recommendationRoutes);"
+        },
+        {
+          "line": 426,
+          "text": "app.use('/api/food-scanner', foodScannerExplainRoutes);"
+        },
+        {
+          "line": 427,
+          "text": "app.use('/api/food-scanner', foodScannerRoutes);"
+        },
+        {
+          "line": 428,
+          "text": "app.use('/api/measurements', bodyMeasurementRoutes);"
+        },
+        {
+          "line": 429,
+          "text": "app.use('/api/wearable-data', wearableDataRoutes);"
+        },
+        {
+          "line": 430,
+          "text": "app.use('/api/pain-entries', painEntryRoutes);"
+        },
+        {
+          "line": 431,
+          "text": "app.use('/api/form-analysis', formAnalysisRoutes);"
+        },
+        {
+          "line": 432,
+          "text": "app.use('/api/custom-exercises', customExerciseRoutes);"
+        },
+        {
+          "line": 433,
+          "text": "app.use('/api/equipment-profiles', equipmentRoutes);"
+        },
+        {
+          "line": 434,
+          "text": "app.use('/api/equipment-insights', equipmentInsightsRoutes);"
+        },
+        {
+          "line": 435,
+          "text": "app.use('/api/variation', variationRoutes);"
+        },
+        {
+          "line": 436,
+          "text": "app.use('/api/client-intelligence', clientIntelligenceRoutes);"
+        },
+        {
+          "line": 437,
+          "text": "app.use('/api/workout-builder', workoutBuilderRoutes);"
+        },
+        {
+          "line": 438,
+          "text": "app.use('/api/oracle', oracleRoutes);"
+        },
+        {
+          "line": 439,
+          "text": "app.use('/api/bootcamp', bootcampRoutes);"
+        },
+        {
+          "line": 440,
+          "text": "app.use('/api/bootcamp/sprints', sprintRoutes);"
+        },
+        {
+          "line": 441,
+          "text": "app.use('/api/workout-logs', workoutLogUploadRoutes);"
+        },
+        {
+          "line": 442,
+          "text": "app.use('/api/coach/intake', coachIntakeRoutes);"
+        },
+        {
+          "line": 443,
+          "text": "app.use('/api/coach/proposals', coachProposalRoutes);"
+        },
+        {
+          "line": 446,
+          "text": "app.use('/api/plaud/clips', plaudClipsRoutes);"
+        },
+        {
+          "line": 447,
+          "text": "app.use('/api/plaud/intake', plaudIntakeRoutes);"
+        },
+        {
+          "line": 448,
+          "text": "app.use('/api/plaud/merge', mergeActionRouter);"
+        },
+        {
+          "line": 449,
+          "text": "app.use('/api/plaud/merge-requests', mergeRequestsRouter);"
+        },
+        {
+          "line": 463,
+          "text": "app.use('/api/plaud/webhook', plaudWebhookRoutes);"
+        },
+        {
+          "line": 473,
+          "text": "app.use('/api/analytics', analyticsRoutes);             // Client workout analytics (owner/trainer/admin)"
+        },
+        {
+          "line": 474,
+          "text": "app.use('/api/client/analytics', clientAnalyticsRoutes); // Client-safe analytics (JWT-derived userId, no IDOR risk)"
+        },
+        {
+          "line": 475,
+          "text": "app.use('/api/trainer/drafts', communicationDraftRoutes); // AI communication draft approval"
+        },
+        {
+          "line": 479,
+          "text": "app.use('/api/v1/gamification', gamificationV1Routes);"
+        },
+        {
+          "line": 480,
+          "text": "// Mount at legacy path too — frontend components use /api/gamification/*"
+        },
+        {
+          "line": 481,
+          "text": "app.use('/api/gamification', gamificationV1Routes);"
+        },
+        {
+          "line": 484,
+          "text": "app.use('/api/badges', badgeRoutes);"
+        },
+        {
+          "line": 487,
+          "text": "app.use('/api/social', socialRoutes);"
+        },
+        {
+          "line": 488,
+          "text": "app.use('/api/goals', goalRoutes);"
+        },
+        {
+          "line": 489,
+          "text": "app.use('/api/goals', socialGoalRoutes); // Social features: supporters, comments, likes, milestones"
+        },
+        {
+          "line": 490,
+          "text": "app.use('/api/streaks', streakRoutes);"
+        },
+        {
+          "line": 493,
+          "text": "app.use('/api/live-streams', liveStreamRoutes);"
+        },
+        {
+          "line": 494,
+          "text": "app.use('/api/creators', creatorEconomyRoutes);"
+        },
+        {
+          "line": 497,
+          "text": "app.use('/api/admin/flags', adminFlagRoutes); // Launch Control (admin-only; self-gates protect+authorize)"
+        },
+        {
+          "line": 498,
+          "text": "app.use('/api/admin', adminRoutes);"
+        },
+        {
+          "line": 499,
+          "text": "app.use('/api/admin', adminDebugRoutes);"
+        },
+        {
+          "line": 502,
+          "text": "app.use('/api/admin', adminClientRoutes);            // Provides: /api/admin/clients/*"
+        },
+        {
+          "line": 505,
+          "text": "// to prevent route conflict (adminPackageRoutes would intercept /api/admin/videos)"
+        },
+        {
+          "line": 507,
+          "text": "app.use('/api/admin/videos', videoLibraryRoutes); // Frontend-compatible alias"
+        },
+        {
+          "line": 508,
+          "text": "app.use('/api/admin/exercise-library', videoLibraryRoutes); // Original endpoint"
+        },
+        {
+          "line": 510,
+          "text": "app.use('/api/admin/storefront', adminPackageRoutes); // Admin package CRUD (frontend uses /api/admin/storefront/*)"
+        },
+        {
+          "line": 512,
+          "text": "// Gate retired admin bridge routes behind explicit opt-in. Bridge management is"
+        },
+        {
+          "line": 513,
+          "text": "// retired from the default runtime after the Render cost reduction pass."
+        },
+        {
+          "line": 516,
+          "text": "app.use('/api/admin', adminMcpRoutes);              // Provides retired /api/admin/mcp/* compatibility endpoints"
+        },
+        {
+          "line": 519,
+          "text": "app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints"
+        },
+        {
+          "line": 520,
+          "text": "app.use('/api/admin/social-publishing', adminSocialPublishingRoutes); // Native social publishing"
+        },
+        {
+          "line": 521,
+          "text": "app.use('/api/admin/marketing-calendar', adminMarketingCalendarRoutes); // Persisted Marketing calendar + PT awareness"
+        },
+        {
+          "line": 522,
+          "text": "app.use('/api/admin/marketing-readiness', adminMarketingReadinessRoutes); // Read-only marketing subsystem readiness cockpit"
+        },
+        {
+          "line": 523,
+          "text": "app.use('/api/admin/marketing-campaigns', adminMarketingCampaignRoutes); // Campaign spine CRUD (Marketing OS Slice 2)"
+        },
+        {
+          "line": 524,
+          "text": "app.use('/api/video-sessions', videoSessionRoutes); // Video chat for remote assessments (LiveKit)"
+        },
+        {
+          "line": 525,
+          "text": "app.use('/api/avatar-home', avatarHomeRoutes); // 3D avatar home — unlocks at Level 10"
+        },
+        {
+          "line": 526,
+          "text": "app.use('/api/admin/badge-creator', badgeCreatorRoutes); // AI badge generation via Gemini Nano Banana"
+        },
+        {
+          "line": 527,
+          "text": "app.use('/api/olympics', olympicRoutes); // Virtual Olympics — Ghost Racing competitive events"
+        },
+        {
+          "line": 530,
+          "text": "app.get('/api/badge-tab-icons', async (_req, res) => {"
+        },
+        {
+          "line": 551,
+          "text": "app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API"
+        },
+        {
+          "line": 552,
+          "text": "app.use('/api/admin', adminAlertStateRoutes); // SWA-138 S4: per-admin alert ack/archive read-state"
+        },
+        {
+          "line": 553,
+          "text": "app.use('/api/renewal-alerts', renewalAlertRoutes); // SWA-138 S10: churn-risk queue (controller existed, never mounted)"
+        },
+        {
+          "line": 554,
+          "text": "app.use('/api/admin', adminSessionLiabilityRoutes); // SWA-138 S11: unredeemed prepaid-session liability"
+        },
+        {
+          "line": 555,
+          "text": "app.use('/api/admin', adminOpsAggregateRoutes); // SWA-138 S15: trainer utilization, cancellation impact, activation funnel"
+        },
+        {
+          "line": 556,
+          "text": "app.use('/api/admin', adminOpsPipelineRoutes); // SWA-138 S16: voice-ingest health, bootcamp attendance logging"
+        },
+        {
+          "line": 557,
+          "text": "app.use('/api/admin', adminOnboardingRoutes); // Admin onboarding management API (Phase 1.2)"
+        },
+        {
+          "line": 558,
+          "text": "app.use('/api/admin', adminWorkoutLoggerRoutes); // Phase 1B: Admin workout logging API"
+        },
+        {
+          "line": 560,
+          "text": "app.use('/api/admin/finance', adminFinanceRoutes);"
+        },
+        {
+          "line": 561,
+          "text": "app.use('/api/admin/store', adminStoreRoutes);"
+        },
+        {
+          "line": 562,
+          "text": "app.use('/api/admin/specials', adminSpecialRoutes);"
+        },
+        {
+          "line": 563,
+          "text": "app.use('/api/admin/analytics', analyticsRevenueRoutes);"
+        },
+        {
+          "line": 564,
+          "text": "app.use('/api/admin/analytics', analyticsUserRoutes);"
+        },
+        {
+          "line": 565,
+          "text": "app.use('/api/admin/analytics', analyticsSystemRoutes);"
+        },
+        {
+          "line": 566,
+          "text": "app.use('/api/admin', adminEnterpriseRoutes);"
+        },
+        {
+          "line": 570,
+          "text": "app.use('/api/admin/settings', adminSettingsRoutes);"
+        },
+        {
+          "line": 572,
+          "text": "app.use('/api/admin', adminOrdersRoutes);"
+        },
+        {
+          "line": 574,
+          "text": "app.use('/api/admin', adminDataVerificationRoutes);"
+        },
+        {
+          "line": 576,
+          "text": "app.use('/api/admin/reconciliation', adminReconciliationRoutes);"
+        },
+        {
+          "line": 578,
+          "text": "app.use('/api/admin/charge-card', adminChargeCardRoutes);"
+        },
+        {
+          "line": 580,
+          "text": "app.use('/api/admin/waivers', adminWaiverRoutes);"
+        },
+        {
+          "line": 582,
+          "text": "app.use('/api/public/waivers', publicWaiverRoutes);"
+        },
+        {
+          "line": 584,
+          "text": "app.use('/api/claim', claimRoutes);"
+        },
+        {
+          "line": 586,
+          "text": "app.use('/api/admin', adminComplianceRoutes);"
+        },
+        {
+          "line": 590,
+          "text": "app.use('/api/dashboard', sharedDashboardRoutes);"
+        },
+        {
+          "line": 593,
+          "text": "app.use('/api/admin/dashboard', adminDashboardRoutes);"
+        },
+        {
+          "line": 596,
+          "text": "app.use('/api/client', clientDashboardRoutes);"
+        },
+        {
+          "line": 597,
+          "text": "app.use('/api/client', clientProgressApiRoutes);"
+        },
+        {
+          "line": 600,
+          "text": "app.use('/api/workouts', clientWorkoutRoutes);      // GET /api/workouts/:userId/current"
+        },
+        {
+          "line": 601,
+          "text": "app.use('/api/workout-summaries', workoutSummaryRoutes); // POST /api/workout-summaries"
+        },
+        {
+          "line": 602,
+          "text": "app.use('/api/nutrition', clientNutritionRoutes);   // GET /api/nutrition/:userId/current"
+        },
+        {
+          "line": 603,
+          "text": "app.use('/api/photos', clientPhotoRoutes);          // GET /api/photos/:userId"
+        },
+        {
+          "line": 604,
+          "text": "app.use('/api/notes', clientNoteRoutes);            // GET/POST /api/notes/:userId"
+        },
+        {
+          "line": 605,
+          "text": "app.use('/api/stats', statsRoutes);                 // GET /api/stats/:userId/summary"
+        },
+        {
+          "line": 608,
+          "text": "// Photos stored in R2 get URLs like /api/serve-photo/photos/banners/57/2026-03/uuid.jpg"
+        },
+        {
+          "line": 609,
+          "text": "// The /api/ prefix ensures Render routes these to the backend (not the static site)."
+        },
+        {
+          "line": 610,
+          "text": "app.get('/api/serve-photo/photos/:category/:userId/:yearMonth/:filename', async (req, res) => {"
+        },
+        {
+          "line": 629,
+          "text": "const barePath = `/api/serve-photo/${objectKey}`;"
+        },
+        {
+          "line": 669,
+          "text": "// Gallery photos stored in R2 get URLs like /api/serve-photo/gallery/{slug}/{number}.jpg"
+        },
+        {
+          "line": 670,
+          "text": "app.get('/api/serve-photo/gallery/:slug/:filename', async (req, res) => {"
+        },
+        {
+          "line": 708,
+          "text": "app.use('/api/ai', aiRoutes);"
+        },
+        {
+          "line": 710,
+          "text": "// /api/ai-chat so it owns this exact path; aiChatRoutes defines no"
+        },
+        {
+          "line": 713,
+          "text": "app.use('/api/ai-chat/stream-spike', aiStreamSpikeRoutes);"
+        },
+        {
+          "line": 714,
+          "text": "app.use('/api/ai-chat', aiChatRoutes);"
+        },
+        {
+          "line": 715,
+          "text": "app.use('/api/ai-command', aiCommandRoutes);"
+        },
+        {
+          "line": 716,
+          "text": "app.use('/api/hermes', hermesRoutes);"
+        },
+        {
+          "line": 717,
+          "text": "app.use('/api/ai/debate', aiDebateRoutes);"
+        },
+        {
+          "line": 718,
+          "text": "app.use('/api/admin/ai-bff', aiBffRoutes);"
+        },
+        {
+          "line": 719,
+          "text": "app.use('/api/ai-village', aiVillageRoutes);"
+        },
+        {
+          "line": 720,
+          "text": "app.use('/api/macros', dailyMacroRosterTriageRoutes);"
+        },
+        {
+          "line": 721,
+          "text": "app.use('/api/macros', dailyMacroRoutes);"
+        },
+        {
+          "line": 722,
+          "text": "app.use('/api/hydration', hydrationRoutes);"
+        },
+        {
+          "line": 723,
+          "text": "app.use('/api/restaurant', restaurantRoutes);"
+        },
+        {
+          "line": 724,
+          "text": "app.use('/api/gardening', gardeningRoutes);"
+        },
+        {
+          "line": 725,
+          "text": "app.use('/api/farms', farmFinderRoutes);"
+        },
+        {
+          "line": 726,
+          "text": "app.use('/api/supplements', supplementRoutes);"
+        },
+        {
+          "line": 727,
+          "text": "app.use('/api/meal-plans', mealPlanRoutes);"
+        },
+        {
+          "line": 728,
+          "text": "app.use('/api/free', freeApiRoutes);"
+        },
+        {
+          "line": 732,
+          "text": "app.use('/api/mcp', mcpRoutes)"
+        },
+        {
+          "line": 737,
+          "text": "replacement: '/api/gamification, /api/workout, /api/client/analytics, /api/ai-command'"
+        },
+        {
+          "line": 739,
+          "text": "app.all('/api/mcp', disabledLegacyMcpRoute);"
+        },
+        {
+          "line": 740,
+          "text": "app.all('/api/mcp/*', disabledLegacyMcpRoute);"
+        },
+        {
+          "line": 742,
+          "text": "app.use('/api/ai-monitoring', aiMonitoringRoutes);"
+        },
+        {
+          "line": 743,
+          "text": "app.use('/api/subscriptions', subscriptionRoutes);"
+        },
+        {
+          "line": 744,
+          "text": "app.use('/api/admin', adminAiUsageRoutes);"
+        },
+        {
+          "line": 746,
+          "text": "app.use('/api/commissions', commissionRoutes);"
+        },
+        {
+          "line": 747,
+          "text": "app.use('/api/master-prompt', masterPromptRoutes);"
+        },
+        {
+          "line": 750,
+          "text": "app.use('/api/custom-packages', customPackageRoutes);"
+        },
+        {
+          "line": 753,
+          "text": "app.use('/api/gallery', galleryRoutes);"
+        },
+        {
+          "line": 754,
+          "text": "app.use('/api/admin/gallery', adminGalleryRoutes);"
+        },
+        {
+          "line": 757,
+          "text": "app.use('/api/immigration', immigrationRoutes);"
+        },
+        {
+          "line": 761,
+          "text": "// (flag-gated, public); every other /api/leads/* falls through to the protected router below."
+        },
+        {
+          "line": 762,
+          "text": "app.use('/api/leads', leadCaptureRoutes);"
+        },
+        {
+          "line": 763,
+          "text": "app.use('/api/leads', leadRoutes);"
+        },
+        {
+          "line": 766,
+          "text": "app.use('/api/client-progress', clientProgressRoutes);"
+        },
+        {
+          "line": 767,
+          "text": "app.use('/api/exercises', exerciseRoutes);"
+        },
+        {
+          "line": 768,
+          "text": "app.use('/api/recovery', recoveryRoutes);"
+        },
+        {
+          "line": 769,
+          "text": "app.use('/api/calculators', calculatorRoutes);"
+        },
+        {
+          "line": 773,
+          "text": "app.use('/api/trainer-permissions', trainerPermissionsRoutes);"
+        },
+        {
+          "line": 774,
+          "text": "app.use('/api/workout-forms', dailyWorkoutFormRoutes);"
+        },
+        {
+          "line": 778,
+          "text": "// Alias: Stripe dashboard is configured to POST /api/webhook/stripe"
+        },
+        {
+          "line": 779,
+          "text": "app.use('/api/webhook/stripe', stripeWebhookRouter);"
+        },
+        {
+          "line": 781,
+          "text": "app.use('/api/print/webhooks', prodigiWebhookRouter);"
+        },
+        {
+          "line": 785,
+          "text": "app.use('/api/debug', debugRoutes);"
+        },
+        {
+          "line": 786,
+          "text": "app.use('/api/debug', debugAuthRoutes); // Add auth debugging routes"
+        },
+        {
+          "line": 787,
+          "text": "app.use('/api/dev', devRoutes);"
+        },
+        {
+          "line": 788,
+          "text": "app.use('/api/migrations', migrationRoutes);"
+        },
+        {
+          "line": 810,
+          "text": "<button class=\"button\" onclick=\"testEndpoint('/api/debug/auth-check')\">Test Auth</button>"
+        },
+        {
+          "line": 853,
+          "text": "// URL the protected `/api/serve-photo/photos/...` twin enforces. Without this"
+        },
+        {
+          "line": 857,
+          "text": "// signed `/api/serve-photo/...` URLs, so this only blocks the bypass. FAIL-CLOSED."
+        },
+        {
+          "line": 861,
+          "text": "const barePath = `/api/serve-photo/${objectKey}`;"
+        }
+      ]
+    },
+    {
+      "path": "backend/routes/workoutBuilderRoutes.mjs",
+      "sha256": "72ed9673c32cd5f0fee9856536b0008e52000bdbbe0e23245afccc9a879bac6f",
+      "excerpts": [
+        {
+          "line": 6,
+          "text": "* POST /api/workout-builder/generate    -- Generate single workout"
+        },
+        {
+          "line": 7,
+          "text": "* POST /api/workout-builder/plan        -- Generate long-term plan"
+        },
+        {
+          "line": 164,
+          "text": "* POST /api/workout-builder/generate"
+        },
+        {
+          "line": 167,
+          "text": "router.post('/generate', async (req, res) => {"
+        },
+        {
+          "line": 202,
+          "text": "exerciseCount: safeExerciseCount,"
+        },
+        {
+          "line": 203,
+          "text": "rotationPattern: safePattern,"
+        },
+        {
+          "line": 240,
+          "text": "* POST /api/workout-builder/plan"
+        },
+        {
+          "line": 243,
+          "text": "router.post('/plan', async (req, res) => {"
+        },
+        {
+          "line": 307,
+          "text": "* GET /api/workout-builder/suggested/:clientId — Workout-OS C6."
+        },
+        {
+          "line": 313,
+          "text": "router.get('/suggested/:clientId', async (req, res) => {"
+        },
+        {
+          "line": 346,
+          "text": "router.post('/candidates', createWorkoutCandidatesHandler({"
+        },
+        {
+          "line": 352,
+          "text": "* POST /api/workout-builder/corrective-recommendations  (V3c.2)"
+        },
+        {
+          "line": 380,
+          "text": "router.post('/corrective-recommendations', async (req, res) => {"
+        }
+      ]
+    },
+    {
+      "path": "backend/routes/exerciseRoutes.mjs",
+      "sha256": "381dfe969a2fc2333654608e2c5916365ea556aaa91f204b32b7447ff8787b09",
+      "excerpts": [
+        {
+          "line": 84,
+          "text": "* @route GET /api/exercises/search"
+        },
+        {
+          "line": 88,
+          "text": "router.get('/search', protect, trainerOrAdminOnly, async (req, res) => {"
+        },
+        {
+          "line": 142,
+          "text": "{ primaryMuscles: { [Op.iLike]: `%${muscleGroup}%` } },"
+        },
+        {
+          "line": 180,
+          "text": "primaryMuscles: exercise.primaryMuscles || [],"
+        },
+        {
+          "line": 201,
+          "text": "* @route GET /api/exercises/categories"
+        },
+        {
+          "line": 205,
+          "text": "router.get('/categories', protect, trainerOrAdminOnly, async (req, res) => {"
+        },
+        {
+          "line": 252,
+          "text": "* @route GET /api/exercises"
+        },
+        {
+          "line": 258,
+          "text": "router.get('/', protect, trainerOrAdminOnly, async (req, res) => {"
+        },
+        {
+          "line": 288,
+          "text": "{ primaryMuscles: { [Op.iLike]: `%${muscleGroup}%` } },"
+        },
+        {
+          "line": 369,
+          "text": "primaryMuscles: parseJsonField(ex.primaryMuscles),"
+        },
+        {
+          "line": 386,
+          "text": "* @route GET /api/exercises/all"
+        },
+        {
+          "line": 391,
+          "text": "router.get('/all', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => {"
+        },
+        {
+          "line": 439,
+          "text": "primaryMuscles: ex.primaryMuscles || [],"
+        },
+        {
+          "line": 467,
+          "text": "* @route GET /api/exercises/library"
+        },
+        {
+          "line": 469,
+          "text": "*       shape as /api/exercises/all but is available to any authenticated"
+        },
+        {
+          "line": 480,
+          "text": "router.get('/library', protect, apiLimiter, async (req, res) => {"
+        },
+        {
+          "line": 530,
+          "text": "* @route GET /api/exercises/recommended"
+        },
+        {
+          "line": 534,
+          "text": "router.get('/recommended', protect, workoutController.getExerciseRecommendations);"
+        },
+        {
+          "line": 537,
+          "text": "* @route GET /api/exercises/recommended/:userId"
+        },
+        {
+          "line": 541,
+          "text": "router.get('/recommended/:userId', protect, authorize(['admin', 'trainer']), authorizeResourceAccess('userId'), workoutController.getExerciseRecommendations);"
+        },
+        {
+          "line": 544,
+          "text": "* @route PUT /api/exercises/:id/media"
+        },
+        {
+          "line": 548,
+          "text": "router.put('/:id/media', protect, trainerOrAdminOnly, apiLimiter, async (req, res) => {"
+        },
+        {
+          "line": 596,
+          "text": "* @route GET /api/exercises/:id/teach-mode"
+        },
+        {
+          "line": 602,
+          "text": "router.get('/:id/teach-mode', protect, apiLimiter, async (req, res) => {"
+        },
+        {
+          "line": 644,
+          "text": "primaryMuscles: exercise.primaryMuscles || [],"
+        },
+        {
+          "line": 649,
+          "text": "nasmMovementPattern: exercise.nasmMovementPattern || null,"
+        },
+        {
+          "line": 651,
+          "text": "equipmentNeeded: exercise.equipmentNeeded || [],"
+        },
+        {
+          "line": 664,
+          "text": "defaultTempo: exercise.defaultTempo || null,"
+        },
+        {
+          "line": 665,
+          "text": "defaultRestSeconds: exercise.defaultRestSeconds || null,"
+        },
+        {
+          "line": 679,
+          "text": "* @route GET /api/exercises/:id"
+        },
+        {
+          "line": 683,
+          "text": "router.get('/:id', protect, trainerOrAdminOnly, async (req, res) => {"
+        },
+        {
+          "line": 706,
+          "text": "primaryMuscles: exercise.primaryMuscles || [],"
+        }
+      ]
+    },
+    {
+      "path": "backend/routes/workoutPlanRoutes.mjs",
+      "sha256": "9a73fa3c5f10aecbd7e362d1c73d4ad54c0069fa524e10c057cbffcef04d4528",
+      "excerpts": [
+        {
+          "line": 15,
+          "text": "*   AI generates plan → POST /api/workout-plans → stored in DB"
+        },
+        {
+          "line": 16,
+          "text": "*   Trainer asks \"what's next?\" → AI reads GET /api/workout-plans/client/:userId"
+        },
+        {
+          "line": 17,
+          "text": "*   Session done → PUT /api/workout-plans/:id/advance → cursor moves forward"
+        },
+        {
+          "line": 91,
+          "text": "// SECTION: GET /api/workout-plans"
+        },
+        {
+          "line": 97,
+          "text": "* @route GET /api/workout-plans"
+        },
+        {
+          "line": 101,
+          "text": "router.get('/', protect, trainerOrAdminOnly, async (req, res) => {"
+        },
+        {
+          "line": 153,
+          "text": "// SECTION: GET /api/workout-plans/client/:userId"
+        },
+        {
+          "line": 161,
+          "text": "* @route GET /api/workout-plans/client/:userId"
+        },
+        {
+          "line": 165,
+          "text": "router.get('/client/:userId', protect, trainerOrAdminOnly, verifyClientAccessByUserId({ paramName: 'userId' }), async (req, res) => {"
+        },
+        {
+          "line": 177,
+          "text": "where: { userId, status: 'active' },"
+        },
+        {
+          "line": 183,
+          "text": "where: { userId, status: ['active', 'paused', 'draft'] },"
+        },
+        {
+          "line": 267,
+          "text": "// SECTION: GET /api/workout-plans/:id"
+        },
+        {
+          "line": 273,
+          "text": "* @route GET /api/workout-plans/:id"
+        },
+        {
+          "line": 277,
+          "text": "* @route GET /api/workout-plans/backup/:userId — backup + staleness verdict"
+        },
+        {
+          "line": 281,
+          "text": "router.get('/backup/:userId', protect, trainerOrAdminOnly,"
+        },
+        {
+          "line": 294,
+          "text": "router.get('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {"
+        },
+        {
+          "line": 308,
+          "text": "// SECTION: POST /api/workout-plans"
+        },
+        {
+          "line": 319,
+          "text": "/** @route POST /api/workout-plans/backup/:userId/generate — create/refresh (in place) */"
+        },
+        {
+          "line": 320,
+          "text": "router.post('/backup/:userId/generate', protect, trainerOrAdminOnly,"
+        },
+        {
+          "line": 377,
+          "text": "* @route POST /api/workout-plans/blend — compose a NEW draft plan from picks"
+        },
+        {
+          "line": 381,
+          "text": "router.post('/blend', protect, trainerOrAdminOnly,"
+        },
+        {
+          "line": 418,
+          "text": "/** @route POST /api/workout-plans/:id/promote-backup — THE SWAP (transactional) */"
+        },
+        {
+          "line": 419,
+          "text": "router.post('/:id/promote-backup', protect, trainerOrAdminOnly,"
+        },
+        {
+          "line": 454,
+          "text": "* @route POST /api/workout-plans"
+        },
+        {
+          "line": 468,
+          "text": "router.post('/', protect, trainerOrAdminOnly, clientAccessUnlessTemplate, async (req, res) => {"
+        },
+        {
+          "line": 521,
+          "text": "status: 'draft',"
+        },
+        {
+          "line": 524,
+          "text": "planData: safePlanData,"
+        },
+        {
+          "line": 547,
+          "text": "// SECTION: PUT /api/workout-plans/:id"
+        },
+        {
+          "line": 553,
+          "text": "* @route PUT /api/workout-plans/:id"
+        },
+        {
+          "line": 557,
+          "text": "router.put('/:id', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {"
+        },
+        {
+          "line": 630,
+          "text": "* @route PUT /api/workout-plans/:id/pdf"
+        },
+        {
+          "line": 634,
+          "text": "router.put("
+        },
+        {
+          "line": 642,
+          "text": "router.post("
+        },
+        {
+          "line": 650,
+          "text": "router.get("
+        },
+        {
+          "line": 662,
+          "text": "* @route POST /api/workout-plans/:id/pdf/upload"
+        },
+        {
+          "line": 665,
+          "text": "router.post("
+        },
+        {
+          "line": 677,
+          "text": "* @route GET /api/workout-plans/:id/pdf/content.pdf"
+        },
+        {
+          "line": 680,
+          "text": "router.get("
+        },
+        {
+          "line": 690,
+          "text": "* @route PUT /api/workout-plans/:id/primary"
+        },
+        {
+          "line": 693,
+          "text": "router.put("
+        },
+        {
+          "line": 702,
+          "text": "* @route POST /api/workout-plans/:id/status"
+        },
+        {
+          "line": 705,
+          "text": "router.post("
+        },
+        {
+          "line": 714,
+          "text": "router.put("
+        },
+        {
+          "line": 723,
+          "text": "// SECTION: POST /api/workout-plans/:id/duplicate    (Plan Library slice)"
+        },
+        {
+          "line": 737,
+          "text": "* @route POST /api/workout-plans/:id/duplicate"
+        },
+        {
+          "line": 740,
+          "text": "router.post('/:id/duplicate', protect, trainerOrAdminOnly,"
+        },
+        {
+          "line": 765,
+          "text": "status: 'draft', // ALWAYS draft per product rule"
+        },
+        {
+          "line": 768,
+          "text": "planData: clonedPlanData,"
+        },
+        {
+          "line": 786,
+          "text": "// SECTION: PUT /api/workout-plans/:id/advance"
+        },
+        {
+          "line": 797,
+          "text": "* @route PUT /api/workout-plans/:id/advance"
+        },
+        {
+          "line": 802,
+          "text": "router.put('/:id/advance', protect, trainerOrAdminOnly, verifyClientAccessByPlanId({ paramName: 'id' }), async (req, res) => {"
+        },
+        {
+          "line": 825,
+          "text": "planData: lockedPlan.planData || { weeks: [] },"
+        },
+        {
+          "line": 839,
+          "text": "planData: normalizeWorkoutPlanDataForPersistence(cursorAdvance.planData),"
+        },
+        {
+          "line": 842,
+          "text": "status: cursorAdvance.planCompleted ? 'completed' : 'active',"
+        },
+        {
+          "line": 882,
+          "text": "// SECTION: DELETE /api/workout-plans/:id"
+        },
+        {
+          "line": 888,
+          "text": "* @route DELETE /api/workout-plans/:id"
+        },
+        {
+          "line": 891,
+          "text": "router.delete("
+        }
+      ]
+    },
+    {
+      "path": "backend/routes/workoutRoutes.mjs",
+      "sha256": "93503caf87738af6bd723826ac2c4901f8353a6be91994ed93bb5ec55fb141cc",
+      "excerpts": [
+        {
+          "line": 10,
+          "text": "* Base Path: /api/workout"
+        },
+        {
+          "line": 104,
+          "text": "*   Client->>Routes: POST /api/workout/sessions"
+        },
+        {
+          "line": 197,
+          "text": "* @route GET /api/workout/sessions"
+        },
+        {
+          "line": 201,
+          "text": "router.get('/sessions', protect, workoutController.getWorkoutSessions);"
+        },
+        {
+          "line": 204,
+          "text": "* @route GET /api/workout/sessions/user/:userId"
+        },
+        {
+          "line": 208,
+          "text": "router.get('/sessions/user/:userId', protect, authorize(['admin', 'trainer']), authorizeResourceAccess('userId'), workoutController.getWorkoutSessions);"
+        },
+        {
+          "line": 211,
+          "text": "* @route GET /api/workout/sessions/:sessionId"
+        },
+        {
+          "line": 215,
+          "text": "router.get('/sessions/:sessionId', protect, workoutController.getWorkoutSessionById);"
+        },
+        {
+          "line": 218,
+          "text": "* @route POST /api/workout/sessions"
+        },
+        {
+          "line": 222,
+          "text": "router.post('/sessions', protect, workoutController.createWorkoutSession);"
+        },
+        {
+          "line": 225,
+          "text": "* @route PUT /api/workout/sessions/:sessionId"
+        },
+        {
+          "line": 229,
+          "text": "router.put('/sessions/:sessionId', protect, workoutController.updateWorkoutSession);"
+        },
+        {
+          "line": 232,
+          "text": "* @route DELETE /api/workout/sessions/:sessionId"
+        },
+        {
+          "line": 236,
+          "text": "router.delete('/sessions/:sessionId', protect, workoutController.deleteWorkoutSession);"
+        },
+        {
+          "line": 241,
+          "text": "* @route GET /api/workout/progress"
+        },
+        {
+          "line": 245,
+          "text": "router.get('/progress', protect, workoutController.getClientProgress);"
+        },
+        {
+          "line": 248,
+          "text": "* @route GET /api/workout/progress/:userId"
+        },
+        {
+          "line": 252,
+          "text": "router.get('/progress/:userId', protect, authorizeResourceAccess('userId'), workoutController.getClientProgress);"
+        },
+        {
+          "line": 257,
+          "text": "* @route GET /api/workout/statistics"
+        },
+        {
+          "line": 261,
+          "text": "router.get('/statistics', protect, workoutController.getWorkoutStatistics);"
+        },
+        {
+          "line": 264,
+          "text": "* @route GET /api/workout/statistics/:userId"
+        },
+        {
+          "line": 268,
+          "text": "router.get('/statistics/:userId', protect, authorizeResourceAccess('userId'), workoutController.getWorkoutStatistics);"
+        },
+        {
+          "line": 273,
+          "text": "* @route GET /api/workout/recommendations"
+        },
+        {
+          "line": 277,
+          "text": "router.get('/recommendations', protect, workoutController.getExerciseRecommendations);"
+        },
+        {
+          "line": 280,
+          "text": "* @route GET /api/workout/recommendations/:userId"
+        },
+        {
+          "line": 284,
+          "text": "router.get('/recommendations/:userId', protect, authorize(['admin', 'trainer']), authorizeResourceAccess('userId'), workoutController.getExerciseRecommendations);"
+        },
+        {
+          "line": 288,
+          "text": "// by workoutPlanRoutes.mjs mounted at /api/workout/plans and /api/workout-plans."
+        },
+        {
+          "line": 293,
+          "text": "router.get('/plans', protect, async (req, res) => {"
+        },
+        {
+          "line": 337,
+          "text": "* @route POST /api/workout/plans/:planId/generate"
+        },
+        {
+          "line": 342,
+          "text": "router.post('/plans/:planId/generate', protect, workoutController.generateWorkoutSessions);"
+        }
+      ]
+    },
+    {
+      "path": "backend/models/Exercise.mjs",
+      "sha256": "1e1489433cd38cb48b4123e81172144e26b766d1bcc6827831ba3db21cf2098c",
+      "excerpts": [
+        {
+          "line": 70,
+          "text": "primaryMuscles: {"
+        },
+        {
+          "line": 131,
+          "text": "equipmentNeeded: {"
+        },
+        {
+          "line": 315,
+          "text": "nasmMovementPattern: {"
+        },
+        {
+          "line": 329,
+          "text": "defaultTempo: {"
+        },
+        {
+          "line": 334,
+          "text": "defaultRestSeconds: {"
+        }
+      ]
+    },
+    {
+      "path": "backend/models/WorkoutPlan.mjs",
+      "sha256": "890b440b6bc228c4e39c1a434f57a5325d9fbf9e8dbbff5742f0d4e52c53f395",
+      "excerpts": [
+        {
+          "line": 103,
+          "text": "status: {"
+        },
+        {
+          "line": 109,
+          "text": "archivedAt: {"
+        },
+        {
+          "line": 115,
+          "text": "archivedBy: {"
+        },
+        {
+          "line": 137,
+          "text": "planData: {"
+        },
+        {
+          "line": 144,
+          "text": "contentRevision: {"
+        },
+        {
+          "line": 152,
+          "text": "contentHash: {"
+        }
+      ]
+    },
+    {
+      "path": "backend/services/workoutPlanMutationService.mjs",
+      "sha256": "de9d0b208bbbb83fbd205deb338eec29da6b069889cad2435474e79506be5a37",
+      "excerpts": [
+        {
+          "line": 150,
+          "text": "contentRevision: 1,"
+        },
+        {
+          "line": 225,
+          "text": "contentRevision: identity.revision,"
+        },
+        {
+          "line": 226,
+          "text": "contentHash: identity.hash,"
+        },
+        {
+          "line": 243,
+          "text": "contentRevision: identity.revision,"
+        },
+        {
+          "line": 244,
+          "text": "contentHash: identity.hash,"
+        }
+      ]
+    },
+    {
+      "path": "backend/services/workoutPlanLifecycleService.mjs",
+      "sha256": "14e9d337a1a1e9e8c5eed3a16e0e53b511d2df5c4faa95021e15f4aa73854f44",
+      "excerpts": [
+        {
+          "line": 141,
+          "text": "const updates = { status: 'paused' };"
+        },
+        {
+          "line": 167,
+          "text": "const updates = { ...additionalUpdates, status: toStatus };"
+        },
+        {
+          "line": 259,
+          "text": "const updatedById = new Map("
+        }
+      ]
+    },
+    {
+      "path": "backend/services/backupPlanService.mjs",
+      "sha256": "056e45e53e0590b1e9b2171cecf7281fa0b177f826f2b8f7796a2efcaaad8579",
+      "excerpts": [
+        {
+          "line": 40,
+          "text": "export const BACKUP_STALE_DAYS = 21;"
+        },
+        {
+          "line": 41,
+          "text": "export const BACKUP_STALE_SESSIONS = 3;"
+        },
+        {
+          "line": 47,
+          "text": "if (!Number.isFinite(ageMs) || ageMs > BACKUP_STALE_DAYS * 86_400_000) return true;"
+        },
+        {
+          "line": 48,
+          "text": "return Number(sessionsSince) >= BACKUP_STALE_SESSIONS;"
+        },
+        {
+          "line": 82,
+          "text": "where: { userId, status: 'completed', date: { [Op.gte]: sinceIso.slice(0, 10) } },"
+        },
+        {
+          "line": 172,
+          "text": "status: 'draft',"
+        },
+        {
+          "line": 192,
+          "text": "status: 'draft',"
+        },
+        {
+          "line": 204,
+          "text": "/** Builds role provenance without the retired metadata primary markers. */"
+        }
+      ]
+    },
+    {
+      "path": "backend/services/planBlendService.mjs",
+      "sha256": "350aff88fd316980362d4a87d010fb5b6d2c52e628c69bc9dbc3309c36d60a65",
+      "excerpts": [
+        {
+          "line": 109,
+          "text": "status: 'draft',"
+        },
+        {
+          "line": 112,
+          "text": "planData: sanitizeWorkoutPlanDataForPersistence(blendedData),"
+        }
+      ]
+    },
+    {
+      "path": "backend/routes/hermesRoutes.mjs",
+      "sha256": "7870c846acf268b8d92efd73927c56cbd8eac82886d49a7967177795a8cf18e1",
+      "excerpts": [
+        {
+          "line": 2,
+          "text": "* Hermes Agent Routes - /api/hermes"
+        },
+        {
+          "line": 7,
+          "text": "*   POST /api/hermes/tasks                  - admin/trainer task creation"
+        },
+        {
+          "line": 8,
+          "text": "*   GET  /api/hermes/tasks                  - admin/trainer list"
+        },
+        {
+          "line": 9,
+          "text": "*   GET  /api/hermes/tasks/:id              - scoped detail"
+        },
+        {
+          "line": 10,
+          "text": "*   POST /api/hermes/tasks/:id/cancel       - scoped cancel"
+        },
+        {
+          "line": 11,
+          "text": "*   POST /api/hermes/tasks/:id/complete     - scoped fulfillment close"
+        },
+        {
+          "line": 12,
+          "text": "*   POST /api/hermes/coach-review-requests  - self-scoped client CTA request"
+        },
+        {
+          "line": 88,
+          "text": "status: task.status,"
+        },
+        {
+          "line": 101,
+          "text": "router.post('/tasks', protect, requireAdminOrTrainer, async (req, res) => {"
+        },
+        {
+          "line": 132,
+          "text": "router.post('/coach-review-requests', protect, coachReviewRequestLimiter, async (req, res) => {"
+        },
+        {
+          "line": 180,
+          "text": "router.get('/tasks', protect, requireAdminOrTrainer, async (req, res) => {"
+        },
+        {
+          "line": 204,
+          "text": "router.get('/tasks/:id', protect, requireAdminOrTrainer, async (req, res) => {"
+        },
+        {
+          "line": 215,
+          "text": "router.post('/tasks/:id/cancel', protect, requireAdminOrTrainer, async (req, res) => {"
+        },
+        {
+          "line": 231,
+          "text": "router.post('/tasks/:id/complete', protect, requireAdminOrTrainer, async (req, res) => {"
+        },
+        {
+          "line": 247,
+          "text": "router.post('/tasks/:id/fail', protect, requireAdminOrTrainer, async (req, res) => {"
+        }
+      ]
+    },
+    {
+      "path": "backend/services/hermes/hermesService.mjs",
+      "sha256": "0542fd87b43f5a62d2e01a7f6a650df704d4081254c24845a919461d09b95856",
+      "excerpts": [
+        {
+          "line": 26,
+          "text": "const memoryTaskStore = new Map();"
+        },
+        {
+          "line": 58,
+          "text": "throw new Error(`Invalid Hermes status: ${status}`);"
+        },
+        {
+          "line": 77,
+          "text": "status: plain.status,"
+        },
+        {
+          "line": 128,
+          "text": "status: 'pending',"
+        }
+      ]
+    },
+    {
+      "path": "backend/routes/mcpRoutes.mjs",
+      "sha256": "cd64ccf66f3e69c90dfbb854b517f2c2864c050657d4d2963a923815f2f92a66",
+      "excerpts": [
+        {
+          "line": 15,
+          "text": "'/api/workout',"
+        },
+        {
+          "line": 16,
+          "text": "'/api/v1/gamification',"
+        },
+        {
+          "line": 17,
+          "text": "'/api/social',"
+        },
+        {
+          "line": 18,
+          "text": "'/api/client/analytics',"
+        },
+        {
+          "line": 19,
+          "text": "'/api/form-analysis'"
+        },
+        {
+          "line": 22,
+          "text": "const retiredLegacyMcpRoute = (req, res) => {"
+        },
+        {
+          "line": 27,
+          "text": "status: 'retired',"
+        },
+        {
+          "line": 28,
+          "text": "message: 'The legacy MCP bridge is retired. Use SwanStudios first-party APIs instead.',"
+        },
+        {
+          "line": 35,
+          "text": "router.get('/status', (req, res) => {"
+        },
+        {
+          "line": 38,
+          "text": "status: 'retired',"
+        },
+        {
+          "line": 39,
+          "text": "message: 'MCP services are retired. SwanStudios first-party APIs are the runtime path.',"
+        },
+        {
+          "line": 41,
+          "text": "workout: { status: 'retired', replacement: '/api/workout' },"
+        },
+        {
+          "line": 42,
+          "text": "gamification: { status: 'retired', replacement: '/api/v1/gamification' }"
+        },
+        {
+          "line": 49,
+          "text": "router.get('/health', (req, res) => {"
+        },
+        {
+          "line": 52,
+          "text": "status: 'retired',"
+        },
+        {
+          "line": 55,
+          "text": "message: 'MCP health checks are retired. Use SwanStudios service health endpoints instead.',"
+        },
+        {
+          "line": 62,
+          "text": "router.use(retiredLegacyMcpRoute);"
+        }
+      ]
+    }
+  ]
+}

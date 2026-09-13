@@ -153,6 +153,12 @@ const WorkoutPlannerPageLayout: React.FC = () => {
           filteredExerciseCount={filteredExerciseCount}
           activeFilterCount={activeFilterCount}
           exercisesLoading={exercisesLoading}
+          exercisesLoadState={act.rolodex.exercisesLoadState}
+          exercisesLoadError={act.rolodex.exercisesLoadError}
+          exercisesRefreshError={act.rolodex.exercisesRefreshError}
+          exerciseCatalogCount={act.rolodex.exerciseCatalogCount}
+          exercisesSearching={act.rolodex.exercisesSearching}
+          onRetryExercises={act.rolodex.refreshExercises}
           searchQuery={searchQuery}
           filterCategory={filterCategory}
           sourceFilter={sourceFilter}

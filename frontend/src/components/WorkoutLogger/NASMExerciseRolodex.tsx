@@ -1,4 +1,4 @@
-import React, { memo, type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { List, useListRef } from 'react-window';
 import ExerciseFilterChips from './ExerciseFilterChips';
 import NASMExerciseRolodexPreview from './NASMExerciseRolodexPreview';
@@ -12,12 +12,17 @@ import RolodexRecentRow from './RolodexRecentRow';
 import RolodexFilterRows from './RolodexFilterRows';
 import useRolodexDeepLink from './useRolodexDeepLink';
 import { readRecentExercises, recordRecentExercise } from './recentExercises';
-import { RetryButton } from './ExerciseSetRowControls.styles';
 import {
-  EmptyState,
-  ExMeta,
-  ExName,
-  ExerciseRow,
+  RolodexLibraryNotice,
+  RolodexStatusText,
+  resolveLibraryState,
+  type RolodexLibraryState,
+} from './NASMExerciseRolodex.states';
+import {
+  useExerciseSearchRow,
+  useRolodexListNavigation,
+} from './NASMExerciseRolodex.list';
+import {
   FilterToggle,
   ListContainer,
   ListSide,
@@ -27,7 +32,6 @@ import {
   SpinnerIcon,
   SplitView,
   StatusBar,
-  TypeBadge,
   Wrapper,
 } from './NASMExerciseRolodex.styles';
 import {
@@ -61,6 +65,8 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     isSearching,
     isLoading,
     loadError,
+    loadState,
+    refreshError,
     setQuery,
     setCategory,
     query,
@@ -112,6 +118,14 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
 
   useEffect(() => {
     if (!isOpen) return;
+    // F7 (hostile review findings 3+4): PREVIEW row 0, HIGHLIGHT none.
+    // preview: mobile has no hover, so an at-a-glance preview is a real
+    //   affordance (media contract test) and the pane has its own Add button.
+    // highlight: -1, because Enter requires `highlightIndex >= 0`. Selecting row 0
+    //   made a bare Enter in the SEARCH INPUT commit filteredResults[0] with zero
+    //   typing. Corrected claim (review finding 8): this did NOT affect
+    //   useRolodexDeepLink, which never reads highlightIndex.
+    setHighlightIndex(-1);
     setPreviewExercise(filteredResults[0] || null);
   }, [filteredResults, isOpen]);
 
@@ -131,6 +145,15 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     onClose();
   }, [onSelectExercise, setQuery, onClose]);
 
+  // Recovery action for "no exercises match current filters" — clears the
+  // filters only. It never adds, saves or selects anything.
+  const handleClearFilters = useCallback(() => {
+    setQuery('');
+    setCategory(null);
+    setTypeFilter(null);
+    setEquipFilter(null);
+  }, [setQuery, setCategory]);
+
   // Slice 10 one-tap recents (catalog = truth; stale ids drop; isOpen dep re-reads storage per open)
   const recentExercises = useMemo(() => {
     if (query || allExercises.length === 0) return [];
@@ -148,60 +171,44 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
     setPreviewExercise(exercise);
   }, []);
 
-  const handleKeyDown = useCallback((event: React.KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      onClose();
-      return;
-    }
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      setHighlightIndex(prev => {
-        const next = prev < filteredResults.length - 1 ? prev + 1 : 0;
-        listRef.current?.scrollToRow({ index: next, align: 'smart' });
-        setPreviewExercise(filteredResults[next] || null);
-        return next;
-      });
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      setHighlightIndex(prev => {
-        const next = prev > 0 ? prev - 1 : filteredResults.length - 1;
-        listRef.current?.scrollToRow({ index: next, align: 'smart' });
-        setPreviewExercise(filteredResults[next] || null);
-        return next;
-      });
-    } else if (event.key === 'Enter' && highlightIndex >= 0 && filteredResults[highlightIndex]) {
-      event.preventDefault();
-      handleSelect(filteredResults[highlightIndex]);
-    }
-  }, [filteredResults, handleSelect, highlightIndex, listRef, onClose]);
+  const handleKeyDown = useRolodexListNavigation({
+    results: filteredResults,
+    highlightIndex,
+    listRef,
+    onSelect: handleSelect,
+    onClose,
+    setHighlightIndex,
+    setPreviewExercise,
+  });
 
-  const RowComponent = useCallback(({ index, style }: { index: number; style: CSSProperties }) => {
-    const ex = filteredResults[index];
-    if (!ex) return null;
-    return (
-      <ExerciseRow
-        {...reactWindowStyleProps(style)}
-        $highlighted={index === highlightIndex}
-        onClick={() => handlePreview(ex, index)}
-        onDoubleClick={() => handleSelect(ex)}
-        onFocus={() => handlePreview(ex, index)}
-        onMouseEnter={() => setPreviewExercise(ex)}
-        role="option"
-        aria-selected={index === highlightIndex}
-      >
-        <ExName>{ex.name}</ExName>
-        <ExMeta>
-          <TypeBadge>{ex.exerciseType || 'exercise'}</TypeBadge>
-          {(ex.primaryMuscles || []).slice(0, 3).join(', ')}
-        </ExMeta>
-      </ExerciseRow>
-    );
-  }, [filteredResults, handlePreview, handleSelect, highlightIndex]);
+  const RowComponent = useExerciseSearchRow({
+    results: filteredResults,
+    highlightIndex,
+    onPreview: handlePreview,
+    onSelect: handleSelect,
+  });
 
   if (!isOpen) return null;
 
   const activeFilterCount = [equipFilter, typeFilter].filter(Boolean).length;
   const listHeight = Math.min(filteredResults.length, maxVisibleRows) * ROW_HEIGHT;
+  const hasActiveFilters = activeFilterCount > 0
+    || Boolean(query)
+    || Boolean(category && category !== 'All');
+  const libraryState = resolveLibraryState({
+    loadState,
+    isLoading,
+    catalogCount: filteredAllExercises.length,
+    resultCount: filteredResults.length,
+  });
+
+  const renderNotice = (state: RolodexLibraryState) => (
+    <RolodexLibraryNotice
+      state={state} loadError={loadError} refreshError={refreshError}
+      hasActiveFilters={hasActiveFilters} isBusy={isLoading}
+      onRetry={refresh} onClearFilters={handleClearFilters}
+    />
+  );
 
   return (
     <Wrapper ref={wrapperRef}>
@@ -245,6 +252,9 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
         />
       )}
 
+      {/* A failed refresh must stay visible even though cached rows render. */}
+      {libraryState === 'stale' && renderNotice('stale')}
+
       <SplitView $hasPreview={!!previewExercise}>
         <ListSide>
           {filteredResults.length > 0 ? (
@@ -261,18 +271,7 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
                 aria-label="Exercise search results"
               />
             </ListContainer>
-          ) : !isLoading && (
-            <EmptyState>
-              {loadError ? (
-                <>
-                  {loadError} Check your connection.{' '}
-                  <RetryButton type="button" onClick={refresh}>
-                    Try again
-                  </RetryButton>
-                </>
-              ) : query.length >= 1 ? 'No exercises found. Try a different search.' : 'Start typing to search exercises...'}
-            </EmptyState>
-          )}
+          ) : libraryState === 'stale' ? null : renderNotice(libraryState)}
         </ListSide>
 
         {previewExercise && (
@@ -281,8 +280,13 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
       </SplitView>
 
       <StatusBar>
-        {filteredAllExercises.length} exercises
-        {query && ` - ${filteredResults.length} matching`}
+        <RolodexStatusText
+          catalogCount={filteredAllExercises.length}
+          resultCount={filteredResults.length}
+          query={query}
+          isSearching={isSearching}
+          hasPendingSearch={isSearching}
+        />
         {category && category !== 'All' && ` - ${category}`}
         {sectionContext && sectionContext !== 'main' && ` - ${sectionContext.replace('_', ' ')}`}
         {previewExercise && ` - previewing ${previewExercise.name}`}

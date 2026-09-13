@@ -1,0 +1,1333 @@
+{
+  "schemaVersion": 1,
+  "phase": "plan",
+  "ui": true,
+  "blockers": [],
+  "nextSlice": "S03-exercise-search-engine: Luna xhigh implements only eight admitted WorkoutLogger files per s03-architecture.md. Relocation is installed, migrated and enrolled; S01/S02 freshly tested. Explicit installed patch guard required; automatic native interception remains unproven. All thirty requirements and final combined Astra review remain in scope.",
+  "sections": {
+    "baseline": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/15-audit-findings-and-fix-register.md",
+          "sha256": "b7423725e35ccc2b0a99a4892c0c9ef16df05f3fe5f889bf8747bc66609898da"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/frontend-baseline-native.log",
+          "sha256": "a13f0214dfda7f1d4df0371c74a2202d76df0aea9ea1bcb45603f3a2a3a4b685"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-baseline.log",
+          "sha256": "b47600e0ad3e5c86ffdc6056c6f7b5ed87d953c41c2ac113c9ff9709548f51e6"
+        }
+      ]
+    },
+    "requirements": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        }
+      ]
+    },
+    "blueprint": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/17-isolated-luna-continuation.md",
+          "sha256": "fad4cdcaba053810a5e7d311c9747ad7e5ab360acd1bce0a2f68e4479e237d19"
+        }
+      ]
+    },
+    "flowchart": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/audit-diagrams.html",
+          "sha256": "ac67d17bbe041ffd18ad52a0b99b97787e6a6692c020063a9c7409c009b35632"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/preview-verification.json",
+          "sha256": "043c5031246d3e62384c03bf8782604447fab1fade8c6cfa423e6a7411f3f5ae"
+        }
+      ]
+    },
+    "contracts": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ]
+    },
+    "tests": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/red-vitest-root-native.log",
+          "sha256": "507a831936ff173da12e65a03b118a0c099eb6d89808b27993103889aa815446"
+        }
+      ]
+    },
+    "traceability": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/15-audit-findings-and-fix-register.md",
+          "sha256": "b7423725e35ccc2b0a99a4892c0c9ef16df05f3fe5f889bf8747bc66609898da"
+        }
+      ]
+    },
+    "slices": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ]
+    },
+    "review": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-audit.md",
+          "sha256": "6eb60dd076bd47bbace5962c2f4b29f1acad94b23a9539e7cb862ee948bc6415"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-boundaries.md",
+          "sha256": "53b4089803ef4eeb5ef6f7a630cd38d42194dbc2e385ddfc2007a9cd260fe321"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/frontend-audit.md",
+          "sha256": "c0e9db2617f0f0c70c04f782d501cf7074f3ee8aaab6ea3826f71b907c270b33"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/frontend-boundaries.md",
+          "sha256": "b25b610b872a5168577c8cbb6e8e26f7f05faff4112f1ff6626a04d8a4b7b8ef"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/16-approved-luna-build-and-blueprint-audit.md",
+          "sha256": "956ecc72cd355c3d460a4e58b5d10b251f3c0dbb536b7e74d0320b55f77670b5"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/b214f060bbec9038/native-coverage.json",
+          "sha256": "d7d01a9409d992040355279b98f780126aa070254e47763911025b6a3771a0c8"
+        },
+        {
+          "path": "tmp/workflow-compat-20260913/RESULTS.md",
+          "sha256": "4bf9b5cb32d66f92e61e0c5fe68841b0a897bbff321e12fb5ee14aaa0d1b0df9"
+        }
+      ]
+    },
+    "preservation": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/preservation.json",
+          "sha256": "60acec1fb4f4ad7bb4579e9073aa31dfabed474f115f402d4544682484a54eaf"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/package-manifest.json",
+          "sha256": "f69034117e9980b557a305c7b90ae621ecb5e1a814dc024089bf40add918ee39"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/acceptance-native-manifest.json",
+          "sha256": "b961bd743258ad5afdf64e22c2d3f6822cd5ef2cda2f6582652720b770fa7e9a"
+        }
+      ]
+    },
+    "wireframes": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/audit-repair-preview.html",
+          "sha256": "55b62f000e4243a4815dfa9a46d1f4c11a03e99009fee4a81ad15968a285b8af"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/preview-verification.json",
+          "sha256": "043c5031246d3e62384c03bf8782604447fab1fade8c6cfa423e6a7411f3f5ae"
+        }
+      ]
+    },
+    "state": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ]
+    },
+    "sequence": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        }
+      ]
+    },
+    "erd": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        }
+      ]
+    },
+    "permissions": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        }
+      ]
+    },
+    "privacy": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-boundaries.md",
+          "sha256": "53b4089803ef4eeb5ef6f7a630cd38d42194dbc2e385ddfc2007a9cd260fe321"
+        }
+      ]
+    },
+    "operations": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ]
+    }
+  },
+  "requirements": [
+    {
+      "id": "R-H01",
+      "acceptance": "Submitted child IDs cannot redirect any write to another trainer's template; invalid class has zero writes",
+      "tests": [
+        "H01",
+        "H01-H02-SERVER-RED",
+        "H01-H02-POSTGRES-RED"
+      ]
+    },
+    {
+      "id": "R-H02",
+      "acceptance": "A template's parent and every child persist atomically; full-group/station classes reload with original counts, ordering and board identity",
+      "tests": [
+        "H02",
+        "H01-H02-SERVER-RED",
+        "H01-H02-POSTGRES-RED"
+      ]
+    },
+    {
+      "id": "R-H03",
+      "acceptance": "Sprint generate, reconnect and regenerate check normalized IDs and caller ownership before headers, job lookup or writes",
+      "tests": [
+        "H03"
+      ]
+    },
+    {
+      "id": "R-H04",
+      "acceptance": "Only one generation claimant owns a sprint; failure releases only its own claim; taught confirmation and history linkage happen once",
+      "tests": [
+        "H04"
+      ]
+    },
+    {
+      "id": "R-H05",
+      "acceptance": "Slot regeneration preserves old data on failure; canonical exercise memory survives resume and uses ordinal week numbers",
+      "tests": [
+        "H05"
+      ]
+    },
+    {
+      "id": "R-H06",
+      "acceptance": "Calendar-only schedule dates are timezone-independent and every displayed format resolves to its actual structure",
+      "tests": [
+        "H06"
+      ]
+    },
+    {
+      "id": "R-H07",
+      "acceptance": "Existing pain targets match canonical primary and secondary muscle tokens; unrecognized severe-pain targets remain visible",
+      "tests": [
+        "H07"
+      ]
+    },
+    {
+      "id": "R-H08",
+      "acceptance": "Equipment constraints distinguish absent, verified-empty, available and unavailable profiles; all required resources are present, while explicit alternatives stay OR",
+      "tests": [
+        "H08"
+      ]
+    },
+    {
+      "id": "R-H09",
+      "acceptance": "Substitutions never reuse the source movement's demonstration, instructions or identity as proof of the replacement",
+      "tests": [
+        "H09"
+      ]
+    },
+    {
+      "id": "R-H10",
+      "acceptance": "Planner requests can only apply to their initiating client and draft generation; older same-client requests cannot win",
+      "tests": [
+        "H10"
+      ]
+    },
+    {
+      "id": "R-H11",
+      "acceptance": "Prescription data round-trips, including non-70 intensity, zero rest, notes, tempo, identifiers and known metadata",
+      "tests": [
+        "H11",
+        "S02-PRESCRIPTION"
+      ]
+    },
+    {
+      "id": "R-H12",
+      "acceptance": "Revision token stays paired to loaded content; 409/list refresh cannot authorize stale overwrite; activation does not clear dirty state",
+      "tests": [
+        "H12"
+      ]
+    },
+    {
+      "id": "R-H13",
+      "acceptance": "Delayed catalog loads and worker failure complete the latest search; all consumers expose failed/empty/filter-empty/retry distinctly",
+      "tests": [
+        "H13"
+      ]
+    },
+    {
+      "id": "R-H14",
+      "acceptance": "Failed or cancelled generation preserves prior draft; destructive structural change has confirm/undo; all persisted changes affect dirty state",
+      "tests": [
+        "H14"
+      ]
+    },
+    {
+      "id": "R-H15",
+      "acceptance": "Sprint HTTP errors, incomplete SSE, cancellation and route changes exit pending states without replaying generation POST",
+      "tests": [
+        "H15"
+      ]
+    },
+    {
+      "id": "R-H16",
+      "acceptance": "Floor PDF preserves main/alternative/low-impact board semantics, timing, rounds and one finisher occurrence",
+      "tests": [
+        "H16"
+      ]
+    },
+    {
+      "id": "R-H17",
+      "acceptance": "Sprint cards, slots and dialogs support keyboard activation, focus containment/restoration, Escape and named errors",
+      "tests": [
+        "H17"
+      ]
+    },
+    {
+      "id": "R-H18",
+      "acceptance": "Rolodex and save controls remain readable and usable across phone, desktop, QHD and 4K; missing media is concise and honest",
+      "tests": [
+        "H18"
+      ]
+    },
+    {
+      "id": "R-H19",
+      "acceptance": "Full-body count allocation does not drop the last movement families; registry respects stored movement patterns; rotation retains sessions",
+      "tests": [
+        "H19"
+      ]
+    },
+    {
+      "id": "R-H20",
+      "acceptance": "Progression and deload labels reflect actual prescribed data and never equate workload with impact eligibility",
+      "tests": [
+        "H20"
+      ]
+    },
+    {
+      "id": "R-H21",
+      "acceptance": "Blend preserves UUID identifiers; invalid/empty IDs fail before dispatch",
+      "tests": [
+        "H21",
+        "S01-UUID"
+      ]
+    },
+    {
+      "id": "R-H22",
+      "acceptance": "Next-action advice uses only client-plan facts actually loaded and does not assert another client's plan status from missing data",
+      "tests": [
+        "H22"
+      ]
+    },
+    {
+      "id": "R-H23",
+      "acceptance": "Run/Preflight navigation preserves the active class session; explicit restart is the only reset; pause reconciles elapsed deadlines",
+      "tests": [
+        "H23"
+      ]
+    },
+    {
+      "id": "R-H24",
+      "acceptance": "Late wake-lock acquisition is released after leaving Run; capability failures are visible; unmount clears all handles",
+      "tests": [
+        "H24"
+      ]
+    },
+    {
+      "id": "R-H25",
+      "acceptance": "Horizon rearrange/Undo checks the current content inside its state updater and cannot overwrite newer edits",
+      "tests": [
+        "H25"
+      ]
+    },
+    {
+      "id": "R-H26",
+      "acceptance": "Provider input uses validated enums, opaque exercise tokens and bounded nonidentifying decision facts; unsupported text never reaches dispatch",
+      "tests": [
+        "H26"
+      ]
+    },
+    {
+      "id": "R-H27",
+      "acceptance": "Timeout aborts a supported provider request; late results are discarded; unsupported cancellation is disclosed with bounded concurrency",
+      "tests": [
+        "H27"
+      ]
+    },
+    {
+      "id": "R-H28",
+      "acceptance": "Attendance writes one actually selected movement per slot, passes canonical validation, derives valid duration, and rolls back on failure",
+      "tests": [
+        "H28"
+      ]
+    },
+    {
+      "id": "R-H29",
+      "acceptance": "Retried taught-log requests share one stable operation identity and one history/attendance effect; prescribed and measured work stay distinct",
+      "tests": [
+        "H29"
+      ]
+    },
+    {
+      "id": "R-H30",
+      "acceptance": "Every acknowledged Bootcamp command option matches the accepted generation contract, or returns an explicit unsupported/invalid result",
+      "tests": [
+        "H30"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "H01",
+      "requirements": [
+        "R-H01"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H02",
+      "requirements": [
+        "R-H02"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H03",
+      "requirements": [
+        "R-H03"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H04",
+      "requirements": [
+        "R-H04"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H05",
+      "requirements": [
+        "R-H05"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H06",
+      "requirements": [
+        "R-H06"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H07",
+      "requirements": [
+        "R-H07"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H08",
+      "requirements": [
+        "R-H08"
+      ],
+      "command": "node frontend/node_modules/vitest/vitest.mjs run --config tmp/rolodex-audit-evidence/red/vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000",
+      "status": "EXPECTED RED",
+      "reason": "Actual equipment filter permits barbell+bench with only barbell and bodyweight+dumbbell with no dumbbell.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/red-vitest-root-native.log",
+          "sha256": "507a831936ff173da12e65a03b118a0c099eb6d89808b27993103889aa815446"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/red/source-hashes.json",
+          "sha256": "b63dc4282372c7ce938d714f0f3ff63ef092d4e5d8a481a14e6d17b02ea90cef"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H09",
+      "requirements": [
+        "R-H09"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H10",
+      "requirements": [
+        "R-H10"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H11",
+      "requirements": [
+        "R-H11"
+      ],
+      "command": "node frontend/node_modules/vitest/vitest.mjs run --config tmp/rolodex-audit-evidence/red/vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000",
+      "status": "EXPECTED RED",
+      "reason": "Actual plan serializer/hydration does not preserve explicit 83 percent intensity; legacy display text alone does not round-trip.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/red-vitest-root-native.log",
+          "sha256": "507a831936ff173da12e65a03b118a0c099eb6d89808b27993103889aa815446"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/red/source-hashes.json",
+          "sha256": "b63dc4282372c7ce938d714f0f3ff63ef092d4e5d8a481a14e6d17b02ea90cef"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H12",
+      "requirements": [
+        "R-H12"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H13",
+      "requirements": [
+        "R-H13"
+      ],
+      "command": "node frontend/node_modules/vitest/vitest.mjs run --config tmp/rolodex-audit-evidence/red/vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000",
+      "status": "EXPECTED RED",
+      "reason": "Actual search hook applies stale query results and remains searching after Worker error.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/red-vitest-root-native.log",
+          "sha256": "507a831936ff173da12e65a03b118a0c099eb6d89808b27993103889aa815446"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/red/source-hashes.json",
+          "sha256": "b63dc4282372c7ce938d714f0f3ff63ef092d4e5d8a481a14e6d17b02ea90cef"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H14",
+      "requirements": [
+        "R-H14"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H15",
+      "requirements": [
+        "R-H15"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H16",
+      "requirements": [
+        "R-H16"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H17",
+      "requirements": [
+        "R-H17"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H18",
+      "requirements": [
+        "R-H18"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H19",
+      "requirements": [
+        "R-H19"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H20",
+      "requirements": [
+        "R-H20"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H21",
+      "requirements": [
+        "R-H21"
+      ],
+      "command": "node frontend/node_modules/vitest/vitest.mjs run --config tmp/rolodex-audit-evidence/red/vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000",
+      "status": "EXPECTED RED",
+      "reason": "Actual BlendDialog request truncates UUIDs into 550 and 6.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/red-vitest-root-native.log",
+          "sha256": "507a831936ff173da12e65a03b118a0c099eb6d89808b27993103889aa815446"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/red/source-hashes.json",
+          "sha256": "b63dc4282372c7ce938d714f0f3ff63ef092d4e5d8a481a14e6d17b02ea90cef"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H22",
+      "requirements": [
+        "R-H22"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H23",
+      "requirements": [
+        "R-H23"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H24",
+      "requirements": [
+        "R-H24"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H25",
+      "requirements": [
+        "R-H25"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H26",
+      "requirements": [
+        "R-H26"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H27",
+      "requirements": [
+        "R-H27"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H28",
+      "requirements": [
+        "R-H28"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H29",
+      "requirements": [
+        "R-H29"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H30",
+      "requirements": [
+        "R-H30"
+      ],
+      "command": "Implement the requirement-linked fixtures and run the exact service/hook/browser commands in 13-server-repair-contract.md or 14-frontend-repair-contract.md; these future acceptance runs have not occurred.",
+      "status": "NOT RUN",
+      "reason": "Application repair has not started. Existing baselines and diagnostic probes do not satisfy this complete repair acceptance contract.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+          "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+          "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+          "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+        }
+      ],
+      "coverageNote": "This plan status never certifies the implementation. Expanded cases and real boundaries remain required per the detailed contract."
+    },
+    {
+      "id": "H01-H02-SERVER-RED",
+      "requirements": [
+        "R-H01",
+        "R-H02"
+      ],
+      "command": "NODE_ENV=test node backend/node_modules/vitest/vitest.mjs run --config tmp/rolodex-audit-evidence/server-red/vitest.config.mjs --pool forks --maxWorkers 1 --reporter verbose",
+      "status": "EXPECTED RED",
+      "reason": "Six service/read failures and three passing route controls. No setup errors. Service owns managed transaction; caller-owned transaction is passed through.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/server-red/RESULTS.md",
+          "sha256": "23336fb28febde41e0bce4697ff8a20e9cd8cb8120fb947dc8785a4562751a7d"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/server-red-vitest-native-corrected.log",
+          "sha256": "44720daea628e9d58e3a57e5ed751732fc38ad40165c018e85a8008bad407f06"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/server-red/server-source-hashes.json",
+          "sha256": "92e1494894cf977c3bf6d0a8003486f4da8ce8f90323f1a811e76e46b411fbe7"
+        }
+      ],
+      "coverageNote": "Synthetic model/database/auth edges; real service exports. Does not prove PostgreSQL rollback or full H01/H02 acceptance. Those checks remain required."
+    },
+    {
+      "id": "H01-H02-POSTGRES-RED",
+      "requirements": [
+        "R-H01",
+        "R-H02"
+      ],
+      "command": "NODE_ENV=test node backend/node_modules/vitest/vitest.mjs run --config tmp/rolodex-audit-evidence/server-red/vitest.config.mjs --pool forks --maxWorkers 1 --reporter verbose",
+      "status": "EXPECTED RED",
+      "reason": "Three real PostgreSQL behavioral failures; combined server run twelve tests: nine intended RED, three passing controls, no setup errors.",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/server-red/RESULTS.md",
+          "sha256": "23336fb28febde41e0bce4697ff8a20e9cd8cb8120fb947dc8785a4562751a7d"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/server-red-vitest-native-pg-only-final2.log",
+          "sha256": "8293841865c9399481b52a616a5dd9629f93bd7c2a0760799477f15d5e36f776"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/server-red-vitest-native-all-final.log",
+          "sha256": "46acec2e92822a65698e3f6ecd9d64c862ee9035e009541e64db6e6a41e1b4b8"
+        }
+      ],
+      "coverageNote": "Real CRUD and PostgreSQL transaction/FK boundary with synthetic accessors to fixture Sequelize models. Production models/config/migrations are not exercised. Schema cleanup and server shutdown verified."
+    },
+    {
+      "id": "S01-UUID",
+      "requirements": [
+        "R-H21"
+      ],
+      "command": "See exact fresh isolated test commands in relocation-green-summary.json; native Vitest focused plus planner directory and full TypeScript check",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/b214f060bbec9038/relocation-green-summary.json",
+          "sha256": "486cc2a5e069951ac74b72e150ff8f8efa93e6fae1e6d775157f0447246bf4c0"
+        }
+      ],
+      "coverageNote": "Current slice regression only. Original RED retained as baseline history. Full metadata, mounted UI/backend and final review remain separately pending."
+    },
+    {
+      "id": "S02-PRESCRIPTION",
+      "requirements": [
+        "R-H11"
+      ],
+      "command": "See exact fresh isolated test commands in relocation-green-summary.json; native Vitest focused plus planner directory and full TypeScript check",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/b214f060bbec9038/relocation-green-summary.json",
+          "sha256": "486cc2a5e069951ac74b72e150ff8f8efa93e6fae1e6d775157f0447246bf4c0"
+        }
+      ],
+      "coverageNote": "Current slice regression only. Original RED retained as baseline history. Full metadata, mounted UI/backend and final review remain separately pending."
+    }
+  ],
+  "truth": {
+    "applicationFilesChanged": 0,
+    "frontendBaselineTestsPassed": 627,
+    "backendBaselineTestsPassed": 369,
+    "redAssertionsFailed": 8,
+    "setupFailuresInFinalRedRun": 0,
+    "externalGlmReviewCalls": 0,
+    "nativeAuditAndDocumentationDispatches": 8,
+    "nativeMetadataEvidence": {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/native-metadata-preflight.json",
+      "sha256": "227fed9efa6cccc2e3f24e43b9acf6afbcd26bd080c02b2300b444c2c4691e81"
+    },
+    "deployed": false,
+    "correctedServerRedTests": 6,
+    "serverRouteControlsPassed": 3,
+    "correctedServerRedAssertions": 21,
+    "realPostgresRedTests": 3,
+    "isolatedTestServerStopped": true
+  },
+  "canonicalPacket": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/",
+  "supersedesReadiness": "Copied readiness-active.json remains preserved historical S01 plan readiness; readiness-relocated-s03.json is the current plan receipt for this isolated continuation.",
+  "currentWorktree": "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913",
+  "currentWorkflowState": ".mega-blueprints/artifacts/b214f060bbec9038/state-relocated.json",
+  "continuationEvidence": [
+    "s01-relocated-tests.json",
+    "s02-relocated-tests.json",
+    "relocation-green-summary.json",
+    "installed-relocation-hashes.json",
+    "relocation-focused-native-retrieved.json",
+    "relocation-infrastructure-report.json"
+  ]
+}

@@ -11,6 +11,7 @@ import type {
   PlanGoal,
   WorkoutCategory,
 } from './WorkoutPlannerTypes';
+import { decodeIntensityPrescription } from './workoutPlannerPrescription';
 
 export interface SavedWorkoutPlan {
   userId?: unknown;
@@ -112,24 +113,36 @@ export const hydrateLoadedPlanExercises = (
   exercises: unknown[],
 ): PlanExercise[] => exercises.map((rawExercise, index) => {
   const exercise = asRecord(rawExercise) || {};
+  const exerciseId = String(exercise.exerciseId ?? '');
+  const exerciseKey = String(exercise.exerciseKey ?? exerciseId);
+  const parsedSets = Number(exercise.sets);
+  const parsedRest = typeof exercise.restPeriod === 'number'
+    ? exercise.restPeriod
+    : typeof exercise.restPeriod === 'string' && exercise.restPeriod.trim() !== ''
+      ? Number(exercise.restPeriod)
+      : Number.NaN;
+  const prescription = decodeIntensityPrescription(
+    exercise.intensityPercent,
+    exercise.intensityGuideline,
+  );
 
   return {
     id: `loaded-${planId}-${index}-${Date.now()}`,
     exerciseSlim: {
-      id: String(exercise.exerciseId || ''),
-      name: String(exercise.exerciseName || exercise.name || 'Unknown'),
-      exerciseKey: String(exercise.exerciseId || ''),
+      id: exerciseId,
+      name: String(exercise.exerciseName ?? exercise.name ?? 'Unknown'),
+      exerciseKey,
       exerciseType: 'compound',
       bodyPartCategory: 'Full Body',
       primaryMuscles: [],
       difficulty: 300,
     },
-    sets: Number(exercise.sets) || 3,
-    reps: String(exercise.reps || exercise.repGoal || '8-12'),
-    tempo: String(exercise.tempo || ''),
-    restSeconds: typeof exercise.restPeriod === 'number' ? exercise.restPeriod : 60,
-    intensityPercent: 70,
-    notes: String(exercise.notes || ''),
+    sets: Number.isFinite(parsedSets) && parsedSets > 0 ? parsedSets : 3,
+    reps: String(exercise.reps ?? exercise.repGoal ?? '8-12'),
+    tempo: String(exercise.tempo ?? ''),
+    restSeconds: Number.isFinite(parsedRest) ? parsedRest : 60,
+    ...prescription,
+    notes: String(exercise.notes ?? ''),
   };
 });
 

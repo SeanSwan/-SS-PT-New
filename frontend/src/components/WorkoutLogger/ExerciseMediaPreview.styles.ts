@@ -6,7 +6,7 @@
  * WorkoutLogger Crystalline Swan token bridge so trainer/client surfaces stay
  * visually aligned without introducing local palettes.
  */
-import styled from 'styled-components';
+import styled, { css } from 'styled-components';
 import { CS, withAlpha } from './WorkoutLoggerCS';
 
 export const MediaFrame = styled.div`
@@ -38,7 +38,22 @@ export const MediaImage = styled.img`
   object-fit: cover;
 `;
 
-export const FallbackPreview = styled.div`
+/**
+ * H18 compact media: the thumbnail variant drops the large decorative swan
+ * shape and the two-line guidance copy so a row-height slot can carry a
+ * single readable "No demo" label. Frame geometry (16/9 MediaFrame) is
+ * unchanged, so rows do not reflow between media states.
+ */
+const compactFallback = css`
+  gap: 0;
+  padding: 4px;
+
+  &::before {
+    content: none;
+  }
+`;
+
+export const FallbackPreview = styled.div<{ $compact?: boolean }>`
   display: grid;
   place-items: center;
   gap: 6px;
@@ -58,6 +73,18 @@ export const FallbackPreview = styled.div`
       ${CS.tertiary};
     box-shadow: 0 0 22px ${withAlpha(CS.glow, 0.22)};
   }
+
+  ${({ $compact }) => ($compact ? compactFallback : '')}
+`;
+
+export const FallbackCompactLabel = styled.div`
+  color: ${CS.textSecondary};
+  font-family: 'Sora', sans-serif;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-align: center;
 `;
 
 export const FallbackTitle = styled.div`

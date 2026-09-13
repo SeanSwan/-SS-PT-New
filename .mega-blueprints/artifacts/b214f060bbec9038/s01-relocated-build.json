@@ -1,0 +1,11 @@
+{
+  "effort": "xhigh",
+  "actor": "gpt-5.6-luna",
+  "toolEvidence": {
+    "path": ".mega-blueprints/artifacts/b214f060bbec9038/luna-copy-verification.json",
+    "sha256": "9d4a9c30fd154cf4af2abd91f363893cbd67dbb3e0d0e23e398ea074e912f00d"
+  },
+  "status": "complete",
+  "summary": "Actual Luna acceptance_regressions built S01, then copied its exact two verified files into the independent checkout and reran the fresh test suite. Root inspected hashes and native outputs. This records preserved implementation and new verification, not a new implementation or approval.",
+  "digest": "5915403486d233cdb3f458c4d5678fca1ab3ff39401dad5ac6763a01f3465e51"
+}

@@ -1,0 +1,9 @@
+{
+  "stateSha256": "93a9e7becbda69c92a02e4fa957f2c100a27d3b32dd020ccf30139b1bafd7f26",
+  "status": "paused",
+  "active": "S03-exercise-search-engine",
+  "calls": 8,
+  "cap": 12,
+  "inFlight": null,
+  "sourceFileCount": 10
+}

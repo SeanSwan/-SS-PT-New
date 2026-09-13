@@ -14,7 +14,6 @@
 import React from 'react';
 import { List } from 'react-window';
 import { Search, SlidersHorizontal } from 'lucide-react';
-import styled from 'styled-components';
 import {
   BODY_PARTS, EQUIPMENT_FILTERS, EXERCISE_TYPES, IMPACT_LEVELS, SOURCE_FILTERS,
 } from './WorkoutPlannerFilters';
@@ -22,8 +21,16 @@ import {
   Chip, ChipRow, ClearFiltersButton, Panel, PanelHeader, PanelTitle,
   SearchInput, SearchWrapper,
 } from './WorkoutPlannerStyles';
+import {
+  ActiveChipsRow, FacetLabel, FacetSheet, FiltersButton, HeaderActions,
+  PlanTabList, TabChip, TabRow, UndoToast,
+} from './WorkoutPlannerRolodexPanelV2.styles';
 import { ExerciseListPane, ResultsCount } from './WorkoutPlannerPage.styles';
-import { PlannerEmpty, PlannerSkeleton } from './PlannerStateViews';
+import { PlannerEmpty, PlannerError, PlannerSkeleton } from './PlannerStateViews';
+import {
+  LIBRARY_COPY,
+  resolveLibraryState,
+} from '../../../WorkoutLogger/exerciseSearchLibraryState';
 import { usePlannerData } from './plannerContexts/PlannerDataContext';
 import { usePlannerActions } from './plannerContexts/PlannerActionsContext';
 
@@ -31,69 +38,6 @@ const ROW_HEIGHT = 156;
 const LIST_STYLE = { overflowX: 'hidden' as const };
 const SEARCH_DEBOUNCE_MS = 150;
 const UNDO_WINDOW_MS = 5000;
-
-const HeaderActions = styled.div` display: flex; align-items: center; gap: 8px; `;
-
-const FiltersButton = styled.button`
-  min-height: 44px; padding: 0 12px; border-radius: 10px; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid var(--world-border, rgba(96, 192, 240, 0.15));
-  background: transparent; color: var(--world-text, var(--text-primary, #E0ECF4));
-  font-family: 'Sora', sans-serif; font-size: 0.78rem; font-weight: 800;
-  &:focus-visible { outline: 2px solid var(--accent-glow, #8B5CF6); outline-offset: 2px; }
-`;
-
-const TabRow = styled.div`
-  display: flex; gap: 6px; padding: 0 12px 8px;
-`;
-
-const TabChip = styled.button<{ $active: boolean }>`
-  min-height: 44px; padding: 0 14px; border-radius: 999px; cursor: pointer;
-  border: 1px solid var(--world-border, rgba(96, 192, 240, 0.15));
-  background: ${({ $active }) => ($active
-    ? 'color-mix(in srgb, var(--world-accent, var(--accent-primary, #60C0F0)) 16%, transparent)' : 'transparent')};
-  color: var(--world-text, var(--text-primary, #E0ECF4));
-  font-family: 'Sora', sans-serif; font-size: 0.76rem; font-weight: 800;
-  &:focus-visible { outline: 2px solid var(--accent-glow, #8B5CF6); outline-offset: 2px; }
-`;
-
-const FacetSheet = styled.div`
-  display: flex; flex-direction: column; gap: 10px; padding: 10px 12px;
-  border-bottom: 1px solid var(--world-border, rgba(96, 192, 240, 0.15));
-`;
-
-const FacetLabel = styled.p`
-  margin: 0; font-family: 'Sora', sans-serif; font-size: 0.72rem; font-weight: 800;
-  color: var(--world-text-dim, var(--text-secondary, #9fb3c8));
-`;
-
-const ActiveChipsRow = styled.div` display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 8px; `;
-
-const UndoToast = styled.div`
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  margin: 8px 12px; padding: 8px 12px; border-radius: 10px;
-  background: var(--world-surface-raised, var(--card-dark, #141419));
-  border: 1px solid var(--world-border, rgba(96, 192, 240, 0.15));
-  color: var(--world-text, var(--text-primary, #E0ECF4));
-  font-family: 'Sora', sans-serif; font-size: 0.78rem;
-  button {
-    min-height: 44px; padding: 0 14px; border-radius: 8px; cursor: pointer;
-    border: none; background: var(--btn-primary-bg, #002060);
-    color: var(--world-text, var(--text-primary, #E0ECF4)); font-weight: 800;
-    &:focus-visible { outline: 2px solid var(--accent-glow, #8B5CF6); outline-offset: 2px; }
-  }
-`;
-
-const PlanTabList = styled.ul`
-  margin: 0; padding: 8px 12px; list-style: none; display: flex; flex-direction: column; gap: 6px;
-  li {
-    display: flex; justify-content: space-between; gap: 10px; min-height: 44px; align-items: center;
-    padding: 0 10px; border-radius: 10px;
-    border: 1px solid var(--world-border, rgba(96, 192, 240, 0.15));
-    color: var(--world-text, var(--text-primary, #E0ECF4));
-    font-family: 'Sora', sans-serif; font-size: 0.78rem;
-  }
-`;
 
 interface Facet {
   label: string; options: readonly string[]; allValue: string;
@@ -107,8 +51,17 @@ const WorkoutPlannerRolodexPanelV2: React.FC = () => {
     filteredExerciseCount, activeFilterCount, exercisesLoading, searchQuery,
     filterCategory, sourceFilter, exerciseTypeFilter, equipmentFilter, impactFilter,
     exerciseRowRenderer,
+    exercisesLoadState, exercisesLoadError, exercisesRefreshError,
+    exerciseCatalogCount, exercisesSearching, refreshExercises,
   } = data.rolodex;
   const { planExercises, generatedPlan } = data.local;
+
+  const libraryState = resolveLibraryState({
+    loadState: exercisesLoadState,
+    isLoading: exercisesLoading,
+    catalogCount: exerciseCatalogCount ?? filteredExerciseCount,
+    resultCount: filteredExerciseCount,
+  });
 
   const [tab, setTab] = React.useState<'library' | 'plan'>('library');
   const [facetsOpen, setFacetsOpen] = React.useState(false);
@@ -137,8 +90,27 @@ const WorkoutPlannerRolodexPanelV2: React.FC = () => {
   React.useEffect(() => {
     const known = knownIdsRef.current;
     const added = planExercises.filter(row => !known.has(row.id));
-    knownIdsRef.current = new Set(planExercises.map(row => row.id));
-    if (added.length !== 1) return undefined; // bulk hydrations are not taps
+    const currentIds = new Set(planExercises.map(row => row.id));
+    // A TAP only ever appends. A replacement (plan hydration, AI apply) drops
+    // rows — so "one new id" alone cannot distinguish the two (review finding 9).
+    const droppedRows = [...known].some((id) => !currentIds.has(id));
+    knownIdsRef.current = currentIds;
+
+    if (added.length !== 1 || droppedRows) {
+      // REVIEW FIX (F6): the previous run's cleanup has ALREADY cancelled that
+      // run's timer, so returning early without touching `undoTarget` left a
+      // standing toast with nothing able to dismiss it — and it has no close
+      // button. Any non-tap change therefore retires the offer.
+      //
+      // In scope here: bulk hydration, a removal, a reorder, an in-place edit
+      // (same ids, new array identity → added 0), and a plan REPLACEMENT.
+      // NOT resolved: `[] -> [X]` — a one-row plan load is indistinguishable
+      // from a tap by array diffing alone, so it still arms an offer whose Undo
+      // would remove a row the trainer never added. Closing that needs the add
+      // to be signalled explicitly rather than inferred (recorded open).
+      setUndoTarget(null);
+      return undefined;
+    }
     setUndoTarget({ id: added[0].id, name: added[0].exerciseSlim.name });
     const handle = window.setTimeout(() => setUndoTarget(null), UNDO_WINDOW_MS);
     return () => window.clearTimeout(handle);
@@ -160,7 +132,9 @@ const WorkoutPlannerRolodexPanelV2: React.FC = () => {
       <PanelHeader>
         <PanelTitle><Search size={16} /> Exercise Rolodex</PanelTitle>
         <HeaderActions>
-          <ResultsCount>{filteredExerciseCount} results</ResultsCount>
+          <ResultsCount aria-busy={exercisesSearching} data-testid="planner-rolodex-v2-count">
+            {exercisesSearching ? LIBRARY_COPY.searchPending : `${filteredExerciseCount} results`}
+          </ResultsCount>
           <FiltersButton
             type="button"
             aria-expanded={facetsOpen}
@@ -251,15 +225,42 @@ const WorkoutPlannerRolodexPanelV2: React.FC = () => {
         )
       ) : (
         <ExerciseListPane>
-          {exercisesLoading ? (
-            <PlannerSkeleton variant="list" />
-          ) : filteredExerciseCount === 0 ? (
+          {/* A failed refresh must stay visible even though cached rows render.
+              PlannerStateViews has no disabled variant, so retry is withheld
+              (undefined) while a fetch is in flight: it can never double-fire. */}
+          {libraryState === 'stale' && (
             <PlannerEmpty
-              title={activeFilterCount > 0 ? 'No exercises match this training stack.' : 'No exercises available yet.'}
-              actionLabel={activeFilterCount > 0 ? 'Clear filters' : undefined}
+              title={LIBRARY_COPY.staleTitle}
+              body={exercisesRefreshError || LIBRARY_COPY.staleBody}
+              actionLabel={exercisesLoading ? undefined : LIBRARY_COPY.retry}
+              onAction={exercisesLoading ? undefined : refreshExercises}
+            />
+          )}
+
+          {libraryState === 'loading' ? (
+            <PlannerSkeleton variant="list" />
+          ) : libraryState === 'error' ? (
+            <PlannerError
+              message={exercisesLoadError || 'The exercise library failed to load.'}
+              onRetry={exercisesLoading ? undefined : refreshExercises}
+            />
+          ) : libraryState === 'empty-catalog' ? (
+            <PlannerEmpty
+              title={LIBRARY_COPY.emptyCatalogTitle}
+              body={LIBRARY_COPY.emptyCatalogBody}
+              actionLabel={exercisesLoading ? undefined : LIBRARY_COPY.retry}
+              onAction={exercisesLoading ? undefined : refreshExercises}
+            />
+          ) : libraryState === 'filter-empty' ? (
+            <PlannerEmpty
+              title="No exercises match this training stack."
+              body={LIBRARY_COPY.filterEmptyBody}
+              actionLabel={activeFilterCount > 0 ? LIBRARY_COPY.clearFilters : undefined}
               onAction={activeFilterCount > 0 ? act.rolodex.clearRolodexFilters : undefined}
             />
           ) : (
+            // `stale` deliberately falls through to the list: a usable cache
+            // keeps its rows and the notice above discloses the failure.
             React.createElement(List, {
               defaultHeight: 520,
               rowComponent: exerciseRowRenderer,

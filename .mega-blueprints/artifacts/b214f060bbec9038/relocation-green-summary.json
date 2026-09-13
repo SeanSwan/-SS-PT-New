@@ -1,0 +1,93 @@
+{
+  "generatedAt": "2026-09-13T06:35:06.5616940Z",
+  "worktree": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913",
+  "branch": "codex/rolodex-luna-01a098de",
+  "head": "c0cbe538d8ed2ca519bb494cdf3282bf43b76699",
+  "sourceChanges": "NONE",
+  "packageChanges": "NONE",
+  "configChanges": "NONE",
+  "migrationOrEnrollment": "NOT RUN",
+  "sandboxAttempt": {
+    "status": "BLOCKED",
+    "classification": "setup/environment only",
+    "command": "sandbox S01 Vitest startup with vitest.config.ts",
+    "reason": "Windows spawn EPERM while Vite bundled the config",
+    "log": "relocation-green-s01-blend.log",
+    "sha256": "3b629c37836b24a541ceed20d6e77104deb479ec40513a1d2428bea3482dfc00"
+  },
+  "results": [
+    {
+      "id": "S01-blend",
+      "status": "PASS",
+      "command": "cd frontend; node node_modules/vitest/vitest.mjs run --config vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.test.tsx",
+      "testFiles": 1,
+      "tests": 7,
+      "log": "relocation-green-s01-blend-native.log"
+    },
+    {
+      "id": "S01-uuid-standalone",
+      "status": "PASS",
+      "command": "cd root; node frontend/node_modules/vitest/vitest.mjs run --config tmp/rolodex-audit-evidence/red/vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 tmp/rolodex-audit-evidence/red/blend-dialog-uuid.red.test.tsx",
+      "testFiles": 1,
+      "tests": 1,
+      "log": "relocation-green-s01-uuid-acceptance-native.log"
+    },
+    {
+      "id": "S02-prescription",
+      "status": "PASS",
+      "command": "cd frontend; node node_modules/vitest/vitest.mjs run --config vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.test.ts src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.prescription.test.tsx",
+      "testFiles": 2,
+      "tests": 26,
+      "log": "relocation-green-s02-prescription-native.log"
+    },
+    {
+      "id": "planner-directory",
+      "status": "PASS",
+      "command": "cd frontend; node node_modules/vitest/vitest.mjs run --config vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 src/components/DashBoard/Pages/admin-workout-planner",
+      "testFiles": 87,
+      "tests": 448,
+      "log": "relocation-green-planner-directory-native.log"
+    },
+    {
+      "id": "frontend-typecheck-12gb",
+      "status": "PASS",
+      "command": "cd frontend; node --max-old-space-size=12288 node_modules/typescript/bin/tsc --noEmit --pretty false",
+      "testFiles": 0,
+      "tests": 0,
+      "log": "relocation-green-typecheck-12gb.log"
+    }
+  ],
+  "logs": [
+    {
+      "file": "relocation-green-s01-blend-native.log",
+      "bytes": 1610,
+      "sha256": "e02b63a769bebd7e77a47aebb5c32a77aa483b58503c4af99a049ae708015971"
+    },
+    {
+      "file": "relocation-green-s01-uuid-acceptance-native.log",
+      "bytes": 477,
+      "sha256": "b0282b57a1574a402fe73778a9f0b21c36e89af28c2dcac88b33a2f5ca6525e0"
+    },
+    {
+      "file": "relocation-green-s02-prescription-native.log",
+      "bytes": 6323,
+      "sha256": "b7a27bf763d40ab56f83d993c1eca34fafe5591f2d9433faaca45a6299086431"
+    },
+    {
+      "file": "relocation-green-planner-directory-native.log",
+      "bytes": 94398,
+      "sha256": "0e04adce26aa3d180ff611bd18e48bec07440603f5920dca4d8e8a6fb3ad837f"
+    },
+    {
+      "file": "relocation-green-typecheck-12gb.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "dependencySmoke": "frontend npm ci offline PASS; TypeScript 5.9.3; Vitest 4.1.10; local @swan links target this checkout",
+  "limitations": [
+    "Native escalation was required for Vitest due sandbox spawn EPERM",
+    "No browser/production build/provider/network/database validation performed",
+    "Root will sync newly added s06-architecture.md and execution-ledger tail separately"
+  ]
+}

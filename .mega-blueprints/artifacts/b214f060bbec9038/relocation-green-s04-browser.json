@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-09-13T06:38:38.0925489Z",
+  "worktree": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913",
+  "dependencyRuntime": {
+    "playwrightVersion": "1.58.2",
+    "playwrightTestVersion": "1.58.2",
+    "chromiumExecutablePath": "C:\\Users\\BigotSmasher\\AppData\\Local\\ms-playwright\\chromium-1208\\chrome-win64\\chrome.exe",
+    "chromiumExecutableExists": true,
+    "knownInstalledBrowsers": [
+      {
+        "path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+        "exists": true,
+        "version": "153.0.8010.36"
+      },
+      {
+        "path": "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+        "exists": false,
+        "version": null
+      },
+      {
+        "path": "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+        "exists": false,
+        "version": null
+      },
+      {
+        "path": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+        "exists": true,
+        "version": "138.0.3351.83"
+      }
+    ]
+  },
+  "freshSyntheticProbe": {
+    "status": "PASS",
+    "url": "about:blank",
+    "title": "",
+    "bodyCount": 1,
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "connectedBefore": true,
+    "connectedAfter": false,
+    "contextsAfter": 0,
+    "screenshotPath": ".mega-blueprints\\artifacts\\b214f060bbec9038\\relocation-s04-browser-about-blank.png",
+    "screenshotBytes": 4253,
+    "screenshotSha256": "27abb4affaed83ae85739b62b71e5e860d2e6ee7b4fa91c915f5a3c26227b944",
+    "nativeLog": "relocation-green-s04-browser-native.log",
+    "nativeLogSha256": "2302320377f3773f4936761f861002d0ff7899e8315a3363c3c648dcbff7c093"
+  },
+  "sandboxAttempt": {
+    "status": "BLOCKED",
+    "classification": "setup/environment only",
+    "reason": "Windows spawn EPERM",
+    "log": "relocation-green-s04-browser-sandbox.log",
+    "logSha256": "0fd4c216e65506cd37dfba9f062e0af394179c3194041e42743bdcfbbb8235a4"
+  },
+  "processClosure": {
+    "browserConnectedAfterClose": false,
+    "contextsAfterClose": 0,
+    "closureVerified": true
+  },
+  "boundaries": [
+    "about:blank only; no production URL or network/provider call",
+    "fresh Playwright context only; no stored or global browser profile access",
+    "no download/install performed",
+    "no application source/package/config/state changes"
+  ]
+}

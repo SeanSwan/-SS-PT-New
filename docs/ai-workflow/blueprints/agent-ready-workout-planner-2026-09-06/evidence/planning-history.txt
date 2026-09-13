@@ -1,0 +1,5 @@
+7792031e03 feat(workout-os): C5 data convergence — legacy WorkoutExercise/Set writes FROZEN, dead controller deleted, drift probe added
+61466082e3 feat(workout-os): C2 set-state calm-down + billing-matrix gate artifact
+6f014e8f0c docs(workout-os): §13 pre-build hostile review — C3 rescoped onto live handoff module, gates re-verified on current main
+1ba864ff9a docs(workout-os): Fable blueprint + Kimi review + Kimi independent plan + combined final build plan
+41f75840c1 docs(workout-os): Fable blueprint + Kimi review + Kimi independent plan + combined final build plan

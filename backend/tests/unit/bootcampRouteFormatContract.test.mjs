@@ -40,6 +40,17 @@ describe('bootcamp route format contract', () => {
     expect(spaceUpdateRoute).not.toContain('error: err.message');
     expect(trendApproveRoute).not.toContain('error: err.message');
   });
+
+  it('does not keep a THIRD hand-maintained copy of the class vocabularies (R2-12)', () => {
+    // The model ENUMs and bootcampTemplateRules are the sources of truth. The
+    // route previously listed all twelve styles and all six intensity members
+    // inline as a third copy, which no drift test covered.
+    expect(routeSource).toContain("from '../services/bootcamp/bootcampTemplateRules.mjs'");
+    expect(routeSource).toContain('const VALID_STYLES = CLASS_STYLES;');
+    expect(routeSource).toContain('const VALID_INTENSITIES = INTENSITY_CATEGORIES;');
+    expect(routeSource).not.toContain("'high_impact', 'medium_impact'");
+    expect(routeSource).not.toContain("'death_by',");
+  });
 });
 
 describe('bootcamp log route contract (Slice 0.2)', () => {

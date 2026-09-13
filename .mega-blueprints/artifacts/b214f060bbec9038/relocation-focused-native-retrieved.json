@@ -1,0 +1,16 @@
+{
+  "sourceThreadId": "01a0990b-da84-7b53-b107-613cf9f2198d",
+  "nativeToolResult": {
+    "type": "commandExecution",
+    "id": "exec-288c71cf-9ff3-4961-8578-cdeb82be8dbc",
+    "command": "\"C:\\\\Users\\\\BigotSmasher\\\\.cache\\\\codex-runtimes\\\\codex-primary-runtime\\\\dependencies\\\\native\\\\powershell\\\\pwsh.exe\" -Command \"node --test .\\\\tmp\\\\workflow-isolation-20260913\\\\vendor\\\\workflow-isolation.test.mjs\"",
+    "cwd": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-bootcamp-planner-20260913",
+    "status": "completed",
+    "exitCode": 0,
+    "durationMs": 18603,
+    "output": {
+      "text": "✔ schema4 relocation accepts a real sibling worktree and preserves predecessor bytes (1642.4111ms)\n✔ relocation validates predecessor accounting from destination-preserved evidence (1497.9242ms)\n✔ relocation enrollment replaces the same-session record and confines writes to the destination (4917.6756ms)\n✔ relocation rejects a changed predecessor, duplicate or oversized history, and dropped plan scope (3152.5875ms)\n✔ relocation rejects destination parent aliases before reading outside-root bytes (1571.7ms)\n✔ Git identity ignores location environment overrides and rejects a mismatched common directory (1378.3676ms)\n✔ Git identity rejects a copied linked-worktree gitfile that is not registered (947.985ms)\n✔ Git identity rejects a registered worktree with a mismatched reverse backlink (1079.9078ms)\n✔ migrate --check validates relocation without creating a destination state (1767.5975ms)\nℹ tests 9\nℹ suites 0\nℹ pass 9\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 18035.6477\n",
+      "truncated": false
+    }
+  }
+}

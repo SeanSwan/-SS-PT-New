@@ -13,22 +13,17 @@ import {
   BOOTCAMP_STATION_COUNT_OPTIONS,
 } from './BootcampBuilderConstants';
 import ExerciseRolodexList from './ExerciseRolodexList';
+import ExerciseRolodexFilterSection from './ExerciseRolodexPanel.filters';
 import {
   BODY_PARTS,
-  EQUIPMENT_FILTERS,
-  EXERCISE_TYPES,
   getJointImpact,
-  IMPACT_LEVELS,
   parseEquipment,
-  SOURCE_FILTERS,
 } from './ExerciseRolodexPanel.constants';
 import {
   Chip,
   ChipRow,
   ClearSearchButton,
   EquipmentPickerWrap,
-  FilterSection,
-  FilterToggle,
   FormatInfoBar,
   FormatSelect,
   IconSlot,
@@ -41,6 +36,8 @@ import {
 } from './ExerciseRolodexPanel.styles';
 
 export interface RolodexExercise extends ExerciseSlim {}
+
+import { resolveLibraryState } from '../WorkoutLogger/exerciseSearchLibraryState';
 
 interface ExerciseRolodexPanelProps {
   onAddExercise: (exercise: RolodexExercise, stationIndex?: number) => void;
@@ -76,7 +73,13 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
   const { getProfile } = useEquipmentAPI();
   const {
     results: exerciseResults,
+    allExercises,
     isLoading,
+    isSearching,
+    loadState,
+    loadError,
+    refreshError,
+    refresh,
     setQuery,
     setCategory,
     query: searchQuery,
@@ -154,6 +157,17 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
   const handleSelectExercise = useCallback((exercise: ExerciseSlim) => {
     onSelectExercise?.(exercise as RolodexExercise);
   }, [onSelectExercise]);
+
+  // Recovery action for "no exercises match current filters" — clears filters
+  // only. It never adds an exercise or mutates the class draft.
+  const handleClearRolodexFilters = useCallback(() => {
+    setQuery('');
+    setCategory(null);
+    setSourceFilter(null);
+    setExerciseTypeFilter(null);
+    setEquipmentFilter(null);
+    setImpactFilter(null);
+  }, [setQuery, setCategory]);
 
   return (
     <PanelWrap>
@@ -233,44 +247,35 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
         ))}
       </ChipRow>
 
-      <FilterToggle $open={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)} type="button">
-        {filtersOpen ? 'Hide Filters' : 'More Filters'}{activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ''}
-      </FilterToggle>
-
-      <FilterSection $open={filtersOpen}>
-        <ChipRow>
-          {SOURCE_FILTERS.map((source) => (
-            <Chip key={source} $active={sourceFilter === null ? source === 'All Programs' : sourceFilter === source.toLowerCase()} onClick={() => setSourceFilter(source === 'All Programs' ? null : source.toLowerCase())} type="button">
-              {source}
-            </Chip>
-          ))}
-        </ChipRow>
-        <ChipRow>
-          {EXERCISE_TYPES.map((type) => (
-            <Chip key={type} $active={exerciseTypeFilter === null ? type === 'All Types' : exerciseTypeFilter === type.toLowerCase()} onClick={() => setExerciseTypeFilter(type === 'All Types' ? null : type.toLowerCase())} type="button">
-              {type}
-            </Chip>
-          ))}
-        </ChipRow>
-        <ChipRow>
-          {EQUIPMENT_FILTERS.map((equipment) => (
-            <Chip key={equipment} $active={equipmentFilter === null ? equipment === 'All Equipment' : equipmentFilter === equipment.toLowerCase()} onClick={() => setEquipmentFilter(equipment === 'All Equipment' ? null : equipment.toLowerCase())} type="button">
-              {equipment}
-            </Chip>
-          ))}
-        </ChipRow>
-        <ChipRow>
-          {IMPACT_LEVELS.map((impact) => (
-            <Chip key={impact} $active={impactFilter === null ? impact === 'All Impact' : impactFilter === impact} onClick={() => setImpactFilter(impact === 'All Impact' ? null : impact)} type="button">
-              {impact}
-            </Chip>
-          ))}
-        </ChipRow>
-      </FilterSection>
+      <ExerciseRolodexFilterSection
+        filtersOpen={filtersOpen}
+        activeFilterCount={activeFilterCount}
+        sourceFilter={sourceFilter}
+        exerciseTypeFilter={exerciseTypeFilter}
+        equipmentFilter={equipmentFilter}
+        impactFilter={impactFilter}
+        onToggle={() => setFiltersOpen(!filtersOpen)}
+        onSourceFilterChange={setSourceFilter}
+        onExerciseTypeFilterChange={setExerciseTypeFilter}
+        onEquipmentFilterChange={setEquipmentFilter}
+        onImpactFilterChange={setImpactFilter}
+      />
 
       <ExerciseRolodexList
         exercises={filteredExercises}
         isLoading={isLoading}
+        isSearching={isSearching}
+        libraryState={resolveLibraryState({
+          loadState,
+          isLoading,
+          catalogCount: allExercises.length,
+          resultCount: filteredExercises.length,
+        })}
+        loadError={loadError}
+        refreshError={refreshError}
+        onRetry={refresh}
+        hasActiveFilters={activeFilterCount > 0 || Boolean(searchQuery)}
+        onClearFilters={handleClearRolodexFilters}
         selectedId={selectedId}
         onAddExercise={handleAddExercise}
         onSelectExercise={handleSelectExercise}

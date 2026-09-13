@@ -6,6 +6,8 @@ export const exportBootcampTemplatePDF = (bootcamp: GeneratedBootcamp) => export
   classFormat: bootcamp.classFormat,
   dayType: bootcamp.dayType,
   stationCount: bootcamp.stationCount,
+  rounds: bootcamp.rounds ?? null,
+  exercisesPerStation: bootcamp.exercisesPerStation ?? null,
   targetDuration: bootcamp.targetDuration,
   totalWorkoutMin: bootcamp.totalWorkoutMin,
   totalClassMin: bootcamp.totalClassMin,

@@ -21,6 +21,18 @@ import sequelize from '../database.mjs';
 import eventBus from '../services/eventBus.mjs';
 import { protect, authorize } from '../middleware/auth.mjs';
 import { FORMAT_CONFIG } from '../services/bootcamp/bootcampConstants.mjs';
+// H29b: the reserved Sprint-confirmation key prefix, imported rather than re-typed so the
+// reservation cannot drift from the key the confirmation actually mints.
+import { SPRINT_SLOT_PREFIX } from '../services/bootcamp/bootcampTaughtIdentity.mjs';
+// The same vocabulary tables the save contract enforces (R2-12).
+import {
+  CLASS_STYLES,
+  INTENSITY_CATEGORIES,
+} from '../services/bootcamp/bootcampTemplateRules.mjs';
+// §5 line 222's vocabulary has its own module (the rules module is at the rule-4 cap), and it
+// is imported ONCE: an earlier version left a second import of the same binding here, which is
+// a duplicate declaration — the route module did not parse at all.
+import { isTrainerAttestedSummary } from '../services/bootcamp/bootcampExecutionSummary.mjs';
 import {
   generateBootcampClass,
   saveBootcampTemplate,
@@ -45,11 +57,26 @@ const VALID_FORMATS = Object.freeze(Object.keys(FORMAT_CONFIG));
 const VALID_DAY_TYPES = ['lower_body', 'upper_body', 'cardio', 'full_body', 'custom'];
 const NOT_FOUND_PATTERN = /not found/i;
 
+// 409 is included for H29: contract §5 line 303 specifies "changed request 409" when an
+// operation key is reused with a different payload. Widening the bound is safe because
+// exposure is still OPT-IN — a service must also set `exposeToClient`, and the message is
+// authored by us, not by a driver or provider.
+const CLIENT_SAFE_STATUSES = new Set([400, 403, 404, 409]);
+
 const getBootcampRouteErrorResponse = (
   err = {},
   notFoundError = 'Resource not found',
   fallbackError = 'Request failed'
 ) => {
+  // Exposure is OPT-IN and status-bounded: a service must set BOTH
+  // `exposeToClient` and a 4xx status before its own message reaches the
+  // client. Anything else — including an unexpected 5xx whose message may carry
+  // driver or credential detail — is reported with the caller's generic text.
+  if (err && err.exposeToClient === true && CLIENT_SAFE_STATUSES.has(err.status)
+      && typeof err.message === 'string' && err.message) {
+    return { status: err.status, error: err.message };
+  }
+
   if (NOT_FOUND_PATTERN.test(String(err.message || ''))) {
     return { status: 404, error: notFoundError };
   }
@@ -68,21 +95,11 @@ router.post('/generate', async (req, res) => {
       name, includeStretch, stretchDurationMin, exclusionKeys,
     } = req.body;
 
-    const VALID_STYLES = [
-      'standard',
-      'pyramid',
-      'superset',
-      'mixed',
-      'ladder',
-      'descending',
-      'chipper',
-      'countdown',
-      'death_by',
-      'ygig',
-      'contrast',
-      'density',
-    ];
-    const VALID_INTENSITIES = ['high_impact', 'medium_impact', 'calisthenics', 'stability', 'flexibility', 'cardio'];
+    // R2-12: these were a THIRD hand-maintained copy of the two vocabularies,
+    // alongside the model ENUMs and bootcampTemplateRules. Unlocked copies drift,
+    // so the route now reads the same tables the save contract enforces.
+    const VALID_STYLES = CLASS_STYLES;
+    const VALID_INTENSITIES = INTENSITY_CATEGORIES;
 
     const hasCustomStructure = stationCount != null || exercisesPerStation != null;
     const safeFormat = VALID_FORMATS.includes(classFormat) ? classFormat : hasCustomStructure ? 'custom' : '4x4_r2';
@@ -134,9 +151,20 @@ router.post('/save', async (req, res) => {
       return res.status(400).json({ success: false, error: 'generatedClass is required' });
     }
 
-    const template = await saveBootcampTemplate(generatedClass, req.user.id);
+    // S06: the role is taken from the authenticated request, never from the body.
+    const template = await saveBootcampTemplate(generatedClass, req.user.id, {
+      requesterRole: req.user.role,
+    });
     return res.json({ success: true, templateId: template.id });
   } catch (err) {
+    // Standard mapping: malformed 400, denied 403 (non-disclosing), else 500.
+    if (err?.status === 400 || err?.status === 403) {
+      return res.status(err.status).json({
+        success: false,
+        code: err.code,
+        error: err.status === 403 ? 'Access denied' : err.message,
+      });
+    }
     logger.error('[Bootcamp] Save failed:', err.message);
     return res.status(500).json({ success: false, error: 'Failed to save template' });
   }
@@ -161,15 +189,45 @@ router.get('/templates', async (req, res) => {
 // POST /api/bootcamp/log
 router.post('/log', async (req, res) => {
   try {
-    const { templateId, classDate, dayType, actualParticipants, exercisesUsed, modificationsMade, trainerNotes, classRating, energyLevel, overflowActivated } = req.body;
+    const { operationKey, templateId, classDate, dayType, actualParticipants, exercisesUsed, modificationsMade, trainerNotes, classRating, energyLevel, overflowActivated, executionSummary } = req.body;
 
     if (!classDate || !Array.isArray(exercisesUsed) || exercisesUsed.length === 0) {
       return res.status(400).json({ success: false, error: 'classDate and a non-empty exercisesUsed array are required' });
     }
 
+    // H29 / R-H04 (contract §5 line 218): "New write endpoints require an operation key."
+    // A stable identity is what lets a retried write collapse onto ONE class log instead of
+    // appending a second one — and because attendance idempotency is keyed per class-log id,
+    // a duplicate class identity defeats attendance deduplication downstream even when each
+    // attendance transaction is itself correct.
+    if (typeof operationKey !== 'string' || operationKey.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'operationKey is required (run:<uuid> for a class run; the Sprint confirmation mints its own)',
+      });
+    }
+
+    // H29b: the `sprint-slot:` namespace is RESERVED for the Sprint confirmation path, whose
+    // key it mints itself (`sprintConfirmSlot.mjs`). Accepting one here let a caller squat a
+    // slot's identity with an unrelated log: the confirmation then hit
+    // `resolveIdempotentLog`'s changed-payload 409, which is not a client-safe SPRINT error,
+    // so the trainer got a generic 400 and the slot could never be confirmed or re-logged.
+    if (operationKey.trim().startsWith(SPRINT_SLOT_PREFIX)) {
+      return res.status(400).json({
+        success: false,
+        error: `${SPRINT_SLOT_PREFIX}<slotId> is reserved for Sprint confirmation and cannot be used here`,
+      });
+    }
+
     const log = await logBootcampClass({
       trainerId: req.user.id,
-      templateId: templateId ? parseInt(templateId, 10) : null,
+      // H29: the caller-supplied identity, normalized (length-capped, non-empty) in the
+      // service so a junk key cannot reach the unique index.
+      operationKey,
+      // BE-F8a: the RAW value is passed through. The previous
+      // `templateId ? parseInt(templateId, 10) : null` accepted '12abc' as 12
+      // and turned 'abc' into NaN (a 500). Ownership is enforced in the service.
+      templateId: templateId ?? null,
       classDate,
       dayType: VALID_DAY_TYPES.includes(dayType) ? dayType : null,
       actualParticipants: actualParticipants ? parseInt(actualParticipants, 10) : null,
@@ -179,6 +237,12 @@ router.post('/log', async (req, res) => {
       classRating: classRating ? Math.min(Math.max(parseInt(classRating, 10), 1), 5) : null,
       energyLevel: ['low', 'medium', 'high', 'explosive'].includes(energyLevel) ? energyLevel : null,
       overflowActivated: !!overflowActivated,
+      // §5 line 222: `executionSummary` distinguishes a trainer-attested PRESCRIPTION from a
+      // runner-MEASURED record. This endpoint is the UI's write path, and the UI supplies the
+      // former; `runner_measured` requires a runner that actually measured, so a client
+      // asserting it here is stored as null rather than as a measurement claim nobody made
+      // (external review, round 99, LOW-1).
+      executionSummary: isTrainerAttestedSummary(executionSummary) ? executionSummary : null,
     });
 
     eventBus.safeEmit('bootcamp:classLogged', {
@@ -191,7 +255,12 @@ router.post('/log', async (req, res) => {
     return res.json({ success: true, logId: log.id });
   } catch (err) {
     logger.error('[Bootcamp] Log failed:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to log class' });
+    const { status, error } = getBootcampRouteErrorResponse(
+      err,
+      'Template not found',
+      'Failed to log class'
+    );
+    return res.status(status).json({ success: false, error });
   }
 });
 
@@ -242,8 +311,20 @@ router.post('/class-logs/:id/attendance', async (req, res) => {
                   sessionDeducted: form.sessionDeducted,
                   mcpProcessed: form.mcpProcessed,
                   submittedAt: new Date(),
+                  // HOSTILE-REVIEW FIX (F1, HIGH): `validate: true` below runs each row's
+                  // validators BEFORE sequelize injects timestamps
+                  // (node_modules/sequelize/lib/model.js:1598-1613 validate, :1652-1665
+                  // inject). DailyWorkoutForm declares createdAt/updatedAt explicitly with
+                  // `allowNull: false` and NO defaultValue (models/DailyWorkoutForm.mjs:332-341),
+                  // so every row failed with "createdAt cannot be null" — every attendance
+                  // write with >=1 registered attendee became a 500 and the whole Core-Loop
+                  // slice died. Setting them here makes validation pass while keeping the
+                  // canonical checks live (probed: self-attendance, empty exercises and a
+                  // future date are still rejected).
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
                 })),
-                { transaction, returning: true },
+                { transaction, returning: true, validate: true },
               );
               return rows.map((row) => row.id);
             },

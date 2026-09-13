@@ -1,0 +1,81 @@
+{
+  "entries": [
+    {
+      "path": ".mega-blueprints/artifacts/b214f060bbec9038/s02-architecture.md",
+      "sha256": "5e9f43ae2cd98f91f1ff2acd613aa29008991c704f81acf74798a96e4fee12a5"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+      "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+      "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+      "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/16-approved-luna-build-and-blueprint-audit.md",
+      "sha256": "956ecc72cd355c3d460a4e58b5d10b251f3c0dbb536b7e74d0320b55f77670b5"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.exerciseRows.tsx",
+      "sha256": "b0ccaa62072cde487edf5d11903ac7c748dbfeb493ea12ecbb76b62822e5382e"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.extraction.test.ts",
+      "sha256": "395dc7312d9b9f48154bf7525f83d0753da77d28b67c50cc9d0540f52b386cc9"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.prescription.test.tsx",
+      "sha256": "e79080ca4558fbdc024fef61598368b65c0beaa93d686fecd0a2495f0db1112f"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerTypes.ts",
+      "sha256": "13d8c48391bbff19af4e874f1739894a57543ec73d722fc650c8ed9dbe312a52"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.privacy.test.ts",
+      "sha256": "31a59d8383dd8f8623e372161f5fbe2ed7f748b82a025265b9dc094604e0277f"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.signature.test.ts",
+      "sha256": "afff3c594592f9875fc2292153239960b14b1e287ab8050ab7d55bfa7a43c03c"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.test.ts",
+      "sha256": "f8ab270193c0e4a97159d2b8aec71fbcd0311a3d617f3fc0ae6d8075c61af62b"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts",
+      "sha256": "39ffc0021559920430671b409c371d8381b44e1a2ed777c6818721d7c9db4da1"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerGenerationActions.test.tsx",
+      "sha256": "57ccd7b101442332d9f468ddb8ae6999b3fe063e73e0ec1ddb1b5e70d615b7c0"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerLoadPlanActions.test.tsx",
+      "sha256": "b526d1828f2183db12c8edcf506134f3a7f0a694a9e5ca27b2882cd9aa15b55d"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerGenerationActions.helpers.ts",
+      "sha256": "263f806194541979ce828721389b8027f85d5bd44f05b8a770b608d72c5f3487"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerLoadPlanHydration.ts",
+      "sha256": "7d165456b04e25af09df9cd63a6b5a9ce3647166c89ff8f7aa77c9e63247e5ba"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.test.ts",
+      "sha256": "5da63e8118f33e15b0e0885776abc2f25bbddf77aa5e14e8c453ad7b2afc163d"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.ts",
+      "sha256": "8d3ba861d5c01b2b06282cc7d0eaf7c19e78ae16f9310d943d21d00956a9232f"
+    }
+  ],
+  "digest": "c64cc57cc0bff66d0a27ec4eda4cfb09f7f6ac8dfe7dec4d2a341129e771e0ed"
+}

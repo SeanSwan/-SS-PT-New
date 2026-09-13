@@ -20,6 +20,15 @@ export default defineConfig({
       'tests/integration/waiverConstraints.test.mjs',
       'tests/integration/plaudApplaudSchemaDrift.test.mjs',
       'tests/integration/plaudApplaudWebhookIntegration.test.mjs',
+      // S06 / H02: real-PostgreSQL atomic Bootcamp template persistence. Uses its
+      // own positively identified disposable fixture (127.0.0.1:55089) and
+      // refuses to run when that identity cannot be verified.
+      'tests/integration/bootcampTemplatePersistence.integration.test.mjs',
+      // H29 / R-H04: real-PostgreSQL proof for the taught-log operation identity —
+      // the unique taught-log race, preexisting-null-row compatibility, and migration
+      // up/down/up. Same positively identified disposable fixture, and it refuses to
+      // run when that identity cannot be verified.
+      'tests/integration/rolodexServerRepair.postgres.test.mjs',
     ],
     testTimeout: 60000,
     hookTimeout: 60000,

@@ -1,0 +1,51 @@
+
+ RUN  v4.0.18 C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06
+
+ × planner-controls.red.test.ts > T-P01 preserves a chosen exercise count in the real generation request 4ms
+   → expected 6 to be 8 // Object.is equality
+ × planner-controls.red.test.ts > T-P02 preserves a chosen rotation policy in the real generation request 1ms
+   → expected 'standard' to be 'conservative' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  planner-controls.red.test.ts > T-P01 preserves a chosen exercise count in the real generation request
+AssertionError: expected 6 to be 8 // Object.is equality
+
+- Expected
++ Received
+
+- 8
++ 6
+
+ ❯ planner-controls.red.test.ts:15:65
+     13| it('T-P01 preserves a chosen exercise count in the real generation req…
+     14|   const selected = { ...fixture, exerciseCount: 8 };
+     15|   expect(buildWorkoutGenerationRequest(selected).exerciseCount).toBe(8…
+       |                                                                 ^
+     16| });
+     17| it('T-P02 preserves a chosen rotation policy in the real generation re…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  planner-controls.red.test.ts > T-P02 preserves a chosen rotation policy in the real generation request
+AssertionError: expected 'standard' to be 'conservative' // Object.is equality
+
+Expected: "conservative"
+Received: "standard"
+
+ ❯ planner-controls.red.test.ts:19:67
+     17| it('T-P02 preserves a chosen rotation policy in the real generation re…
+     18|   const selected = { ...fixture, rotationPattern: 'conservative' };
+     19|   expect(buildWorkoutGenerationRequest(selected).rotationPattern).toBe…
+       |                                                                   ^
+     20| });
+     21| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  15:16:38
+   Duration  178ms (transform 30ms, setup 0ms, import 49ms, tests 6ms, environment 0ms)
+

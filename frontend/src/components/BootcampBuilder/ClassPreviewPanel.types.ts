@@ -1,5 +1,6 @@
 import type { GeneratedBootcamp, BootcampExercise } from '../../hooks/useBootcampAPI';
 import type { BuildMode } from './BootcampBuilderPage.constants';
+import type { BootcampRunSession } from './BootcampRunnerClock';
 
 export type BoardView = 'main' | 'jointFriendly' | 'lowImpact';
 
@@ -14,6 +15,8 @@ export interface BootcampBoardViews {
 
 export interface ClassPreviewPanelProps {
   bootcamp: GeneratedBootcamp | null;
+  /** R-H23: owned by the PAGE, so leaving Run cannot destroy the class in progress. */
+  runSession?: BootcampRunSession;
   buildMode: BuildMode;
   loading: boolean;
   floorMode: boolean;

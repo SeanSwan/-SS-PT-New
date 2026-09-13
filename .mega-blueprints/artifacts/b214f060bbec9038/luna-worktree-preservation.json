@@ -1,0 +1,120 @@
+{
+  "generatedAt": "2026-09-13T06:26:18.6935853Z",
+  "sourceRoot": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-bootcamp-planner-20260913",
+  "destinationRoot": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913",
+  "baseline": "c0cbe538d8ed2ca519bb494cdf3282bf43b76699",
+  "branch": "codex/rolodex-luna-01a098de",
+  "copiedSourceTestFiles": [
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.test.tsx",
+      "expectedSha256": "e2e907d63faba433eeb9646097977d86fc76da3a74c2b940beb60b9bb5eb574c",
+      "sourceSha256Before": "e2e907d63faba433eeb9646097977d86fc76da3a74c2b940beb60b9bb5eb574c",
+      "destinationSha256After": "e2e907d63faba433eeb9646097977d86fc76da3a74c2b940beb60b9bb5eb574c"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.tsx",
+      "expectedSha256": "ac3ffba3d2d8cd2879d5e47959fece2e7f219bff1e07f3bc02dda1b6b1a856da",
+      "sourceSha256Before": "ac3ffba3d2d8cd2879d5e47959fece2e7f219bff1e07f3bc02dda1b6b1a856da",
+      "destinationSha256After": "ac3ffba3d2d8cd2879d5e47959fece2e7f219bff1e07f3bc02dda1b6b1a856da"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.exerciseRows.tsx",
+      "expectedSha256": "b0ccaa62072cde487edf5d11903ac7c748dbfeb493ea12ecbb76b62822e5382e",
+      "sourceSha256Before": "b0ccaa62072cde487edf5d11903ac7c748dbfeb493ea12ecbb76b62822e5382e",
+      "destinationSha256After": "b0ccaa62072cde487edf5d11903ac7c748dbfeb493ea12ecbb76b62822e5382e"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.prescription.test.tsx",
+      "expectedSha256": "e79080ca4558fbdc024fef61598368b65c0beaa93d686fecd0a2495f0db1112f",
+      "sourceSha256Before": "e79080ca4558fbdc024fef61598368b65c0beaa93d686fecd0a2495f0db1112f",
+      "destinationSha256After": "e79080ca4558fbdc024fef61598368b65c0beaa93d686fecd0a2495f0db1112f"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerTypes.ts",
+      "expectedSha256": "13d8c48391bbff19af4e874f1739894a57543ec73d722fc650c8ed9dbe312a52",
+      "sourceSha256Before": "13d8c48391bbff19af4e874f1739894a57543ec73d722fc650c8ed9dbe312a52",
+      "destinationSha256After": "13d8c48391bbff19af4e874f1739894a57543ec73d722fc650c8ed9dbe312a52"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts",
+      "expectedSha256": "39ffc0021559920430671b409c371d8381b44e1a2ed777c6818721d7c9db4da1",
+      "sourceSha256Before": "39ffc0021559920430671b409c371d8381b44e1a2ed777c6818721d7c9db4da1",
+      "destinationSha256After": "39ffc0021559920430671b409c371d8381b44e1a2ed777c6818721d7c9db4da1"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerGenerationActions.helpers.ts",
+      "expectedSha256": "263f806194541979ce828721389b8027f85d5bd44f05b8a770b608d72c5f3487",
+      "sourceSha256Before": "263f806194541979ce828721389b8027f85d5bd44f05b8a770b608d72c5f3487",
+      "destinationSha256After": "263f806194541979ce828721389b8027f85d5bd44f05b8a770b608d72c5f3487"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerLoadPlanHydration.ts",
+      "expectedSha256": "7d165456b04e25af09df9cd63a6b5a9ce3647166c89ff8f7aa77c9e63247e5ba",
+      "sourceSha256Before": "7d165456b04e25af09df9cd63a6b5a9ce3647166c89ff8f7aa77c9e63247e5ba",
+      "destinationSha256After": "7d165456b04e25af09df9cd63a6b5a9ce3647166c89ff8f7aa77c9e63247e5ba"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.test.ts",
+      "expectedSha256": "5da63e8118f33e15b0e0885776abc2f25bbddf77aa5e14e8c453ad7b2afc163d",
+      "sourceSha256Before": "5da63e8118f33e15b0e0885776abc2f25bbddf77aa5e14e8c453ad7b2afc163d",
+      "destinationSha256After": "5da63e8118f33e15b0e0885776abc2f25bbddf77aa5e14e8c453ad7b2afc163d"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.ts",
+      "expectedSha256": "8d3ba861d5c01b2b06282cc7d0eaf7c19e78ae16f9310d943d21d00956a9232f",
+      "sourceSha256Before": "8d3ba861d5c01b2b06282cc7d0eaf7c19e78ae16f9310d943d21d00956a9232f",
+      "destinationSha256After": "8d3ba861d5c01b2b06282cc7d0eaf7c19e78ae16f9310d943d21d00956a9232f"
+    }
+  ],
+  "preservedDirectories": [
+    ".mega-blueprints",
+    "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06",
+    "tmp/rolodex-audit-evidence"
+  ],
+  "preservedDependencyReportFiles": [
+    "dependency-evidence.json",
+    "junction-preservation.json",
+    "PLAN-TEST-CONTRACT.md",
+    "RESULTS.md",
+    "root-npm-ci-offline-blocked.log",
+    "s02-typecheck-12gb.log"
+  ],
+  "explicitlyExcluded": [
+    "all unknown dirty application files",
+    "frontend/node_modules",
+    "node_modules",
+    "node_modules.s02-original-junction-20260913",
+    "tmp/rolodex-postgres-20260913",
+    "tmp/s02-dependency-layer-20260913/frontend-node_modules-original-junction-20260913"
+  ],
+  "git": {
+    "worktree": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913",
+    "branch": "codex/rolodex-luna-01a098de",
+    "head": "c0cbe538d8ed2ca519bb494cdf3282bf43b76699",
+    "baseline": "c0cbe538d8ed2ca519bb494cdf3282bf43b76699",
+    "statusPath": ".mega-blueprints\\artifacts\\b214f060bbec9038\\luna-git-status-final.txt",
+    "statusSha256": "4645db494c09c96c08e0eea53594e18992da434821d264531763cf81f70f82c6",
+    "statusLineCount": 161
+  },
+  "dependencySmoke": {
+    "npmCi": "PASS exit 0 --offline --ignore-scripts --no-audit --no-fund",
+    "typescriptVersion": "Version 5.9.3",
+    "vitestVersion": "vitest/4.1.10 win32-x64 node-v24.19.0",
+    "frontendNodeModules": "d----",
+    "rootNodeModulesExists": false,
+    "forgeTarget": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\packages\\swan-forge",
+    "schemasTarget": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-luna-01a098de-20260913\\packages\\swan-schemas",
+    "forgeUsesNewCheckout": true,
+    "schemasUseNewCheckout": true,
+    "packageJsonSha256": "7cfa0bc6bfae90137fbb060cf6c69cf95d57b7a0f21bd6c152ac7e2acbb6e75c",
+    "packageLockSha256": "81bbc6b6f9af968743cd5fb9149063fe20e72295e1528dcd176268e75d3d672d",
+    "postgresDataCopied": false,
+    "dependencyJunctionCopied": false
+  },
+  "preservedPacketChecks": {
+    "s05ArchitecturePresent": true,
+    "isolationContractPresent": true,
+    "auditEvidenceFileCount": 88,
+    "blueprintPacketFileCount": 126
+  }
+}

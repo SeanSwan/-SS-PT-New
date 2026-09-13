@@ -9,6 +9,7 @@
 import React from 'react';
 import type { ExerciseSlim } from './useExerciseSearch';
 import {
+  FallbackCompactLabel,
   FallbackPreview,
   FallbackText,
   FallbackTitle,
@@ -64,6 +65,22 @@ const ExerciseMediaPreview: React.FC<ExerciseMediaPreviewProps> = ({
           src={poster}
           loading="lazy"
         />
+      </MediaFrame>
+    );
+  }
+
+  // H18 compact media: a row-height thumbnail says only "No demo". The
+  // expanded interactive surface keeps the helpful upload guidance below.
+  if (variant === 'thumbnail') {
+    return (
+      <MediaFrame>
+        <FallbackPreview
+          $compact
+          role="img"
+          aria-label={`${exercise.name} — no demo media yet`}
+        >
+          <FallbackCompactLabel>No demo</FallbackCompactLabel>
+        </FallbackPreview>
       </MediaFrame>
     );
   }

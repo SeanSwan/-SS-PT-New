@@ -1,0 +1,27 @@
+[
+  {
+    "relativePath": "scripts/workflow-isolation.mjs",
+    "sha256": "58f7312a3225395b8e23b608b9e8650f3d17ad94378827645066b39b7b48b8b8",
+    "verified": true
+  },
+  {
+    "relativePath": "scripts/workflow-policy.mjs",
+    "sha256": "6278b962b77bfae67b7b743a4255854c24abaea3766f0fe8f2b782b13fe8209e",
+    "verified": true
+  },
+  {
+    "relativePath": "scripts/workflow-override.mjs",
+    "sha256": "36bf6c94c49795b73b8aa3d6af4c6156a65910cc4b8be708dd8d262998ef594a",
+    "verified": true
+  },
+  {
+    "relativePath": "scripts/workflow-override-evidence.mjs",
+    "sha256": "380a2b1849650068eaa781a73fa48ce729f7ce3a7189a03b0576b302aeb66243",
+    "verified": true
+  },
+  {
+    "relativePath": "scripts/workflow-hook.mjs",
+    "sha256": "db79a47a240a996f87fa0caa4e0baa9ff8f0f98f350b711ec8aeab8d02992a9b",
+    "verified": true
+  }
+]

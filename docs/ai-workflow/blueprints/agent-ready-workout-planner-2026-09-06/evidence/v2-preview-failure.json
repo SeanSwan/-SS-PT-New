@@ -1,0 +1,15 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n11 !== 8\n",
+  "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n11 !== 8\n\n    at file:///C:/Users/BigotSmasher/.codex/visualizations/2026/09/06/01a078bd-f78d-7c02-8996-0ba4b29dfbb2/planner-v2-working/preview-qa.mjs:12:395\n    at async test (file:///C:/Users/BigotSmasher/.codex/visualizations/2026/09/06/01a078bd-f78d-7c02-8996-0ba4b29dfbb2/planner-v2-working/preview-qa.mjs:7:46)\n    at async file:///C:/Users/BigotSmasher/.codex/visualizations/2026/09/06/01a078bd-f78d-7c02-8996-0ba4b29dfbb2/planner-v2-working/preview-qa.mjs:12:1",
+  "tests": [
+    {
+      "name": "UI-01 exercise add and undo preserve session",
+      "status": "PASS"
+    },
+    {
+      "name": "UI-02 prescription persists across Program Map",
+      "status": "PASS"
+    }
+  ],
+  "errors": []
+}

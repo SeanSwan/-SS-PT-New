@@ -8,6 +8,7 @@
 
 import { useState, useCallback } from 'react';
 import apiService, { ProductionTokenManager } from '../services/api.service';
+import { streamSprintGeneration } from './sprintGenerationStream';
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -77,6 +78,15 @@ export interface GenerationProgress {
   status?: string;
   exerciseMemorySize?: number;
   error?: string;
+  // R-H04 (slice D): the server's terminal fallback for a job whose event buffer
+  // is gone — the run was interrupted rather than completing or never starting.
+  // Modelled here because the API emits it; without this the UI cannot tell an
+  // interrupted run from an ordinary failure.
+  interrupted?: boolean;
+  // Present on the `complete` fallback: the persisted status could not be echoed
+  // or the buffer had expired, so no replay was possible.
+  replayUnavailable?: boolean;
+  persistedStatus?: string | null;
 }
 
 export interface CreateSprintParams {
@@ -187,92 +197,16 @@ export function useSprintAPI() {
     }
   }, []);
 
+  // R-H04 (slice D): the SSE transport lives in sprintGenerationStream.ts. This
+  // file is over the rule-4 cap at baseline, so the transport is not kept here.
   const generateSprint = useCallback((
     sprintId: number,
     onProgress: (evt: GenerationProgress) => void,
-  ): (() => void) => {
-    const token = ProductionTokenManager.getToken();
-    const controller = new AbortController();
-    let lastEventId = 0;
-    let cancelled = false;
-
-    // Parse SSE stream, tracking event IDs for reconnection (ARCH-2)
-    const readStream = async (response: Response) => {
-      const reader = response.body?.getReader();
-      if (!reader) return;
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        let currentId: number | null = null;
-        for (const line of lines) {
-          if (line.startsWith('id: ')) {
-            currentId = parseInt(line.slice(4), 10);
-            if (!isNaN(currentId)) lastEventId = currentId;
-          } else if (line.startsWith('data: ')) {
-            try {
-              const evt = JSON.parse(line.slice(6));
-              onProgress(evt);
-            } catch { /* skip malformed */ }
-          }
-        }
-      }
-    };
-
-    // Reconnect via GET stream with Last-Event-ID
-    const reconnect = async () => {
-      if (cancelled) return;
-      try {
-        const res = await fetch(`/api/bootcamp/sprints/${sprintId}/generate/stream`, {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            'Last-Event-ID': String(lastEventId),
-          },
-          signal: controller.signal,
-        });
-        if (res.ok) {
-          await readStream(res);
-        } else {
-          // Surface non-OK reconnect as error (Codex R18 fix — 404/401/etc)
-          onProgress({ type: 'error', error: `Reconnect failed (${res.status})` });
-        }
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name !== 'AbortError') {
-          onProgress({ type: 'error', error: err.message });
-        }
-      }
-    };
-
-    (async () => {
-      try {
-        const res = await fetch(`/api/bootcamp/sprints/${sprintId}/generate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          signal: controller.signal,
-        });
-
-        await readStream(res);
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name !== 'AbortError') {
-          // Connection lost mid-generation — try reconnecting to GET stream
-          await reconnect();
-        }
-      }
-    })();
-
-    return () => { cancelled = true; controller.abort(); };
-  }, []);
+  ): (() => void) => streamSprintGeneration({
+    sprintId,
+    token: ProductionTokenManager.getToken(),
+    onProgress,
+  }), []);
 
   const confirmSlot = useCallback(async (
     sprintId: number, slotId: number, usedDate?: string,
@@ -282,7 +216,27 @@ export function useSprintAPI() {
     try {
       const response = await apiService.put(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/confirm`, { usedDate });
       const data = response.data;
-      return !!data.success;
+      // DEFENSIVE, not the reachable refusal path (hostile review, round 116 R6). The server sends
+      // every refusal as a 4xx through `sendSprintRouteError` (`sprintRoutes.mjs:102-108`), which
+      // axios REJECTS — so the `catch` below is what surfaces a refusal today, and those are the
+      // tests that pin the behaviour. A 200 with `success:false` is a shape this route does not
+      // currently emit; keeping the branch costs one comparison and stops the message being dropped
+      // silently if that ever changes. It is NOT the fix for the silent-refusal defect — the catch
+      // already carried that message and the PANEL was what failed to render it (round 114 F2).
+      if (!data.success) {
+        setError(data.error || data.message || 'The confirmation was refused.');
+        return false;
+      }
+      // No `setError(null)` on the success path, and TWO providers make that safe — the earlier
+      // comment named only the first and was therefore wrong about the causal chain (round 116 R7):
+      //   1. EVERY action in this hook resets `error` at its START, so no in-hook caller can see a
+      //      stale refusal after a later action;
+      //   2. the only production caller, `SlotDetailPanel`, is UNMOUNTED by its parent on success
+      //      (`SprintPlannerPage.tsx:288-291` clears the selected slot), so the hook instance holding
+      //      the message is destroyed outright.
+      // Probes M41/M42 (round 115) showed the reset is the only *in-hook* provider; M43 removed the
+      // reset and failed the suite, which is how these tests became discriminating.
+      return true;
     } catch (err: any) {
       const msg = getErrorMessage(err);
       setError(msg);
@@ -300,7 +254,12 @@ export function useSprintAPI() {
     try {
       const response = await apiService.post(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/regenerate`);
       const data = response.data;
-      return !!data.success;
+      // Same as confirmSlot above: never return a bare false with no message (round 114 F2).
+      if (!data.success) {
+        setError(data.error || data.message || 'The slot could not be regenerated.');
+        return false;
+      }
+      return true;
     } catch (err: any) {
       const msg = getErrorMessage(err);
       setError(msg);

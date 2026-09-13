@@ -1,0 +1,10 @@
+{
+  "summary": "Fresh isolated checkout tests: blend7, UUID1, planner448, full TypeScript exit0. Current S01 source bytes match verified Luna preservation receipt. Final review pending.",
+  "command": "cd frontend; node node_modules/vitest/vitest.mjs run --config vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.test.tsx\r\ncd root; node frontend/node_modules/vitest/vitest.mjs run --config tmp/rolodex-audit-evidence/red/vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 tmp/rolodex-audit-evidence/red/blend-dialog-uuid.red.test.tsx\r\ncd frontend; node node_modules/vitest/vitest.mjs run --config vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 src/components/DashBoard/Pages/admin-workout-planner\r\ncd frontend; node --max-old-space-size=12288 node_modules/typescript/bin/tsc --noEmit --pretty false",
+  "digest": "5915403486d233cdb3f458c4d5678fca1ab3ff39401dad5ac6763a01f3465e51",
+  "status": "PASS",
+  "toolEvidence": {
+    "path": ".mega-blueprints/artifacts/b214f060bbec9038/relocation-green-summary.json",
+    "sha256": "486cc2a5e069951ac74b72e150ff8f8efa93e6fae1e6d775157f0447246bf4c0"
+  }
+}

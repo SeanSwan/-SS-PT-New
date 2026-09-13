@@ -32,6 +32,14 @@ describe('BootcampBuilderPage composition contract', () => {
     expect(lineCount(pageSource)).toBeLessThanOrEqual(300);
   });
 
+  // R-H23: the run session must be OWNED here, above the stage switch. `ClassPreviewPanel` renders the
+  // demo mode only while `floorMode`, so anything owned inside that subtree is destroyed the moment
+  // the trainer navigates to Build or Preflight — which is exactly what used to happen.
+  it('owns the class run session above the stage switch and threads it to the panel', () => {
+    expect(pageSource).toContain('useBootcampRunner(');
+    expect(pageSource).toContain('runSession={runSession}');
+  });
+
   it('keeps extracted bootcamp builder modules under the file cap', () => {
     for (const path of [chromePath, panelsPath, boundaryPath, constantsPath, ...commandDeckPaths]) {
       expect(existsSync(resolve(__dirname, path))).toBe(true);

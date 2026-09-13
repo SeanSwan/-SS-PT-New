@@ -1,0 +1,123 @@
+{
+  "evidenceClass": "Synthetic source-function probes; no DB or live runtime verification",
+  "intendedBaseline": "c0cbe538d8ed2ca519bb494cdf3282bf43b76699",
+  "sourceSha256": {
+    "backend/services/bootcamp/bootcampGenerator.mjs": "60d7227272af125b7fc73b5b514f5e09218b10bf306d8d13835fc7c688229026",
+    "backend/services/bootcamp/bootcampCrud.mjs": "fc9b9577360ca17c36f81ca9e78595b05872b0b13a2c4e283b7ed180d1057311",
+    "backend/services/bootcamp/sprintService.mjs": "4073cf1dad98cf99468d42a76a1450a35d67c6862506a64f49161b98b79980f2",
+    "backend/services/bootcamp/sprintGenerator.mjs": "58ce897cdeaffbb3737fdba93627259789a3c7a6d44e7576de101c29945272f1",
+    "backend/services/bootcamp/painAwareGating.mjs": "8d520f9f1897c154d446453741f3e60164f541bb775310232f897a63f120b1fd",
+    "backend/services/bootcamp/classStyleModifiers.mjs": "58dd00a77d11a1477e41c30de66dcdf00f184383f7e2a6b0bd23907054c4b81f",
+    "backend/services/workoutBuilderService.mjs": "8d613ad6cf63187a9b785f0dcaf4d81f31222983ab19fec810566b36126b3285",
+    "backend/services/training-cortex/ontology/regionMuscleMap.mjs": "51a023d8419e79aa135718aeac3a177fff13b9a7206646f1f4859271ac51ec53"
+  },
+  "results": [
+    {
+      "probe": "generated identity contract",
+      "hasKey": false,
+      "exerciseName": "Test Squat",
+      "libraryId": "00000000-0000-4000-8000-000000000001",
+      "extractedSprintKeys": []
+    },
+    {
+      "probe": "request-owned child FK override",
+      "createdTemplateId": 123,
+      "stationTemplateId": 999,
+      "stretchTemplateId": 999,
+      "overflowTemplateId": 999
+    },
+    {
+      "probe": "duplicate taught confirmation",
+      "increments": 2,
+      "slotStatus": "taught"
+    },
+    {
+      "probe": "regenerate string route IDs",
+      "rejected": true,
+      "error": "Slot not found"
+    },
+    {
+      "probe": "planner title-case pain muscle",
+      "retained": [
+        "curl"
+      ]
+    },
+    {
+      "probe": "planner title-case equipment",
+      "retained": []
+    },
+    {
+      "probe": "planner missing mandatory equipment",
+      "retained": [
+        "bench_press"
+      ]
+    },
+    {
+      "probe": "alternative preserves original demonstration",
+      "alternativeName": "Wall Sit",
+      "videoUrl": "synthetic-original-demo",
+      "instructions": "Jump explosively",
+      "exerciseLibraryId": "original-id"
+    },
+    {
+      "probe": "current pain canonical mismatch",
+      "region": "chest",
+      "muscle": "pectorals",
+      "alerts": 0
+    },
+    {
+      "probe": "current pain canonical mismatch",
+      "region": "upper_traps_left",
+      "muscle": "traps",
+      "alerts": 0
+    },
+    {
+      "probe": "current pain canonical mismatch",
+      "region": "mid_back_left",
+      "muscle": "latissimus_dorsi",
+      "alerts": 0
+    },
+    {
+      "probe": "current pain canonical mismatch",
+      "region": "left_knee",
+      "muscle": "quadriceps",
+      "alerts": 1
+    },
+    {
+      "probe": "sprint strategy overridden by stored 1.0",
+      "weeks": [
+        {
+          "week": 1,
+          "linearComputed": 1,
+          "actuallyUsed": 1
+        },
+        {
+          "week": 2,
+          "linearComputed": 1.05,
+          "actuallyUsed": 1
+        },
+        {
+          "week": 3,
+          "linearComputed": 1.1,
+          "actuallyUsed": 1
+        },
+        {
+          "week": 5,
+          "linearComputed": 1.2,
+          "actuallyUsed": 1
+        },
+        {
+          "week": 10,
+          "linearComputed": 1.45,
+          "actuallyUsed": 1
+        }
+      ]
+    },
+    {
+      "probe": "Monday start timezone",
+      "input": "2026-09-14",
+      "scheduledDate": "2026-09-15",
+      "dayOfWeek": 1
+    }
+  ]
+}

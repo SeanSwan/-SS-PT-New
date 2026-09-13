@@ -69,6 +69,31 @@ export function deriveJointFriendlyAlternative(exercise, region = '') {
     || cleanAlternativeName(exercise.easyVariation);
 }
 
+/**
+ * H09 / R-H09 — "wrong-region fallback cannot satisfy pain".
+ *
+ * `deriveJointFriendlyAlternative` deliberately falls back to ANY joint modification when the
+ * region-matched one is missing. That is a reasonable OFFER, but it must not be presented as
+ * the resolution of a specific pain report: a knee report "resolved" by a shoulder
+ * modification tells the trainer the knee was addressed when nothing about the knee changed.
+ *
+ * So the pain swap uses THIS, which returns an alternative only when it is derived from the
+ * painful region's own modification field. A null result routes the exercise to the existing
+ * loud CAUTION path — the trainer is told there is no region-appropriate alternative, rather
+ * than shown a swap that satisfies the alert without addressing the region.
+ */
+export function deriveRegionMatchedAlternative(exercise, region = '') {
+  const normalized = String(region).toLowerCase();
+  const preferredField = Object.entries(REGION_MOD_FIELD)
+    .find(([key]) => normalized.includes(key))?.[1];
+  if (!preferredField) {
+    // An unmapped region has NO matched field, so no alternative can be region-matched.
+    // `painAwareGating` already reports unmapped regions separately (unmappedRegion).
+    return null;
+  }
+  return cleanAlternativeName(exercise[preferredField]);
+}
+
 function buildAlternativeExercise(exercise, exerciseName, board, boardNumber, boardLabel) {
   return {
     ...exercise,
@@ -91,6 +116,23 @@ function buildAlternativeExercise(exercise, exerciseName, board, boardNumber, bo
     // provable from a modification string, and the board label already says
     // what this row is.
     selectionRung: 'R0',
+    // H09 / R-H09 — the SAME class of inherited state, and the root cause of a reviewer's
+    // finding: the spread above handed the replacement the SOURCE's `exerciseLibraryId`,
+    // which RESOLVES, so the template rejoin hydrated the source's live video/description/
+    // instructions onto the substitute — the original demonstration presented as the
+    // replacement's. "Substitutions never reuse the source movement's demonstration,
+    // instructions or identity as proof of the replacement."
+    //
+    // Fixed HERE rather than patched at read time: an alternative now carries NO recorded
+    // catalog identity, so nothing can rehydrate the source's media onto it, and its own
+    // (absent) identity is the clear unverified state the register asks for.
+    exerciseLibraryId: null,
+    videoUrl: null,
+    previewVideoUrl: null,
+    thumbnailUrl: null,
+    imageUrl: null,
+    description: null,
+    instructions: null,
     selectionChips: [],
   };
 }

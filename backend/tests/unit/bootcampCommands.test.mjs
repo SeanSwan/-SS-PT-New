@@ -44,6 +44,13 @@ describe('bootcamp command registry', () => {
     const schema = byType.bootcamp_set_format.inputSchema;
     expect(schema.safeParse({ optPhase: 2 }).success).toBe(true);
     expect(schema.safeParse({ optPhase: 9 }).success).toBe(false);
-    expect(schema.safeParse({ classStyle: 'low_impact' }).success).toBe(true);
+    expect(schema.safeParse({ classStyle: 'pyramid' }).success).toBe(true);
+    // Hostile-review fix: this assertion previously read
+    //   expect(schema.safeParse({ classStyle: 'low_impact' }).success).toBe(true);
+    // 'low_impact' is NOT a class style — it is a `board` value, spelled
+    // 'lowImpact'. The test was locking the schema open to an arbitrary string
+    // using a value borrowed from a different vocabulary.
+    expect(schema.safeParse({ classStyle: 'low_impact' }).success).toBe(false);
+    expect(schema.safeParse({ classStyle: 'garbage' }).success).toBe(false);
   });
 });

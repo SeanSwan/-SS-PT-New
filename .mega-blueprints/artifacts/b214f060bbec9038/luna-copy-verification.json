@@ -1,0 +1,99 @@
+{
+  "verifiedAt": "2026-09-13T06:29:20.4802821Z",
+  "baseline": "c0cbe538d8ed2ca519bb494cdf3282bf43b76699",
+  "branch": "codex/rolodex-luna-01a098de",
+  "allCopiedHashesMatch": true,
+  "copiedHashChecks": [
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.test.tsx",
+      "expected": "e2e907d63faba433eeb9646097977d86fc76da3a74c2b940beb60b9bb5eb574c",
+      "actual": "e2e907d63faba433eeb9646097977d86fc76da3a74c2b940beb60b9bb5eb574c",
+      "match": true
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.tsx",
+      "expected": "ac3ffba3d2d8cd2879d5e47959fece2e7f219bff1e07f3bc02dda1b6b1a856da",
+      "actual": "ac3ffba3d2d8cd2879d5e47959fece2e7f219bff1e07f3bc02dda1b6b1a856da",
+      "match": true
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.exerciseRows.tsx",
+      "expected": "b0ccaa62072cde487edf5d11903ac7c748dbfeb493ea12ecbb76b62822e5382e",
+      "actual": "b0ccaa62072cde487edf5d11903ac7c748dbfeb493ea12ecbb76b62822e5382e",
+      "match": true
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.prescription.test.tsx",
+      "expected": "e79080ca4558fbdc024fef61598368b65c0beaa93d686fecd0a2495f0db1112f",
+      "actual": "e79080ca4558fbdc024fef61598368b65c0beaa93d686fecd0a2495f0db1112f",
+      "match": true
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerTypes.ts",
+      "expected": "13d8c48391bbff19af4e874f1739894a57543ec73d722fc650c8ed9dbe312a52",
+      "actual": "13d8c48391bbff19af4e874f1739894a57543ec73d722fc650c8ed9dbe312a52",
+      "match": true
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts",
+      "expected": "39ffc0021559920430671b409c371d8381b44e1a2ed777c6818721d7c9db4da1",
+      "actual": "39ffc0021559920430671b409c371d8381b44e1a2ed777c6818721d7c9db4da1",
+      "match": true
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerGenerationActions.helpers.ts",
+      "expected": "263f806194541979ce828721389b8027f85d5bd44f05b8a770b608d72c5f3487",
+      "actual": "263f806194541979ce828721389b8027f85d5bd44f05b8a770b608d72c5f3487",
+      "match": true
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerLoadPlanHydration.ts",
+      "expected": "7d165456b04e25af09df9cd63a6b5a9ce3647166c89ff8f7aa77c9e63247e5ba",
+      "actual": "7d165456b04e25af09df9cd63a6b5a9ce3647166c89ff8f7aa77c9e63247e5ba",
+      "match": true
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.test.ts",
+      "expected": "5da63e8118f33e15b0e0885776abc2f25bbddf77aa5e14e8c453ad7b2afc163d",
+      "actual": "5da63e8118f33e15b0e0885776abc2f25bbddf77aa5e14e8c453ad7b2afc163d",
+      "match": true
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.ts",
+      "expected": "8d3ba861d5c01b2b06282cc7d0eaf7c19e78ae16f9310d943d21d00956a9232f",
+      "actual": "8d3ba861d5c01b2b06282cc7d0eaf7c19e78ae16f9310d943d21d00956a9232f",
+      "match": true
+    }
+  ],
+  "s03FilesAbsent": [
+    {
+      "path": "frontend/src/components/WorkoutLogger/exerciseSearchCore.ts",
+      "exists": false
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/exerciseSearch.worker.ts",
+      "exists": false
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/exerciseSearchCatalog.ts",
+      "exists": false
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useExerciseSearch.test.tsx",
+      "exists": false
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/exerciseSearchCore.test.ts",
+      "exists": false
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/exerciseSearchWorker.test.ts",
+      "exists": false
+    }
+  ],
+  "packetFileCount": 126,
+  "auditEvidenceFileCount": 88,
+  "artifactFileCount": 53,
+  "excludedDbData": true,
+  "excludedOriginalDependencyJunction": true
+}

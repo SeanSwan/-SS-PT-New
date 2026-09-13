@@ -126,7 +126,23 @@ const BootcampCalendar: React.FC<Props> = ({ slots, onSlotClick }) => {
                   key={slot.id}
                   $dayType={slot.dayType}
                   $status={slot.status}
+                  // R-H17: a slot that exists only in the calendar view could not be opened from the
+                  // keyboard at all — this was a styled div with a bare onClick. The cell below stays a
+                  // pointer shortcut on purpose: it CONTAINS these dots, and a button role on a
+                  // container of buttons is invalid and would make the dots unreachable.
+                  role="button"
+                  tabIndex={0}
+                  // The abbreviation alone ("LO") is not a usable name; the date is what tells two
+                  // same-day-type classes apart.
+                  aria-label={`Open ${DAY_ABBR[slot.dayType] || slot.dayType} class on ${slot.scheduledDate}`}
                   onClick={e => { e.stopPropagation(); onSlotClick(slot); }}
+                  onKeyDown={e => {
+                    if (e.key !== 'Enter' && e.key !== ' ') return;
+                    // Space would scroll the grid, and the key must not also reach the day cell.
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSlotClick(slot);
+                  }}
                 >
                   {DAY_ABBR[slot.dayType] || slot.dayType.slice(0, 2).toUpperCase()}
                 </CalendarDot>

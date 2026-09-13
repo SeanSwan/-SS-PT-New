@@ -1,0 +1,45 @@
+{
+  "createdAt": "2026-09-08T04:01:35.430Z",
+  "sourceRoot": "C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT",
+  "status": "FIVE CURRENT-SOURCE GAPS REPRODUCED",
+  "results": [
+    {
+      "id": "PRIV-01",
+      "name": "role user can grant consent for another client",
+      "result": "REPRODUCED",
+      "boundary": "Actual source module; dependency fakes; no HTTP/DB/provider traffic"
+    },
+    {
+      "id": "PRIV-04",
+      "name": "withdrawal is overridden by a current consenting waiver",
+      "result": "REPRODUCED",
+      "boundary": "Actual source module; dependency fakes; no HTTP/DB/provider traffic"
+    },
+    {
+      "id": "PRIV-08",
+      "name": "real identity helper swallows lookup failure and retains synthetic name",
+      "result": "REPRODUCED",
+      "boundary": "Actual source module; dependency fakes; no HTTP/DB/provider traffic"
+    },
+    {
+      "id": "PRIV-07",
+      "name": "known name survives in retained clinical free text",
+      "result": "REPRODUCED",
+      "boundary": "Actual source module; dependency fakes; no HTTP/DB/provider traffic"
+    },
+    {
+      "id": "PRIV-05",
+      "name": "auxiliary history reaches classifier provider capture after primary scan",
+      "result": "REPRODUCED",
+      "boundary": "Actual source module; dependency fakes; no HTTP/DB/provider traffic"
+    }
+  ],
+  "sourceHashes": {
+    "backend/controllers/aiConsentController.mjs": "fb4ba757967eb25caba1d0ae4ba6406d3ac681870369f5aaacaebda421896eca",
+    "backend/services/ai/aiEligibilityHelper.mjs": "289c7b61fafa2d1a616d2731c91210bf250f09368c264d993e2e4000cd9da876",
+    "backend/services/aiPrivacyService.mjs": "e02e49018a5a7417d36b3c21e9546ebe03399dfdd6176731e10a5436f4a13335",
+    "backend/services/deIdentificationService.mjs": "f6e25488b4ec131fbf0ad462565104f191404750d0674bf125f9144f71d5bf46",
+    "backend/services/ai/intentClassifier.mjs": "9fde749d1754ebe5dfbcd08caeb65d23e31fcdbc8d561c33e0d0a8695d543803"
+  },
+  "limits": "Dependency-isolated execution of unmodified source modules via vm.SourceTextModule. Authentication middleware, real SQL, real provider egress and live deployment are NOT VERIFIED. Reproduction assertions deliberately confirm current gaps; these are not passing privacy acceptance tests."
+}

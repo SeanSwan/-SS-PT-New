@@ -1,0 +1,65 @@
+{
+  "evidenceClass": "Synthetic source/module probes; injected completion callbacks only; no provider or DB used",
+  "intendedBaseline": "c0cbe538d8ed2ca519bb494cdf3282bf43b76699",
+  "sourceSha256": {
+    "backend/services/bootcamp/bootcampBrain.mjs": "c4a483b2c3bb79a75938898b4cb5aa33a1e73e4db77a1a472e0d8476fe45edce",
+    "backend/services/bootcamp/bootcampAttendance.mjs": "805599cc29ded211adb90c9465726545cefe6970fbf3bb655a71cf407a45466e",
+    "backend/services/ai/commandRegistry/bootcampCommands.mjs": "491ecaf19a1618e9c6a8c558a3222f6bc572b79f5415b4d9cf0d617bd158e82a",
+    "backend/routes/bootcampRoutes.mjs": "6f50c269eff66f6189228a9af17bc3fcc15d27ac0ed80388f6342989f3c7762e",
+    "backend/models/DailyWorkoutForm.mjs": "01baf5c7fc8ab83ce5a350d34218723a3641a4545a4c7f15605ad28165b0a9e1"
+  },
+  "results": [
+    {
+      "probe": "brain loses movement/recency/setup signals",
+      "changedMetadataProducesIdenticalPrompt": true,
+      "rawExerciseKeyVisible": false,
+      "prompt": "Order these exercise keys for a lower_body group class of 12 people.\nRules: alternate movement patterns (never the same twice in a row);\npush recently-used keys later; quick-setup exercises earlier.\nEquipment is pre-filtered; do not reason about it.\nReply ONLY with JSON: {\"orderedKeys\": [...], \"assumptions\": [...]}.\nKeys: ex_0, ex_1"
+    },
+    {
+      "probe": "freeform day type enters provider prompt",
+      "syntheticMarkerPresent": true
+    },
+    {
+      "probe": "brain gates and validation positive controls",
+      "disabledCalls": 0,
+      "disabledBrain": "heuristic",
+      "noProviderReason": "no_provider",
+      "invalidReason": "invalid_ordering"
+    },
+    {
+      "probe": "timeout does not cancel operation",
+      "fallbackReason": "timeout",
+      "completionArgumentCount": 1,
+      "completedWhenFallbackReturned": false,
+      "operationEventuallyCompleted": true
+    },
+    {
+      "probe": "attendance completes main and low-impact variants",
+      "completedNames": [
+        "Main Squat",
+        "Board Three"
+      ]
+    },
+    {
+      "probe": "attendance permits empty future workout payload",
+      "date": "2099-01-01",
+      "exerciseCount": 0
+    },
+    {
+      "probe": "attendance auth and sequential-idempotency positive controls",
+      "writes": 1,
+      "firstCreated": 1,
+      "secondAlreadyRecorded": true,
+      "foreignStatus": 404,
+      "unassignedStatus": 403
+    },
+    {
+      "probe": "coach command and generate contract drift",
+      "commandAccepts120Minutes": true,
+      "generatorRouteClampsTo": 90,
+      "commandAcceptsUnknownStyle": true,
+      "commandAcceptsOptPhase": true,
+      "generateRouteReadsOptPhase": false
+    }
+  ]
+}

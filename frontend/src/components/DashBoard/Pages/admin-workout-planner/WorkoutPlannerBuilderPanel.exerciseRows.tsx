@@ -33,6 +33,8 @@ import {
   BuilderParamGroup,
   ClickableExerciseName,
   ParamField,
+  ParamFieldWide,
+  ParamHelper,
   ParamLabel,
   RepsInput,
   SkeletonDelayRow,
@@ -88,6 +90,16 @@ const BuilderExerciseRow: React.FC<BuilderExerciseRowProps> = ({
 }) => {
   const exerciseDisplayName = formatWorkoutPlannerExerciseName(planExercise.exerciseSlim.name);
 
+  // S02/S04 presentation only: the saved legacy prescription text is shown
+  // verbatim, on its own line, and is associated with the input. The codec and
+  // the numeric-edit semantics below are unchanged.
+  const intensityHelp = planExercise.intensityPercent === undefined
+    ? planExercise.intensityGuideline
+      ? `Saved intensity: ${planExercise.intensityGuideline}`
+      : 'Intensity not specified'
+    : '';
+  const intensityHelpId = `intensity-help-${planExercise.id}`;
+
   return (
     <BuilderRow key={planExercise.id} aria-current={isSwapTarget ? 'true' : undefined}>
       <BuilderRowNumber>{index + 1}</BuilderRowNumber>
@@ -132,6 +144,29 @@ const BuilderExerciseRow: React.FC<BuilderExerciseRowProps> = ({
             max={600}
           />
         </ParamField>
+        <ParamFieldWide>
+          <ParamLabel>Intensity (%)</ParamLabel>
+          <MiniInput
+            type="number"
+            value={planExercise.intensityPercent ?? ''}
+            step="any"
+            aria-label={`Intensity for ${exerciseDisplayName}`}
+            aria-describedby={intensityHelp ? intensityHelpId : undefined}
+            onChange={event => {
+              const rawValue = event.target.value.trim();
+              const parsedValue = rawValue === '' ? undefined : Number(rawValue);
+              onUpdateExercise(
+                planExercise.id,
+                'intensityPercent',
+                parsedValue !== undefined && Number.isFinite(parsedValue) ? parsedValue : undefined,
+              );
+              onUpdateExercise(planExercise.id, 'intensityGuideline', undefined);
+            }}
+          />
+          <ParamHelper id={intensityHelpId} aria-live="polite">
+            {intensityHelp}
+          </ParamHelper>
+        </ParamFieldWide>
       </BuilderParamGroup>
       <SwapBtn
         onClick={() => onBeginSwap(planExercise.id, exerciseDisplayName)}

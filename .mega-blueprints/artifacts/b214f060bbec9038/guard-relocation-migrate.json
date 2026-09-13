@@ -1,0 +1,8 @@
+{
+  "session_id": "01a098de-2069-7791-8b8d-098dda451b6e",
+  "cwd": "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913",
+  "tool_name": "exec_command",
+  "tool_input": {
+    "cmd": "node \"C:/Users/BigotSmasher/.agents/skills/non-vibe-coding/scripts/workflow.mjs\" migrate \"C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/.mega-blueprints/artifacts/b214f060bbec9038/state-relocated.json\" \"C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913/.mega-blueprints/artifacts/b214f060bbec9038/init-relocation.json\""
+  }
+}

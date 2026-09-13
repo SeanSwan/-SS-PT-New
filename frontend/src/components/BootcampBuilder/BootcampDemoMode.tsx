@@ -8,7 +8,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 import type { BootcampExercise, GeneratedBootcamp } from '../../hooks/useBootcampAPI';
 import BootcampDemoVideoModal from './BootcampDemoVideoModal';
-import BootcampRunnerClock from './BootcampRunnerClock';
+import BootcampRunnerClock, { type BootcampRunSession } from './BootcampRunnerClock';
 import { getFloorDirectorModel } from './BootcampDemoMode.floorDirector';
 import { getBootcampFloorStationCount, getBootcampFloorStationIndex } from './BootcampDemoMode.stationCount';
 import {
@@ -46,6 +46,8 @@ import {
 
 
 interface BootcampDemoModeProps {
+  /** R-H23: owned by the page so a stage change cannot destroy the run. */
+  runSession?: BootcampRunSession;
   bootcamp: GeneratedBootcamp;
   onSelectExercise: (ex: BootcampExercise) => void;
 }
@@ -93,7 +95,7 @@ export function getStationDemoReadiness(exercises: BootcampExercise[]) {
   return `${readyVideos}/${totalExercises} demos ready`;
 }
 
-const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectExercise }) => {
+const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectExercise, runSession }) => {
   const stationExercises = useMemo(() => {
     const grouped: Record<number, BootcampExercise[]> = {};
     for (const exercise of bootcamp.exercises) {
@@ -144,7 +146,7 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
 
   return (
     <DemoShell aria-label="Bootcamp station exercise demo mode">
-      <BootcampRunnerClock bootcamp={bootcamp} />
+      <BootcampRunnerClock bootcamp={bootcamp} runSession={runSession} />
       <DemoHeader>
         <div>
           <DemoTitle>Station Demo Board</DemoTitle>

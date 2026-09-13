@@ -22,6 +22,12 @@ import {
   DAY_TYPE_MUSCLES, CARDIO_FINISHERS, LAP_EXERCISES,
   CUSTOM_STRUCTURE_LIMITS, formatExerciseName, distributeMuscleGroups,
 } from './bootcampConstants.mjs';
+// The structure resolver lives in its own module (rule 4) and is RE-EXPORTED here so every
+// existing import path — `workIntervalProgression.test.mjs`, `bootcampCustomStructure.test.mjs`
+// and `__testing__` — keeps working unchanged.
+import { resolveBootcampStructure } from './bootcampStructure.mjs';
+
+export { resolveBootcampStructure };
 import { estimateSetupTime } from './exerciseRolodexBridge.mjs';
 import { optimizeStationFlow } from './flowOptimizer.mjs';
 import {
@@ -29,6 +35,10 @@ import {
 } from './classStyleModifiers.mjs';
 import { applyPainAwareGating } from './painAwareGating.mjs';
 import { applyDayTypeContract, budgetGate } from './dayTypeContract.mjs';
+// The six REAL persisted intensityCategory enum members. Used to decide whether
+// an intensity request can actually rank anything (BE-F3c). `normalizeExerciseLibraryId` is
+// imported from the same module rather than re-implemented here (integration review, round 104).
+import { INTENSITY_CATEGORIES, normalizeExerciseLibraryId } from './bootcampTemplateRules.mjs';
 import { pickFinishers } from './bootcampFinishers.mjs';
 import { orderPoolWithBrain } from './bootcampBrain.mjs';
 import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
@@ -38,6 +48,7 @@ import {
 } from './bootcampCapacity.mjs';
 import { chipsForExercise } from './bootcampChips.mjs';
 import { summarizeRelaxations } from '../../../shared/bootcamp-core/relaxation.mjs';
+import { resolveWorkInterval, applyWorkIntervalToFormat } from './workIntervalProgression.mjs';
 
 // Preserved named-export surface after the move to bootcampCapacity.mjs.
 export { buildAvailableEquipmentList };
@@ -272,14 +283,10 @@ function buildExerciseRecord(ex, opts) {
   };
 }
 
-function normalizeExerciseLibraryId(value) {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)) {
-    return trimmed;
-  }
-  return null;
-}
+// `normalizeExerciseLibraryId` is the ONE in `bootcampTemplateRules.mjs` (import below): a
+// local copy used to live here, a second in `bootcampTemplateMedia.mjs`, and the canonical one
+// in the vocabulary module. Three implementations of the same UUID rule is three chances to
+// disagree (integration review, round 104).
 
 // buildAvailableEquipmentList moved to bootcampCapacity.mjs (imported above)
 // alongside its new quantity-aware sibling buildEquipmentCountMap.
@@ -395,66 +402,10 @@ export function rankExercisesForBootcamp(exercises, { intensityCategory } = {}) 
 
 // ── Main Generation Function ──────────────────────────────────────────
 
-function clampInt(value, fallback, min, max) {
-  const parsed = Number.parseInt(value, 10);
-  const safe = Number.isFinite(parsed) ? parsed : fallback;
-  return Math.min(Math.max(safe, min), max);
-}
-
-export function resolveBootcampStructure({
-  classFormat = '4x4_r2',
-  stationCount,
-  exercisesPerStation,
-  targetDuration = 50,
-} = {}) {
-  const baseFormat = FORMAT_CONFIG[classFormat] ?? FORMAT_CONFIG['4x4_r2'];
-  const hasCustomStructure = classFormat === 'custom' || stationCount != null || exercisesPerStation != null;
-
-  if (!hasCustomStructure) {
-    let resolvedStationCount;
-    if (classFormat === 'full_group') {
-      resolvedStationCount = 0;
-    } else if (baseFormat.fixedStations) {
-      resolvedStationCount = baseFormat.fixedStations;
-    } else {
-      const exerciseTimeSec = baseFormat.exercisesPerStation * baseFormat.durationSec;
-      const stationTimeSec = exerciseTimeSec + (baseFormat.exercisesPerStation - 1) * TRANSITION_TIME_SEC + STATION_TRANSITION_SEC;
-      resolvedStationCount = Math.max(4, Math.min(10, Math.floor((targetDuration * 60) / stationTimeSec)));
-    }
-    return { classFormat, format: baseFormat, stationCount: resolvedStationCount };
-  }
-
-  const resolvedStationCount = clampInt(
-    stationCount,
-    baseFormat.fixedStations || 4,
-    CUSTOM_STRUCTURE_LIMITS.minStations,
-    CUSTOM_STRUCTURE_LIMITS.maxStations,
-  );
-  const resolvedExercisesPerStation = clampInt(
-    exercisesPerStation,
-    baseFormat.exercisesPerStation || 4,
-    CUSTOM_STRUCTURE_LIMITS.minExercisesPerStation,
-    CUSTOM_STRUCTURE_LIMITS.maxExercisesPerStation,
-  );
-  const rounds = baseFormat.rounds || 2;
-  const totalSlots = resolvedStationCount * resolvedExercisesPerStation * rounds;
-  const transitionSec = resolvedStationCount * Math.max(0, resolvedExercisesPerStation - 1) * rounds * TRANSITION_TIME_SEC;
-  const stationTransitionSec = Math.max(0, resolvedStationCount - 1) * STATION_TRANSITION_SEC;
-  const availableWorkSec = (targetDuration * 60) - transitionSec - stationTransitionSec;
-  const durationSec = Math.max(20, Math.min(60, Math.round(availableWorkSec / Math.max(1, totalSlots))));
-
-  return {
-    classFormat: 'custom',
-    stationCount: resolvedStationCount,
-    format: {
-      ...baseFormat,
-      exercisesPerStation: resolvedExercisesPerStation,
-      durationSec,
-      fixedStations: resolvedStationCount,
-      rounds,
-    },
-  };
-}
+// `clampInt` and `resolveBootcampStructure` moved to bootcampStructure.mjs (rule 4: this file
+// has been over the cap since before the repair, and an external review flagged that the cap
+// was enforced everywhere except here). Re-exported below so every existing import path — and
+// `__testing__` — is unchanged.
 
 export async function generateBootcampClass(options) {
   const {
@@ -474,6 +425,10 @@ export async function generateBootcampClass(options) {
     includeStretch = true,
     stretchDurationMin = 3,
     exclusionKeys,
+    // R-H20: the Sprint week's requested work-duration modifier. Omitted by every
+    // other caller, in which case the class is byte-identical to before.
+    workIntervalModifier,
+    workIntervalSource,
   } = options;
 
   const structure = resolveBootcampStructure({
@@ -519,6 +474,46 @@ export async function generateBootcampClass(options) {
       message: `Small class: ${expectedParticipants} participant(s) — collapsed to ${stationCount} `
         + 'station(s) so every station keeps at least a pair. Empty stations kill class energy.',
     });
+  }
+
+  // R-H20 (contract §6 lines 260-266): turn the requested modifier into an ACTUAL prescribed
+  // work interval, on a COPY — the non-custom path returns `format` by reference into
+  // FORMAT_CONFIG, which is not frozen.
+  //
+  // ORDER IS LOAD-BEARING: this sits AFTER the space-profile cap and the small-class collapse
+  // because §6 line 266 wants provenance for the class ACTUALLY built, and the slot count is
+  // the unit its work block is measured in. Computed earlier — as it was until round 99 — a
+  // 4-person class collapsed from 6 stations to 2 still persisted `baseWorkTotalSec` for 6
+  // (external review, MED-6). Nothing between the structure resolution and here reads
+  // `format.durationSec`, so the interval the builders consume is unchanged.
+  //
+  // The budget inputs use the SAME non-work arithmetic `resolveBootcampStructure`'s custom
+  // branch already uses (transitionSec + stationTransitionSec), so the check is consistent
+  // with existing in-repo budget math rather than an invented model. There is no ClassPlan
+  // here to compile: the backend never imports `timeline.mjs` (only a test does), so the
+  // shared compiler is the FRONTEND Runner's. The record carries the numbers it used.
+  const progression = workIntervalModifier == null
+    ? null
+    : resolveWorkInterval({
+      baseWorkSec: format?.durationSec,
+      requestedModifier: workIntervalModifier,
+      format,
+      classFormat,
+      classStyle,
+      totalWorkSlots: (stationCount || 0) * (format?.exercisesPerStation || 0) * (format?.rounds || 0),
+      otherBlockSec: (() => {
+        const stations = stationCount || 0;
+        const perStation = format?.exercisesPerStation || 0;
+        const rounds = format?.rounds || 0;
+        if (stations <= 0 || perStation <= 0 || rounds <= 0) return 0;
+        return (stations * Math.max(0, perStation - 1) * rounds * TRANSITION_TIME_SEC)
+          + (Math.max(0, stations - 1) * STATION_TRANSITION_SEC);
+      })(),
+      budgetSec: targetDuration * 60,
+      source: workIntervalSource,
+    });
+  if (progression?.applied) {
+    format = applyWorkIntervalToFormat(format, progression);
   }
 
   // Step 3: Get recent class logs for freshness
@@ -609,7 +604,13 @@ export async function generateBootcampClass(options) {
     });
   }
 
-  if (intensityCategory) {
+  // HOSTILE-REVIEW FIX (BE-F3c): only claim prioritization when a REAL
+  // intensity category was supplied. scoreExerciseForIntensity() switches
+  // solely on the six members of the persisted intensityCategory enum and
+  // returns 0 for anything else, so an off-vocabulary value (the sprint
+  // generator used to send 'low'/'moderate'/'high'/'max') reordered nothing
+  // while this explanation still asserted that it had.
+  if (INTENSITY_CATEGORIES.includes(intensityCategory)) {
     availableExercises = rankExercisesForBootcamp(availableExercises, { intensityCategory });
     explanations.push({
       type: 'intensity',
@@ -801,6 +802,10 @@ export async function generateBootcampClass(options) {
     brainUsed: brainResult.brainUsed,
     brainFallbackReason: brainResult.fallbackReason,
     declaredAssumptions: brainResult.declaredAssumptions,
+    // R-H20 (contract §6 line 266): the work-interval provenance travels WITH the
+    // class, so it lands in the slot's persisted `generatedClassData` unchanged.
+    // `applied:false` with a reason is a truthful hold, not a missing field.
+    ...(progression ? { progression } : {}),
   };
 }
 

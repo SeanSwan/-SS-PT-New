@@ -26,7 +26,11 @@ import { join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const BACKEND_ROOT = resolve(process.cwd());
-const SKIP_DIRS = new Set(['node_modules', '.git', 'tests', '__tests__', 'coverage', 'dist']);
+// `tmp` is a SCRATCH directory, not source. Another suite creates and destroys
+// subdirectories inside it WHILE this walk runs, which raced the stat below and
+// failed the whole file with ENOENT under parallel execution (diagnosed from a
+// full-suite log; the file passed in isolation, so it read as a flake).
+const SKIP_DIRS = new Set(['node_modules', '.git', 'tests', '__tests__', 'coverage', 'dist', 'tmp']);
 const CEILING_NAMES = ['MAX_CART_ITEM_QUANTITY', 'MAX_PAYMENT_LINE_ITEMS'];
 
 /**
@@ -39,7 +43,12 @@ const walk = (dir, out = []) => {
   for (const entry of readdirSync(dir)) {
     if (SKIP_DIRS.has(entry)) continue;
     const full = join(dir, entry);
-    if (statSync(full).isDirectory()) walk(full, out);
+    // The tree is NOT stable while the suite runs in parallel, so an entry can
+    // vanish between readdirSync and statSync. Skip what is already gone rather
+    // than failing the audit on a transient directory.
+    const stats = statSync(full, { throwIfNoEntry: false });
+    if (!stats) continue;
+    if (stats.isDirectory()) walk(full, out);
     else if (entry.endsWith('.mjs')) out.push(full);
   }
   return out;

@@ -1,0 +1,16 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const here = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(here, '..', '..', '..');
+const real = readFileSync(path.join(root, 'backend', 'core', 'routes.mjs'), 'utf8');
+const commented = real.replace(/^(\s*import\b[^;]*bootcampRoutes\.mjs['"];)/m, '// $1');
+console.log('mutation applied (strings differ):', commented !== real);
+const re = new RegExp(`^\\s*import\\b[^;]*\\bfrom\\s*['"][^'"]*bootcampRoutes\\.mjs['"]`, 'm');
+const m = re.exec(commented);
+console.log('match on commented source:', m ? JSON.stringify(m[0].slice(0, 90)) : 'none');
+console.log('line number of match:', m ? commented.slice(0, m.index).split('\n').length : 'n/a');
+console.log('--- the two lines around it ---');
+const lines = commented.split('\n');
+const ln = m ? commented.slice(0, m.index).split('\n').length : 0;
+for (let i = Math.max(0, ln - 2); i < Math.min(lines.length, ln + 1); i++) console.log(`${i + 1}: ${lines[i]}`);

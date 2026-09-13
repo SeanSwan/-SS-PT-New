@@ -1,0 +1,138 @@
+[
+  {
+    "relativePath": "installed-preservation.json",
+    "sha256": "88c94ea4145e2b876a25d9c97856088fe15bde4f3cac3094f8e09c9ccf8bea57"
+  },
+  {
+    "relativePath": "PLAN-TEST-CONTRACT.md",
+    "sha256": "416f969bc7106377217e2f62cbe8e3c19b5e1d3bf943e7f12c93f59ab1919a87"
+  },
+  {
+    "relativePath": "references\\review-policy.json",
+    "sha256": "96ea54adf352deb8a17c20cf8f8be1c829005b12f34eb22bdbff02ab57519ec1"
+  },
+  {
+    "relativePath": "RESULTS\\accounting-updated.log",
+    "sha256": "9e77f2374002321de0d764f062ab55dc0c974137cc9336c34b4f27f470354579"
+  },
+  {
+    "relativePath": "RESULTS\\compatibility-updated.log",
+    "sha256": "2c1fd3c28b585b6489989fa13e718764f5f0fe825982486005ed6a0e96cbf201"
+  },
+  {
+    "relativePath": "RESULTS\\FINAL-HANDOFF.md",
+    "sha256": "d4085cb1fbe56bf323463ec39cf27fe58f2510b3da34ef058b8f837c1b9cac7c"
+  },
+  {
+    "relativePath": "RESULTS\\final-hashes.json",
+    "sha256": "be33db4942b367cb44c84656c35dfbcd0edc358a7f6e05041d5860db8013de71"
+  },
+  {
+    "relativePath": "RESULTS\\focused-relocation-run-blocked.log",
+    "sha256": "61e7e9692210146957ebf5c607d19ea97ca0045541a8c1472193dffa4ccf2f39"
+  },
+  {
+    "relativePath": "RESULTS\\focused-relocation.log",
+    "sha256": "3f79c9258435ed4ff867a92f67a293dfcb82486978e071c004a695c9900696f6"
+  },
+  {
+    "relativePath": "RESULTS\\full-vendor-combined-launch-EPERM.log",
+    "sha256": "f8a37b4c1fc03d47f99f3ca2c028cf52e4ce2ba2e2d76a1601d1a1d1483537d6"
+  },
+  {
+    "relativePath": "RESULTS\\full-vendor-summary.log",
+    "sha256": "149e5a940eefb82a8a5e38d5f6ee2b1ca78eb7194f46ae04e73d75afcba0e9d9"
+  },
+  {
+    "relativePath": "RESULTS\\red-baseline-run-blocked.log",
+    "sha256": "d666799db6f242992cd5346dad7c86949a73d50b96a6cc407185c18cae645441"
+  },
+  {
+    "relativePath": "RESULTS\\red-contract-transcript.log",
+    "sha256": "e8e6329a165ff4e0fa569a4bad1cab91109199f044b8455a5d094ab360a92b75"
+  },
+  {
+    "relativePath": "RESULTS\\vendor-workflow-adversarial.log",
+    "sha256": "d7f192b08b22b77300ea33569161ef1bddfd7875b43a0fc7d6e4456c6e6f94dd"
+  },
+  {
+    "relativePath": "RESULTS\\vendor-workflow-hook.log",
+    "sha256": "fe73e4adba0d11fcdc44b5681004db8c4842c0cdf11404012614a7f75affc14c"
+  },
+  {
+    "relativePath": "RESULTS\\vendor-workflow-isolation-run-blocked.log",
+    "sha256": "a356cc34ff675ce1d5c50928dee88a8654e069cc57a05131ca5ef59b4fc74965"
+  },
+  {
+    "relativePath": "RESULTS\\vendor-workflow-override.log",
+    "sha256": "071ffcaf1fb2c0c68b8256b907c4ac53245cea5ddeb41b23263c8de1cc5f13c9"
+  },
+  {
+    "relativePath": "RESULTS\\vendor-workflow-red.log",
+    "sha256": "b5da969864f26a9a627a196d61b019fbadc9efa6aa0861396da1bc6a64b67c77"
+  },
+  {
+    "relativePath": "RESULTS\\vendor-workflow.log",
+    "sha256": "09c5c1e113d220e433b063ce0388977d46dc9bde4288b9fcdb135d3bce869fee"
+  },
+  {
+    "relativePath": "vendor\\check-readiness.mjs",
+    "sha256": "2861ba269565cc952396f5399965f22a52c9c7a1e85ae803682e097e82b7056f"
+  },
+  {
+    "relativePath": "vendor\\workflow-adversarial.test.mjs",
+    "sha256": "bbebc11a367607abf810416ae9d8d7f7d2a23f0dad21ce9f170988b100db537e"
+  },
+  {
+    "relativePath": "vendor\\workflow-fixtures.mjs",
+    "sha256": "fd52209d3b8780e346653eae8610d8e3f2e83f39d47ccdcd972bd9024da5690f"
+  },
+  {
+    "relativePath": "vendor\\workflow-hook.mjs",
+    "sha256": "db79a47a240a996f87fa0caa4e0baa9ff8f0f98f350b711ec8aeab8d02992a9b"
+  },
+  {
+    "relativePath": "vendor\\workflow-hook.test.mjs",
+    "sha256": "4570b6105cd65dac655f6ff5d9165bedaec4159a4f7c76bc68e6b5c2c5e9f35a"
+  },
+  {
+    "relativePath": "vendor\\workflow-isolation.mjs",
+    "sha256": "58f7312a3225395b8e23b608b9e8650f3d17ad94378827645066b39b7b48b8b8"
+  },
+  {
+    "relativePath": "vendor\\workflow-isolation.test.mjs",
+    "sha256": "d585c6058dbe7f109241f1ba7b75592916b464a35d7258d5bf98d4f2d9f073ab"
+  },
+  {
+    "relativePath": "vendor\\workflow-override-evidence.mjs",
+    "sha256": "380a2b1849650068eaa781a73fa48ce729f7ce3a7189a03b0576b302aeb66243"
+  },
+  {
+    "relativePath": "vendor\\workflow-override.mjs",
+    "sha256": "36bf6c94c49795b73b8aa3d6af4c6156a65910cc4b8be708dd8d262998ef594a"
+  },
+  {
+    "relativePath": "vendor\\workflow-override.test.mjs",
+    "sha256": "938b8f2c47c8f6370acce571d1ebdb13125253d3dbc27fefa717a58e24889d3f"
+  },
+  {
+    "relativePath": "vendor\\workflow-policy.mjs",
+    "sha256": "6278b962b77bfae67b7b743a4255854c24abaea3766f0fe8f2b782b13fe8209e"
+  },
+  {
+    "relativePath": "vendor\\workflow-red.test.mjs",
+    "sha256": "22b371ee812781d5752345c7ee7abcb10ee057448b76948412cd668b24b8f770"
+  },
+  {
+    "relativePath": "vendor\\workflow.mjs",
+    "sha256": "4caab626adef32d131380cbc563131b79fc31bff3b050d641ab34c90f55b3f55"
+  },
+  {
+    "relativePath": "vendor\\workflow.test.mjs",
+    "sha256": "69ce8e9c2941f716d40b39d3ef2d646704913ad08c13deab9336294066be3e8e"
+  },
+  {
+    "relativePath": "vendor\\references\\workflow-usage.md",
+    "sha256": "2d1c99d6bedddd5f5cf653d9c8b6f351997ef3bf4495a45380c13b9305418d3d"
+  }
+]

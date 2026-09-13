@@ -64,7 +64,7 @@ describe('Bootcamp demo mode contract', () => {
 
   it('mounts the absolute-deadline runner with truthful end times and accessible controls', () => {
     expect(demoSource).toContain("from './BootcampRunnerClock'");
-    expect(demoSource).toContain('<BootcampRunnerClock bootcamp={bootcamp} />');
+    expect(demoSource).toContain('<BootcampRunnerClock bootcamp={bootcamp} runSession={runSession} />');
     expect(runnerSource).toContain('role="timer"');
     expect(runnerSource).toContain('Planned End');
     expect(runnerSource).toContain('Projected End');

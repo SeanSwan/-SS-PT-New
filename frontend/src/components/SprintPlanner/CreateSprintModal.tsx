@@ -124,6 +124,10 @@ const CreateSprintModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
                   onClick={() => toggleDay(day)}
                   $selected={selectedDays.includes(day)}
                   $tone="cyan"
+                  // R-H17 ("selected/pressed semantics"): these were already real buttons, so the
+                  // interaction worked — but the selection was painted with `$selected`, which
+                  // assistive technology cannot see. `aria-pressed` is what says it out loud.
+                  aria-pressed={selectedDays.includes(day)}
                 >
                   {day.slice(0, 3).toUpperCase()}
                 </SprintToggleButton>
@@ -141,6 +145,7 @@ const CreateSprintModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
                   onClick={() => toggleFocus(focus)}
                   $selected={focusRotation.includes(focus)}
                   $tone="purple"
+                  aria-pressed={focusRotation.includes(focus)}
                 >
                   {focus.replace('_', ' ')}
                 </SprintToggleButton>

@@ -1,0 +1,10 @@
+{
+  "build": {
+    "path": ".mega-blueprints/artifacts/b214f060bbec9038/s01-relocated-build.json",
+    "sha256": "0d929b24407c25e042af9f7c8b08bf332d2efc23b9fdae6fed87f482f68b1083"
+  },
+  "tests": {
+    "path": ".mega-blueprints/artifacts/b214f060bbec9038/s01-relocated-tests.json",
+    "sha256": "7b78fac0b086321a9d3318e9092bc786b9871c9a8a9a661d67ae533d5086cf6f"
+  }
+}

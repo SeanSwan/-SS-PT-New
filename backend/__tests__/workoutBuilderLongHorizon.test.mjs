@@ -63,7 +63,10 @@ vi.mock('../models/index.mjs', () => ({
   default: { sequelize: null },
 }));
 
-// Stub the registry DB call — tests use registryOverride instead.
+// NOTE (round 153): the mock below is a NO-OP. `exerciseRegistryService.mjs` does not exist, and the
+// service imports `getExerciseRegistryFromDB` from `variationEngine.mjs`. It is harmless because these
+// tests call `generatePlan`, which honours `registryOverride` directly, so the real registry call is
+// never reached. Corrected in place rather than deleted, to keep this file's diff minimal.
 vi.mock('../services/exerciseRegistryService.mjs', () => ({
   getExerciseRegistryFromDB: () => Promise.resolve([]),
 }), { virtual: true });
@@ -200,19 +203,35 @@ describe('generatePlan — R6 strict rotation when pool ≥ 7 distinct', () => {
     expect(fixturePoolSizes.pull).toBe(8);
   });
 
-  it('with full equipment, no exercises are tagged rotationFallback', async () => {
+  it('with full equipment, tags rotationFallback ONLY where the pool is smaller than the window', async () => {
     const plan = await generatePlan(baseOptions({ durationWeeks: 12, sessionsPerWeek: 4 }));
 
-    // Walk every exercise across every day across every week.
-    let fallbackCount = 0;
+    // R-H19 clause 3 (round 151) NARROWED this assertion, and the narrowing is the finding rather
+    // than a convenience. It previously required ZERO tags anywhere on a full-equipment plan, which
+    // was satisfiable only while the recent window held seven individual EXERCISES: that window was
+    // too short to notice `core` repeating, so the tag never fired even though `core`'s pool is FOUR
+    // and its day recurs every week. With the window corrected to seven SESSIONS the tag fires
+    // exactly where the service documents it should (`eligiblePoolSize < 7`) and nowhere else.
+    //
+    // The split below is MEASURED, not assumed: push/pull/legs (pools 8, 8, 11) contribute 0 tags,
+    // and `core` (pool 4) contributes 44, which is 11 tagged core days x 4 exercises — week 1 is
+    // clean and weeks 2-12 repeat, because four exercises cannot fill a seven-session window. This
+    // test now also DISCRIMINATES the window: restoring the old seven-key window drops the core
+    // count back to 0 and fails here.
+    const poolOf = new Map(fixtureRegistry.map((ex) => [ex.key, fixturePoolSizes[ex.category] ?? 0]));
+    let onTaggablePools = 0;   // categories whose pool the window CAN honour
+    let onThinPools = 0;       // categories whose pool is smaller than the window
     for (const week of plan.weeks) {
       for (const day of week.days) {
         for (const ex of day.exercises) {
-          if (ex.rotationFallback === true) fallbackCount += 1;
+          if (ex.rotationFallback !== true) continue;
+          if ((poolOf.get(ex.exerciseId) ?? 0) >= 7) onTaggablePools += 1;
+          else onThinPools += 1;
         }
       }
     }
-    expect(fallbackCount).toBe(0);
+    expect(onTaggablePools).toBe(0);
+    expect(onThinPools).toBe(44);
   });
 });
 

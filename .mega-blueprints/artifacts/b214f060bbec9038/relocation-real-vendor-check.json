@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "execution": "Native exec_command chunk bc24ba; exit_code 0",
+  "command": "node OLD_ROOT/tmp/workflow-isolation-20260913/vendor/workflow.mjs migrate NEW_ROOT/.mega-blueprints/artifacts/b214f060bbec9038/state-relocated.json NEW_ROOT/.mega-blueprints/artifacts/b214f060bbec9038/init-relocation.json --check",
+  "oldRoot": "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913",
+  "newRoot": "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-luna-01a098de-20260913",
+  "output": {"valid":true,"write":false,"taskId":"01a098de-2069-7791-8b8d-098dda451b6e","sessionId":"01a098de-2069-7791-8b8d-098dda451b6e","calls":8,"cap":12,"cadence":"final-astra"},
+  "limitation": "Vendor no-write validation only. Installed verification, actual migration, enrollment and application resumption remain pending. Final vendor hashes are bound separately by the builder receipt."
+}

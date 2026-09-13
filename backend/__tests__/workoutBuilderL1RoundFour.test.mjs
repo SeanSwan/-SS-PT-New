@@ -105,6 +105,9 @@ vi.mock('../models/index.mjs', () => ({
   default: { sequelize: null },
 }));
 
+// NOTE (round 153): the mock below is a NO-OP - `exerciseRegistryService.mjs` does not exist, and the
+// service imports `getExerciseRegistryFromDB` from `variationEngine.mjs`. Harmless here because this
+// file calls `generatePlan`, which honours `registryOverride` directly.
 vi.mock('../services/exerciseRegistryService.mjs', () => ({
   getExerciseRegistryFromDB: () => Promise.resolve([]),
 }), { virtual: true });
@@ -206,16 +209,38 @@ describe('generatePlan — eligible-pool count uses the same expansion (rotation
     // `ex.category === 'legs'` (zero hits in production-shape) and
     // would have flagged rotationFallback=true on every legs day.
     const plan = await generatePlan(baseOpts({ durationWeeks: 4, sessionsPerWeek: 4 }));
-    let fallbackCount = 0;
+
+    // Round 151 (R-H19 clause 3) SCOPED this assertion, which used to be global — zero tags anywhere
+    // on the plan. It passed only while the recent window held seven individual EXERCISES; with the
+    // window corrected to seven SESSIONS the tag fires on the plan's `core` days, whose pool is
+    // smaller than the window, which is precisely what `eligiblePoolSize < 7` documents. The subject
+    // of THIS test is the legs day (its title, and the round-4 category-filter regression it pins),
+    // so the legs families are asserted at zero and every other tag must still sit on a pool the
+    // window cannot honour. The window's own discrimination is proven separately, by probe M58.
+    const LEG_CATEGORIES = new Set(['squat', 'hinge', 'lunge', 'legs']);
+    const categoryOf = new Map(productionShapeRegistry.map((ex) => [ex.key, ex.category]));
+    const poolOf = new Map();
+    for (const ex of productionShapeRegistry) {
+      poolOf.set(ex.category, (poolOf.get(ex.category) ?? 0) + 1);
+    }
+
+    let fallbackOnLegs = 0;
+    const fallbackOnTaggablePools = [];
     plan.weeks.forEach((week) => {
       week.days.forEach((day) => {
         day.exercises.forEach((ex) => {
-          if (ex.rotationFallback) fallbackCount += 1;
+          if (!ex.rotationFallback) return;
+          const category = categoryOf.get(ex.exerciseId);
+          if (LEG_CATEGORIES.has(category)) fallbackOnLegs += 1;
+          else if ((poolOf.get(category) ?? 0) >= 7) fallbackOnTaggablePools.push(ex.exerciseId);
         });
       });
     });
+
     // Pool of 10 leg exercises easily covers the 7-distinct strict
-    // rotation requirement, so no fallback flags expected.
-    expect(fallbackCount).toBe(0);
+    // rotation requirement, so no fallback flags expected on the legs families.
+    expect(fallbackOnLegs).toBe(0);
+    // Nor may a tag ever appear on any category whose pool could have honoured the window.
+    expect(fallbackOnTaggablePools).toEqual([]);
   });
 });

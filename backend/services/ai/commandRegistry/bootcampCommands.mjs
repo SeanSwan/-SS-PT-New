@@ -8,6 +8,10 @@
  */
 import { z } from 'zod';
 import { registerCommands } from './baseSchemas.mjs';
+// The real class-style vocabulary. Constraining the schema here makes the SERVER
+// the authority instead of relying on a client-side re-validation that does not
+// actually exist (see the SET_FORMAT entry below).
+import { CLASS_STYLES } from '../../bootcamp/bootcampTemplateRules.mjs';
 
 const commands = [{
   type: 'bootcamp_set_structure',
@@ -61,7 +65,16 @@ const commands = [{
   endpoint: 'AI_BOOTCAMP_SET_FORMAT',
   inputSchema: z.object({
     optPhase: z.number().int().min(1).max(5).optional(),
-    classStyle: z.string().trim().min(1).max(40).optional(),
+    // Hostile-review (writer sweep): this was `z.string().trim().min(1).max(40)`,
+    // so ANY string passed — including values from a DIFFERENT vocabulary
+    // ('low_impact' is a `board` value, not a class style). The file header above
+    // claims "the browser re-validates every payload against the builder's real
+    // option sets"; useBootcampAiEvents.ts:102-103 only checks
+    // `typeof d.classStyle === 'string'`, so that gate does not exist for this
+    // field. The route falls back to 'standard' before generating, so this was a
+    // UI-desync hole rather than a data-integrity one — but the server schema
+    // should not depend on a client check it does not perform.
+    classStyle: z.enum(CLASS_STYLES).optional(),
   }).strict(),
   destructive: false,
   requiresConfirmation: false,

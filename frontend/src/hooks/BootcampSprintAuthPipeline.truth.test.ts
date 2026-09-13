@@ -17,6 +17,8 @@ describe('bootcamp and sprint planner auth pipeline', () => {
     const coreRoutesSource = readSource('backend/core/routes.mjs');
     const bootcampRoutesSource = readSource('backend/routes/bootcampRoutes.mjs');
     const sprintRoutesSource = readSource('backend/routes/sprintRoutes.mjs');
+    // R-H04 (slice D) moved the stream route into its own module (rule 4 cap).
+    const sprintStreamSource = readSource('backend/routes/sprintStream.mjs');
 
     expect(layoutSource).toContain("from './UniversalDashboardLayout.routes'");
     expect(routeComponentsSource).toContain("export const BootcampBuilderPage = React.lazy(() => import('../BootcampBuilder/BootcampBuilderPage'))");
@@ -43,7 +45,10 @@ describe('bootcamp and sprint planner auth pipeline', () => {
     expect(sprintRoutesSource).toContain("router.put('/:id'");
     expect(sprintRoutesSource).toContain("router.delete('/:id'");
     expect(sprintRoutesSource).toContain("router.post('/:id/generate'");
-    expect(sprintRoutesSource).toContain("router.get('/:id/generate/stream'");
+    // The stream route is DECLARED in sprintStream.mjs and MOUNTED from
+    // sprintRoutes.mjs — asserting both keeps the wiring covered after the move.
+    expect(sprintStreamSource).toContain("router.get('/:id/generate/stream'");
+    expect(sprintRoutesSource).toContain('registerSprintStreamRoute(router, {');
     expect(sprintRoutesSource).toContain("router.put('/:sprintId/slots/:slotId/confirm'");
     expect(sprintRoutesSource).toContain("router.post('/:sprintId/slots/:slotId/regenerate'");
   });
@@ -51,7 +56,11 @@ describe('bootcamp and sprint planner auth pipeline', () => {
   it('keeps normal bootcamp and sprint calls on apiService and centralizes stream auth', () => {
     const bootcampSource = readSource('frontend/src/hooks/useBootcampAPI.ts');
     const sprintSource = readSource('frontend/src/hooks/useSprintAPI.ts');
-    const combinedSource = `${bootcampSource}\n${sprintSource}`;
+    // The SSE transport (the one place a raw `fetch` is legitimate) moved to its
+    // own module in this slice, so the contract is asserted across both files:
+    // the hook must DELEGATE, and the transport must live only there.
+    const sprintTransportSource = readSource('frontend/src/hooks/sprintGenerationStream.ts');
+    const combinedSource = `${bootcampSource}\n${sprintSource}\n${sprintTransportSource}`;
 
     expect(bootcampSource).toContain("import apiService from '../services/api.service'");
     expect(bootcampSource).toContain("apiService.post<T>(url, payload)");
@@ -68,8 +77,9 @@ describe('bootcamp and sprint planner auth pipeline', () => {
     expect(sprintSource).toContain('apiService.put(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/confirm`');
     expect(sprintSource).toContain('apiService.post(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/regenerate`)');
     expect(sprintSource).toContain('ProductionTokenManager.getToken()');
-    expect(sprintSource).toContain('fetch(`/api/bootcamp/sprints/${sprintId}/generate/stream`');
-    expect(sprintSource).toContain('fetch(`/api/bootcamp/sprints/${sprintId}/generate`');
+    expect(sprintSource).toContain('streamSprintGeneration');
+    expect(sprintTransportSource).toContain('fetch(`/api/bootcamp/sprints/${sprintId}/generate/stream`');
+    expect(sprintTransportSource).toContain('fetch(`/api/bootcamp/sprints/${sprintId}/generate`');
 
     expect(combinedSource).not.toContain("localStorage.getItem('token')");
     expect(combinedSource).not.toContain('getAuthHeaders');
