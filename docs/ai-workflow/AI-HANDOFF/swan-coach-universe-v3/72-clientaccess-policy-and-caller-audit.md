@@ -103,9 +103,35 @@ requester and asserting the `ClientPhoto.findAll` where-clause carries
 `visibility: ['public','private']`. A source-text guard alone is the weaker,
 already-criticised pattern (see P64) and must not be the only proof.
 
-### CA-0 — `aiBffRoutes.mjs:192` authorization fall-through for the default role (MAJOR, cross-client exposure risk)
+### CA-0 — `aiBffRoutes.mjs:192` authorization fall-through (latent; NOT REACHABLE at the live URL)
 
-`backend/routes/aiBffRoutes.mjs:184-201`, `GET /api/ai-command/client-summary/:clientId`:
+> **CORRECTED 2026-09-13 by executed probe. Two claims in the first version of this
+> section were wrong and are struck below rather than quietly edited**, because the
+> correction is the useful part: a static route walk produced a wrong URL and a
+> wrong severity, and only running the app settled it (rule 55).
+
+**Wrong claim 1 — the URL.** The first version said
+`GET /api/ai-command/client-summary/:clientId`. That path does not exist.
+`core/routes.mjs:715` mounts `aiCommandRoutes` at `/api/ai-command`, while the
+handler lives in `aiBffRoutes`, mounted at `core/routes.mjs:718` →
+**`/api/admin/ai-bff/client-summary/:clientId`**. Probed: the documented path
+returns **404**; the real path returns **403**.
+
+**Wrong claim 2 — "the route has `protect` only".** True of the router *file*,
+false of the *mounted URL*. `core/routes.mjs:498` mounts `adminRoutes` at
+`/api/admin` **before** line 718, and `routes/adminRoutes.mjs:30-31` applies a
+pathless `router.use(authenticateToken)` + `router.use(authorizeAdmin)`.
+`authorizeAdmin` is `adminOnly` (`middleware/auth.mjs:176`), which 403s every
+non-admin at `middleware/authMiddleware.mjs:436-451`. A `'user'` caller is
+stopped upstream and **never reaches the aiBff handler**.
+
+**Wrong claim 3 — the failure shape.** `Promise.allSettled` does not mask
+failures as `{error:'unavailable'}`. `fetchInternal` returns
+`{error:'HTTP 403', status:403}` for a non-ok response (`aiBffRoutes.mjs:77-79`);
+`'unavailable'` appears only when `fetch` itself throws (line 88).
+
+What remains true is the code-level shape. `backend/routes/aiBffRoutes.mjs:184-201`
+has no role middleware of its own and only two role branches:
 
 ```js
 router.get('/client-summary/:clientId', protect, async (req, res) => {   // :184  protect ONLY
@@ -128,26 +154,45 @@ itself type-fragile: `req.user.id !== clientId` compares a session id against a
 `parsePositiveId` number, so a string session id makes the comparison always
 true and 403s every client instead (fail-closed, but still wrong).
 
-**Exposure is not yet proven, and this audit does not claim it is.** The handler
-fetches through `fetchInternal(path, req, 5000)`, which forwards the *original*
-`req`, so each downstream endpoint applies its own authorization to the real
-caller. `Promise.allSettled` (`:211`) turns any downstream rejection into
-`{ error: 'unavailable' }` rather than an error response, so a partial disclosure
-renders as a normal 200. Whether another client's data is actually returned
-therefore depends on the downstream guards — and at least one of them,
-`painEntryController.mjs:90,132,172,259,352,453`, is the **same
-`requester.role === 'client'` hand-roll**, which for a `'user'` caller is also
-skipped.
+**PROBED — blast radius NOT demonstrated.** The rule-55 probe was executed: the
+real routers assembled in production mount order, real loopback HTTP through the
+same transport `fetchInternal` uses, a `'user'` caller (`id: "901"`, a **string**,
+mirroring `authMiddleware.mjs:357`) against client `902`, with `DATABASE_URL`
+deleted, sequelize neutered and non-loopback sockets rejected.
 
-Per rule 55 this needs an executed probe before any fix is prescribed: drive the
-route as a `'user'`-role caller against an isolated server and record which of
-the four sub-results come back populated versus `'unavailable'`. Until that probe
-runs, the class is established and the blast radius is **UNVERIFIED**.
+| Scenario | Observed |
+|---|---|
+| Production mount chain, mounted URL | `403 {"success":false,"message":"Access denied: Admin only"}` — blocked upstream by `adminRoutes`; **no sub-result ever requested** |
+| Handler reached under an ungated prefix, pre-fix | `status 200`, but **zero of four** sub-results populated: profile `HTTP 403`, activePain `HTTP 404`, latestMeasurements `HTTP 404`, recentWorkouts `HTTP 403` |
 
-Recommended shape of the fix (to be confirmed by the probe): replace the
-role-branch ladder with a single fail-closed gate, e.g. call the shared
-`ensureClientAccess(req, clientId)` for **every** non-admin role, or add an
-explicit `requireRole('client','user','trainer','admin')` plus the shared helper.
+The downstream guards hold on their own: profile and recentWorkouts are refused by
+`adminClientRoutes`' `authorize(['admin'])`, and activePain/latestMeasurements by
+`verifyClientAccessByUserId` (`middleware/verifyClientAccess.mjs:91-93`, which
+already handles `'user'`). **No cross-client data was returned in any
+configuration the probe could construct.**
+
+So the real harm is narrower than the first version claimed: a misleading **200
+"all sources unavailable" envelope where a 403 belongs**, plus a latent fail-open
+that would become exploitable if any downstream guard were later relaxed. It is
+**not** an observed exposure, and the endpoint additionally has **zero consumers**
+anywhere in the repo (backend services or frontend) — `client-summary` appears
+nowhere else, while the sibling `command-center` is the only AI-BFF path the
+frontend references (`services/ai/commandRegistry/dashboardCommands.mjs:22`).
+
+**Fixed regardless, as defence-in-depth** — a latent fail-open one relaxed guard
+away from being reachable is worth closing. The fix that shipped calls
+`ensureClientAccess(req, clientId)` for **every non-admin role**, keeping an
+explicit admin short-circuit.
+
+**Fix-shape trap, recorded because it cost a regression.** The first
+implementation used this document's other wording — the shared helper for
+**every** role including admin — and **regressed**
+`tests/api/aiBffClientSummaryPathTruth.test.mjs` ("does not embed internal
+upstream errors…", expected 200, got 500), because `ensureClientAccess` reads the
+target `User` row *before* reaching its own admin branch, so admin lost its
+DB-free path. **The admin short-circuit is load-bearing; do not remove it.** Both
+wordings appeared in this document, which is exactly why the probe had to settle
+it rather than the prose.
 
 
 ### CA-2 — `profileController.mjs:598` fails CLOSED against its own middleware (MAJOR, functionality)
@@ -221,25 +266,50 @@ rediscovered later.
 
 ## Next
 
-1. **CA-0 first.** Run the rule-55 probe against an isolated server as a
-   `'user'`-role caller to establish the real blast radius of the
-   `/api/ai-command/client-summary/:clientId` fall-through, then apply a single
-   fail-closed gate. This is the highest-severity item this audit produced and it
-   is a cross-client risk, not a policy nuance.
-2. **CA-1** is a privacy fail-open on the default account role with a canonical
-   precedent and a one-line fix — fix with a behavioural test before the next
-   release candidate.
-3. **CA-2** is the same one-line class in a file this audit surfaced; fix in the
-   same pass.
-4. **CA-3** is documentation debt; collapse the three local copies onto the
-   shared export when those files are next touched.
+**All three defects (CA-0, CA-1, CA-2) are now FIXED and covered by behavioural
+tests**, each proven RED → GREEN → mutation-RED:
+
+| Defect | Fix | Evidence |
+|---|---|---|
+| CA-1 | `clientPhotoRoutes.mjs` uses `isClientEquivalentRole(req.user?.role)` | 2 failed → 6 passed; mutation reverts it to 2 failed |
+| CA-2 | `profileController.mjs` uses `!isClientEquivalentRole(req.user.role)` | 2 failed → 5 passed; mutation reverts it to 2 failed |
+| CA-0 | fail-closed non-admin gate in `aiBffRoutes.mjs`, admin short-circuit preserved | 2 failed → 8 passed; mutation reverts it to 4 failed |
+
+Combined: **3 files, 19 tests passed, exit 0**. Targeted regression across 13
+related files: **129 passed, exit 0**. Full-suite A/B with the fixes swapped in and
+out under the same concurrent load: pristine `20 failed / 10483 passed` → fixed
+`13 failed / 10490 passed`, with **no test failing only because of these fixes**.
+
+Remaining, in priority order:
+
+1. **CA-1 is the one with real user impact.** It is a privacy fail-open on the
+   default account role and it is reachable without any relaxed guard. Its
+   real-world exposure assumes at least one `'user'`-role account owns
+   `trainer_only` rows — **not verified against real data**.
+2. **CA-0 needs its reachability claim kept narrow.** Do not re-inflate it: the
+   live URL is admin-gated and the endpoint has no consumers. Closing it was
+   defence-in-depth.
+3. **CA-3** is documentation debt; collapse the three local copies onto the shared
+   export when those files are next touched.
 
 CA-0 and CA-1 share a root cause — requester-side role checks hand-rolled instead
 of using the exported helper that exists precisely to prevent them. A single
 regression guard that fails when a requester-side `role === 'client'` comparison
-appears in a route or controller would close this class for good; note that two
-existing tests (`clientNoteRoutesPrivacy.test.mjs:28`,
-`painEntryRoutesAccessGuard.test.mjs:38`) already do this per-route, which is why
-notes and pain entries were fixed and photos and the AI BFF were not — the guard
-was never generalised.
+appears in a route or controller would close this class for good. Two existing
+tests already do this per-route (`clientNoteRoutesPrivacy.test.mjs:28`,
+`painEntryRoutesAccessGuard.test.mjs:38`) — which is why notes and pain entries
+were fixed and photos and the AI BFF were not: the guard was never generalised.
+
+## Test-baseline finding (not fixed here)
+
+`backend/tests/known-failing-baseline.json` records 7 known-failing files. The
+concurrent full-suite A/B observed **12** failing files, of which 5 are absent from
+that baseline: `clientPhotoUploadAuthzExecution`, `historyBackfill`,
+`phase1cXpIntegration`, `workoutPrDetection`, `unit/physicalConfirmChannelSplit`.
+Separately, `tests/api/clientPhotoUploadAuthzExecution.test.mjs:158` is
+**pre-existing RED at pristine HEAD** — `assertAssignmentOrAdmin`
+(`middleware/verifyClientAccess.mjs:86`) now returns a Number where the test pins a
+String. The baseline file understates reality and should be reconciled before it
+is used to judge any future slice.
+
 

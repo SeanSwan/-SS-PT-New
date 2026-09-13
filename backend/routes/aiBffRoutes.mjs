@@ -188,11 +188,17 @@ router.get('/client-summary/:clientId', protect, async (req, res) => {
       return res.status(400).json({ error: 'Invalid client ID' });
     }
 
-    // RBAC: clients can only access own data, trainers only assigned clients
-    if (req.user.role === 'client' && req.user.id !== clientId) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-    if (req.user.role === 'trainer') {
+    // RBAC: admins are dashboard operators by design and keep their existing
+    // DB-free allow. EVERY other role goes through the shared chokepoint
+    // fail-closed — `ensureClientAccess` already implements each branch this
+    // ladder used to hand-roll (trainer requires an ACTIVE assignment,
+    // client-equivalent self only, anything else 403) and compares strictly
+    // parsed ids, so it is not fooled by the STRING session id `protect` sets
+    // (authMiddleware.mjs:357 toStringId) against the numeric `clientId` from
+    // parsePositiveId above. The old ladder had no branch for `'user'` — the
+    // DEFAULT public-signup role — so such a caller fell through with no
+    // authorization at all (CA-0, clip 72-clientaccess-policy-and-caller-audit.md).
+    if (req.user?.role !== 'admin') {
       const { ensureClientAccess } = await import('../utils/clientAccess.mjs');
       const access = await ensureClientAccess(req, clientId);
       if (!access.allowed) {

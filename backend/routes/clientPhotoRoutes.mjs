@@ -7,7 +7,7 @@
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-import { ensureClientAccess } from '../utils/clientAccess.mjs';
+import { ensureClientAccess, isClientEquivalentRole } from '../utils/clientAccess.mjs';
 import { validatePhotoRecord } from '../utils/photoRecordValidation.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -72,7 +72,12 @@ router.get('/:userId', protect, async (req, res) => {
 
     // For clients, only show their own photos
     // For trainers/admins, show all including trainer_only
-    if (req.user?.role === 'client') {
+    // Launch audit 2026-08-04 (CA-1, clip 72): this was `role === 'client'`,
+    // which let the DEFAULT public-signup role ('user') straight past the
+    // guard and served them their own trainer_only progress photos — images a
+    // trainer deliberately withheld from client view. Client-equivalence is the
+    // canonical helper's job; do not re-derive it.
+    if (isClientEquivalentRole(req.user?.role)) {
       where.visibility = ['public', 'private'];
     }
 

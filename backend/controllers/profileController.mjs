@@ -16,6 +16,7 @@ import { uploadPhoto, deletePhoto } from '../services/photoStorageService.mjs';
 import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE } from '../services/ai/contextEngine/clientAccess.mjs';
 import { sanitizeImageUrl } from '../utils/imageUrl.mjs';
 import { normalizeClientTimeZoneUpdate } from '../services/clientTrainingDateService.mjs';
+import { isClientEquivalentRole } from '../utils/clientAccess.mjs';
 
 // Get directory name in ES modules context
 const __filename = fileURLToPath(import.meta.url);
@@ -594,8 +595,12 @@ export const updateUserProfile = async (req, res) => {
  */
 export const updateClientProfile = async (req, res) => {
   try {
-    // Verify user is a client
-    if (req.user.role !== 'client') {
+    // Verify user is a client. `clientOnly` (authMiddleware.mjs:519-521) admits
+    // 'client', 'user' and 'admin'; this check must not disagree with it.
+    // 'user' is the DEFAULT role minted by public self-registration and is
+    // client-equivalent (utils/clientAccess.mjs:23), so it belongs here; 'admin'
+    // is NOT client-equivalent and stays rejected (CA-2, clip 72).
+    if (!isClientEquivalentRole(req.user.role)) {
       logger.warn('Non-client attempted client profile update', { userId: req.user.id, role: req.user.role });
       return res.status(403).json({
         success: false,
