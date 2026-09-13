@@ -8,11 +8,15 @@
  * submission never replays the submitted tool call.
  */
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { useRef, useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import CoachCommandCenterPage from './CoachCommandCenterPage';
 import { CoachSessionDraftProvider } from './CoachSessionDraftContext';
+import { useCoachCommandVoiceCapture } from './CoachCommandCenter.voiceCapture';
+import type { CoachInputOrigin } from '../../../../hooks/coachInputOrigin';
+import type { PublicationBinding, PublicationSnapshot } from '../../../../hooks/coachPublicationScope';
 
 const useCoachIntakeQueueMock = vi.hoisted(() => vi.fn());
 const useAIChatMock = vi.hoisted(() => vi.fn());
@@ -315,3 +319,147 @@ function actSetText(text: string) {
     speechHookParams.current?.setText?.(text);
   });
 }
+
+/* ============================================================================
+ * Plan 55 C4 (G04BC-R05, G04BC-R07, G04BC-T14) — dictation is an input lane
+ * INTO a scoped composer. While the mounted Coach holds a live publication
+ * binding that no longer admits the actor, a late browser transcript or a
+ * recorder-overlay edit must not stage words, and the existing
+ * useCoachVoiceLifecycle stopAll must fire when the admission changes.
+ * Each assertion is paired with an admitted control.
+ * ========================================================================= */
+
+const VOICE_ACTOR = 7;
+
+function voiceSnapshot(overrides: Partial<PublicationSnapshot> = {}): PublicationSnapshot {
+  return Object.freeze({
+    actorId: VOICE_ACTOR,
+    rawRole: 'admin',
+    audienceRole: 'admin',
+    generation: 1,
+    targetUserId: null,
+    threadId: null,
+    enabled: true,
+    ...overrides,
+  });
+}
+
+function voiceBinding(getSnapshot: () => PublicationSnapshot | null): PublicationBinding {
+  return { getSnapshot };
+}
+
+function useVoiceCaptureWithBinding(binding?: PublicationBinding) {
+  const [commandText, setCommandText] = useState('');
+  const [, setInputOrigin] = useState<CoachInputOrigin>('text');
+  const [, setSelectedStatus] = useState('');
+  const commandTextRef = useRef<HTMLTextAreaElement>(null);
+  const capture = useCoachCommandVoiceCapture({
+    commandTextRef,
+    setCommandText,
+    setInputOrigin,
+    setSelectedStatus,
+    speechOutputStop: ttsStopMock,
+    binding,
+  });
+  return { capture, commandText };
+}
+
+describe('Plan 55 C4: voice staging obeys the live publication admission', () => {
+  afterEach(() => setHidden(false));
+
+  beforeEach(() => {
+    stopListeningMock.mockReset();
+    ttsStopMock.mockReset();
+    speechMock.toggleListening.mockReset();
+    speechMock.clearInterim.mockReset();
+    speechMock.interim = '';
+    speechMock.listening = false;
+    speechMock.speechSupported = true;
+    speechHookParams.current = null;
+    setHidden(false);
+    useAuthMock.mockReset();
+    useAuthMock.mockReturnValue({ user: { role: 'admin', id: VOICE_ACTOR } });
+  });
+
+  it('drops a browser dictation final that lands after the admission retired', () => {
+    const live = { current: voiceSnapshot() as PublicationSnapshot | null };
+    const { result } = renderHook(() => useVoiceCaptureWithBinding(voiceBinding(() => live.current)));
+
+    live.current = voiceSnapshot({ generation: 2 });
+    actSetText('late dictated words');
+
+    expect(result.current.commandText).toBe('');
+  });
+
+  it('CONTROL: stages the same dictation final while the admission is live', () => {
+    const live = { current: voiceSnapshot() as PublicationSnapshot | null };
+    const { result } = renderHook(() => useVoiceCaptureWithBinding(voiceBinding(() => live.current)));
+
+    actSetText('late dictated words');
+
+    expect(result.current.commandText).toBe('late dictated words');
+  });
+
+  it('refuses a recorder-overlay transcript edit while the selection is not admitted', () => {
+    const live = { current: voiceSnapshot({ enabled: false }) as PublicationSnapshot | null };
+    const { result } = renderHook(() => useVoiceCaptureWithBinding(voiceBinding(() => live.current)));
+
+    act(() => { result.current.capture.voiceOverlay.onEditTranscript('Edit bench press 4 by 8'); });
+
+    expect(result.current.commandText).toBe('');
+  });
+
+  it('CONTROL: stages the same overlay edit while the admission is live', () => {
+    const live = { current: voiceSnapshot() as PublicationSnapshot | null };
+    const { result } = renderHook(() => useVoiceCaptureWithBinding(voiceBinding(() => live.current)));
+
+    act(() => { result.current.capture.voiceOverlay.onEditTranscript('Edit bench press 4 by 8'); });
+
+    expect(result.current.commandText).toBe('Edit bench press 4 by 8');
+  });
+
+  it('retires capture through the existing lifecycle when the admission generation changes', () => {
+    const live = { current: voiceSnapshot() as PublicationSnapshot | null };
+    const { rerender } = renderHook(({ tick }: { tick: number }) => {
+      void tick;
+      return useVoiceCaptureWithBinding(voiceBinding(() => live.current));
+    }, { initialProps: { tick: 0 } });
+
+    stopListeningMock.mockClear();
+    live.current = voiceSnapshot({ generation: 2 });
+    rerender({ tick: 1 });
+
+    expect(stopListeningMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('CONTROL: does not retire capture when the admission is unchanged', () => {
+    const live = { current: voiceSnapshot() as PublicationSnapshot | null };
+    const { rerender } = renderHook(({ tick }: { tick: number }) => {
+      void tick;
+      return useVoiceCaptureWithBinding(voiceBinding(() => live.current));
+    }, { initialProps: { tick: 0 } });
+
+    stopListeningMock.mockClear();
+    rerender({ tick: 1 });
+
+    expect(stopListeningMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses to start capture while the selection is not admitted', () => {
+    const live = { current: voiceSnapshot({ enabled: false }) as PublicationSnapshot | null };
+    const { result } = renderHook(() => useVoiceCaptureWithBinding(voiceBinding(() => live.current)));
+
+    act(() => { result.current.capture.handleVoice(); });
+
+    expect(speechMock.toggleListening).not.toHaveBeenCalled();
+  });
+
+  it('CONTROL: starts capture when the admission is live', () => {
+    const live = { current: voiceSnapshot() as PublicationSnapshot | null };
+    const { result } = renderHook(() => useVoiceCaptureWithBinding(voiceBinding(() => live.current)));
+
+    act(() => { result.current.capture.handleVoice(); });
+
+    expect(speechMock.toggleListening).toHaveBeenCalledTimes(1);
+  });
+});

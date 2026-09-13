@@ -1,5 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { usePaywall } from '../../../../../context/PaywallContext';
+import {
+  hasLivePublication,
+  isPublicationTokenLive,
+  readPublicationScope,
+  type PublicationBinding,
+  type PublicationSnapshot,
+} from '../../../../../hooks/coachPublicationScope';
 
 export const PENDING_COACH_FOOD_STORAGE_KEY = 'swan:pending-coach-food';
 
@@ -30,10 +37,22 @@ function requiredTierOrPro(value: unknown): 'pro' | 'elite' {
   return value === 'elite' ? 'elite' : 'pro';
 }
 
-export function useSwanCoachPendingFoodQuery(sendMessageWithFood: SendMessageWithFood) {
+export function useSwanCoachPendingFoodQuery(
+  sendMessageWithFood: SendMessageWithFood,
+  /**
+   * Plan 55 C4 — the stored payload has no actor/target envelope of its own, so
+   * it cannot prove ownership. With a binding present it is only consumed while
+   * the surface has a live, enabled admission, and never published after that
+   * admission retires. Absent keeps today's behaviour (dormant until C3 wires
+   * the controller).
+   */
+  options?: { binding?: PublicationBinding },
+) {
   const { showPaywall } = usePaywall();
   const sendMessageWithFoodRef = useRef(sendMessageWithFood);
   const showPaywallRef = useRef(showPaywall);
+  const bindingRef = useRef(options?.binding);
+  bindingRef.current = options?.binding;
 
   useEffect(() => {
     sendMessageWithFoodRef.current = sendMessageWithFood;
@@ -41,6 +60,11 @@ export function useSwanCoachPendingFoodQuery(sendMessageWithFood: SendMessageWit
   }, [sendMessageWithFood, showPaywall]);
 
   useEffect(() => {
+    // Unadmitted: leave the payload exactly where it is for explicit review.
+    // Never delete it to make the queue look clean, and never rebind it to
+    // whatever target happens to be selected now.
+    if (!hasLivePublication(bindingRef.current)) return;
+
     const pending = sessionStorage.getItem(PENDING_COACH_FOOD_STORAGE_KEY);
     if (!pending) return;
 
@@ -57,10 +81,13 @@ export function useSwanCoachPendingFoodQuery(sendMessageWithFood: SendMessageWit
         foodContext: Record<string, unknown>;
       };
 
+      const captured: PublicationSnapshot | null = readPublicationScope(bindingRef.current);
+
       (async () => {
         if (cancelled) return;
         const result = await sendMessageWithFoodRef.current(message, foodContext);
         if (cancelled) return;
+        if (!isPublicationTokenLive(bindingRef.current, captured)) return;
 
         const resultRecord: PendingFoodResult | null = isRecord(result) ? result : null;
         if (resultRecord?.paywallRequired) {
