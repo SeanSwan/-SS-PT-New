@@ -229,9 +229,78 @@ same failure mode as the two Vite hazards in §E, arriving by a different route.
 | T-1 | MINOR | **Six files this session touched exceed the Rule-4 300-line cap and are queued for splitting:** `aiChatTtsPaywallParity.test.mjs` 346; `coachConversationReadAuthorization.test.mjs` 555; `coachIntentRoutes.test.mjs` 328; `coachMemoryRoutesAuthz.test.mjs` 524; `notificationSettingsCoachNudgeConsent.test.mjs` 476; `GlobalClientContext.selectionReference.test.tsx` 332. All six are **test** files and none carries the `swan-guard-allow-long-file` opt-out. | Open. Split queued. |
 | T-1-BASELINE | **correction — this row previously overstated the guard gap and gave unsafe advice** | **Rule 4 is not a six-file problem. Measured across tracked code: 786 files exceed the 300-line cap — 438 backend / 348 frontend, of which 594 are runtime and 192 are tests.** Largest: `sessionRoutes.mjs` 5331, `gamificationController.mjs` 4099, `sessions.mjs` 3184. The earlier row said "none was caught at commit time" and that "fixing that guard gap is worth more than the six splits". Both were wrong. (1) `frontend-guards.mjs:14` marks G6 **ADVISORY — "warns, never blocks"**, so the cap never gates a commit for anyone; the frontend test file above *would* have produced a WARN when staged, and warnings nobody must read are the reason it was missed. (2) The frontend-only scope is **deliberate**, documented at `frontend-guards.mjs:5` as "never the whole repo", and consistent with Rule 34 — so it is a designed boundary, not an oversight. (3) The advice was therefore unsafe as written: making a 300-line check *blocking* over `backend/` would block commits across **438** backend files immediately, and making it advisory over `backend/` adds warnings to a mechanism that already warns on 348 frontend files of which **zero** use the opt-out. Recommend instead: split the six as ordinary debt, and treat repo-wide Rule-4 debt as its own migration with an explicit owner. Measured by `git ls-files -- backend frontend/src` filtered to code extensions, counting lines per file; no probe is committed, so re-measure rather than trust these numbers. | Recorded; recommendation reversed. |
 | T-1b | MINOR | The P64/S66 implementer justified its three overflows by claiming packets 64/66 forbid new test files. **Root checked; no such prohibition exists.** Recorded as a genuine unfixed violation, not a packet-constrained one. | Recorded (`adf5e74c5`, [74](74-parent-adjudications-20260913.md) A5). |
-| T-2 | MINOR | `known-failing-baseline.json` was recorded **2026-09-02** and is stale. A concurrent full-suite A/B saw 12 failing files against its 7; **5 have UNKNOWN status**. | Open. Do **NOT** grow the list — it says "Shrink this list; never grow it casually", and the runs happened under three concurrent writers where flakes were observed directly. Needs a serialized quiet-tree run. |
+| T-2 | MINOR | `known-failing-baseline.json` was recorded **2026-09-02**. **Reconciled 2026-09-13 by a serialized quiet-tree run — see §D1 below.** The baseline is accurate (7/7 still failing, none recovered) and there are **no regressions**: nothing that used to pass now fails. Five unbaselined failures exist and are **pre-existing**, not caused by this session. | Open as burn-down, not as risk. Do **NOT** grow the list casually. |
 | T-3 | MINOR | `tests/api/clientPhotoUploadAuthzExecution.test.mjs:158` is **pre-existing RED at pristine HEAD** (`assertAssignmentOrAdmin` returns a Number where the test pins a String). Confirmed, not inferred. | Open. |
 | T-4 | — | The G09 mounted-authz suite's RED was an `ERR_MODULE_NOT_FOUND` import error, which the implementer correctly **declined to count as RED**; the behavioural RED came from the mounted file. Recorded because the distinction is the whole point. | Closed as a disclosure. |
+
+### D1. Baseline reconciliation — serialized quiet-tree run, 2026-09-13
+
+Root ran the whole backend suite once, alone, through the isolated runner with
+`--maxWorkers 1 --no-file-parallelism --retry 0`, after confirming `git status` had
+no modified `backend/` files. Result:
+
+```
+Test Files  13 failed | 1265 passed (1278)
+     Tests  14 failed | 10714 passed (10728)
+  Duration  377.47s
+```
+
+| Set | Files | Status |
+|---|---|---|
+| Recorded baseline | 7 | **All 7 still fail** — the baseline is accurate and nothing recovered |
+| Documented separately as T-3 | 1 (`clientPhotoUploadAuthzExecution`) | Pre-existing RED, already recorded, correctly absent from the baseline |
+| Unbaselined, **now diagnosed** | 3 | `historyBackfill`, `phase1cXpIntegration`, `workoutPrDetection` — see below |
+| Unbaselined, **still unclassified** | 2 | `consoleRedaction` (`expected false to be true`), `physicalConfirmChannelSplit` (`expected 403 to be 200`, ×4) |
+
+**Headline: there are no regressions.** Nothing that used to pass now fails. The
+five unbaselined failures were previously "UNKNOWN status"; three are now explained
+and all five are shown to predate this session.
+
+**The three diagnosed failures are all source-text assertions.**
+`historyBackfill` expects `/awardPoints: !sourcePolicy\.suppressEngagementSideEffects/`,
+and `phase1cXpIntegration` / `workoutPrDetection` expect
+`/detectAndRecordPersonalRecords\(\{/`, all read with `readFileSync` from
+`dailyWorkoutFormRoutes.mjs`. Root checked that file directly:
+`runWorkoutXpAwardStep` **0 occurrences**, `awardPoints` **0**, and
+`suppressEngagementSideEffects` **0** — which is exactly why
+`phase1cXpIntegration:245`'s `lastIndexOf('runWorkoutXpAwardStep')` returns `-1` and
+the test reports `expected -1 to be greater than 11356`.
+`detectAndRecordPersonalRecords` does appear **2** times, but not in the `({` call
+shape the regex demands. Nothing about these can be an artifact of the isolated
+runner: `readFileSync` is not affected by environment or network.
+
+**These are pre-existing, verified.** `git log 4345b86cf..HEAD` — this session —
+shows **zero** commits touching any implicated file. Their last changes are
+2026-07-06 (`phase1cXpIntegration`), 2026-07-07 (`historyBackfill`), 2026-07-12
+(`workoutPrDetection`), 2026-07-29 (`consoleRedaction`), 2026-09-03
+(`physicalConfirmChannelSplit`), and **2026-09-12** for `dailyWorkoutFormRoutes.mjs`
+itself (`346373264`, "wip(coach): preserve hostile repairs and selective release
+handoff locally") — the day before this session began. That last commit is the
+likely moment the source text moved out from under the three tests.
+
+**Note the mechanism.** Three of five unbaselined failures, plus F1b, plus
+`clientProgressRoutesSecurity.test.mjs:29,41` (§A3b), are all tests asserting on
+**source text rather than behaviour**. That is now four independent instances of one
+anti-pattern in this repo, and it fails in both directions: it hides defects when it
+pins broken code, and it manufactures red when the code is legitimately refactored.
+`historyBackfill`, `phase1cXpIntegration` and `workoutPrDetection` are the second
+kind — green tests that turned red purely because a 2621-line route file was edited.
+
+**Recommended disposition, in priority order:** (1) convert the three source-text
+suites to behavioural assertions — they are currently red for a reason that carries
+no information about product correctness; (2) classify the remaining two, since
+`expected 403 to be 200` in particular could be either a real auth regression or a
+fixture gap and should not stay ambiguous; (3) only then decide whether the baseline
+list changes. **Do not add these five to `known-failing-baseline.json` before step
+(1)** — the list says "shrink this list; never grow it casually", and growing it
+would hide three failures that are fixable today.
+
+**Reproduce** (the run is safe; see §F1 for why the disposable-DB question is
+separate): confirm `git status -- backend/` is clean, then
+`tmp/coach-astra-hostile-20260912/p64s66-isolated-run.ps1 -LogPath <absolute>` with
+no file arguments. Log: `tmp/baseline-reconcile-full-20260913.log`. **Do not run
+`backend/scripts/test-baseline-gate.mjs` on a machine whose `.env` holds production
+credentials — read §E INF-4 first.**
 
 ## E. Shared infrastructure hazards (they mimic code regressions)
 
