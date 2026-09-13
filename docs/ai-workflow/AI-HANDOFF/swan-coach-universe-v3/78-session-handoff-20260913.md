@@ -21,7 +21,7 @@ If either fails, stop and re-derive state from git rather than from prose.
 | Branch | `codex/swan-coach-astra-owned-20260906` |
 | Session base | `4345b86cf` |
 | Pushed? | **No. Nothing was pushed, deployed, or sent to any provider.** |
-| Session commits | 29 (ledger below) |
+| Session commits | 36 (ledger below; C2/C3 and the third-wave closure were still in flight when this line was written) |
 | Open findings | [77 — open findings register](77-open-findings-register.md) — **read this second** |
 
 ## Read order for a fresh agent
@@ -60,7 +60,8 @@ rather than quietly edited.
 | R60-A | `dce0da517` | Unbound AI submit could edit notes/intensity, lock, POST and toast a save | 10 files / 162 tests; RED 7 failed / 2 passed |
 | HR12 / P58 | `19fba5c8a` | A Planner lookup resolving after a client switch attached to the NEW client | 88 files / 442 tests; browser gate RED 2 failed / 2 passed with both anti-vacuity controls passing |
 | C4 | `b36f874d7` | Four selection consumers restored/posted/staged while unadmitted | 4 files / 40 tests; blanket allow → 12 failures |
-| C1 | *(in flight at writing)* | Client reference API + actor generation + selection interceptor | 8 files / 91 tests |
+| C1 | `f343d3df4` | Client reference API + actor generation + selection interceptor. **DORMANT — See below.** | 9 files / 93 tests; extraction can-fail re-run proved the guard survived the move |
+| F1–F5 | `474b3524c` | Second wave of the default-role class: trainer-note privacy fail-open, pain-entry 403, conversation-create 500, untested HR16 cap, nudge audience | 5 files / 37 backend tests + 3 frontend, executed by root |
 | G09 routes | `47012147e` | Coach memory service was complete and **unreachable** — no route imported it | 3 files / 48 tests |
 | G10 wiring | `c88fa7039` | Nudge engine was green but **unconsumed**; no client could receive a nudge | 2 files / 19 tests; restart proven across 4 separate processes |
 | G10 consent | `c6de0d021` | The opt-in key was read by the cron and **written by nothing** | 31 tests; end-to-end control flips the cron predicate |
