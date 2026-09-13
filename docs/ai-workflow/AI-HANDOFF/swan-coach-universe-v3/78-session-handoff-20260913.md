@@ -21,7 +21,7 @@ If either fails, stop and re-derive state from git rather than from prose.
 | Branch | `codex/swan-coach-astra-owned-20260906` |
 | Session base | `4345b86cf` |
 | Pushed? | **No. Nothing was pushed, deployed, or sent to any provider.** |
-| Session commits | **39** since base `4345b86cf` (`git rev-list --count 4345b86cf..HEAD`). The count in this row read 36 when first written and then 37; it is re-derived, not incremented by hand. C2/C3 and the third-wave closure were still in flight when this line was written. |
+| Session commits | **Derive it — do not trust a literal here.** `git rev-list --count 4345b86cf..HEAD`. This row has been wrong twice (36, then 39, both stale within the hour), which is why the number is now anchored to a commit instead of asserted: at **`1104a0281` it was 49**, and `git rev-list --count 4345b86cf..1104a0281` returns exactly that, so the claim is checkable and cannot rot. C2/C3 was still in flight when this line was written. |
 | Open findings | [77 — open findings register](77-open-findings-register.md) — **read this second** |
 
 ## Read order for a fresh agent
