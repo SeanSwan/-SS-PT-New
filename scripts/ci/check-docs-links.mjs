@@ -331,6 +331,7 @@ async function run() {
   // only remove false failures — a genuinely dead link is dead in every attempt.
   const CONFIRM_ATTEMPTS = 5;
   const CONFIRM_PAUSE_MS = 2000;
+  const CONFIRM_BUDGET_MS = 300000;
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const excludedSet = new Set(excluded.map((x) => x.file));
   const deadList = (c) => c.results.filter((r) => ENGINE_FAILURE_STATUSES.has(r.status));
@@ -392,7 +393,18 @@ async function run() {
         `up to ${CONFIRM_ATTEMPTS} sequential attempts\n`,
     );
     const settled = new Map();
+    const budgetStart = Date.now();
+    let budgetExhausted = 0;
     for (const c of suspect) {
+      // Bound the worst case. Confirmation is bounded per file, but a pathological
+      // run (a generator adding many new in-scope files, each failing on a slow
+      // host) could still multiply that by the number of files. Past the budget we
+      // stop re-checking and keep the first-pass result, which is fail-closed:
+      // an unconfirmed failure is still a failure.
+      if (Date.now() - budgetStart > CONFIRM_BUDGET_MS) {
+        budgetExhausted += 1;
+        continue;
+      }
       let attempt = c;
       for (let i = 0; i < CONFIRM_ATTEMPTS; i += 1) {
         if (i > 0) await sleep(CONFIRM_PAUSE_MS);
@@ -400,6 +412,12 @@ async function run() {
         if (!fails(attempt)) break;
       }
       settled.set(c.file, attempt);
+    }
+    if (budgetExhausted) {
+      process.stderr.write(
+        `[docs-links] confirmation budget (${Math.round(CONFIRM_BUDGET_MS / 1000)}s) reached; ` +
+          `${budgetExhausted} file(s) kept their first-pass result (fail-closed)\n`,
+      );
     }
     confirmed = first.map((c) => settled.get(c.file) || c);
   }
