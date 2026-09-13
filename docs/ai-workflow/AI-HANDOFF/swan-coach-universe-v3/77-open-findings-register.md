@@ -39,6 +39,56 @@ probe found a fifth.
 copies are exactly how CA-1 happened. Collapse onto the shared export when next
 touched.
 
+### A2. THIRD WAVE — 11 more sibling routes with the F2 shape, still unfixed
+
+Found by the F1–F5 implementer's own sibling sweep, after the second wave was
+fixed. **The class is not closed; it has now been found in three independent
+passes.** The specific defect signature is not "a role list mentions `'client'`" —
+it is **a route that pairs `authorize([...'client'...])` with
+`verifyClientAccessByUserId` on the same line**, because those two guards then
+disagree about whether a `'user'` account owns its own record: `authorize` is a
+literal `roles.includes(...)` (`authMiddleware.mjs:459-489`) while
+`verifyClientAccessByUserId` explicitly maps `user → self`
+(`middleware/verifyClientAccess.mjs:91-93`).
+
+| File | Lines | Routes affected | Consequence |
+|---|---|---|---|
+| `bodyMapEvidenceRoutes.mjs` | `:28` POST, `:31` DELETE | 2 | A `'user'` account cannot upload or delete its **own** body-map evidence. Byte-identical to the F2 defect. |
+| `clientProgressRoutes.mjs` | `:23` (`currentClientAccess`, used at `:38` GET / and `:40` PUT /) and `:28` (`clientReadAccess`, used at `:44,:46,:48,:50,:52,:54`) | 8 | `'user'` is 403'd from reading and updating its **own** current progress, history, goals and risk assessment. |
+
+**Recommended fix shape — do NOT widen `authorize` globally in a bugfix slice.**
+`authorize(` has ≥100 call sites across ~40 route files (the grep hit its
+100-match cap on `backend/routes` alone). Most are staff-only lists that a
+client-equivalence change would not affect, but the review surface is all of them,
+and a global widening would silently admit `'user'` to any future list containing
+`'client'`. Keep the per-route lists and instead add **one repo-level regression
+guard that fails when a route pairs `authorize([...'client'...])` with
+`verifyClientAccessByUserId`** — that pairing is the actual disagreement, and it is
+mechanically checkable without reading data flow. This is a better guard than the
+"generalised requester-side role check" proposed elsewhere in this register,
+because it targets the falsifiable condition rather than a syntactic pattern that
+also matches legitimate target-side checks.
+
+### A3. Two more same-class sites, intent UNVERIFIED
+
+`aiWorkoutController.mjs:288` (`Invalid role for workout generation`) and
+`longHorizonController.mjs:201` (`Invalid role for plan generation`) both reject
+unless `requesterRole === 'admin' || requesterRole === 'client'` — the same
+hand-rolled class, failing closed. **Not called defects**: whether these are
+meant to be client-facing is unverified. They need a probe **and an intent read**
+before anyone changes them.
+
+### A4. WARNING — two of this session's probes CANNOT observe route-level fixes
+
+`tmp/authz-review/probe-painentry-guard-disagreement.mjs:18` hard-codes
+`authorize(['admin','trainer','client'])`, and `probe-user-role-conversation.mjs:19-25`
+copies `resolveConversationAudienceRole` byte-for-byte and calls the model
+directly. **Re-run after the fixes, both still print their pre-fix conclusions.**
+The evidence for F2 and F3 is therefore the route-mounted suites, not the probes.
+Anyone re-verifying from those probe scripts will get a false "still broken" — the
+same failure mode as the two Vite hazards in §E, arriving by a different route.
+
+
 ## B. Capability truth (declared-but-not-real)
 
 | ID | Sev | Finding | Evidence | Status |
