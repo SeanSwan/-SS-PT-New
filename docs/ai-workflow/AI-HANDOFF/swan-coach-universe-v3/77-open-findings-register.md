@@ -306,7 +306,16 @@ credentials — read §E INF-4 first.**
 
 | ID | Sev | Finding | Status |
 |---|---|---|---|
-| INF-1 | MAJOR for diagnosis | The shared Vite dev server on **4990 was killed** by another agent's file-write pattern: `EBUSY` watching a transient `.globalClientPin.ts.<pid>.<uuid>.tmpdir/…tmp` that chokidar tried to watch. Restarted and verified up. | Recorded (`0f9a9fd0f`). |
+| INF-1 | MAJOR for diagnosis | The shared Vite dev server on **4990** is killed by a same-directory atomic-write pattern. **It has now happened twice, and the second occurrence is fully captured.** First: `EBUSY` watching a transient `.globalClientPin.ts.<pid>.<uuid>.tmpdir/…tmp` (`0f9a9fd0f`). Second, 2026-09-13 02:58, killing that restarted server with an unhandled `FSWatcher` error: `EBUSY: resource busy or locked, watch '…/coach-assistant/.CoachCommandCenterVoiceLifecycle.test.tsx.84500.<uuid>.tmpdir/CoachCommandCenterVoiceLifecycle.test.tsx.tmp'`. **Mechanism:** tooling writes `.<name>.<pid>.<uuid>.tmpdir/<name>.tmp` *inside the watched source directory*; chokidar's `fs.watch` on that transient file raises `EBUSY`, and because `FSWatcher` emits it as an `error` event Node exits the process. It is **not** agent-specific and not caused by the file's content — it is caused by *where the temp file is created* while a watcher is armed. **As of this writing the 4990 server is DOWN.** Any browser gate needing it will fail for this reason, not because of the change under test. | Recorded (`0f9a9fd0f`); second occurrence 2026-09-13 |
+
+**Proposed fix for INF-1 (not applied — it is a config change, not a bugfix).** Add the
+temp pattern to Vite's watcher ignore list so the transient `.tmpdir` tree is never
+watched, e.g. `server.watch.ignored: ['**/.*.tmpdir/**', '**/*.tmp']` in
+`frontend/vite.config.*`. That addresses the cause rather than restarting the server
+after each occurrence, and it is the only remedy on this list that makes the failure
+stop recurring. A second option — making the writer place temps outside the watched
+tree — belongs to the tooling, not this repo. Prefer a task-local server for
+planner-mounting browser gates regardless, for the separate INF-2 reason.
 | INF-2 | MAJOR for diagnosis | Port 4990 breaks any **planner-mounting** browser gate — `deps/react-window.js` 504s with `Outdated Optimize Dep` while `_metadata.json` advertises a different `browserHash`; the stale reference is served from the untouched `WorkoutPlannerRolodexPanel.tsx`. M68 and HR16 gates still pass, so it is scoped. Use a task-local server for planner gates. | Recorded (`0f9a9fd0f`). |
 
 | INF-3 | **MAJOR for diagnosis — root's own probe** | A probe of root's reported **`"0 files scanned"` and `coverageComplete: true`** — a clean-looking result from a run that inspected nothing. The hardcoded Windows root had been written with inconsistent escapes (file text `C:\\Users\BigotSmasher\\...`), so JS parsed the `\B` away and the probe walked a non-existent `C:\UsersBigotSmasher\...`. A `catch { return out; }` swallowed the ENOENT, so the failure printed as success. **Two fixes, both applied:** derive the root from `import.meta.url` instead of hardcoding it, and fail loudly (unreadable directory → report + non-zero exit; empty scan → FATAL). The stale rule: a scan that cannot distinguish "found nothing" from "read nothing" is not evidence. | Recorded; probe fixed |
