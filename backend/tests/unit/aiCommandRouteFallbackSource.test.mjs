@@ -21,8 +21,14 @@ describe('aiCommandRoutes not-wired fallback source guard', () => {
 
   it('keeps route-level command failures off raw exception messages and stacks', () => {
     expect(ROUTE_SOURCE).toContain('const logAICommandRouteError =');
-    expect(ROUTE_SOURCE).not.toContain('error: err.message');
     expect(ROUTE_SOURCE).not.toContain('stack: err.stack');
+    // The former blanket `not.toContain('error: err.message')` assertion is gone:
+    // /intents now re-emits a TYPED CoachIntentListError via
+    // `res.status(err.status).json({ error: err.message })` (aiCommandRoutes.mjs:511),
+    // and every current constructor call site passes a fixed literal
+    // (coachIntentListing.mjs). Behaviour — fixed bodies, and no exception detail
+    // in the response or the route logger for untrusted errors — is asserted
+    // through the mounted router in tests/api/coachIntentRoutes.test.mjs.
   });
 });
 

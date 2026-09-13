@@ -7,11 +7,17 @@ const {
   mockAssignment,
   mockListAssignments,
   mockReadCoachIntent,
+  mockExecutePipeline,
+  mockContextEnvelope,
+  mockQuery,
 } = vi.hoisted(() => ({
   mockGetModel: vi.fn(),
   mockAssignment: vi.fn(),
   mockListAssignments: vi.fn(),
   mockReadCoachIntent: vi.fn(),
+  mockExecutePipeline: vi.fn(),
+  mockContextEnvelope: vi.fn(),
+  mockQuery: vi.fn(),
 }));
 
 let actingUser = { id: 7, role: 'trainer' };
@@ -56,7 +62,10 @@ vi.mock('../../middleware/verifyClientAccess.mjs', () => ({
   assertAssignmentOrAdmin: mockAssignment,
   listAssignedClientIds: mockListAssignments,
 }));
-vi.mock('../../database.mjs', () => ({ default: {}, Op: { lt: Symbol('lt'), or: Symbol('or') } }));
+vi.mock('../../database.mjs', () => ({
+  default: { QueryTypes: { SELECT: 'SELECT' }, query: mockQuery },
+  Op: { lt: Symbol('lt'), or: Symbol('or') },
+}));
 vi.mock('../../models/index.mjs', () => ({ getModel: mockGetModel }));
 vi.mock('../../services/ai/coachIntentService.mjs', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -65,9 +74,9 @@ vi.mock('../../services/ai/coachIntentService.mjs', async (importOriginal) => ({
 vi.mock('../../services/ai/commandAudit.mjs', () => ({ recordCommandAudit: vi.fn() }));
 vi.mock('../../services/ai/unhandledUtteranceAudit.mjs', () => ({ recordUnhandledUtterance: vi.fn() }));
 vi.mock('../../services/ai/commandExecutor.mjs', () => ({
-  executeCommandPipeline: vi.fn(), executeConfirmedOperation: vi.fn(), checkForConfirmation: vi.fn(),
+  executeCommandPipeline: mockExecutePipeline, executeConfirmedOperation: vi.fn(), checkForConfirmation: vi.fn(),
 }));
-vi.mock('../../services/ai/commandContextEnvelope.mjs', () => ({ buildCommandContextEnvelope: vi.fn() }));
+vi.mock('../../services/ai/commandContextEnvelope.mjs', () => ({ buildCommandContextEnvelope: mockContextEnvelope }));
 vi.mock('../../services/ai/commandDispatchEligibility.mjs', () => ({
   gateCommandFrontendDispatch: vi.fn(async () => ({ allowed: true, refusals: [] })),
   buildDispatchRefusalResponse: vi.fn(),
@@ -87,6 +96,9 @@ vi.mock('../../services/ai/destructiveOperations.mjs', () => ({
 }));
 
 const aiCommandRoutes = (await import('../../routes/aiCommandRoutes.mjs')).default;
+// The shared setup mock captures route logger calls so a privacy assertion can
+// inspect what the route actually logged, not console text or file contents.
+const { default: logger } = await import('../../utils/logger.mjs');
 
 function makeApp() {
   const app = express();
@@ -104,6 +116,12 @@ beforeEach(() => {
   mockReadCoachIntent.mockReset();
   mockGetModel.mockReset();
   mockGetModel.mockReturnValue({ findByPk: vi.fn(), findAll: vi.fn() });
+  mockExecutePipeline.mockReset();
+  mockContextEnvelope.mockReset();
+  mockContextEnvelope.mockResolvedValue({ schemaVersion: 1, actor: { id: 7, role: 'trainer' } });
+  mockQuery.mockReset();
+  mockQuery.mockResolvedValue([]);
+  logger.error.mockClear();
 });
 
 describe('CoachIntent receipt reads', () => {
@@ -226,5 +244,84 @@ describe('CoachIntent receipt reads', () => {
     expect(res.body.intents).toHaveLength(1);
     expect(res.body.intents[0].targetUserId).toBe(55);
     expect(model.findAll).toHaveBeenCalledTimes(1); // The short 50-row batch proves exhaustion.
+  });
+});
+
+// Behavioural replacement for the obsolete aiCommandRoutes source guard
+// ("keeps route-level command failures off raw exception messages and stacks").
+// It ran the real router with injected failures, so a route that started
+// reflecting exception text — or trusted a forged error name as a typed public
+// message — fails here. The former guard could not see either.
+const PRIVATE_DETAIL = 'SYNTHETIC_PRIVATE_PROVIDER_DETAIL';
+
+// Deliberately carries the private sentinel in message/stack/cause/sql, and a
+// FORGED class name + status. `err.name` is a ClassName, not private text, so it
+// is allowed to appear as the route log's errorName — the current logger
+// contract records name/code only.
+function forgedRouteError() {
+  const err = new Error(`${PRIVATE_DETAIL} while reading coach intents`);
+  err.name = 'CoachIntentListError';
+  err.status = 400;
+  err.stack = `Error: ${PRIVATE_DETAIL}\n    at SYNTHETIC_PRIVATE_FRAME (route.mjs:1:1)`;
+  err.cause = new Error('SYNTHETIC_PRIVATE_CAUSE');
+  err.sql = 'SELECT SYNTHETIC_PRIVATE_SQL';
+  return err;
+}
+
+function expectNoPrivateDetail(value) {
+  const json = JSON.stringify(value);
+  expect(json).not.toContain(PRIVATE_DETAIL);
+  expect(json).not.toMatch(/SYNTHETIC_PRIVATE_(FRAME|CAUSE|SQL)/);
+}
+
+describe('CoachIntent fixed public errors and exception privacy (actual routes)', () => {
+  it('answers typed receipt failures with their fixed public messages', async () => {
+    const badCursor = await request(makeApp()).get('/api/ai-command/intents?cursor=not-a-cursor');
+    expect(badCursor.status).toBe(400);
+    expect(badCursor.body).toEqual({ success: false, error: 'cursor is invalid.' });
+
+    mockListAssignments.mockResolvedValue([]);
+    const denied = await request(makeApp()).get('/api/ai-command/intents?targetClientId=99');
+    expect(denied.status).toBe(404);
+    expect(denied.body).toEqual({ success: false, error: 'Intent not found or unavailable.' });
+  });
+
+  it('fails the whole list when current assignment cannot be verified', async () => {
+    mockListAssignments.mockRejectedValue(forgedRouteError());
+    const res = await request(makeApp()).get('/api/ai-command/intents?targetClientId=44');
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({ success: false, error: 'Coach intent history is unavailable.' });
+    expectNoPrivateDetail(res.body);
+    expectNoPrivateDetail(logger.error.mock.calls);
+  });
+
+  it('withholds a forged-name list exception from response and route log', async () => {
+    mockGetModel.mockReturnValue({ findAll: vi.fn(async () => { throw forgedRouteError(); }) });
+    const res = await request(makeApp()).get('/api/ai-command/intents');
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({ success: false, error: 'Failed to read coach intents.' });
+    expectNoPrivateDetail(res.body);
+    expectNoPrivateDetail(logger.error.mock.calls);
+  });
+
+  it('withholds a forged-name detail exception from response and route log', async () => {
+    mockReadCoachIntent.mockRejectedValue(forgedRouteError());
+    const res = await request(makeApp()).get(`/api/ai-command/intents/${rows[0].id}`);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ success: false, error: 'Failed to read coach intent.' });
+    expectNoPrivateDetail(res.body);
+    expectNoPrivateDetail(logger.error.mock.calls);
+  });
+
+  it('reaches the command executor and still withholds its exception detail', async () => {
+    mockExecutePipeline.mockRejectedValue(forgedRouteError());
+    const res = await request(makeApp()).post('/api/ai-command/execute')
+      .send({ message: 'log my squat session' });
+
+    expect(mockExecutePipeline).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ success: false, error: 'Internal server error processing your command' });
+    expectNoPrivateDetail(res.body);
+    expectNoPrivateDetail(logger.error.mock.calls);
   });
 });

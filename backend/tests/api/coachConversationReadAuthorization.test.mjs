@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getCoachProviderAdapter: vi.fn(),
   buildPromptMessages: vi.fn(),
   enrichWithUserData: vi.fn(),
+  metadataSanitizeCalls: [],
   logger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -55,16 +56,26 @@ vi.mock('../../models/AiConversation.mjs', () => ({
   },
 }));
 
-vi.mock('../../services/aiChatService.mjs', () => ({
-  getSystemPrompt: vi.fn(() => ''),
-  buildPromptMessages: mocks.buildPromptMessages,
-  sendChatMessage: mocks.sendChatMessage,
-  getCoachProviderAdapter: mocks.getCoachProviderAdapter,
-  enrichWithUserData: mocks.enrichWithUserData,
-  getAIChatDiagnostics: vi.fn(),
-  sanitizeAiChatMetadataForClient: vi.fn((value) => value),
-  sanitizeAiFailoverTrace: vi.fn((value) => value),
-}));
+// The metadata sanitizer is the REAL export: a privacy assertion that runs
+// against a mocked-as-identity sanitizer proves nothing about the sanitizer. Only
+// the external/provider work is stubbed. Calls are recorded so a denied read can
+// be shown to never reach payload sanitization at all.
+vi.mock('../../services/aiChatService.mjs', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getSystemPrompt: vi.fn(() => ''),
+    buildPromptMessages: mocks.buildPromptMessages,
+    sendChatMessage: mocks.sendChatMessage,
+    getCoachProviderAdapter: mocks.getCoachProviderAdapter,
+    enrichWithUserData: mocks.enrichWithUserData,
+    getAIChatDiagnostics: vi.fn(),
+    sanitizeAiChatMetadataForClient: (value) => {
+      mocks.metadataSanitizeCalls.push(value);
+      return actual.sanitizeAiChatMetadataForClient(value);
+    },
+  };
+});
 
 vi.mock('../../services/voiceTranscriptionService.mjs', () => ({
   transcribeAudio: vi.fn(),
@@ -72,10 +83,19 @@ vi.mock('../../services/voiceTranscriptionService.mjs', () => ({
   checkAndRecordTranscription: vi.fn(),
 }));
 
+// Importing the real aiChatService (below) also pulls its real transitive
+// dependencies, so the partial mocks in this file must still expose the pure
+// exports those modules import. Missing exports are a harness failure, not a
+// privacy result.
+vi.mock('../../services/analyticsExerciseHistoryService.mjs', () => ({
+  getExerciseHistoryFromLogs: vi.fn().mockResolvedValue({ exercises: [] }),
+}));
+
 vi.mock('../../services/aiPrivacyService.mjs', () => ({
   stripIdentityFromMessage: vi.fn(async (message) => ({ sanitizedMessage: message, identitiesStripped: 0 })),
   stripIdentityFromResponse: vi.fn(async (message) => ({ sanitizedResponse: message, identitiesStripped: 0 })),
   scrubGenericPII: vi.fn(async (message) => ({ sanitizedText: message, piiRemoved: 0 })),
+  stripIdentityFromNotes: (note) => note,
 }));
 
 
@@ -84,7 +104,8 @@ vi.mock('../../services/ai/coachIntakeContextService.mjs', () => ({
   buildCoachIntakeContextFromResult: vi.fn(() => null),
 }));
 
-vi.mock('../../services/nutrition/nutritionCareCopy.mjs', () => ({
+vi.mock('../../services/nutrition/nutritionCareCopy.mjs', async (importOriginal) => ({
+  ...(await importOriginal()),
   sanitizeNutritionChatCopy: vi.fn((value) => value),
 }));
 
@@ -144,6 +165,7 @@ function matches(r, where) {
 }
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.metadataSanitizeCalls.length = 0;
   mocks.account={id:7,role:'trainer',isActive:true,isLocked:false}; mocks.rows=[row()];
   mocks.query.mockReset().mockResolvedValue([]);
   mocks.findUser.mockReset().mockImplementation(async (id,opts) => opts?.attributes ? {id:Number(id)} : {...mocks.account});
@@ -308,5 +330,73 @@ describe('G04RA bounded work, lifecycle and publication',()=>{
     await vi.waitFor(()=>expect(mocks.query).toHaveBeenCalledTimes(1));
     const end=vi.spyOn(wire.res,'end');wire.res.destroy();await pending;
     release([]);await new Promise(resolve=>setImmediate(resolve));expect(mocks.query).toHaveBeenCalledTimes(1);expect(end).not.toHaveBeenCalled();expect(wire.req.listenerCount('aborted')).toBe(wire.abortedListeners);
+  });
+});
+
+// Behavioural replacement for the obsolete aiChatRoutes source guard
+// ("routes all client-visible metadata through the sanitizer"). These run the
+// mounted router with the REAL sanitizer, so a route that stopped sanitizing —
+// or persisted raw failover text — fails here.
+const PRIVATE_DETAIL = 'SYNTHETIC_PRIVATE_PROVIDER_DETAIL';
+const SAFE_METADATA = { responseStyle: 'concise', lastProvider: 'fallback' };
+
+describe('G04RA failover-trace metadata privacy through the mounted router', () => {
+  it('sanitizes stored failover metadata on an authorized detail read without mutating the record',async()=>{
+    mocks.query.mockResolvedValue([{one:1}]);
+    const stored={...SAFE_METADATA,failoverTrace:[`gemini:401 ${PRIVATE_DETAIL} sk-proj-secret rejected`,'openai:success']};
+    mocks.rows=[row({metadata:stored})];
+
+    const res=await get('/conversations/9001');
+    expect(res.status).toBe(200);
+    expect(res.body.conversation.metadata).toEqual({...SAFE_METADATA,failoverTrace:['gemini:provider_error','openai:success']});
+    expect(JSON.stringify(res.body)).not.toContain(PRIVATE_DETAIL);
+    expect(JSON.stringify(res.body)).not.toMatch(/sk-proj|401/);
+    // A read must not rewrite the caller's stored value; the sanitizer copies.
+    expect(stored.failoverTrace[0]).toContain(PRIVATE_DETAIL);
+    expect(mocks.metadataSanitizeCalls).toHaveLength(1);
+  });
+
+  it('keeps a denied detail read away from the payload and the metadata sanitizer',async()=>{
+    mocks.query.mockResolvedValue([]);
+    mocks.rows=[row({metadata:{failoverTrace:[`gemini:503 ${PRIVATE_DETAIL}`]}})];
+
+    const res=await get('/conversations/9001');
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('COACH_TARGET_ACCESS_DENIED');
+    expect(JSON.stringify(res.body)).not.toContain(PRIVATE_DETAIL);
+    expect(JSON.stringify(res.body)).not.toContain('PRIVATE');
+    expect(mocks.metadataSanitizeCalls).toHaveLength(0);
+    expect(mocks.findConversation.mock.calls.every(([o])=>o.attributes
+      && !o.attributes.includes('messages') && !o.attributes.includes('metadata'))).toBe(true);
+  });
+
+  it('sanitizes failover metadata before the message route persists the conversation',async()=>{
+    mocks.query.mockImplementation(async(sql)=>String(sql).includes('ai_privacy_profiles')
+      ?[{aiEnabled:true,withdrawnAt:null}]:[{one:1}]);
+    // The stored record already carries a RAW trace, so the persisted result is
+    // only clean if the route re-sanitizes the failover metadata it writes.
+    const record=row({context:'general',metadata:{...SAFE_METADATA,failoverTrace:[`anthropic:500 ${PRIVATE_DETAIL}`]}});
+    record.update=vi.fn(async(patch)=>{Object.assign(record,patch);});
+    mocks.findConversation.mockImplementation(async opts=>opts?.attributes?plain(record,opts.attributes):record);
+    mocks.sendChatMessage.mockResolvedValue({ok:true,content:'Logged it.',provider:'openai',
+      model:'synthetic-model',tokenUsage:null,failoverTrace:[`gemini:401 ${PRIVATE_DETAIL}`,'openai:success']});
+
+    const res=await request(app).post('/api/ai-chat/conversations/9001/messages')
+      .set('Authorization','Bearer '+token()).send({message:'log my squat session'});
+
+    expect(res.status).toBe(200);
+    expect(record.update).toHaveBeenCalledTimes(1);
+    const patch=record.update.mock.calls[0][0];
+    expect(patch.metadata.failoverTrace).toEqual(['gemini:provider_error','openai:success']);
+    expect(patch.metadata).toMatchObject({responseStyle:'concise',lastProvider:'openai'});
+    expect(JSON.stringify(patch)).not.toContain(PRIVATE_DETAIL);
+    expect(JSON.stringify(res.body)).not.toContain(PRIVATE_DETAIL);
+
+    // The persisted record is then readable through the real detail route.
+    mocks.rows=[record];
+    const read=await get('/conversations/9001');
+    expect(read.status).toBe(200);
+    expect(read.body.conversation.metadata.failoverTrace).toEqual(['gemini:provider_error','openai:success']);
+    expect(JSON.stringify(read.body)).not.toContain(PRIVATE_DETAIL);
   });
 });
