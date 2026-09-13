@@ -194,3 +194,35 @@ export function mintCommitId(): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') return `sel-${globalThis.crypto.randomUUID()}`;
   return `sel-${Date.now().toString(36)}-${commitCounter}`;
 }
+
+/**
+ * The scope-identity key for "what did we last request a receipt for".
+ *
+ * **SCOPE IS THE TUPLE PLUS THE ACTOR — NEVER THE QUERY STRING.**
+ *
+ * This originally lived privately in `useCoachCommandCenterSelection` and was
+ * `` `${searchKey}|${clientId}|${threadId}` ``. Because `searchKey` is the WHOLE
+ * query string, editing any unrelated param — `intent`, `teachPrompt`, `review`,
+ * `workspace`, `draftKey`, `returnTo`, `source` — produced a NEW key and re-ran the
+ * route request for an unchanged `(clientId, threadId)`. The adapter's
+ * `requestSelection` calls `retire()` BEFORE the admission read, so an unrelated
+ * param change withdrew the live publication for the whole admission window: every
+ * consumer and transport failed closed, and anything holding the old token across
+ * an await was refused publication. (External hostile review, GLM 5.3, Finding 2 —
+ * MAJOR.)
+ *
+ * The actor IS part of the key on purpose: an actor-epoch change must re-request, so
+ * a new staff actor cannot inherit the previous actor's receipt.
+ *
+ * It lives here, not in the hook, because it is a pure predicate and this module is
+ * where the pure contract belongs — which also makes the invariant directly
+ * testable rather than reachable only through a mounted page.
+ */
+export function observationKeyFor(
+  actorId: string | number | null | undefined,
+  rawRole: string | null | undefined,
+  routeClientId: number | null,
+  routeThreadId: number | null,
+): string {
+  return `${actorId ?? 'none'}:${rawRole ?? 'none'}|${routeClientId ?? 'none'}|${routeThreadId ?? 'none'}`;
+}
