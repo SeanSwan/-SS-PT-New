@@ -83,6 +83,28 @@ target-is-a-client checks (`claimRoutes.mjs:82`, `sessionPackageController.mjs:4
 `creditsController.mjs:79`, `adminController.mjs:81`) where the subject is the
 *target's* stored role, not the requester's.
 
+> **CORRECTED 2026-09-13 — the 69 figure is NOT reproducible, and the count should
+> not have been presented as a fact.** An independent hostile review re-derived the
+> sweep with its own pattern over `backend/**/*.mjs` (excluding `node_modules`) and
+> got **99 raw / 76 runtime / 20 test / 3 script, across 47 distinct runtime files**.
+> It could not reproduce 69 from any pattern variant it tried. Root has not
+> reconciled the two, and **the honest statement is that the count is
+> pattern- and scope-dependent** — a raw regex count of this class is not a stable
+> measurement, because the same logical check appears as `role === 'client'`,
+> `role !== 'client'`, `roles.includes(...)`, negated forms and comment prose.
+>
+> **What survives the correction:** the *conclusions*, which were never derived from
+> the number. Every instance the audit named was verified by reading the line, and
+> five separate defects have since been found from this class (CA-1, CA-2, and then
+> F1/F2/F3 from the later hostile review, plus the nudge-cron audience filter). The
+> count was decoration on top of the finding; it should have been labelled as
+> incidental rather than presented as a reproducible measurement.
+>
+> **Lesson for the next audit of this kind:** a raw match count is only a
+> reproducible figure if the exact command, scope and pattern travel with it — and
+> even then, for a class with this many syntactic forms, report the *classified
+> instances* and not the tally.
+
 **The sweep found a second, more serious fail-open instance (CA-0 below).** An
 earlier draft of this audit asserted `clientPhotoRoutes.mjs:75` was the only
 fail-open hit. That assertion was wrong and is corrected here: the sweep list was
