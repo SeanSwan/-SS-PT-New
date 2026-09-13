@@ -700,6 +700,16 @@ export const initializeServer = async (app) => {
         }
 
         try {
+          // Swan Coach G10. No-op unless ENABLE_COACH_PROACTIVE_NUDGES=true
+          // (kill switch); per-client delivery additionally needs explicit
+          // opt-in and survives restarts through the nudge_dispatches ledger.
+          const { startCoachProactiveNudgeScheduler } = await import('../services/coachProactiveNudgeCron.mjs');
+          startCoachProactiveNudgeScheduler();
+        } catch (coachNudgeErr) {
+          logger.warn(`Coach proactive nudge scheduler failed to start: ${coachNudgeErr.message}`);
+        }
+
+        try {
           const { registerEventListeners } = await import('../services/eventBus.mjs');
           registerEventListeners();
         } catch (eventErr) {
