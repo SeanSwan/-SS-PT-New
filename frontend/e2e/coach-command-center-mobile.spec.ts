@@ -241,6 +241,41 @@ test('@matrix Device Matrix and required desktop widths keep Coach controls reac
           '.client-bar button, .main-client-picker select, .tab-button, .console-dock button',
         )).filter(visible);
 
+        // T68-geometry: the Talk tab mounts CoachIntentBar and CoachChatTranscript
+        // as siblings inside .chat-panel. They must STACK (intent controls above a
+        // full-width transcript) and the transcript must contain its own text.
+        // Document-level overflow alone cannot prove this: the shell clips it.
+        //
+        // LIMIT (measured, not assumed): this route never fetches
+        // /api/ai-chat/conversations/:id, so activeConversation stays null and the
+        // stream renders its empty state. The text-containment assertions below
+        // therefore cover the real rendered stream copy, NOT persisted message
+        // rows. Message-row containment is tracked as its own defect and must be
+        // asserted once thread hydration is wired.
+        //
+        // CALIBRATION (hostile round 1, findings 4 and 5): in RED at 1440x900 the
+        // transcript width EQUALS the panel width and is merely displaced to the
+        // right, so the >=98% ratio check does not fire on desktop; and the
+        // stream-overflow/text-escape checks cannot detect THIS defect at all,
+        // because the damage was the stream's placement, not its contents. Both
+        // can still fire (proven with an injected nowrap table), so they are not
+        // vacuous — they are simply non-discriminating here. The direction,
+        // stacking and escape assertions are the ones that carry this gate.
+        const panel = document.querySelector<HTMLElement>('.chat-panel');
+        const transcript = panel?.querySelector<HTMLElement>(':scope > .chat-transcript') ?? null;
+        const intentBar = (transcript?.previousElementSibling ?? null) as HTMLElement | null;
+        // The sibling BEFORE the transcript must actually be the intent bar.
+        // Positional coupling alone would silently test the wrong node if any
+        // element were ever inserted between the two (hostile round 1, finding 6).
+        const intentBarIsIntentBar = Boolean(intentBar?.querySelector('[data-testid="lane-input"]'));
+        const stream = document.querySelector<HTMLElement>('.transcript-stream');
+        const panelRect = panel?.getBoundingClientRect() ?? null;
+        const transcriptRect = transcript?.getBoundingClientRect() ?? null;
+        const intentRect = intentBar?.getBoundingClientRect() ?? null;
+        const streamRect = stream?.getBoundingClientRect() ?? null;
+        const escapes = (inner: DOMRect | null, outer: DOMRect | null) =>
+          Boolean(inner && outer && (inner.left < outer.left - 1 || inner.right > outer.right + 1));
+
         return {
           viewportWidth: window.innerWidth,
           viewportHeight: window.innerHeight,
@@ -268,6 +303,29 @@ test('@matrix Device Matrix and required desktop widths keep Coach controls reac
             mic: important.filter((node) => node.matches('.dock-mic')).length,
             send: important.filter((node) => node.matches('.dock-send')).length,
           },
+          geometry: {
+            talkMounted: Boolean(panel),
+            streamMounted: Boolean(stream),
+            intentBarIsIntentBar,
+            panelDirection: panel ? getComputedStyle(panel).flexDirection : null,
+            panelWidth: panelRect?.width ?? null,
+            transcriptWidth: transcriptRect?.width ?? null,
+            intentWidth: intentRect?.width ?? null,
+            intentAboveTranscript: Boolean(intentRect && transcriptRect && intentRect.bottom <= transcriptRect.top + 1),
+            transcriptEscapesPanel: escapes(transcriptRect, panelRect),
+            intentEscapesPanel: escapes(intentRect, panelRect),
+            streamOverflowX: stream ? stream.scrollWidth - stream.clientWidth : null,
+            // Selector set covers the elements real Coach message rows render,
+            // not just the empty-state copy: markdown bodies and log entries can
+            // emit pre/td/th/headings (CoachMarkdownStyles, CoachCommandLogEntry).
+            textEscapesStream: stream && streamRect
+              ? Array.from(stream.querySelectorAll<HTMLElement>('p, strong, span, a, li, pre, code, td, th, h1, h2, h3, h4, h5, h6, blockquote'))
+                .filter((node) => (node.textContent ?? '').trim().length > 0)
+                .map((node) => ({ className: node.className, rect: node.getBoundingClientRect() }))
+                .filter(({ rect }) => rect.width > 0 && (rect.left < streamRect.left - 1 || rect.right > streamRect.right + 1))
+                .map(({ className }) => className || '(no class)')
+              : null,
+          },
         };
       });
 
@@ -280,12 +338,36 @@ test('@matrix Device Matrix and required desktop widths keep Coach controls reac
       record(audit.clipped.length > 0, `clipped: ${audit.clipped.join(', ')}`);
       record(Object.values(audit.primaryCounts).some((count) => count === 0), 'a primary control is missing');
 
+      const geometry = audit.geometry;
+      record(!geometry.talkMounted, 'Talk chat panel is not mounted');
+      // Fail CLOSED on a missing stream: the overflow/text assertions below are
+      // null-guarded, so without this a renamed class or an unmounted stream
+      // would let both pass silently on every desktop viewport (hostile round 1,
+      // finding 2).
+      record(!geometry.streamMounted, 'transcript stream is not mounted');
+      record(!geometry.intentBarIsIntentBar, 'the element above the transcript is not the intent bar');
+      record(geometry.panelDirection !== 'column', `chat panel lays its children out as ${geometry.panelDirection}`);
+      record(!geometry.intentAboveTranscript, 'intent controls are not stacked above the transcript');
+      record(geometry.transcriptEscapesPanel, 'transcript escapes the chat panel');
+      record(geometry.intentEscapesPanel, 'intent controls escape the chat panel');
+      record(geometry.streamOverflowX !== null && geometry.streamOverflowX > 1, `transcript stream overflows horizontally by ${geometry.streamOverflowX}px`);
+      record((geometry.textEscapesStream?.length ?? 0) > 0, `text escapes the transcript stream: ${(geometry.textEscapesStream ?? []).join(', ')}`);
+      record(
+        geometry.transcriptWidth !== null && geometry.panelWidth !== null
+          && geometry.transcriptWidth < geometry.panelWidth * 0.98 - 1,
+        `transcript width ${geometry.transcriptWidth} does not fill the panel width ${geometry.panelWidth}`,
+      );
+
       if (viewport.phone) {
         const transcriptFloor = viewport.id === 'P12 floor' ? 1 : viewport.id === 'P10 SE' ? 64 : 120;
         record(!audit.transcript || audit.transcript.height < transcriptFloor, `transcript ${audit.transcript?.height ?? 0}px is below ${transcriptFloor}px`);
         record(!audit.shell || audit.shell.bottom > audit.viewportHeight + 1, 'Coach shell extends below viewport');
         record(!audit.dock || audit.dock.bottom > audit.viewportHeight + 1, 'dock extends below viewport');
         record(viewport.pixelPerfect && audit.smallTargets.length > 0, `sub-44px targets: ${JSON.stringify(audit.smallTargets)}`);
+        record(
+          geometry.transcriptWidth !== null && geometry.transcriptWidth < viewport.width * 0.8,
+          `transcript width ${geometry.transcriptWidth} is below the usable phone floor at ${viewport.width}px`,
+        );
       }
     } catch (error) {
       failures.push(`${viewport.id}: ${error instanceof Error ? error.message : String(error)}`);

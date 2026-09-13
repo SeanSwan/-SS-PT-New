@@ -137,8 +137,28 @@ export const coachCommandCrystallineFocusStyles = css`
     padding: 10px;
   }
 
+  /*
+   * M68 containment: the Talk tab mounts CoachIntentBar and CoachChatTranscript
+   * as siblings inside .chat-panel. Without an explicit direction this flex
+   * container defaults to row, so the two children sat side-by-side and the
+   * transcript was crushed to a fixed intrinsic width while the shell hid the
+   * damage from document.scrollWidth via overflow-x: hidden (shellStyles.ts:38).
+   *
+   * flex-direction: column is the operative fix, and it is sufficient on its
+   * own. min-width: 0 is a defensive shrink guard for the narrowest widths, NOT
+   * part of this repair: forcing min-width back to auto over the fixed build
+   * leaves every measured rect identical at 390px and 1440px. Hostile review
+   * round 1, finding 1. Do not attribute the fix to it.
+   */
   .chat-panel,
-  .chat-transcript { display: flex; flex: 1 1 auto; min-height: 0; width: 100%; }
+  .chat-transcript {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+  }
   .transcript-top { padding: 0 4px; }
   .transcript-stream {
     background: linear-gradient(180deg, color-mix(in srgb, var(--coach-focus-elevated) 92%, transparent), var(--coach-focus-surface)), var(--coach-focus-surface);
