@@ -1,12 +1,12 @@
 /**
  * ============================================================================
  * FILE: useCoachCommandCenterPendingFood.admission.test.tsx
- * PURPOSE: Plan 55 C4 (G04BC-R05, G04BC-T14) — the pending-food lane must not
+ * PURPOSE: Plan 55 C4 (G04BC-R05, G04BC-T14) â€” the pending-food lane must not
  *   publish a macro message, refresh history or raise a paywall into a coaching
  *   scope that is no longer admitted.
  * ============================================================================
  *
- * Plan 55 §3 C4 names `hooks/useCoachCommandCenterPendingFood.ts`; plan 55 §5
+ * Plan 55 Â§3 C4 names `hooks/useCoachCommandCenterPendingFood.ts`; plan 55 Â§5
  * (line 125) adds the exact seam `hooks/useSwanCoachPendingFoodQuery.ts`, which
  * reads a global sessionStorage key on mount and can later send a message and
  * raise a paywall. Both subjects are covered here.
@@ -15,7 +15,7 @@
  * `CoachCommandCenterPage.test.harness.tsx` admission was already consumed).
  * Test-only: it changes no product file, dependency or config.
  *
- * PARENT-APPROVED SCOPE AMENDMENT — recorded so the admission is visible in the
+ * PARENT-APPROVED SCOPE AMENDMENT â€” recorded so the admission is visible in the
  * audit trail rather than looking like an unapproved file addition.
  *
  * Negative controls: every blocked assertion is paired with an admitted control
@@ -181,8 +181,7 @@ describe('Plan 55 C4: pending-food send obeys the live publication admission', (
   });
 });
 
-describe('Plan 55 C4: restored pending-food payload obeys the live admission', () => {
-  beforeEach(() => {
+describe('Plan 55 C4: restored pending-food payload obeys the live admission', () => {  beforeEach(() => {
     showPaywallMock.mockReset();
     window.sessionStorage.clear();
   });

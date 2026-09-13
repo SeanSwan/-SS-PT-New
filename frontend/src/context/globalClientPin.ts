@@ -5,7 +5,7 @@
  * 300-line cap (Rule 4). Pure functions only: no React, no module state, so the
  * shared-kiosk behaviour they encode is unit-testable without a DOM harness.
  */
-import type { ActiveClient } from './GlobalClientContext';
+import type { ActiveClient } from './globalClientTypes';
 
 /**
  * The pre-SWA-192 key: unscoped, and it held the FULL client record including
@@ -94,5 +94,66 @@ export const reconcileActiveClient = (
 ): ActiveClient | null => {
   if (!pinnedClientId) return null;
   return clientList.find((client) => Number(client.id) === Number(pinnedClientId)) ?? null;
+};
+
+/* ============================================================================
+ * Plan 55 §3 C1 / §4 — the ID-only selection reference contract.
+ *
+ * Pure types and ONE pure admission rule, kept here (not in the provider) so the
+ * shared-kiosk behaviour stays unit-testable and the provider stays small. No
+ * React, no module state.
+ * ========================================================================= */
+
+/** How the currently exposed reference id came to exist. */
+export type ClientReferenceOrigin = 'stored-pin' | 'admitted-reference';
+
+export type SelectionCandidateOrigin = 'picker' | 'clear';
+
+/** An ordinary setter call, forwarded as a REQUEST before any mutation. */
+export type SelectionCandidate = Readonly<{
+  targetUserId: number | null;
+  origin: SelectionCandidateOrigin;
+  generation: number;
+}>;
+
+/** The adapter's validated one-use commit. The only port that bypasses the interceptor. */
+export type ClientReferenceCommit = Readonly<{
+  targetUserId: number | null;
+  requestId: string;
+  generation: number;
+}>;
+
+export type SelectionInterceptor = (candidate: SelectionCandidate) => void;
+
+const STRICT_POSITIVE_ID = /^[1-9]\d*$/;
+
+const strictPositiveId = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : undefined;
+  }
+  if (typeof value !== 'string' || !STRICT_POSITIVE_ID.test(value)) return undefined;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+};
+
+/**
+ * The ONE admission rule for the reference commit port.
+ *
+ * FAIL-CLOSED, and that is load-bearing: a malformed commit, a missing request
+ * identity, a decimal/zero/negative/leading-zero id, a non-integer generation or
+ * a generation that is not the LIVE actor generation all return false. A refused
+ * commit must mutate nothing — no reference, no activeClient, no storage write.
+ * `targetUserId: null` is the explicit unscoped lane, not a missing value.
+ */
+export const isAdmissibleClientReference = (
+  commit: ClientReferenceCommit | null | undefined,
+  liveGeneration: number,
+): boolean => {
+  if (!commit || typeof commit !== 'object') return false;
+  if (typeof commit.requestId !== 'string' || !commit.requestId.trim()) return false;
+  if (!Number.isSafeInteger(commit.generation) || commit.generation <= 0) return false;
+  if (commit.generation !== liveGeneration) return false;
+  if (commit.targetUserId === null) return true;
+  return strictPositiveId(commit.targetUserId) === commit.targetUserId;
 };
 

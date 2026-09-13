@@ -1,31 +1,14 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
+import { useClientReference } from './useClientReference';
+import { useClientRoster } from './useClientRoster';
+import type { ActiveClient, GlobalClientContextType } from './globalClientTypes';
+import { ADMIN_CLIENT_LIST_LIMIT, normalizeClientListResponse } from './globalClientNormalize';
 
-export interface ActiveClient {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  photo?: string;
-  bodyMapHeadPhoto?: string;
-  gender?: string;
-  role?: string;
-  availableSessions?: number;
-  clientSource?: 'swanstudios' | 'move_fitness' | 'external';
-  membershipLevel?: 'basic' | 'premium' | 'elite';
-  totalWorkouts?: number;
-  lastWorkoutDate?: string;
-  nextSessionDate?: string;
-}
-
-export interface GlobalClientContextType {
-  activeClient: ActiveClient | null;
-  setActiveClient: (client: ActiveClient | null) => void;
-  clearActiveClient: () => void;
-  clientList: ActiveClient[];
-  loadingClients: boolean;
-  refreshClients: () => Promise<void>;
-}
+// Extracted for the Rule 4 cap, re-exported so every existing import path keeps
+// working unchanged.
+export { ADMIN_CLIENT_LIST_LIMIT, normalizeClientListResponse };
+export type { ActiveClient, GlobalClientContextType };
 
 import {
   LEGACY_ACTIVE_CLIENT_KEY,
@@ -34,6 +17,7 @@ import {
   readStoredActiveClientId,
   reconcileActiveClient,
   writeStoredActiveClientId,
+  type ClientReferenceCommit,
 } from './globalClientPin';
 
 // Re-exported so existing importers of this module keep working unchanged.
@@ -45,58 +29,16 @@ export {
   reconcileActiveClient,
   writeStoredActiveClientId,
 };
-export const ADMIN_CLIENT_LIST_LIMIT = 500;
+// Plan 55 C1 reference contract, re-exported so the adapter imports one module.
+export { isAdmissibleClientReference } from './globalClientPin';
+export type {
+  ClientReferenceCommit,
+  ClientReferenceOrigin,
+  SelectionCandidate,
+  SelectionCandidateOrigin,
+  SelectionInterceptor,
+} from './globalClientPin';
 
-const optionalGender = (value: unknown) => (value ? { gender: String(value) } : {});
-
-export function normalizeClientListResponse(data: any, role: string): ActiveClient[] {
-  if (role === 'admin') {
-    const raw = data?.data?.clients ?? (Array.isArray(data?.data) ? data.data : []);
-    return raw.map((c: any) => ({
-      id: c.id,
-      firstName: c.firstName ?? '',
-      lastName: c.lastName ?? '',
-      email: c.email ?? '',
-      photo: c.profileImageUrl ?? c.photo,
-      bodyMapHeadPhoto: c.bodyMapHeadPhoto ?? undefined,
-      ...optionalGender(c.gender),
-      role: c.role,
-      availableSessions: typeof c.availableSessions === 'number' ? c.availableSessions : undefined,
-      clientSource: c.clientSource ?? undefined,
-      membershipLevel: c.membershipLevel ?? undefined,
-      totalWorkouts: typeof c.totalWorkouts === 'number' ? c.totalWorkouts : undefined,
-      lastWorkoutDate: c.lastWorkoutDate ?? c.lastWorkout?.date ?? c.lastWorkout?.sessionDate ?? undefined,
-      nextSessionDate: c.nextSessionDate ?? c.nextSession?.sessionDate ?? c.nextSession?.date ?? undefined,
-    }));
-  }
-
-  const assignments = Array.isArray(data?.assignments)
-    ? data.assignments
-    : Array.isArray(data?.data)
-    ? data.data
-    : data?.data?.assignments ?? [];
-
-  return assignments.map((a: any) => {
-    const c = a.client ?? a.Client ?? a;
-    return {
-      id: c.id,
-      firstName: c.firstName ?? '',
-      lastName: c.lastName ?? '',
-      email: c.email ?? '',
-      photo: c.profileImageUrl ?? c.photo,
-      bodyMapHeadPhoto: c.bodyMapHeadPhoto ?? undefined,
-      ...optionalGender(c.gender),
-      role: c.role,
-      availableSessions: typeof c.availableSessions === 'number' ? c.availableSessions : undefined,
-      clientSource: c.clientSource ?? undefined,
-      totalWorkouts: typeof c.totalWorkouts === 'number' ? c.totalWorkouts : undefined,
-      lastWorkoutDate: c.lastWorkoutDate ?? c.lastWorkout?.date ?? c.lastWorkout?.sessionDate ?? undefined,
-      nextSessionDate: c.nextSessionDate ?? c.nextSession?.sessionDate ?? c.nextSession?.date ?? undefined,
-    };
-  });
-}
-
-const normalizeClients = normalizeClientListResponse;
 const GlobalClientContext = createContext<GlobalClientContextType | null>(null);
 
 export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -107,21 +49,17 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // change still paints the previous actor's client for one frame. On a shared
   // kiosk that frame is the disclosure. A render-time derivation cannot have a
   // transient — there is no commit in which the stamp and the actor disagree.
+  // Stamped for the same reason activeClient is: the roster is the OTHER door to
+  // the same one-frame disclosure. Its state, fetch and stale-response guard now
+  // live in useClientRoster, composed below once the actor key exists.
   const [activeClientState, setActiveClientRaw] = useState<{ actorKey: string | null; client: ActiveClient | null }>(
     { actorKey: null, client: null },
   );
-  // Stamped for the same reason activeClient is: the roster is the OTHER door to
-  // the same one-frame disclosure. Cleared only in an effect, a re-render caused
-  // by the auth change commits before that effect runs and exposes the previous
-  // actor's full roster — names and emails — to whatever renders it (the client
-  // switcher does).
-  const [clientListState, setClientListRaw] = useState<{ actorKey: string | null; items: ActiveClient[] }>(
-    { actorKey: null, items: [] },
-  );
-  const [loadingClients, setLoadingClients] = useState(false);
 
   // The pin is now an ID only; the record is re-derived from the roster below.
-  const [pinnedClientId, setPinnedClientId] = useState<number | null>(null);
+  // Plan 55 C1: the reference API (actor stamp, actor generation, single
+  // selection interceptor, validated commit port) is composed from
+  // useClientReference further down, once the actor key it stamps against exists.
 
   // One-time: drop any pre-SWA-192 unscoped record (it held client PII).
   useEffect(() => {
@@ -133,12 +71,6 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // dropped immediately, then the pin for the NEW actor is read from their own
   // namespaced key. This is the shared-kiosk path: Trainer A logs out, Trainer B
   // logs in on the same tab, and B starts with no client selected.
-  // Who the provider currently believes the actor is. Read by in-flight roster
-  // requests so a response that outlived its actor can be discarded. A ref, not
-  // state, because the check must see the CURRENT actor at await-resolution
-  // time, not the one captured when the request started.
-  const actorRef = useRef<{ id: unknown; role: unknown }>({ id: user?.id, role: user?.role });
-
   /** Stable identity for the current actor; also the stamp carried by a roster. */
   const currentActorKey = activeClientStorageKey(user?.id, user?.role);
 
@@ -154,13 +86,25 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const activeClient = actorIsUsable && activeClientState.actorKey === currentActorKey
     ? activeClientState.client
     : null;
-  const clientList = actorIsUsable && clientListState.actorKey === currentActorKey
-    ? clientListState.items
-    : [];
+  // The roster concern (fetch, its actor stamp and its stale-response guard) is
+  // composed here, and re-exposed below so the provider's surface is unchanged.
+  const { clientList, loadingClients, rosterActorKey, refreshClients, setClientList, syncActor, resetRoster } =
+    useClientRoster({ user, authAxios, currentActorKey, actorIsUsable });
 
-  const setClientList = useCallback((items: ActiveClient[]) => {
-    setClientListRaw({ actorKey: currentActorKey, items });
-  }, [currentActorKey]);
+  // Plan 55 C1 — composed HERE because it stamps against `currentActorKey`: the
+  // reference retires synchronously with the actor rather than surviving until an
+  // effect runs, the same one-frame disclosure this provider already closes for
+  // the profile and the roster.
+  const {
+    pinnedClientId,
+    referenceOrigin,
+    actorGeneration,
+    advanceActorEpoch,
+    setPinnedReference,
+    requestSelectionChange,
+    commitReference,
+    registerSelectionInterceptor,
+  } = useClientReference({ actorKey: currentActorKey, actorIsUsable });
 
   /** Writes always carry the current actor's stamp. */
   const setActiveClientState = useCallback(
@@ -176,59 +120,16 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
     [currentActorKey],
   );
 
-  // Which actor the roster in `clientList` was fetched for. Any roster whose
-  // stamp does not match the current actor is treated as not-yet-loaded.
-  const [rosterActorKey, setRosterActorKey] = useState<string | null>(null);
-
   useEffect(() => {
-    actorRef.current = { id: user?.id, role: user?.role };
+    syncActor(user?.id, user?.role);
+    // Plan 55 C1: every actor epoch gets a distinct generation, so a callback or
+    // commit minted in an earlier epoch can be recognised and refused.
+    advanceActorEpoch();
     setActiveClientState(null);
-    setClientList([]);
-    setRosterActorKey(null);
-    setLoadingClients(false);
-    setPinnedClientId(readStoredActiveClientId(sessionStorage, user?.id, user?.role));
+    resetRoster();
+    setPinnedReference(readStoredActiveClientId(sessionStorage, user?.id, user?.role), 'stored-pin');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?.role]);
-
-  const refreshClients = useCallback(async () => {
-    if (!user || !authAxios || (user.role !== 'admin' && user.role !== 'trainer')) return;
-
-    // STALE-RESPONSE GUARD. This callback closes over `user`. On a shared
-    // kiosk, Trainer A can log out and Trainer B log in while A's roster
-    // request is still in flight — and without this guard A's response would
-    // resolve and write A's clients into B's list. That is the very leak the
-    // actor-scoped key above exists to prevent, arriving by a different door.
-    // Capture the actor this request belongs to and discard the response if the
-    // actor has changed by the time it lands.
-    const requestActorId = user.id;
-    const requestActorRole = user.role;
-
-    setLoadingClients(true);
-    try {
-      const endpoint = requestActorRole === 'admin'
-        ? '/api/admin/clients'
-        : `/api/client-trainer-assignments/trainer/${requestActorId}`;
-      const config = requestActorRole === 'admin' ? { params: { limit: ADMIN_CLIENT_LIST_LIMIT } } : undefined;
-      const response = await authAxios.get(endpoint, config);
-
-      if (actorRef.current.id !== requestActorId || actorRef.current.role !== requestActorRole) {
-        return; // actor changed mid-flight — this roster belongs to someone else
-      }
-      setClientList(normalizeClients(response.data, requestActorRole));
-      // Stamp the roster with the actor it was fetched for, so the rehydrate
-      // effect can refuse to reconcile a pin against someone else's roster.
-      setRosterActorKey(activeClientStorageKey(requestActorId, requestActorRole));
-    } catch (err) {
-      console.error('[GlobalClientContext] Failed to fetch clients:', err);
-    } finally {
-      if (actorRef.current.id === requestActorId && actorRef.current.role === requestActorRole) {
-        setLoadingClients(false);
-      }
-    }
-  }, [user, authAxios]);
-
-  useEffect(() => {
-    if (user && (user.role === 'admin' || user.role === 'trainer')) refreshClients();
-  }, [user?.id, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // REHYDRATE FROM THE AUTHORISED ROSTER ONLY.
   // Guarded on loadingClients so an empty roster mid-fetch is never mistaken for
@@ -265,7 +166,16 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const resolved = reconcileActiveClient(pinnedClientId, clientList);
     if (!resolved) {
-      setPinnedClientId(null);
+      // Plan 55 §4: an explicitly ADMITTED reference that the roster does not
+      // contain stays PENDING as an id (activeClient null) instead of being
+      // auto-cleared on every refresh. Ordinary restored pins keep the existing
+      // drop rule, because for them absence from the authorised roster means the
+      // assignment is gone.
+      if (referenceOrigin === 'admitted-reference') {
+        setActiveClientState(null);
+        return;
+      }
+      setPinnedReference(null, 'stored-pin');
       setActiveClientState(null);
       writeStoredActiveClientId(sessionStorage, user?.id, user?.role, null);
       return;
@@ -273,20 +183,37 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setActiveClientState((current) => (
       JSON.stringify(current) === JSON.stringify(resolved) ? current : resolved
     ));
-  }, [pinnedClientId, clientList, loadingClients, rosterActorKey, currentActorKey, user?.id, user?.role]);
+  }, [pinnedClientId, referenceOrigin, clientList, loadingClients, rosterActorKey, currentActorKey, setPinnedReference, user?.id, user?.role]);
 
   const setActiveClient = useCallback((client: ActiveClient | null) => {
     const nextId = client ? Number(client.id) : null;
-    setPinnedClientId(nextId);
+    // 'stale' = a callback minted in an earlier actor epoch: do nothing at all.
+    // 'intercepted' = a live adapter owns the request and will commit it.
+    if (requestSelectionChange('picker', nextId) !== 'direct') return;
+    setPinnedReference(nextId, 'stored-pin');
     setActiveClientState(client);
     writeStoredActiveClientId(sessionStorage, user?.id, user?.role, nextId);
-  }, [user?.id, user?.role]);
+  }, [requestSelectionChange, setPinnedReference, user?.id, user?.role]);
 
   const clearActiveClient = useCallback(() => {
-    setPinnedClientId(null);
+    // An explicit unscoped candidate — first-class, not a missing value.
+    if (requestSelectionChange('clear', null) !== 'direct') return;
+    setPinnedReference(null, 'stored-pin');
     setActiveClientState(null);
     writeStoredActiveClientId(sessionStorage, user?.id, user?.role, null);
-  }, [user?.id, user?.role]);
+  }, [requestSelectionChange, setPinnedReference, user?.id, user?.role]);
+
+  /**
+   * Plan 55 §3 C1 — the adapter's validated commit port, and the ONLY path that
+   * bypasses the interceptor (so a decision cannot re-enter its own request).
+   * Fail-closed: a stale/malformed commit changes nothing. It is ID-only and
+   * never synthesizes an ActiveClient — the roster hydration effect does that.
+   */
+  const commitClientReference = useCallback((commit: ClientReferenceCommit): boolean => {
+    if (!commitReference(commit)) return false;
+    writeStoredActiveClientId(sessionStorage, user?.id, user?.role, commit.targetUserId);
+    return true;
+  }, [commitReference, user?.id, user?.role]);
 
   const value = useMemo<GlobalClientContextType>(() => ({
     activeClient,
@@ -295,7 +222,13 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
     clientList,
     loadingClients,
     refreshClients,
-  }), [activeClient, setActiveClient, clearActiveClient, clientList, loadingClients, refreshClients]);
+    pinnedClientId,
+    referenceOrigin,
+    actorGeneration,
+    commitClientReference,
+    registerSelectionInterceptor,
+  }), [activeClient, setActiveClient, clearActiveClient, clientList, loadingClients, refreshClients,
+    pinnedClientId, referenceOrigin, actorGeneration, commitClientReference, registerSelectionInterceptor]);
 
   return <GlobalClientContext.Provider value={value}>{children}</GlobalClientContext.Provider>;
 };
