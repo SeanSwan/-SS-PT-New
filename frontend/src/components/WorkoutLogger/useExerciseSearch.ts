@@ -17,6 +17,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ApiService } from '../../services/api.service';
+import { equipmentRequirementGroups } from '../../../../shared/exercise-equipment.mjs';
 import {
   type ExerciseSlim,
   createExerciseSearchWorker,
@@ -60,6 +61,28 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
   const workerRef = useRef<Worker | null>(null);
   const exerciseCacheRef = useRef<ExerciseSlim[]>([]);
   const lastFetchRef = useRef<number>(0);
+  const queryRef = useRef('');
+  const categoryRef = useRef<string | null>(null);
+  const searchSequenceRef = useRef(0);
+
+  const runSearch = useCallback((nextQuery: string, nextCategory: string | null) => {
+    searchSequenceRef.current += 1;
+    const sequence = searchSequenceRef.current;
+    setIsSearching(true);
+
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'SEARCH',
+        query: nextQuery,
+        category: nextCategory,
+        sequence,
+      });
+      return;
+    }
+
+    setResults(searchExercisesSync(exerciseCacheRef.current, nextQuery, nextCategory));
+    setIsSearching(false);
+  }, []);
 
   // ── Initialize Worker ──
   useEffect(() => {
@@ -67,14 +90,24 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
 
     if (workerRef.current) {
       workerRef.current.onmessage = (e) => {
-        if (e.data.type === 'RESULTS') {
-          setResults(e.data.exercises);
-          setIsSearching(false);
-        }
+        if (e.data.type !== 'RESULTS') return;
+        const responseQuery = typeof e.data.query === 'string' ? e.data.query : '';
+        const responseCategory = e.data.category;
+        if (responseQuery !== queryRef.current.trim()) return;
+        if (responseCategory !== undefined && responseCategory !== categoryRef.current) return;
+        if (e.data.sequence !== undefined && e.data.sequence !== searchSequenceRef.current) return;
+        setResults(Array.isArray(e.data.exercises) ? e.data.exercises : []);
+        setIsSearching(false);
       };
       workerRef.current.onerror = () => {
         // Worker failed — fall back to sync search
         workerRef.current = null;
+        setResults(searchExercisesSync(
+          exerciseCacheRef.current,
+          queryRef.current,
+          categoryRef.current,
+        ));
+        setIsSearching(false);
       };
     }
 
@@ -141,7 +174,8 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
           secondaryMuscles: parseArr(ex?.secondaryMuscles),
           difficulty: Number(ex?.difficulty) || 1,
           equipment: parseArr(ex?.equipment),
-          equipmentNeeded: parseArr(ex?.equipmentNeeded),
+          equipmentNeeded: parseArr(ex?.equipmentNeeded ?? ex?.equipment),
+          equipmentRequirementsKnown: equipmentRequirementGroups({ equipmentNeeded: ex?.equipmentNeeded ?? ex?.equipment }) !== null,
           source: String(ex?.source ?? 'swanstudios'),
           description: (ex?.description as string) || undefined,
           videoUrl: toOptionalString(ex?.videoUrl),
@@ -177,9 +211,14 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
         // Send to worker
         workerRef.current?.postMessage({ type: 'CACHE', exercises });
 
-        // Set initial results (no query = show all for browsing)
-        if (!query) {
+        // Set initial results (no query = show all for browsing). If a query
+        // arrived while the catalog request was in flight, search it against
+        // the newly accepted cache instead of leaving an old result visible.
+        if (!queryRef.current && !categoryRef.current) {
           setResults(exercises);
+          setIsSearching(false);
+        } else {
+          runSearch(queryRef.current, categoryRef.current);
         }
       } else if (exerciseCacheRef.current.length === 0) {
         // Honest-state contract: a 200 with success:false / malformed body
@@ -196,7 +235,7 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [query]);
+  }, [runSearch]);
 
   useEffect(() => {
     fetchExercises();
@@ -206,20 +245,17 @@ export function useExerciseSearch(): UseExerciseSearchReturn {
   useEffect(() => {
     if (exerciseCacheRef.current.length === 0) return;
 
-    setIsSearching(true);
+    runSearch(query, category);
+  }, [query, category, runSearch]);
 
-    if (workerRef.current) {
-      workerRef.current.postMessage({ type: 'SEARCH', query, category });
-    } else {
-      // Sync fallback — still fast for 500 exercises
-      const found = searchExercisesSync(exerciseCacheRef.current, query, category);
-      setResults(found);
-      setIsSearching(false);
-    }
-  }, [query, category]);
-
-  const setQuery = useCallback((q: string) => setQueryState(q), []);
-  const setCategory = useCallback((cat: string | null) => setCategoryState(cat), []);
+  const setQuery = useCallback((q: string) => {
+    queryRef.current = q;
+    setQueryState(q);
+  }, []);
+  const setCategory = useCallback((cat: string | null) => {
+    categoryRef.current = cat;
+    setCategoryState(cat);
+  }, []);
   const refresh = useCallback(() => {
     lastFetchRef.current = 0;
     fetchExercises();

@@ -11,7 +11,7 @@
  * └──────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import type { SprintClassSlot } from '../../hooks/useSprintAPI';
 import { useSprintAPI } from '../../hooks/useSprintAPI';
@@ -101,7 +101,7 @@ const ActionBarSpaced = styled(ActionBar)<{ $top?: number; $spread?: boolean }>`
 `;
 
 const SuccessText = styled.div`
-  color: #00ff88;
+  color: #00ff88;  // swan-guard-allow-hex sprint status accent, not in the Swan palette
   font-weight: 600;
   font-size: 0.85rem;
 `;
@@ -109,6 +109,7 @@ const SuccessText = styled.div`
 interface Props {
   slot: SprintClassSlot;
   sprintId: number;
+  generationVersion: number;
   onClose: () => void;
   onRefresh: () => void;
 }
@@ -119,9 +120,47 @@ const DAY_TYPE_LABELS: Record<string, string> = {
   cardio: 'Cardio', full_body: 'Full Body',
 };
 
-const SlotDetailPanel: React.FC<Props> = ({ slot, sprintId, onClose, onRefresh }) => {
+const SlotDetailPanel: React.FC<Props> = ({ slot, sprintId, generationVersion, onClose, onRefresh }) => {
   const { confirmSlot, regenerateSlot, loading } = useSprintAPI();
   const [usedDate, setUsedDate] = useState(slot.scheduledDate);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+  // The panel must focus ONCE when it opens. The handler was registered with
+  // `[onClose]` deps and the parent passes a fresh inline arrow every render,
+  // so every parent re-render re-ran this effect and yanked focus back to the
+  // panel container — mid-typing, mid-typing anywhere else on the page too.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    panelRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !panelRef.current) return;
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ));
+      if (focusable.length === 0) return;
+      const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+      const nextIndex = event.shiftKey
+        ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+        : (currentIndex === focusable.length - 1 ? 0 : currentIndex + 1);
+      event.preventDefault();
+      focusable[nextIndex]?.focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      restoreFocusRef.current?.focus();
+      restoreFocusRef.current = null;
+    };
+    // Mount/unmount only — the open transition. onClose is read through a ref.
+  }, []);
 
   const handleConfirm = useCallback(async () => {
     const success = await confirmSlot(sprintId, slot.id, usedDate);
@@ -129,19 +168,19 @@ const SlotDetailPanel: React.FC<Props> = ({ slot, sprintId, onClose, onRefresh }
   }, [confirmSlot, sprintId, slot.id, usedDate, onRefresh]);
 
   const handleRegenerate = useCallback(async () => {
-    const success = await regenerateSlot(sprintId, slot.id);
+    const success = await regenerateSlot(sprintId, slot.id, generationVersion);
     if (success) onRefresh();
-  }, [regenerateSlot, sprintId, slot.id, onRefresh]);
+  }, [regenerateSlot, sprintId, slot.id, generationVersion, onRefresh]);
 
   const classData = slot.generatedClassData as Record<string, unknown> | undefined;
   const exercises = (classData?.exercises as Array<Record<string, unknown>>) || [];
   const stations = (classData?.stations as Array<Record<string, unknown>>) || [];
 
   return (
-    <ModalOverlay onClick={onClose} role="dialog" aria-modal="true">
-      <ModalContent onClick={e => e.stopPropagation()}>
+    <ModalOverlay onClick={onClose} role="dialog" aria-modal="true" aria-labelledby={`slot-detail-title-${slot.id}`}>
+      <ModalContent ref={panelRef} tabIndex={-1} onClick={e => e.stopPropagation()}>
         <HeaderRow>
-          <TitleNoMargin>
+          <TitleNoMargin id={`slot-detail-title-${slot.id}`}>
             {DAY_NAMES[slot.dayOfWeek]} &mdash; {slot.scheduledDate}
           </TitleNoMargin>
           <StatusBadge $status={slot.status}>{slot.status}</StatusBadge>

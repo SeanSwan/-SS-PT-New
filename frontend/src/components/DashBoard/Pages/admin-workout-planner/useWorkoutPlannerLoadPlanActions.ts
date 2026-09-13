@@ -5,6 +5,7 @@
  */
 
 import { useCallback } from 'react';
+import { usePlannerAsyncScope } from './usePlannerAsyncScope';
 import type { Dispatch, SetStateAction } from 'react';
 import {
   buildLoadedGeneratedPlan,
@@ -51,6 +52,7 @@ interface UseWorkoutPlannerLoadPlanActionsInput {
   setCategory: Dispatch<SetStateAction<WorkoutCategory>>;
   setLoadedPlanId: Dispatch<SetStateAction<string | null>>;
   setLoadedPlanName: Dispatch<SetStateAction<string | null>>;
+  setLoadedPlanRevision: Dispatch<SetStateAction<number>>;
   setSavedSnapshot: Dispatch<SetStateAction<string | null>>;
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
 }
@@ -80,6 +82,7 @@ const applyLoadedPlanMetadata = ({
   setGoal,
   setLoadedPlanId,
   setLoadedPlanName,
+  setLoadedPlanRevision,
   setPhaseNumber,
 }: LoadedPlanApplyInput) => {
   if (plan.nasmPhase) setPhaseNumber(plan.nasmPhase);
@@ -87,6 +90,8 @@ const applyLoadedPlanMetadata = ({
   if (hydration.planData.category) setCategory(loadedPlanCategory(hydration.planData, category));
   setLoadedPlanId(String(planId));
   setLoadedPlanName(planName);
+  const revision = Number(plan.contentRevision);
+  setLoadedPlanRevision(Number.isSafeInteger(revision) && revision > 0 ? revision : 1);
 };
 
 const applyGeneratedPlanLoad = ({
@@ -182,15 +187,25 @@ export const useWorkoutPlannerLoadPlanActions = ({
   setCategory,
   setLoadedPlanId,
   setLoadedPlanName,
+  setLoadedPlanRevision,
   setSavedSnapshot,
   setStatusMsg,
 }: UseWorkoutPlannerLoadPlanActionsInput) => {
+  const scope = usePlannerAsyncScope(selectedClientId);
   const loadPlanIntoBuilder = useCallback(async (planId: string, planName: string) => {
+    const epoch = scope.current.epoch, request = ++scope.current.request;
+    const isCurrent = () => scope.current.epoch === epoch && scope.current.request === request;
     try {
       const res = await authAxios.get(`/api/workout-plans/${planId}`);
+      if (!isCurrent()) return;
       const plan = readSavedWorkoutPlan(res.data);
       if (!plan) {
         setStatusMsg({ type: 'error', text: 'Plan not found or not authorized.' });
+        return;
+      }
+
+      if (plan.userId != null && Number(plan.userId) !== selectedClientId) {
+        setStatusMsg({ type: 'error', text: 'This plan belongs to another client. Select that client before loading it.' });
         return;
       }
 
@@ -209,6 +224,7 @@ export const useWorkoutPlannerLoadPlanActions = ({
         setCategory,
         setLoadedPlanId,
         setLoadedPlanName,
+        setLoadedPlanRevision,
         setSavedSnapshot,
         setStatusMsg,
         plan,
@@ -217,7 +233,7 @@ export const useWorkoutPlannerLoadPlanActions = ({
         planName,
       });
     } catch (err: unknown) {
-      setStatusMsg(planLoadErrorMessage(err));
+      if (isCurrent()) setStatusMsg(planLoadErrorMessage(err));
     }
   }, [
     authAxios,
@@ -233,6 +249,7 @@ export const useWorkoutPlannerLoadPlanActions = ({
     setGoal,
     setLoadedPlanId,
     setLoadedPlanName,
+    setLoadedPlanRevision,
     setPhaseNumber,
     setPlanExercises,
     setSavedSnapshot,

@@ -222,7 +222,10 @@ function formatForBootcamp(ex, sample = null) {
     name: ex.name,
     muscles: [...primaryMuscles, ...secondaryMuscles],
     primaryMuscle: primaryMuscles[0] ?? null,
-    equipment: equipment.length > 0 ? equipment : ['bodyweight'],
+    equipment: equipment,
+    // Preserve the authoritative raw field so an unknown/malformed source
+    // cannot be certified as bodyweight by the final equipment matcher.
+    equipmentNeeded: ex.equipmentNeeded ?? ex.equipment ?? null,
     category: movementPattern,
     movementPattern,
     difficulty: ex.difficulty ?? 500,

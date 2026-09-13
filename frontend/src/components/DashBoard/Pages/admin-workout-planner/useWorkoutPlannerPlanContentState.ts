@@ -45,6 +45,7 @@ export function useWorkoutPlannerPlanContentState({
 }: UseWorkoutPlannerPlanContentStateArgs) {
   const [loadedPlanId, setLoadedPlanId] = useState<string | null>(null);
   const [loadedPlanName, setLoadedPlanName] = useState<string | null>(null);
+  const [loadedPlanRevision, setLoadedPlanRevision] = useState(1);
   const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
   const categoryLabel = getWorkoutCategoryLabel(category);
 
@@ -128,12 +129,14 @@ export function useWorkoutPlannerPlanContentState({
   const resetLoadedPlanState = useCallback(() => {
     setLoadedPlanId(null);
     setLoadedPlanName(null);
+    setLoadedPlanRevision(1);
     setSavedSnapshot(null);
   }, []);
 
   return {
     loadedPlanId,
     loadedPlanName,
+    loadedPlanRevision,
     categoryLabel,
     hasGeneratedHorizonPlan,
     currentExercisesSig,
@@ -143,6 +146,7 @@ export function useWorkoutPlannerPlanContentState({
     buildManualSnapshot,
     setLoadedPlanId,
     setLoadedPlanName,
+    setLoadedPlanRevision,
     setSavedSnapshot,
     resetLoadedPlanState,
   };

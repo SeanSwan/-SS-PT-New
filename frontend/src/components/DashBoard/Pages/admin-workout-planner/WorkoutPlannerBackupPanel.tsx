@@ -10,7 +10,7 @@
  *       POST /api/workout-plans/:id/promote-backup
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { RefreshCcw, ShieldCheck, Sparkles } from 'lucide-react';
 import { PLANNER_GOLD } from './plannerGold';
@@ -114,13 +114,19 @@ const WorkoutPlannerBackupPanel: React.FC<WorkoutPlannerBackupPanelProps> = ({
   const [busy, setBusy] = useState<'generate' | 'promote' | null>(null);
   const [confirmingPromote, setConfirmingPromote] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // H10: fences a late verdict so client A's backup state can never be rendered
+  // under client B. Clearing `verdict` on client change is not enough — the
+  // in-flight response for the previous client resolves afterwards.
+  const verdictRequestRef = useRef(0);
 
   const loadVerdict = useCallback(async () => {
     if (!authAxios || !selectedClientId) return;
+    const requestId = ++verdictRequestRef.current;
     setStatus('loading');
     setConfirmingPromote(false);
     try {
       const res = await authAxios.get(`/api/workout-plans/backup/${selectedClientId}`);
+      if (requestId !== verdictRequestRef.current) return;
       const data = res?.data as (BackupVerdict & { success?: boolean }) | undefined;
       if (data?.success) {
         setVerdict(data);
@@ -129,11 +135,14 @@ const WorkoutPlannerBackupPanel: React.FC<WorkoutPlannerBackupPanelProps> = ({
         setStatus('error');
       }
     } catch {
+      if (requestId !== verdictRequestRef.current) return;
       setStatus('error');
     }
   }, [authAxios, selectedClientId]);
 
   useEffect(() => {
+    // Invalidate any in-flight verdict before loading the new client's.
+    verdictRequestRef.current += 1;
     setMessage(null);
     setVerdict(null);
     if (selectedClientId) void loadVerdict();

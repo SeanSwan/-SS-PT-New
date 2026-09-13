@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "non-vibe-planning-verify-receipt-v1",
+  "status": "PASS",
+  "manifestPath": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\.ai-workflow\\vault\\agent-ready-planner-v1-before-v2-20260907\\manifest.json",
+  "manifestSha256": "357a3fa1376148d84655b03d50a652c20ce28aabe32d8d519d79406be2fdcb5d",
+  "verifiedFiles": 36,
+  "sampleRestored": 2,
+  "temporaryRestoreRemoved": true,
+  "sourceRoot": "C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT",
+  "originalsUnchanged": true,
+  "native": "Explicit native snapshots for Markdown; complete compatible snapshot for all artifact files"
+}

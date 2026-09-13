@@ -1,0 +1,9 @@
+{
+  "toolEvidence": {
+    "path": ".mega-blueprints/artifacts/b214f060bbec9038/s01-test-output.log",
+    "sha256": "f9f806d0cedb54ee83075793091f8c5f9d69c91809324dad16a22820e94130bf"
+  },
+  "status": "PASS",
+  "digest": "e5b31c5ff221944d03001cead578ec074eca51c5796f1a80bde3e1dfe434dc0b",
+  "command": "From frontend: node node_modules/vitest/vitest.mjs run --config vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.test.tsx; from root: node frontend/node_modules/vitest/vitest.mjs run --config tmp/rolodex-audit-evidence/red/vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 tmp/rolodex-audit-evidence/red/blend-dialog-uuid.red.test.tsx"
+}

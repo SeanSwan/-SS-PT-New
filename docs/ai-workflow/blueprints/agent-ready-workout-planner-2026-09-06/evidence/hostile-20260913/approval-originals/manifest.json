@@ -1,0 +1,40 @@
+{
+  "mechanism": "explicit scoped snapshot supplement",
+  "files": [
+    {
+      "source": "README.md",
+      "copy": "README.md",
+      "sha256": "2367df9a8b51ff7cd33de948ae717b60c34bbf3f0a6de987814ab7f36787cdf4"
+    },
+    {
+      "source": "11-build-workflow.md",
+      "copy": "11-build-workflow.md",
+      "sha256": "8188370fd86ede8829ef44aed81450043b7743895132b0cf0a8cdb7cac93907a"
+    },
+    {
+      "source": "12-hostile-reconciliation-and-repair.md",
+      "copy": "12-hostile-reconciliation-and-repair.md",
+      "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+    },
+    {
+      "source": "13-server-repair-contract.md",
+      "copy": "13-server-repair-contract.md",
+      "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+    },
+    {
+      "source": "14-frontend-repair-contract.md",
+      "copy": "14-frontend-repair-contract.md",
+      "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+    },
+    {
+      "source": "15-audit-findings-and-fix-register.md",
+      "copy": "15-audit-findings-and-fix-register.md",
+      "sha256": "b7423725e35ccc2b0a99a4892c0c9ef16df05f3fe5f889bf8747bc66609898da"
+    },
+    {
+      "source": "audit-readiness.json",
+      "copy": "audit-readiness.json",
+      "sha256": "d07389d52983dc27c33bb3b672343e0eada6ec9ee8ce74cd76a6bc8b08f8df7b"
+    }
+  ]
+}

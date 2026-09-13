@@ -37,6 +37,10 @@ export const useWorkoutPlannerSavedPlansState = ({
   const [savedPlans, setSavedPlans] = useState<SavedPlanSummary[]>([]);
   const [savedPlansLoading, setSavedPlansLoading] = useState(false);
   const [savedPlansClientId, setSavedPlansClientId] = useState<number | null>(null);
+  // H22: savedPlansClientId is set in a finally block, so it matches the selected
+  // client even after a REJECTED or 2xx-failure load with savedPlans []. Without
+  // this flag that empty list is indistinguishable from "client has no plans".
+  const [savedPlansError, setSavedPlansError] = useState(false);
   const [pdfDialogPlan, setPdfDialogPlan] = useState<SavedPlanSummary | null>(null);
   const [pdfDialogMode, setPdfDialogMode] = useState<WorkoutPlanPdfDialogMode>('view');
   const [pdfSaving, setPdfSaving] = useState(false);
@@ -55,25 +59,19 @@ export const useWorkoutPlannerSavedPlansState = ({
   const fetchSavedPlans = useCallback(async (clientId: number | null) => {
     const requestId = ++savedPlansRequestRef.current;
     if (!clientId) {
-      setSavedPlans([]);
-      setSavedPlansClientId(null);
-      setSavedPlansLoading(false);
+      setSavedPlans([]); setSavedPlansClientId(null);
+      setSavedPlansLoading(false); setSavedPlansError(false);
       return;
     }
-
-    setSavedPlansClientId(null);
-    setSavedPlansLoading(true);
+    setSavedPlansClientId(null); setSavedPlansLoading(true); setSavedPlansError(false);
     try {
       const res = await authAxios.get(`/api/workout-plans?clientId=${clientId}`);
       const data = res.data as SavedPlansApiData | undefined;
       if (requestId !== savedPlansRequestRef.current) return;
-      if (data?.success && Array.isArray(data.plans)) {
-        setSavedPlans(data.plans.map(mapSavedPlan));
-      } else {
-        setSavedPlans([]);
-      }
+      if (data?.success && Array.isArray(data.plans)) setSavedPlans(data.plans.map(mapSavedPlan));
+      else { setSavedPlans([]); setSavedPlansError(true); }
     } catch {
-      if (requestId === savedPlansRequestRef.current) setSavedPlans([]);
+      if (requestId === savedPlansRequestRef.current) { setSavedPlans([]); setSavedPlansError(true); }
     } finally {
       if (requestId === savedPlansRequestRef.current) {
         setSavedPlansClientId(clientId);
@@ -90,15 +88,12 @@ export const useWorkoutPlannerSavedPlansState = ({
         text: `${planName} is now the current plan.`,
         nextAction: 'current-plan-ready',
       });
-      if (loadedPlanId === planId) {
-        setSavedSnapshot(currentExercisesSig);
-      }
       fetchSavedPlans(selectedClientId);
     } catch (err) {
       logApiError('Activate plan failed', err);
       setStatusMsg({ type: 'error', text: 'Failed to make plan current. Please try again.' });
     }
-  }, [authAxios, currentExercisesSig, fetchSavedPlans, loadedPlanId, selectedClientId, setSavedSnapshot, setStatusMsg]);
+  }, [authAxios, fetchSavedPlans, selectedClientId, setStatusMsg]);
 
   const handlePlanSetPrimary = useCallback(async (planId: string, planName: string) => {
     if (!selectedClientId) return;
@@ -278,6 +273,7 @@ export const useWorkoutPlannerSavedPlansState = ({
     savedPlans,
     savedPlansClientId,
     savedPlansLoading,
+    savedPlansError,
     fetchSavedPlans,
     archiveBlockedFor,
     handleCardActivate,

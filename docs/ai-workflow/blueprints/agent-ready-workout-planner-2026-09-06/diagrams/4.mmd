@@ -1,0 +1,25 @@
+erDiagram
+  USER ||--o{ AGENT_CONNECTION : owns
+  AGENT_CONNECTION ||--o{ AGENT_GRANT : authorizes
+  AGENT_CONNECTION ||--o{ AGENT_DEVICE : pairs
+  AGENT_GRANT ||--o{ AGENT_JOB : bounds
+  AGENT_JOB o|--o| COACH_PROPOSAL : produces
+  USER ||--o{ WORKOUT_PLAN : owns_training_record
+  COACH_PROPOSAL o|--o| WORKOUT_PLAN : applies_via_existing_writer
+  WORKOUT_PLAN ||--o{ PLAN_REVISION_SNAPSHOT : preserves
+  WORKOUT_PLAN {
+    uuid id PK
+    int userId FK
+    int trainerId
+    int contentRevision
+    string contentHash
+    json planData
+  }
+  AGENT_GRANT {
+    uuid id PK
+    uuid connectionId FK
+    json capabilityScopes
+    string targetBinding
+    datetime expiresAt
+    int revocationEpoch
+  }

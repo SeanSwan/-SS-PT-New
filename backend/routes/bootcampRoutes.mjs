@@ -45,6 +45,19 @@ const VALID_FORMATS = Object.freeze(Object.keys(FORMAT_CONFIG));
 const VALID_DAY_TYPES = ['lower_body', 'upper_body', 'cardio', 'full_body', 'custom'];
 const NOT_FOUND_PATTERN = /not found/i;
 
+const parseOptionalPositiveInteger = (value) => {
+  if (value === undefined || value === null || (typeof value === 'string' && value.trim() === '')) return null;
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const text = String(value).trim();
+  if (!/^\d+$/.test(text)) return null;
+  const parsed = Number(text);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
+
+const hasProvidedValue = (value) => (
+  value !== undefined && value !== null && !(typeof value === 'string' && value.trim() === '')
+);
+
 const getBootcampRouteErrorResponse = (
   err = {},
   notFoundError = 'Resource not found',
@@ -96,6 +109,14 @@ router.post('/generate', async (req, res) => {
       .map(key => key.trim().slice(0, 200))
       .filter(Boolean)
       .slice(0, 100);
+    const safeSpaceProfileId = parseOptionalPositiveInteger(spaceProfileId);
+    const safeEquipmentProfileId = parseOptionalPositiveInteger(equipmentProfileId);
+    if (hasProvidedValue(spaceProfileId) && safeSpaceProfileId === null) {
+      return res.status(400).json({ success: false, error: 'Valid spaceProfileId is required when provided' });
+    }
+    if (hasProvidedValue(equipmentProfileId) && safeEquipmentProfileId === null) {
+      return res.status(400).json({ success: false, error: 'Valid equipmentProfileId is required when provided' });
+    }
 
     const result = await generateBootcampClass({
       trainerId: req.user.id,
@@ -108,8 +129,8 @@ router.post('/generate', async (req, res) => {
       intensityCategory: VALID_INTENSITIES.includes(intensityCategory) ? intensityCategory : undefined,
       targetDuration: safeDuration,
       expectedParticipants: safeParticipants,
-      spaceProfileId: spaceProfileId ? parseInt(spaceProfileId, 10) : undefined,
-      equipmentProfileId: equipmentProfileId ? parseInt(equipmentProfileId, 10) : undefined,
+      spaceProfileId: safeSpaceProfileId ?? undefined,
+      equipmentProfileId: safeEquipmentProfileId ?? undefined,
       name: typeof name === 'string' ? name.slice(0, 200) : undefined,
       includeStretch: includeStretch !== false,
       stretchDurationMin: Math.min(Math.max(parseInt(stretchDurationMin, 10) || 3, 1), 10),
@@ -119,8 +140,15 @@ router.post('/generate', async (req, res) => {
     return res.json({ success: true, bootcamp: result });
   } catch (err) {
     logger.error('[Bootcamp] Generate failed:', err.message);
+    if (err?.code === 'BOOTCAMP_PAIN_REVIEW_REQUIRED') {
+      return res.status(422).json({ success: false, code: err.code,
+        error: 'Automatic generation is blocked by an unresolved severe-pain constraint. Review the exercise choices with the trainer.' });
+    }
     if (err?.statusCode === 403 && err?.code === 'BOOTCAMP_PROFILE_ACCESS_DENIED') {
       return res.status(403).json({ success: false, code: err.code, error: 'Access denied' });
+    }
+    if (err?.statusCode === 503 && err?.code === 'BOOTCAMP_PROFILE_UNAVAILABLE') {
+      return res.status(503).json({ success: false, code: err.code, error: 'Equipment profile unavailable' });
     }
     return res.status(500).json({ success: false, error: 'Failed to generate boot camp class' });
   }
@@ -134,11 +162,16 @@ router.post('/save', async (req, res) => {
       return res.status(400).json({ success: false, error: 'generatedClass is required' });
     }
 
-    const template = await saveBootcampTemplate(generatedClass, req.user.id);
+    const template = await saveBootcampTemplate(generatedClass, req.user.id, { requesterRole: req.user.role });
     return res.json({ success: true, templateId: template.id });
   } catch (err) {
     logger.error('[Bootcamp] Save failed:', err.message);
-    return res.status(500).json({ success: false, error: 'Failed to save template' });
+    // Surface the service's own status (403 when the caller may not use a
+    // submitted profile) instead of collapsing every failure into an opaque
+    // 500 that hides an authorization decision from the client.
+    const status = Number.isInteger(err?.statusCode) ? err.statusCode : 500;
+    const error = status === 403 ? err.message : 'Failed to save template';
+    return res.status(status).json({ success: false, error });
   }
 });
 

@@ -1,8 +1,7 @@
-/**
- * FILE: useWorkoutPlannerSaveActions.ts | PURPOSE: Canonical save plus one-owner PDF fallback.
- * AUTHOR: Codex GPT-5 | MODIFIED: 2026-07-16 | AI VILLAGE: 2026-07-15
- */
+/** Canonical planner save and one-owner PDF fallback. */
 import { useCallback, useState } from 'react';
+import { usePlannerAsyncScope } from './usePlannerAsyncScope';
+import { saveStatusText } from './workoutPlannerSaveActions.messages';
 import { logApiError } from '../../../../utils/logApiError';
 import type { PlannerClient } from './WorkoutPlannerTypes';
 import { buildPlanPdfFileFromPlanData } from './workoutPlannerPlanPdfAdapter';
@@ -14,14 +13,6 @@ import type {
   SaveActionResponseData,
   UseWorkoutPlannerSaveActionsInput,
 } from './useWorkoutPlannerSaveActions.types';
-const saveStatusText = (base: string, pdfResult: PdfAttachResult) => {
-  if (pdfResult === 'queued') return base + ' PDF generation queued.';
-  if (pdfResult === 'attached') return base + ' PDF attached from the saved plan.';
-  if (pdfResult === 'failed') {
-    return base + ' PDF attachment failed; update the PDF from Saved Plans.';
-  }
-  return base;
-};
 export const useWorkoutPlannerSaveActions = ({
   authAxios,
   selectedClientId,
@@ -42,9 +33,11 @@ export const useWorkoutPlannerSaveActions = ({
   setSavedSnapshot,
   setLoadedPlanId,
   setLoadedPlanName,
+  setLoadedPlanRevision,
   setStatusMsg,
 }: UseWorkoutPlannerSaveActionsInput) => {
   const [saving, setSaving] = useState(false);
+  const scope = usePlannerAsyncScope(selectedClientId);
   const hasSaveablePlan = Boolean(
     selectedClientId && (planExercisesLength > 0 || hasGeneratedHorizonPlan),
   );
@@ -113,6 +106,7 @@ export const useWorkoutPlannerSaveActions = ({
       saveFields,
       planId: data?.plan?.id ? String(data.plan.id) : null,
       planTitle: data?.plan?.title,
+      planRevision: Number(data?.plan?.contentRevision),
       pdfDerivative: data?.pdfDerivative,
     };
   }, [
@@ -139,6 +133,7 @@ export const useWorkoutPlannerSaveActions = ({
       planData,
       saveFields,
       planId: loadedPlanId,
+      planRevision: Number(data?.plan?.contentRevision),
       pdfDerivative: data?.pdfDerivative,
     };
   }, [authAxios, buildSaveContext, loadedPlanId, loadedPlanRevision, phaseNumber]);
@@ -151,10 +146,13 @@ export const useWorkoutPlannerSaveActions = ({
     errorText,
   }: RunSaveOperationInput) => {
     if (!hasSaveablePlan || !selectedClientId || (requiresLoadedPlan && !loadedPlanId)) return;
+    const epoch = scope.current.epoch, request = ++scope.current.request;
+    const isCurrent = () => scope.current.epoch === epoch && scope.current.request === request;
     setSaving(true);
     try {
       const result = await operation();
-      const { client, planData, saveFields, planId, planTitle } = result;
+      if (!isCurrent()) return;
+      const { client, planData, saveFields, planId, planTitle, planRevision } = result;
       let pdfDerivative = result.pdfDerivative;
       if (activate) {
         if (!planId) throw new Error('Backend returned no plan id');
@@ -165,10 +163,14 @@ export const useWorkoutPlannerSaveActions = ({
         const activationData = activation.data as SaveActionResponseData | undefined;
         pdfDerivative = activationData?.pdfDerivative ?? pdfDerivative;
       }
+      if (!isCurrent()) return;
       setSavedSnapshot(currentExercisesSig);
       if (planId && !requiresLoadedPlan) {
         setLoadedPlanId(planId);
         setLoadedPlanName(planTitle ? String(planTitle) : null);
+      }
+      if (planId && typeof planRevision === 'number' && Number.isSafeInteger(planRevision) && planRevision > 0) {
+        setLoadedPlanRevision(planRevision);
       }
       const pdfResult: PdfAttachResult = pdfDerivative?.enabled === true
         ? 'queued'
@@ -181,6 +183,7 @@ export const useWorkoutPlannerSaveActions = ({
             saveFields.metadata.planHorizon,
           )
           : 'skipped';
+      if (!isCurrent()) return;
       setStatusMsg({
         type: 'success',
         text: saveStatusText(successText, pdfResult),
@@ -188,18 +191,20 @@ export const useWorkoutPlannerSaveActions = ({
       });
       await fetchSavedPlans(selectedClientId);
     } catch (err) {
+      if (!isCurrent()) return;
       if ((err as { response?: { status?: number } })?.response?.status === 409) {
         await fetchSavedPlans(selectedClientId);
+        if (!isCurrent()) return;
         setStatusMsg({
           type: 'error',
-          text: 'This plan changed on the server. Saved plans were refreshed; review and retry.',
+          text: 'This plan changed on the server. Your draft is preserved. Reload the saved plan explicitly or save this draft as a new plan.',
         });
         return;
       }
       logApiError(errorLogLabel, err);
       setStatusMsg({ type: 'error', text: errorText });
     } finally {
-      setSaving(false);
+      if (scope.current.request === request) setSaving(false);
     }
   }, [
     attachGeneratedPdf,
@@ -211,6 +216,7 @@ export const useWorkoutPlannerSaveActions = ({
     selectedClientId,
     setLoadedPlanId,
     setLoadedPlanName,
+    setLoadedPlanRevision,
     setSavedSnapshot,
     setStatusMsg,
   ]);
@@ -254,10 +260,7 @@ export const useWorkoutPlannerSaveActions = ({
       errorText: 'Failed to update & activate plan.',
     });
   }, [runSaveOperation, updateLoadedPlan]);
-  // S24 (JARVIS §4.6): save the CURRENT builder as a client-scrubbed,
-  // trainer-owned template. The scrub is pure + unit-fenced; the server
-  // re-enforces it (forces owner id, drops notes). Dark behind
-  // PLANNER_TEMPLATES — the SaveBar only offers this when the flag is on.
+  // S24: save the current builder as a client-scrubbed trainer-owned template; the server re-enforces it.
   const handleSaveAsTemplate = useCallback(async () => {
     setSaving(true);
     try {

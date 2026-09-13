@@ -15,6 +15,7 @@ import type {
   WorkoutCategory,
 } from './WorkoutPlannerTypes';
 import type { WorkoutPlannerStatusMessage } from './WorkoutPlannerStatusAssistantStrip';
+import { decodeIntensityPrescription } from './workoutPlannerPrescription';
 
 export type GeneratedWorkoutPayload = GeneratedWorkout & {
   context?: {
@@ -40,6 +41,8 @@ interface WorkoutGenerationRequestInput {
   selectedEquipmentProfileId: number | null;
   trainingIntensityMode: TrainingIntensityMode;
   hardcoreMethod: HardcoreTrainingMethod;
+  exerciseCount?: number;
+  rotationPattern?: string;
 }
 
 interface PlanGenerationRequestInput {
@@ -77,11 +80,6 @@ const parseRestSeconds = (rest: unknown) => {
   return parsedInteger(restText.replace(/[^0-9]/g, ''), 60);
 };
 
-const parseIntensityPercent = (intensity: unknown): number => {
-  if (typeof intensity === 'number') return intensity;
-  return parsedInteger(String(intensity).replace(/[^0-9]/g, ''), 70);
-};
-
 const generationErrorData = (err: unknown): GenerationErrorData | undefined => (
   (err as { response?: { data?: GenerationErrorData } })?.response?.data
 );
@@ -109,11 +107,13 @@ export const buildWorkoutGenerationRequest = ({
   selectedEquipmentProfileId,
   trainingIntensityMode,
   hardcoreMethod,
+  exerciseCount = 6,
+  rotationPattern = 'standard',
 }: WorkoutGenerationRequestInput) => ({
   clientId: selectedClientId,
   category,
-  exerciseCount: 6,
-  rotationPattern: 'standard',
+  exerciseCount,
+  rotationPattern,
   primaryGoal: goal,
   nasmPhase: phaseNumber,
   trainingIntensityMode,
@@ -237,7 +237,7 @@ const mapGeneratedExerciseToPlanExercise = (
   reps: String(exercise.reps),
   tempo: exercise.tempo,
   restSeconds: parseRestSeconds(exercise.rest),
-  intensityPercent: parseIntensityPercent(exercise.intensity),
+  ...decodeIntensityPrescription(exercise.intensity),
   notes: generatedExerciseNotes(exercise),
 });
 

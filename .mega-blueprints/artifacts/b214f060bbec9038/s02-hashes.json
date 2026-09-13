@@ -1,0 +1,23 @@
+{
+  "source": {
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerTypes.ts": "13D8C48391BBFF19AF4E874F1739894A57543EC73D722FC650C8ED9DBE312A52",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts": "39FFC0021559920430671B409C371D8381B44E1A2ED777C6818721D7C9DB4DA1",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerLoadPlanHydration.ts": "7D165456B04E25AF09DF9CD63A6B5A9CE3647166C89FF8F7AA77C9E63247E5BA",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.ts": "8D3BA861D5C01B2B06282CC7D0EAF7C19E78AE16F9310D943D21D00956A9232F",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerGenerationActions.helpers.ts": "263F806194541979CE828721389B8027F85D5BD44F05B8A770B608D72C5F3487",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.exerciseRows.tsx": "B0CCAA62072CDE487EDF5D11903AC7C748DBFEB493EA12ECBB76B62822E5382E",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.test.ts": "5DA63E8118F33E15B0E0885776ABC2F25BBDDF77AA5E14E8C453AD7B2AFC163D",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.prescription.test.tsx": "E79080CA4558FBDC024FEF61598368B65C0BEAA93D686FECD0A2495F0DB1112F"
+  },
+  "evidence": {
+    "s02-green-compatibility-final.log": "AD75CD86EAB9B9CECFDA6DBEEAEEC7435853D45D77AAF1C567D727EF326C4977",
+    "s02-green-compatibility.log": "22081140508EC4D361CC0F51AFF71C7F36B9A773465483EE4251F8578CF20613",
+    "s02-green-focused-final.log": "487CA7A6803A29AE381C9C58FC549FAE8354E3422A41EB95EAD14A1B9509CFA3",
+    "s02-green-focused-typefix.log": "40CB63F4A98F05EE7CC9375D5A199BF4BD0B951F40ED1CD60D8744C835D439C2",
+    "s02-green-focused.log": "2CA14D4FAAEFC014067E8D07ABED8554F876B1FB7EC8BE09A53794AEE4E6DDEE",
+    "s02-green-planner-directory.log": "DC4D5867604189DDD157F38E55D41950F3537CC0EA635504553478A1EF9C89B3",
+    "s02-red-prescription.log": "004DFE53BADD08080AF3C14D8ED633098797238BAA33390FAA9F7607BD36525A",
+    "s02-typecheck-final.log": "5A1768ACC4D00B72DC1E0D1961E8F119F55BEA0C62B4B309B1DF217D9345FC1C",
+    "s02-typecheck.log": "D723670F33A37480B7C715281A79132C116E9659FE85A339C0B4734A8BE5E060"
+  }
+}

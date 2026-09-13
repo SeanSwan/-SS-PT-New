@@ -132,6 +132,32 @@ const BuilderExerciseRow: React.FC<BuilderExerciseRowProps> = ({
             max={600}
           />
         </ParamField>
+        <ParamField>
+          <ParamLabel>Intensity (%)</ParamLabel>
+          <MiniInput
+            type="number"
+            value={planExercise.intensityPercent ?? ''}
+            step="any"
+            aria-label={`Intensity for ${exerciseDisplayName}`}
+            onChange={event => {
+              const rawValue = event.target.value.trim();
+              const parsedValue = rawValue === '' ? undefined : Number(rawValue);
+              onUpdateExercise(
+                planExercise.id,
+                'intensityPercent',
+                parsedValue !== undefined && Number.isFinite(parsedValue) ? parsedValue : undefined,
+              );
+              onUpdateExercise(planExercise.id, 'intensityGuideline', undefined);
+            }}
+          />
+          <span aria-live="polite">
+            {planExercise.intensityPercent === undefined
+              ? planExercise.intensityGuideline
+                ? `Saved intensity: ${planExercise.intensityGuideline}`
+                : 'Intensity not specified'
+              : null}
+          </span>
+        </ParamField>
       </BuilderParamGroup>
       <SwapBtn
         onClick={() => onBeginSwap(planExercise.id, exerciseDisplayName)}

@@ -15,6 +15,8 @@
 // Board 1 = main intensity. Board 2 = joint-friendly alternatives.
 // Board 3 = low-impact swaps for lower-pounding movement paths.
 
+import { unverifiedReplacement } from './bootcampSubstitutionContract.mjs';
+
 const JOINT_MOD_FIELDS = [
   'kneeMod',
   'ankleMod',
@@ -64,6 +66,7 @@ export function deriveJointFriendlyAlternative(exercise, region = '') {
   const preferredField = Object.entries(REGION_MOD_FIELD)
     .find(([key]) => normalized.includes(key))?.[1];
   const preferred = preferredField ? cleanAlternativeName(exercise[preferredField]) : null;
+  if (region) return preferred;
   return preferred
     || firstAvailableAlternative(exercise, JOINT_MOD_FIELDS)
     || cleanAlternativeName(exercise.easyVariation);
@@ -71,12 +74,24 @@ export function deriveJointFriendlyAlternative(exercise, region = '') {
 
 function buildAlternativeExercise(exercise, exerciseName, board, boardNumber, boardLabel) {
   return {
-    ...exercise,
+    ...unverifiedReplacement(exercise, exerciseName),
     board,
     boardNumber,
     boardLabel,
     sourceExerciseName: exercise.exerciseName,
+    sourceExerciseKey: exercise.exerciseKey ?? exercise.key ?? null,
+    sourceExerciseLibraryId: exercise.exerciseLibraryId ?? null,
     exerciseName,
+    // A modification label is not a verified Rolodex identity. Never let a
+    // Board 2/3 row inherit the source movement's demo, instructions, or
+    // library UUID and make it look like the replacement was verified.
+    exerciseLibraryId: null,
+    videoUrl: null,
+    previewVideoUrl: null,
+    imageUrl: null,
+    thumbnailUrl: null,
+    description: null,
+    instructions: null,
     pyramidStartWeight: null,
     pyramidDrops: null,
     supersetOrder: null,

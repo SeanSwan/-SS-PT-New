@@ -106,6 +106,22 @@ describe('bootcamp applyPainAwareGating (Cortex P0 §5.5)', () => {
     expect(alerts[0].recommendation).toMatch(/Board 2|Board 3/);
   });
 
+  it('matches canonical primary and secondary aliases, not only literal bootcamp prose', async () => {
+    mocks.painFindAll.mockResolvedValue([
+      { bodyRegion: 'mid_back_left', side: 'left', painLevel: 5, painType: 'aching', userId: 101 },
+    ]);
+    const ex = mainExercise({
+      muscleTargets: 'Pectoralis Major, Latissimus Dorsi',
+      kneeMod: null,
+      easyVariation: null,
+    });
+
+    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations: [] });
+
+    expect(alerts[0]).toEqual(expect.objectContaining({ region: 'mid_back_left' }));
+    expect(alerts[0].flaggedExercises).toEqual(['Jump Squat']);
+  });
+
   it('privacy: alerts never carry userId or participant identity', async () => {
     mocks.painFindAll.mockResolvedValue([
       { bodyRegion: 'left_knee', side: 'left', painLevel: 8, painType: 'sharp', userId: 101 },

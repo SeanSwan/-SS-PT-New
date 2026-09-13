@@ -248,8 +248,10 @@ export async function generateWorkoutCandidates({
     primaryGoal: safeGoal,
   });
   const equipmentItems = equipmentItemsForProfile(clientContext, safeEquipmentProfileId, clientId);
-  const availableEquipmentCategories = equipmentCategoriesFromItems(equipmentItems);
-  const equipmentFilterActive = availableEquipmentCategories.size > 0;
+  const availableEquipmentCategories = safeEquipmentProfileId
+    ? equipmentCategoriesFromItems(equipmentItems)
+    : null;
+  const equipmentFilterActive = availableEquipmentCategories !== null;
 
   // Pain safety (Cortex fast-follow, 2026-07-12): candidates recommend work
   // for a SPECIFIC client, so they inherit the client's pain exclusions and
@@ -267,7 +269,9 @@ export async function generateWorkoutCandidates({
     primaryGoal: safeGoal,
     nasmPhase: safePhase,
     equipmentProfileId: safeEquipmentProfileId,
-    availableEquipmentCategories: Array.from(availableEquipmentCategories).sort(),
+    availableEquipmentCategories: availableEquipmentCategories
+      ? Array.from(availableEquipmentCategories).sort()
+      : [],
     swanCoachReadiness: readiness,
     safetyHold,
     painExclusionsApplied: [],
@@ -342,7 +346,9 @@ export async function generateWorkoutCandidates({
     primaryGoal: safeGoal,
     nasmPhase: safePhase,
     equipmentProfileId: safeEquipmentProfileId,
-    availableEquipmentCategories: Array.from(availableEquipmentCategories).sort(),
+    availableEquipmentCategories: availableEquipmentCategories
+      ? Array.from(availableEquipmentCategories).sort()
+      : [],
     swanCoachReadiness: readiness,
     painExclusionsApplied: painExclusions,
     slots: [{

@@ -1,32 +1,12 @@
-/**
- * ============================================================================
- * FILE: sprintGenerator.mjs
- * PURPOSE: Generates all bootcamp classes for a sprint with exercise memory
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-01
- * ============================================================================
- *
- * WHAT THIS FILE DOES: Iterates through every slot in a sprint, generating
- * a unique class for each. Accumulates exercise memory so later weeks never
- * repeat exercises from earlier weeks. Supports cross-sprint exclusion.
- *
- * HOW IT FITS: Called by sprintRoutes SSE endpoint → sends progress events
- * KEY DECISIONS:
- *  - LLM calls NEVER inside DB transactions (AI Village P0)
- *  - Exercise memory accumulates AFTER each class generation
- *  - Deload weeks get reduced exercise counts
- *  - Progression strategies modify intensity per week
- * ============================================================================
- */
-
-import {
-  getBootcampSprint, getSprintWeek, getSprintClassSlot,
-  getSprintExerciseMemory,
-} from '../../models/index.mjs';
+import { getSprintClassSlot, getSprintExerciseMemory, getSprintWeek } from '../../models/index.mjs';
 import { generateBootcampClass } from './bootcampGenerator.mjs';
-import { getSprintExerciseMemoryKeys } from './sprintService.mjs';
-import logger from '../../utils/logger.mjs';
+import { getSprintById, getSprintExerciseMemoryKeys } from './sprintService.mjs';
+import { claimSprint, renewSprintClaim, withSprintClaim, sprintActor, sprintError } from './sprintGenerationClaim.mjs';
 
-// ── Progression Strategy Modifiers ───────────────────────────────────
+// F04 restoration (base c0cbe538d): the progression strategy gives weeks with
+// NO explicit modifier a per-week volume multiplier. A week's own
+// intensityModifier (validated 0.7–1.5) always wins, and a deload week falls
+// back to 0.7 when it carries no modifier — the base contract's order.
 const PROGRESSION = {
   linear: (weekNum, totalWeeks) => {
     const base = 1.0;
@@ -46,219 +26,166 @@ const PROGRESSION = {
   random: () => 0.85 + Math.random() * 0.3,
 };
 
-// ── INTENSITY CATEGORIES BY MODIFIER ─────────────────────────────────
-function intensityCategoryFromModifier(modifier) {
-  if (modifier <= 0.75) return 'low';
-  if (modifier <= 0.95) return 'moderate';
-  if (modifier <= 1.1) return 'high';
-  return 'max';
+/**
+ * The single decision for "how hard should this week's classes be generated".
+ * Order: explicit week modifier > deload default (0.7) > strategy fallback.
+ */
+export function weekPrescription(week, strategy = 'linear', durationWeeks = 0) {
+  const progressionFn = PROGRESSION[strategy] || PROGRESSION.linear;
+  const explicit = Number(week?.intensityModifier);
+  if (week?.isDeloadWeek) return explicit > 0 ? explicit : 0.7;
+  return explicit > 0 ? explicit : progressionFn(week?.weekNumber ?? 1, durationWeeks);
 }
 
-// ── GENERATE ALL CLASSES FOR A SPRINT ────────────────────────────────
-export async function generateSprintClasses(sprintId, onProgress) {
-  const BootcampSprint = getBootcampSprint();
-  const SprintWeek = getSprintWeek();
-  const SprintClassSlot = getSprintClassSlot();
-  const SprintExerciseMemory = getSprintExerciseMemory();
+function positiveId(value) {
+  if (!/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value)) || Number(value) <= 0) {
+    throw sprintError('Valid Sprint/slot ID required', 400);
+  }
+  return Number(value);
+}
 
-  const sprint = await BootcampSprint.findByPk(sprintId, {
-    include: [{
-      model: SprintWeek,
-      as: 'weeks',
-      include: [{ model: SprintClassSlot, as: 'classSlots' }],
-    }],
-    order: [
-      [{ model: SprintWeek, as: 'weeks' }, 'weekNumber', 'ASC'],
-      [{ model: SprintWeek, as: 'weeks' }, { model: SprintClassSlot, as: 'classSlots' }, 'scheduledDate', 'ASC'],
-    ],
+export function mainExerciseKeys(classData) {
+  const rows = [...(classData?.exercises ?? []), ...(classData?.stations ?? []).flatMap(station => station.exercises ?? [])]
+    .filter(ex => !ex.board || ex.board === 'main');
+  if (!rows.length) throw sprintError('Generated class has no main work', 422);
+  const keys = new Set();
+  for (const ex of rows) {
+    const key = ex.key ?? ex.exerciseKey ?? (ex.exerciseLibraryId ? 'db-' + ex.exerciseLibraryId : null);
+    if (typeof key === 'string' && key.trim()) keys.add(key.trim());
+    else if (!ex.isCardioFinisher) throw sprintError('Sprint exercise memory unresolved', 422);
+  }
+  if (!keys.size) throw sprintError('Sprint exercise memory unresolved', 422);
+  return [...keys];
+}
+
+async function rebuildMemory(sprintId, transaction) {
+  const slots = await getSprintClassSlot().findAll({
+    where: { sprintId, status: ['generated', 'taught'] }, order: [['scheduledDate', 'ASC'], ['id', 'ASC']], transaction,
   });
-
-  if (!sprint) throw new Error('Sprint not found');
-
-  // ARCH-3: Optimistic lock — reject concurrent generation attempts
-  const currentVersion = sprint.generationVersion;
-
-  // Atomically claim generation: only succeeds if version hasn't changed
-  const [affectedRows] = await BootcampSprint.update(
-    { status: 'generating', generationVersion: currentVersion + 1 },
-    { where: { id: sprintId, generationVersion: currentVersion } },
-  );
-
-  if (affectedRows === 0) {
-    throw new Error('Sprint generation conflict — another generation is already in progress');
+  const union = new Map();
+  for (const slot of slots) {
+    const keys = slot.exerciseKeys?.length ? slot.exerciseKeys : mainExerciseKeys(slot.generatedClassData);
+    const week = await getSprintWeek().findByPk(slot.weekId, { attributes: ['weekNumber'], transaction });
+    if (!week) throw sprintError('Sprint week missing', 422);
+    for (const key of keys) if (!union.has(key)) union.set(key, {
+      sprintId, exerciseKey: key, slotId: slot.id, weekNumber: week.weekNumber,
+    });
   }
+  await getSprintExerciseMemory().destroy({ where: { sprintId }, transaction });
+  if (union.size) await getSprintExerciseMemory().bulkCreate([...union.values()], { transaction });
+  return new Set(union.keys());
+}
 
-  // Load previous sprint's exercise memory for cross-sprint exclusion
-  const crossSprintExclusions = new Set();
-  if (sprint.previousSprintId) {
-    const prevKeys = await getSprintExerciseMemoryKeys(sprint.previousSprintId);
-    prevKeys.forEach(k => crossSprintExclusions.add(k));
-    logger.info(`[SprintGen] Loaded ${crossSprintExclusions.size} exercise keys from previous sprint #${sprint.previousSprintId}`);
-  }
+async function commitSlot(sprintId, actor, claim, slotId, classData) {
+  const keys = mainExerciseKeys(classData);
+  return withSprintClaim(sprintId, actor, claim, async (_sprint, transaction) => {
+    const slot = await getSprintClassSlot().findOne({
+      where: { id: slotId, sprintId }, transaction, lock: transaction.LOCK.UPDATE,
+    });
+    if (!slot || !['planned', 'generated'].includes(slot.status)) throw sprintError('Sprint slot changed before commit');
+    await slot.update({ generatedClassData: classData, exerciseKeys: keys, status: 'generated' }, { transaction });
+    return rebuildMemory(sprintId, transaction);
+  });
+}
 
-  // Current sprint's cumulative memory (starts empty, grows per class)
-  const sprintMemory = new Set();
+async function finish(sprintId, actor, claim, failed) {
+  return withSprintClaim(sprintId, actor, claim, async (sprint, transaction) => {
+    const slots = await getSprintClassSlot().findAll({ where: { sprintId }, transaction });
+    const required = slots.filter(slot => slot.status !== 'skipped');
+    const completedSlots = required.filter(slot => ['generated', 'taught'].includes(slot.status)).length;
+    const status = !failed && required.length > 0 && completedSlots === required.length ? 'active' : 'draft';
+    await sprint.update({ status, metadata: { ...sprint.metadata, generationClaimV1: null,
+      lastGenerationV1: { operationId: claim.operationId, version: claim.version, status, completedSlots } } }, { transaction });
+    return { status, totalSlots: required.length, completedSlots, failedSlots: required.length - completedSlots };
+  });
+}
 
-  const progressionFn = PROGRESSION[sprint.progressionStrategy] || PROGRESSION.linear;
-  const totalSlots = sprint.weeks.reduce((sum, w) => sum + w.classSlots.length, 0);
-  let completedSlots = 0;
-  let failedSlots = 0;
-
-  // ARCH-3: try/finally ensures sprint never gets stuck in 'generating'
+async function runOwned(sprintId, actor, request, work) {
+  const claim = await claimSprint(sprintId, actor, request);
+  let lost = null;
+  const heartbeat = setInterval(() => {
+    renewSprintClaim(sprintId, actor, claim).catch(error => { lost = error; });
+  }, 30000);
+  heartbeat.unref?.();
   try {
-    for (const week of sprint.weeks) {
-      const weekModifier = week.isDeloadWeek
-        ? 0.7
-        : (week.intensityModifier || progressionFn(week.weekNumber, sprint.durationWeeks));
+    const result = await work(claim, () => { if (lost) throw lost; });
+    const terminal = await finish(sprintId, actor, claim, false);
+    return { ...result, ...terminal };
+  } catch (error) {
+    // Cleanup can only release this live fence. Never announce success when DB cleanup fails.
+    try { await finish(sprintId, actor, claim, true); } catch { /* lease expiry allows an explicit retry */ }
+    throw error;
+  } finally { clearInterval(heartbeat); }
+}
 
-      for (const slot of week.classSlots) {
-        if (slot.status === 'generated' || slot.status === 'taught') {
-          completedSlots++;
-          continue;
-        }
-
-        try {
-          // Build exclusion set: cross-sprint + current sprint memory
-          const exclusionSet = new Set([...crossSprintExclusions, ...sprintMemory]);
-
-          // Generate class OUTSIDE of any transaction (AI Village P0)
-          const classData = await generateBootcampClass({
-            classFormat: slot.classFormat || sprint.defaultFormat,
-            classStyle: slot.classStyle || sprint.defaultStyle,
-            dayType: slot.dayType,
-            intensityCategory: intensityCategoryFromModifier(weekModifier),
-            spaceProfileId: sprint.spaceProfileId,
-            trainerId: sprint.trainerId,
-            exclusionKeys: exclusionSet,
-            includeStretch: true,
-            stretchDurationMin: 5,
-          });
-
-          // Extract exercise keys from generated class
-          const exerciseKeys = [];
-          if (classData?.exercises) {
-            for (const ex of classData.exercises) {
-              if (ex.key) exerciseKeys.push(ex.key);
-            }
-          }
-
-          // Save to slot (single write, no transaction needed)
-          await SprintClassSlot.update({
-            generatedClassData: classData,
-            exerciseKeys,
-            status: 'generated',
-          }, { where: { id: slot.id } });
-
-          // Accumulate exercise memory
-          for (const key of exerciseKeys) {
-            sprintMemory.add(key);
-            await SprintExerciseMemory.findOrCreate({
-              where: { sprintId, exerciseKey: key },
-              defaults: {
-                slotId: slot.id,
-                weekNumber: week.weekNumber,
-              },
-            });
-          }
-
-          completedSlots++;
-        } catch (err) {
-          logger.error(`[SprintGen] Failed slot #${slot.id} (week ${week.weekNumber}):`, err.message);
-          failedSlots++;
-          completedSlots++;
-        }
-
-        // Send progress event
-        if (onProgress) {
-          onProgress({
-            type: 'progress',
-            completedSlots,
-            totalSlots,
-            failedSlots,
-            currentWeek: week.weekNumber,
-            percent: Math.round((completedSlots / totalSlots) * 100),
-          });
-        }
-      }
-    }
-  } finally {
-    // Always release the 'generating' lock, even on unexpected errors
-    const finalStatus = failedSlots === 0 && completedSlots > 0 ? 'active' : 'draft';
-    await BootcampSprint.update(
-      { status: finalStatus },
-      { where: { id: sprintId } },
-    ).catch(err => logger.error(`[SprintGen] Failed to reset sprint status:`, err.message));
-  }
-
-  const result = {
-    type: 'complete',
-    sprintId,
-    totalSlots,
-    completedSlots: completedSlots - failedSlots,
-    failedSlots,
-    status: failedSlots === 0 ? 'active' : 'draft',
-    exerciseMemorySize: sprintMemory.size,
+function generationInput(sprint, slot, exclusions, weekPrescriptionIntensity) {
+  return {
+    classFormat: slot.classFormat || sprint.defaultFormat,
+    classStyle: slot.classStyle || sprint.defaultStyle, dayType: slot.dayType,
+    spaceProfileId: sprint.spaceProfileId, trainerId: sprint.trainerId,
+    exclusionKeys: exclusions, includeStretch: true, stretchDurationMin: 5,
+    // F04: the week's prescription scales generated work volume (deload 0.7 …).
+    prescriptionIntensity: weekPrescriptionIntensity,
+    // Workload progression must never select an impact category.
   };
+}
 
-  if (onProgress) onProgress(result);
+export async function generateSprintClasses(id, onProgress, actor, request) {
+  const sprintId = positiveId(id); actor = sprintActor(actor);
+  const result = await runOwned(sprintId, actor, request, async (claim, assertLive) => {
+    const sprint = await getSprintById(sprintId, actor);
+    const previous = sprint.previousSprintId
+      ? await getSprintExerciseMemoryKeys(sprint.previousSprintId, actor) : new Set();
+    // Rebuild from slot truth; a read/decoding failure aborts rather than losing exclusions.
+    let memory = await withSprintClaim(sprintId, actor, claim, (_s, transaction) => rebuildMemory(sprintId, transaction));
+    const slots = sprint.weeks.flatMap(week => week.classSlots.map(slot => ({ slot, week })))
+      .sort((a, b) => a.week.weekNumber - b.week.weekNumber
+        || String(a.slot.scheduledDate).localeCompare(String(b.slot.scheduledDate)) || a.slot.id - b.slot.id);
+    if (!slots.length || slots.length > 364) throw sprintError('Sprint schedule is empty or exceeds limits', 422);
+    let completed = 0;
+    for (const { slot, week } of slots) {
+      assertLive();
+      if (slot.status === 'planned') {
+        await renewSprintClaim(sprintId, actor, claim);
+        const classData = await generateBootcampClass(
+          generationInput(sprint, slot, new Set([...previous, ...memory]), weekPrescription(week, sprint.progressionStrategy, sprint.durationWeeks)),
+        );
+        assertLive();
+        memory = await commitSlot(sprintId, actor, claim, slot.id, classData);
+      }
+      completed++;
+      onProgress?.({ type: 'progress', completedSlots: completed, totalSlots: slots.length,
+        currentWeek: week.weekNumber, percent: Math.round(completed / slots.length * 100) });
+    }
+    return { type: 'complete', sprintId, exerciseMemorySize: memory.size };
+  });
   return result;
 }
 
-// ── REGENERATE A SINGLE SLOT ─────────────────────────────────────────
-export async function regenerateSlot(sprintId, slotId, trainerId) {
-  const BootcampSprint = getBootcampSprint();
-  const SprintClassSlot = getSprintClassSlot();
-  const SprintExerciseMemory = getSprintExerciseMemory();
-
-  const sprint = await BootcampSprint.findOne({ where: { id: sprintId, trainerId } });
-  if (!sprint) throw new Error('Sprint not found');
-
-  // ARCH-3: Conflict guard — block slot regen while full generation is active
-  if (sprint.status === 'generating') {
-    throw new Error('Cannot regenerate slot while sprint generation is in progress');
-  }
-
-  const slot = await SprintClassSlot.findByPk(slotId);
-  if (!slot || slot.sprintId !== sprintId) throw new Error('Slot not found');
-
-  // Remove old memory entries for this slot
-  await SprintExerciseMemory.destroy({ where: { sprintId, slotId } });
-
-  // Build full sprint exclusion (minus this slot's old keys)
-  const allMemory = await getSprintExerciseMemoryKeys(sprintId);
-
-  const classData = await generateBootcampClass({
-    classFormat: slot.classFormat || sprint.defaultFormat,
-    classStyle: slot.classStyle || sprint.defaultStyle,
-    dayType: slot.dayType,
-    intensityCategory: 'moderate',
-    spaceProfileId: sprint.spaceProfileId,
-    trainerId: sprint.trainerId,
-    exclusionKeys: allMemory,
-    includeStretch: true,
-    stretchDurationMin: 5,
-  });
-
-  const exerciseKeys = [];
-  if (classData?.exercises) {
-    for (const ex of classData.exercises) {
-      if (ex.key) exerciseKeys.push(ex.key);
+export async function regenerateSlot(id, targetId, trainerId, request) {
+  const sprintId = positiveId(id), slotId = positiveId(targetId);
+  const actor = sprintActor(typeof trainerId === 'object' ? trainerId : { userId: trainerId, role: 'trainer' });
+  return runOwned(sprintId, actor, request, async (claim, assertLive) => {
+    const sprint = await getSprintById(sprintId, actor);
+    const slot = await getSprintClassSlot().findOne({ where: { id: slotId, sprintId } });
+    if (!slot || !['planned', 'generated'].includes(slot.status)) throw sprintError('Cannot regenerate this slot');
+    // F04: a regenerated class must obey the same week prescription as the
+    // original full-sprint run, so the week is loaded from the slot.
+    const week = slot.weekId ? await getSprintWeek().findByPk(slot.weekId) : null;
+    const prescription = week ? weekPrescription(week, sprint.progressionStrategy, sprint.durationWeeks) : 1;
+    const exclusions = sprint.previousSprintId
+      ? await getSprintExerciseMemoryKeys(sprint.previousSprintId, actor) : new Set();
+    const others = await getSprintClassSlot().findAll({ where: { sprintId, status: ['generated', 'taught'] } });
+    for (const other of others) if (Number(other.id) !== slotId) {
+      const keys = other.exerciseKeys?.length ? other.exerciseKeys : mainExerciseKeys(other.generatedClassData);
+      keys.forEach(key => exclusions.add(key));
     }
-  }
-
-  await SprintClassSlot.update({
-    generatedClassData: classData,
-    exerciseKeys,
-    status: 'generated',
-  }, { where: { id: slotId } });
-
-  // Add new memory entries
-  for (const key of exerciseKeys) {
-    await SprintExerciseMemory.findOrCreate({
-      where: { sprintId, exerciseKey: key },
-      defaults: { slotId, weekNumber: slot.weekId },
-    });
-  }
-
-  return { slot: await SprintClassSlot.findByPk(slotId), classData };
+    await renewSprintClaim(sprintId, actor, claim);
+    const classData = await generateBootcampClass(generationInput(sprint, slot, exclusions, prescription));
+    assertLive();
+    await commitSlot(sprintId, actor, claim, slotId, classData);
+    return { slot: await getSprintClassSlot().findOne({ where: { id: slotId, sprintId } }), classData };
+  });
 }
+
+export const __testing__ = { PROGRESSION, weekPrescription };

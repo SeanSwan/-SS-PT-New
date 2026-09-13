@@ -1612,6 +1612,11 @@ class AdminClientController {
         planningReviewAcknowledged,
         planningReviewReason,
       } = req.body;
+      // Mirror the trainer route's clamp (workoutBuilderRoutes.mjs:189): a
+      // float or padded string posted to this admin route used to reach
+      // distributeExerciseCount and take its TypeError as a 500 on the
+      // generation path; the allocator requires a safe integer.
+      const safeExerciseCount = Math.min(Math.max(parseInt(exerciseCount, 10) || 6, 1), 20);
 
       // Validate client exists
       const client = await User.findOne({
@@ -1651,7 +1656,7 @@ class AdminClientController {
           clientId: Number(clientId),
           trainerId: Number(trainerId),
           category,
-          exerciseCount,
+          exerciseCount: safeExerciseCount,
           equipmentProfileId,
           planningReviewAcknowledged: planningReviewAcknowledged === true,
           planningReviewReason,

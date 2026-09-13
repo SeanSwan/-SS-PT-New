@@ -1,0 +1,26 @@
+sequenceDiagram
+  actor Owner
+  participant Swan
+  participant Policy
+  participant Ledger
+  participant Provider
+  Owner->>Swan: Select own connection and training target
+  Swan->>Policy: Current role, consent, subject, modality
+  Policy-->>Swan: Allowed envelope or denial
+  Swan-->>Owner: Context manifest, payer, ceiling and quote
+  Owner->>Swan: Approve one task and request ID
+  Swan->>Ledger: Atomic idempotent reservation
+  alt Denied or duplicate
+    Ledger-->>Swan: Block or return existing task
+  else Admitted
+    Ledger-->>Swan: Root task and call allowance
+    Swan->>Provider: Bound request, no hidden retry
+    alt Ambiguous acceptance
+      Swan->>Ledger: Hold uncertain reservation
+      Swan-->>Owner: Checking charge - no new dispatch
+    else Verified receipt
+      Provider-->>Swan: Result and usage receipt
+      Swan->>Ledger: Settle verified cost
+      Swan-->>Owner: Exact proposal for review
+    end
+  end

@@ -40,3 +40,41 @@ describe('Bootcamp Start Class acquisition', () => {
     expect(warn).toHaveBeenCalledWith('fullscreen', expect.any(Error));
   });
 });
+
+describe('Bootcamp Start Class acquisition — H24 honesty', () => {
+  it('reports fullscreen: false when the Fullscreen API is missing, not silent success', async () => {
+    const elementPrototype = Object.getPrototypeOf(document.documentElement);
+    const original = Object.getOwnPropertyDescriptor(elementPrototype, 'requestFullscreen');
+    Object.defineProperty(elementPrototype, 'requestFullscreen', {
+      configurable: true,
+      value: undefined,
+    });
+
+    try {
+      const result = await acquireBootcampRunSurface({ requestWakeLock: undefined });
+      expect(result.fullscreen).toBe(false);
+    } finally {
+      if (original) Object.defineProperty(elementPrototype, 'requestFullscreen', original);
+      else delete (elementPrototype as Record<string, unknown>).requestFullscreen;
+    }
+  });
+
+  it('still reports fullscreen: true when the document is already fullscreen', async () => {
+    const elementPrototype = Object.getPrototypeOf(document.documentElement);
+    const original = Object.getOwnPropertyDescriptor(elementPrototype, 'requestFullscreen');
+    Object.defineProperty(elementPrototype, 'requestFullscreen', { configurable: true, value: undefined });
+    const originalElement = document.fullscreenElement;
+    Object.defineProperty(document, 'fullscreenElement', { configurable: true, value: document.body });
+
+    try {
+      const result = await acquireBootcampRunSurface({ requestWakeLock: undefined });
+      expect(result.fullscreen).toBe(true);
+    } finally {
+      if (original) Object.defineProperty(elementPrototype, 'requestFullscreen', original);
+      Object.defineProperty(document, 'fullscreenElement', {
+        configurable: true,
+        value: originalElement,
+      });
+    }
+  });
+});

@@ -12,6 +12,7 @@ const baseSetters = () => ({
   setCategory: vi.fn(),
   setLoadedPlanId: vi.fn(),
   setLoadedPlanName: vi.fn(),
+  setLoadedPlanRevision: vi.fn(),
   setSavedSnapshot: vi.fn(),
   setStatusMsg: vi.fn(),
 });

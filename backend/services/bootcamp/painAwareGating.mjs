@@ -27,7 +27,12 @@ import { Op } from 'sequelize';
 import { getClientPainEntry, getModel } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 import { deriveJointFriendlyAlternative } from './classStyleModifiers.mjs';
-import { bootcampTargetsForRegion } from '../training-cortex/ontology/regionMuscleMap.mjs';
+import { unverifiedReplacement } from './bootcampSubstitutionContract.mjs';
+import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
+import {
+  bootcampTargetsForRegion,
+  registryMusclesForRegion,
+} from '../training-cortex/ontology/regionMuscleMap.mjs';
 
 // Severity at which flagged Board-1 exercises are swapped, not just annotated.
 const PAIN_SWAP_SEVERITY = 7;
@@ -93,7 +98,15 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
 
     const painRegions = [...new Set(activeEntries.map(e => e.bodyRegion))];
     for (const region of painRegions) {
-      const relatedMuscles = bootcampTargetsForRegion(region);
+      // Keep the bootcamp target map in the call path for legacy
+      // `muscleTargets` prose, but compare canonical registry tags as well.
+      // A class record can contain primary and secondary muscles in either
+      // representation; substring-only matching missed aliases such as
+      // pectorals/pectoralis and could let a secondary pain target through.
+      const relatedMuscles = [...new Set([
+        ...registryMusclesForRegion(region),
+        ...bootcampTargetsForRegion(region),
+      ])];
       const severity = Math.max(
         ...activeEntries.filter(e => e.bodyRegion === region).map(e => e.painLevel || 0),
       );
@@ -118,8 +131,13 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
 
       const flagged = allExercises.filter(ex => {
         if (ex.board && ex.board !== 'main') return false;
-        const exMuscles = ex.muscleTargets?.toLowerCase() || '';
-        return relatedMuscles.some(m => exMuscles.includes(m));
+        const rawMuscles = ex.muscleTargets ?? ex.muscles ?? '';
+        const exMuscles = normalizeMuscleList(rawMuscles);
+        const exMuscleText = String(rawMuscles).toLowerCase();
+        return relatedMuscles.some((muscle) => {
+          const canonical = canonicalizeMuscle(muscle);
+          return (canonical && exMuscles.includes(canonical)) || exMuscleText.includes(String(muscle).toLowerCase());
+        });
       });
       if (flagged.length === 0) continue;
 
@@ -144,8 +162,10 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
           }
           const alternative = deriveJointFriendlyAlternative(ex, region);
           if (alternative && alternative !== ex.exerciseName) {
-            ex.painSwap = { from: ex.exerciseName, region, severity };
-            ex.exerciseName = alternative;
+            const originalName = ex.exerciseName;
+            Object.assign(ex, unverifiedReplacement(ex, alternative));
+            ex.painSwap = { from: originalName, region, severity };
+            ex.painCaution = { region, severity, reason: 'replacement_unverified' };
             swappedExercises.push(alternative);
           } else {
             if (!ex.painCaution) ex.painCaution = { region, severity };

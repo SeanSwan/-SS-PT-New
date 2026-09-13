@@ -73,6 +73,26 @@ const renderGenerationHook = (overrides: Record<string, unknown> = {}) => {
 };
 
 describe('useWorkoutPlannerGenerationActions', () => {
+  it('preserves the draft and loaded revision when long-plan generation fails', async () => {
+    const { hook, setters } = renderGenerationHook({ authAxios: { post: vi.fn().mockRejectedValue(new Error('offline')) } });
+    await act(async () => { await hook.result.current.handleGeneratePlan(91); });
+    expect(setters.setGeneratedPlan).not.toHaveBeenCalled();
+    expect(setters.setPlanExercises).not.toHaveBeenCalled();
+    expect(setters.resetLoadedPlanState).not.toHaveBeenCalled();
+  });
+
+  it('settles pending state after the client changes without applying the late result', async () => {
+    let resolve!: (value: unknown) => void;
+    let client = 91;
+    const { hook, setters } = renderGenerationHook({ getCurrentClientId: () => client,
+      authAxios: { post: vi.fn(() => new Promise(r => { resolve = r; })) } });
+    let pending!: Promise<void>;
+    act(() => { pending = hook.result.current.handleGeneratePlan(91); });
+    client = 92;
+    await act(async () => { resolve({ data: { success: true, plan: generatedPlan } }); await pending; });
+    expect(hook.result.current.generatingPlan).toBe(false);
+    expect(setters.setGeneratedPlan).not.toHaveBeenCalled();
+  });
   it('rejects generic single-workout generation responses that are not Swan Coach Planning', async () => {
     const authAxios = {
       post: vi.fn().mockResolvedValue({
@@ -124,22 +144,21 @@ describe('useWorkoutPlannerGenerationActions', () => {
       await hook.result.current.handleGeneratePlan(91);
     });
 
-    expect(setters.setGeneratedPlan).toHaveBeenNthCalledWith(1, null);
-    expect(setters.setGeneratedPlan).toHaveBeenCalledTimes(1);
+    expect(setters.setGeneratedPlan).not.toHaveBeenCalled();
     expect(setters.setStatusMsg).toHaveBeenLastCalledWith({
       type: 'error',
       text: 'Swan Coach Planning did not verify this plan. Regenerate before saving.',
     });
   });
 
-  it('clears stale loaded-plan state before generating a long-horizon plan', async () => {
+  it('replaces loaded-plan state only after a verified long-horizon result', async () => {
     const { hook, setters } = renderGenerationHook();
 
     await act(async () => {
       await hook.result.current.handleGeneratePlan(91);
     });
 
-    expect(setters.setGeneratedPlan).toHaveBeenNthCalledWith(1, null);
+    expect(setters.setGeneratedPlan).toHaveBeenCalledTimes(1);
     expect(setters.setPlanExercises).toHaveBeenCalledWith([]);
     expect(setters.resetLoadedPlanState).toHaveBeenCalledTimes(1);
     expect(setters.setGeneratedPlan).toHaveBeenLastCalledWith(generatedPlan);

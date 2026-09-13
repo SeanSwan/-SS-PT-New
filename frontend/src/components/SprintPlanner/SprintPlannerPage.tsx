@@ -25,7 +25,7 @@
  * Children:  CreateSprintModal, BootcampCalendar, SlotDetailPanel
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSprintAPI, type BootcampSprint, type SprintClassSlot, type GenerationProgress } from '../../hooks/useSprintAPI';
 import CreateSprintModal from './CreateSprintModal';
 import BootcampCalendar from './BootcampCalendar';
@@ -56,6 +56,7 @@ const SprintPlannerPage: React.FC = () => {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState<GenerationProgress | null>(null);
   const [initialLoad, setInitialLoad] = useState(true);
+  const generationCancelRef = useRef<(() => void) | null>(null);
 
   // Load sprint list
   const loadSprints = useCallback(async () => {
@@ -66,6 +67,11 @@ const SprintPlannerPage: React.FC = () => {
 
   useEffect(() => { loadSprints(); }, [loadSprints]);
 
+  useEffect(() => () => {
+    generationCancelRef.current?.();
+    generationCancelRef.current = null;
+  }, []);
+
   // Load sprint detail
   const loadSprintDetail = useCallback(async (id: number) => {
     const detail = await getSprint(id);
@@ -74,20 +80,30 @@ const SprintPlannerPage: React.FC = () => {
 
   // Handle generation
   const handleGenerate = useCallback(() => {
-    if (!activeSprint) return;
+    if (!activeSprint || generationCancelRef.current) return;
     setGenerating(true);
     setProgress(null);
 
     const cancel = generateSprint(activeSprint.id, (evt) => {
       setProgress(evt);
       if (evt.type === 'complete' || evt.type === 'error') {
+        generationCancelRef.current = null;
         setGenerating(false);
         loadSprintDetail(activeSprint.id);
       }
-    });
-
-    return cancel;
+    }, activeSprint.generationVersion);
+    generationCancelRef.current = cancel;
   }, [activeSprint, generateSprint, loadSprintDetail]);
+
+  const handleCancelGeneration = useCallback(() => {
+    generationCancelRef.current?.();
+    generationCancelRef.current = null;
+    setGenerating(false);
+    setProgress({
+      type: 'error',
+      error: 'Generation stream cancelled locally. The server may finish its current job; refresh before starting again.',
+    });
+  }, []);
 
   // Flatten all slots for calendar
   const allSlots = useMemo(() => {
@@ -128,7 +144,12 @@ const SprintPlannerPage: React.FC = () => {
         ) : (
           <SprintGrid>
             {sprints.map(sprint => (
-              <SprintCard key={sprint.id} onClick={() => loadSprintDetail(sprint.id)}>
+              <SprintCard
+                key={sprint.id}
+                type="button"
+                onClick={() => loadSprintDetail(sprint.id)}
+                aria-label={`Open sprint ${sprint.name}`}
+              >
                 <SprintCardHeader>
                   <SprintCardTitle>{sprint.name}</SprintCardTitle>
                   <StatusBadge $status={sprint.status}>{sprint.status}</StatusBadge>
@@ -175,8 +196,8 @@ const SprintPlannerPage: React.FC = () => {
         <ActionBar>
           <StatusBadge $status={activeSprint.status}>{activeSprint.status}</StatusBadge>
           {(activeSprint.status === 'draft' || activeSprint.status === 'active') && (
-            <GenerateButton onClick={handleGenerate} disabled={generating}>
-              {generating ? `Generating... ${progress?.percent || 0}%` : 'Generate All Classes'}
+            <GenerateButton onClick={generating ? handleCancelGeneration : handleGenerate}>
+              {generating ? `Cancel generation (${progress?.percent || 0}%)` : 'Generate All Classes'}
             </GenerateButton>
           )}
         </ActionBar>
@@ -210,8 +231,8 @@ const SprintPlannerPage: React.FC = () => {
 
       {/* View toggle */}
       <SpacedTabBar>
-        <Tab $active={view === 'timeline'} onClick={() => setView('timeline')}>Timeline</Tab>
-        <Tab $active={view === 'calendar'} onClick={() => setView('calendar')}>Calendar</Tab>
+        <Tab $active={view === 'timeline'} aria-pressed={view === 'timeline'} onClick={() => setView('timeline')}>Timeline</Tab>
+        <Tab $active={view === 'calendar'} aria-pressed={view === 'calendar'} onClick={() => setView('calendar')}>Calendar</Tab>
       </SpacedTabBar>
 
       {/* Timeline View */}
@@ -228,9 +249,11 @@ const SprintPlannerPage: React.FC = () => {
                 {(week.classSlots || []).map(slot => (
                   <SlotPill
                     key={slot.id}
+                    type="button"
                     $status={slot.status}
                     $dayType={slot.dayType}
                     onClick={() => setSelectedSlot(slot)}
+                    aria-label={`Open ${slot.scheduledDate} ${slot.dayType.replace('_', ' ')} class, ${slot.status}`}
                   >
                     <span className="day-abbr">
                       {slot.dayType.replace('_body', '').replace('_', ' ').slice(0, 5).toUpperCase()}
@@ -254,6 +277,7 @@ const SprintPlannerPage: React.FC = () => {
         <SlotDetailPanel
           slot={selectedSlot}
           sprintId={activeSprint.id}
+          generationVersion={activeSprint.generationVersion}
           onClose={() => setSelectedSlot(null)}
           onRefresh={() => {
             setSelectedSlot(null);

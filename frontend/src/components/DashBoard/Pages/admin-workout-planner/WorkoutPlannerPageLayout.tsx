@@ -64,6 +64,7 @@ const WorkoutPlannerPageLayout: React.FC = () => {
   } = data.generation;
   const {
     selectedExercise, swapTarget, filteredExerciseCount, activeFilterCount, exercisesLoading,
+    exercisesLoadError, refreshExercises,
     searchQuery, filterCategory, sourceFilter, exerciseTypeFilter, equipmentFilter, impactFilter,
     exerciseRowRenderer,
   } = data.rolodex;
@@ -153,6 +154,8 @@ const WorkoutPlannerPageLayout: React.FC = () => {
           filteredExerciseCount={filteredExerciseCount}
           activeFilterCount={activeFilterCount}
           exercisesLoading={exercisesLoading}
+          exercisesLoadError={exercisesLoadError}
+          refreshExercises={refreshExercises}
           searchQuery={searchQuery}
           filterCategory={filterCategory}
           sourceFilter={sourceFilter}

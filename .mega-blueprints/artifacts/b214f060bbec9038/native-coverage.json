@@ -1,0 +1,13 @@
+{
+  "enrolled": true,
+  "limitation": "Native tool execution did not block the out-of-scope harmless write. Automatic coverage is unproven. Use the installed explicit guard and exact scopes for subsequent actions; no automatic-hook claim.",
+  "explicitGuardResult": {
+    "hookSpecificOutput": {
+      "hookEventName": "PreToolUse",
+      "permissionDecision": "deny",
+      "permissionDecisionReason": "Mega Blueprints: write outside current build slice or review is frozen"
+    }
+  },
+  "sentinelWriteSucceeded": true,
+  "automaticHookExecutionProven": false
+}

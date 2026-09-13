@@ -215,8 +215,8 @@ const WorkoutPlannerBlendDialog: React.FC<WorkoutPlannerBlendDialogProps> = ({
     setMessage(null);
     try {
       const body = {
-        planAId: parseInt(planAId, 10),
-        planBId: parseInt(planBId, 10),
+        planAId,
+        planBId,
         picks: Array.from({ length: maxWeeks }, (_, index) => ({
           source: sourceFor(index + 1),
           weekNumber: index + 1,

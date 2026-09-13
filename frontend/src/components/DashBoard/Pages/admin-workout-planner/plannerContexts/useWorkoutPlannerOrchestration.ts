@@ -8,7 +8,7 @@
  * pre-S15 page wiring — no logic changes in this slice (S13 fence holds).
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 import { type WorkoutPlannerStatusMessage } from '../WorkoutPlannerStatusAssistantStrip';
@@ -63,6 +63,7 @@ export const useWorkoutPlannerOrchestration = () => {
   const [plannerActiveTab, setPlannerActiveTab] = useState<'program' | 'builder' | 'exercises'>('builder');
   const phase = useMemo(() => selectPlannerPhase(phaseNumber), [phaseNumber]);
   const trainingStyle = useWorkoutPlannerTrainingStyleState();
+  const selectedClientRef = useRef<number | null>(null);
 
   const handleSwapBlocked = useCallback((text: string) => setStatusMsg({ type: 'error', text }), []);
   const rolodex = useWorkoutPlannerRolodexState({ phase, planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, onSwapBlocked: handleSwapBlocked });
@@ -98,6 +99,7 @@ export const useWorkoutPlannerOrchestration = () => {
     setPhaseNumber,
     setStatusMsg,
     resetLoadedPlanState: planContent.resetLoadedPlanState,
+    getCurrentClientId: () => selectedClientRef.current,
   });
 
   const clientState = useWorkoutPlannerClientState({
@@ -111,6 +113,7 @@ export const useWorkoutPlannerOrchestration = () => {
     resetLoadedPlanState: planContent.resetLoadedPlanState,
   });
   const { selectedClientId, selectedClient } = clientState;
+  selectedClientRef.current = selectedClientId;
 
   useWorkoutPlannerDebateResultHydration({ authAxios, debateJobId: searchParams.get('debateJobId'), selectedClientId, selectedClientName: selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : undefined, setGeneratedPlan, setPlanExercises, setStatusMsg, resetLoadedPlanState: planContent.resetLoadedPlanState });
 
@@ -136,7 +139,7 @@ export const useWorkoutPlannerOrchestration = () => {
     selectedClientId,
     planExercisesLength: planExercises.length,
     hasGeneratedHorizonPlan: planContent.hasGeneratedHorizonPlan,
-    loadedPlanId: planContent.loadedPlanId, loadedPlanRevision: savedPlansState.savedPlans.find((plan) => plan.id === planContent.loadedPlanId)?.contentRevision ?? 1,
+    loadedPlanId: planContent.loadedPlanId, loadedPlanRevision: planContent.loadedPlanRevision,
     planDuration,
     userRole: user?.role,
     phaseName: phase.name,
@@ -150,6 +153,7 @@ export const useWorkoutPlannerOrchestration = () => {
     setSavedSnapshot: planContent.setSavedSnapshot,
     setLoadedPlanId: planContent.setLoadedPlanId,
     setLoadedPlanName: planContent.setLoadedPlanName,
+    setLoadedPlanRevision: planContent.setLoadedPlanRevision,
     setStatusMsg,
   });
 
@@ -170,6 +174,7 @@ export const useWorkoutPlannerOrchestration = () => {
     setCategory,
     setLoadedPlanId: planContent.setLoadedPlanId,
     setLoadedPlanName: planContent.setLoadedPlanName,
+    setLoadedPlanRevision: planContent.setLoadedPlanRevision,
     setSavedSnapshot: planContent.setSavedSnapshot,
     setStatusMsg,
   });

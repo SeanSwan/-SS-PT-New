@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { logApiError } from '../../../../utils/logApiError';
 import type {
@@ -40,6 +40,7 @@ interface GuidedCandidateActionsInput {
   setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
   resetLoadedPlanState: () => void;
+  getCurrentClientId?: () => number | null;
 }
 
 export const useWorkoutPlannerGuidedCandidateActions = ({
@@ -55,9 +56,11 @@ export const useWorkoutPlannerGuidedCandidateActions = ({
   setGeneratedPlan,
   setStatusMsg,
   resetLoadedPlanState,
+  getCurrentClientId,
 }: GuidedCandidateActionsInput) => {
   const [guidedCandidates, setGuidedCandidates] = useState<WorkoutGuidedCandidatesResponse | null>(null);
   const [generatingCandidates, setGeneratingCandidates] = useState(false);
+  const requestSequence = useRef(0);
 
   const clearGuidedCandidates = useCallback(() => setGuidedCandidates(null), []);
 
@@ -66,6 +69,7 @@ export const useWorkoutPlannerGuidedCandidateActions = ({
     overrides?: PlannerGenerateOverrides,
   ) => {
     if (!selectedClientId) return;
+    const requestId = ++requestSequence.current;
     setGeneratingCandidates(true);
     setStatusMsg(null);
     setGuidedCandidates(null);
@@ -82,6 +86,9 @@ export const useWorkoutPlannerGuidedCandidateActions = ({
         generationMode,
       }));
       const candidates = readGuidedCandidates(res.data);
+      const isCurrentRequest = requestId === requestSequence.current
+        && (!getCurrentClientId || getCurrentClientId() === selectedClientId);
+      if (!isCurrentRequest) return;
       if (!candidates) {
         setStatusMsg({ type: 'error', text: 'Swan Coach did not return guided exercise options. Try Auto generation.' });
         return;
@@ -91,12 +98,14 @@ export const useWorkoutPlannerGuidedCandidateActions = ({
       resetLoadedPlanState();
       setStatusMsg({ type: 'success', text: 'Swan Coach returned guided exercise options.' });
     } catch (err: unknown) {
+      if (requestId !== requestSequence.current
+        || (getCurrentClientId && getCurrentClientId() !== selectedClientId)) return;
       logApiError('Swan Coach candidate generation failed', err);
       setStatusMsg(workoutGenerationErrorMessage(err));
     } finally {
-      setGeneratingCandidates(false);
+      if (requestId === requestSequence.current) setGeneratingCandidates(false);
     }
-  }, [authAxios, category, generationMode, goal, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setGeneratedPlan, setStatusMsg, trainingIntensityMode]);
+  }, [authAxios, category, generationMode, getCurrentClientId, goal, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setGeneratedPlan, setStatusMsg, trainingIntensityMode]);
 
   const handleSelectGuidedCandidate = useCallback((candidate: WorkoutGuidedCandidateExercise) => {
     setPlanExercises(items => [...items, mapGuidedCandidateToPlanExercise(candidate)]);

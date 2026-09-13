@@ -64,6 +64,11 @@ const SwanExercisePicker: React.FC<SwanExercisePickerProps> = ({
 
       {picker.isLoading ? (
         <StateMessage>Loading exercises...</StateMessage>
+      ) : picker.loadError ? (
+        <StateMessage role="alert">
+          {picker.loadError} Check your connection.{' '}
+          <button type="button" onClick={picker.refresh}>Try again</button>
+        </StateMessage>
       ) : picker.totalCount === 0 ? (
         /* Truthful failure state: an empty library means the fetch failed
            (the live catalog is 840 strong) — don't blame the user's filters. */

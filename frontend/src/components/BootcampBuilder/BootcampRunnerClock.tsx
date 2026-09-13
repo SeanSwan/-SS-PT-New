@@ -67,6 +67,9 @@ const BootcampRunnerClock: React.FC<BootcampRunnerClockProps> = ({ bootcamp }) =
           {complete ? 'DONE' : runner.remainingLabel}
         </ClockFace>
         <ClockActions aria-label="Class timer controls">
+          {complete && <ClockAction type="button" onClick={runner.restartClass} aria-label="Start a new class run">
+            <RotateCcw size={20} aria-hidden="true" /> <span>New run</span>
+          </ClockAction>}
           <ClockAction
             type="button"
             onClick={paused ? runner.resume : runner.pause}

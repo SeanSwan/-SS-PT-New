@@ -1,0 +1,46 @@
+{
+  "slice": "S01-planner-blend-uuid",
+  "requirement": "H21",
+  "baseRevision": "c0cbe538d8ed2ca519bb494cdf3282bf43b76699",
+  "status": "implementation-verified-locally",
+  "changedFiles": [
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.tsx",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.test.tsx"
+  ],
+  "tests": [
+    {
+      "name": "standalone UUID acceptance",
+      "status": "PASS",
+      "files": 1,
+      "tests": 1,
+      "command": "NODE_ENV=test node frontend/node_modules/vitest/vitest.mjs run --config tmp/rolodex-audit-evidence/red/vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 tmp/rolodex-audit-evidence/red/blend-dialog-uuid.red.test.tsx",
+      "log": ".mega-blueprints/artifacts/b214f060bbec9038/s01-green-uuid-final.log",
+      "logSha256": "018E9DC70A55098D41EFCDF07327DA086790B9A8194177C3DFDE5AC5E71EDD6C"
+    },
+    {
+      "name": "WorkoutPlannerBlendDialog component suite",
+      "status": "PASS",
+      "files": 1,
+      "tests": 7,
+      "command": "NODE_ENV=test node node_modules/vitest/vitest.mjs run --config vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.test.tsx",
+      "log": ".mega-blueprints/artifacts/b214f060bbec9038/s01-green-component-regression.log",
+      "logSha256": "6DE1ECC87341477DCA0CA2B118B020DF8C806EB2F1BC585F49A74DC330F28525"
+    }
+  ],
+  "red": {
+    "status": "FAIL_EXPECTED_BEFORE_PATCH",
+    "files": 1,
+    "tests": 1,
+    "log": ".mega-blueprints/artifacts/b214f060bbec9038/s01-red-uuid-native.log",
+    "logSha256": "44AB5088B6F5D5797B1ED49210F1FFCA0BFC030A3BF59D1CC40F85331FD328EC"
+  },
+  "sha256": {
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.tsx": "AC3FFBA3D2D8CD2879D5E47959FECE2E7F219BFF1E07F3BC02DDA1B6B1A856DA",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.test.tsx": "E2E907D63FABA433EEB9646097977D86FC76DA3A74C2B940BEB60B9BB5EB574C"
+  },
+  "limitations": [
+    "authAxios is mocked; no production browser or backend integration was run",
+    "H10 delayed completion and later focus work are out of scope",
+    "no provider, network, deployment, commit, or push was performed"
+  ]
+}

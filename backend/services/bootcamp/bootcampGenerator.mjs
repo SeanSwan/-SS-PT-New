@@ -38,11 +38,13 @@ import {
 } from './bootcampCapacity.mjs';
 import { chipsForExercise } from './bootcampChips.mjs';
 import { summarizeRelaxations } from '../../../shared/bootcamp-core/relaxation.mjs';
+import { matchesEquipmentRequirements } from '../exerciseConstraintContract.mjs';
 
 // Preserved named-export surface after the move to bootcampCapacity.mjs.
 export { buildAvailableEquipmentList };
 
 const PROFILE_ACCESS_DENIED_CODE = 'BOOTCAMP_PROFILE_ACCESS_DENIED';
+const PROFILE_UNAVAILABLE_CODE = 'BOOTCAMP_PROFILE_UNAVAILABLE';
 
 function assertProfileAccess(profile, { trainerId, requesterRole, requireActive = false }) {
   const ownsProfile = !!profile
@@ -240,6 +242,7 @@ function buildExerciseRecord(ex, opts) {
   const selectionChips = chipsForExercise(ex, { setupTimeSec: setupTime });
 
   return {
+    exerciseKey: ex.key ?? null,
     selectionRung,
     selectionChips,
     stationIndex: opts.stationIndex ?? undefined,
@@ -303,7 +306,10 @@ async function getEquipmentInventoryForBootcamp(equipmentProfileId, requester) {
 
     assertProfileAccess(profile, { ...requester, requireActive: true });
     if (!models.EquipmentItem) {
-      return { availableEquipment: buildAvailableEquipmentList([]), equipmentCounts: null };
+      const error = new Error('Equipment profile inventory is unavailable');
+      error.statusCode = 503;
+      error.code = PROFILE_UNAVAILABLE_CODE;
+      throw error;
     }
 
     const equipmentItems = await models.EquipmentItem.findAll({
@@ -320,10 +326,13 @@ async function getEquipmentInventoryForBootcamp(equipmentProfileId, requester) {
       equipmentCounts: buildEquipmentCountMap(equipmentItems),
     };
   } catch (eqErr) {
-    if (isProfileAccessDenied(eqErr)) throw eqErr;
+    if (isProfileAccessDenied(eqErr) || eqErr?.code === PROFILE_UNAVAILABLE_CODE) throw eqErr;
     const { default: logger } = await import('../../utils/logger.mjs');
-    logger.warn('[BootcampGen] Equipment profile query failed, using Rolodex without equipment filter:', eqErr.message);
-    return { availableEquipment: buildAvailableEquipmentList([]), equipmentCounts: null };
+    logger.error('[BootcampGen] Equipment profile query failed; generation is blocked closed:', eqErr.message);
+    const error = new Error('Equipment profile could not be loaded');
+    error.statusCode = 503;
+    error.code = PROFILE_UNAVAILABLE_CODE;
+    throw error;
   }
 }
 
@@ -456,6 +465,21 @@ export function resolveBootcampStructure({
   };
 }
 
+// F04: the sprint week prescription (deload 0.7 … validated overload 1.5)
+// scales per-exercise WORK seconds. Rest, stations and structure are untouched:
+// a deload week is less work per interval, not fewer stations or longer rests.
+// Normalized to [0.5, 2] and the scaled interval clamped to [10, 120] so a bad
+// row can neither erase nor explode the class.
+export function prescribedWorkSec(durationSec, prescriptionIntensity) {
+  const base = Number(durationSec);
+  if (!Number.isFinite(base) || base <= 0) return base;
+  const intensity = Number(prescriptionIntensity);
+  if (!Number.isFinite(intensity) || intensity <= 0) return base;
+  const scaled = Math.min(Math.max(intensity, 0.5), 2);
+  if (scaled === 1) return base;
+  return Math.max(10, Math.min(120, Math.round(base * scaled)));
+}
+
 export async function generateBootcampClass(options) {
   const {
     trainerId,
@@ -474,6 +498,7 @@ export async function generateBootcampClass(options) {
     includeStretch = true,
     stretchDurationMin = 3,
     exclusionKeys,
+    prescriptionIntensity,
   } = options;
 
   const structure = resolveBootcampStructure({
@@ -488,6 +513,20 @@ export async function generateBootcampClass(options) {
   const stations = [];
   const allExercises = [];
   const explanations = [];
+
+  // Step 1.5 (F04): apply the sprint week prescription to per-exercise work.
+  // One seam — every downstream durationSec read (full group, stations,
+  // finishers, the persisted exerciseDurationSec echo) inherits the scaled value.
+  const baseWorkSec = format.durationSec;
+  const prescribedSec = prescribedWorkSec(baseWorkSec, prescriptionIntensity);
+  if (Number.isFinite(prescribedSec) && prescribedSec !== baseWorkSec) {
+    format = { ...format, durationSec: prescribedSec };
+    explanations.push({
+      type: 'prescription',
+      message: `Week prescription applied: work intervals scaled to `
+        + `${Math.round((prescribedSec / baseWorkSec) * 100)}% (${prescribedSec}s per exercise).`,
+    });
+  }
 
   // Step 2: Load space profile constraints
   let spaceProfile = null;
@@ -533,6 +572,7 @@ export async function generateBootcampClass(options) {
 
   let availableExercises = [];
   let equipmentCounts = null;
+  let availableEquipment = ['bodyweight', 'none'];
 
   // Try Rolodex bridge first. Equipment profile narrows it; missing profile does not bypass it.
   try {
@@ -541,11 +581,12 @@ export async function generateBootcampClass(options) {
       requesterRole,
     });
     equipmentCounts = inventory.equipmentCounts;
+    availableEquipment = inventory.availableEquipment;
 
     const { queryExercisesForBootcamp } = await import('./exerciseRolodexBridge.mjs');
     const rolodexResults = await queryExercisesForBootcamp({
       muscleGroups: targetMuscles,
-      availableEquipment: inventory.availableEquipment,
+      availableEquipment,
       excludeNames: [...combinedExclusions],
       limit: 240,
     });
@@ -557,7 +598,7 @@ export async function generateBootcampClass(options) {
       }));
     }
   } catch (eqErr) {
-    if (isProfileAccessDenied(eqErr)) throw eqErr;
+    if (isProfileAccessDenied(eqErr) || eqErr?.code === PROFILE_UNAVAILABLE_CODE) throw eqErr;
     // Non-fatal - fall through to registry fallback
     const { default: logger } = await import('../../utils/logger.mjs');
     logger.warn('[BootcampGen] Rolodex query failed, using full registry:', eqErr.message);
@@ -573,6 +614,16 @@ export async function generateBootcampClass(options) {
     availableExercises = Object.entries(registry)
       .filter(([key]) => !combinedExclusions.has(key))
       .map(([key, ex]) => ({ key, ...ex }));
+  }
+
+  // The SQL bridge uses an intentionally broad text prefilter. Re-apply the
+  // shared source-aware contract after both SQL and registry fallback so a
+  // selected profile cannot admit a bench-only or barbell-only movement by
+  // matching just one item from a multi-implement requirement.
+  if (equipmentProfileId) {
+    availableExercises = availableExercises.filter((exercise) => (
+      matchesEquipmentRequirements(exercise, availableEquipment)
+    ));
   }
 
   // Step 4a (SWA-105 Slice 1): the DAY-TYPE CONTRACT is the authoritative
@@ -741,6 +792,11 @@ export async function generateBootcampClass(options) {
   // semantics, and swaps severe-pain Board-1 exercises to joint-friendly
   // alternatives instead of only decorating. See painAwareGating.mjs.
   const painAlerts = await applyPainAwareGating({ trainerId, allExercises, explanations });
+  if (painAlerts.some(alert => alert.severity >= 7 && (alert.unmappedRegion || alert.flaggedExercises?.length))) {
+    throw Object.assign(new Error('Severe pain constraints require verified alternatives and trainer review'), {
+      code: 'BOOTCAMP_PAIN_REVIEW_REQUIRED', statusCode: 422,
+    });
+  }
 
   // Step 10: Apply class style modifications
   applyClassStyle(classStyle, allExercises, explanations);
@@ -786,6 +842,13 @@ export async function generateBootcampClass(options) {
     totalClassMin: totalWorkoutMin + 10 + stretchTime,
     expectedParticipants,
     includeStretch,
+    // H02: echo the profiles this class was actually generated against. Without
+    // them the saved template stored NULL for both columns and reload lost the
+    // equipment/space provenance entirely; bootcampCrud's profile-authority
+    // check also short-circuits on a null id, so it could never run on the
+    // real generate -> save path.
+    equipmentProfileId: equipmentProfileId ?? null,
+    spaceProfileId: spaceProfileId ?? null,
     stations,
     exercises: allWithBoard2,
     stretches,
@@ -957,6 +1020,7 @@ export const __testing__ = {
   buildExerciseRecord,
   buildStationWorkout,
   normalizeExerciseLibraryId,
+  prescribedWorkSec,
   rankExercisesForBootcamp,
   resolveBootcampStructure,
   sampleFromWindow,

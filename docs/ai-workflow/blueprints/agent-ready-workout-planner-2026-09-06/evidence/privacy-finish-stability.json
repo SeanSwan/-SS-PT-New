@@ -1,0 +1,74 @@
+{
+  "checkedAt": "2026-09-08T04:18:57.822Z",
+  "hashes": [
+    {
+      "path": "backend/controllers/aiConsentController.mjs",
+      "unchanged": true
+    },
+    {
+      "path": "backend/services/ai/aiEligibilityHelper.mjs",
+      "unchanged": true
+    },
+    {
+      "path": "backend/services/aiPrivacyService.mjs",
+      "unchanged": true
+    },
+    {
+      "path": "backend/services/deIdentificationService.mjs",
+      "unchanged": true
+    },
+    {
+      "path": "backend/services/ai/intentClassifier.mjs",
+      "unchanged": true
+    }
+  ],
+  "snippets": [
+    {
+      "id": "priv-01-control",
+      "path": "backend/controllers/aiConsentController.mjs",
+      "matches": true
+    },
+    {
+      "id": "priv-02-control",
+      "path": "backend/routes/aiChatRoutes.mjs",
+      "matches": true
+    },
+    {
+      "id": "priv-03-control",
+      "path": "backend/routes/aiChatRoutes.mjs",
+      "matches": true
+    },
+    {
+      "id": "priv-04-control",
+      "path": "backend/services/ai/aiEligibilityHelper.mjs",
+      "matches": true
+    },
+    {
+      "id": "priv-05-control",
+      "path": "backend/services/ai/intentClassifier.mjs",
+      "matches": true
+    },
+    {
+      "id": "priv-06-control",
+      "path": "backend/routes/aiChatRoutes.mjs",
+      "matches": true
+    },
+    {
+      "id": "priv-07-control",
+      "path": "backend/services/deIdentificationService.mjs",
+      "matches": true
+    },
+    {
+      "id": "priv-08-control",
+      "path": "backend/services/aiPrivacyService.mjs",
+      "matches": true
+    },
+    {
+      "id": "priv-11-control",
+      "path": "backend/services/aiChatService.mjs",
+      "matches": true
+    }
+  ],
+  "status": "PASS",
+  "scope": "Five reproduction-source hashes and nine finding-control snippets; whole worktree changed during audit per tool warning. This does not verify deployment or all surrounding files."
+}

@@ -42,7 +42,8 @@ export interface PlanExercise {
   reps: string;
   tempo: string;
   restSeconds: number;
-  intensityPercent: number;
+  intensityPercent?: number;
+  intensityGuideline?: string;
   notes: string;
   supersetGroup?: string;
 }
@@ -72,7 +73,7 @@ export interface GeneratedWorkout {
     reps: number;
     tempo: string;
     rest: number;
-    intensity: number;
+    intensity: number | string;
     recommendedWeightMin?: number;
     recommendedWeightMax?: number;
     basedOn1RM?: number;

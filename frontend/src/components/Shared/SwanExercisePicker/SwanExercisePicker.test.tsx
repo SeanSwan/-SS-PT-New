@@ -48,6 +48,7 @@ const searchState = {
   allExercises: [] as ExerciseSlim[],
   isLoading: false,
   isSearching: false,
+  loadError: null as string | null,
 };
 
 vi.mock('../../WorkoutLogger/useExerciseSearch', () => ({
@@ -121,6 +122,16 @@ describe('SwanExercisePicker', () => {
     render(<SwanExercisePicker mode="workout-page" onSelect={vi.fn()} />);
     expect(screen.getByText(/loading exercises/i)).toBeInTheDocument();
     searchState.isLoading = false;
+  });
+
+  it('shows a retry action for a failed library load', () => {
+    setPool([]);
+    searchState.loadError = 'The exercise library failed to load.';
+    const { unmount } = render(<SwanExercisePicker mode="workout-page" onSelect={vi.fn()} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/failed to load/i);
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    unmount();
+    searchState.loadError = null;
   });
 
   it('survives the full 840-exercise library (smoke)', () => {

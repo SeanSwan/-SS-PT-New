@@ -1,0 +1,29 @@
+{
+  "reason": "Astra chooses independent H11 prescription compatibility while held H01/H02 backend lane ownership is clarified. Includes discovered range-to-7080 bug, exact finite numeric/text roundtrip and visible unset intensity. Full metadata/revision/lifecycle work remains pending.",
+  "slice": {
+    "files": [
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerLoadPlanHydration.ts",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerTypes.ts",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.ts",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerGenerationActions.helpers.ts",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.exerciseRows.tsx",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerPrescription.test.ts",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.prescription.test.tsx",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.test.ts",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.privacy.test.ts",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.signature.test.ts",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerLoadPlanActions.test.tsx",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerGenerationActions.test.tsx",
+      "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBuilderPanel.extraction.test.ts"
+    ],
+    "id": "S02-prescription-roundtrip"
+  },
+  "planFiles": [
+    "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+    "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+    "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+    "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/16-approved-luna-build-and-blueprint-audit.md",
+    ".mega-blueprints/artifacts/b214f060bbec9038/s02-architecture.md"
+  ]
+}

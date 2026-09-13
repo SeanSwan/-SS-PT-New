@@ -101,7 +101,10 @@ export function useWorkoutPlannerSequenceEvents(args: UseWorkoutPlannerSequenceE
         const proposal = buildHorizonSequenceProposal(current, s.phaseNumber);
         if (!proposal.changed) { ack(e, true); s.pushReceipt({ ok: true, text: COPY.alreadyOptimal }); return; }
         undoRef.current = { kind: 'horizon', scope, before: current, after: proposal.items };
-        s.setGeneratedPlan((prev) => (prev ? replaceDayExercises(prev, scope, proposal.items) : prev));
+        s.setGeneratedPlan((prev) => {
+          if (!prev || !sameRefs(dayExercisesAt(prev, scope), current)) return prev;
+          return replaceDayExercises(prev, scope, proposal.items);
+        });
         ack(e, true);
         s.pushReceipt({
           ok: true,
@@ -147,7 +150,11 @@ export function useWorkoutPlannerSequenceEvents(args: UseWorkoutPlannerSequenceE
         s.setPlanExercises((prev) => (sameRefs(prev, after) ? before : prev));
       } else {
         const { scope, before } = undo;
-        s.setGeneratedPlan((prev) => (prev ? replaceDayExercises(prev, scope, before) : prev));
+        s.setGeneratedPlan((prev) => (
+          prev && sameRefs(dayExercisesAt(prev, scope), undo.after)
+            ? replaceDayExercises(prev, scope, before)
+            : prev
+        ));
       }
       undoRef.current = null;
       ack(e, true);
