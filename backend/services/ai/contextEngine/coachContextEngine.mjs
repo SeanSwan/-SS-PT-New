@@ -7,7 +7,7 @@
  * (including future BYOM models).
  *
  * Generalizes the proven debateClientContextService pattern:
- *   - Promise.allSettled per domain — a failing domain degrades, never throws
+ *   - required health domains fail closed; optional rewards may degrade
  *   - deIdentifyClient() output — IDs/aliases only, zero PII
  *   - authorization FIRST — denied access loads ZERO domains
  *
@@ -111,6 +111,14 @@ const DOMAIN_LOADERS = {
 };
 
 const DOMAIN_NAMES = Object.keys(DOMAIN_LOADERS);
+const REQUIRED_CONTEXT_DOMAINS = Object.freeze([
+  'profile',
+  'workouts',
+  'pain',
+  'nutrition',
+  'goals',
+  'schedule',
+]);
 
 /** Schedule rows → PII-free summary (dates/status only, by construction). */
 function summarizeSchedule(rows) {
@@ -166,23 +174,36 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
   }
   const replacements = { clientId };
 
-  // 2. Load all domains in parallel; per-domain failure degrades, never throws.
-  const settled = await Promise.allSettled(
-    DOMAIN_NAMES.map((domain) => DOMAIN_LOADERS[domain](sequelize, replacements)),
-  );
-
-  const results = {};
-  const dataQuality = [];
-  DOMAIN_NAMES.forEach((domain, i) => {
-    const outcome = settled[i];
-    if (outcome.status === 'fulfilled') {
-      results[domain] = outcome.value;
-      dataQuality.push({ domain, status: 'ok' });
-    } else {
-      results[domain] = [];
-      dataQuality.push({ domain, status: 'degraded' });
+  // 2. Load all domains in parallel. Required health data must be complete
+  // before a brief can be handed to a provider; only optional rewards may
+  // degrade to an explicitly marked empty value.
+  const outcomes = await Promise.all(DOMAIN_NAMES.map(async (domain) => {
+    try {
+      const value = await DOMAIN_LOADERS[domain](sequelize, replacements);
+      if (!Array.isArray(value)) throw new Error('invalid domain response');
+      return { domain, value, status: 'ok' };
+    } catch {
+      return {
+        domain,
+        value: [],
+        status: REQUIRED_CONTEXT_DOMAINS.includes(domain) ? 'unavailable' : 'degraded',
+      };
     }
-  });
+  }));
+
+  const results = Object.fromEntries(outcomes.map(({ domain, value }) => [domain, value]));
+  const dataQuality = outcomes.map(({ domain, status }) => ({ domain, status }));
+  const unavailableDomains = dataQuality
+    .filter((item) => item.status === 'unavailable')
+    .map((item) => item.domain);
+  if (unavailableDomains.length > 0) {
+    return {
+      ok: false,
+      deniedReason: 'data_unavailable',
+      message: 'Required client health data is temporarily unavailable. Please retry.',
+      dataQuality,
+    };
+  }
   // Gamification rides the profile row (points/level/tier/streak columns on
   // "Users" — schema verified 2026-06-10 via gamificationCommandDispatchers).
   dataQuality.push({
@@ -274,21 +295,32 @@ export async function buildTrainerDayContext({ user, sequelize }) {
   let clientRows = [];
   let painRows = [];
   if (clientIds.length > 0) {
-    [clientRows, painRows] = await Promise.all([
-      safeQuery(
-        sequelize,
-        `SELECT id, "availableSessions", "streakDays" FROM "Users" WHERE id IN (:clientIds)`,
-        { clientIds },
-      ).catch(() => []),
-      safeQuery(
-        sequelize,
-        `SELECT "userId", COUNT(*) AS "activePain"
-         FROM client_pain_entries
-         WHERE "userId" IN (:clientIds) AND "isActive" = true
-         GROUP BY "userId"`,
-        { clientIds },
-      ).catch(() => []),
-    ]);
+    try {
+      [clientRows, painRows] = await Promise.all([
+        safeQuery(
+          sequelize,
+          `SELECT id, "availableSessions", "streakDays" FROM "Users" WHERE id IN (:clientIds)`,
+          { clientIds },
+        ),
+        safeQuery(
+          sequelize,
+          `SELECT "userId", COUNT(*) AS "activePain"
+           FROM client_pain_entries
+           WHERE "userId" IN (:clientIds) AND "isActive" = true
+           GROUP BY "userId"`,
+          { clientIds },
+        ),
+      ]);
+      if (!Array.isArray(clientRows) || !Array.isArray(painRows)) {
+        throw new Error('invalid health response');
+      }
+    } catch {
+      return {
+        ok: false,
+        code: 'DAY_BRIEF_UNAVAILABLE',
+        message: 'Required client health data is temporarily unavailable. Please retry. No data was changed.',
+      };
+    }
   }
 
   const clientById = new Map(clientRows.map((r) => [Number(r.id), r]));

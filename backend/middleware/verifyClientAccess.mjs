@@ -27,8 +27,10 @@
  * - filterPlansByTrainerAssignment(req, plans)
  *     Utility for the GET / list endpoint. Filters in-memory plan results to
  *     trainer-assigned clients only. Returns plans unchanged for admin role.
- * - assertAssignmentOrAdmin(userId, role, clientId)
- *     Exposed for testing + callers that need direct boolean access.
+ * - assertAssignmentOrAdmin(userId, role, clientId, options)
+ *     Exposed for testing + callers that need direct boolean access. Legacy
+ *     callers fail closed with false; new security-sensitive entry points may
+ *     opt into a typed ASSIGNMENT_LOOKUP_UNAVAILABLE error.
  *
  * SECURITY DESIGN
  * - Admin role bypasses (admins are dashboard operators by design).
@@ -81,7 +83,8 @@ const parseStrictPositiveInteger = (value) => {
  * @param {number} clientId - target client id to verify access against
  * @returns {Promise<boolean>}
  */
-export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
+export async function assertAssignmentOrAdmin(userId, userRole, clientId, options = {}) {
+  const throwOnUnavailable = options?.throwOnUnavailable === true;
   const requesterId = parseStrictPositiveInteger(userId);
   const targetClientId = parseStrictPositiveInteger(clientId);
 
@@ -108,6 +111,12 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
     logger.warn('[verifyClientAccess] ClientTrainerAssignment check failed - denying access', {
       userId, clientId, error: err?.message,
     });
+    if (throwOnUnavailable) {
+      const unavailable = new Error('Assignment lookup unavailable');
+      unavailable.code = 'ASSIGNMENT_LOOKUP_UNAVAILABLE';
+      unavailable.cause = err;
+      throw unavailable;
+    }
     return false;
   }
 }

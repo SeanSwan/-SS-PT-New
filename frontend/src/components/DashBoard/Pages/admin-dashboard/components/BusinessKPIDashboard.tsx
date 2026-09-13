@@ -1,17 +1,15 @@
 /**
  * BusinessKPIDashboard - live admin business KPI widget.
- * Shows revenue, client growth, churn, utilization, and LTV from the
+ * Shows revenue, client counts, churn, utilization, and current-client
+ * revenue from the
  * canonical /api/admin/analytics/business-kpis endpoint.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
-  ArrowDownRight,
-  ArrowUpRight,
   DollarSign,
-  Minus,
   RefreshCw,
   Target,
   TrendingUp,
@@ -29,7 +27,6 @@ import {
   ErrorState,
   Header,
   HeaderLeft,
-  KPIChange,
   KPIContent,
   KPICard,
   KPIGrid,
@@ -52,7 +49,6 @@ import {
 interface KPIMetric {
   label: string;
   value: string;
-  change: number;
   icon: React.ReactNode;
   color: string;
   sparkline?: number[];
@@ -118,6 +114,9 @@ const toNumber = (value: unknown) => {
 const toSparkline = (value: unknown) => (Array.isArray(value) ? value.map(toNumber) : []);
 
 const normalizeBusinessData = (raw: Partial<BusinessData> | null | undefined): BusinessData => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error('Malformed business KPI response');
+  }
   const next = { ...EMPTY_BUSINESS_DATA };
   for (const key of numericBusinessKeys) next[key] = toNumber(raw?.[key]);
   next.revenueSparkline = toSparkline(raw?.revenueSparkline);
@@ -131,31 +130,42 @@ const BusinessKPIDashboard: React.FC = () => {
   const [period, setPeriod] = useState<'30d' | '90d' | '12m'>('30d');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
+  const mounted = useRef(true);
 
   const fetchData = useCallback(async () => {
+    const currentRequest = ++requestId.current;
+    setLoading(true);
+    setData(null);
+    setError(null);
     try {
-      setLoading(true);
       const res = await authAxios.get('/api/admin/analytics/business-kpis', { params: { period } });
+      if (!mounted.current || currentRequest !== requestId.current) return;
       setData(normalizeBusinessData(res.data?.data));
-      setError(null);
     } catch {
-      setData(null);
-      setError('Business KPI data could not be loaded.');
+      if (mounted.current && currentRequest === requestId.current) {
+        setData(null);
+        setError('Business KPI data is temporarily unavailable.');
+      }
     } finally {
-      setLoading(false);
+      if (mounted.current && currentRequest === requestId.current) setLoading(false);
     }
   }, [authAxios, period]);
 
   useEffect(() => {
+    mounted.current = true;
     fetchData();
+    return () => {
+      mounted.current = false;
+      requestId.current += 1;
+    };
   }, [fetchData]);
 
   const d = data ?? EMPTY_BUSINESS_DATA;
   const kpis: KPIMetric[] = [
     {
-      label: 'Monthly Revenue (gross)',
+      label: 'Revenue (last 30 days)',
       value: `$${d.mrr.toLocaleString()}`,
-      change: d.mrrChange,
       icon: <DollarSign size={18} />,
       color: KPI_SUCCESS,
       sparkline: d.revenueSparkline,
@@ -163,15 +173,14 @@ const BusinessKPIDashboard: React.FC = () => {
     {
       label: 'Active Clients',
       value: String(d.activeClients),
-      change: d.newClients - d.churnedClients,
       icon: <Users size={18} />,
       color: KPI_INFO,
       sparkline: d.clientSparkline,
     },
-    { label: 'New Clients', value: `+${d.newClients}`, change: d.newClients, icon: <UserPlus size={18} />, color: 'var(--accent-secondary, #8B5CF6)' },
-    { label: 'Churn Rate', value: `${d.churnRate.toFixed(1)}%`, change: -d.churnRate, icon: <UserMinus size={18} />, color: d.churnRate > 5 ? KPI_ERROR : KPI_WARNING },
-    { label: 'Session Utilization', value: `${d.sessionUtilization}%`, change: d.sessionUtilization - 75, icon: <Activity size={18} />, color: KPI_PRIMARY },
-    { label: 'Avg Client LTV', value: `$${d.avgLTV.toLocaleString()}`, change: 0, icon: <Target size={18} />, color: KPI_GOLD },
+    { label: 'New Clients', value: `+${d.newClients}`, icon: <UserPlus size={18} />, color: 'var(--accent-secondary, #8B5CF6)' },
+    { label: 'Churn Rate', value: `${d.churnRate.toFixed(1)}%`, icon: <UserMinus size={18} />, color: d.churnRate > 5 ? KPI_ERROR : KPI_WARNING },
+    { label: 'Session Utilization', value: `${d.sessionUtilization}%`, icon: <Activity size={18} />, color: KPI_PRIMARY },
+    { label: 'Revenue / Current Client', value: `$${d.avgRevenuePerClient.toLocaleString()}`, icon: <Target size={18} />, color: KPI_GOLD },
   ];
 
   return (
@@ -208,12 +217,6 @@ const BusinessKPIDashboard: React.FC = () => {
                 <KPIContent>
                   <KPILabel>{kpi.label}</KPILabel>
                   <KPIValue>{loading ? '-' : kpi.value}</KPIValue>
-                  {!loading && (
-                    <KPIChange $positive={kpi.change >= 0}>
-                      {kpi.change > 0 ? <ArrowUpRight size={12} /> : kpi.change < 0 ? <ArrowDownRight size={12} /> : <Minus size={12} />}
-                      {Math.abs(kpi.change).toFixed(1)}%
-                    </KPIChange>
-                  )}
                 </KPIContent>
                 {kpi.sparkline && kpi.sparkline.length > 1 && !loading && (
                   <Sparkline>

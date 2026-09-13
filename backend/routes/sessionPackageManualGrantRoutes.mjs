@@ -13,6 +13,7 @@ import logger from '../utils/logger.mjs';
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
 
 const router = express.Router();
+const MAX_SESSION_BALANCE = 2_147_483_647; // PostgreSQL INTEGER ceiling for users.availableSessions.
 
 function normalizeSessionGrantCount(value) {
   if (typeof value === 'number') {
@@ -35,8 +36,10 @@ function normalizeSessionGrantCount(value) {
  * @access  Private/Admin
  */
 router.post('/add-sessions', protect, adminOnly, async (req, res) => {
+  let transaction;
+
   try {
-    const { clientId, sessions, notes } = req.body;
+    const { clientId, sessions } = req.body;
     const sessionCount = normalizeSessionGrantCount(sessions);
 
     if (!clientId) {
@@ -53,9 +56,14 @@ router.post('/add-sessions', protect, adminOnly, async (req, res) => {
       });
     }
 
-    const user = await User.findByPk(clientId);
+    transaction = await User.sequelize.transaction();
+    const user = await User.findByPk(clientId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
 
     if (!user) {
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -63,17 +71,51 @@ router.post('/add-sessions', protect, adminOnly, async (req, res) => {
     }
 
     if (isNonDeductingClient(user)) {
+      await transaction.rollback();
       return res.status(409).json({
         success: false,
         message: 'Manual paid-session grants are disabled for free-tracking clients'
       });
     }
 
-    const currentSessions = user.availableSessions || 0;
-    user.availableSessions = currentSessions + sessionCount;
-    await user.save();
+    const currentSessions = Number(user.availableSessions || 0);
+    if (!Number.isSafeInteger(currentSessions) || currentSessions < 0) {
+      await transaction.rollback();
+      return res.status(409).json({
+        success: false,
+        message: 'Current session balance is invalid',
+      });
+    }
 
-    logger.info(`Admin ${req.user.id} added ${sessionCount} sessions to user ${clientId}. Notes: ${notes || 'None'}`);
+    if (currentSessions > MAX_SESSION_BALANCE - sessionCount) {
+      await transaction.rollback();
+      return res.status(409).json({
+        success: false,
+        message: 'Session balance exceeds the database integer limit',
+      });
+    }
+
+    if (user.availableSessions === null || user.availableSessions === undefined) {
+      await user.update({ availableSessions: 0 }, { transaction });
+    }
+
+    const previousBalance = currentSessions;
+    await user.increment('availableSessions', {
+      by: sessionCount,
+      transaction,
+    });
+    await user.reload({ transaction });
+    const newBalance = Number(user.availableSessions);
+
+    await transaction.commit();
+
+    logger.info('Manual session grant applied', {
+      actorUserId: req.user.id,
+      targetUserId: clientId,
+      sessionsAdded: sessionCount,
+      previousBalance,
+      newBalance,
+    });
 
     res.status(200).json({
       success: true,
@@ -82,10 +124,15 @@ router.post('/add-sessions', protect, adminOnly, async (req, res) => {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
-        availableSessions: user.availableSessions
+        availableSessions: newBalance
       }
     });
   } catch (error) {
+    if (transaction && !transaction.finished) {
+      await transaction.rollback().catch((rollbackError) => {
+        logger.error(`Error rolling back manual session grant: ${rollbackError.message}`);
+      });
+    }
     logger.error(`Error adding sessions to user: ${error.message}`);
     res.status(500).json({
       success: false,
@@ -100,6 +147,8 @@ router.post('/add-sessions', protect, adminOnly, async (req, res) => {
  * @access  Private/Admin
  */
 router.post('/add-test-sessions', protect, adminOnly, async (req, res) => {
+  let transaction;
+
   try {
     // ALLOWLIST guard (Kimi security audit F3, SWA-129): this endpoint mints
     // paid sessions to the caller with a body-supplied amount and can upgrade
@@ -127,9 +176,14 @@ router.post('/add-test-sessions', protect, adminOnly, async (req, res) => {
       });
     }
 
-    const user = await User.findByPk(userId);
+    transaction = await User.sequelize.transaction();
+    const user = await User.findByPk(userId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
 
     if (!user) {
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -137,21 +191,47 @@ router.post('/add-test-sessions', protect, adminOnly, async (req, res) => {
     }
 
     if (isNonDeductingClient(user)) {
+      await transaction.rollback();
       return res.status(409).json({
         success: false,
         message: 'Test session grants are disabled for free-tracking clients'
       });
     }
 
-    const currentSessions = user.availableSessions || 0;
-    user.availableSessions = currentSessions + sessionCount;
+    const currentSessions = Number(user.availableSessions || 0);
+    if (!Number.isSafeInteger(currentSessions) || currentSessions < 0) {
+      await transaction.rollback();
+      return res.status(409).json({
+        success: false,
+        message: 'Current session balance is invalid',
+      });
+    }
+
+    if (currentSessions > MAX_SESSION_BALANCE - sessionCount) {
+      await transaction.rollback();
+      return res.status(409).json({
+        success: false,
+        message: 'Session balance exceeds the database integer limit',
+      });
+    }
+
+    if (user.availableSessions === null || user.availableSessions === undefined) {
+      await user.update({ availableSessions: 0 }, { transaction });
+    }
+
+    await user.increment('availableSessions', {
+      by: sessionCount,
+      transaction,
+    });
 
     if (user.role === 'user') {
+      await user.update({ role: 'client' }, { transaction });
       user.role = 'client';
       logger.info(`Upgraded user ${userId} from 'user' to 'client' role after purchasing sessions`);
     }
 
-    await user.save();
+    await user.reload({ transaction });
+    await transaction.commit();
 
     logger.info(`Added ${sessionCount} sessions to user ${userId}. Package: ${packageType || packageId || 'unknown'}, Amount: ${amount || 'N/A'}`);
 
@@ -169,6 +249,11 @@ router.post('/add-test-sessions', protect, adminOnly, async (req, res) => {
       }
     });
   } catch (error) {
+    if (transaction && !transaction.finished) {
+      await transaction.rollback().catch((rollbackError) => {
+        logger.error(`Error rolling back test session grant: ${rollbackError.message}`);
+      });
+    }
     logger.error(`Error adding sessions: ${error.message}`);
     res.status(500).json({
       success: false,

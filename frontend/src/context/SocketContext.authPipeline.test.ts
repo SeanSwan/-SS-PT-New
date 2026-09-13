@@ -30,9 +30,12 @@ describe('header notification socket auth pipeline', () => {
 
   it('authenticates the root Socket.IO connection before notification rooms are usable', () => {
     expect(socketContextSource).toContain("import { useAuth } from './AuthContext'");
+    expect(socketContextSource).toContain("import { ProductionTokenManager } from '../services/productionTokenManager'");
+    expect(socketContextSource).toContain('useSyncExternalStore');
+    expect(socketContextSource).toContain('ProductionTokenManager.subscribe');
     expect(socketContextSource).toContain("resolveRealtimeSocketTransportOptions");
     expect(socketContextSource).toContain("resolveRealtimeSocketUrl");
-    expect(socketContextSource).toContain('const { isAuthenticated, token } = useAuth()');
+    expect(socketContextSource).toContain('const { isAuthenticated } = useAuth()');
     expect(socketContextSource).toContain('resolveRealtimeSocketUrl()');
     expect(socketContextSource).toContain('resolveRealtimeSocketTransportOptions(socketUrl)');
     expect(socketContextSource).not.toContain("transports: ['websocket', 'polling']");
@@ -46,7 +49,7 @@ describe('header notification socket auth pipeline', () => {
     expect(socketManagerSource).toContain("socket.on('authenticate'");
     expect(socketManagerSource).toContain('await joinUserRoom(socket, user.id)');
     expect(notificationControllerSource).toContain("io.to(`user:${userId}`).emit('notification:new'");
-    expect(notificationControllerSource).toContain("io.to(`user:${userId}`).emit('notification:count', { unreadCount })");
+    expect(notificationControllerSource).toContain("io.to(`user:${userId}`).emit('notification:count', { unreadCount, userId })");
   });
 
   it('matches the backend unread-count payload shape', () => {

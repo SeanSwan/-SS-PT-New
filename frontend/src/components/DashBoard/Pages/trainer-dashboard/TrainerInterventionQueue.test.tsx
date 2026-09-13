@@ -89,19 +89,42 @@ describe('TrainerInterventionQueue', () => {
     expect(await screen.findByText(/everyone's on track/i)).toBeInTheDocument();
   });
 
-  it('self-hides on fetch failure instead of guessing', async () => {
+  it('shows an unavailable state with retry on fetch failure', async () => {
     let rejectRequest: ((reason?: unknown) => void) | undefined;
     mockGet.mockImplementation(() => new Promise((_resolve, reject) => {
       rejectRequest = reject;
     }));
-    const { container } = renderQueue();
+    renderQueue();
     await waitFor(() => expect(mockGet).toHaveBeenCalled());
 
     await act(async () => {
       rejectRequest?.(new Error('403'));
     });
 
-    expect(container.firstChild).toBeNull();
+    expect(screen.getByRole('alert')).toHaveTextContent(/temporarily unavailable/i);
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+  });
+
+  it('guards malformed successful responses instead of treating them as all-clear', async () => {
+    mockGet.mockResolvedValueOnce({ data: { clients: { malformed: true } } });
+    renderQueue();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/temporarily unavailable/i);
+    expect(screen.queryByText(/everyone's on track/i)).toBeNull();
+  });
+
+  it('clears the old error while a retry is in flight and renders fresh data', async () => {
+    mockGet.mockRejectedValueOnce(new Error('503'));
+    renderQueue();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/temporarily unavailable/i);
+    let resolveRetry: ((value: unknown) => void) | undefined;
+    mockGet.mockImplementationOnce(() => new Promise((resolve) => { resolveRetry = resolve; }));
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+    expect(screen.getByText(/loading intervention data/i)).toBeInTheDocument();
+    await act(async () => {
+      resolveRetry?.({ data: { clients: [client(9, { firstName: 'Fresh' })] } });
+    });
+    expect(await screen.findByText('Fresh Last9')).toBeInTheDocument();
   });
 
   it('keeps 44px touch targets and the deterministic-data disclosure (source locks)', () => {

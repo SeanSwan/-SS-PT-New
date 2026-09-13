@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import apiService, { ProductionTokenManager } from '../services/api.service';
+import type { RefreshOutcome } from '../services/productionTokenManager';
 import { setUser as setReduxUser, logout as logoutRedux } from '../store/slices/authSlice';
 import { createClientProgressService, ClientProgressServiceInterface } from '../services/client-progress-service';
 import { createExerciseService, ExerciseServiceInterface } from '../services/exercise-service';
@@ -294,23 +295,32 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   }), [authApiClient]);
   
   // Token refresh function - Properly memoized to prevent re-creation
-  const refreshToken = useCallback(async (): Promise<boolean> => {
+  const refreshSession = useCallback(async (): Promise<RefreshOutcome> => {
+    const generation = ProductionTokenManager.getAuthGeneration();
     try {
-      const newToken = await ProductionTokenManager.refreshAccessToken();
-
-      if (newToken) {
-        tokenCleanup.storeToken(newToken);
-        apiService.setAuthToken(newToken);
-        setToken(newToken);
-        return true;
+      const outcome = await ProductionTokenManager.refreshAccessTokenOutcome();
+      if (outcome.status === 'superseded' || outcome.generation !== ProductionTokenManager.getAuthGeneration()) {
+        return { ...outcome, status: 'superseded', token: null };
       }
-      return false;
+      // The manager already persisted the refreshed credential. Re-storing it
+      // here would create another auth generation and retire valid requests.
+      if (outcome.status === 'refreshed' && outcome.token) setToken(outcome.token);
+      return outcome;
     } catch (error) {
+      if (generation !== ProductionTokenManager.getAuthGeneration()) {
+        return { status: 'superseded', token: null, generation };
+      }
       console.error('Token refresh failed:', error);
       tokenCleanup.handleTokenError(error);
-      return false;
+      return { status: 'expired', token: null, generation };
     }
   }, []); // No dependencies - this function is stable
+
+  const refreshToken = useCallback(async (): Promise<boolean> => {
+    const outcome = await refreshSession();
+    return outcome.status === 'refreshed'
+      && outcome.generation === ProductionTokenManager.getAuthGeneration();
+  }, [refreshSession]);
   
   // Request password reset email
   const forgotPassword = useCallback(async (email: string): Promise<{success: boolean}> => {
@@ -381,6 +391,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       setLoading(true);
       setError(null);
+      let admission = ProductionTokenManager.getAuthGeneration();
+      const ownsAuth = () => admission === ProductionTokenManager.getAuthGeneration();
       
       try {
         // Get validated token from cleanup utility
@@ -393,7 +405,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
 
           if (storedToken && ProductionTokenManager.isTokenExpired(storedToken) && hasRefreshToken) {
             logger.log('Stored token expired, attempting refresh...');
-            const refreshed = await refreshToken();
+            const outcome = await refreshSession();
+            if (!isMounted || outcome.status === 'superseded' || outcome.generation !== ProductionTokenManager.getAuthGeneration()) return;
+            admission = outcome.generation;
+            const refreshed = outcome.status === 'refreshed';
 
             if (refreshed) {
               token = tokenCleanup.getValidatedToken() || ProductionTokenManager.getToken();
@@ -423,7 +438,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           
           if (age > maxAge) {
             logger.log('Token expired, attempting refresh...');
-            const refreshed = await refreshToken();
+            const outcome = await refreshSession();
+            if (!isMounted || outcome.status === 'superseded' || outcome.generation !== ProductionTokenManager.getAuthGeneration()) return;
+            admission = outcome.generation;
+            const refreshed = outcome.status === 'refreshed';
             
             if (!refreshed) {
               const restoredAdmin = restoreAdminSessionFromImpersonation();
@@ -449,10 +467,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         
         // Set token in API service
         apiService.setAuthToken(token);
+        admission = ProductionTokenManager.getAuthGeneration();
         if (isMounted) setToken(token);
         
         // Verify token with backend - REQUIRED IN PRODUCTION
         const response = await apiService.get<AuthUserResponse>('/api/auth/me');
+        if (!isMounted || !ownsAuth()) return;
         
         if (response.data?.user) {
           const userData = response.data.user;
@@ -475,7 +495,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         }
       } catch (error: unknown) {
         console.error('Auth check failed:', error);
-        if (isMounted) {
+        if (isMounted && ownsAuth()) {
           // Only a real auth rejection may destroy the session. A timeout,
           // offline blip, or backend 5xx during boot must not wipe tokens.
           const { status, isAuthSessionExpired } = getAuthErrorDetails(error);
@@ -513,7 +533,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     return () => {
       isMounted = false;
     };
-  }, [dispatch, logout, refreshToken, user]);
+  }, [dispatch, logout, refreshSession, user]);
   
   // Login function - PRODUCTION ONLY — memoized to stabilize context value
   const login = useCallback(async (username: string, password: string): Promise<LoginResult> => {
@@ -670,8 +690,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   }, [user, dispatch]);
 
   const refreshUser = useCallback(async (): Promise<AuthActionResult> => {
+    const admission = ProductionTokenManager.getAuthGeneration();
+    const ownsAuth = () => admission === ProductionTokenManager.getAuthGeneration();
     try {
       const response = await apiService.get<AuthUserResponse>('/api/auth/me');
+      if (!ownsAuth()) return { success: false, user: null, error: 'Authentication changed' };
 
       if (!response.data?.user) {
         throw new Error('Invalid user data from server');
@@ -692,6 +715,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       logger.log('User refreshed successfully:', refreshedUser.username, refreshedUser.role);
       return { success: true, user: refreshedUser };
     } catch (error: unknown) {
+      if (!ownsAuth()) return { success: false, user: null, error: 'Authentication changed' };
       const { message } = getAuthErrorDetails(error);
       const errorMessage = message || 'User refresh failed';
       setError(errorMessage);

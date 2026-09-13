@@ -18,26 +18,36 @@ import styled, { keyframes } from 'styled-components';
 import { StyledBox } from '@/components/ui/StyledBox';
 
 // ── Crystalline Swan Theme Tokens ─────────────────────────────
-const TOKENS = {
-  midnightSapphire: '#002060',
-  royalDepth: '#003080',
-  iceWing: '#60C0F0',
-  arcticCyan: '#50A0F0',
-  gildedFern: '#C6A84B',
-  frostWhite: '#E0ECF4',
-  swanLavender: '#4070C0',
-  wingPurple: '#8B5CF6',
-  cosmicPurple: '#8B5CF6',
-  supernovaGold: '#FFD700',
+const CSS_TOKENS = {
+  midnightSapphire: 'var(--midnight-sapphire, #002060)',
+  royalDepth: 'var(--royal-depth, #003080)',
+  iceWing: 'var(--ice-wing, #60C0F0)',
+  arcticCyan: 'var(--arctic-cyan, #50A0F0)',
+  gildedFern: 'var(--gilded-fern, #C6A84B)',
+  frostWhite: 'var(--frost-white, #E0ECF4)',
+  swanLavender: 'var(--swan-lavender, #4070C0)',
+  wingPurple: 'var(--wing-purple, #8B5CF6)',
+  cosmicPurple: 'var(--wing-purple, #8B5CF6)',
+  supernovaGold: 'var(--accent-gold, #FFD700)',
+};
+
+// CanvasRenderingContext2D requires resolved color strings; CSS var() values are invalid here.
+const CANVAS_TOKENS = {
+  iceWing: '#60C0F0', // swan-guard-allow-hex Canvas 2D strokeStyle/fillStyle requires a resolved color.
+  arcticCyan: '#50A0F0', // swan-guard-allow-hex Canvas 2D strokeStyle/fillStyle requires a resolved color.
+  gildedFern: '#C6A84B', // swan-guard-allow-hex Canvas 2D strokeStyle/fillStyle requires a resolved color.
+  frostWhite: '#E0ECF4', // swan-guard-allow-hex Canvas 2D strokeStyle/fillStyle requires a resolved color.
+  swanLavender: '#4070C0', // swan-guard-allow-hex Canvas 2D strokeStyle/fillStyle requires a resolved color.
+  wingPurple: '#8B5CF6', // swan-guard-allow-hex Canvas 2D strokeStyle/fillStyle requires a resolved color.
 };
 
 // ── Combo Tiers (Gemini spec) ─────────────────────────────────
 export const COMBO_TIERS = [
-  { name: 'SPARK', threshold: 3, color: TOKENS.iceWing },
-  { name: 'IGNITE', threshold: 5, color: TOKENS.arcticCyan },
-  { name: 'BLAZING', threshold: 10, color: TOKENS.wingPurple },
-  { name: 'SUPERNOVA', threshold: 15, color: TOKENS.supernovaGold },
-  { name: 'ECLIPSE', threshold: 20, color: TOKENS.frostWhite },
+  { name: 'SPARK', threshold: 3, color: CSS_TOKENS.iceWing },
+  { name: 'IGNITE', threshold: 5, color: CSS_TOKENS.arcticCyan },
+  { name: 'BLAZING', threshold: 10, color: CSS_TOKENS.wingPurple },
+  { name: 'SUPERNOVA', threshold: 15, color: CSS_TOKENS.supernovaGold },
+  { name: 'ECLIPSE', threshold: 20, color: CSS_TOKENS.frostWhite },
 ] as const;
 
 export type ComboTier = typeof COMBO_TIERS[number];
@@ -116,7 +126,7 @@ const XPPopText = styled.div<{ $x: number; $y: number }>`
   top: ${p => p.$y}px;
   font-weight: 800;
   font-size: 18px;
-  color: ${TOKENS.iceWing};
+  color: ${CSS_TOKENS.iceWing};
   text-shadow: 0 0 8px rgba(96, 192, 240, 0.6), 0 0 16px rgba(96, 192, 240, 0.4);
   animation: ${floatUp} 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
   user-select: none;
@@ -135,7 +145,7 @@ const ComboText = styled.div<{ $color: string; $size: number }>`
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: ${p => p.$color};
-  text-shadow: 0 0 12px ${p => p.$color}80, 0 4px 20px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 12px color-mix(in srgb, ${p => p.$color} 50.2%, transparent), 0 4px 20px rgba(0, 0, 0, 0.5);
   animation: ${comboSlam} 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   user-select: none;
   font-family: 'Plus Jakarta Sans', 'Sora', sans-serif;
@@ -157,7 +167,7 @@ const LevelUpBackdrop = styled.div`
 const LevelNumber = styled.div`
   font-size: clamp(120px, 15vw, 240px);
   font-weight: 900;
-  background: linear-gradient(135deg, ${TOKENS.iceWing} 0%, ${TOKENS.wingPurple} 100%);
+  background: linear-gradient(135deg, ${CSS_TOKENS.iceWing} 0%, ${CSS_TOKENS.wingPurple} 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -170,7 +180,7 @@ const LevelNumber = styled.div`
 const LevelLabel = styled.div`
   font-size: clamp(18px, 3vw, 32px);
   font-weight: 700;
-  color: ${TOKENS.frostWhite};
+  color: ${CSS_TOKENS.frostWhite};
   margin-top: 8px;
   font-family: 'Cormorant Garamond', serif;
   font-style: italic;
@@ -184,10 +194,10 @@ const DismissButton = styled.button`
   margin-top: 32px;
   height: 56px;
   min-width: 200px;
-  border: 2px solid ${TOKENS.wingPurple};
+  border: 2px solid ${CSS_TOKENS.wingPurple};
   border-radius: 28px;
   background: rgba(139, 92, 246, 0.15);
-  color: ${TOKENS.frostWhite};
+  color: ${CSS_TOKENS.frostWhite};
   font-size: 16px;
   font-weight: 600;
   font-family: 'Sora', sans-serif;
@@ -203,7 +213,7 @@ const DismissButton = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid ${TOKENS.iceWing};
+    outline: 2px solid ${CSS_TOKENS.iceWing};
     outline-offset: 2px;
   }
 `;
@@ -243,12 +253,12 @@ interface Particle {
 }
 
 const PARTICLE_COLORS = [
-  TOKENS.iceWing,
-  TOKENS.wingPurple,
-  TOKENS.arcticCyan,
-  TOKENS.gildedFern,
-  TOKENS.frostWhite,
-  TOKENS.swanLavender,
+  CANVAS_TOKENS.iceWing,
+  CANVAS_TOKENS.wingPurple,
+  CANVAS_TOKENS.arcticCyan,
+  CANVAS_TOKENS.gildedFern,
+  CANVAS_TOKENS.frostWhite,
+  CANVAS_TOKENS.swanLavender,
 ];
 
 function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
@@ -310,22 +320,77 @@ const CelebrationPortal: React.FC<CelebrationPortalProps> = ({
   const particlesRef = useRef<Particle[]>([]);
   const animFrameRef = useRef<number>(0);
   const dismissButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const dialogWasOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (levelUp && !dialogWasOpenRef.current) {
+      previousFocusRef.current = document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+      dialogWasOpenRef.current = true;
+    }
+    if (!levelUp && dialogWasOpenRef.current) {
+      dialogWasOpenRef.current = false;
+      previousFocusRef.current?.focus();
+      previousFocusRef.current = null;
+    }
+  }, [levelUp]);
+
+  useEffect(() => () => {
+    if (dialogWasOpenRef.current) {
+      previousFocusRef.current?.focus();
+      previousFocusRef.current = null;
+      dialogWasOpenRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     if (!levelUp) return;
     const frame = window.requestAnimationFrame(() => dismissButtonRef.current?.focus());
-    return () => window.cancelAnimationFrame(frame);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        levelUp.dismiss();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ));
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [levelUp]);
 
   // Sync particles
   useEffect(() => {
-    particlesRef.current = [...particlesRef.current, ...particles];
+    particlesRef.current = [...particles];
   }, [particles]);
 
   // Canvas animation loop
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || reducedMotion) return;
+    if (!canvas || reducedMotion || particles.length === 0) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -374,6 +439,10 @@ const CelebrationPortal: React.FC<CelebrationPortalProps> = ({
 
       ctx.globalAlpha = 1;
       particlesRef.current = alive;
+      if (alive.length === 0) {
+        animFrameRef.current = 0;
+        return;
+      }
       animFrameRef.current = requestAnimationFrame(loop);
     };
 
@@ -383,22 +452,18 @@ const CelebrationPortal: React.FC<CelebrationPortalProps> = ({
       cancelAnimationFrame(animFrameRef.current);
       window.removeEventListener('resize', resize);
     };
-  }, [reducedMotion]);
+  }, [particles, reducedMotion]);
 
   // Auto-remove XP pops after animation
   useEffect(() => {
-    xpPops.forEach(pop => {
-      const timer = setTimeout(() => onXPPopDone(pop.id), 850);
-      return () => clearTimeout(timer);
-    });
+    const timers = xpPops.map((pop) => setTimeout(() => onXPPopDone(pop.id), 850));
+    return () => timers.forEach(clearTimeout);
   }, [xpPops, onXPPopDone]);
 
   // Auto-remove combos after animation
   useEffect(() => {
-    combos.forEach(combo => {
-      const timer = setTimeout(() => onComboDone(combo.id), 1300);
-      return () => clearTimeout(timer);
-    });
+    const timers = combos.map((combo) => setTimeout(() => onComboDone(combo.id), 1300));
+    return () => timers.forEach(clearTimeout);
   }, [combos, onComboDone]);
 
   // Reduced motion fallback: static glassmorphic toast
@@ -411,7 +476,7 @@ const CelebrationPortal: React.FC<CelebrationPortalProps> = ({
           </StyledBox>
         ))}
         {levelUp && (
-          <StyledBox as={LevelUpBackdrop} $style={{ backdropFilter: 'none', background: 'rgba(0,32,96,0.95)' }}>
+          <StyledBox ref={dialogRef} as={LevelUpBackdrop} role="alertdialog" aria-modal="true" aria-live="assertive" aria-label={`Level up! You are now level ${levelUp.newLevel}`} $style={{ backdropFilter: 'none', background: 'rgba(0,32,96,0.95)', animation: 'none' }}>
             <StyledBox as={LevelNumber} $style={{ animation: 'none' }}>{levelUp.newLevel}</StyledBox>
             <StyledBox as={LevelLabel} $style={{ animation: 'none', opacity: 1 }}>Level Up</StyledBox>
             <StyledBox as={DismissButton} ref={dismissButtonRef} onClick={levelUp.dismiss} $style={{ animation: 'none', opacity: 1 }}>
@@ -456,8 +521,7 @@ const CelebrationPortal: React.FC<CelebrationPortalProps> = ({
 
       {/* Level-up full-screen takeover */}
       {levelUp && (
-        <div role="alertdialog" aria-live="assertive" aria-label={`Level up! You are now level ${levelUp.newLevel}`}>
-          <LevelUpBackdrop>
+        <LevelUpBackdrop ref={dialogRef} role="alertdialog" aria-modal="true" aria-live="assertive" aria-label={`Level up! You are now level ${levelUp.newLevel}`}>
             {/* Shockwave rings */}
             <ShockwaveRing $delay={0} />
             <ShockwaveRing $delay={0.15} />
@@ -468,8 +532,7 @@ const CelebrationPortal: React.FC<CelebrationPortalProps> = ({
             <DismissButton ref={dismissButtonRef} onClick={levelUp.dismiss}>
               Continue
             </DismissButton>
-          </LevelUpBackdrop>
-        </div>
+        </LevelUpBackdrop>
       )}
     </PortalRoot>,
     document.body,

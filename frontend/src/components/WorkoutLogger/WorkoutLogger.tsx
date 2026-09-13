@@ -96,6 +96,11 @@ import { useScreenWakeLock } from './useScreenWakeLock';
 import { useWorkoutAiEvents } from './useWorkoutAiEvents';
 import { useWorkoutSubmit } from './useWorkoutSubmit';
 import { useWorkoutPlanLoading } from './useWorkoutPlanLoading';
+import WorkoutLoggerRecovery, {
+  createUnavailableWorkoutLoggerClient,
+  hasWorkoutLoggerDraft,
+  isWorkoutLoggerClientInfoUnavailable,
+} from './WorkoutLoggerRecovery';
 
 const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   clientId,
@@ -213,7 +218,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const sessionStats = useSessionStats(exercises);
   // Batch 4: PR toast — only hand-logged sets celebrate (bulk loads re-baseline).
   usePRToast(sessionStats.prs, lastLoggedAtRef);
-  const offlineQueue = useOfflineQueue(hookClientId);
+  const offlineQueue = useOfflineQueue(userNumericId, effectiveClientId);
   const restTimer = useRestTimer({
     defaultSeconds: 60,
     onComplete: () => toast.info('Rest complete - next set!'),
@@ -288,15 +293,19 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const jarvis = useJarvisVoiceCutover({ applyReviewedExerciseRows, removeExerciseRowsByIds });
 
   const {
-    client,
+    client: loadedClient,
+    clientInfoError,
+    clientInfoStatus,
     handleApplyGeneratedPlanDay,
     handleRepeatLastSession,
+    isInitialClientLoad,
     isLoadingPlan,
     isRepeatingSession,
     loadTodaysPlan,
     loadedPlanContext,
     planLoadOutcome,
     plannedAssignment,
+    retryClientInfo,
   } = useWorkoutPlanLoading({
     autoLoadTodayPlan,
     autoLoadTodayPlanRef,
@@ -439,7 +448,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       return;
     }
     exportWorkoutLoggerPDF(buildWorkoutLoggerPdfPayload({
-      client,
+      client: loadedClient,
       trainer: user,
       date: workoutDateValue,
       exercises,
@@ -447,7 +456,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
       overallIntensity,
     }));
     toast.success('PDF exported');
-  }, [exercises, client, user, workoutDateValue, sessionNotes, overallIntensity]);
+  }, [exercises, loadedClient, user, workoutDateValue, sessionNotes, overallIntensity]);
 
   // Runner Styles (Swan Lens dimension): one engine, switchable skins.
   const openRolodexForMain = useCallback(() => { setPendingSectionContext(null); setShowExerciseSearch(true); }, []);
@@ -473,7 +482,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   });
 
   const { handleGenerateSummary, handleSubmit } = useWorkoutSubmit({
-    client,
+    client: loadedClient,
     effectiveClientId,
     equipmentProfileId,
     exercises,
@@ -496,14 +505,9 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
     workoutDraft,
   });
 
-  const hasUnsavedWorkout = useMemo(() => (
-    exercises.length > 0 ||
-    selectedWarmup.length > 0 ||
-    selectedBalanceCore.length > 0 ||
-    selectedCooldown.length > 0 ||
-    sessionNotes.trim().length > 0 ||
-    overallIntensity !== null
-  ), [exercises.length, selectedWarmup.length, selectedBalanceCore.length, selectedCooldown.length, sessionNotes, overallIntensity]);
+  const client = loadedClient ?? createUnavailableWorkoutLoggerClient(effectiveClientId);
+
+  const hasUnsavedWorkout = hasWorkoutLoggerDraft(exercises, selectedWarmup.length, selectedBalanceCore.length, selectedCooldown.length, sessionNotes, overallIntensity);
 
   const summaryLockedReason = useMemo(() => {
     if (exercises.length === 0 || submittedFormId) return undefined;
@@ -533,14 +537,8 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
   const estimatedDuration = useMemo(() =>
     Math.min(totalSets * MINUTES_PER_SET, MAX_WORKOUT_DURATION), [totalSets]);
 
-  if (!client) {
-    return (
-      <WorkoutLoggerContainer>
-        <CenteredLoader>
-          <LoadingSpinner />
-        </CenteredLoader>
-      </WorkoutLoggerContainer>
-    );
+  if (!loadedClient && isInitialClientLoad) {
+    return <WorkoutLoggerContainer><CenteredLoader><LoadingSpinner /></CenteredLoader></WorkoutLoggerContainer>;
   }
 
   return (
@@ -565,14 +563,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
             summaryLockedReason,
             onOpenCoachCommand: submittedFormId && coachCommandRoute ? () => navigate(coachCommandRoute) : undefined,
           }}
-          clientFirstName={client.firstName} clientLastName={client.lastName}
-          availableSessions={client.availableSessions ?? 0} clientSource={client.clientSource}
+          clientFirstName={client.firstName} clientLastName={client.lastName} availableSessions={client.availableSessions} clientSource={client.clientSource}
+          clientInfoUnavailable={isWorkoutLoggerClientInfoUnavailable(clientInfoStatus, loadedClient)}
           workoutDate={workoutDateValue} totalSets={totalSets} estimatedDuration={estimatedDuration}
           assignment={plannedAssignment || loadedPlanContext}
           currentOPTPhase={currentOPTPhase} onOPTPhaseChange={setCurrentOPTPhase}
         />
         </ShellZoneBoundary>
         <ShellZoneBoundary zone='notice-lane'>
+        <WorkoutLoggerRecovery clientInfoStatus={clientInfoStatus} clientInfoError={clientInfoError} onRetry={retryClientInfo} hasDraft={hasUnsavedWorkout} legacyQueuePresent={offlineQueue.legacyQueuePresent} />
         <ShellNotices
           isOnline={offlineQueue.isOnline} pendingCount={offlineQueue.pendingCount}
           workoutDraft={workoutDraft} draftOfferVisible={exercises.length === 0 && !sessionNotes}

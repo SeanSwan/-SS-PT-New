@@ -4,9 +4,9 @@
  * (no zero-commit); dirty backdrop/Esc COMMITS (never discards); allowDecimal gates the decimal key;
  * quick-chip commits last session's value in ONE tap; "Use system keyboard" escape hatch present.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import NumericKeypadSheet from './NumericKeypadSheet';
 
 const setup = (over: Partial<React.ComponentProps<typeof NumericKeypadSheet>> = {}) => {
@@ -88,5 +88,85 @@ describe('NumericKeypadSheet (L2)', () => {
     expect(onCommit).toHaveBeenCalledWith(2);
     fireEvent.click(screen.getByRole('button', { name: /use system keyboard/i }));
     expect(onUseSystemKeyboard).toHaveBeenCalled();
+  });
+
+  it('clears the draft entry when the open sheet changes field identity', () => {
+    const onCommit = vi.fn();
+    const onClose = vi.fn();
+    const { rerender } = render(
+      <NumericKeypadSheet
+        open
+        label="Set 1 — Weight (lbs)"
+        value={0}
+        allowDecimal
+        onCommit={onCommit}
+        onClose={onClose}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '4' }));
+    rerender(
+      <NumericKeypadSheet
+        open
+        label="Set 1 — Reps"
+        value={10}
+        allowDecimal={false}
+        onCommit={onCommit}
+        onClose={onClose}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '1' }));
+    fireEvent.click(screen.getByRole('button', { name: /done/i }));
+
+    expect(onCommit).toHaveBeenCalledWith(1);
+    expect(onCommit).not.toHaveBeenCalledWith(41);
+  });
+
+  it('contains Tab focus within the sheet and wraps in both directions', () => {
+    setup();
+    const dialog = screen.getByRole('dialog');
+    const buttons = Array.from(dialog.querySelectorAll('button')) as HTMLButtonElement[];
+    expect(buttons.length).toBeGreaterThan(2);
+
+    fireEvent.keyDown(dialog, { key: 'Tab' });
+    expect(document.activeElement).toBe(buttons[0]);
+    fireEvent.keyDown(buttons[0], { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(buttons[buttons.length - 1]);
+  });
+
+  it('restores the invoking control when the sheet closes', async () => {
+    const Harness = () => {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" data-testid="invoker" onClick={() => setOpen(true)}>Open keypad</button>
+          {open && (
+            <NumericKeypadSheet
+              open
+              label="Weight (lbs)"
+              value={0}
+              allowDecimal
+              onCommit={vi.fn()}
+              onClose={() => setOpen(false)}
+            />
+          )}
+        </>
+      );
+    };
+
+    render(<Harness />);
+    const invoker = screen.getByTestId('invoker');
+    invoker.focus();
+    fireEvent.click(invoker);
+    fireEvent.click(screen.getByTestId('keypad-backdrop'));
+
+    await waitFor(() => expect(document.activeElement).toBe(invoker));
+  });
+
+  it('does not turn modified browser shortcuts into keypad digits', () => {
+    const { onCommit } = setup();
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: '1', ctrlKey: true });
+    fireEvent.click(screen.getByRole('button', { name: /done/i }));
+    expect(onCommit).not.toHaveBeenCalled();
   });
 });

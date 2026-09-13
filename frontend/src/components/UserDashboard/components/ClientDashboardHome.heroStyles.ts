@@ -6,13 +6,9 @@ import styled from 'styled-components';
 import { PanelCard } from './ClientDashboardHome.cardStyles';
 
 export const HeroPanel = styled(PanelCard)`
-  min-height: 198px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
-
-  @media (max-width: 860px) {
-    grid-template-columns: 1fr;
-  }
+  position: relative;
+  min-height: 0;
+  isolation: isolate;
 `;
 
 export const HeroContent = styled.div`
@@ -22,11 +18,17 @@ export const HeroContent = styled.div`
   align-content: center;
   gap: 14px;
   padding: 18px 20px;
+  min-width: 0;
 `;
 
 export const HeroMedia = styled.div`
-  position: relative;
-  min-height: 198px;
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 0 auto;
+  width: min(38%, 360px);
+  min-height: 0;
+  pointer-events: none;
+  opacity: 0.62;
   background:
     radial-gradient(circle at 72% 12%, color-mix(in srgb, var(--client-text) 38%, transparent), transparent 7rem),
     linear-gradient(120deg, transparent, color-mix(in srgb, var(--client-blue) 18%, transparent));
@@ -44,7 +46,16 @@ export const HeroMedia = styled.div`
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, var(--client-panel), transparent 46%);
+    background: linear-gradient(90deg, var(--client-panel) 0%, color-mix(in srgb, var(--client-panel) 72%, transparent) 38%, transparent 100%);
+  }
+
+  @media (max-width: 860px) {
+    width: 100%;
+    opacity: 0.26;
+  }
+
+  @media (max-width: 520px) {
+    display: none;
   }
 `;
 
@@ -70,10 +81,12 @@ export const HeroAvatar = styled.img`
 
 export const HeroTitle = styled.h1`
   margin: 0;
+  min-width: 0;
   color: var(--client-text);
   font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-size: 2.45rem;
   line-height: 0.98;
+  overflow-wrap: anywhere;
 
   @media (max-width: 520px) {
     font-size: 2rem;
@@ -116,9 +129,15 @@ export const StatTile = styled.div`
   gap: 10px;
   min-height: 58px;
   padding: 9px 11px;
+  min-width: 0;
   border: 1px solid var(--client-line);
   border-radius: 8px;
   background: color-mix(in srgb, var(--client-panel-soft) 80%, transparent);
+
+  > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 `;
 
 export const StatIcon = styled.span<{ $tone?: 'teal' | 'purple' | 'gold' }>`

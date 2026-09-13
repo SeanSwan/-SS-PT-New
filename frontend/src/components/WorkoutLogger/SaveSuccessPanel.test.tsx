@@ -134,6 +134,11 @@ describe('SaveSuccessPanel', () => {
     expect(screen.queryByRole('button', { name: /book next session/i })).toBeNull();
   });
 
+  it('does not promise an asynchronous XP award without a confirmed reward receipt', () => {
+    renderPanel();
+    expect(screen.queryByText(/xp from this session is on its way/i)).toBeNull();
+  });
+
   it('omits billing/plan lines when absent and never fabricates', () => {
     renderPanel({ form: baseForm({ billing: undefined }) });
     expect(screen.queryByText(/session credit/i)).toBeNull();

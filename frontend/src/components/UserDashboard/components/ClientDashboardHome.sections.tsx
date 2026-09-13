@@ -3,7 +3,7 @@
  * PURPOSE: Structural sections for the client dashboard Home redesign.
  */
 import React from 'react';
-import { Award, Bell, Bot, CalendarDays, ChevronDown, CreditCard, Dumbbell, Flame, Grid2X2, HelpCircle, LineChart, LogOut, MessageSquare, Search, ShoppingCart, Sparkles, Store, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react';
+import { Award, Bell, Bot, CalendarDays, ChevronDown, Dumbbell, Flame, Grid2X2, HelpCircle, LineChart, LogOut, MessageSquare, Search, ShoppingCart, Sparkles, Store, Trophy, UserRound, Zap, type LucideIcon } from 'lucide-react';
 import { UniversalThemeToggle } from '../../../context/ThemeContext';
 import {
   ActionCount,
@@ -37,7 +37,7 @@ type PickProps = Pick<ClientDashboardHomeProps, 'onNavigate' | 'onTarget'>;
 type RailItem = [string, ClientDashboardTarget | undefined, LucideIcon];
 type RailGroup = { label: string; items: RailItem[] };
 
-const topLinks = [['Home', '/'], ['Programs', '/dashboard/client/workouts'], ['Store', '/store'], ['Video Library', '/video-library'], ['Waiver', '/waiver'], ['Photography', '/gallery'], ['Community', '/user-dashboard'], ['About', '/about']] as const;
+const topLinks = [['Home', '/'], ['Programs', '/dashboard/client/workouts'], ['Store', '/store'], ['Video Library', '/video-library'], ['Waiver', '/waiver'], ['Photography', '/gallery'], ['Community', '/dashboard/client/community'], ['About', '/about']] as const;
 const railGroups: RailGroup[] = [
   { label: 'Client',
     items: [
@@ -50,7 +50,7 @@ const railGroups: RailGroup[] = [
   },
   { label: 'Community',
     items: [
-      ['Feed', 'dashboard', MessageSquare],
+      ['Feed', 'community', MessageSquare],
       ['Challenges', 'challenges', Trophy],
       ['Leaderboard', 'challenges', Award],
       ['Messages', 'messages', Bell],
@@ -59,9 +59,8 @@ const railGroups: RailGroup[] = [
   { label: 'Account',
     items: [
       ['Profile & Settings', 'profile', UserRound],
-      ['Billing & Plans', undefined, CreditCard],
       ['Report a problem', 'support', HelpCircle],
-      ['Sign Out', undefined, LogOut],
+      ['Sign Out', 'signout', LogOut],
     ],
   },
 ] as const;

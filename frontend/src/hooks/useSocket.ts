@@ -1,44 +1,41 @@
 /**
- * ============================================================================
- * FILE: useSocket.ts
- * PURPOSE: Singleton Socket.IO connection manager for real-time messaging
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-03-29
- * AI VILLAGE VALIDATED: 2026-03-29 (11-Brain Consensus fixes applied)
- * ============================================================================
+ * Singleton Socket.IO connection manager for realtime messaging.
  *
- * WHAT THIS FILE DOES: Provides a React hook that manages a single Socket.IO
- * connection per session. Auto-connects with JWT auth, handles token refresh,
- * reconnects on auth changes, and exposes the socket instance + connection state.
- *
- * AI VILLAGE FIXES APPLIED:
- * - Token refresh handling via custom event listener (Issue #5)
- * - Ref-based socket access to prevent stale closures (Issue from Architecture)
- * - Connection state enum: connecting/connected/disconnected/reconnecting
- * - Proper listener cleanup to prevent accumulation (Performance Critical)
- * - Dynamic import of socket.io-client for bundle size (Performance Medium)
+ * The socket follows the canonical ProductionTokenManager lifecycle. A hook
+ * may unmount while dynamic socket creation is pending, so every async result
+ * is generation-checked before it becomes shared state.
  */
-
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import {
   resolveRealtimeSocketTransportOptions,
   resolveRealtimeSocketUrl,
 } from '@/utils/realtimeSocketUrl';
+import { ProductionTokenManager } from '@/services/productionTokenManager';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Types
-// ─────────────────────────────────────────────────────────────
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting';
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Singleton socket reference (shared across all hook consumers)
-// ─────────────────────────────────────────────────────────────
 let globalSocket: Socket | null = null;
-let refCount = 0;
 let currentToken: string | null = null;
+let ownerCount = 0;
+let socketGeneration = 0;
+let globalCreateToken: string | null = null;
+let globalCreatePromise: Promise<Socket | null> | null = null;
 
 function getSocketUrl(): string {
   return resolveRealtimeSocketUrl();
+}
+
+function disposeGlobalSocket(): void {
+  socketGeneration += 1;
+  globalCreatePromise = null;
+  globalCreateToken = null;
+  if (globalSocket) {
+    globalSocket.removeAllListeners();
+    globalSocket.disconnect();
+  }
+  globalSocket = null;
+  currentToken = null;
 }
 
 async function createSocket(token: string): Promise<Socket> {
@@ -55,133 +52,148 @@ async function createSocket(token: string): Promise<Socket> {
   });
 }
 
-// ─────────────────────────────────────────────────────────────
-// SECTION: Hook
-// ─────────────────────────────────────────────────────────────
+async function ensureSocket(token: string): Promise<Socket | null> {
+  // Socket.IO reports disconnected while connecting or waiting to reconnect.
+  // Those states still belong to the same shared socket and its existing owners.
+  if (globalSocket && currentToken === token) return globalSocket;
+  if (globalSocket || (globalCreatePromise && globalCreateToken !== token)) disposeGlobalSocket();
+  if (globalCreatePromise && globalCreateToken === token) return globalCreatePromise;
+
+  const generation = ++socketGeneration;
+  globalCreateToken = token;
+  const promise = createSocket(token)
+    .then((socket) => {
+      if (generation !== socketGeneration || ProductionTokenManager.getToken() !== token) {
+        socket.disconnect();
+        return null;
+      }
+      globalSocket = socket;
+      currentToken = token;
+      return socket;
+    })
+    .catch((error: unknown) => {
+      console.warn('[Socket] Could not create messaging connection:', error instanceof Error ? error.message : 'unknown error');
+      return null;
+    })
+    .finally(() => {
+      if (globalCreatePromise === promise) {
+        globalCreatePromise = null;
+        globalCreateToken = null;
+      }
+    });
+  globalCreatePromise = promise;
+  return promise;
+}
+
 export function useSocket() {
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
   const mountedRef = useRef(true);
   const socketRef = useRef<Socket | null>(null);
+  const ownerSocketRef = useRef<Socket | null>(null);
+  const ownerCleanupRef = useRef<(() => void) | null>(null);
+  const cancelledRef = useRef(false);
 
-  // Keep ref in sync with global
-  socketRef.current = globalSocket;
+  const detachOwner = useCallback(() => {
+    const socket = ownerSocketRef.current;
+    if (!socket) return;
+    ownerSocketRef.current = null;
+    socketRef.current = null;
+    ownerCount = Math.max(0, ownerCount - 1);
+    if (ownerCount === 0 && socket === globalSocket) disposeGlobalSocket();
+  }, []);
 
-  useEffect(() => {
-    mountedRef.current = true;
-    const token = localStorage.getItem('token');
+  const detachOwnerWithListeners = useCallback(() => {
+    ownerCleanupRef.current?.();
+    ownerCleanupRef.current = null;
+    detachOwner();
+  }, [detachOwner]);
 
-    if (!token) {
-      if (mountedRef.current) setConnectionState('disconnected');
+  const attachForToken = useCallback(async (token: string) => {
+    if (cancelledRef.current || !mountedRef.current) return;
+    setConnectionState('connecting');
+    const socket = await ensureSocket(token);
+    if (!socket || cancelledRef.current || !mountedRef.current || ProductionTokenManager.getToken() !== token) {
+      if (socket && ownerCount === 0 && socket === globalSocket) disposeGlobalSocket();
+      if (!cancelledRef.current && mountedRef.current) setConnectionState('disconnected');
       return;
     }
 
-    let isCancelled = false;
+    if (ownerSocketRef.current === socket) return;
+    detachOwnerWithListeners();
+    if (cancelledRef.current || !mountedRef.current) {
+      if (ownerCount === 0 && socket === globalSocket) disposeGlobalSocket();
+      return;
+    }
 
-    const initSocket = async () => {
-      // Only create if no socket or token changed
-      if (!globalSocket || globalSocket.disconnected || currentToken !== token) {
-        // Clean up existing socket if token changed
-        if (globalSocket && currentToken !== token) {
-          globalSocket.removeAllListeners();
-          globalSocket.disconnect();
-          globalSocket = null;
-        }
+    ownerSocketRef.current = socket;
+    socketRef.current = socket;
+    ownerCount += 1;
 
-        if (!isCancelled && mountedRef.current) {
-          setConnectionState('connecting');
-        }
-
-        currentToken = token;
-        globalSocket = await createSocket(token);
-        socketRef.current = globalSocket;
-      }
-
-      const socket = globalSocket;
-      if (!socket || isCancelled) return;
-
-      refCount++;
-
-      const onConnect = () => {
-        if (mountedRef.current && !isCancelled) setConnectionState('connected');
-      };
-      const onDisconnect = () => {
-        if (mountedRef.current && !isCancelled) setConnectionState('disconnected');
-      };
-      const onReconnecting = () => {
-        if (mountedRef.current && !isCancelled) setConnectionState('reconnecting');
-      };
-      const onError = (err: Error) => {
-        console.warn('[Socket] Connection error:', err.message);
-        if (mountedRef.current && !isCancelled) setConnectionState('disconnected');
-      };
-
-      socket.on('connect', onConnect);
-      socket.on('disconnect', onDisconnect);
-      socket.on('reconnect_attempt', onReconnecting);
-      socket.on('connect_error', onError);
-
-      if (socket.connected && !isCancelled) setConnectionState('connected');
-
-      // Token refresh handler — update socket auth when token changes
-      const handleTokenRefresh = () => {
-        const newToken = localStorage.getItem('token');
-        if (globalSocket && newToken && newToken !== currentToken) {
-          currentToken = newToken;
-          globalSocket.auth = { token: newToken };
-          if (globalSocket.disconnected) {
-            globalSocket.connect();
-          }
-        }
-      };
-
-      window.addEventListener('token_refreshed', handleTokenRefresh);
-
-      // Store cleanup for this effect
-      return () => {
-        isCancelled = true;
-        window.removeEventListener('token_refreshed', handleTokenRefresh);
-        socket.off('connect', onConnect);
-        socket.off('disconnect', onDisconnect);
-        socket.off('reconnect_attempt', onReconnecting);
-        socket.off('connect_error', onError);
-
-        refCount--;
-        if (refCount <= 0 && globalSocket) {
-          globalSocket.removeAllListeners();
-          globalSocket.disconnect();
-          globalSocket = null;
-          socketRef.current = null;
-          currentToken = null;
-          refCount = 0;
-        }
-      };
+    const onConnect = () => {
+      if (mountedRef.current && !cancelledRef.current) setConnectionState('connected');
+    };
+    const onDisconnect = () => {
+      if (mountedRef.current && !cancelledRef.current) setConnectionState('disconnected');
+    };
+    const onReconnecting = () => {
+      if (mountedRef.current && !cancelledRef.current) setConnectionState('reconnecting');
+    };
+    const onError = (error: Error) => {
+      console.warn('[Socket] Connection error:', error.message);
+      if (mountedRef.current && !cancelledRef.current) setConnectionState('disconnected');
     };
 
-    let cleanupFn: (() => void) | undefined;
-    initSocket().then(cleanup => { cleanupFn = cleanup; });
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.io.on('reconnect_attempt', onReconnecting);
+    socket.on('connect_error', onError);
+    if (socket.connected && !cancelledRef.current) setConnectionState('connected');
+
+    ownerCleanupRef.current = () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.io.off('reconnect_attempt', onReconnecting);
+      socket.off('connect_error', onError);
+    };
+  }, [detachOwnerWithListeners]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    cancelledRef.current = false;
+
+    const unsubscribe = ProductionTokenManager.subscribe((token) => {
+      if (cancelledRef.current) return;
+      if (!token) {
+        detachOwnerWithListeners();
+        setConnectionState('disconnected');
+        return;
+      }
+      if (token !== currentToken) {
+        detachOwnerWithListeners();
+        void attachForToken(token);
+      }
+    });
+
+    const token = ProductionTokenManager.getToken();
+    if (token) void attachForToken(token);
+    else setConnectionState('disconnected');
 
     return () => {
+      cancelledRef.current = true;
       mountedRef.current = false;
-      isCancelled = true;
-      cleanupFn?.();
+      unsubscribe();
+      detachOwnerWithListeners();
     };
-  }, []);
+  }, [attachForToken, detachOwnerWithListeners]);
 
-  const connected = connectionState === 'connected';
-
-  // Use refs for stable socket access — prevents stale closure bugs
   const emit = useCallback((event: string, data?: unknown) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit(event, data);
-    }
+    if (socketRef.current?.connected) socketRef.current.emit(event, data);
   }, []);
 
   const on = useCallback((event: string, handler: (...args: unknown[]) => void) => {
     const socket = socketRef.current;
     socket?.on(event, handler);
-    return () => {
-      socket?.off(event, handler);
-    };
+    return () => socket?.off(event, handler);
   }, []);
 
   const off = useCallback((event: string, handler: (...args: unknown[]) => void) => {
@@ -190,7 +202,7 @@ export function useSocket() {
 
   return {
     socket: socketRef.current,
-    connected,
+    connected: connectionState === 'connected',
     connectionState,
     emit,
     on,

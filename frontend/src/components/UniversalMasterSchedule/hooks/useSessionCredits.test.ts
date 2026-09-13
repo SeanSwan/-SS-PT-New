@@ -2,15 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { normalizeSessionCreditsPayload } from './useSessionCredits';
 
 describe('normalizeSessionCreditsPayload', () => {
-  it('fails closed when the credits API returns malformed or negative balances', () => {
-    expect(normalizeSessionCreditsPayload({ sessionsRemaining: 'unknown', clientSource: 'swanstudios' })).toMatchObject({
-      sessionsRemaining: 0,
-      clientSource: 'swanstudios',
-    });
-    expect(normalizeSessionCreditsPayload({ sessionsRemaining: -4 })).toMatchObject({
-      sessionsRemaining: 0,
-      clientSource: null,
-    });
+  it('keeps malformed or negative balances unavailable instead of inventing zero', () => {
+    expect(() => normalizeSessionCreditsPayload({ sessionsRemaining: 'unknown', clientSource: 'swanstudios' })).toThrow();
+    expect(() => normalizeSessionCreditsPayload({ sessionsRemaining: -4 })).toThrow();
+    expect(normalizeSessionCreditsPayload({ sessionsRemaining: 0 })).toMatchObject({ sessionsRemaining: 0 });
   });
 
   it('preserves valid credit metadata while normalizing the count', () => {
