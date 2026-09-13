@@ -32,6 +32,13 @@ interface WorkoutPlannerClientStateInput {
   setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
   clearExplanations: () => void;
   resetLoadedPlanState: () => void;
+  /**
+   * P58-R3: invoked synchronously BEFORE every selectedClientId publication
+   * (manual selection, roster result and the failure/null fallback) so a
+   * delayed add/swap can never attach to a later target. Optional for
+   * compatibility; the mounted orchestration supplies it.
+   */
+  onBeforeSelectedClientChange?: () => void;
 }
 
 const addSelfClient = (
@@ -51,6 +58,7 @@ export const useWorkoutPlannerClientState = ({
   setGeneratedPlan,
   clearExplanations,
   resetLoadedPlanState,
+  onBeforeSelectedClientChange,
 }: WorkoutPlannerClientStateInput) => {
   const [clients, setClients] = useState<PlannerClient[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
@@ -73,6 +81,10 @@ export const useWorkoutPlannerClientState = ({
 
   useEffect(() => {
     const requestedOrSelfClientId = requestedClientId ?? selfClient?.id ?? null;
+    const publishSelectedClient = (clients: PlannerClient[]) => {
+      onBeforeSelectedClientChange?.();
+      setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedOrSelfClientId));
+    };
 
     const fetchClients = async () => {
       try {
@@ -83,34 +95,37 @@ export const useWorkoutPlannerClientState = ({
             .map((assignment: TrainerAssignmentResponse) => assignment.client || assignment.Client);
           const clients = addSelfClient(normalizeWorkoutPlannerClients(assignmentClients), selfClient);
           setClients(clients);
-          setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedOrSelfClientId));
+          publishSelectedClient(clients);
         } else {
           const res = await authAxios.get('/api/auth/clients');
           const clientPayload = res.data?.success && Array.isArray(res.data.clients) ? res.data.clients : [];
           const clients = addSelfClient(normalizeWorkoutPlannerClients(clientPayload), selfClient);
           setClients(clients);
-          setSelectedClientId(pickWorkoutPlannerClientId(clients, requestedOrSelfClientId));
+          publishSelectedClient(clients);
         }
       } catch {
         const fallbackClients = addSelfClient([], selfClient);
         setClients(fallbackClients);
-        setSelectedClientId(pickWorkoutPlannerClientId(fallbackClients, requestedOrSelfClientId));
+        publishSelectedClient(fallbackClients);
       } finally {
         setClientsLoading(false);
       }
     };
     fetchClients();
-  }, [authAxios, requestedClientId, selfClient, user?.role, user?.id]);
+  }, [authAxios, requestedClientId, selfClient, user?.role, user?.id, onBeforeSelectedClientChange]);
 
   const handleClientSelectionChange = useCallback((rawClientId: string) => {
     const nextClientId = parseWorkoutPlannerClientId(rawClientId);
     if (!nextClientId) return;
+    // Retirement happens BEFORE the selection publishes — a delayed add/swap
+    // can never land on the newly selected client.
+    onBeforeSelectedClientChange?.();
     setSelectedClientId(nextClientId);
     setPlanExercises([]);
     setGeneratedPlan(null);
     clearExplanations();
     resetLoadedPlanState();
-  }, [clearExplanations, resetLoadedPlanState, setGeneratedPlan, setPlanExercises]);
+  }, [clearExplanations, onBeforeSelectedClientChange, resetLoadedPlanState, setGeneratedPlan, setPlanExercises]);
 
   return {
     clients,

@@ -53,6 +53,11 @@ interface UseWorkoutPlannerLoadPlanActionsInput {
   setLoadedPlanName: Dispatch<SetStateAction<string | null>>;
   setSavedSnapshot: Dispatch<SetStateAction<string | null>>;
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
+  /**
+   * P58-R3: retirement of accepted add/swap work at the accepted load entry,
+   * before the GET — the load's own late result is not made safe by this.
+   */
+  onBeforeDraftReplacement?: () => void;
 }
 
 interface LoadedPlanApplyInput extends Omit<UseWorkoutPlannerLoadPlanActionsInput, 'authAxios' | 'selectedClientId'> {
@@ -184,8 +189,10 @@ export const useWorkoutPlannerLoadPlanActions = ({
   setLoadedPlanName,
   setSavedSnapshot,
   setStatusMsg,
+  onBeforeDraftReplacement,
 }: UseWorkoutPlannerLoadPlanActionsInput) => {
   const loadPlanIntoBuilder = useCallback(async (planId: string, planName: string) => {
+    onBeforeDraftReplacement?.();
     try {
       const res = await authAxios.get(`/api/workout-plans/${planId}`);
       const plan = readSavedWorkoutPlan(res.data);
@@ -225,6 +232,7 @@ export const useWorkoutPlannerLoadPlanActions = ({
     buildManualSnapshot,
     category,
     goal,
+    onBeforeDraftReplacement,
     phaseName,
     phaseNumber,
     selectedClientId,

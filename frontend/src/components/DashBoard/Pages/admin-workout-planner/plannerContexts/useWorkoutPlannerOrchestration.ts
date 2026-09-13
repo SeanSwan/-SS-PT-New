@@ -8,7 +8,8 @@
  * pre-S15 page wiring — no logic changes in this slice (S13 fence holds).
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useLayoutEffect, useMemo } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
 import { type WorkoutPlannerStatusMessage } from '../WorkoutPlannerStatusAssistantStrip';
@@ -29,12 +30,15 @@ import { useWorkoutPlannerSaveActions } from '../useWorkoutPlannerSaveActions';
 import { useWorkoutPlannerSavedPlansState } from '../useWorkoutPlannerSavedPlansState';
 import { type WorkoutPlannerConfirmRequest } from '../WorkoutPlannerConfirmDialog';
 import { buildWorkoutPlannerSelfClient, parseWorkoutPlannerClientId } from '../WorkoutPlannerClientIdentity';
-import { type PlanExercise, type WorkoutCategory, type GeneratedPlan, type PlanDuration, type PlanGoal } from '../WorkoutPlannerTypes';
+import { type WorkoutCategory, type PlanDuration, type PlanGoal } from '../WorkoutPlannerTypes';
 import type { SwanCoachGenerationMode } from '../WorkoutPlannerGuidedCandidateTypes';
 import { generationModeForPlannerView, readPlannerViewMode } from '../plannerViewMode';
 import { resolveWorkoutPlannerReturnTo } from '../workoutPlannerReturnTo';
 import { useWorkoutPlannerDebateResultHydration } from '../workoutPlannerDebateResultHydration';
 import { selectPlannerPhase } from '../plannerLogic/plannerSelectors';
+import {
+  useWorkoutPlannerDraftMutation, type PlannerDayScope,
+} from './useWorkoutPlannerDraftMutation';
 
 export const useWorkoutPlannerOrchestration = () => {
   const { authAxios, user } = useAuth();
@@ -54,8 +58,10 @@ export const useWorkoutPlannerOrchestration = () => {
   const [phaseNumber, setPhaseNumber] = useState(2); const [category, setCategory] = useState<WorkoutCategory>('full_body');
   const [goal, setGoal] = useState<PlanGoal>('general_fitness'); const [planDuration, setPlanDuration] = useState<PlanDuration>('single');
   const [generationMode, setGenerationMode] = useState<SwanCoachGenerationMode>(() => generationModeForPlannerView(readPlannerViewMode())); const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
-  const [planExercises, setPlanExercises] = useState<PlanExercise[]>([]);
-  const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(null);
+  // P58: the TWO existing draft state values, moved mechanically into the one
+  // owner helper. Same values, same setter signatures, same provider ownership.
+  const draftMutation = useWorkoutPlannerDraftMutation();
+  const { planExercises, generatedPlan, setPlanExercises, setGeneratedPlan } = draftMutation;
   const [selectedMesoDay, setSelectedMesoDay] = useState(1); const [teachModeOpen, setTeachModeOpen] = useState(false);
   const [statusMsg, setStatusMsg] = useState<WorkoutPlannerStatusMessage | null>(null);
   const [selectedHorizonTarget, setSelectedHorizonTarget] = useState<PlannerHorizonSelection | null>(null);
@@ -63,6 +69,22 @@ export const useWorkoutPlannerOrchestration = () => {
   const [plannerActiveTab, setPlannerActiveTab] = useState<'program' | 'builder' | 'exercises'>('builder');
   const phase = useMemo(() => selectPlannerPhase(phaseNumber), [phaseNumber]);
   const trainingStyle = useWorkoutPlannerTrainingStyleState();
+
+  // P58: selected-day / phase / duration intents retire accepted add-swap work
+  // BEFORE their setter — a day or phase A-B-A inside one tick therefore still
+  // retires the old operation permanently.
+  const setSelectedHorizonTargetSafely = useCallback<Dispatch<SetStateAction<PlannerHorizonSelection | null>>>((action) => {
+    draftMutation.retire();
+    setSelectedHorizonTarget(action);
+  }, [draftMutation]);
+  const setPhaseNumberSafely = useCallback<Dispatch<SetStateAction<number>>>((action) => {
+    draftMutation.retire();
+    setPhaseNumber(action);
+  }, [draftMutation]);
+  const setPlanDurationSafely = useCallback<Dispatch<SetStateAction<PlanDuration>>>((action) => {
+    draftMutation.beginReplacement();
+    setPlanDuration(action);
+  }, [draftMutation]);
 
   const handleSwapBlocked = useCallback((text: string) => setStatusMsg({ type: 'error', text }), []);
   const rolodex = useWorkoutPlannerRolodexState({ phase, planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, onSwapBlocked: handleSwapBlocked });
@@ -95,9 +117,10 @@ export const useWorkoutPlannerOrchestration = () => {
     generationMode,
     setPlanExercises,
     setGeneratedPlan,
-    setPhaseNumber,
+    setPhaseNumber: setPhaseNumberSafely,
     setStatusMsg,
     resetLoadedPlanState: planContent.resetLoadedPlanState,
+    onBeforeDraftReplacement: draftMutation.beginReplacement,
   });
 
   const clientState = useWorkoutPlannerClientState({
@@ -109,15 +132,39 @@ export const useWorkoutPlannerOrchestration = () => {
     setGeneratedPlan,
     clearExplanations: generation.clearExplanations,
     resetLoadedPlanState: planContent.resetLoadedPlanState,
+    onBeforeSelectedClientChange: draftMutation.retire,
   });
   const { selectedClientId, selectedClient } = clientState;
+
+  // P58-R1: bind the committed scope at the committed boundary (raw actor id
+  // and raw role from AuthContext, actual target and selected day). A committed
+  // identity/day/configuration change retires accepted work even when the
+  // change was driven outside the explicit intent wrappers.
+  const plannerDayScope = useMemo<PlannerDayScope>(() => {
+    const selected = selectedHorizonTarget
+      ?? (generatedPlan?.weeks?.length ? { weekNumber: generatedPlan.weeks[0].weekNumber, dayIndex: 0 } : null);
+    return generatedPlan?.weeks?.length && selected
+      ? { kind: 'horizon', weekNumber: selected.weekNumber, dayIndex: selected.dayIndex }
+      : { kind: 'builder' };
+  }, [generatedPlan, selectedHorizonTarget]);
+  const plannerRouteKey = `${searchParams.get('planId') ?? ''}|${searchParams.get('mode') ?? ''}|${searchParams.get('debateJobId') ?? ''}`;
+  useLayoutEffect(() => {
+    draftMutation.bindScope({
+      actorId: user?.id ?? null,
+      actorRole: user?.role ?? null,
+      targetClientId: selectedClientId,
+      clientsLoading: clientState.clientsLoading,
+      day: plannerDayScope,
+      configurationKey: plannerRouteKey,
+    });
+  }, [draftMutation, user?.id, user?.role, selectedClientId, clientState.clientsLoading, plannerDayScope, plannerRouteKey]);
 
   useWorkoutPlannerDebateResultHydration({ authAxios, debateJobId: searchParams.get('debateJobId'), selectedClientId, selectedClientName: selectedClient ? `${selectedClient.firstName} ${selectedClient.lastName}` : undefined, setGeneratedPlan, setPlanExercises, setStatusMsg, resetLoadedPlanState: planContent.resetLoadedPlanState });
 
   const { handleSwanCoachWorkoutGenerate, handleGeneratePlan } = generation;
-  const requestSwanCoachWorkoutForSelectedClient = useCallback((overrides?: PlannerGenerateOverrides) => { applyPlannerGenerateOverrides(overrides, { setCategory, setGoal, setPhaseNumber }); void handleSwanCoachWorkoutGenerate(selectedClientId, overrides); }, [handleSwanCoachWorkoutGenerate, selectedClientId]);
+  const requestSwanCoachWorkoutForSelectedClient = useCallback((overrides?: PlannerGenerateOverrides) => { applyPlannerGenerateOverrides(overrides, { setCategory, setGoal, setPhaseNumber: setPhaseNumberSafely }); void handleSwanCoachWorkoutGenerate(selectedClientId, overrides); }, [handleSwanCoachWorkoutGenerate, selectedClientId, setPhaseNumberSafely]);
   const requestPlanGenerateForSelectedClient = useCallback(() => { void handleGeneratePlan(selectedClientId); }, [handleGeneratePlan, selectedClientId]);
-  const coachDock = useWorkoutPlannerCoachSurface({ selectedClientId, planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, selectedHorizonTarget, searchExercises: rolodex.searchExercises, onGenerate: requestSwanCoachWorkoutForSelectedClient, phase, phaseNumber });
+  const coachDock = useWorkoutPlannerCoachSurface({ selectedClientId, planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, selectedHorizonTarget, searchExercises: rolodex.searchExercises, onGenerate: requestSwanCoachWorkoutForSelectedClient, phase, phaseNumber, draftMutation });
 
   const savedPlansState = useWorkoutPlannerSavedPlansState({
     authAxios,
@@ -165,13 +212,14 @@ export const useWorkoutPlannerOrchestration = () => {
     buildManualSnapshot: planContent.buildManualSnapshot,
     setPlanExercises,
     setGeneratedPlan,
-    setPhaseNumber,
+    setPhaseNumber: setPhaseNumberSafely,
     setGoal,
     setCategory,
     setLoadedPlanId: planContent.setLoadedPlanId,
     setLoadedPlanName: planContent.setLoadedPlanName,
     setSavedSnapshot: planContent.setSavedSnapshot,
     setStatusMsg,
+    onBeforeDraftReplacement: draftMutation.beginReplacement,
   });
 
   useWorkoutPlannerRoutePlanLoad({ loadPlanIntoBuilder: loadPlan.loadPlanIntoBuilder, requestedPlanId: searchParams.get('planId'), routeClientId: routeRequestedClientId, routeMode: searchParams.get('mode'), savedPlans: savedPlansState.savedPlans, savedPlansClientId: savedPlansState.savedPlansClientId, selectedClientId, setStatusMsg });
@@ -186,7 +234,7 @@ export const useWorkoutPlannerOrchestration = () => {
     handleCardDuplicate: savedPlansState.handleCardDuplicate,
     clearSearchForBrowse: rolodex.clearSearchForBrowse,
     setTeachModeOpen,
-    setPlanDuration,
+    setPlanDuration: setPlanDurationSafely,
     setGeneratedPlan,
     setPlanExercises,
     setConfirmRequest,
@@ -200,8 +248,8 @@ export const useWorkoutPlannerOrchestration = () => {
       selectedHorizonTarget, phase, confirmRequest,
     },
     setters: {
-      setPhaseNumber, setCategory, setGoal, setGenerationMode, setSessionsPerWeek,
-      setSelectedMesoDay, setSelectedHorizonTarget, setStatusMsg, setPlannerActiveTab,
+      setPhaseNumber: setPhaseNumberSafely, setCategory, setGoal, setGenerationMode, setSessionsPerWeek,
+      setSelectedMesoDay, setSelectedHorizonTarget: setSelectedHorizonTargetSafely, setStatusMsg, setPlannerActiveTab,
     },
     plannerActiveTab,
     trainingStyle, rolodex, planContent, equipment, generation, clientState,

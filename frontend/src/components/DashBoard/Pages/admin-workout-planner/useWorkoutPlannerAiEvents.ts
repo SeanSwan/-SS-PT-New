@@ -9,6 +9,9 @@
  * Schedule day when no week/day given, library exact-first for the incoming
  * movement. Sync failures ack(false); async (library) outcomes ack acceptance
  * sync and report via receipt. Persistence stays human (06-bans §2/§3).
+ * P58: ADD/SWAP capture an immutable scope+revision token BEFORE the lookup,
+ * recheck it after every await and inside the owner's synchronous mutation, and
+ * publish Added/Swapped only for a result the owner actually applied.
  */
 import { useEffect, useRef } from 'react';
 import type React from 'react';
@@ -19,14 +22,20 @@ import {
 import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
 import { formatWorkoutPlannerExerciseName } from './workoutPlannerExerciseDisplay';
 import {
-  addHorizonExercise, applyHorizonSwap, isDuplicateInHorizonDay, removeHorizonExercise,
-  updateHorizonExerciseFields, type HorizonSwapTarget,
+  removeHorizonExercise, updateHorizonExerciseFields, type HorizonSwapTarget,
 } from './workoutPlannerHorizonSwap.helpers';
-import type { GeneratedPlan, GeneratedPlanWeekDay, OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
+import type { GeneratedPlan, OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
 import type { PlannerAddExercisePayload, PlannerGeneratePayload, PlannerHorizonSelection, PlannerRemoveExercisePayload, PlannerSwapExercisePayload, PlannerUpdateExercisePayload } from './workoutPlannerAiEvents.types';
 import {
   normalizePlannerGeneratePayload, plannerGenerateReceiptText, type PlannerGenerateOverrides,
 } from './workoutPlannerGenerateIntent';
+import {
+  isPlannerAsyncEditToken, type PlannerAsyncEditToken, type PlannerDraftOwner,
+} from './plannerContexts/useWorkoutPlannerDraftMutation';
+import {
+  addTransition, dayExercisesAt, display, pickSlim, publishEdit, swapTransition,
+  type DayScope, type EditOutcome, type EditProgramming,
+} from './workoutPlannerAsyncEditReceiver';
 
 export interface UseWorkoutPlannerAiEventsArgs {
   planExercises: PlanExercise[];
@@ -39,20 +48,25 @@ export interface UseWorkoutPlannerAiEventsArgs {
   pushReceipt: (r: { ok: boolean; text: string }) => void;
   /** Phase defaults for builder-row adds (same derivation as rolodex addExercise). */
   phase: OPTPhaseParams;
+  /** P58: the one Planner draft authority this receiver is bound to. */
+  draftMutation: PlannerDraftOwner;
 }
 
-type HorizonExercise = GeneratedPlanWeekDay['exercises'][number];
-type DayScope = Pick<HorizonSwapTarget, 'weekNumber' | 'dayIndex'>;
-
+/** Local deadline for one accepted add/swap lookup (plan 58 §5). */
+const LOOKUP_DEADLINE_MS = 5000;
 const norm = (v: string) => v.toLowerCase().replace(/\s+/g, ' ').trim();
 /** Dictated plurals → singular per word; never bare double-s words ("press"). */
 const singularize = (v: string) => v.replace(/([a-rt-z])s\b/gi, '$1');
-const display = (x: HorizonExercise) => x.exerciseName || x.name || '';
 const daySuffix = (t: DayScope) => ` (Week ${t.weekNumber} · Day ${t.dayIndex + 1})`;
+const scopeOf = (day: import('./plannerContexts/useWorkoutPlannerDraftMutation').PlannerDayScope): DayScope | null => (
+  day.kind === 'horizon' ? { weekNumber: day.weekNumber, dayIndex: day.dayIndex } : null
+);
 const COPY = {
   notFound: (name: string) => `Couldn't find "${name}" — say the exercise name again?`,
   ambiguous: (name: string) => `Multiple matches for "${name}" — say more of the exercise name.`,
   noLibraryMatch: (name: string) => `Couldn't find "${name}" in the exercise library.`,
+  lookupFailed: 'The exercise library lookup failed — try again.',
+  lookupTimeout: 'The exercise library lookup took too long — try again.',
 } as const;
 const dupCopy = (name: string, where: 'day' | 'workout') => (where === 'day'
   ? `${name} is already in that day — pick a different replacement.`
@@ -89,11 +103,12 @@ const phaseDefaults = (phase: OPTPhaseParams) => {
   };
 };
 
-const dayExercisesAt = (plan: GeneratedPlan, scope: DayScope): HorizonExercise[] => {
-  const week = plan.weeks?.find((w) => w.weekNumber === scope.weekNumber);
-  const days = (week?.days?.length ? week.days : week?.sessions) ?? [];
-  return days[scope.dayIndex]?.exercises ?? [];
-};
+/** The LIVE names an operation must match inside its captured scope. */
+const namesInScope = (
+  planExercises: PlanExercise[], generatedPlan: GeneratedPlan | null, scope: DayScope | null,
+): string[] => (scope
+  ? dayExercisesAt(generatedPlan, scope).map(display)
+  : planExercises.map((p) => p.exerciseSlim.name));
 
 export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): void {
   const stateRef = useRef(args);
@@ -102,19 +117,6 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
   useEffect(() => {
     const ack = (e: Event, handled: boolean) => {
       (e as CustomEvent<AIWorkoutEventAck>).detail?.acknowledgeAIWorkoutEvent?.(handled);
-    };
-    const resolveSlim = async (name: string): Promise<ExerciseSlim | null> => {
-      let results = await stateRef.current.searchExercises(name);
-      // Dictated speech uses plurals ("goblet squats") but the library stores
-      // singular names, and a longer query can't fuzzy-match a shorter target.
-      const singular = singularize(name);
-      if (!results.length && singular !== name) {
-        results = await stateRef.current.searchExercises(singular);
-      }
-      if (!results.length) return null;
-      const q = norm(name);
-      const qs = norm(singular);
-      return results.find((r) => norm(r.name) === q || norm(r.name) === qs) ?? results[0];
     };
     /** Selected Detailed-Schedule day (or explicit week/day) — null = builder list. */
     const horizonScope = (payload: { dayNumber?: number; weekNumber?: number }): DayScope | null => {
@@ -129,79 +131,91 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
     /** Match a spoken name in the target scope. Pass the event to ack sync
      *  failures; pass null when re-matching after an await (R1 race fix) —
      *  receipts still report honestly, the ack already happened. */
-    const matchInScope = (e: Event | null, name: string, scope: DayScope | null): NameMatch => {
-      const s = stateRef.current;
-      const names = scope
-        ? dayExercisesAt(s.generatedPlan as GeneratedPlan, scope).map(display)
-        : s.planExercises.map((p) => p.exerciseSlim.name);
+    const matchInScope = (e: Event | null, name: string, names: string[]): NameMatch => {
       const match = matchByName(names, name);
-      if (match.kind === 'none') { if (e) ack(e, false); s.pushReceipt({ ok: false, text: COPY.notFound(name) }); }
-      if (match.kind === 'many') { if (e) ack(e, false); s.pushReceipt({ ok: false, text: COPY.ambiguous(name) }); }
+      if (match.kind === 'none') { if (e) ack(e, false); stateRef.current.pushReceipt({ ok: false, text: COPY.notFound(name) }); }
+      if (match.kind === 'many') { if (e) ack(e, false); stateRef.current.pushReceipt({ ok: false, text: COPY.ambiguous(name) }); }
       return match;
+    };
+    const captureOptions = {
+      deadlineMs: LOOKUP_DEADLINE_MS,
+      onDeadline: () => stateRef.current.pushReceipt({ ok: false, text: COPY.lookupTimeout }),
+    };
+    /** One accepted lookup: recheck the token after EVERY await. */
+    const runAcceptedEdit = (
+      token: PlannerAsyncEditToken, lookupName: string, settle: (slim: ExerciseSlim) => EditOutcome | null,
+    ) => {
+      void (async () => {
+        const s = () => stateRef.current;
+        try {
+          const singular = singularize(lookupName);
+          // Dictated speech uses plurals ("goblet squats") but the library stores
+          // singular names, and a longer query can't fuzzy-match a shorter target.
+          let results = await s().searchExercises(lookupName);
+          if (s().draftMutation.livenessOf(token) === 'scope_stale') return; // retired: silent
+          if (!results.length && singular !== lookupName) {
+            results = await s().searchExercises(singular);
+            if (s().draftMutation.livenessOf(token) === 'scope_stale') return;
+          }
+          const slim = pickSlim(results, lookupName, singular);
+          if (!slim) { s().pushReceipt({ ok: false, text: COPY.noLibraryMatch(lookupName) }); return; }
+          const outcome = settle(slim);
+          if (outcome) publishEdit(s(), token, outcome);
+        } catch {
+          if (s().draftMutation.livenessOf(token) !== 'scope_stale') {
+            s().pushReceipt({ ok: false, text: COPY.lookupFailed });
+          }
+        }
+      })();
     };
 
     const onAdd = (e: Event) => {
       const d = (e as CustomEvent<PlannerAddExercisePayload>).detail;
       if (!d?.exerciseName) { ack(e, false); return; }
+      const s = stateRef.current;
+      const token = s.draftMutation.capture({ kind: 'add', weekNumber: d.weekNumber, dayNumber: d.dayNumber }, captureOptions);
+      if (!isPlannerAsyncEditToken(token)) { ack(e, false); return; }
+      // Phase defaults are captured BEFORE the await and pinned to this token.
+      const defs = phaseDefaults(s.phase);
+      const programming: EditProgramming = {
+        sets: d.sets ?? defs.sets, reps: d.reps ?? defs.reps, tempo: d.tempo ?? defs.tempo,
+        restSeconds: d.restSeconds ?? defs.restSeconds, intensityPercent: defs.intensityPercent,
+      };
+      const day = token.day;
+      const where = day.kind === 'horizon' ? 'day' : 'workout';
       ack(e, true); // event accepted by the open planner; outcome lands as a receipt
-      void (async () => {
-        const slim = await resolveSlim(d.exerciseName);
-        const s = stateRef.current; // fresh state post-await (R1 race fix)
-        if (!slim) { s.pushReceipt({ ok: false, text: COPY.noLibraryMatch(d.exerciseName) }); return; }
-        const defs = phaseDefaults(s.phase);
-        const sets = d.sets ?? defs.sets;
-        const reps = d.reps ?? defs.reps;
-        const scope = horizonScope(d);
-        if (scope) {
-          const probe: HorizonSwapTarget = { kind: 'horizon', ...scope, exerciseIndex: -1, exerciseName: slim.name };
-          if (isDuplicateInHorizonDay(s.generatedPlan, probe, slim)) { s.pushReceipt({ ok: false, text: dupCopy(slim.name, 'day') }); return; }
-          s.setGeneratedPlan((prev) => (prev ? addHorizonExercise(prev, scope, slim, {
-            sets, reps, tempo: d.tempo ?? defs.tempo, restSeconds: d.restSeconds ?? defs.restSeconds,
-          }) : prev));
-          s.pushReceipt({ ok: true, text: `Added ${slim.name} — ${sets}×${reps}${daySuffix(scope)}` });
-          return;
-        }
-        if (s.planExercises.some((p) => p.exerciseSlim.id === slim.id)) { s.pushReceipt({ ok: false, text: dupCopy(slim.name, 'workout') }); return; }
-        s.setPlanExercises((prev) => [...prev, {
-          id: `${slim.id}-${Date.now()}`,
-          exerciseSlim: slim,
-          sets,
-          reps: String(reps),
-          tempo: d.tempo ?? defs.tempo,
-          restSeconds: d.restSeconds ?? defs.restSeconds,
-          intensityPercent: defs.intensityPercent,
-          notes: '',
-        }]);
-        s.pushReceipt({ ok: true, text: `Added ${slim.name} — ${sets}×${reps}` });
-      })();
+      runAcceptedEdit(token, d.exerciseName, (slim) => ({
+        result: stateRef.current.draftMutation.tryApply(token, addTransition(day, slim, programming)),
+        applied: `Added ${slim.name} — ${programming.sets}×${programming.reps}${day.kind === 'horizon' ? daySuffix(day) : ''}`,
+        duplicate: dupCopy(slim.name, where),
+      }));
     };
 
     const onSwap = (e: Event) => {
       const d = (e as CustomEvent<PlannerSwapExercisePayload>).detail;
       if (!d?.fromExerciseName || !d?.toExerciseName) { ack(e, false); return; }
-      const scope = horizonScope(d);
-      if (matchInScope(e, d.fromExerciseName, scope).kind !== 'one') return;
+      const s = stateRef.current;
+      const token = s.draftMutation.capture({ kind: 'swap', weekNumber: d.weekNumber, dayNumber: d.dayNumber }, captureOptions);
+      if (!isPlannerAsyncEditToken(token)) { ack(e, false); return; }
+      const scope = scopeOf(token.day);
+      if (matchInScope(e, d.fromExerciseName, namesInScope(s.planExercises, s.generatedPlan, scope)).kind !== 'one') {
+        s.draftMutation.retire();
+        return;
+      }
       ack(e, true);
-      void (async () => {
-        const slim = await resolveSlim(d.toExerciseName);
-        const s = stateRef.current; // fresh state post-await (R1 race fix)
-        if (!slim) { s.pushReceipt({ ok: false, text: COPY.noLibraryMatch(d.toExerciseName) }); return; }
-        // Re-match against fresh state — the plan may have changed mid-search.
-        const match = matchInScope(null, d.fromExerciseName, scope);
-        if (match.kind !== 'one') return;
-        if (scope) {
-          const fromRaw = display(dayExercisesAt(s.generatedPlan as GeneratedPlan, scope)[match.index]);
-          const target: HorizonSwapTarget = { kind: 'horizon', ...scope, exerciseIndex: match.index, exerciseName: fromRaw };
-          if (isDuplicateInHorizonDay(s.generatedPlan, target, slim)) { s.pushReceipt({ ok: false, text: dupCopy(slim.name, 'day') }); return; }
-          s.setGeneratedPlan((prev) => (prev ? applyHorizonSwap(prev, target, slim) : prev));
-          s.pushReceipt({ ok: true, text: `Swapped ${formatWorkoutPlannerExerciseName(fromRaw)} → ${slim.name}${daySuffix(scope)}` });
-          return;
-        }
-        const row = s.planExercises[match.index];
-        if (s.planExercises.some((p) => p.exerciseSlim.id === slim.id && p.id !== row.id)) { s.pushReceipt({ ok: false, text: dupCopy(slim.name, 'workout') }); return; }
-        s.setPlanExercises((prev) => prev.map((p) => (p.id === row.id ? { ...p, exerciseSlim: slim } : p)));
-        s.pushReceipt({ ok: true, text: `Swapped ${formatWorkoutPlannerExerciseName(row.exerciseSlim.name)} → ${slim.name}` });
-      })();
+      runAcceptedEdit(token, d.toExerciseName, (slim) => {
+        // Re-match against the current draft — the plan may have changed mid-search.
+        const live = stateRef.current.draftMutation.snapshot();
+        const match = matchInScope(null, d.fromExerciseName, namesInScope(live.planExercises, live.generatedPlan, scope));
+        if (match.kind !== 'one') return null;
+        const fromRaw = scope ? display(dayExercisesAt(live.generatedPlan, scope)[match.index]) : '';
+        const fromName = scope ? fromRaw : live.planExercises[match.index]?.exerciseSlim.name ?? '';
+        return {
+          result: stateRef.current.draftMutation.tryApply(token, swapTransition(scope, slim, match.index, fromRaw)),
+          applied: `Swapped ${formatWorkoutPlannerExerciseName(fromName)} → ${slim.name}${scope ? daySuffix(scope) : ''}`,
+          duplicate: dupCopy(slim.name, scope ? 'day' : 'workout'),
+        };
+      });
     };
 
     const onRemove = (e: Event) => {
@@ -209,11 +223,11 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
       if (!d?.exerciseName) { ack(e, false); return; }
       const s = stateRef.current;
       const scope = horizonScope(d);
-      const match = matchInScope(e, d.exerciseName, scope);
+      const match = matchInScope(e, d.exerciseName, namesInScope(s.planExercises, s.generatedPlan, scope));
       if (match.kind !== 'one') return;
       ack(e, true);
       if (scope) {
-        const fromRaw = display(dayExercisesAt(s.generatedPlan as GeneratedPlan, scope)[match.index]);
+        const fromRaw = display(dayExercisesAt(s.generatedPlan, scope)[match.index]);
         const target: HorizonSwapTarget = { kind: 'horizon', ...scope, exerciseIndex: match.index, exerciseName: fromRaw };
         s.setGeneratedPlan((prev) => (prev ? removeHorizonExercise(prev, target) : prev));
         s.pushReceipt({ ok: true, text: `Removed ${formatWorkoutPlannerExerciseName(fromRaw)}${daySuffix(scope)}` });
@@ -232,12 +246,12 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
         .filter((entry): entry is [string, string | number] => entry[1] !== undefined);
       if (!changes.length) { ack(e, false); s.pushReceipt({ ok: false, text: `Nothing to change on "${d.exerciseName}" — say sets, reps, tempo, or rest.` }); return; }
       const scope = horizonScope({}); // update payload carries no day/week (03 §2) — selected day rules
-      const match = matchInScope(e, d.exerciseName, scope);
+      const match = matchInScope(e, d.exerciseName, namesInScope(s.planExercises, s.generatedPlan, scope));
       if (match.kind !== 'one') return;
       ack(e, true);
       const summary = changes.map(([field, value]) => `${field} ${value}`).join(', ');
       if (scope) {
-        const fromRaw = display(dayExercisesAt(s.generatedPlan as GeneratedPlan, scope)[match.index]);
+        const fromRaw = display(dayExercisesAt(s.generatedPlan, scope)[match.index]);
         const target: HorizonSwapTarget = { kind: 'horizon', ...scope, exerciseIndex: match.index, exerciseName: fromRaw };
         s.setGeneratedPlan((prev) => (prev ? updateHorizonExerciseFields(prev, target, d) : prev));
         s.pushReceipt({ ok: true, text: `Updated ${formatWorkoutPlannerExerciseName(fromRaw)} — ${summary}${daySuffix(scope)}` });
@@ -274,6 +288,8 @@ export function useWorkoutPlannerAiEvents(args: UseWorkoutPlannerAiEventsArgs): 
       window.removeEventListener(AI_PLANNER_REMOVE_EXERCISE, onRemove);
       window.removeEventListener(AI_PLANNER_UPDATE_EXERCISE, onUpdate);
       window.removeEventListener(AI_PLANNER_GENERATE, onGenerate);
+      // P58: cleanup retires accepted work, not only the listeners.
+      stateRef.current.draftMutation.retire();
     };
   }, []);
 }

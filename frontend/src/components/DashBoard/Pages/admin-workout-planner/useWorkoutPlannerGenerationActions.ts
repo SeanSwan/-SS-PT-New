@@ -68,7 +68,8 @@ interface WorkoutPlannerGenerationActionsInput {
   setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
   setPhaseNumber: Dispatch<SetStateAction<number>>;
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
-  resetLoadedPlanState: () => void;
+  resetLoadedPlanState: () => void; /** P58-R3: retire accepted add/swap work before a replacement intent's first await. */
+  onBeforeDraftReplacement?: () => void;
 }
 
 interface PlanApplicationInput {
@@ -106,8 +107,7 @@ export const useWorkoutPlannerGenerationActions = ({
   setPlanExercises,
   setGeneratedPlan,
   setPhaseNumber,
-  setStatusMsg,
-  resetLoadedPlanState,
+  setStatusMsg, resetLoadedPlanState, onBeforeDraftReplacement,
 }: WorkoutPlannerGenerationActionsInput) => {
   const [generating, setGenerating] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
@@ -144,7 +144,7 @@ export const useWorkoutPlannerGenerationActions = ({
     ack?: PlanningReviewAck,
     overrides?: PlannerGenerateOverrides,
   ) => {
-    setGenerating(true);
+    onBeforeDraftReplacement?.(); setGenerating(true);
     setDegradedIntelligence(false);
     setStatusMsg(null);
     setExplanations([]);
@@ -187,14 +187,14 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       setGenerating(false);
     }
-  }, [authAxios, category, clearGuidedCandidates, goal, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
+  }, [authAxios, category, clearGuidedCandidates, goal, hardcoreMethod, onBeforeDraftReplacement, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
   /** Returns review details when the safety gate blocked, null otherwise. */
   const postPlanGeneration = useCallback(async (
     selectedClientId: number,
     ack?: PlanningReviewAck,
   ) => {
-    setGeneratingPlan(true);
+    onBeforeDraftReplacement?.(); setGeneratingPlan(true);
     setDegradedIntelligence(false);
     setStatusMsg(null);
     setGeneratedPlan(null);
@@ -227,7 +227,7 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       setGeneratingPlan(false);
     }
-  }, [authAxios, clearGuidedCandidates, goal, hardcoreMethod, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
+  }, [authAxios, clearGuidedCandidates, goal, hardcoreMethod, onBeforeDraftReplacement, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
   const onAcknowledged = useCallback(async (
     review: SafetyGateReviewState,
@@ -258,7 +258,7 @@ export const useWorkoutPlannerGenerationActions = ({
 
   const handleSwanCoachWorkoutGenerate = useCallback(async (selectedClientId: number | null, overrides?: PlannerGenerateOverrides) => {
     if (isGuidedGenerationMode(generationMode)) {
-      setGenerating(true);
+      if (selectedClientId) onBeforeDraftReplacement?.(); setGenerating(true);
       try {
         await handleGuidedCandidateGenerate(selectedClientId, overrides);
       } finally {
@@ -269,7 +269,7 @@ export const useWorkoutPlannerGenerationActions = ({
     if (!selectedClientId) return;
     const review = await postWorkoutGeneration(selectedClientId, undefined, overrides);
     if (review) openSafetyGateReview({ mode: 'workout', clientId: selectedClientId, ...review });
-  }, [generationMode, handleGuidedCandidateGenerate, openSafetyGateReview, postWorkoutGeneration]);
+  }, [generationMode, handleGuidedCandidateGenerate, onBeforeDraftReplacement, openSafetyGateReview, postWorkoutGeneration]);
 
   const handleGeneratePlan = useCallback(async (selectedClientId: number | null) => {
     if (!canGenerateHorizonPlan(selectedClientId, planDuration)) return;
