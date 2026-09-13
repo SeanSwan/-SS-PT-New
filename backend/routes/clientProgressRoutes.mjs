@@ -20,12 +20,20 @@ const router = express.Router();
 
 const currentClientAccess = [
   protect,
-  authorize(['client', 'admin']),
+  // 'user' is the DEFAULT role minted by public self-registration
+  // (models/User.mjs:135) and is client-equivalent (utils/clientAccess.mjs:23).
+  // Both handlers below are self-scoped (`req.user.id` only —
+  // controllers/clientProgressController.mjs:64,77), so omitting it 403'd a
+  // fresh signup from its OWN current progress. NOTE: unlike clientReadAccess
+  // there is no verifyClientAccessByUserId on these two routes — nothing to
+  // pair with, which is why tests/api/clientProgressSelfAccessExecution.test.mjs
+  // (behavioural) rather than the pairing guard covers them.
+  authorize(['client', 'admin', 'user']),
 ];
 
 const clientReadAccess = [
   protect,
-  authorize(['client', 'trainer', 'admin']),
+  authorize(['client', 'trainer', 'admin', 'user']),
   verifyClientAccessByUserId({ paramName: 'clientId' }),
 ];
 

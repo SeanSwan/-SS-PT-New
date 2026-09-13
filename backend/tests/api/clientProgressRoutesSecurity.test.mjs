@@ -26,7 +26,7 @@ describe('client progress route security', () => {
     expect(coreRoutesSource).toContain("app.use('/api/client-progress', clientProgressRoutes)");
     expect(routeSource).toContain("router.get('/', ...currentClientAccess, getCurrentClientProgress)");
     expect(routeSource).toContain('protect,');
-    expect(routeSource).toContain("authorize(['client', 'admin']),");
+    expect(routeSource).toContain("authorize(['client', 'admin', 'user']),");
     expect(routeSource).not.toContain('default-user');
     expect(routeSource).not.toContain('// protect');
   });
@@ -38,7 +38,7 @@ describe('client progress route security', () => {
     const getProgressRoute = routeSlice("router.get('/:userId'", "router.put('/:userId'");
     const updateProgressRoute = routeSlice("router.put('/:userId'", 'export default router');
 
-    expect(routeSource).toContain("authorize(['client', 'trainer', 'admin']),");
+    expect(routeSource).toContain("authorize(['client', 'trainer', 'admin', 'user']),");
     expect(routeSource).toContain("verifyClientAccessByUserId({ paramName: 'clientId' }),");
     expect(workoutHistoryRoute).toContain('getClientWorkoutHistory');
     expect(workoutHistoryRoute).not.toContain('trainer/admin reading any client');

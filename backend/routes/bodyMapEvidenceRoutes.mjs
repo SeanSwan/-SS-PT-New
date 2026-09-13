@@ -25,9 +25,9 @@ const upload = multer({
 router.use(protect);
 
 router.get('/:userId/:entryId', verifyClientAccessByUserId({ paramName: 'userId' }), listBodyMapEvidence);
-router.post('/:userId/:entryId', authorize(['admin', 'trainer', 'client']), verifyClientAccessByUserId({ paramName: 'userId' }), upload.single('media'), createBodyMapEvidence);
+router.post('/:userId/:entryId', authorize(['admin', 'trainer', 'client', 'user']), verifyClientAccessByUserId({ paramName: 'userId' }), upload.single('media'), createBodyMapEvidence);
 router.post('/:userId/:entryId/:mediaId/analyze', authorize(['admin', 'trainer']), verifyClientAccessByUserId({ paramName: 'userId' }), analyzeBodyMapEvidence);
 router.put('/:userId/:entryId/:mediaId/review', authorize(['admin', 'trainer']), verifyClientAccessByUserId({ paramName: 'userId' }), reviewBodyMapEvidence);
-router.delete('/:userId/:entryId/:mediaId', authorize(['admin', 'trainer', 'client']), verifyClientAccessByUserId({ paramName: 'userId' }), deleteBodyMapEvidence);
+router.delete('/:userId/:entryId/:mediaId', authorize(['admin', 'trainer', 'client', 'user']), verifyClientAccessByUserId({ paramName: 'userId' }), deleteBodyMapEvidence);
 
 export default router;

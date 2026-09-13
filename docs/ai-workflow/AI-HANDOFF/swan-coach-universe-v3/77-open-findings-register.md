@@ -39,44 +39,109 @@ probe found a fifth.
 copies are exactly how CA-1 happened. Collapse onto the shared export when next
 touched.
 
-### A2. THIRD WAVE — 11 more sibling routes with the F2 shape, still unfixed
+### A2. THIRD WAVE — 10 sibling route registrations with the F2 shape — **FIXED**
 
 Found by the F1–F5 implementer's own sibling sweep, after the second wave was
-fixed. **The class is not closed; it has now been found in three independent
-passes.** The specific defect signature is not "a role list mentions `'client'`" —
-it is **a route that pairs `authorize([...'client'...])` with
-`verifyClientAccessByUserId` on the same line**, because those two guards then
-disagree about whether a `'user'` account owns its own record: `authorize` is a
-literal `roles.includes(...)` (`authMiddleware.mjs:459-489`) while
-`verifyClientAccessByUserId` explicitly maps `user → self`
-(`middleware/verifyClientAccess.mjs:91-93`).
+fixed. **The class was found in three independent passes** and is now closed by
+measurement, not by assertion — see "Closure evidence" below.
 
-| File | Lines | Routes affected | Consequence |
-|---|---|---|---|
-| `bodyMapEvidenceRoutes.mjs` | `:28` POST, `:31` DELETE | 2 | A `'user'` account cannot upload or delete its **own** body-map evidence. Byte-identical to the F2 defect. |
-| `clientProgressRoutes.mjs` | `:23` (`currentClientAccess`, used at `:38` GET / and `:40` PUT /) and `:28` (`clientReadAccess`, used at `:44,:46,:48,:50,:52,:54`) | 8 | `'user'` is 403'd from reading and updating its **own** current progress, history, goals and risk assessment. |
+**Two corrections to this section as first written.** Both were found by the
+implementer and independently reproduced by root:
 
-**Recommended fix shape — do NOT widen `authorize` globally in a bugfix slice.**
-`authorize(` has ≥100 call sites across ~40 route files (the grep hit its
-100-match cap on `backend/routes` alone). Most are staff-only lists that a
-client-equivalence change would not affect, but the review surface is all of them,
-and a global widening would silently admit `'user'` to any future list containing
-`'client'`. Keep the per-route lists and instead add **one repo-level regression
-guard that fails when a route pairs `authorize([...'client'...])` with
-`verifyClientAccessByUserId`** — that pairing is the actual disagreement, and it is
-mechanically checkable without reading data flow. This is a better guard than the
-"generalised requester-side role check" proposed elsewhere in this register,
-because it targets the falsifiable condition rather than a syntactic pattern that
-also matches legitimate target-side checks.
+1. **It is 10 route registrations, not 11** — bodyMap 2 + `currentClientAccess` 2 +
+   `clientReadAccess` 6. The table's own row already said 2 + 8 = 10; the heading
+   disagreed with it.
+2. **`currentClientAccess` is NOT a pairing.** The signature this section asserted
+   — "pairs `authorize([...'client'...])` with `verifyClientAccessByUserId`" — does
+   not hold for it. It was `[protect, authorize(['client','admin'])]` with **no**
+   ownership guard at all. The stated *consequence* was real (a `'user'` was 403'd
+   from its own current progress) but the *mechanism* was a sibling shape: a single
+   guard on a self-scoped endpoint, not two guards disagreeing. It was fixed the
+   same way, and the fact that **the pairing guard structurally cannot see it** was
+   proven by mutation, not asserted — mutation M3 below leaves the guard GREEN while
+   the behavioural suite goes RED.
 
-### A3. Two more same-class sites, intent UNVERIFIED
+| File | Lines (post-fix) | Routes | Consequence | State |
+|---|---|---|---|---|
+| `bodyMapEvidenceRoutes.mjs` | `:28` POST, `:31` DELETE | 2 | A `'user'` could not upload or delete its **own** body-map evidence. Byte-identical to the F2 defect. | **FIXED**, `'user'` appended |
+| `clientProgressRoutes.mjs` | `:31` `currentClientAccess` (used at `:46` GET / and `:48` PUT /) | 2 | **Unpaired** — a single guard, no ownership check, on a self-scoped endpoint. `'user'` 403'd from its own current progress. Handler self-scopes on `req.user.id` (`clientProgressController.mjs:64,77`). | **FIXED**; invisible to the pairing guard by construction |
+| `clientProgressRoutes.mjs` | `:36` `clientReadAccess` (used at `:52,:54,:56,:58,:60,:62`) | 6 | `'user'` 403'd from reading and updating its own history, goals and risk assessment. | **FIXED**, `'user'` appended |
+
+Staff-only lists left untouched and verified to still exclude clients: bodyMap
+`:29`/`:30`, `clientProgressRoutes.mjs:42` `targetClientAccess`.
+
+**Recommended fix shape, as applied — do NOT widen `authorize` globally.**
+`authorize(` has 101 call sites under `backend/routes` + `backend/controllers`
+alone. Most are staff-only lists that a client-equivalence change would not affect,
+but the review surface is all of them, and a global widening would silently admit
+`'user'` to any future list containing `'client'`. The per-route lists were kept
+and one repo-level guard was added:
+`backend/tests/api/authorizeVerifyClientAccessPairingGuard.test.mjs` +
+`backend/tests/helpers/authorizePairingScan.mjs`. It fails when a guard is paired,
+contains `'client'`, and lacks `'user'`. Allowlist entries require `file` + `scope`
++ `reason` and a **stale entry fails**, so it cannot rot into a blanket; a coverage
+assertion fails loudly if any `authorize(` role list is unreadable rather than
+silently skipping it; and 15 synthetic can-fail cases prove the detector can fire.
+
+**Closure evidence — two independent methods agree.** The implementer's
+bracket-aware detector and root's own separately written single-line sweep both
+report **12 `authorize([...'client'...])` lists in `backend/routes`/`controllers`,
+of which 0 lack `'user'`**. Root's sweep is
+`tmp/coach-astra-hostile-20260912/default-role-pairing-sweep.mjs`; it reads 94 of
+101 `authorize(` occurrences (7 are written across lines and are **not** covered by
+it), so its vouch is partial by construction — which is precisely why the
+independent agreement on the offender count of 0 matters.
+
+**Verified by root, not taken from the report:** 8 suites / 115 tests, exit 0,
+covering the two behavioural suites, the pairing guard, the cross-user invariant,
+the edited legacy suite and three siblings. Root also confirmed
+`git diff --stat backend/controllers/` is empty, so the two controllers the
+implementer probe-mutated were restored byte-identically.
+
+### A3. Two same-class sites — the obvious fix is a security opening
 
 `aiWorkoutController.mjs:288` (`Invalid role for workout generation`) and
 `longHorizonController.mjs:201` (`Invalid role for plan generation`) both reject
 unless `requesterRole === 'admin' || requesterRole === 'client'` — the same
-hand-rolled class, failing closed. **Not called defects**: whether these are
-meant to be client-facing is unverified. They need a probe **and an intent read**
-before anyone changes them.
+hand-rolled class, failing closed.
+
+**The naive fix is not a fix.** Adding `'user'` to those role whitelists would let a
+`'user'` account generate a plan **for another user**. Root verified this by reading
+both controllers directly, and the mechanism matches the implementer's executed
+counterfactual:
+
+- the role gate is the **only** thing stopping a `'user'` (`:288`, `:201`);
+- the self-isolation check runs earlier but is **`'client'`-only**
+  (`requesterRole === 'client' && targetUserId !== requesterId` — `:252`, `:174`);
+- `targetUserId` falls back to self **only** for `'client'` (`:243`, `:162`), so an
+  explicitly supplied foreign `userId` survives as-is for a `'user'`;
+- `checkAiEligibility` is called **after** the role gate (`:295`, `:210`).
+
+So widening the whitelist removes the only guard on that path and the request
+reaches plan generation for someone else's account. The implementer demonstrated it
+by mutation (`reachedEligibility` flipped false→true, 2 failed | 8 passed on each
+controller) and restored both controllers byte-identically.
+
+**Recommendation: leave as-is (fail-closed).** If a human decides these routes are
+client-facing, change all three sites per handler together via
+`isClientEquivalentRole` — never the whitelist alone.
+`backend/tests/api/aiPlanGenerationCrossUserInvariant.test.mjs` pins the cross-user
+property that holds under **either** human decision and goes red under a partial
+fix, so the trap cannot be walked into silently later.
+
+### A3b. A THIRD instance of "a test pins the bug"
+
+`clientProgressRoutesSecurity.test.mjs:29,41` asserted the exact broken strings
+`authorize(['client', 'admin']),` and `authorize(['client', 'trainer', 'admin']),`
+via `expect(routeSource).toContain(...)`. GREEN was **impossible** without editing
+them. Root verified this against `HEAD` before accepting the edit.
+
+This is the same mechanism as F1b, and it is the reason the class survived two
+sweeps: a source-text assertion on hand-rolled role code does not merely fail to
+catch the defect, it actively prevents the repair. **Any `toContain` assertion
+whose argument is a role list should be treated as suspect.** The two lines were
+updated as part of this slice; it is the only pre-existing test file the
+implementer touched, and it flagged the edit rather than hiding it.
 
 ### A4. WARNING — two of this session's probes CANNOT observe route-level fixes
 
