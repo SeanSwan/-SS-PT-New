@@ -54,18 +54,17 @@ pinned SHA, and was wrong.
 
 The strictness difference is measurable in one direction and not the other:
 
-- **Same-document anchors: newly validated.** The CI log for `e07d4b9` contains
+- **Same-document anchors: newly validated.** The CI log (engine 3.8.7) contains
   **zero** anchor failures across all 105 failing files, while 3.14.2 reports
   **55** anchor failures in the checked scope alone. 3.8.7 did not validate
-  heading anchors; 3.14.2 does.
-- **`mailto:`: partially new.** 3.8.7 checks the *shape* of the address only. It
-  marks `trainer@test.com`, `admin@swanstudios.dev`, `privacy@company.com` and
-  similar as alive, and fails only syntactically malformed local parts — which is
-  exactly the 4 `mailto:` failures present in the CI log
-  (`testclient_...@test.com` and friends). 3.14.2 additionally resolves the
-  **domain**, so it fails addresses at non-resolving domains that 3.8.7 accepted.
-  Of the 16 `mailto:` failures in the checked scope, **12 are invisible** to the
-  old engine.
+  heading anchors — its local-file check is a bare `fs.access`, with no notion of
+  a heading id; 3.14.2 does.
+- **`mailto:`: the domain half is new.** 3.8.7 checks the *syntax* of the address
+  only (`isemail`); 3.14.2 additionally resolves the domain's MX records. Ten
+  distinct placeholder addresses were measured flipping from `alive 200` under
+  3.8.7 to `dead 400` under 3.14.2. The 4 `mailto:` failures present in the CI log
+  are exactly the syntactically malformed ones (`testclient_...@test.com`), which
+  both engines reject.
 
 Two earlier drafts got this wrong in opposite directions — first claiming 3.14.2
 introduced `mailto:` checking outright, then claiming `mailto:` checking was
@@ -187,7 +186,7 @@ Every exclusion cites its evidence and must match a declared class pattern
 | `archive/` | archive-only historical record | whole prefix | the directory is itself named `pending-deletion` |
 | `docs/ai-workflow/archive/` | archive-only historical record | whole prefix | archived phase audits describing files later retired |
 | `docs/_attic/` | archive-only historical record | whole prefix | attic by name |
-| `AI-Village-Documentation/validation-prompts/` | QA artifact / generated output | whole prefix | written by `scripts/validation-orchestrator.mjs` and `scripts/hermes-village.mjs` |
+| `AI-Village-Documentation/validation-prompts/` | QA artifact / generated output | whole prefix | written by `scripts/validation-orchestrator.mjs` (its prompt and report directories). `scripts/hermes-village.mjs` shares the same generator code but writes to `hermes-village-prompts`, not this path. |
 | `docs/ai-workflow/validation-reports/` | QA artifact / generated output | whole prefix | `scripts/validation-orchestrator.mjs:191` sets `legacyReportDir` to this path |
 | `docs/ai-workflow/AI-HANDOFF/` | archive-only historical record | **pinned to a commit** | see below |
 
@@ -355,8 +354,9 @@ Rules are unchanged: dead-link classification, `aliveStatusCodes`,
 One robustness addition, described exactly as implemented. The re-check is
 **file-scoped and transient-only**:
 
-- a file is re-checked, up to three times, only if **every** failing link in it is
-  transient — a connection-level fault, a timeout, 408, 429, or a 5xx;
+- a file is re-checked, up to **five** times with a two-second pause between
+  attempts, only if **every** failing link in it is transient — a connection-level
+  fault, a timeout, 408, 429, or a 5xx;
 - if the file contains **any** definitive 4xx failure, the file is reported as-is
   and never re-checked, so a real 404 cannot be laundered into a pass;
 - the outcome of the last attempt is what is reported. A link that answers
@@ -367,6 +367,16 @@ One robustness addition, described exactly as implemented. The re-check is
   that *also* holds a hard 404 is not re-confirmed. Such a file fails on the real
   404 anyway, so the outcome is unchanged; the transient entry is reported
   alongside it.
+
+**This does not make external hosts reliable, and the gate can still flap.**
+Measured across four full runs of the finished gate: three exited 0, and one
+failed on `orthoinfo.aaos.org/en/diseases--conditions/common-knee-injuries/`,
+which `curl` served as HTTP 200 throughout and which the checker saw fail on five
+consecutive attempts during that window. That residual is inherent to checking
+third-party URLs on a schedule; the response is to re-run the job, not to
+suppress a working link. What changed is the size of the blast radius: a flaky
+external host now fails one job with a named link, instead of the entire check
+being permanently red and ignored.
 
 The motivating case is real: `orthoinfo.aaos.org/…/common-knee-injuries/`
 returned HTTP 200 to `curl` while the checker saw status 0 and then 520 on
@@ -454,7 +464,7 @@ argued with:
 | Claim in the draft | Reality | Where fixed |
 |---|---|---|
 | CI ran `markdown-link-check@3.13.7` | CI ran **3.8.7** (pinned in the action's `entrypoint.sh` at the resolved SHA). The draft had read the action's `master` branch. Corroborated by the CI log resolving `request`, which 3.13+ no longer uses. | §2.2, workflow comment, script header |
-| 3.14.2 introduced `mailto:` validation | False — the CI log already contains 4 `mailto:` failures. Only anchor validation is new. | §2.2 |
+| 3.14.2 introduced `mailto:` validation | Half true. 3.8.7 checks address *syntax* only; 3.14.2 adds **MX** resolution, so 12 domain-class addresses flip from alive to dead. | §2.2 |
 | "92 in-scope where the CI log showed 37" was a strictness measurement | The 92 came from a run made **while the tree was being edited** (17 of its 25 files have mtimes after the receipt). Not reproducible as a snapshot. | §3, §5 |
 | "1118 of 1867 excluded dead links are grounding redirects" | Conflated the ledger-wide grounding total (1118) with the transcript directories' contents (1046 grounding + 124 ordinary 404s). | §4 |
 | 51 anchor failures | 55. | §5 |
@@ -499,3 +509,27 @@ about a directory named `"archive` (a `git ls-files` C-quoting artifact); and
 One documentation fix went the other way. `docs/index.md` had its stale
 "Workout Page README" row deleted; a reviewer pointed out the surrounding index
 keeps retired rows labelled as retired, so the row was restored in that style.
+
+### Round 3
+
+Two more hostile reviewers, both REVISE. One of them found a defect that would
+have made this slice fail its own CI on every trigger, which is exactly what
+review is for. All findings were reproduced before being fixed.
+
+| Defect | Why it mattered | Fix |
+|---|---|---|
+| `actions/checkout` fetches **one commit** by default, so the `frozenAsOf` commit was absent in CI and the gate failed closed: **exit 2 on every trigger**, the check never ran. | The slice would have shipped a permanently red job — the exact failure it exists to remove. | The freeze is an explicit `frozenFiles` list in the manifest. No dependency on clone depth or git history. Verified by running the gate in a real `git clone --depth 1`: guard tests 16/16, gate resolves and runs. |
+| The confirmation pass kept the **last** attempt while its comment claimed every attempt must agree; a host answering `500,500,200` produced "OK — 0 dead links". | A real failure could be reported as a pass, and the code contradicted its own documentation. | The rule is now stated as implemented: file-scoped, transient-only, last attempt reported, and a file containing any definitive 4xx is never re-checked. |
+| The guard test called `partition()` **without** frozen sets, inverting the gate's semantics: adding the audit record CLAUDE.md rule 48 mandates would have turned CI red before the gate ran. | The guard would have blocked the very workflow it protects. | `partition()` reads the list from the manifest, so gate and tests call it identically. |
+| Excluded-entry confirmation compared failing-**file** counts against recorded **dead-link** baselines. | The trigger was arbitrary; the excluded ledger was effectively never re-confirmed. | Dead links are compared to dead links. |
+| `Infinity` passed the baseline check (`typeof Infinity === 'number'`), so a one-token manifest edit could disarm the ledger silently, and the guard suite still passed. | A silent, permanent exemption. | Baselines must be finite; `null`/`NaN`/`Infinity` exits 2, and the guard asserts finiteness. |
+| Links whose engine status is `error` were invisible, and six live in-scope instances existed (machine-absolute `c:\Users\...` paths). | The workflow's success banner was untrue while in-scope files held unparseable links. | Those links are repaired, and `error` now counts as a failure. The gate is deliberately stricter than the CLI here. |
+| Suppressed links were silent. | Self-exemption was invisible. | Suppressed links are counted and printed, and appear in the receipt. |
+
+Document corrections in round 3: a false file count (25 → 17), two composition
+percentages, a stale tree size, an overstated "invisible locally" claim, a wrong
+`.gitignore` citation, a CI-log provenance mis-citation (the log is for
+`aafe387a9`, and GitHub reports zero `docs-check` runs for `e07d4b9`), the
+`hermes-village.mjs` attribution, and two sentences round 2 had missed. The
+pristine baseline is now disclosed as measured with a pre-review revision of the
+gate and as containing at least one transient inflation.

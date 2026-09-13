@@ -329,7 +329,9 @@ async function run() {
   // checker on most runs, but intermittently returns 520 or drops the connection;
   // with a single confirmation pass that host failed the gate at random. This can
   // only remove false failures — a genuinely dead link is dead in every attempt.
-  const CONFIRM_ATTEMPTS = 3;
+  const CONFIRM_ATTEMPTS = 5;
+  const CONFIRM_PAUSE_MS = 2000;
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const excludedSet = new Set(excluded.map((x) => x.file));
   const deadList = (c) => c.results.filter((r) => ENGINE_FAILURE_STATUSES.has(r.status));
   const ignoredList = (c) => c.results.filter((r) => r.status === 'ignored');
@@ -393,6 +395,7 @@ async function run() {
     for (const c of suspect) {
       let attempt = c;
       for (let i = 0; i < CONFIRM_ATTEMPTS; i += 1) {
+        if (i > 0) await sleep(CONFIRM_PAUSE_MS);
         attempt = await checkOne(opts.root, c.file, fileOpts);
         if (!fails(attempt)) break;
       }
