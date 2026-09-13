@@ -4,6 +4,12 @@
  * Locks the client schedule feed to return the client's own sessions plus
  * unassigned available booking slots. This preserves booking UX without
  * leaking other clients' scheduled sessions.
+ *
+ * 2026-09-12: role-'user' accounts (User model default role, mapped onto
+ * the client surface by the frontend) previously got a hard `[]` from
+ * getAllSessions — the silent empty client schedule. They now get their
+ * OWN sessions with client-limited trainer attributes; the source-pin
+ * companion contract lives in clientScheduleTruth.rbac.test.mjs.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Op } from 'sequelize';
@@ -96,11 +102,23 @@ describe('UnifiedSessionService.getAllSessions client availability', () => {
     }));
   });
 
-  it('returns an empty schedule for social users without logging them as unknown roles', async () => {
+  it('scopes role-user schedules strictly to their own sessions (no empty-list dead end)', async () => {
+    // 2026-09-12 fix: role 'user' (the User model default, mapped to the
+    // client surface by UniversalSchedule) used to get a hard `[]` without
+    // a DB read, silently emptying the client schedule. It now gets the
+    // client-limited scope of OWN sessions only — no bookable available
+    // slots, no other client's data, no trainer contact PII.
     const sessions = await service.getAllSessions({}, { id: 104, role: 'user' });
 
     expect(sessions).toEqual([]);
-    expect(sessionModel.findAll).not.toHaveBeenCalled();
+
+    const query = sessionModel.findAll.mock.calls[0][0];
+    expect(query.where.userId).toBe(104);
+    expect(query.where[Op.or]).toBeUndefined();
+
+    const trainerInclude = query.include.find((include) => include.as === 'trainer');
+    expect(trainerInclude.attributes).toEqual(['id', 'firstName', 'lastName', 'photo', 'bio', 'specialties']);
+
     expect(loggerWarnMock).not.toHaveBeenCalled();
   });
 });

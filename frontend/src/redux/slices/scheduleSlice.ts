@@ -155,6 +155,12 @@ export const fetchEvents = createAsyncThunk(
         timestamp: new Date().toISOString()
       };
     } catch (error) {
+      // Waiver gate: keep the code machine-readable for the schedule UI
+      // (universalMasterScheduleService tags the 403 WAIVER_REQUIRED 403),
+      // plain message string for every other failure (backwards compatible).
+      if (error instanceof Error && (error as Error & { code?: string }).code === 'WAIVER_REQUIRED') {
+        return rejectWithValue({ code: 'WAIVER_REQUIRED', message: error.message });
+      }
       if (error instanceof Error) {
         return rejectWithValue(error.message);
       }
@@ -580,7 +586,12 @@ const scheduleSlice = createSlice({
       })
       .addCase(fetchEvents.rejected, (state, action) => {
         state.status = 'failed';
-        state.error = action.payload as string;
+        // Waiver case rejects with a structured payload; keep the stored
+        // error a human-readable string for string-typed consumers.
+        state.error = typeof action.payload === 'string'
+          ? action.payload
+          : ((action.payload as { message?: string } | undefined)?.message
+            ?? (action.error?.message ?? null));
       })
       
       // ==================== FETCH CALENDAR EVENTS ====================
