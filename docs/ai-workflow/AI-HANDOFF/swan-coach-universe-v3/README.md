@@ -28,6 +28,28 @@ Start with [47 — current Astra runtime hostile review](47-astra-runtime-hostil
 
 Current controller: tmp/coach-astra-hostile-20260912/workflow-state-v3.json. Supported migration preserves the predecessor and 10 historical admissions and the Astra-only final-review override. Original packet snapshots and hashes are in tmp/coach-astra-hostile-20260912/preservation.json. Architecture and domain contracts in [31](31-gwen-execution-handoff.md) and [32](32-gwen-domain-and-verification-contract.md) remain binding. Older checkpoints and the migration banner above are historical evidence.
 
+### Session entry point — 2026-09-13 (Astra seat)
+
+The 2026-09-13 session executed the held queue from packet 70. Read these three
+before starting anything, then the slice plan you are taking:
+
+| Doc | What it settles |
+|---|---|
+| [71 — M68 transcript containment exit](71-m68-transcript-containment-exit.md) | The Talk-tab layout fix, its RED→GREEN, hostile review round 1 (REVISE, 8 minor, 5 repaired), **HR16** (routed thread never hydrated — fixed), **M68-F2** (closed by HR16) and **M68-F3** (mobile strip overlap, pre-existing, NOT fixed). Also records a wrong root cause that was corrected, and a process defect. |
+| [72 — clientAccess policy and caller audit](72-clientaccess-policy-and-caller-audit.md) | The shared-helper audit: CA-0 (latent, not reachable, zero consumers), CA-1 (photo privacy fail-open — the one with real user impact, fixed), CA-2 (fail-closed profile update, fixed), CA-3 (drift, not fixed). Contains the executed CA-0 probe and **strikes two of its own earlier wrong claims in place**. Also scopes the stale `known-failing-baseline.json` finding. |
+| [73 — G11 six-finding adjudication](73-g11-original-six-findings-adjudication.md) | Explicit adjudication of the six original HR1 findings that `final-review-original-findings-checkpoint.json` records as open. All six source-fixed; five with direct tests; the cited suites were **executed** (108 vitest + 10 node:test). Names the residual gaps. |
+
+Committed at the end of that session (branch `codex/swan-coach-astra-owned-20260906`):
+`2cc843ad1` M68 · `cbb6087ea` docs 72+73 · `a261a4fd0` doc 73 evidence ·
+`2aeb2783e` HR16 · `62d753514` CA-0/1/2 · `8ccaaae71` M68-F3 + HR16 closure ·
+`86a68749b` baseline scoping. **Not pushed.**
+
+Two corrections that matter more than the fixes: HR16 was **not** an auth-binding
+race (it is React.StrictMode's dev double-invoke aborting the load before dispatch,
+plus a latch that made it permanent), and CA-0 was **not** a live cross-client
+exposure (the mounted URL is admin-gated and the endpoint has no consumers). Both
+earlier claims are corrected in place in 71 and 72 rather than quietly edited.
+
 ## Plain-English Summary
 
 Make Swan Coach the application’s dependable training partner: converse naturally,
