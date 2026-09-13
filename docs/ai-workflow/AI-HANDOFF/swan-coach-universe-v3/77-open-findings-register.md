@@ -370,9 +370,10 @@ which is why the 10 `.postgres.test.mjs` files need their own configs and never 
 in a default suite. Note also `retry: 1` at `:80` — a default that can mask a flaky
 failure, which is why the isolated runner overrides it with `--retry 0`.
 
-## F. G11 release gates — all NOT RUN at this revision
+## F. G11 release gates — one gate partially executed, the rest NOT RUN
 
-Frozen all-role/scenario/holdout provider evaluation · privacy and
+**Executed:** the disposable-Postgres gate — see §F2 for the 7-of-10 result.
+**Still NOT RUN:** frozen all-role/scenario/holdout provider evaluation · privacy and
 provider-boundary evaluation · Redis-unavailable/restart at integration level ·
 migration/restore/rollback · performance budgets · real authenticated role
 journeys · mounted substitution/share and dashboard adapters. See
