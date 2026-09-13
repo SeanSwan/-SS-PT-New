@@ -117,11 +117,18 @@ generalised.
 
 ## What is NOT proven — do not let a later summary imply otherwise
 
-- **C4 and C1 are DORMANT.** `CoachCommandCenter.controller.ts:173-177` passes no
-  binding, and nothing registers a selection interceptor or calls
-  `commitClientReference`. Neither slice reaches users. **C2 and C3 are NOT
-  STARTED**, and C3 is what makes them live. The test that would have caught this
-  dormancy cannot exist until C3 does.
+- **C4 and C1 WERE dormant — that is now RESOLVED on the consumer side, and only
+  there.** The dormancy was real: `CoachCommandCenter.controller.ts` passed no binding
+  and nothing called `commitClientReference`. **C2/C3 is now committed (`ec1e05dbd`)**,
+  the controller threads one publication binding to the transports and to all four C4
+  boundary consumers, and the acceptance test that would have caught the dormancy now
+  exists and root verified it can fail (severing one consumer's binding reds 3 of 5).
+  **But C3 is PARTIAL, and a later summary must not smooth that over:**
+  `useCoachPinnedClient.ts:111-113` still calls `setActiveClient` / `clearActiveClient`
+  / `chat.newChat()` directly, and `CoachCommandCenter.actions.ts:90,98,99` still clears
+  logs and composer text before admission. Both files are untouched. Plan 63's
+  created-thread adoption, Leave, blocked-return UI and the real router blocker are
+  unimplemented, and no browser or mounted run was ever performed.
 - **G10 consent has no frontend consumer** — reachable by authenticated API call,
   not by any button.
 - **G09's routes have no UI**; the S9 drawer does not exist. `purgeDueFacts` now HAS a

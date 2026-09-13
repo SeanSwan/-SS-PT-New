@@ -10,11 +10,12 @@ companion to [78 — session handoff](78-session-handoff-20260913.md), which cov
 remains the specific record for the six original HR1 findings and is not repeated
 here.
 
-**State at the time of writing: C2/C3 was still in flight.** Everything else in the
-queue has either been committed with root having executed its suite, or is recorded
-below as genuinely not started with the reason. Nothing here claims a result for
-work whose agent had not reported and whose suite root had not executed. Where a
-claim is provisional it is labelled provisional.
+**State at the time of writing: every queue item is now committed or explicitly
+recorded as not started, with the reason.** C2/C3 landed last, as `ec1e05dbd`. Nothing
+here claims a result for work whose agent had not reported and whose suite root had not
+executed. Where a claim is provisional or partial it is labelled so — in particular C3
+is **partial**, and the C2/C3 implementer's own report contained one false claim that
+root checked and corrected rather than repeated.
 
 ---
 
@@ -36,9 +37,9 @@ git merge-base --is-ancestor <sha> HEAD   # one slice
 | HR13 | — | **NOT STARTED — gated.** Needs an exclusive `useCoachCommand.ts` window and must follow C1–C4; plan 59 says "plan only, no implementation enqueue" |
 | HR14 | `2d5aec4b3` | **CLOSED** |
 | R60-A | `dce0da517` | **CLOSED** |
-| C1 | `f343d3df4` | **CLOSED, DORMANT until C3** |
-| C4 | `b36f874d7` | **CLOSED, DORMANT until C3** |
-| C2 / C3 | — | **in flight at the time of writing**; see §2 |
+| C1 | `f343d3df4` | **CLOSED** — dormancy resolved by C3 (`ec1e05dbd`) across the four consumers; producers still un-admitted |
+| C4 | `b36f874d7` | **CLOSED** — same resolution |
+| C2 / C3 | `ec1e05dbd` | **CLOSED — dormancy resolved on the CONSUMER side.** The four C4 consumers now receive the adapter's own binding (verified by root: acceptance test 5/5 green; can-fail reproduced — severing one consumer's binding reds 3 of 5). C3 is **PARTIAL**: two producers still mutate before admission and were not converted |
 | P64 / S66 | `adf5e74c5` | **CLOSED** |
 | HR15 | `2fd272bf4` | **CLOSED** |
 | clientAccess | `62d753514`, `474b3524c`, `1e376a013` | **CLOSED by measurement** — 12 client-role `authorize` lists, 0 lacking `'user'`, two independent detectors |
@@ -71,8 +72,8 @@ control (the subject never existed).
 | HR15 — client null-target read | **CLOSED** | 5 files / 152 tests; blanket allow → 12 failures |
 | R60-A — unbound submit containment | **CLOSED** | 10 files / 162 tests; RED 7 failed / 2 passed; receiver revert 7F/2P, producer revert 2F/17P |
 | HR12 / P58 — Planner async retirement | **CLOSED** | 88 files / 442 tests; browser gate 4 passed with both anti-vacuity controls passing inside the RED run |
-| C4 — admission boundaries | **CLOSED, but DORMANT** | 4 files / 40 tests; blanket allow → 12 failures. Changes no live behaviour until C3 wires the bindings |
-| C1 — client reference API | **CLOSED, but DORMANT** | 8 files / 91 tests; type-check 0. Same dormancy |
+| C4 — admission boundaries | **CLOSED; dormancy RESOLVED by C3** (`ec1e05dbd`) | 4 files / 40 tests; blanket allow → 12 failures. Was "changes no live behaviour until C3 wires the bindings" — C3 has now wired all four consumers, verified by a can-fail acceptance test. Producers still un-admitted |
+| C1 — client reference API | **CLOSED; dormancy RESOLVED by C3** (`ec1e05dbd`) | 8 files / 91 tests; type-check 0. Same dormancy, same resolution. Root re-checked that its modules live in `context/` and are tracked and clean — see §2 |
 | G09 — Coach memory HTTP surface | **CLOSED** | 3 files / 48 tests; six can-fail guards, all restored SHA-verified |
 | G10 — nudge wiring | **CLOSED** | 2 files / 19 tests; restart proven across four separate processes |
 | G10 — nudge consent surface | **CLOSED** | 31 tests; end-to-end control flips the cron predicate |
@@ -93,7 +94,7 @@ control (the subject never existed).
 | **A3 TRAP** — the "obvious" fix for the two ambiguous sites | **CLOSED AS WON'T FIX — deliberately** | `aiWorkoutController.mjs:288` / `longHorizonController.mjs:201` stay fail-closed. Adding `'user'` to those whitelists would let a `'user'` generate a plan **for another user**: the role gate is the only guard on that path, the self-isolation check is `'client'`-only (`:252`/`:174`), and `checkAiEligibility` runs after the gate (`:295`/`:210`). Root verified by reading both controllers; the implementer demonstrated it by mutation. `aiPlanGenerationCrossUserInvariant.test.mjs` pins the property that holds under either human decision and goes red under a partial fix |
 | **A test that pins the bug — third instance** | **CLOSED** | `clientProgressRoutesSecurity.test.mjs:29,41` asserted the broken role lists verbatim via `toContain`, so GREEN was impossible without editing them. Root verified that against `HEAD` before accepting the edit. Recorded because this mechanism, not the role bug, is why the class survived two sweeps |
 | C1 — client reference API | **CLOSED, but DORMANT** (`f343d3df4`) | 9 files / 93 tests; type-check 0; extraction can-fail re-run proved the guard survived the move. Reaches nothing until C3 |
-| C2 / C3 | **in flight** | Without C3, C4 and C1 remain dormant |
+| C2 / C3 | **CLOSED — with a PARTIAL C3 and one corrected claim** (`ec1e05dbd`) | **What closed:** the C1/C4 dormancy. The controller now creates one publication binding and threads it to the transports and to all four C4 boundary consumers. Root verified rather than trusted: the acceptance test passes 5/5, and root **reproduced the can-fail proof** — severing `binding` from `useCoachClientNotebook` alone gives exit 1 with 3 of 5 failed and the diagnostic "received no publication binding", controller restored byte-identically at SHA `E7DAB179…` (the same SHA the implementer reported). **What did NOT close:** C3 is partial — `useCoachPinnedClient.ts:111-113` still calls `setActiveClient`/`clearActiveClient`/`chat.newChat()` directly and `CoachCommandCenter.actions.ts:90,98,99` still clears logs and composer text before admission; both files are untouched, which root confirmed. Plan 63's created-thread adoption, Leave, blocked-return UI and the real router blocker are unimplemented. **One implementer claim was FALSE and is recorded so it does not propagate:** it reported C1 as uncommitted with four untracked modules and cited doc 78 as agreeing. Root checked — those modules live in `context/`, not `hooks/` (it looked in the wrong directory), every one is tracked and clean, `git status --porcelain` over `context/` and `hooks/` returns nothing, `f343d3df4` created exactly those files, and doc 78:70 records C1 as committed and DORMANT. No harm resulted: it consumed C1's API unchanged |
 | HR13 | **NOT STARTED — gated** | Needs an exclusive `useCoachCommand.ts` window, must follow C1-C4, and plan 59 marks it "plan only, no implementation enqueue" |
 | G07 residual | **NOT STARTED** | Mounted substitution/share integration and exercise-matching quality. Not owned by plan 41, whose deliverables are complete and green |
 | G09 residuals | **PARTIALLY ADDRESSED — 1 narrowed, 2 not started** | R1 (`purgeDueFacts` had no caller): **narrowed, not closed.** `services/coachFactPurgeCron.mjs` now exists, is registered in `core/startup.mjs`, and has 20 tests with two proven can-fail mutations — but it is **default-OFF**, so the 24 h purge still does not happen in production until an operator flips `ENABLE_COACH_FACT_PURGE`. Do not report it closed because the file exists. R2 (T37 conflict writer): **not started, and now classified as an unbuilt feature needing a product decision** — `conflictMetadata` is documented as written "only by an explicit reconcile step" and nothing defines what that step does. R3 (memory UI): not started |
@@ -111,9 +112,23 @@ The 37 backend and 3 frontend test results are root's own and stand regardless.
 
 ## 3. The single largest risk to a future summary
 
-**C4 and C1 are dormant.** They are correct, tested, committed — and reachable by
-nothing. `CoachCommandCenter.controller.ts:173-177` passes no binding to any of the
-four C4 hooks, and nothing registers a selection interceptor or calls
+> **UPDATE 2026-09-13 (final): this section is now HISTORICAL. The dormancy it
+> describes was real and is now RESOLVED on the consumer side by `ec1e05dbd`.**
+> `CoachCommandCenter.controller.ts` no longer passes "no binding": it creates one
+> publication binding at `:52`, threads it to the transports at `:53-55`, and to all
+> four C4 boundary consumers at `:164-168`. The acceptance test this section predicted
+> — "a test that **fails if the binding stops reaching the four C4 hooks**" — now
+> exists and root verified it can fail. **But the warning still applies, in narrower
+> form: C3 is PARTIAL.** Two producers were never converted and are untouched:
+> `useCoachPinnedClient.ts:111-113` calls `setActiveClient` / `clearActiveClient` /
+> `chat.newChat()` directly, and `CoachCommandCenter.actions.ts:90,98,99` clears logs
+> and composer text before admission. Any subsequent account calling C1-C4 "connected
+> selection, end to end" is still wrong — the consumer path is wired, the producer path
+> is not.
+
+**C4 and C1 were dormant.** They are correct, tested, committed — and were reachable by
+nothing. `CoachCommandCenter.controller.ts:173-177` passed no binding to any of the
+four C4 hooks, and nothing registered a selection interceptor or called
 `commitClientReference`. Any later account of this session that describes them as
 "connected selection", or as a fix that reaches users, is wrong. C2/C3 is the
 caller, and the acceptance bar set for C3 is a test that **fails if the binding
