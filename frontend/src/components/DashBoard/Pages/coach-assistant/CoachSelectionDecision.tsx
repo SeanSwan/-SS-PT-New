@@ -8,8 +8,16 @@
  *  Does NOT own: the decision itself (the plan 51 owner), admission (C2), or the
  *  route/pin effects (the C3 commit consumer). It receives two callbacks and
  *  reports nothing else.
- *  Privacy: labels are ID-only. A client NAME is never introduced here, and no
- *  requested profile, thread title or message is rendered while deciding.
+ *  Privacy: the label shown for the CURRENT scope is passed in by the caller and
+ *  may be a client name or thread title, because the person reading it is the
+ *  already-admitted staff actor looking at their own current scope. That is not
+ *  an LLM-PII path (rule 8 governs what reaches a model, not what a staff actor
+ *  sees about their own selection), but the original claim here — "A client NAME
+ *  is never introduced here" — was false, and a false invariant is worse than a
+ *  qualified one because it stops the next reviewer looking. Corrected after
+ *  external hostile review (GLM 5.3, Finding 9). The REQUESTED scope is
+ *  deliberately ID-only (`Client #<id>`), and no message body, profile or thread
+ *  content is rendered while deciding.
  *  A11y: role=dialog + aria-modal + labelled title/description, Escape = Return
  *  (never Discard), initial focus on Return, >=44px targets, reduced motion.
  */
@@ -105,6 +113,14 @@ export function CoachSelectionDecision({
   const titleId = useId();
   const descriptionId = useId();
   const returnRef = useRef<HTMLButtonElement>(null);
+  // `onReturn` is an inline arrow at the Gate, so it gets a new identity on every
+  // render. Depending on it re-ran this effect on each re-render and re-executed
+  // the focus() below, yanking focus back to "Return" while the operator was
+  // tabbing toward "Discard draft" — keyboard and AT users bounced mid-decision.
+  // Holding it in a ref keeps the Escape handler current without re-subscribing.
+  // (External hostile review, GLM 5.3, Finding 6.)
+  const onReturnRef = useRef(onReturn);
+  onReturnRef.current = onReturn;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -112,12 +128,12 @@ export function CoachSelectionDecision({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onReturn();
+        onReturnRef.current();
       }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onReturn, open]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -161,7 +177,21 @@ export function CoachSelectionDecisionGate({ selection, currentLabel }: {
       open={Boolean(ticket)}
       currentLabel={currentLabel || 'the current client'}
       requestedLabel={ticket?.targetUserId ? `Client #${ticket.targetUserId}` : 'no client'}
-      busy={selection.phase !== 'decision'}
+      // BUSY IS NARROWED TO THE TWO IN-FLIGHT PHASES, deliberately.
+      //
+      // This was `phase !== 'decision'`, which dead-locked the surface: the five
+      // failure paths in decide() (blocked-return, invalid/STALE, retired) patch
+      // only `phase`/`reason` and leave `pending` set, so the dialog stayed OPEN
+      // with busy === true — both actions disabled, the Backdrop has no click
+      // handler and there is no close button, so a pointer/touch operator had no
+      // exit at all, and Escape merely retried the same failing decide(). One
+      // failed GET bricked the staff console until reload. Found by external
+      // hostile review (GLM 5.3), not by the author's pass.
+      //
+      // With the narrow predicate a failure re-enables both actions, which
+      // matches the Escape semantics: "Discard draft" is a real exit exactly
+      // where a blocked Return is not.
+      busy={selection.phase === 'checking' || selection.phase === 'committing'}
       onReturn={() => { if (ticket) void selection.decide(ticket.scopeToken, ticket.requestId, 'return'); }}
       onDiscard={() => { if (ticket) void selection.decide(ticket.scopeToken, ticket.requestId, 'discard'); }}
     />

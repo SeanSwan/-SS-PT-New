@@ -21,6 +21,7 @@ import {
   renderPage,
   resetCoachCommandCenterMocks,
   setCoachCommandCenterConversations,
+  useAIChatMock,
 } from './CoachCommandCenterPage.test.harness';
 
 type RecordedCall = { name: string; binding: unknown };
@@ -87,6 +88,29 @@ vi.mock('./hooks/useCoachSessionSelection', async (importOriginal) => {
   };
 });
 
+/**
+ * The C3 decision surface has to be MOUNTED, and this spy is what makes that
+ * fail-able. The previous test asserted `queryByTestId(...)` was NULL — i.e. that
+ * the dialog was CLOSED — so deleting `<CoachSelectionDecisionGate>` from the page
+ * altogether left the whole suite green and the deliverable could vanish silently.
+ * (External hostile review, GLM 5.3, Finding 5.)
+ */
+const decisionSpy = vi.hoisted(() => ({ props: [] as Array<Record<string, unknown>> }));
+
+vi.mock('./CoachSelectionDecision', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./CoachSelectionDecision')>();
+  // The PAGE imports the DEFAULT export (CoachCommandCenterPage.tsx:12
+  // `import CoachSelectionDecisionGate from './CoachSelectionDecision'`), so the
+  // default has to be the spied binding. Mocking only the named export fires
+  // never — which is exactly how the first version of this guard failed.
+  // Both shapes are wrapped so either import style stays covered.
+  const spy = (props: any) => {
+    decisionSpy.props.push(props);
+    return actual.CoachSelectionDecisionGate(props);
+  };
+  return { ...actual, default: spy, CoachSelectionDecisionGate: spy };
+});
+
 const FOUR_CONSUMERS = [
   'useCoachClientNotebook',
   'useCoachComposerDraft',
@@ -102,6 +126,7 @@ describe('CoachCommandCenterPage — the selection binding is WIRED, not dormant
   beforeEach(() => {
     probe.calls.length = 0;
     probe.adapterBinding = null;
+    decisionSpy.props.length = 0;
     resetCoachCommandCenterMocks();
     setCoachCommandCenterConversations([]);
   });
@@ -177,11 +202,29 @@ describe('CoachCommandCenterPage — the selection binding is WIRED, not dormant
     }
   });
 
-  it('renders the selection decision surface when the adapter is deciding', async () => {
+  it('MOUNTS the selection decision surface — the C3 deliverable — and can fail if it is removed', async () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
-    // The decision surface is a C3 deliverable; its absence is a C3 gap, so this
-    // asserts the mount point exists rather than the dialog being open.
     await waitFor(() => expect(probe.adapterBinding).not.toBeNull());
+    // RED if `<CoachSelectionDecisionGate>` is deleted from the page: this spy
+    // never fires. The previous version of this test asserted the dialog was
+    // CLOSED, which deletion could not falsify.
+    await waitFor(() => expect(decisionSpy.props.length).toBeGreaterThan(0));
+    expect(decisionSpy.props[0], 'the gate was mounted without its selection port').toHaveProperty('selection');
+    expect(decisionSpy.props[0], 'the gate was mounted without a current label').toHaveProperty('currentLabel');
+    // No pending decision in this scenario, so the dialog itself stays closed.
     expect(screen.queryByTestId('coach-selection-decision')).toBeNull();
+  });
+
+  it('passes the SAME binding to the useAIChat transport, not only to the four consumers', async () => {
+    // The dormancy had two halves: the four boundary consumers AND the three
+    // transports the controller threads the binding into. The consumer spies
+    // covered only the first half, so severing `binding` from useAIChat /
+    // useCoachCommand / usePremiumTTS stayed green. useAIChat is already a
+    // spyable mock in the harness, so it is the cheap end of that gap.
+    renderPage('/dashboard/admin/coach-assistant?clientId=52&workspace=chat');
+    await waitFor(() => expect(probe.adapterBinding).not.toBeNull());
+    await waitFor(() => expect(useAIChatMock).toHaveBeenCalled());
+    const lastCall = useAIChatMock.mock.calls.at(-1) as unknown[];
+    expect(lastCall[1], 'useAIChat received no publication binding').toBe(probe.adapterBinding);
   });
 });

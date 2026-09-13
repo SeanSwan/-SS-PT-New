@@ -24,9 +24,31 @@ import {
 import type { CoachCommandRole } from '../CoachCommandCenter.roleConfig';
 import { useCoachSessionSelection } from './useCoachSessionSelection';
 
-/** A stable key for "the location/router observation we last requested". */
-const observationKeyFor = (searchKey: string, routeClientId: number | null, routeThreadId: number | null): string =>
-  `${searchKey}|${routeClientId ?? 'none'}|${routeThreadId ?? 'none'}`;
+/**
+ * A stable key for "the scope we last requested".
+ *
+ * SCOPE IS THE TUPLE PLUS THE ACTOR — NOT THE WHOLE QUERY STRING.
+ *
+ * This used to be `${searchKey}|${clientId}|${threadId}`, which made the key
+ * change on ANY param edit — `intent`, `teachPrompt`, `review`, `workspace`,
+ * `draftKey`, `returnTo`, `source` — even when `(clientId, threadId)` was
+ * unchanged. Each new key re-runs `useRequestCoachRouteSelection`, and the
+ * adapter's requestSelection calls `retire()` BEFORE the admission read
+ * (useCoachSessionSelection.ts:147-149), so an unrelated param change withdrew
+ * the live publication for the whole admission window (up to
+ * COACH_ADMISSION_TIMEOUT_MS). During that window every consumer and transport
+ * fails closed, and any operation holding the old token across an await is
+ * refused publication. Found by external hostile review (GLM 5.3), MAJOR.
+ *
+ * The actor IS included deliberately: an actor-epoch change must re-request, so
+ * a new staff actor cannot inherit the previous actor's receipt.
+ */
+const observationKeyFor = (
+  actorId: string | number | null | undefined,
+  rawRole: string | null | undefined,
+  routeClientId: number | null,
+  routeThreadId: number | null,
+): string => `${actorId ?? 'none'}:${rawRole ?? 'none'}|${routeClientId ?? 'none'}|${routeThreadId ?? 'none'}`;
 
 export function useCoachCommandCenterSelection(params: {
   actorId?: string | number | null;
@@ -54,7 +76,7 @@ export function useCoachCommandCenterSelection(params: {
   // plan 55 §5 requires a fresh receipt for unscoped staff mode too, otherwise the
   // staff surface would stay masked forever with no client selected.
   useRequestCoachRouteSelection(
-    observationKeyFor(searchKey, routeClientId, routeThreadId),
+    observationKeyFor(actorId, rawRole, routeClientId, routeThreadId),
     { targetUserId: routeClientId, conversationId: routeThreadId },
     selection,
   );

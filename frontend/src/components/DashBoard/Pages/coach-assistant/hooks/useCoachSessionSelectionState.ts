@@ -55,7 +55,20 @@ export function useCoachSessionSelectionState(params: {
   actorRef.current = { actorNumber, rawRole: rawRole ?? '', staffActor, actorKey };
 
   const apply = useCallback((patch: Partial<AdapterState>): AdapterState => {
-    const next = { ...stateRef.current, ...patch, actorKey: actorRef.current.actorKey };
+    // `actorKey` is NOT re-stamped here. It records the epoch that PRODUCED this
+    // state, and the actor-change layout effect below is its only writer.
+    //
+    // This used to force `actorKey: actorRef.current.actorKey`, which made
+    // `state.actorKey` equal the live actor by construction — so the commit
+    // guard `stateRef.current.actorKey !== actorRef.current.actorKey`
+    // (useCoachSelectionCommit) was unsatisfiable, and its can-fail proof
+    // failed for exactly that reason. Worse, the render-time mask below
+    // (`state.actorKey === actorKey`) compared the very field `apply` forged,
+    // so old-epoch state reaching `apply` through any future async path would
+    // have been silently relabelled as current. Found by external hostile
+    // review (GLM 5.3), which supplied the mechanism for a gap recorded only
+    // as "guard unreachable".
+    const next = { ...stateRef.current, ...patch };
     stateRef.current = next;
     setState(next);
     return next;

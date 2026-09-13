@@ -4,10 +4,17 @@
  * PURPOSE: Plan 55 §3 C2 / plan 63 §5 — the PURE selection-adapter contract.
  * ============================================================================
  * Rule 4 split of the C2 adapter: every type and every pure predicate lives
- * here, with no React and no module-level mutable state, so the hook module
- * stays reviewable and this half stays unit-testable without a DOM harness.
- * `useCoachSessionSelection.ts` RE-EXPORTS this module, so every existing
- * import path keeps working unchanged.
+ * here, with no React, so the hook module stays reviewable and this half stays
+ * unit-testable without a DOM harness. `useCoachSessionSelection.ts` RE-EXPORTS
+ * this module, so every existing import path keeps working unchanged.
+ *
+ * ONE DELIBERATE EXCEPTION to "pure": `mintCommitId` keeps a monotonic
+ * module-level `commitCounter` as a collision guard, so this file is not
+ * state-free. The original header claimed "no module-level mutable state", which
+ * was simply false and would have stopped a reviewer looking for exactly that
+ * class of thing. (External hostile review, GLM 5.3, Finding 8.) The counter is
+ * write-only, monotonic and never read across modules, so the cost is the
+ * exception itself, not a hazard — but it is now stated rather than denied.
  *
  * NOTHING here reads a live scope, calls the network, or owns a generation.
  */
