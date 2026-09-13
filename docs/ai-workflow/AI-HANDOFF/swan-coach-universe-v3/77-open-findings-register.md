@@ -42,6 +42,15 @@ severity is what appears, and the narrowing is recorded in the linked doc.
 | T-2 | MINOR | `known-failing-baseline.json` was recorded **2026-09-02** and is stale relative to the tree. A concurrent full-suite A/B observed 12 failing files against its 7; **5 have UNKNOWN status** — neither confirmed pre-existing nor confirmed flake: `clientPhotoUploadAuthzExecution`, `historyBackfill`, `phase1cXpIntegration`, `workoutPrDetection`, `unit/physicalConfirmChannelSplit`. | [72](72-clientaccess-policy-and-caller-audit.md) | Open. Do **NOT** grow the list — the file says "Shrink this list; never grow it casually", and the runs happened under three concurrent writers where flakes were directly observed. Needs a serialized quiet-tree run to classify each. |
 | T-3 | MINOR | `tests/api/clientPhotoUploadAuthzExecution.test.mjs:158` is **pre-existing RED at pristine HEAD** — `assertAssignmentOrAdmin` (`middleware/verifyClientAccess.mjs:86`) returns a Number where the test pins a String. Confirmed, not inferred. | [72](72-clientaccess-policy-and-caller-audit.md) | Open. |
 
+## C2. Shared infrastructure hazards (not code defects — they cause false attributions)
+
+| ID | Sev | Finding | Evidence | Status |
+|---|---|---|---|---|
+| INF-1 | MAJOR for diagnosis | **The shared Vite dev server on port 4990 can be killed by another agent's file-write pattern.** It died at 02:1x with `EBUSY: resource busy or locked, watch '.../frontend/src/context/.globalClientPin.ts.<pid>.<uuid>.tmpdir/globalClientPin.ts.tmp'` — a transient temp-dir-and-rename write that Vite's chokidar watcher tried to watch, took EBUSY on, and crashed the whole process. Restarted as a managed job; verified up on 4990. | Job `pwsh-62` stderr (full EBUSY stack); restart `pwsh-168` | Recorded. Any browser gate that suddenly cannot connect is more likely this than a code regression. |
+| INF-2 | MAJOR for diagnosis | **The shared server on 4990 is also broken for any planner-mounting gate**: `node_modules/.vite/deps/react-window.js` 504s with `Outdated Optimize Dep` while `_metadata.json` advertises a different `browserHash`, and even the current-hash URL 504s. The stale reference comes from the untouched `WorkoutPlannerRolodexPanel.tsx`. | HR12 report; `playwright.workout-planner.config.ts` | Recorded. M68 and HR16 gates still pass on 4990, so this is scoped to the planner's Rolodex panel, not a general outage. Use a task-local server for planner gates. |
+
+**Both of these produce the same wrong conclusion** — "my change broke the browser gate" — which is why they are in this register rather than left in a job log.
+
 ## D. Slice residuals (the real remaining work)
 
 | ID | Sev | Finding | Evidence | Status |
