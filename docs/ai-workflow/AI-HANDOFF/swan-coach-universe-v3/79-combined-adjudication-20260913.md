@@ -10,10 +10,11 @@ companion to [78 — session handoff](78-session-handoff-20260913.md), which cov
 remains the specific record for the six original HR1 findings and is not repeated
 here.
 
-**State at the time of writing: three slices were still in flight** — the F1–F5
-authorization fixes, C1's Rule-4 extraction, and C2/C3. Their rows say so. Nothing
-here claims a result for work whose agent had not yet reported and whose suite root
-had not yet executed. Where a claim is provisional it is labelled provisional.
+**State at the time of writing: C2/C3 was still in flight.** Everything else in the
+queue has either been committed with root having executed its suite, or is recorded
+below as genuinely not started with the reason. Nothing here claims a result for
+work whose agent had not reported and whose suite root had not executed. Where a
+claim is provisional it is labelled provisional.
 
 ---
 
@@ -43,21 +44,29 @@ had not yet executed. Where a claim is provisional it is labelled provisional.
 
 | Item | Verdict | Reason it is not closed |
 |---|---|---|
-| F1 — trainer-note privacy fail-open | **fix in flight** | The fix is written and root reviewed it by reading: the shared predicate replaces the literal comparison. Suite not yet executed. |
-| F1b — a test pinning the broken predicate | **fix in flight** | Being converted from a source-text assertion to a behavioural case. |
-| F2 — pain-entry 403 on the default role | **fix in flight** | Narrow per-route fix applied; the global `authorize` widening was explicitly **not** authorised and correctly not applied. |
-| F3 — conversation-create 500 on the default role | **fix in flight** | Contract chosen: 403 before any payload. The reasoning is sound — aliasing to `client` at the create site alone would write conversations the account could never read back. |
-| F3-PRODUCT | **OPEN — needs Sean** | The default self-registration role cannot use Coach conversations at all. Internally consistent now, but a product decision. |
-| F4 — HR16 retry cap untested | **fix in flight** | A gap in root's own committed work: deleting the guard left the suite green. |
-| F5 — nudge delivery never reaches the default role | **fix in flight** | Audience set now derived from the shared predicate rather than re-listed. |
-| C2 / C3 | **in flight** | Without C3, C4 and C1 remain dormant. |
-| HR13 | **NOT STARTED — gated** | Needs an exclusive `useCoachCommand.ts` window, must follow C1-C4, and plan 59 marks it "plan only, no implementation enqueue". |
-| G07 residual | **NOT STARTED** | Mounted substitution/share integration and exercise-matching quality. Not owned by plan 41, whose deliverables are complete and green. |
-| G09 residuals | **NOT STARTED** | `purgeDueFacts` never called; T37 conflict writer unbuilt; no memory UI. |
-| G10 residual | **NOT STARTED** | Consent surface has no frontend consumer. |
-| Rule-4 splits | **NOT STARTED** | Six files over the cap. The guard gap that let them through matters more than the splits. |
-| `known-failing-baseline.json` | **NOT STARTED — deliberately** | Needs a quiet tree. Growing it under concurrent writers would produce a baseline that misrepresents the repo. |
-| **G11 release gates** | **ALL NOT RUN** | Frozen all-role/scenario/holdout provider evaluation; privacy and provider-boundary evaluation; Redis/restart at integration level; migration/restore/rollback; performance budgets; real authenticated role journeys. |
+| F1 — trainer-note privacy fail-open | **CLOSED** (`474b3524c`) | `clientDataOverviewQueryService.mjs:21` now uses `!isClientEquivalentRole(requesterRole)`. Root executed 5 files / 37 tests, exit 0 |
+| F1b — a test pinning the broken predicate | **CLOSED** | Converted from a source-text assertion to a behavioural `'user'` vs `'client'` case through the real service |
+| F2 — pain-entry 403 on the default role | **CLOSED** | `'user'` added to the four `authorize` lists. The global `authorize` widening was **not** applied — correctly, since it is used on 100+ routes |
+| F3 — conversation-create 500 on the default role | **CLOSED** | 403 before any payload. The reasoning is sound: aliasing to `client` at the create site alone would write conversations the account could never read back |
+| F3-PRODUCT | **OPEN — needs Sean** | The default self-registration role cannot use Coach conversations at all. Internally consistent now, but a product decision. Four promotion paths narrow the window without closing it |
+| F4 — HR16 retry cap untested | **CLOSED** | Root executed `routedThreadHydration.test.tsx` → 3 tests; the mock now genuinely fails so the retry branch is taken |
+| F5 — nudge delivery never reaches the default role | **CLOSED** | Audience derived from the shared predicate (`['client','user'].filter(isClientEquivalentRole)`) so the query and the delivery-time recheck cannot disagree |
+| C1 — client reference API | **CLOSED, but DORMANT** (`f343d3df4`) | 9 files / 93 tests; type-check 0; extraction can-fail re-run proved the guard survived the move. Reaches nothing until C3 |
+| C2 / C3 | **in flight** | Without C3, C4 and C1 remain dormant |
+| HR13 | **NOT STARTED — gated** | Needs an exclusive `useCoachCommand.ts` window, must follow C1-C4, and plan 59 marks it "plan only, no implementation enqueue" |
+| G07 residual | **NOT STARTED** | Mounted substitution/share integration and exercise-matching quality. Not owned by plan 41, whose deliverables are complete and green |
+| G09 residuals | **NOT STARTED** | `purgeDueFacts` never called; T37 conflict writer unbuilt; no memory UI |
+| G10 residual | **NOT STARTED** | Consent surface has no frontend consumer |
+| Rule-4 splits | **NOT STARTED** | Six files over the cap. The guard gap that let them through matters more than the splits |
+| `known-failing-baseline.json` | **NOT STARTED — deliberately** | Needs a quiet tree. Growing it under concurrent writers would produce a baseline that misrepresents the repo |
+| **G11 release gates** | **ALL NOT RUN** | Frozen all-role/scenario/holdout provider evaluation; privacy and provider-boundary evaluation; Redis/restart at integration level; migration/restore/rollback; performance budgets; real authenticated role journeys |
+
+**Provenance caveat on the F1–F5 row, recorded rather than hidden.** That commit was
+made from root's own verification because the implementer had not yet delivered its
+can-fail narrative when the files settled. Its mutations-of-record and disclosed
+deviations are therefore not captured in `474b3524c`. If its report contradicts
+anything there, **the report wins and a follow-up commit must correct the message.**
+The 37 backend and 3 frontend test results are root's own and stand regardless.
 
 ## 3. The single largest risk to a future summary
 
