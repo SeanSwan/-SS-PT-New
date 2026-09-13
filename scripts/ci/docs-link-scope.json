@@ -1,0 +1,115 @@
+{
+  "purpose": "Scope manifest for scripts/ci/check-docs-links.mjs (slice S17 of the full-site-repair-2026-09-12 packet).",
+  "principle": "The link check guards maintained documentation: pages a reader is expected to navigate today. Frozen historical records and vendored upstream bundles are excluded because their content must not be rewritten, and link-checking them produces a permanent red signal that cannot be cleared. Excluded files are STILL CHECKED; only their failure is downgraded from a gate failure to a recorded, shrink-only debt. Every exclusion must match a declared frozen class, and neither the excluded file count nor the excluded dead-link count may grow.",
+  "checkedScope": "Every git-tracked *.md file that is not matched by an excludedPaths entry.",
+  "classes": {
+    "vendored upstream content": "Installed from an upstream repository and recorded by hash; editing it falsifies the hash and is overwritten on the next install.",
+    "archive-only historical record": "Retained as a historical record. Its content describes a past state and must not be rewritten. Where a directory is still an active write target, the entry additionally pins frozenAsOf so that only pre-existing files are debt.",
+    "QA artifact / generated output": "Written by a script in this repository. Its links are whatever the generator emitted."
+  },
+  "toolVersion": "3.14.2",
+  "excludedPaths": [
+    {
+      "path": ".agents/",
+      "classPattern": "^\\.(agents|claude|continue|cursor)/$",
+      "classification": "vendored upstream content",
+      "reason": "Agent-tooling skill bundle installed from upstream, not authored here. Editing it would falsify the recorded hash and be overwritten on the next install.",
+      "evidence": "skills-lock.json records source + computedHash per skill.",
+      "files": 47,
+      "deadLinks": 75,
+      "unreadable": 0
+    },
+    {
+      "path": ".claude/",
+      "classPattern": "^\\.(agents|claude|continue|cursor)/$",
+      "classification": "vendored upstream content",
+      "reason": "Agent-tooling skill bundle installed from upstream, not authored here. Editing it would falsify the recorded hash and be overwritten on the next install.",
+      "evidence": "skills-lock.json records source + computedHash per skill.",
+      "files": 65,
+      "deadLinks": 1,
+      "unreadable": 0
+    },
+    {
+      "path": ".continue/",
+      "classPattern": "^\\.(agents|claude|continue|cursor)/$",
+      "classification": "vendored upstream content",
+      "reason": "Agent-tooling skill bundle installed from upstream, not authored here. Editing it would falsify the recorded hash and be overwritten on the next install.",
+      "evidence": "skills-lock.json records source + computedHash per skill.",
+      "files": 25,
+      "deadLinks": 1,
+      "unreadable": 0
+    },
+    {
+      "path": ".cursor/",
+      "classPattern": "^\\.(agents|claude|continue|cursor)/$",
+      "classification": "vendored upstream content",
+      "reason": "Agent-tooling skill bundle installed from upstream, not authored here. Editing it would falsify the recorded hash and be overwritten on the next install.",
+      "evidence": "skills-lock.json records source + computedHash per skill.",
+      "files": 24,
+      "deadLinks": 1,
+      "unreadable": 0
+    },
+    {
+      "path": "archive/",
+      "classPattern": "^archive/$",
+      "classification": "archive-only historical record",
+      "reason": "Frozen historical record. The directory is itself named pending-deletion; links inside it describe files as they were and must not be rewritten.",
+      "evidence": "archive/pending-deletion/**",
+      "files": 175,
+      "deadLinks": 16,
+      "unreadable": 1
+    },
+    {
+      "path": "docs/ai-workflow/archive/",
+      "classPattern": "^docs/ai-workflow/archive/$",
+      "classification": "archive-only historical record",
+      "reason": "Archived phase audits describing components that were later retired or moved into archive/pending-deletion. Rewriting their links would misrepresent what was audited.",
+      "evidence": "docs/ai-workflow/archive/phase-0/** references components now under archive/pending-deletion/**",
+      "files": 25,
+      "deadLinks": 23,
+      "unreadable": 0
+    },
+    {
+      "path": "docs/_attic/",
+      "classPattern": "^docs/_attic/$",
+      "classification": "archive-only historical record",
+      "reason": "Attic by name: retained for reference, not maintained, and not part of any navigation path.",
+      "evidence": "docs/_attic/2026-07-wiki-mythos/**",
+      "files": 8,
+      "deadLinks": 1,
+      "unreadable": 0
+    },
+    {
+      "path": "AI-Village-Documentation/validation-prompts/",
+      "classPattern": "^AI-Village-Documentation/validation-prompts/$",
+      "classification": "QA artifact / generated output",
+      "reason": "Saved model transcripts. scripts/consult-gemini.mjs:120 persists groundingMeta.groundingChunks[].web.uri verbatim; Google Search grounding redirect URLs are session-scoped and expire by construction, so they were never stable links and no edit can repair them.",
+      "evidence": "scripts/validation-orchestrator.mjs and scripts/hermes-village.mjs write web-research-sources.md into latestDir and archiveDir",
+      "files": 511,
+      "deadLinks": 1128,
+      "unreadable": 0
+    },
+    {
+      "path": "docs/ai-workflow/validation-reports/",
+      "classPattern": "^docs/ai-workflow/validation-reports/$",
+      "classification": "QA artifact / generated output",
+      "reason": "Same generator output as above, written to the legacy report directory. Content is saved model output, not maintained documentation.",
+      "evidence": "scripts/validation-orchestrator.mjs:191 sets legacyReportDir to docs/ai-workflow/validation-reports",
+      "files": 11,
+      "deadLinks": 42,
+      "unreadable": 0
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/",
+      "classPattern": "^docs/ai-workflow/AI-HANDOFF/$",
+      "classification": "archive-only historical record",
+      "reason": "Historical receipts, frozen AT A RECORDED COMMIT. This directory is an ACTIVE write target: CLAUDE.md rule 48 (lines 212 and 251) requires audit records to be landed here, and 216 files were added in the 30 days before this slice. A whole-directory exclusion would make every future audit record invisible to the link check, so only the files present at the pinned commit are treated as debt; anything written here afterwards is checked like any other documentation.",
+      "evidence": "git ls-tree -r --name-only e07d4b9ea9079fd909c5eb09ef40a2ccf491b429 -- docs/ai-workflow/AI-HANDOFF/",
+      "files": 895,
+      "deadLinks": 577,
+      "unreadable": 0,
+      "frozenAsOf": "e07d4b9ea9079fd909c5eb09ef40a2ccf491b429"
+    }
+  ],
+  "recordedAt": "2026-09-13T09:04:43.389Z"
+}

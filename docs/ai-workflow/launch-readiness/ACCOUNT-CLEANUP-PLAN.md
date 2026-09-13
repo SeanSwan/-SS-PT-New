@@ -27,8 +27,8 @@ Remove/deactivate all disposable test accounts while preserving real identities 
 | 2 | SeanSwan | ogpswan@yahoo.com | admin | **Real owner** |
 | 5 | Jazzypoo | loveswanstudios@protonmail.com | admin | **Real admin (Jazzy)** |
 | 4 | trainer | trainer@swanstudios.com | trainer | Test trainer (1 required) |
-| 28 | client | client@test.com | client | Test client (1 required, 5 sessions) |
-| 29 | user | user@test.com | user | Test user (1 required) |
+| 28 | client | `client@test.com` | client | Test client (1 required, 5 sessions) |
+| 29 | user | `user@test.com` | user | Test user (1 required) |
 
 ### Accounts to DEACTIVATE (24)
 

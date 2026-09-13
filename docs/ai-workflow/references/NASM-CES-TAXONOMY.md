@@ -263,7 +263,7 @@ The migration is **strictly additive** (new columns, no field removal, no type c
 
 ### 6.2 Clinical references
 
-4. **Cleveland Clinic — Pronation/Supination clinical reference** (https://my.clevelandclinic.org/health/symptoms/22091-pronation)
+4. **Cleveland Clinic — Pronation/Supination clinical reference** (https://my.clevelandclinic.org/health/diseases/22474-overpronation)
 5. **Cleveland Clinic — Forward Head Posture** (https://my.clevelandclinic.org/health/symptoms/...)
 6. **AAOS — Common Knee Injuries** (https://orthoinfo.aaos.org/en/diseases--conditions/common-knee-injuries/)
 7. **AAOS — Rotator Cuff Tears** (https://orthoinfo.aaos.org/en/diseases--conditions/rotator-cuff-tears/)

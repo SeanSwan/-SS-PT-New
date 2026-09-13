@@ -47,7 +47,7 @@ Sources: [Merlin firmware doesn't cover GT6](https://www.asuswrt-merlin.net/down
 
 **Verify after:** every device still connects. If a 10-year-old IoT device fails, use transition mode.
 
-**Reference:** [ASUS WPA3 documentation](https://www.asus.com/us/support/faq/1042478/) | [RouterHax WPA3 guide](https://routerhax.com/what-is-wpa3/)
+**Reference:** [ASUS WPA3 documentation](https://www.asus.com/us/support/faq/1042478/) | [RouterHax WPA3 guide (archived — the live site is down)](https://web.archive.org/web/20260510180148/https://routerhax.com/what-is-wpa3/)
 
 ---
 
@@ -255,6 +255,10 @@ Right now you have **17 clients online**. Do you know what each one is?
 
 **Stack:**
 1. **External USB Blu-ray drive** (~$80, LG WH16NS40 or Pioneer BDR-XD08B)
+<!-- makemkv.com serves no response to automated clients: HEAD always fails, GET is
+     unreliable, and the checker hangs on it. A browser User-Agent gets HTTP 200.
+     The link is left because it works for a human reader. -->
+<!-- markdown-link-check-disable-next-line -->
 2. **MakeMKV** (free during beta, [makemkv.com](https://www.makemkv.com)) — rips disc → lossless MKV
 3. **HandBrake** (free, [handbrake.fr](https://handbrake.fr)) — compresses MKV → manageable MP4
 4. **Plex or Jellyfin** on 5090 — serves library to all devices
@@ -485,7 +489,7 @@ Wiki           Codex 5.4        Qwen3-Coder
 
 - [ASUS ROG GT6 support page](https://rog.asus.com/networking/rog-rapture-gt6-model/helpdesk_bios/)
 - [Asuswrt-Merlin firmware (GT6 NOT SUPPORTED)](https://www.asuswrt-merlin.net/)
-- [WPA3-SAE explanation](https://routerhax.com/what-is-wpa3/)
+- [WPA3-SAE explanation (archived — the live site is down)](https://web.archive.org/web/20260510180148/https://routerhax.com/what-is-wpa3/)
 - [ASUS AiProtection Pro features](https://www.asus.com/us/content/aiprotection/)
 - [Two-way intrusion prevention docs](https://www.asus.com/us/support/faq/1008719/)
 - [Adaptive QoS setup](https://www.asus.com/support/faq/1010935/)
