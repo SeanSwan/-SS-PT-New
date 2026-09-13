@@ -47,8 +47,9 @@ If either fails, stop and re-derive state from git rather than from prose.
 
 Executed the held queue from packet 70: implement each bounded slice, verify it by
 executing tests rather than citing them, run hostile review, and commit only what
-survived. Fourteen slices are closed and committed. Two were in flight when this
-was written. Sixteen defects were found and fixed; **five of them were one root
+survived. **Every slice in the held queue is now either committed or explicitly
+recorded as not started with its reason** — including C2/C3 (`ec1e05dbd`), which was
+the last one outstanding. Sixteen defects were found and fixed; **five of them were one root
 cause** — role checks that compare literally against `'client'` while the database's
 default self-registration role is `'user'`. Five more findings were *corrections to
 earlier claims*, four of them to root's own, and they are all recorded in place
@@ -67,7 +68,7 @@ rather than quietly edited.
 | R60-A | `dce0da517` | Unbound AI submit could edit notes/intensity, lock, POST and toast a save | 10 files / 162 tests; RED 7 failed / 2 passed |
 | HR12 / P58 | `19fba5c8a` | A Planner lookup resolving after a client switch attached to the NEW client | 88 files / 442 tests; browser gate RED 2 failed / 2 passed with both anti-vacuity controls passing |
 | C4 | `b36f874d7` | Four selection consumers restored/posted/staged while unadmitted | 4 files / 40 tests; blanket allow → 12 failures |
-| C1 | `f343d3df4` | Client reference API + actor generation + selection interceptor. **DORMANT — See below.** | 9 files / 93 tests; extraction can-fail re-run proved the guard survived the move |
+| C1 | `f343d3df4` | Client reference API + actor generation + selection interceptor. **Was DORMANT; dormancy resolved by C3 (`ec1e05dbd`) on the consumer side — see below.** | 9 files / 93 tests; extraction can-fail re-run proved the guard survived the move |
 | F1–F5 | `474b3524c` | Second wave of the default-role class: trainer-note privacy fail-open, pain-entry 403, conversation-create 500, untested HR16 cap, nudge audience | 5 files / 37 backend tests + 3 frontend, executed by root |
 | G09 routes | `47012147e` | Coach memory service was complete and **unreachable** — no route imported it | 3 files / 48 tests |
 | G10 wiring | `c88fa7039` | Nudge engine was green but **unconsumed**; no client could receive a nudge | 2 files / 19 tests; restart proven across 4 separate processes |
@@ -165,10 +166,15 @@ generalised.
    with **0** lacking `'user'`, and a repo-level pairing guard now fails on
    recurrence. Do **not** re-sweep it; do read §A3 before touching the two ambiguous
    sites, where the obvious fix is a cross-user security opening.
-2. **C2 then C3.** Still the highest-value remaining work: it converts C4 and C1 from
-   dormant plumbing into a working selection path. The acceptance bar is that the
-   binding actually reaches the four C4 hooks, and that a test fails if it stops
-   doing so — that is the test that would have caught the dormancy.
+2. ~~C2 then C3~~ — **DONE** (`ec1e05dbd`). The four C4 hooks now receive the adapter's
+   binding and the acceptance test exists and is proven able to fail (root severed one
+   consumer's binding → 3 of 5 red; controller restored at SHA `E7DAB179…`).
+   **What remains of C3 is the PRODUCER side, and it is the honest next chunk:**
+   `useCoachPinnedClient.ts:111-113` still calls `setActiveClient` / `clearActiveClient` /
+   `chat.newChat()` directly, and `CoachCommandCenter.actions.ts:90,98,99` still clears
+   logs and composer text before admission. Neither file was touched. Plan 63's
+   created-thread adoption, Leave navigation, blocked-return recovery UI and the real
+   data-router blocker are also unimplemented, and no browser or mounted run was done.
 3. ~~Generalise the role guard~~ — **DONE** (`authorizeVerifyClientAccessPairingGuard.test.mjs`
    plus `tests/helpers/authorizePairingScan.mjs`). Note it is deliberately narrower
    than what this list asked for: it targets the falsifiable pairing condition rather
