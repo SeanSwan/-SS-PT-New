@@ -108,12 +108,16 @@ test('manifest: every recorded ledger baseline is a finite number', () => {
   // so it would grow silently. NaN and Infinity are `typeof 'number'` and would
   // pass a naive check while making every comparison false, so assert finiteness.
   for (const e of manifest.excludedPaths) {
-    for (const key of ['files', 'deadLinks', 'unreadable']) {
+    for (const key of ['files', 'deadLinks', 'deadInternal', 'unreadable']) {
       assert.ok(
         Number.isFinite(e[key]),
         `${e.path}.${key} must be a finite recorded number; run --record`,
       );
     }
+    assert.ok(
+      e.deadInternal <= e.deadLinks,
+      `${e.path}: deadInternal (${e.deadInternal}) cannot exceed deadLinks (${e.deadLinks})`,
+    );
   }
 });
 

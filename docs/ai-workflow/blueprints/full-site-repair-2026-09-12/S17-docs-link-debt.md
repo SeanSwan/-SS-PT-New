@@ -251,18 +251,22 @@ excluded because they are frozen, not because they are broken.
 
 - Excluded files are **still checked on every run**. Only their failure is
   downgraded from a gate failure to a recorded ledger row.
-- The gate **fails if any ledger row exceeds its recorded baseline**, in either
-  dead links or unreadable files. This is weaker than "debt can only shrink", and
-  the difference matters. Hostile review demonstrated two ways to move debt
-  without the count rising, both of which are accepted by design or by residual
-  limitation:
-  - **Net-zero swap inside an existing excluded file.** Repair one dead link and
-    break another in the same file, and the row total is unchanged. The ledger is
-    count-based, not identity-based. A new *file*, by contrast, is no longer
-    absorbed: the AI-HANDOFF entry pins a commit, and new files in the other
-    excluded directories are generated or vendored content by construction.
-  - **`--record` absorbs growth.** Re-baselining is a deliberate human action
-    that lands in the diff, not something a normal run can do.
+- The gate **fails if any ledger row exceeds its recorded baseline**, comparing two
+  counters separately. This is weaker than "debt can only shrink", and the
+  difference is stated rather than glossed:
+  - **deterministic** dead links (a relative path or a same-document anchor — the
+    same answer on every machine) are gated at **exactly zero growth**;
+  - **external** URLs are gated with a tolerance of **two per row**, because
+    third-party availability is not a property of this repository and demonstrably
+    varies by vantage point (see §6). A zero tolerance there means the job flaps on
+    other people's outages, which is how this check came to be ignored.
+  - The split was not a precaution. The first CI run of this branch failed on one
+    link; after that was reconciled, the next run failed on a *different* row. The
+    per-link evidence is in §6. This is the design fix for that, not another bump.
+  - Counters are still count-based, not identity-based: a net-zero swap inside one
+    already-excluded file is not detected. A new *file* is no longer absorbed (see
+    the active-write-target rule above), and `--record` remains a deliberate,
+    reviewed act that lands in the diff.
 - **An unrecorded entry fails closed.** If a manifest entry has no recorded
   `deadLinks`/`unreadable`/`files`, the gate exits 2 and says so, rather than
   silently exempting it forever.

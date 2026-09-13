@@ -83,6 +83,33 @@ const DEFAULT_CONFIG = path.join('.github', 'markdown-link-check-config.json');
  */
 const ENGINE_FAILURE_STATUSES = new Set(['dead', 'error']);
 
+/**
+ * Is this dead link deterministic, or does it depend on the network?
+ *
+ * Internal targets (a relative file path, a same-document anchor) resolve or do
+ * not resolve identically on every machine. External URLs do not: measured on
+ * this repository, the same frozen document reports `fda.gov` dead from a GitHub
+ * runner and alive from a Windows box, while `fitnessnav.com` and `scribd.com`
+ * are the other way round. The ledger therefore counts the two separately.
+ */
+function isDeterministicFailure(link) {
+  const t = String(link);
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(t) || t.startsWith('//')) return false;
+  if (/^mailto:/i.test(t)) return false; // MX resolution is a network lookup
+  return true; // relative path, anchor, or bare local target
+}
+
+/**
+ * How much external-link churn the ledger absorbs before failing.
+ *
+ * Third-party availability is not a property of this repository, and a frozen
+ * archived citation to a site that has since died is not actionable. Zero
+ * tolerance means the job flaps on other people's outages — which is how this
+ * check came to be ignored in the first place. Deterministic growth is still
+ * gated at exactly zero.
+ */
+const EXTERNAL_TOLERANCE = 2;
+
 const USAGE = `usage: node scripts/ci/check-docs-links.mjs [options]
 
   --scope=all|in     all = full run including the excluded ledger (default, CI parity)
@@ -297,9 +324,15 @@ async function run() {
   // against NaN is false, which would exempt a row without any error.
   const recorded = (v) => Number.isFinite(v);
   const unrecorded = manifest.excludedPaths.filter(
-    (e) => !recorded(e.deadLinks) || !recorded(e.unreadable) || !recorded(e.files),
+    (e) =>
+      !recorded(e.deadLinks) ||
+      !recorded(e.deadInternal) ||
+      !recorded(e.unreadable) ||
+      !recorded(e.files),
   );
-  if (unrecorded.length) {
+  // `--record` is the act of establishing the baseline, so it cannot be judged
+  // against one. Every other run is, and fails closed.
+  if (unrecorded.length && !opts.record) {
     console.error(
       `[docs-links] manifest entries have no usable recorded baseline: ${unrecorded.map((e) => e.path).join(', ')}`,
     );
@@ -471,27 +504,35 @@ async function run() {
     for (const d of deadLinks(c)) (isExcluded ? excludedDead : inScopeDead).push(d);
   }
 
-  const measure = (list) => {
+  const measure = (list, predicate = () => true) => {
     const m = new Map();
     for (const d of list) {
+      if (!predicate(d)) continue;
       const e = entries.find((x) => d.file.startsWith(x.normalized));
       if (e) m.set(e.path, (m.get(e.path) || 0) + 1);
     }
     return m;
   };
   const deadByEntry = measure(excludedDead);
+  const internalByEntry = measure(excludedDead, (d) => isDeterministicFailure(d.link));
   const errByEntry = measure(excludedErrors);
   const ledgerRow = (e) => ({
     path: e.path,
-    recorded: typeof e.deadLinks === 'number' ? e.deadLinks : null,
+    recorded: Number.isFinite(e.deadLinks) ? e.deadLinks : null,
     observed: deadByEntry.get(e.path) || 0,
-    recordedUnreadable: typeof e.unreadable === 'number' ? e.unreadable : null,
+    recordedInternal: Number.isFinite(e.deadInternal) ? e.deadInternal : null,
+    observedInternal: internalByEntry.get(e.path) || 0,
+    recordedUnreadable: Number.isFinite(e.unreadable) ? e.unreadable : null,
     observedUnreadable: errByEntry.get(e.path) || 0,
   });
   const ledger = entries.map(ledgerRow);
+  // Deterministic growth fails at exactly zero. External growth fails beyond a
+  // small documented tolerance, because third-party availability is not a
+  // property of this repository and varies by vantage point.
   const ledgerGrowth = ledger.filter(
     (r) =>
-      (r.recorded !== null && r.observed > r.recorded) ||
+      (r.recordedInternal !== null && r.observedInternal > r.recordedInternal) ||
+      (r.recorded !== null && r.observed > r.recorded + EXTERNAL_TOLERANCE) ||
       (r.recordedUnreadable !== null && r.observedUnreadable > r.recordedUnreadable),
   );
 
@@ -538,15 +579,12 @@ async function run() {
       }
     }
     if (excludedDead.length) {
-      console.error(`\n[docs-links] excluded ledger (fails only on growth):`);
+      console.error(`\n[docs-links] excluded ledger (fails on deterministic growth, or external growth beyond ${EXTERNAL_TOLERANCE}):`);
       for (const r of ledger) {
-        const flag =
-          (r.recorded !== null && r.observed > r.recorded) ||
-          (r.recordedUnreadable !== null && r.observedUnreadable > r.recordedUnreadable)
-            ? '  <-- OVER BASELINE'
-            : '';
+        const flag = ledgerGrowth.includes(r) ? '  <-- OVER BASELINE' : '';
         console.error(
-          `  dead ${String(r.observed).padStart(5)} / ${String(r.recorded ?? '?').padStart(5)}` +
+          `  deterministic ${String(r.observedInternal).padStart(5)} / ${String(r.recordedInternal ?? '?').padStart(5)}` +
+            `   total ${String(r.observed).padStart(5)} / ${String(r.recorded ?? '?').padStart(5)}` +
             `   unreadable ${String(r.observedUnreadable).padStart(3)} / ${String(r.recordedUnreadable ?? '?').padStart(3)}` +
             `   ${r.path}${flag}`,
         );
@@ -605,6 +643,7 @@ async function run() {
           ...e,
           files: fileCountByEntry.get(e.path) || 0,
           deadLinks: deadByEntry.get(e.path) || 0,
+          deadInternal: internalByEntry.get(e.path) || 0,
           unreadable: errByEntry.get(e.path) || 0,
         };
         // An entry that freezes a file list records the list itself, so the gate

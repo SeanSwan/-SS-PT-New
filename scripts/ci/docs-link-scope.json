@@ -17,7 +17,8 @@
       "evidence": "skills-lock.json records source + computedHash per skill.",
       "files": 47,
       "deadLinks": 75,
-      "unreadable": 0
+      "unreadable": 0,
+      "deadInternal": 74
     },
     {
       "path": ".claude/",
@@ -27,7 +28,8 @@
       "evidence": "skills-lock.json records source + computedHash per skill.",
       "files": 65,
       "deadLinks": 1,
-      "unreadable": 0
+      "unreadable": 0,
+      "deadInternal": 0
     },
     {
       "path": ".continue/",
@@ -37,7 +39,8 @@
       "evidence": "skills-lock.json records source + computedHash per skill.",
       "files": 25,
       "deadLinks": 1,
-      "unreadable": 0
+      "unreadable": 0,
+      "deadInternal": 0
     },
     {
       "path": ".cursor/",
@@ -47,7 +50,8 @@
       "evidence": "skills-lock.json records source + computedHash per skill.",
       "files": 24,
       "deadLinks": 1,
-      "unreadable": 0
+      "unreadable": 0,
+      "deadInternal": 0
     },
     {
       "path": "archive/",
@@ -57,7 +61,8 @@
       "evidence": "archive/pending-deletion/**",
       "files": 175,
       "deadLinks": 16,
-      "unreadable": 1
+      "unreadable": 1,
+      "deadInternal": 9
     },
     {
       "path": "docs/ai-workflow/archive/",
@@ -67,7 +72,8 @@
       "evidence": "docs/ai-workflow/archive/phase-0/** references components now under archive/pending-deletion/**",
       "files": 25,
       "deadLinks": 23,
-      "unreadable": 0
+      "unreadable": 0,
+      "deadInternal": 23
     },
     {
       "path": "docs/_attic/",
@@ -77,7 +83,8 @@
       "evidence": "docs/_attic/2026-07-wiki-mythos/**",
       "files": 8,
       "deadLinks": 1,
-      "unreadable": 0
+      "unreadable": 0,
+      "deadInternal": 0
     },
     {
       "path": "AI-Village-Documentation/validation-prompts/",
@@ -87,7 +94,8 @@
       "evidence": "scripts/validation-orchestrator.mjs and scripts/hermes-village.mjs write web-research-sources.md into latestDir and archiveDir",
       "files": 511,
       "deadLinks": 1128,
-      "unreadable": 0
+      "unreadable": 0,
+      "deadInternal": 0
     },
     {
       "path": "docs/ai-workflow/validation-reports/",
@@ -97,7 +105,8 @@
       "evidence": "scripts/validation-orchestrator.mjs:191 sets legacyReportDir to docs/ai-workflow/validation-reports",
       "files": 11,
       "deadLinks": 42,
-      "unreadable": 0
+      "unreadable": 0,
+      "deadInternal": 0
     },
     {
       "path": "docs/ai-workflow/AI-HANDOFF/",
@@ -106,7 +115,7 @@
       "reason": "Historical receipts, frozen as an EXPLICIT FILE LIST. This directory is an ACTIVE write target: CLAUDE.md rule 48 (lines 212 and 251) requires audit records to be landed here, and 216 files were added in the 30 days before this slice. A whole-directory exclusion would make every future audit record invisible to the link check, so only the files listed in frozenFiles are treated as debt; anything written here afterwards is checked like any other documentation. The list is stored here rather than derived from a pinned commit because actions/checkout fetches a single commit by default, which would make a commit-based freeze unresolvable in CI.",
       "evidence": "frozenFiles below; regenerate with --record",
       "files": 895,
-      "deadLinks": 578,
+      "deadLinks": 577,
       "unreadable": 0,
       "freezeMode": "files",
       "frozenFiles": [
@@ -1006,8 +1015,9 @@
         "docs/ai-workflow/AI-HANDOFF/spend-gate-round7-2026-08-27/GLM-53-FLASH.md",
         "docs/ai-workflow/AI-HANDOFF/spend-gate-round7-2026-08-27/GLM-53.md"
       ],
-      "baselineNote": "Recorded from the CI runner (GitHub Actions, ubuntu-latest), which is where this row is enforced. External-host reachability differs by vantage point: CI reports this FDA URL dead while a Windows dev box reports it alive, and the dev box reports fitnessnav.com and scribd.com dead while CI reports them alive. Recording the higher, CI-observed value keeps both environments passing without raising a tolerance: any NEW dead link beyond this count still fails the run."
+      "baselineNote": "Recorded from the CI runner (GitHub Actions, ubuntu-latest), which is where this row is enforced. External-host reachability differs by vantage point: CI reports this FDA URL dead while a Windows dev box reports it alive, and the dev box reports fitnessnav.com and scribd.com dead while CI reports them alive. Recording the higher, CI-observed value keeps both environments passing without raising a tolerance: any NEW dead link beyond this count still fails the run.",
+      "deadInternal": 502
     }
   ],
-  "recordedAt": "2026-09-13T10:05:54.778Z"
+  "recordedAt": "2026-09-13T20:09:46.329Z"
 }
