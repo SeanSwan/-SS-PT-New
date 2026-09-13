@@ -62,18 +62,22 @@ const moodOptions = [
   ['challenge', 'Challenge'],
 ] as const;
 
-export function TrainingFocusCard({ featureImageSrc, trainingProof, onNavigate }: Pick<ClientDashboardHomeProps,
-  'featureImageSrc' | 'trainingProof' | 'onNavigate'>) {
+export function TrainingFocusCard({ featureImageSrc, trainingProof, assignment, onNavigate }: Pick<ClientDashboardHomeProps,
+  'featureImageSrc' | 'trainingProof' | 'assignment' | 'onNavigate'>) {
+  const title = trainingProof.lastSession?.title || assignment.title || 'Training guidance';
+  const summary = trainingProof.lastSession
+    ? `Completed ${trainingProof.lastSession.when}. ${trainingProof.shareLine || ''}`.trim()
+    : assignment.meta;
   return (
     <PanelCard>
       <PostMedia aria-hidden="true"><img src={featureImageSrc} alt="" /></PostMedia>
       <CardBody>
-        <Kicker><Dumbbell size={13} /> Featured workout</Kicker>
-        <CardTitle>{trainingProof.lastSession?.title || 'Start today strong'}</CardTitle>
-        <MutedText>{trainingProof.shareLine || 'Log a workout to build your weekly progress proof.'}</MutedText>
-        <SocialStats><span>45 min</span><span>Performance training</span><span>{trainingProof.thisWeekCount} this week</span></SocialStats>
+        <Kicker><Dumbbell size={13} /> Training record</Kicker>
+        <CardTitle>{title}</CardTitle>
+        <MutedText>{summary || 'Open the plan when you are ready to train.'}</MutedText>
+        <SocialStats><span>{trainingProof.lastSession ? 'Completed workout' : 'Plan guidance'}</span><span>{trainingProof.thisWeekCount} this week</span></SocialStats>
         <ChipRow>
-          <ActionButton type="button" $primary onClick={() => onNavigate('/dashboard/client/log-workout?loadPlan=today')}>Start Workout</ActionButton>
+          <ActionButton type="button" $primary onClick={() => onNavigate(assignment.actionPath)}>{assignment.actionLabel}</ActionButton>
           <ActionButton type="button" onClick={() => onNavigate('/dashboard/client/workouts')}>Details</ActionButton>
         </ChipRow>
       </CardBody>
@@ -170,7 +174,42 @@ export function CommunityFeedCard({ latestPost, feedLoading, feedError, avatarSr
   );
 }
 
-export function WeeklyInsightsCard({ insights }: Pick<ClientDashboardHomeProps, 'insights'>) {
+export function WeeklyInsightsCard({ insights, historyStatus, hasHistory, onRetryHistory, onLogWorkout }: Pick<ClientDashboardHomeProps,
+  'insights' | 'historyStatus' | 'onRetryHistory' | 'onLogWorkout'> & { hasHistory?: boolean }) {
+  if (historyStatus === 'loading') {
+    return (
+      <PanelCard>
+        <PanelHeader><Kicker><BarChart3 size={13} /> Weekly insights</Kicker></PanelHeader>
+        <CardBody><MutedText>Loading workout history...</MutedText></CardBody>
+      </PanelCard>
+    );
+  }
+
+  if (historyStatus === 'error') {
+    return (
+      <PanelCard>
+        <PanelHeader><Kicker><BarChart3 size={13} /> Weekly insights</Kicker></PanelHeader>
+        <CardBody>
+          <MutedText>Workout history is unavailable right now.</MutedText>
+          {onRetryHistory && <ActionButton type="button" onClick={onRetryHistory}>Retry history</ActionButton>}
+        </CardBody>
+      </PanelCard>
+    );
+  }
+
+  if (historyStatus === 'ready' && hasHistory === false) {
+    return (
+      <PanelCard>
+        <PanelHeader><Kicker><BarChart3 size={13} /> Weekly insights</Kicker></PanelHeader>
+        <CardBody>
+          <CardTitle>Your first logged workout starts your progress story.</CardTitle>
+          <MutedText>Log your first workout to see weekly totals and consistency trends.</MutedText>
+          {onLogWorkout && <ActionButton type="button" $primary onClick={onLogWorkout}>Log Workout</ActionButton>}
+        </CardBody>
+      </PanelCard>
+    );
+  }
+
   return (
     <PanelCard>
       <PanelHeader><Kicker><BarChart3 size={13} /> Weekly insights</Kicker></PanelHeader>
@@ -197,8 +236,8 @@ export function PerformanceZoneCard({ performanceScore, macroSummary, macroLoadi
     <PanelCard>
       <PanelHeader><Kicker><ShieldCheck size={13} /> Performance zone</Kicker></PanelHeader>
       <CardBody>
-        <CardTitle>{performanceScore === null ? 'Build your score' : `${performanceScore}% ready`}</CardTitle>
-        <MutedText>Score combines weekly workout proof, streak momentum, and current level progress.</MutedText>
+        <CardTitle>{performanceScore === null ? 'Build your momentum' : `${performanceScore}% momentum`}</CardTitle>
+        <MutedText>Momentum combines weekly workout proof, streak momentum, and current level progress.</MutedText>
         <ProgressTrack role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={performanceScore ?? 0}>
           <ProgressFill $pct={performanceScore ?? 0} />
         </ProgressTrack>

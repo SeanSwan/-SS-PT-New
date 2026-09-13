@@ -12,7 +12,7 @@
  * │ GET    /critical             Admin/Trainer  Urgency >= 8           │
  * │ GET    /stats                Admin/Trainer  Counts by status       │
  * │ GET    /user/:userId         Admin/Trainer  One client's alerts    │
- * │ POST   /                     Admin          Create manual alert    │
+ * │ POST   /                     Admin/Trainer  Create manual alert    │
  * │ PATCH  /:id/contacted        Admin/Trainer  Mark outreach done     │
  * │ PATCH  /:id/renewed          Admin/Trainer  Mark renewed (win)     │
  * │ PATCH  /:id/dismissed        Admin/Trainer  Dismiss                │

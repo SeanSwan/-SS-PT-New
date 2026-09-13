@@ -14,6 +14,9 @@ import notificationReducer from '../store/slices/notificationSlice';
 import authReducer from '../store/slices/authSlice';
 import uiReducer from '../store/slices/uiSlice';
 import appReducer from '../store/slices/appSlice';
+import customizationReducer from '../store/themeSlice';
+import menuReducer from '../store/menuSlice';
+import orientationReducer from '../store/slices/orientationSlice';
 // Import other reducers as needed
 
 export const store = configureStore({
@@ -24,7 +27,9 @@ export const store = configureStore({
     auth: authReducer,
     ui: uiReducer,
     app: appReducer,
-    // Add other reducers here
+    customization: customizationReducer,
+    menu: menuReducer,
+    orientation: orientationReducer,
   },
   // Additional middleware and devtools configuration
   middleware: (getDefaultMiddleware) =>

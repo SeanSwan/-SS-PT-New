@@ -9,6 +9,12 @@ import {
   createManualAlert,
   checkClientsForRenewalAlerts
 } from '../services/renewalAlertService.mjs';
+import {
+  assertRenewalClientAccess,
+  getRenewalAlertScope,
+  loadAuthorizedRenewalAlert,
+  sendRenewalAccessError,
+} from '../services/renewalAlertAccess.mjs';
 
 /**
  * Renewal Alert Controller
@@ -23,7 +29,7 @@ export async function getAlerts(req, res) {
   try {
     const { minUrgency, limit } = req.query;
 
-    const options = {};
+    const options = { clientIds: await getRenewalAlertScope(req) };
     if (minUrgency) options.minUrgency = parseInt(minUrgency);
     if (limit) options.limit = parseInt(limit);
 
@@ -36,11 +42,7 @@ export async function getAlerts(req, res) {
 
   } catch (error) {
     console.error('Error getting renewal alerts:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get renewal alerts',
-      error: error.message
-    });
+    sendRenewalAccessError(res, error, 'Renewal alerts are temporarily unavailable');
   }
 }
 
@@ -50,7 +52,7 @@ export async function getAlerts(req, res) {
  */
 export async function getCriticalRenewalAlerts(req, res) {
   try {
-    const alerts = await getCriticalAlerts();
+    const alerts = await getCriticalAlerts({ clientIds: await getRenewalAlertScope(req) });
 
     res.json({
       success: true,
@@ -60,11 +62,7 @@ export async function getCriticalRenewalAlerts(req, res) {
 
   } catch (error) {
     console.error('Error getting critical alerts:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get critical alerts',
-      error: error.message
-    });
+    sendRenewalAccessError(res, error, 'Critical alerts are temporarily unavailable');
   }
 }
 
@@ -76,8 +74,11 @@ export async function markAsContacted(req, res) {
   try {
     const { id } = req.params;
     const { notes } = req.body;
+    const authorized = await loadAuthorizedRenewalAlert(req, id);
 
-    const alert = await markAlertAsContacted(id, req.user.id, notes);
+    const alert = await markAlertAsContacted(authorized.alertId, req.user.id, notes, {
+      alert: authorized.alert,
+    });
 
     res.json({
       success: true,
@@ -87,11 +88,7 @@ export async function markAsContacted(req, res) {
 
   } catch (error) {
     console.error('Error marking alert as contacted:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to mark alert as contacted',
-      error: error.message
-    });
+    sendRenewalAccessError(res, error, 'Renewal alert is temporarily unavailable');
   }
 }
 
@@ -103,8 +100,11 @@ export async function markAsRenewed(req, res) {
   try {
     const { id } = req.params;
     const { notes } = req.body;
+    const authorized = await loadAuthorizedRenewalAlert(req, id);
 
-    const alert = await markAlertAsRenewed(id, notes);
+    const alert = await markAlertAsRenewed(authorized.alertId, notes, {
+      alert: authorized.alert,
+    });
 
     res.json({
       success: true,
@@ -114,11 +114,7 @@ export async function markAsRenewed(req, res) {
 
   } catch (error) {
     console.error('Error marking alert as renewed:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to mark alert as renewed',
-      error: error.message
-    });
+    sendRenewalAccessError(res, error, 'Renewal alert is temporarily unavailable');
   }
 }
 
@@ -130,8 +126,11 @@ export async function dismissRenewalAlert(req, res) {
   try {
     const { id } = req.params;
     const { notes } = req.body;
+    const authorized = await loadAuthorizedRenewalAlert(req, id);
 
-    const alert = await dismissAlert(id, notes);
+    const alert = await dismissAlert(authorized.alertId, notes, {
+      alert: authorized.alert,
+    });
 
     res.json({
       success: true,
@@ -141,11 +140,7 @@ export async function dismissRenewalAlert(req, res) {
 
   } catch (error) {
     console.error('Error dismissing alert:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to dismiss alert',
-      error: error.message
-    });
+    sendRenewalAccessError(res, error, 'Renewal alert is temporarily unavailable');
   }
 }
 
@@ -157,7 +152,7 @@ export async function getStats(req, res) {
   try {
     const { startDate, endDate } = req.query;
 
-    const options = {};
+    const options = { clientIds: await getRenewalAlertScope(req) };
     if (startDate) options.startDate = new Date(startDate);
     if (endDate) options.endDate = new Date(endDate);
 
@@ -170,11 +165,7 @@ export async function getStats(req, res) {
 
   } catch (error) {
     console.error('Error getting renewal alert stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get stats',
-      error: error.message
-    });
+    sendRenewalAccessError(res, error, 'Renewal alert statistics are temporarily unavailable');
   }
 }
 
@@ -186,8 +177,9 @@ export async function getAlertsForUser(req, res) {
   try {
     const { userId } = req.params;
     const { activeOnly } = req.query;
+    const authorizedUserId = await assertRenewalClientAccess(req, userId);
 
-    const alerts = await getUserAlerts(userId, activeOnly === 'true');
+    const alerts = await getUserAlerts(authorizedUserId, activeOnly === 'true');
 
     res.json({
       success: true,
@@ -196,11 +188,7 @@ export async function getAlertsForUser(req, res) {
 
   } catch (error) {
     console.error('Error getting user alerts:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get user alerts',
-      error: error.message
-    });
+    sendRenewalAccessError(res, error, 'User alerts are temporarily unavailable');
   }
 }
 
@@ -212,14 +200,9 @@ export async function createManualRenewalAlert(req, res) {
   try {
     const { userId, notes, urgencyScore, sessionsRemaining, daysSinceLastSession } = req.body;
 
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'userId is required'
-      });
-    }
+    const authorizedUserId = await assertRenewalClientAccess(req, userId);
 
-    const alert = await createManualAlert(userId, req.user.id, {
+    const alert = await createManualAlert(authorizedUserId, req.user.id, {
       notes,
       urgencyScore,
       sessionsRemaining,
@@ -234,11 +217,7 @@ export async function createManualRenewalAlert(req, res) {
 
   } catch (error) {
     console.error('Error creating manual alert:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create manual alert',
-      error: error.message
-    });
+    sendRenewalAccessError(res, error, 'Manual alert creation is temporarily unavailable');
   }
 }
 

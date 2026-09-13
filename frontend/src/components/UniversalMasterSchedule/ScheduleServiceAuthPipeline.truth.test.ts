@@ -47,7 +47,7 @@ describe('universal schedule service auth pipeline', () => {
     expect(serviceSource).not.toContain('axios.create');
 
     expect(creditsSource).toContain("import apiService from '../../../services/api.service'");
-    expect(creditsSource).toContain("apiService.get('/api/user/credits')");
+    expect(creditsSource).toContain("apiService.get('/api/user/credits', { signal })");
 
     expect(combinedSource).not.toContain("localStorage.getItem('token')");
     expect(combinedSource).not.toContain('Authorization');

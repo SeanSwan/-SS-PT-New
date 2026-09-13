@@ -171,7 +171,7 @@ import adminReconciliationRoutes from '../routes/adminReconciliationRoutes.mjs';
 import adminChargeCardRoutes from '../routes/adminChargeCardRoutes.mjs';
 import adminWaiverRoutes from '../routes/adminWaiverRoutes.mjs';
 import publicWaiverRoutes from '../routes/publicWaiverRoutes.mjs';
-import adminComplianceRoutes from '../routes/adminComplianceRoutes.mjs';
+import adminComplianceRoutes, { atRiskComplianceRoutes } from '../routes/adminComplianceRoutes.mjs';
 
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
@@ -495,6 +495,10 @@ export const setupRoutes = async (app) => {
 
   // ===================== ADMIN & MANAGEMENT ROUTES =====================
   app.use('/api/admin/flags', adminFlagRoutes); // Launch Control (admin-only; self-gates protect+authorize)
+  // The trainer-safe compliance collection must precede the global admin
+  // router. Only this narrow path is trainer-visible; compliance siblings and
+  // every other /api/admin route retain their admin guards.
+  app.use('/api/admin/compliance/at-risk', atRiskComplianceRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', adminDebugRoutes);
 

@@ -150,7 +150,7 @@ const TrainersManagementSection: React.FC = () => {
         searchTerm={searchTerm}
         specialtyFilter={specialtyFilter}
         statusFilter={statusFilter}
-        onAssignments={() => navigate('/dashboard/client-trainer-assignments')}
+        onAssignments={() => navigate('/dashboard/admin/client-trainer-assignments')}
         onManagePermissions={() => navigate('/dashboard/admin/trainer-permissions')}
         onRefresh={fetchTrainers}
         onSearchChange={setSearchTerm}

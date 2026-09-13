@@ -231,7 +231,6 @@ const SaveSuccessPanel: React.FC<SaveSuccessPanelProps> = ({
           {streak.weeklyCurrent}-week streak alive · {streak.daysThisWeek} training day{streak.daysThisWeek === 1 ? '' : 's'} this week.
         </BeatLine>
       )}
-      {isSelfMode && <SoftLine>XP from this session is on its way to your profile.</SoftLine>}
       {billingLine && <SoftLine>{billingLine}</SoftLine>}
       {planLine && <SoftLine>{planLine}</SoftLine>}
       <WorkoutLoggerChallengeReceipt progress={challengeProgress} />

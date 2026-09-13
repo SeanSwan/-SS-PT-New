@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import apiService from '../../../services/api.service';
-import { normalizeAvailableSessions } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
+import { useAuth } from '../../../context/AuthContext';
 
 export interface SessionCredits {
   sessionsRemaining: number;
@@ -13,15 +13,18 @@ type RawSessionCredits = Partial<Omit<SessionCredits, 'sessionsRemaining'>> & {
   sessionsRemaining?: number | string | null;
 };
 
-export const normalizeSessionCreditsPayload = (payload?: RawSessionCredits | null): SessionCredits => ({
-  sessionsRemaining: normalizeAvailableSessions(payload?.sessionsRemaining),
-  clientSource: payload?.clientSource ?? null,
-  packageName: payload?.packageName ?? null,
-  expiresAt: payload?.expiresAt ?? null,
-});
+export const normalizeSessionCreditsPayload = (payload?: RawSessionCredits | null): SessionCredits => {
+  const raw = payload?.sessionsRemaining;
+  const count = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+$/.test(raw.trim()) ? Number(raw.trim()) : NaN;
+  if (!payload || Array.isArray(payload) || !Number.isSafeInteger(count) || count < 0 ||
+      [payload.clientSource, payload.packageName, payload.expiresAt].some(value => value != null && typeof value !== 'string')) {
+    throw new Error('Session balance could not be verified');
+  }
+  return { sessionsRemaining: count, clientSource: payload.clientSource ?? null, packageName: payload.packageName ?? null, expiresAt: payload.expiresAt ?? null };
+};
 
-const fetchSessionCredits = async (): Promise<SessionCredits> => {
-  const response = await apiService.get('/api/user/credits');
+const fetchSessionCredits = async (signal: AbortSignal): Promise<SessionCredits> => {
+  const response = await apiService.get('/api/user/credits', { signal });
   const result = response.data;
 
   if (result?.success === false) {
@@ -32,9 +35,11 @@ const fetchSessionCredits = async (): Promise<SessionCredits> => {
 };
 
 export const useSessionCredits = (enabled = true) => {
+  const { user } = useAuth();
+  const owner = user?.id == null ? null : String(user.id).trim() || null;
   return useQuery({
-    queryKey: ['sessionCredits'],
-    queryFn: fetchSessionCredits,
-    enabled
+    queryKey: ['sessionCredits', owner],
+    queryFn: ({ signal }) => fetchSessionCredits(signal),
+    enabled: enabled && !!owner,
   });
 };

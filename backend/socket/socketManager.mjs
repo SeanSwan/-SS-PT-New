@@ -333,7 +333,7 @@ async function joinUserRoom(socket, userId) {
 /**
  * Join user to role-based rooms for broadcasting
  */
-async function joinRoleBasedRooms(socket, userRole, userId) {
+async function joinRoleBasedRooms(socket, userRole, _userId) {
   const rooms = [];
   
   // Role-based rooms
@@ -409,9 +409,9 @@ async function joinDashboardRooms(socket, userRole) {
 async function assertSessionRoomAccess(socket, sessionId) {
   const user = socket.data?.user;
   if (!user) return false;
-  if (user.role === 'admin') return true;
+  if (String(user.role || '').toUpperCase() === 'ADMIN') return true;
 
-  const numericId = Number.parseInt(String(sessionId), 10);
+  const numericId = Number(sessionId);
   if (!Number.isSafeInteger(numericId) || numericId <= 0) return false;
 
   try {
@@ -484,7 +484,7 @@ function updateConnectionMetrics(userRole, action) {
 /**
  * Clean up user rooms when disconnecting
  */
-function cleanupUserRooms(socket, userId) {
+function cleanupUserRooms(socket, _userId) {
   // Remove socket from all room memberships
   for (const [roomName, socketSet] of connectionMetrics.roomMemberships.entries()) {
     socketSet.delete(socket.id);

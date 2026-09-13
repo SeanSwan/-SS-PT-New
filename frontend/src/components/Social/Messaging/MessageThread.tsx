@@ -2,12 +2,12 @@
  * FILE: MessageThread.tsx
  * PURPOSE: Message thread panel with direct and managed group-chat support.
  */
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState, useCallback, useMemo } from 'react';
 import { ArrowLeft, Send, MessageSquare, CheckCheck, Check, AlertTriangle, X, Users } from 'lucide-react';
 import type { ConversationData, GroupRole, MessageData, MessageParticipant, SearchUserResult, TypingUser } from './MessagingTypes';
 import type { MessagingErrorState as ErrorState } from './messagingSafeErrors';
 import { participantDisplayName } from './messagingApiAdapters';
-import { getSafeMessagingErrorMessage } from './messagingSafeErrors';
+import { getSafeMessagingErrorMessage, MESSAGING_ERROR_MESSAGES } from './messagingSafeErrors';
 import GroupManagementPanel from './GroupManagementPanel';
 import GroupMessageBubble from './GroupMessageBubble';
 import { formatDateLabel, formatMessageTime, getInitials, groupByDate } from './MessageThread.logic';
@@ -32,7 +32,7 @@ interface Props {
   currentUserId: number;
   participant: MessageParticipant | null;
   conversation: ConversationData | null;
-  onSend: (content: string) => void;
+  onSend: (content: string) => Promise<boolean>;
   onBack: () => void;
   onTyping: () => void;
   onDismissError: () => void;
@@ -77,8 +77,24 @@ const MessageThread: React.FC<Props> = ({
   onRemoveParticipant,
 }) => {
   const [inputValue, setInputValue] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const inputValueRef = useRef('');
+  const sendingRef = useRef(false);
+  const composerKey = `${currentUserId}:${String(conversationId)}`;
+  const composerScopeRef = useRef({ key: composerKey, generation: 0 });
+  if (composerScopeRef.current.key !== composerKey) {
+    composerScopeRef.current = { key: composerKey, generation: composerScopeRef.current.generation + 1 };
+  }
   const messageEndRef = useRef<HTMLDivElement>(null);
   const messageAreaRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    inputValueRef.current = '';
+    sendingRef.current = false;
+    setInputValue('');
+    setIsSending(false);
+  }, [composerKey]);
+  useEffect(() => () => { composerScopeRef.current.generation += 1; }, []);
 
   useEffect(() => {
     const container = messageAreaRef.current;
@@ -87,30 +103,48 @@ const MessageThread: React.FC<Props> = ({
     if (isNearBottom) messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, pendingMessages.length]);
 
-  const handleSubmit = useCallback((event: React.FormEvent) => {
-    event.preventDefault();
-    if (!inputValue.trim()) return;
-    onSend(inputValue);
-    setInputValue('');
-  }, [inputValue, onSend]);
-
-  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      if (inputValue.trim()) {
-        onSend(inputValue);
+  const submitMessage = useCallback(async () => {
+    const submittedText = inputValue;
+    if (!submittedText.trim() || sendingRef.current) return;
+    const submittedGeneration = composerScopeRef.current.generation;
+    sendingRef.current = true;
+    setIsSending(true);
+    try {
+      const sent = await onSend(submittedText);
+      if (sent && composerScopeRef.current.generation === submittedGeneration && inputValueRef.current === submittedText) {
+        inputValueRef.current = '';
         setInputValue('');
+      }
+    } finally {
+      if (composerScopeRef.current.generation === submittedGeneration) {
+        sendingRef.current = false;
+        setIsSending(false);
       }
     }
   }, [inputValue, onSend]);
 
+  const handleSubmit = useCallback((event: React.FormEvent) => {
+    event.preventDefault();
+    void submitMessage();
+  }, [submitMessage]);
+
+  const handleKeyDown = useCallback((event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      void submitMessage();
+    }
+  }, [submitMessage]);
+
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    inputValueRef.current = event.target.value;
     setInputValue(event.target.value);
     onTyping();
   }, [onTyping]);
 
   const dateGroups = useMemo(() => groupByDate(messages), [messages]);
-  const safeErrorMessage = useMemo(() => getSafeMessagingErrorMessage(error), [error]);
+  const safeErrorMessage = useMemo(() => error?.type === 'persistent' && error.message === MESSAGING_ERROR_MESSAGES.send
+    ? 'Message delivery could not be confirmed. Your draft is kept. Check the conversation before trying again.'
+    : getSafeMessagingErrorMessage(error), [error]);
   const isGroupConversation = conversation?.type === 'group';
   const participantById = useMemo(() => new Map(
     (conversation?.participants || []).map(member => [Number(member.id), member])
@@ -252,7 +286,7 @@ const MessageThread: React.FC<Props> = ({
           aria-label={composerLabel}
           rows={1}
         />
-        <SendButton type="submit" disabled={!inputValue.trim()} aria-label="Send message"><Send size={18} /></SendButton>
+        <SendButton type="submit" disabled={!inputValue.trim() || isSending} aria-label="Send message"><Send size={18} /></SendButton>
       </ComposeBar>
     </ThreadPanel>
   );

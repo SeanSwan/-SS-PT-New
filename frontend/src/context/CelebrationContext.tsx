@@ -34,6 +34,7 @@ import CelebrationPortal, {
   type Particle,
   type ComboTier,
 } from '../components/Celebrations/CelebrationPortal';
+import { useAuth } from './AuthContext';
 import soundManager from '../utils/soundManager';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -74,10 +75,12 @@ function haptic(pattern: number[]) {
 export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const { user } = useAuth();
   const [xpPops, setXPPops] = useState<XPPopData[]>([]);
   const [combos, setCombos] = useState<ComboData[]>([]);
   const [levelUp, setLevelUp] = useState<LevelUpData | null>(null);
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [deferredLevel, setDeferredLevel] = useState<number | null>(null);
   // Bound the particle state so repeated celebrations (now driven by real
   // level-up socket events) can't grow it without limit. The canvas self-
   // prunes dead particles each frame; this caps the React-state history a
@@ -116,9 +119,39 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
   // Combo tracking
   const comboCountRef = useRef(0);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const levelUpTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previousOwnerRef = useRef<string | null>(null);
   const idCounter = useRef(0);
 
   const nextId = () => String(++idCounter.current);
+
+  // Reward overlays belong to the authenticated account. Clear them only when
+  // the actual owner changes; a token refresh for the same user must not erase
+  // an in-progress celebration.
+  useEffect(() => {
+    const ownerId = user?.id === undefined || user?.id === null ? null : String(user.id);
+    if (previousOwnerRef.current === ownerId) return;
+    previousOwnerRef.current = ownerId;
+    setXPPops([]);
+    setCombos([]);
+    setLevelUp(null);
+    setParticles([]);
+    setDeferredLevel(null);
+    comboCountRef.current = 0;
+    if (comboTimerRef.current) {
+      clearTimeout(comboTimerRef.current);
+      comboTimerRef.current = null;
+    }
+    if (levelUpTimerRef.current) {
+      clearTimeout(levelUpTimerRef.current);
+      levelUpTimerRef.current = null;
+    }
+  }, [user?.id]);
+
+  useEffect(() => () => {
+    if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
+    if (levelUpTimerRef.current) clearTimeout(levelUpTimerRef.current);
+  }, []);
 
   // ── Sound/Retro setters ───────────────────────────────────
 
@@ -204,10 +237,21 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
     [addParticles, reducedMotion],
   );
 
-  const triggerLevelUp = useCallback(
+  const showLevelUp = useCallback(
     (newLevel: number) => {
-      const dismiss = () => setLevelUp(null);
-      setLevelUp({ id: nextId(), newLevel, dismiss });
+      if (levelUpTimerRef.current) {
+        clearTimeout(levelUpTimerRef.current);
+        levelUpTimerRef.current = null;
+      }
+      const id = nextId();
+      const dismiss = () => {
+        if (levelUpTimerRef.current) {
+          clearTimeout(levelUpTimerRef.current);
+          levelUpTimerRef.current = null;
+        }
+        setLevelUp(current => current?.id === id ? null : current);
+      };
+      setLevelUp({ id, newLevel, dismiss });
 
       // Sound + haptic
       soundManager.play('level_up');
@@ -220,10 +264,47 @@ export const CelebrationProvider: React.FC<{ children: React.ReactNode }> = ({
         addParticles(createBurstParticles(window.innerWidth / 2, window.innerHeight / 2, count));
       }
 
-      // Auto-dismiss after 6s
-      setTimeout(dismiss, 6000);
+      // Auto-dismiss only the matching level. A late timer from an older
+      // celebration must never dismiss a newer level-up overlay.
+      levelUpTimerRef.current = setTimeout(() => {
+        setLevelUp(current => current?.id === id ? null : current);
+        levelUpTimerRef.current = null;
+      }, 6000);
     },
     [addParticles, reducedMotion],
+  );
+
+  // A save/confirmation modal owns the user's attention while it is open.
+  // Defer the takeover and flush it as soon as that modal leaves the DOM.
+  useEffect(() => {
+    if (deferredLevel === null) return undefined;
+    const flush = () => {
+      if (document.querySelector('[aria-modal="true"]')) return;
+      const pendingLevel = deferredLevel;
+      setDeferredLevel(null);
+      showLevelUp(pendingLevel);
+    };
+    const observer = new MutationObserver(flush);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['aria-modal'],
+    });
+    flush();
+    return () => observer.disconnect();
+  }, [deferredLevel, showLevelUp]);
+
+  const triggerLevelUp = useCallback(
+    (newLevel: number) => {
+      if (!Number.isFinite(newLevel) || newLevel <= 0) return;
+      if (document.querySelector('[aria-modal="true"]')) {
+        setDeferredLevel(previous => previous === null || newLevel > previous ? newLevel : previous);
+        return;
+      }
+      showLevelUp(newLevel);
+    },
+    [showLevelUp],
   );
 
   const triggerAchievement = useCallback(

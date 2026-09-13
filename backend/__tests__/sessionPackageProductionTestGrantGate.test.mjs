@@ -11,6 +11,9 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   mockUser: {
     findByPk: vi.fn(),
+    sequelize: {
+      transaction: vi.fn(),
+    },
   },
 }));
 
@@ -72,6 +75,12 @@ describe('session package test-session grant gate (Kimi F3 — allowlist, fail-c
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.mockUser.sequelize.transaction.mockResolvedValue({
+      LOCK: { UPDATE: 'UPDATE' },
+      finished: undefined,
+      commit: vi.fn().mockResolvedValue(undefined),
+      rollback: vi.fn().mockResolvedValue(undefined),
+    });
     mocks.mockUser.findByPk.mockResolvedValue({
       id: 7, role: 'client', clientSource: 'swanstudios', availableSessions: 0, save: vi.fn(),
     });

@@ -30,13 +30,48 @@ function normalizeLevel(value) {
   return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
+function normalizePositiveSafeInteger(value) {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+  if (typeof value !== 'string') return null;
+
+  const normalized = value.trim();
+  if (!/^\d+$/.test(normalized)) return null;
+
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function readMetadata(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+}
+
+function readAchievementName(metadata) {
+  if (!metadata || typeof metadata.achievementName !== 'string') return null;
+  const name = metadata.achievementName.trim();
+  return name ? name.slice(0, 200) : null;
+}
+
+function readStreakDays(metadata) {
+  return normalizePositiveSafeInteger(metadata?.streakDays);
+}
+
 export function emitLedgerRealtimeEvent(result, entry) {
   if (!canEmitLedgerEvent(result, entry)) return;
 
-  const event = REALTIME_SOURCE_EVENT[entry.source] || 'points_awarded';
   const newLevel = normalizeLevel(result.newLevel);
   const previousLevel = normalizeLevel(result.previousLevel);
-  emitGamificationEvent(event, {
+  const transactionId = normalizePositiveSafeInteger(result.pointTransaction?.id);
+  const transactionMetadata = readMetadata(result.pointTransaction?.metadata);
+  const entryMetadata = readMetadata(entry.metadata);
+  const achievementName = readAchievementName(transactionMetadata) || readAchievementName(entryMetadata);
+  const streakDays = readStreakDays(transactionMetadata) ?? readStreakDays(entryMetadata);
+  const mappedEvent = REALTIME_SOURCE_EVENT[entry.source] || 'points_awarded';
+  const event = mappedEvent === 'streak_milestone' && streakDays === null
+    ? 'points_awarded'
+    : mappedEvent;
+  const payload = {
     userId: entry.userId,
     points: result.pointsAwarded,
     xpEarned: result.pointsAwarded,
@@ -46,7 +81,15 @@ export function emitLedgerRealtimeEvent(result, entry) {
     transactionType: entry.transactionType,
     level: result.newLevel,
     previousLevel: result.previousLevel
-  }, { debounce: event === 'workout_completed' });
+  };
+  if (transactionId !== null) {
+    payload.eventId = `point-transaction:${transactionId}`;
+    payload.transactionId = transactionId;
+  }
+  if (achievementName) payload.achievementName = achievementName;
+  if (streakDays !== null) payload.streakDays = streakDays;
+
+  emitGamificationEvent(event, payload, { debounce: false });
 
   if (newLevel !== null && previousLevel !== null && newLevel > previousLevel) {
     emitGamificationEvent('level_up', {
