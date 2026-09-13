@@ -57,7 +57,7 @@ claim is provisional it is labelled provisional.
 | G07 residual | **NOT STARTED** | Mounted substitution/share integration and exercise-matching quality. Not owned by plan 41, whose deliverables are complete and green |
 | G09 residuals | **NOT STARTED** | `purgeDueFacts` never called; T37 conflict writer unbuilt; no memory UI |
 | G10 residual | **NOT STARTED** | Consent surface has no frontend consumer |
-| Rule-4 splits | **NOT STARTED** | Six files over the cap. The guard gap that let them through matters more than the splits |
+| Rule-4 splits | **NOT STARTED** | Six files this session touched are over the cap. **Corrected:** the earlier claim that "the guard gap that let them through matters more than the splits" is withdrawn — G6 is advisory-by-design (`frontend-guards.mjs:14`) and frontend-scoped on purpose (`:5`), and 786 tracked files exceed the cap repo-wide, not six. See [77](77-open-findings-register.md) §D T-1-BASELINE |
 | `known-failing-baseline.json` | **NOT STARTED — deliberately** | Needs a quiet tree. Growing it under concurrent writers would produce a baseline that misrepresents the repo |
 | **G11 release gates** | **ALL NOT RUN** | Frozen all-role/scenario/holdout provider evaluation; privacy and provider-boundary evaluation; Redis/restart at integration level; migration/restore/rollback; performance budgets; real authenticated role journeys |
 
