@@ -277,12 +277,13 @@ rediscovered later.
 
 ## Limits of this audit
 
-- Static analysis plus the recorded 69-hit sibling sweep. No live database probe
-  and no running-server request were made for this audit.
+- Static analysis plus the sibling sweep (see the 69-figure correction above: the
+  count is not reproducible and only the classified instances are relied on). No
+  live database probe and no running-server request were made for this audit.
 - `backend/services/ai/contextEngine/clientAccess.mjs` (the Coach gate) was not
   audited here; it is covered by plans [52](52-coach-read-authorization.md) and
   [55](55-coach-selection-and-transport.md).
-- The 69-hit sweep classification covers requester-side checks; a target-side
+- The sweep classification covers requester-side checks; a target-side
   hand-roll that is genuinely wrong would need a per-route data-flow read and is
   not claimed to be excluded.
 
