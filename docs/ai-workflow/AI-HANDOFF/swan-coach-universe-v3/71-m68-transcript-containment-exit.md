@@ -232,7 +232,42 @@ binding gate is never exercised — a mock-covered boundary, not a verified one.
 
 **FIXED — see "HR16 repair" below.**
 
+### M68-F3 — the floating mobile command strip overlaps the client-bar card (pre-existing; NOT caused by M68)
+
+**Severity: MINOR visual. Out of M68's two-file scope; recorded so it is not lost
+and not mistaken for a regression from this slice.**
+
+Observed while inspecting the HR16 mounted-proof screenshot
+(`tmp/coach-thread-hydration/m68-thread-hydration-390x844.png`, 390x844 @3x): the
+floating mobile command strip (hamburger and close buttons) sits on top of the
+`client-bar` card, and the client-name text is clipped behind it. The intent bar
+and the transcript are unaffected — this is the top-of-surface region, not the
+region M68 changed.
+
+Independence from M68: the condition is present in the screenshot taken *with* the
+M68 fix and the HR16 fix applied, and the M68 `@matrix` gate passes at all 20
+viewports including P2 390x844. M68's own measurements put the intent bar and
+transcript entirely inside `.chat-panel` with zero escapees, so the overlap is in
+a different element pair (`client-bar` vs the floating strip). The existing matrix
+`clipped` check covers whether a control escapes the *viewport*, not whether two
+elements overlap each other, which is why neither M68 nor the pre-existing suite
+caught it.
+
+Not fixed here: plan 68 scopes this slice to two files and forbids expanding scope
+without a measured independent amendment. Recording it as the measured input such
+an amendment would need.
+
+### Requirement note for whoever takes M68-F3
+
+The natural home is the same mobile geometry gate: add a pairwise overlap
+assertion between `.client-bar` and the floating mobile command strip at phone
+widths. Do not fold it into M68's commit after the fact.
+
 ### M68-F2 — message-row text containment is NOT proven by this slice
+
+**CLOSED by HR16** (see "HR16 repair" below): a routed thread now hydrates and
+renders real message rows, so the containment assertions run against them. What
+follows is the original limitation, preserved as the state at M68's exit.
 
 The `@matrix` geometry assertions cover the real rendered stream copy, which on
 this route is the empty state ("Talk to Swan Coach", the example line, the
@@ -240,6 +275,28 @@ this route is the empty state ("Talk to Swan Coach", the example line, the
 rows, because M68-F1 means no message row can mount. This is stated in a comment
 in the spec itself so a future reader cannot mistake the assertion for more than
 it is. It is closed only by fixing M68-F1 and then asserting against real rows.
+
+### HR16 repair — 2026-09-13
+
+Committed `2aeb2783e`. `CoachCommandCenter.controllerEffects.ts` now releases the
+routed-thread latch when the guarded load resolves `null` (meaning it never took
+effect) and caps attempts at `ROUTED_THREAD_LOAD_ATTEMPT_LIMIT` (3) per routed
+thread id so it cannot loop. Publication and authorization guards are untouched.
+
+- Unit RED `expected 'none' to be '301'` → GREEN 2/2 (root independently re-ran: 2/2)
+- Browser RED `Timeout 20000ms exceeded … Received: 0` → GREEN `1 passed (2.6s)`
+- Mounted proof: `.transcript-stream` children **1 → 3**, `emptyState` **true →
+  false**, `DETAIL-FETCH CALLS` **none → exactly one**, rows render as
+  "You · Log my bench session." and "Swan Coach · Draft ready. Confirm to save."
+- `coach-mobile` suite still `3 passed (1.5m)`
+- Screenshot inspected (`tmp/coach-thread-hydration/m68-thread-hydration-390x844.png`):
+  both bubbles render, no empty state — and it is what surfaced M68-F3 above.
+
+**What is still owed for HR16:** whether the shipped production build was ever
+affected. StrictMode's double-invoke is development-only, so the abort path proven
+here is the dev server; the latch defect it exposes is environment-independent,
+but no `npm run build`/preview run was performed. Do not describe HR16 as a
+production incident without that evidence.
 
 ## Commands and results
 
