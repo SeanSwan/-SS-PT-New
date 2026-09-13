@@ -302,14 +302,44 @@ were fixed and photos and the AI BFF were not: the guard was never generalised.
 
 ## Test-baseline finding (not fixed here)
 
-`backend/tests/known-failing-baseline.json` records 7 known-failing files. The
-concurrent full-suite A/B observed **12** failing files, of which 5 are absent from
-that baseline: `clientPhotoUploadAuthzExecution`, `historyBackfill`,
-`phase1cXpIntegration`, `workoutPrDetection`, `unit/physicalConfirmChannelSplit`.
+`backend/tests/known-failing-baseline.json` was recorded **2026-09-02** — eleven
+days before the A/B below — and carries seven files plus a per-file
+classification. It is consumed by `vitest.config.mjs:30` and
+`test-baseline-gate.mjs:37`, and its own note says: *"Shrink this list; never grow
+it casually."* Its history records 23 files reduced to 7 (16 were `node:test`
+files vitest misread, moved to `npm run test:node`).
+
+The concurrent full-suite A/B in this audit observed **12** failing files, of which
+5 are absent from that baseline: `clientPhotoUploadAuthzExecution`,
+`historyBackfill`, `phase1cXpIntegration`, `workoutPrDetection`,
+`unit/physicalConfirmChannelSplit`.
+
+**Do not "fix" this by adding those five to the baseline.** Two reasons:
+
+1. The note explicitly forbids growing the list casually, and that instruction is
+   correct — the list is a claim about *pre-existing* failures, and a failure
+   observed once under load is not evidence of that.
+2. These runs happened while three other slices were concurrently running
+   Playwright, `tsc --noEmit` and vitest **in the same worktree**. Load-induced
+   flakes were directly observed in that window: `CoachCommandCenterVoiceLifecycle`
+   timed out at 5s in the full suite but passes in isolation, and suite duration
+   swung 24s → 52s between runs on the same code.
+
+**What is actually established:** the baseline is stale relative to the current
+tree, and five files' true status is **unknown** — neither confirmed pre-existing
+nor confirmed flake. **What is not established:** that they are new regressions.
+
+**Recommended closure (a real, small slice for a quiet tree):** run the backend
+suite serialized with no other agent active, then classify each of the five as
+*(a)* genuine pre-existing failure → record with a classification like the existing
+seven, *(b)* flake → record the evidence and leave the baseline alone, or *(c)*
+genuine new regression → fix it. Doing that under concurrent load would produce a
+baseline that misrepresents the tree, which is worse than a stale one.
+
 Separately, `tests/api/clientPhotoUploadAuthzExecution.test.mjs:158` is
 **pre-existing RED at pristine HEAD** — `assertAssignmentOrAdmin`
 (`middleware/verifyClientAccess.mjs:86`) now returns a Number where the test pins a
-String. The baseline file understates reality and should be reconciled before it
-is used to judge any future slice.
+String. That one is confirmed, not inferred.
+
 
 
