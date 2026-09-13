@@ -124,39 +124,63 @@ generalised.
   dormancy cannot exist until C3 does.
 - **G10 consent has no frontend consumer** — reachable by authenticated API call,
   not by any button.
-- **G09's routes have no UI**; the S9 drawer does not exist. `purgeDueFacts` is never
-  called in production, so forgotten rows are never destroyed.
-- **No slice ran against real PostgreSQL** except where a slice's own report says so.
-  Most verification is mocked-model or in-memory.
-- **G11's release gates are all NOT RUN**: all-role/scenario/provider evaluation,
+- **G09's routes have no UI**; the S9 drawer does not exist. `purgeDueFacts` now HAS a
+  production caller (`services/coachFactPurgeCron.mjs`, registered in
+  `core/startup.mjs`), but it is **default-OFF** behind `ENABLE_COACH_FACT_PURGE`, so
+  **forgotten rows are still not destroyed in production until an operator flips it**.
+  The code gap is closed; the operational one is not.
+- **Real PostgreSQL was exercised once, partially.** The disposable-Postgres gate ran
+  for the first time: **7 of 10 suites pass** against a freshly recreated database
+  (107 tests, exit 0 per file). **3 cannot run under isolation** — they are `node:test`
+  files that bypass `coachTestDatabase.mjs` and resolve the app's own
+  `localhost:5432/swanstudios`, which the preload denies. Register §F2 has the
+  recipe. Everything else remains mocked-model or in-memory.
+- **G11's remaining gates are all NOT RUN**: all-role/scenario/provider evaluation,
   privacy and provider-boundary evaluation, Redis/restart at integration level,
   migration/restore/rollback, performance budgets, real authenticated role journeys.
+  (The disposable-Postgres gate is the one exception, and only partially.)
 - **The production build was never exercised** for the HR16 fix. StrictMode's
   double-invoke is dev-only; the latch defect it exposes is environment-independent,
   but do not call HR16 a production incident without that evidence.
-- **Whole-repo baselines are not clean** for reasons predating this session, and
-  `known-failing-baseline.json` is stale with five files of **unknown** status.
+- **Whole-repo baselines are not clean** for reasons predating this session. The
+  baseline has now been **reconciled** (register §D1): 13 failing files against the
+  recorded 7, **all 7 still failing so the baseline is accurate and nothing
+  recovered**, and **no regressions**. Five unbaselined failures are pre-existing —
+  this session touched none of the implicated files; three are diagnosed as
+  source-text assertions on `dailyWorkoutFormRoutes.mjs` and two stay unclassified.
 
 ## Next steps, in the order I would take them
 
-1. **Finish the two in-flight slices** (F1–F5 authorization fixes; C1's Rule-4
-   extraction), verify each yourself, and commit.
-2. **C2 then C3.** This is the highest-value remaining work: it converts C4 and C1
-   from dormant plumbing into a working selection path. When you do C3, the
-   acceptance bar is that the binding actually reaches the four C4 hooks, and
-   ideally that a test fails if it stops doing so — that is the test that would have
-   caught the dormancy.
-3. **Generalise the role guard.** One test that fails on a requester-side
-   `role === 'client'` in any route or controller closes the class permanently.
-   Prefer it as a behavioural sweep over the source-text style; three of this
-   session's findings were tests pinning source text, and one of them was pinning a
-   bug.
-4. **Split the five Rule-4 overflows** (list in the register). Note that the
-   frontend pre-commit guard checks the cap on frontend files only, so backend test
-   files pass commit-time checks while exceeding it — fixing that gap is worth more
-   than the five splits.
-5. **Reconcile `known-failing-baseline.json` on a QUIET tree.** Do not grow it. The
-   register explains why.
+1. ~~Finish the two in-flight slices~~ — **DONE.** F1–F5 closed in `474b3524c`, C1's
+   Rule-4 extraction in `f343d3df4`, and the 10-registration third wave in
+   `1e376a013`. The `'user'`-role class is closed **by measurement**: two
+   independently written detectors agree on 12 `authorize([...'client'...])` lists
+   with **0** lacking `'user'`, and a repo-level pairing guard now fails on
+   recurrence. Do **not** re-sweep it; do read §A3 before touching the two ambiguous
+   sites, where the obvious fix is a cross-user security opening.
+2. **C2 then C3.** Still the highest-value remaining work: it converts C4 and C1 from
+   dormant plumbing into a working selection path. The acceptance bar is that the
+   binding actually reaches the four C4 hooks, and that a test fails if it stops
+   doing so — that is the test that would have caught the dormancy.
+3. ~~Generalise the role guard~~ — **DONE** (`authorizeVerifyClientAccessPairingGuard.test.mjs`
+   plus `tests/helpers/authorizePairingScan.mjs`). Note it is deliberately narrower
+   than what this list asked for: it targets the falsifiable pairing condition rather
+   than a general requester-side `role === 'client'` syntactic sweep, because the
+   syntax also matches legitimate target-side checks. It carries a stale-allowlist
+   failure mode and a loud coverage assertion.
+4. **The Rule-4 split advice here was WITHDRAWN — read this before acting on it.**
+   The earlier text said fixing the guard gap was worth more than the splits. Root
+   measured it: **786 tracked files exceed the cap** (594 runtime), G6 is
+   *advisory-by-design* (`frontend-guards.mjs:14` "warns, never blocks"), and the
+   frontend-only scope is deliberate (`:5`, consistent with rule 34). Making the
+   check blocking over `backend/` would block commits across **438** backend files.
+   Split the six over-cap files this session touched as ordinary debt; treat
+   repo-wide Rule-4 debt as its own migration with an owner. Register §D T-1-BASELINE.
+5. ~~Reconcile `known-failing-baseline.json` on a quiet tree~~ — **DONE** (register
+   §D1): no regressions, baseline accurate, 5 pre-existing unbaselined failures of
+   which **3 are diagnosed as source-text assertions** on `dailyWorkoutFormRoutes.mjs`.
+   **Convert those 3 to behavioural assertions before touching the baseline list** —
+   growing the list would hide three failures that are fixable today.
 6. **HR13** — gated: it needs an exclusive `useCoachCommand.ts` window, must land
    after C1-C4, and plan 59 marks it "plan only, no implementation enqueue".
 7. **G07's residual** (mounted substitution/share integration; exercise-matching
