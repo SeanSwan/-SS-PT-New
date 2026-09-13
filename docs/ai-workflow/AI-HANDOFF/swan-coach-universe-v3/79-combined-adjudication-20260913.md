@@ -18,6 +18,44 @@ claim is provisional it is labelled provisional.
 
 ---
 
+## 0. Queue coverage — every held slice, and where it stands
+
+Mapping the held queue in [70](70-release-and-worktree-audit.md) onto this session's
+commits. **Every SHA below was verified to resolve to a real commit and to be an
+ancestor of HEAD** — not cited from memory. Re-verify with:
+
+```
+git log --oneline 4345b86cf..HEAD         # the whole session
+git merge-base --is-ancestor <sha> HEAD   # one slice
+```
+
+| Queue item | Commit(s) | Verdict |
+|---|---|---|
+| M68 (incl. HR16) | `2cc843ad1`, `2aeb2783e` | **CLOSED** |
+| HR12 / P58 | `19fba5c8a` | **CLOSED** |
+| HR13 | — | **NOT STARTED — gated.** Needs an exclusive `useCoachCommand.ts` window and must follow C1–C4; plan 59 says "plan only, no implementation enqueue" |
+| HR14 | `2d5aec4b3` | **CLOSED** |
+| R60-A | `dce0da517` | **CLOSED** |
+| C1 | `f343d3df4` | **CLOSED, DORMANT until C3** |
+| C4 | `b36f874d7` | **CLOSED, DORMANT until C3** |
+| C2 / C3 | — | **in flight at the time of writing**; see §2 |
+| P64 / S66 | `adf5e74c5` | **CLOSED** |
+| HR15 | `2fd272bf4` | **CLOSED** |
+| clientAccess | `62d753514`, `474b3524c`, `1e376a013` | **CLOSED by measurement** — 12 client-role `authorize` lists, 0 lacking `'user'`, two independent detectors |
+| G07 | — | **NOT STARTED — now classified as needing a spec**, both halves. Register §G07-R |
+| G09 | `47012147e`, `02684666f` | **routes CLOSED; purge NARROWED** (scheduler exists but default-OFF); conflict writer and memory UI NOT STARTED |
+| G10 | `c88fa7039`, `c6de0d021` | **wiring + consent CLOSED**; frontend consumer NOT STARTED |
+| G11 | — | **one gate partially executed** (disposable-Postgres, 7/10 suites); the rest NOT RUN |
+| P77-B (video queue truth) | `d05e9eaa0` | **CLOSED** |
+
+**Three items are closed as WON'T FIX BY DESIGN**, and a future reader should not
+reopen them without new evidence: CA-0 (admin-gated at the mounted URL, zero
+consumers, narrowed by probe), the two `§A3` role sites (the "obvious" fix is a
+cross-user plan-generation opening), and the phantom `USE_BULLMQ_RECONCILIATION`
+control (the subject never existed).
+
+---
+
 ## 1. Adjudicated CLOSED, with the evidence root executed
 
 | Slice | Verdict | Evidence root ran itself |
