@@ -202,8 +202,16 @@ same failure mode as the two Vite hazards in §E, arriving by a different route.
 | INF-1 | MAJOR for diagnosis | The shared Vite dev server on **4990 was killed** by another agent's file-write pattern: `EBUSY` watching a transient `.globalClientPin.ts.<pid>.<uuid>.tmpdir/…tmp` that chokidar tried to watch. Restarted and verified up. | Recorded (`0f9a9fd0f`). |
 | INF-2 | MAJOR for diagnosis | Port 4990 breaks any **planner-mounting** browser gate — `deps/react-window.js` 504s with `Outdated Optimize Dep` while `_metadata.json` advertises a different `browserHash`; the stale reference is served from the untouched `WorkoutPlannerRolodexPanel.tsx`. M68 and HR16 gates still pass, so it is scoped. Use a task-local server for planner gates. | Recorded (`0f9a9fd0f`). |
 
+| INF-3 | **MAJOR for diagnosis — root's own probe** | A probe of root's reported **`"0 files scanned"` and `coverageComplete: true`** — a clean-looking result from a run that inspected nothing. The hardcoded Windows root had been written with inconsistent escapes (file text `C:\\Users\BigotSmasher\\...`), so JS parsed the `\B` away and the probe walked a non-existent `C:\UsersBigotSmasher\...`. A `catch { return out; }` swallowed the ENOENT, so the failure printed as success. **Two fixes, both applied:** derive the root from `import.meta.url` instead of hardcoding it, and fail loudly (unreadable directory → report + non-zero exit; empty scan → FATAL). The stale rule: a scan that cannot distinguish "found nothing" from "read nothing" is not evidence. | Recorded; probe fixed |
+
 Both produce the same wrong conclusion — *"my change broke the browser gate"* —
 which is why they live here rather than in a job log.
+
+INF-3 is the same family arriving by a third route: *"my check passed"* when the
+check never ran. The general lesson is that a diagnostic must **prove it looked**.
+The pairing guard added with the third-wave fix asserts `>150 files` and `>0
+pairings` for exactly this reason, and this register treats a silent `catch` in a
+probe as a defect rather than a convenience.
 
 ## F. G11 release gates — all NOT RUN at this revision
 
