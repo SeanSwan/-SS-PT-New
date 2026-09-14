@@ -54,19 +54,29 @@ if (!existsSync(documentPath)) {
   process.exit(1);
 }
 
-// Reasoning models (e.g. Opus 5) can burn the whole budget on hidden
+// Reasoning models (e.g. Opus 5, Fable 5.1) can burn the whole budget on hidden
 // reasoning and return null content — cap reasoning, keep headroom.
 //
 // max_tokens is a CEILING, not a charge: you are billed for tokens actually
 // emitted, so a high ceiling costs nothing on short replies. Raised 16k → 60k
 // on 2026-07-30 after an Opus 5 bootcamp consult truncated mid-sentence at the
 // old cap and the script reported success anyway (see finish_reason guard below).
+//
+// Reasoning default is HALF the ceiling, not a fixed number: the 2026-09-13
+// fable-5.1 adjudication died because its seat reasoned past the then-16k cap
+// (sibling Flash seat spent 18,536 reasoning tokens on the same record), and a
+// fixed reasoning cap can collide with a lowered PANEL_MAX_TOKENS override —
+// Anthropic-class providers require budget_tokens < max_tokens.
 const MAX_TOKENS = Number(process.env.PANEL_MAX_TOKENS) || 60000;
-const REASONING_MAX = Number(process.env.PANEL_REASONING_MAX) || 16000;
+const REASONING_MAX = Number(process.env.PANEL_REASONING_MAX) || Math.floor(MAX_TOKENS / 2);
 const document = readForEgress(documentPath, { label: 'document' });
 const system = `You are ${label}, consulted as an elite mobile product/UX designer and frontend architect by SwanStudios (a premium personal-training SaaS; dark-first "Crystalline Swan" brand: deep sapphire surfaces, Ice Wing cyan #60C0F0 accents, Gilded Fern gold #C6A84B for earned states, Wing Purple #8B5CF6 for AI-coach elements). Answer the consult packet's questions directly, ranked, and concretely. Be adversarial where the plan is weak — vague praise is useless. Markdown output.`;
 
+// Resolved request shape prints in BOTH modes: the dry-run is the free
+// pre-flight that proves ceiling/reasoning/key before any spend is authorized.
+const keyPresent = Boolean(process.env.OPENROUTER_API_KEY || process.env.OPEN_ROUTER_API_KEY);
 console.log(`[panel] model=${model} doc=${documentPath} (${document.length} chars) out=${outPath} mode=${live ? 'LIVE' : 'DRY-RUN'}`);
+console.log(`[panel] request shape: max_tokens=${MAX_TOKENS} reasoning.max_tokens=${REASONING_MAX} key=${keyPresent ? 'present' : 'MISSING'}`);
 if (!live) {
   console.log('[panel] dry-run: no API call made. Re-run with --confirm-spend.');
   process.exit(0);

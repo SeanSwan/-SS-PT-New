@@ -12,7 +12,15 @@
  *
  * Usage:
  *   node scripts/consult-fable.mjs --document <path> [--seed <path>] [--out <path>]
- *        [--remit "<override remit>"]
+ *        [--remit "<override remit>"] [--confirm-spend]
+ *
+ * Safety: DRY-RUN by default (prints the resolved request shape, no API call, no
+ * spend); --confirm-spend makes the ONE live call — same contract as
+ * consult-openrouter-panel.mjs. Ceiling: SWAN_FABLE_MAX_TOKENS (default 60K — a
+ * ceiling, not a charge). Reasoning budget: SWAN_FABLE_REASONING_MAX (default =
+ * half the ceiling): Fable-class seats think in hidden tokens that count against
+ * the ceiling, and a tight cap returns a BILLED null verdict (2026-08-22 and
+ * 2026-09-13 incidents).
  *
  * Model override: SWAN_FUSION_JUDGE_MODEL (defaults to anthropic/claude-fable-5).
  * Same slug the validation-orchestrator judge honors — so this is ALSO the pattern for
@@ -75,8 +83,21 @@ Be concrete, cite section IDs. Do NOT hedge to consensus — you are the final a
 const remit = arg('remit', defaultRemit);
 const prompt = `${remit}\n\n=====================  DOCUMENT UNDER REVIEW  =====================\n\n${doc}\n\n=====================  SEED: FREE-TRIANGLE VERDICT  =====================\n\n${seed || '(no seed provided)'}\n\n=====================  END CONTEXT — PRODUCE YOUR LOCKED RULING NOW  =====================`;
 
+// Ceiling is a CAP, not a charge; the old tight default made reasoning seats
+// return a billed null verdict (hidden thinking counts against max_tokens).
+// Reasoning gets half the ceiling so visible output always has headroom —
+// Anthropic-class providers require budget_tokens < max_tokens.
+const MAX_TOKENS = Number(process.env.SWAN_FABLE_MAX_TOKENS) || 60_000;
+const REASONING_MAX = Number(process.env.SWAN_FABLE_REASONING_MAX) || Math.floor(MAX_TOKENS / 2);
+const useReasoning = REASONING_MAX < MAX_TOKENS;
+const live = process.argv.includes('--confirm-spend');
+
 console.log(`[consult-fable] model=${MODEL}`);
-console.log(`[consult-fable] prompt size: ${prompt.length} chars (~${Math.round(prompt.length / 4)} tokens)`);
+console.log(`[consult-fable] request shape: max_tokens=${MAX_TOKENS} reasoning.max_tokens=${useReasoning ? REASONING_MAX : 'off'} prompt=${prompt.length} chars (~${Math.round(prompt.length / 4)} tokens) mode=${live ? 'LIVE' : 'DRY-RUN'}`);
+if (!live) {
+  console.log('[consult-fable] dry-run: no API call made. Re-run with --confirm-spend.');
+  process.exit(0);
+}
 console.log('[consult-fable] sending request...');
 const t0 = Date.now();
 
@@ -91,8 +112,10 @@ const res = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions'
   body: JSON.stringify({
     model: MODEL,
     messages: [{ role: 'user', content: prompt }],
-    max_tokens: Number(process.env.SWAN_FABLE_MAX_TOKENS || 16000),
-    temperature: 0.25,
+    max_tokens: MAX_TOKENS,
+    // Anthropic-class extended thinking runs at temperature 1 — only pin 0.25
+    // when the reasoning budget is explicitly disabled via SWAN_FABLE_REASONING_MAX.
+    ...(useReasoning ? { reasoning: { max_tokens: REASONING_MAX } } : { temperature: 0.25 }),
   }),
   signal: AbortSignal.timeout(600_000),
 });
@@ -106,33 +129,50 @@ if (!res.ok) {
 const data = await res.json();
 if (data.error) { console.error('API error:', data.error); process.exit(1); }
 
-// Content extraction, defensively. 2026-08-22: a Final-Decider run billed 30,260
-// in / 263 out ($0.32) and wrote "(empty response)" because this line reads ONLY
-// `message.content`. Anthropic models via OpenRouter may return content as an
-// ARRAY of blocks, or put text in `message.reasoning` when reasoning is on, and a
-// refusal can land in neither. Reading one field turned a paid call into nothing
-// and gave no diagnostic. Now: try every shape, and if all are empty, DUMP the
-// message envelope so the next failure is debuggable without re-spending.
-const _msg = data.choices?.[0]?.message ?? {};
-const _fromContent = Array.isArray(_msg.content)
-  ? _msg.content.map((b) => (typeof b === 'string' ? b : b?.text ?? '')).join('')
-  : (typeof _msg.content === 'string' ? _msg.content : '');
-const text = (_fromContent || _msg.reasoning || _msg.refusal || '').trim()
-  || `(empty response)
+// Truncation check BEFORE content extraction (mirrors consult-openrouter-panel.mjs):
+// a reasoning seat can spend the whole ceiling on hidden reasoning and return
+// content:null. The 2026-08-22 incident billed 30,260 in / 263 out ($0.32) and the
+// old code wrote "(empty response)" with exit 0, and message.reasoning was even
+// saved as if it were the verdict. Now: truncated-with-no-content is a hard
+// exit 2 (nothing written); a truncated-but-partial reply is saved under a
+// TRUNCATED banner with exit 2; only a real empty is a diagnostic dump + exit 1.
+const finish = data.choices?.[0]?.finish_reason ?? data.choices?.[0]?.native_finish_reason ?? null;
+const truncated = finish === 'length' || finish === 'max_tokens';
 
-finish_reason: ${data.choices?.[0]?.finish_reason ?? 'unknown'}
-message envelope keys: ${Object.keys(_msg).join(', ') || '(none)'}
-raw message (truncated):
-${JSON.stringify(_msg).slice(0, 2000)}`;
+const _msg = data.choices?.[0]?.message ?? {};
+const text = (Array.isArray(_msg.content)
+  ? _msg.content.map((b) => (typeof b === 'string' ? b : b?.text ?? '')).join('')
+  : (typeof _msg.content === 'string' ? _msg.content : '')).trim();
+
+if (!text) {
+  if (truncated) {
+    console.error(
+      `[consult-fable] TRUNCATED WITH NO CONTENT — the seat hit max_tokens (${MAX_TOKENS})`
+      + ` before emitting any visible text (reasoning consumed the ceiling).`
+      + ` Raise SWAN_FABLE_MAX_TOKENS and/or lower SWAN_FABLE_REASONING_MAX`
+      + ` (currently ${REASONING_MAX}). Nothing was written.`,
+    );
+    process.exit(2);
+  }
+  console.error(`[consult-fable] empty reply — finish_reason: ${finish ?? 'unknown'}; envelope keys: ${Object.keys(_msg).join(', ') || '(none)'}; raw message (truncated): ${JSON.stringify(_msg).slice(0, 2000)}`);
+  process.exit(1);
+}
 const inTok = data.usage?.prompt_tokens || 0;
 const outTok = data.usage?.completion_tokens || 0;
 // Fable pricing (OpenRouter catalog 2026-07-08): $10/M in, $50/M out.
 const cost = (inTok / 1_000_000) * 10 + (outTok / 1_000_000) * 50;
 const wallSec = ((Date.now() - t0) / 1000).toFixed(1);
 
-console.log(`[consult-fable] response in ${wallSec}s — tokens ${inTok} in / ${outTok} out — cost ~$${cost.toFixed(4)}`);
+console.log(`[consult-fable] response in ${wallSec}s — tokens ${inTok} in / ${outTok} out — cost ~$${cost.toFixed(4)} — finish=${finish ?? '?'}`);
 
+const banner = truncated
+  ? `> ⚠ **TRUNCATED** — the seat hit max_tokens (${MAX_TOKENS}); this ruling is INCOMPLETE.\n> Re-run with a higher SWAN_FABLE_MAX_TOKENS or a narrower document.\n\n`
+  : '';
 const outPath = arg('out', 'docs/ai-workflow/AI-HANDOFF/FABLE-FINAL-RULING.md');
-const outContent = `# Fable 5 — Final-Decider Ruling\n\n**Reviewer:** OpenRouter \`${MODEL}\` (Fable via OpenRouter credits; Claude-subscription Fable was capped)\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ~$${cost.toFixed(4)} · **Wall:** ${wallSec}s\n\n---\n\n${text}\n`;
+const outContent = `# Fable 5 — Final-Decider Ruling\n\n**Reviewer:** OpenRouter \`${MODEL}\` (Fable via OpenRouter credits; Claude-subscription Fable was capped)\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ~$${cost.toFixed(4)} · **Wall:** ${wallSec}s · **Finish:** ${finish ?? '?'} · **max_tokens:** ${MAX_TOKENS}\n\n${banner}---\n\n${text}\n`;
 writeFileSync(outPath, outContent, 'utf-8');
 console.log(`[consult-fable] saved -> ${outPath}`);
+if (truncated) {
+  console.error(`[consult-fable] ⚠ TRUNCATED at max_tokens=${MAX_TOKENS}. Ruling is incomplete — raise SWAN_FABLE_MAX_TOKENS or narrow the document.`);
+  process.exit(2);
+}
