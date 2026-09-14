@@ -53,10 +53,15 @@ if (!existsSync(documentPath)) {
   process.exit(1);
 }
 
-// Reasoning models (e.g. Opus 5) can burn the whole budget on hidden
-// reasoning and return null content — cap reasoning, keep headroom.
-const MAX_TOKENS = Number(process.env.PANEL_MAX_TOKENS) || 16000;
-const REASONING_MAX = Number(process.env.PANEL_REASONING_MAX) || 4000;
+// max_tokens is a CEILING, not a charge: you are billed for tokens actually
+// emitted, so a high ceiling costs nothing on short replies. 16k → 60k after a
+// fable-5.1 adjudication died reasoning past the old cap and the script
+// reported success anyway (2026-09-13 incident).
+// Reasoning default is HALF the ceiling, not a fixed number: a fixed cap can
+// collide with a lowered PANEL_MAX_TOKENS override — Anthropic-class providers
+// require budget_tokens < max_tokens.
+const MAX_TOKENS = Number(process.env.PANEL_MAX_TOKENS) || 60000;
+const REASONING_MAX = Number(process.env.PANEL_REASONING_MAX) || Math.floor(MAX_TOKENS / 2);
 const document = readFileSync(documentPath, 'utf-8');
 const system = `You are ${label}, consulted as an elite mobile product/UX designer and frontend architect by SwanStudios (a premium personal-training SaaS; dark-first "Crystalline Swan" brand: deep sapphire surfaces, Ice Wing cyan #60C0F0 accents, Gilded Fern gold #C6A84B for earned states, Wing Purple #8B5CF6 for AI-coach elements). Answer the consult packet's questions directly, ranked, and concretely. Be adversarial where the plan is weak — vague praise is useless. Markdown output.`;
 
