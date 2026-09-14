@@ -1,7 +1,7 @@
 # GLM Consult
 
 **Model:** glm-5.3
-**Document:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/79074e1c-43bb-41f9-b3a2-990172463a35/scratchpad/forge-pr2-r3-packet.md
+**Document:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/79074e1c-43bb-41f9-b3a2-990172463a35/scratchpad/forge-pr2-r3-packet.md
 **Tokens:** 9072 in / 16826 out (reasoning: 14821) | total 25898
 **Wall:** 285.7s
 

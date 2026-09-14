@@ -17,6 +17,7 @@
  * --confirm-spend makes the ONE live call. max_tokens hard-capped.
  * Rule 59: the API key is read into memory only — never printed.
  */
+import { fetchRedacted } from './lib/egress-fetch.mjs';
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
@@ -73,7 +74,7 @@ if (!apiKey) {
 }
 
 const call = (withReasoning) =>
-  fetch('https://openrouter.ai/api/v1/chat/completions', {
+  fetchRedacted('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({

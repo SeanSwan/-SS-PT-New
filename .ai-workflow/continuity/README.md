@@ -61,8 +61,8 @@ Recently-curated PROMOTE markers should be processed BEFORE they age out via tri
 **Layer 1 — Secret patterns (HARD FAIL):** scan candidate via `scripts/scan-secrets.sh --stdin`. Hits print pattern name + field name only (matched content never echoed). Append refuses with non-zero exit on hit.
 
 **Layer 2 — Path/PII scrubs (auto-transform):**
-- All shapes of `c:\Users\BigotSmasher\` → `<USER_HOME>` (Windows backslash, forward slash, JSON-escaped, lowercase, WSL `/mnt/c/`, Git-Bash `/c/`, extended `\\?\C:\`)
-- Standalone username `BigotSmasher` → `<USER>`
+- All shapes of `<HOME>\` → `<USER_HOME>` (Windows backslash, forward slash, JSON-escaped, lowercase, WSL `/mnt/c/`, Git-Bash `/c/`, extended `\\?\C:\`)
+- Standalone username `<OPERATOR>` → `<USER>`
 - Hostname/IP scrubs from `scripts/continuity-config.json` (Tailscale node names, Pi hostnames, Pi IPs)
 
 `scripts/continuity-config.json` is tracked and should keep placeholder values. Put real local infrastructure identifiers in gitignored `scripts/continuity-config.local.json`. The append script reads `.local.json` when present and falls back to the tracked template otherwise. Placeholder checks run against whichever config file was loaded.

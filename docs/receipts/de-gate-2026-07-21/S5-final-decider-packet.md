@@ -20,7 +20,7 @@ deploy, mutate Render, or touch production data.
 
 ### Repository and lane
 
-- Repository: `C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT`
+- Repository: `<REPO>`
 - Isolated worktree to review: `C:\tmp\sspt-degate-design-20260721`
 - Branch: `codex/degate-design-overhaul-20260721`
 - Baseline: `origin/main@eb4bbdd63794d0d842f5e5c107254f8013544367`

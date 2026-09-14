@@ -357,7 +357,7 @@ Fixes: #42 (P0 blocking issue from 2025-11-06 status report)
 **Version**: 1.0
 **Next Review**: After Phase 0 completion (Week 2)
 
-**Document Owner**: Sean (BigotSmasher)
+**Document Owner**: Sean (<OPERATOR>)
 **AI Village Contact**: Claude Code (Status Checker Specialist)
 
 ---

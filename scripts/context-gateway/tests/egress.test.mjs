@@ -11,10 +11,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { tmpdir, homedir, userInfo } from 'node:os';
+import { join, basename } from 'node:path';
 
-import { redactSecrets } from '../src/egress.mjs';
+import { redactSecrets, selfTest } from '../src/egress.mjs';
 import { gitTrackedFiles } from '../src/safeRead.mjs';
 import { createToolSession } from '../src/tools.mjs';
 import { compileContext } from '../src/compile.mjs';
@@ -140,4 +140,71 @@ test('compile: Linear issue notes are ALSO secret-redacted (external content lan
   assert.ok(!lin.content.includes('postgres' + '://') && !lin.content.includes('sk-'), 'issue-note secrets redacted');
   assert.ok(lin.content.includes('<REDACTED-'), 'redaction marker present in issue notes');
   assert.ok(report.secretsRedacted >= 2, 'issue-note redactions counted');
+});
+
+// ── Operator identity (Rule 8) ────────────────────────────────────────────────
+// The class that actually leaked on 2026-08-22: the operator's username inside a
+// filesystem path, in a packet sent to six vendors, after a secret scan said "clean".
+// The name is derived at runtime here exactly as the module derives it, so this file
+// never contains it — the same discipline as the assembled FAKE secrets above.
+const OP = basename(homedir() || '') || userInfo().username;
+const hasName = (s) => s.toLowerCase().includes(OP.toLowerCase());
+
+test('identity: username removed from every path shape, tail preserved', () => {
+  const doc = [
+    `launcher C:\\Users\\${OP}\\Desktop\\quick-pt\\run.ps1`,
+    `wsl /mnt/c/Users/${OP}/tmp/out.txt`,
+    `posix /home/${OP}/hermes2/config.yaml`,
+    `scratch c--Users-${OP}-Desktop-quick-pt-SS-PT`,
+    `fwd C:/Users/${OP}/Desktop/x`,
+  ].join('\n');
+  const { text, redactions } = redactSecrets(doc);
+  assert.ok(!hasName(text), `username survived redaction: ${text}`);
+  assert.ok(redactions >= 5, 'each shape counted');
+  // The point is to remove WHO, not destroy WHERE — citations must stay navigable.
+  assert.ok(text.includes('\\Desktop\\quick-pt\\run.ps1'), 'windows tail preserved');
+  assert.ok(text.includes('/hermes2/config.yaml'), 'posix tail preserved');
+  assert.ok(text.includes('<REDACTED-HOME_PATH>'), 'marker present');
+});
+
+test('identity: ssh login and bare mention removed', () => {
+  const { text } = redactSecrets(`ssh ${OP}@192.168.1.10 then ask ${OP} directly`);
+  assert.ok(!hasName(text), text);
+  assert.ok(text.includes('<REDACTED-OPERATOR>'));
+});
+
+test('identity: 8.3 short-form home dir removed without knowing the name', () => {
+  // Machine-independent rule: leaks the same account without spelling it.
+  // Assembled, not literal — same reason as the FAKE secrets above: a literal 8.3 path
+  // makes this committed file trip the pre-commit identity rule.
+  const short = S('ABCDEF', '~', '1');
+  const { text } = redactSecrets(`short path C:\\Users\\${short}\\AppData\\Local\\Temp`);
+  assert.ok(!text.includes(short), text);
+  assert.ok(text.includes('\\AppData\\Local\\Temp'), 'tail preserved');
+});
+
+test('identity: ordinary prose is NOT shredded', () => {
+  // Over-redaction is how a redactor gets switched off. CI paths, generic Users/,
+  // commit SHAs and dates must survive untouched.
+  const prose = 'CI ran at /home/runner/work, see Users/ docs, commit 72ef9ae40 on 2026-08-27.';
+  const { text, redactions } = redactSecrets(prose);
+  assert.equal(text, prose);
+  assert.equal(redactions, 0);
+});
+
+test('canary: selfTest proves the instrument fires in this process', () => {
+  const r = selfTest();
+  assert.equal(r.proven, true, 'identity derivable and rules active');
+});
+
+test('canary: selfTest THROWS when a name has no rule — the control can fail', () => {
+  // Positive control on the control. A canary that cannot fail proves nothing; this
+  // feeds it a name the module built no rule for, and the canary must catch that.
+  assert.throws(() => selfTest(['zzzunmatchedoperator']), /CANARY FAILED/);
+});
+
+test('canary: common-word account names are deliberately NOT covered', () => {
+  // "root"/"admin" are filtered out of the identity set on purpose — redacting them
+  // globally would mangle ordinary prose. Documented as a known gap, not an oversight.
+  assert.throws(() => selfTest(['root']), /CANARY FAILED/);
 });

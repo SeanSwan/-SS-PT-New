@@ -4,6 +4,7 @@
  * Mirrors the consult-kimi.mjs shape. Subscription-billed (no per-token cost),
  * so no spend gate -- but it DOES consume the coding-plan credit budget.
  */
+import { fetchRedacted } from './lib/egress-fetch.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
@@ -31,7 +32,7 @@ const started = Date.now();
 // think for many minutes before emitting its first token. Node's fetch aborts
 // with UND_ERR_HEADERS_TIMEOUT after ~300s of waiting for response headers.
 // Streaming returns headers immediately, so the clock never starts.
-const res = await fetch('https://api.z.ai/api/coding/paas/v4/chat/completions', {
+const res = await fetchRedacted('https://api.z.ai/api/coding/paas/v4/chat/completions', {
   method: 'POST',
   headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({

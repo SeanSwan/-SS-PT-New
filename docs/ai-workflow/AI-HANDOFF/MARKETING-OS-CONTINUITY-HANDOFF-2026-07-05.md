@@ -8,7 +8,7 @@ The repo was on drive `D:\@Projects\SS-PT-New` — a `"New Volume"` external/new
 - **Best:** move the whole repo to a healthy internal drive (`C:`), work from there.
 - `chkdsk D: /f` (admin) if it stays connected. If it keeps dropping, treat as dying — get data off it.
 - After healthy: `npm ci` in `backend/` and `frontend/`, then verify.
-- **Backup:** an incomplete copy of uncommitted files (163 files, but NOT all critical ones) is at `C:\Users\SWANST~1\AppData\Local\Temp\claude\d---Projects-SS-PT-New\022c3b0f-9307-4db8-a9ac-06a93fdd3687\scratchpad\uncommitted-backup-2026-07-05\`.
+- **Backup:** an incomplete copy of uncommitted files (163 files, but NOT all critical ones) is at `<HOME>\AppData\Local\Temp\claude\d---Projects-SS-PT-New\022c3b0f-9307-4db8-a9ac-06a93fdd3687\scratchpad\uncommitted-backup-2026-07-05\`.
 
 ## 1. THE FULL GOAL (the vision we're executing)
 Turn the **admin Marketing tab** into a real **marketing operating system** (per the GPT Pro deep-research plan + `docs/ai-workflow/references/BEST-IN-CLASS-TRAINING-APP-STRATEGY.md`). Not more widgets — a spine:

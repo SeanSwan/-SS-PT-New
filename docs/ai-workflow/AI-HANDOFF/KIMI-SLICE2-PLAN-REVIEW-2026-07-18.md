@@ -2,7 +2,7 @@
 
 **Reviewer:** OpenRouter `moonshotai/kimi-k3` (effort: medium)
 **Document:** C:/tmp/ss-logger-handoff-20260718/docs/ai-workflow/AI-HANDOFF/POST-SAVE-HANDOFF-SLICE-2-HANDOFF-2026-07-18.md
-**Seed:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/023a7358-014c-4d44-b231-e8b8db3a61dd/scratchpad/kimi-slice2-seed.md
+**Seed:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/023a7358-014c-4d44-b231-e8b8db3a61dd/scratchpad/kimi-slice2-seed.md
 **Tokens:** 3649 in / 16000 out · **Cost:** ~$0.2509 · **Wall:** 536.3s
 
 ---

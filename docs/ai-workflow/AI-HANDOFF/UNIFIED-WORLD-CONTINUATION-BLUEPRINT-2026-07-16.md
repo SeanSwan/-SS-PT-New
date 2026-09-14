@@ -6,7 +6,7 @@
 
 ## 1. WHERE EVERYTHING LIVES (all inside ONE worktree — work here, never in the main checkout)
 
-- **Worktree:** `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/.claude/worktrees/unified-world-gallery-2026-07-16` · branch `worktree-unified-world-gallery-2026-07-16` off origin/main `93b160cba`. NOT pushed. Sean gates any push.
+- **Worktree:** `<REPO>/.claude/worktrees/unified-world-gallery-2026-07-16` · branch `worktree-unified-world-gallery-2026-07-16` off origin/main `93b160cba`. NOT pushed. Sean gates any push.
 - **Factory run (gitignored):** `<worktree>/experiments/world-factory/2026-07-16/unified-gallery-01/` — `run-manifest.json`, `BUILDER-BRIEF.md`, `ADDENDUM-LOGO-LANGUAGES.md`, `receipts/` (4 dashboard receipts — visual law for any dashboard mock), `assets/logo.png`, `sites/<id>/`, `qa/`, `gallery/`.
 - **Doctrine (on this branch):** `docs/ai-workflow/design-brain/worlds.md` (+ techniques/psychology/experience-mode), `SWAN-CINEMATIC-DESIGN-SYSTEM.md`. worlds.md anti-cheese lines are BINDING per site.
 - **Old wip tree** (`wip/comms-notifications-2026-07-05`, main checkout) still holds Sean's unrelated uncommitted WIP — do not touch it.

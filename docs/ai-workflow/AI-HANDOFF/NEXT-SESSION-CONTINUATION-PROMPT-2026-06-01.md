@@ -4,7 +4,7 @@ Use this prompt to start a fresh Codex/Claude session after the 2026-06-01 sessi
 
 ```text
 You are continuing the SwanStudios recursive slice workflow in:
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT
+<REPO>
 
 Read first:
 1. AGENTS.md

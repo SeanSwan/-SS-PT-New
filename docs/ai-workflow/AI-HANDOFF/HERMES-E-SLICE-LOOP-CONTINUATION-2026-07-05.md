@@ -11,7 +11,7 @@
 1. **Ship state:** `origin/main @ d4c3b08d6`. **E1, E2, E3 SHIPPED + green.** `node --test scripts/hermes/*.test.mjs` → **73/73**.
 2. **Loop authorization is STANDING** (§0.2 + §11 of the master handoff): auto-advance through unblocked E-slices/slices, tests-first, hostile-review each, ship each beat, pause only at the §11 HARD-PAUSE gates. Sean re-confirmed per-slice ("Next slice: E1", "continue"/"run the loop", "Next slice: E3").
 3. **Next node = E4** (§4 below). It is the **largest remaining E-node** and its scope GREW: E2's adversarial review proved the self-contained log can't beat a write-capable attacker, so the **EXTERNAL / signed daily head-hash is now E4's job** (on top of hermes-doctor + digest integrity + actor partition).
-4. **Work location:** isolated worktree `c:/tmp/ss-fable-runtime` (detached HEAD at origin/main). Do NOT commit from the shared checkout `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT` (it is ~100+ behind and dirty with other sessions' WIP). Fetch + confirm even before committing; FF-push or rebase the single commit (see §5).
+4. **Work location:** isolated worktree `c:/tmp/ss-fable-runtime` (detached HEAD at origin/main). Do NOT commit from the shared checkout `<REPO>` (it is ~100+ behind and dirty with other sessions' WIP). Fetch + confirm even before committing; FF-push or rebase the single commit (see §5).
 5. **Before ANY edit:** read `.ai-workflow/coordination/claude.lane.md` + `codex.lane.md` + `review-queue.md` (Rule 67), run `node scripts/coordination-prune.mjs`. Other Claude/Codex sessions run in parallel in other worktrees — my lane (`scripts/hermes/**` + the hermes docs) has had **zero overlap** with theirs so far, but re-check.
 
 ---
@@ -107,7 +107,7 @@ git rev-parse HEAD origin/main     # should match d4c3b08d6 (or newer if Codex p
 node --test scripts/hermes/*.test.mjs   # expect 73/73 (GLOB form; bare-dir misbehaves on Windows)
 
 # 2. Rule 67 coordination (from the shared checkout where the gitignored lane files live)
-cd c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+cd <REPO>
 # read .ai-workflow/coordination/claude.lane.md + codex.lane.md + review-queue.md
 node scripts/coordination-prune.mjs
 

@@ -35,7 +35,7 @@ main, not just from the branch.
    verified, not assumed. Do not repeat my framing; state the migration consequence explicitly.)*
 
 3. **Work in a worktree on `main`.** The primary checkout
-   `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT` is on `wip/comms-notifications-2026-07-05`, ~1885
+   `<REPO>` is on `wip/comms-notifications-2026-07-05`, ~1885
    commits behind. Edits there never reach production and tooling that exists will look missing.
 
 4. **A branch created from `origin/main` inherits `origin/main` as its UPSTREAM.** A bare

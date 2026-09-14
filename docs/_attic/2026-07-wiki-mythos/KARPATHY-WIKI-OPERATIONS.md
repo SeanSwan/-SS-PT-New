@@ -13,7 +13,7 @@ When Sean told Hermes about the wiki, Hermes auto-committed to:
 - ✓ **Synthesis to wiki/** — all long-term memory writes go there
 - ✓ **Cross-linking mandate** — every page has 2+ inbound/outbound `[[wikilinks]]`
 - ✓ **Audit trail** — updates `index.md` + `log.md` in real-time
-- ✓ **First seed entities** — `[[hermes]]`, `[[sean-swan]]`, `[[bigotsmasher-pc]]`, `[[gemma-4-benchmarks]]`
+- ✓ **First seed entities** — `[[hermes]]`, `[[sean-swan]]`, `[[<OPERATOR>-pc]]`, `[[gemma-4-benchmarks]]`
 
 This is an excellent foundation. Now let's upgrade it to production-grade.
 
@@ -408,7 +408,7 @@ Create the six template files in ~/swanstudios-wiki/wiki/_templates/: concept-te
 
 ### Step 3: Add YAML Frontmatter To Existing Pages
 ```
-Retrofit the wiki pages you've already created ([[hermes]], [[sean-swan]], [[bigotsmasher-pc]], [[gemma-4-benchmarks]]) with the proper YAML frontmatter per the new SCHEMA.md. Set confidence, last_ingested, tags, type, and backlinks correctly. Commit with message "wiki: retrofit frontmatter on initial entities".
+Retrofit the wiki pages you've already created ([[hermes]], [[sean-swan]], [[<OPERATOR>-pc]], [[gemma-4-benchmarks]]) with the proper YAML frontmatter per the new SCHEMA.md. Set confidence, last_ingested, tags, type, and backlinks correctly. Commit with message "wiki: retrofit frontmatter on initial entities".
 ```
 
 ### Step 4: Seed The Critical Entities

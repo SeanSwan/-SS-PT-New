@@ -5,7 +5,7 @@
 > **Author:** Claude Opus 4.7
 > **Trigger:** Sean's request — "intensive deep comprehensive" user dashboard QA + ideas to spice it up + Playwright pass before tomorrow's Phase 19 implementation slice.
 > **Codex status:** unavailable for ~22h. Doc is review-ready for Third Eye when Sean wants.
-> **Playwright execution status:** BLOCKED — browser MCP locked by another session at `C:\Users\BigotSmasher\AppData\Local\ms-playwright\mcp-chrome-4424a21`. Test matrix in §7 is executable when lock clears or via Sean's own browser.
+> **Playwright execution status:** BLOCKED — browser MCP locked by another session at `<HOME>\AppData\Local\ms-playwright\mcp-chrome-4424a21`. Test matrix in §7 is executable when lock clears or via Sean's own browser.
 
 ---
 

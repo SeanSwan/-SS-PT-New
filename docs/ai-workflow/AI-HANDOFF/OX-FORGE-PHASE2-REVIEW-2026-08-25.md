@@ -2,7 +2,7 @@
 
 **Reviewer:** OpenRouter `stealth/ox-alpha` (effort: high)
 **Served:** `stealth/ox-alpha`
-**Document:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/79074e1c-43bb-41f9-b3a2-990172463a35/scratchpad/forge-phase2-packet.md
+**Document:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/79074e1c-43bb-41f9-b3a2-990172463a35/scratchpad/forge-phase2-packet.md
 **Seed:** (none)
 **Tokens:** 15774 in / 7771 out · **Cost:** ~$0.0000 · **Wall:** 250.0s · **finish:** stop
 

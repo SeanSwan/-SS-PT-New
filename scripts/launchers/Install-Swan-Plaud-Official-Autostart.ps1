@@ -2,7 +2,9 @@
 # Wires Windows Startup to the official @plaud-ai/cli sync launcher.
 
 param(
-  [string]$SwanRepoRoot = "C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT",
+  # Defaults derive from this script's own location (it lives at <repo>\scripts\launchers),
+  # so the launcher works on any checkout, on any machine. Pass -SwanRepoRoot to override.
+  [string]$SwanRepoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..')),
   [string]$ApiBaseUrl = "https://sswanstudios.com",
   [int]$Days = 7,
   [int]$PollSeconds = 300,

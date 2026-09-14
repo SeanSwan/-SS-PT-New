@@ -434,7 +434,7 @@ Each week's work is independently valuable — no big-bang deploy.
 
 8. **What does the Phase 0 Pre-Flight Security Check look like as a `.claude/skills/` skill?** Should it auto-run at session start (hook in `.claude/settings.json`)?
 
-9. **Should SOUL.md entries auto-sync to the existing auto-memory system** (`C:\Users\BigotSmasher\.claude\projects\...\memory\`)? They seem like adjacent concerns.
+9. **Should SOUL.md entries auto-sync to the existing auto-memory system** (`<HOME>\.claude\projects\...\memory\`)? They seem like adjacent concerns.
 
 10. **What's the failure mode if Codex service is unavailable** (rate-limited, down)? Does the Phase 2 loop gracefully fall back to Claude-only or block entirely?
 

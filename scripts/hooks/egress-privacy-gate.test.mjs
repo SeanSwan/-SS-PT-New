@@ -90,7 +90,11 @@ const ALLOW = 0, BLOCK = 2;
     ['real email', 'contact steve.jones@gmail.com for details'],
     ['SSN', 'ssn 123-45-6789'],
     ['phone', 'call (415) 555-1234'],
-    ['windows user path', 'C:\\Users\\BigotSmasher\\Desktop\\thing'],
+    // Fictional account names on purpose (2026-08-27): the gate matches the path SHAPE,
+    // not one person's name — as the sibling unix case already demonstrates — so the real
+    // operator's username need not sit in a committed fixture, which is the very thing
+    // this gate exists to stop.
+    ['windows user path', 'C:\\Users\\winuser\\Desktop\\thing'],
     ['unix home path', '/home/seanuser/secrets/'],
   ];
   for (const [label, body] of cases) {

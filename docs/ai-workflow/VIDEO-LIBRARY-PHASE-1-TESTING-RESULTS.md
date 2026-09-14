@@ -28,7 +28,7 @@ The **Video Library Phase 1 backend implementation is CONFIRMED WORKING**. Core 
 **Error:**
 ```
 Error [ERR_MODULE_NOT_FOUND]: Cannot find module
-'C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\backend\db\redis.js'
+'<REPO>\backend\db\redis.js'
 ```
 
 **Root Cause:**

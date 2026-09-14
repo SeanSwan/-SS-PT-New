@@ -2,7 +2,7 @@
 
 READ-ONLY. Nothing removed. Each row carries the proof a removal decision needs.
 
-Main tree: `C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT`
+Main tree: `<REPO>`
 Total: 115 (main + 114 linked)
 
 | class | count | what removal costs |
@@ -35,7 +35,7 @@ Total: 115 (main + 114 linked)
 | `tmp/ss-trainer-dash` | fix/trainer-dashboard-pixel | 0 | 133 | 64 | 2026-07-25 | ARCHIVE FIRST — 133 uncommitted (64 untracked) |
 | `tmp/sspt-swan-lens-direction-a-release-20260801` | codex/swan-lens-direction-a-release-20260801 | 0 | 87 | 27 | 2026-08-01 | ARCHIVE FIRST — 87 uncommitted (27 untracked) |
 | `tmp/sspt-nutrition-origin-main-20260625` | codex/nutrition-aaa-release-20260625 | 0 | 53 | 0 | 2026-06-25 | ARCHIVE FIRST — 53 uncommitted (0 untracked) |
-| `Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/coach-hive-ui-20260809` | codex/coach-hive-ui-20260809 | 0 | 53 | 23 | 2026-08-06 | ARCHIVE FIRST — 53 uncommitted (23 untracked) |
+| `Users/<OPERATOR>/Desktop/quick-pt/SS-PT/tmp/worktrees/coach-hive-ui-20260809` | codex/coach-hive-ui-20260809 | 0 | 53 | 23 | 2026-08-06 | ARCHIVE FIRST — 53 uncommitted (23 untracked) |
 | `tmp/sspt-swan-lens-runner-audit-20260801` | codex/swan-lens-runner-audit-20260801 | 0 | 51 | 0 | 2026-08-01 | ARCHIVE FIRST — 51 uncommitted (0 untracked) |
 | `tmp/sspt-nutrition-staged-replay-20260626` | codex/nutrition-staged-replay-20260626 | 0 | 47 | 0 | 2026-06-25 | ARCHIVE FIRST — 47 uncommitted (0 untracked) |
 | `tmp/sspt-hermes-privacy-router-20260731` | codex/hermes-privacy-router-20260731 | 0 | 45 | 39 | 2026-07-31 | ARCHIVE FIRST — 45 uncommitted (39 untracked) |
@@ -88,8 +88,8 @@ Total: 115 (main + 114 linked)
 | `tmp/sspt-opus-then-kimi-20260725` | codex/opus-then-kimi-review-20260725 | 2 | 5 | 3 | 2026-07-26 | ARCHIVE FIRST — 2 unmerged commit(s) |
 | `tmp/ss-coach-audit` | claude/swancoach-operator-blueprint-20260722 | 5 | 3 | 1 | 2026-07-22 | ARCHIVE FIRST — 5 unmerged commit(s) |
 | `tmp/ss-arcb-batch1-20260722` | claude/arcb-mobbin-batch1-20260722 | 5 | 2 | 0 | 2026-07-22 | ARCHIVE FIRST — 5 unmerged commit(s) |
-| `Users/BigotSmasher/Desktop/quick-pt/SS-PT/.claude/worktrees/unified-world-gallery-2026-07-16` | worktree-unified-world-gallery-2026-07-16 | 5 | 1 | 1 | 2026-07-17 | ARCHIVE FIRST — 5 unmerged commit(s) |
-| `Users/BigotSmasher/Desktop/quick-pt/SS-PT-context-gateway` | feat/swan-context-gateway | 5 | 1 | 0 | 2026-07-29 | ARCHIVE FIRST — 5 unmerged commit(s) |
+| `Users/<OPERATOR>/Desktop/quick-pt/SS-PT/.claude/worktrees/unified-world-gallery-2026-07-16` | worktree-unified-world-gallery-2026-07-16 | 5 | 1 | 1 | 2026-07-17 | ARCHIVE FIRST — 5 unmerged commit(s) |
+| `Users/<OPERATOR>/Desktop/quick-pt/SS-PT-context-gateway` | feat/swan-context-gateway | 5 | 1 | 0 | 2026-07-29 | ARCHIVE FIRST — 5 unmerged commit(s) |
 | `tmp/ss-coach-cc-20260716` | claude/coach-command-center-rebuild-20260716 | 1 | 1 | 1 | 2026-07-17 | ARCHIVE FIRST — 1 unmerged commit(s) |
 | `tmp/ss-launch-audit-lane5-20260803` | claude/launch-audit-lane5-20260803 | 35 | 0 | 0 | 2026-08-04 | ARCHIVE FIRST — 35 unmerged commit(s) |
 | `tmp/sspt-verify-until-dry-20260808` | codex/verify-until-dry-20260808 | 22 | 0 | 0 | 2026-08-09 | ARCHIVE FIRST — 22 unmerged commit(s) |
@@ -102,7 +102,7 @@ Total: 115 (main + 114 linked)
 | `tmp/sspt-qwen-kimi-privacy-20260726` | codex/qwen-kimi-privacy-review-20260726 | 5 | 0 | 0 | 2026-07-26 | ARCHIVE FIRST — 5 unmerged commit(s) |
 | `tmp/ss-apex` | feat/apex-dashboard-redesign | 3 | 0 | 0 | 2026-07-10 | ARCHIVE FIRST — 3 unmerged commit(s) |
 | `tmp/ss-swan-guide-20260716` | claude/swan-guide-20260716 | 2 | 0 | 0 | 2026-07-16 | ARCHIVE FIRST — 2 unmerged commit(s) |
-| `Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/mobbin-governance` | codex/mobbin-governance-loop-20260719 | 2 | 0 | 0 | 2026-07-19 | ARCHIVE FIRST — 2 unmerged commit(s) |
+| `Users/<OPERATOR>/Desktop/quick-pt/SS-PT/tmp/worktrees/mobbin-governance` | codex/mobbin-governance-loop-20260719 | 2 | 0 | 0 | 2026-07-19 | ARCHIVE FIRST — 2 unmerged commit(s) |
 | `tmp/ss-bootcamp-s2-reintegrate-20260802` | claude/bootcamp-s2-reintegrate-20260802 | 1 | 0 | 0 | 2026-08-02 | ARCHIVE FIRST — 1 unmerged commit(s) |
 | `tmp/ss-coach-cc-v2-20260717` | claude/codex-findings-20260717 | 1 | 0 | 0 | 2026-07-17 | ARCHIVE FIRST — 1 unmerged commit(s) |
 | `tmp/ss-lane-v2-20260812` | claude/lane-v2-20260812 | 1 | 0 | 0 | 2026-08-12 | ARCHIVE FIRST — 1 unmerged commit(s) |
@@ -148,7 +148,7 @@ Ahead-ness is not answerable by ref comparison; inspect individually.
 | `tmp/sspt-kimi-after-opus-20260726` | (detached) | — | 0 | 0 | 2026-07-26 | inspect: detached, no branch |
 | `tmp/sspt-render-hostile-20260718` | (detached) | — | 0 | 0 | 2026-07-18 | inspect: detached, no branch |
 | `tmp/sspt-render-postreview-20260719` | (detached) | — | 0 | 0 | 2026-07-19 | inspect: detached, no branch |
-| `Users/BigotSmasher/.hermes/runner-repo` | (detached) | — | 0 | 0 | 2026-07-29 | inspect: detached, no branch |
-| `Users/BigotSmasher/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/99b24a8a-bf2c-4b79-8876-0c48f5596d3c/scratchpad/main-audit` | (detached) | — | 0 | 0 | 2026-08-04 | inspect: detached, no branch |
-| `Users/BigotSmasher/AppData/Local/Temp/lane4-baseline` | (detached) | — | 0 | 0 | 2026-08-02 | inspect: detached, no branch |
+| `Users/<OPERATOR>/.hermes/runner-repo` | (detached) | — | 0 | 0 | 2026-07-29 | inspect: detached, no branch |
+| `Users/<OPERATOR>/AppData/Local/Temp/claude/<SCRATCH-KEY>/99b24a8a-bf2c-4b79-8876-0c48f5596d3c/scratchpad/main-audit` | (detached) | — | 0 | 0 | 2026-08-04 | inspect: detached, no branch |
+| `Users/<OPERATOR>/AppData/Local/Temp/lane4-baseline` | (detached) | — | 0 | 0 | 2026-08-02 | inspect: detached, no branch |
 

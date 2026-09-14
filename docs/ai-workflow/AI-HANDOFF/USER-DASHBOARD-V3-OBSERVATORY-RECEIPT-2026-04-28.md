@@ -269,11 +269,11 @@ Get-ChildItem -Path 'frontend/src' -Recurse -Include *.ts,*.tsx | Select-String 
 Observed output:
 
 ```text
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\pages\Social\UserProfilePage.tsx:17: import ProfileChartsGrid from '../../components/UserDashboard/components/ProfileChartsGrid';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\pages\Social\UserProfilePage.tsx:18: import TransformationPhotoShowcase from '../../components/UserDashboard/components/TransformationPhotoShowcase';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\pages\Social\UserProfilePage.tsx:19: import type { TransformationPhoto } from '../../components/UserDashboard/components/TransformationPhotoTypes';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\routes\main-routes.tsx:354: () => import('../components/UserDashboard/UserDashboard.V3'),
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\routes\main-routes.tsx:356: () => import('../components/UserDashboard')
+<REPO>\frontend\src\pages\Social\UserProfilePage.tsx:17: import ProfileChartsGrid from '../../components/UserDashboard/components/ProfileChartsGrid';
+<REPO>\frontend\src\pages\Social\UserProfilePage.tsx:18: import TransformationPhotoShowcase from '../../components/UserDashboard/components/TransformationPhotoShowcase';
+<REPO>\frontend\src\pages\Social\UserProfilePage.tsx:19: import type { TransformationPhoto } from '../../components/UserDashboard/components/TransformationPhotoTypes';
+<REPO>\frontend\src\routes\main-routes.tsx:354: () => import('../components/UserDashboard/UserDashboard.V3'),
+<REPO>\frontend\src\routes\main-routes.tsx:356: () => import('../components/UserDashboard')
 ```
 
 Classification:
@@ -290,22 +290,22 @@ Get-ChildItem -Path 'frontend/src' -Recurse -Include *.ts,*.tsx | Select-String 
 Observed output:
 
 ```text
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\DashBoard\Pages\client-dashboard\ClientProfilePage.tsx:41: } from '../../../UserDashboard/components/EditProfileChartToggles';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\DashBoard\Pages\client-dashboard\ClientProfilePage.tsx:45: () => import('../../../UserDashboard/components/ProfileChartsGrid')
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\DashBoard\Pages\client-dashboard\ClientProgressDashboardPage.test.tsx:80: vi.mock('../../../UserDashboard/components/ProfileChartsGrid', () => ({
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\UserDashboard\components\ProfileBanner.tsx:24: import type { ProfileBannerProps } from '../types/UserDashboardTypes';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\UserDashboard\components\ProfileHeaderInfo.tsx:33: import type { ProfileHeaderInfoProps } from '../types/UserDashboardTypes';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\UserDashboard\components\QuickStatsSidebar.tsx:21: import type { QuickStatsSidebarProps } from '../types/UserDashboardTypes';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\UserDashboard\components\TabContent.tsx:21: import type { TabContentProps } from '../types/UserDashboardTypes';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\UserDashboard\components\TabNavigation.tsx:16: import type { TabNavigationProps } from '../types/UserDashboardTypes';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\UserDashboard\index.ts:1: export { default } from './UserDashboard-optimized';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\UserDashboard\UserDashboard.V3.tsx:86: import type { TabId } from './types/UserDashboardTypes';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\UserDashboard\UserDashboardV3.tsx:74: import type { TabConfig, ProfileStats } from './types/UserDashboardTypes';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\pages\Social\UserProfilePage.tsx:17: import ProfileChartsGrid from '../../components/UserDashboard/components/ProfileChartsGrid';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\pages\Social\UserProfilePage.tsx:18: import TransformationPhotoShowcase from '../../components/UserDashboard/components/TransformationPhotoShowcase';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\pages\Social\UserProfilePage.tsx:19: import type { TransformationPhoto } from '../../components/UserDashboard/components/TransformationPhotoTypes';
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\routes\main-routes.tsx:354: () => import('../components/UserDashboard/UserDashboard.V3'),
-C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\routes\main-routes.tsx:356: () => import('../components/UserDashboard')
+<REPO>\frontend\src\components\DashBoard\Pages\client-dashboard\ClientProfilePage.tsx:41: } from '../../../UserDashboard/components/EditProfileChartToggles';
+<REPO>\frontend\src\components\DashBoard\Pages\client-dashboard\ClientProfilePage.tsx:45: () => import('../../../UserDashboard/components/ProfileChartsGrid')
+<REPO>\frontend\src\components\DashBoard\Pages\client-dashboard\ClientProgressDashboardPage.test.tsx:80: vi.mock('../../../UserDashboard/components/ProfileChartsGrid', () => ({
+<REPO>\frontend\src\components\UserDashboard\components\ProfileBanner.tsx:24: import type { ProfileBannerProps } from '../types/UserDashboardTypes';
+<REPO>\frontend\src\components\UserDashboard\components\ProfileHeaderInfo.tsx:33: import type { ProfileHeaderInfoProps } from '../types/UserDashboardTypes';
+<REPO>\frontend\src\components\UserDashboard\components\QuickStatsSidebar.tsx:21: import type { QuickStatsSidebarProps } from '../types/UserDashboardTypes';
+<REPO>\frontend\src\components\UserDashboard\components\TabContent.tsx:21: import type { TabContentProps } from '../types/UserDashboardTypes';
+<REPO>\frontend\src\components\UserDashboard\components\TabNavigation.tsx:16: import type { TabNavigationProps } from '../types/UserDashboardTypes';
+<REPO>\frontend\src\components\UserDashboard\index.ts:1: export { default } from './UserDashboard-optimized';
+<REPO>\frontend\src\components\UserDashboard\UserDashboard.V3.tsx:86: import type { TabId } from './types/UserDashboardTypes';
+<REPO>\frontend\src\components\UserDashboard\UserDashboardV3.tsx:74: import type { TabConfig, ProfileStats } from './types/UserDashboardTypes';
+<REPO>\frontend\src\pages\Social\UserProfilePage.tsx:17: import ProfileChartsGrid from '../../components/UserDashboard/components/ProfileChartsGrid';
+<REPO>\frontend\src\pages\Social\UserProfilePage.tsx:18: import TransformationPhotoShowcase from '../../components/UserDashboard/components/TransformationPhotoShowcase';
+<REPO>\frontend\src\pages\Social\UserProfilePage.tsx:19: import type { TransformationPhoto } from '../../components/UserDashboard/components/TransformationPhotoTypes';
+<REPO>\frontend\src\routes\main-routes.tsx:354: () => import('../components/UserDashboard/UserDashboard.V3'),
+<REPO>\frontend\src\routes\main-routes.tsx:356: () => import('../components/UserDashboard')
 ```
 
 Broader sweep classification:
@@ -644,8 +644,8 @@ Get-ChildItem -Path 'frontend/src/components/UserDashboard' -Recurse -Include *.
 ```
 
 Observed test files under `components/UserDashboard/**`:
-- `C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\UserDashboard\components\ActivitySection.test.tsx`
-- `C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\components\UserDashboard\components\ProfileChartsGrid.test.tsx`
+- `<REPO>\frontend\src\components\UserDashboard\components\ActivitySection.test.tsx`
+- `<REPO>\frontend\src\components\UserDashboard\components\ProfileChartsGrid.test.tsx`
 
 Adjacent related tests found by broader frontend search:
 - `frontend/src/components/DashBoard/Pages/client-dashboard/ClientProgressDashboardPage.test.tsx` mocks `ProfileChartsGrid`.

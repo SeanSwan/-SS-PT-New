@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /** Bounded Opus 5 review via OpenRouter. Dry-run is the default. */
+import { fetchRedacted } from './lib/egress-fetch.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -123,7 +124,7 @@ async function main() {
 
   console.log('[consult-opus5] status=running model_calls=1');
   const started = Date.now();
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const response = await fetchRedacted('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}`,

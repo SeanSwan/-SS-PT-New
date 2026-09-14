@@ -1,5 +1,5 @@
 
-[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/backend[39m
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90m<REPO>/backend[39m
 
 [90mstdout[2m | tests/api/sessionGrantService.test.mjs
 [22m[39m[Test Setup] Backend test environment initialized
@@ -244,7 +244,7 @@
  [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: register user hashes password correctly[32m 90[2mms[22m[39m
  [32m✓[39m tests/api/releaseGate.test.mjs[2m > [22mRelease Gate[2m > [22mGATE: user can login after registration[32m 83[2mms[22m[39m
 [90mstdout[2m | __tests__/storefront-custom-pricing.test.mjs
-[22m[39mLoading environment variables from: C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\.env
+[22m[39mLoading environment variables from: <REPO>\.env
 Environment: DEVELOPMENT
 Development database connection parameters:
 Host: localhost

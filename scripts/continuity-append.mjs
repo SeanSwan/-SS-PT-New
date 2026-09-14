@@ -31,9 +31,9 @@ import {
   readFileSync, writeFileSync, openSync, closeSync, fsyncSync,
   unlinkSync, renameSync, existsSync, statSync, mkdirSync,
 } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, basename } from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
-import { hostname } from 'node:os';
+import { hostname, homedir } from 'node:os';
 
 // ─────────────────────────────────────────────
 // Constants
@@ -59,28 +59,39 @@ const LOCK_BACKOFF_MAX_MS = 500;
 
 const PLACEHOLDER_PREFIX = '<TODO_FILL_BEFORE_USE';
 
+// Operator identity is DERIVED AT RUNTIME, never hardcoded (2026-08-27).
+// Spelling the username here made this redactor one more file carrying the exact
+// string it exists to remove — and it hardcoded ONE machine's account into a script
+// every agent surface runs. Behaviour is unchanged: same six path shapes, same
+// standalone rule, same three repo shapes (still lowercased, because they are
+// matched against a lowercased path). Proven byte-identical to the literals above
+// on a fixture covering every shape plus all three repo verdicts.
+const OPERATOR = basename(homedir() || '') || env.USERNAME || env.USER || '';
+const OP = OPERATOR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const OP_LOWER = OP.toLowerCase();
+
 // 9 path shapes per debate §3.4 Layer 2. Order matters — longer/more-specific first.
 const PATH_SHAPES = [
   // Windows extended path (\\?\C:\...)
-  [/\\\\\?\\[Cc]:\\Users\\BigotSmasher\\/g, '<USER_HOME>\\'],
-  // JSON-escaped backslash (C:\\Users\\BigotSmasher\\)
-  [/[Cc]:\\\\Users\\\\BigotSmasher\\\\/g, '<USER_HOME>\\\\'],
-  // WSL canonical (/mnt/c/Users/BigotSmasher/) — case-insensitive on "users"
-  [/\/mnt\/c\/[Uu]sers\/BigotSmasher\//g, '<USER_HOME>/'],
-  // Git-Bash (/c/Users/BigotSmasher/)
-  [/\/c\/Users\/BigotSmasher\//g, '<USER_HOME>/'],
-  // Windows forward slash (C:/Users/BigotSmasher/ or c:/Users/BigotSmasher/)
-  [/[Cc]:\/Users\/BigotSmasher\//g, '<USER_HOME>/'],
-  // Windows backslash (C:\Users\BigotSmasher\ or c:\Users\BigotSmasher\)
-  [/[Cc]:\\Users\\BigotSmasher\\/g, '<USER_HOME>\\'],
+  [new RegExp(`\\\\\\\\\\?\\\\[Cc]:\\\\Users\\\\${OP}\\\\`, 'g'), '<USER_HOME>\\'],
+  // JSON-escaped backslash (C:\\Users\\<user>\\)
+  [new RegExp(`[Cc]:\\\\\\\\Users\\\\\\\\${OP}\\\\\\\\`, 'g'), '<USER_HOME>\\\\'],
+  // WSL canonical (/mnt/c/Users/<user>/) — case-insensitive on "users"
+  [new RegExp(`/mnt/c/[Uu]sers/${OP}/`, 'g'), '<USER_HOME>/'],
+  // Git-Bash (/c/Users/<user>/)
+  [new RegExp(`/c/Users/${OP}/`, 'g'), '<USER_HOME>/'],
+  // Windows forward slash (C:/Users/<user>/ or c:/Users/<user>/)
+  [new RegExp(`[Cc]:/Users/${OP}/`, 'g'), '<USER_HOME>/'],
+  // Windows backslash (C:\Users\<user>\ or c:\Users\<user>\)
+  [new RegExp(`[Cc]:\\\\Users\\\\${OP}\\\\`, 'g'), '<USER_HOME>\\'],
 ];
-const USERNAME_STANDALONE_RE = /\bBigotSmasher\b/g;
+const USERNAME_STANDALONE_RE = new RegExp(`\\b${OP}\\b`, 'g');
 
 // Accepted SwanStudios repo toplevel path shapes (lowercased before match)
 const REPO_SHAPE_PATTERNS = [
-  /^c:[\/\\]users[\/\\]bigotsmasher[\/\\]desktop[\/\\]quick-pt[\/\\]ss-pt$/,
-  /^\/mnt\/c\/users\/bigotsmasher\/desktop\/quick-pt\/ss-pt$/,
-  /^\/c\/users\/bigotsmasher\/desktop\/quick-pt\/ss-pt$/,
+  new RegExp(`^c:[/\\\\]users[/\\\\]${OP_LOWER}[/\\\\]desktop[/\\\\]quick-pt[/\\\\]ss-pt$`),
+  new RegExp(`^/mnt/c/users/${OP_LOWER}/desktop/quick-pt/ss-pt$`),
+  new RegExp(`^/c/users/${OP_LOWER}/desktop/quick-pt/ss-pt$`),
 ];
 const EXPECTED_REMOTE_PATTERN = /seanswan.*ss-pt/i;
 const MARKER_FILE = 'CLAUDE.md';

@@ -117,7 +117,7 @@ All API endpoints are now fully functional after implementing critical fixes.
 - **Problem**: Validation error "Client and trainer must be different users" even with different IDs
 - **Root Cause**: Type coercion issue - comparing without normalizing to integers
 - **Solution**: Added Number() conversion and Number.isFinite() checks
-- **Files Modified**: [backend/models/ClientTrainerAssignment.mjs:155-166](C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\backend\models\ClientTrainerAssignment.mjs#L155-L166)
+- **Files Modified**: [backend/models/ClientTrainerAssignment.mjs:155-166](<REPO>\backend\models\ClientTrainerAssignment.mjs#L155-L166)
 - **Code Change**:
 ```javascript
 // Before:
@@ -140,7 +140,7 @@ if (Number.isFinite(clientIdNum) && Number.isFinite(trainerIdNum)) {
 - **Problem**: Model indexes referenced camelCase attributes (clientId) but table has snake_case columns (client_id)
 - **Root Cause**: Sequelize index definitions using attribute names instead of DB column names
 - **Solution**: Updated all index field definitions to use snake_case
-- **Files Modified**: [backend/models/ClientTrainerAssignment.mjs:128-150](C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\backend\models\ClientTrainerAssignment.mjs#L128-L150)
+- **Files Modified**: [backend/models/ClientTrainerAssignment.mjs:128-150](<REPO>\backend\models\ClientTrainerAssignment.mjs#L128-L150)
 - **Status**: ✅ RESOLVED
 
 **Issue 4: Missing Partial Unique Index** (FIXED ✅)
@@ -339,7 +339,7 @@ build: {
 
 Two CLIENT-REGISTRY.md files contain **real client names** (Personally Identifiable Information) stored in plain text:
 
-**File 1**: docs/ai-workflow/personal-training/CLIENT-REGISTRY.md (`C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\docs\ai-workflow\personal-training\CLIENT-REGISTRY.md`)
+**File 1**: docs/ai-workflow/personal-training/CLIENT-REGISTRY.md (`<REPO>\docs\ai-workflow\personal-training\CLIENT-REGISTRY.md`)
 - Contains real names of 11+ active clients
 - Links real names to "Spirit Names" and client IDs
 - Includes program details and medical notes
@@ -353,7 +353,7 @@ Two CLIENT-REGISTRY.md files contain **real client names** (Personally Identifia
 - **Special Notes:** Ankle stability work, naturally thick build
 ```
 
-**File 2**: client-data/CLIENT-REGISTRY.md (`C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\client-data\CLIENT-REGISTRY.md`)
+**File 2**: client-data/CLIENT-REGISTRY.md (`<REPO>\client-data\CLIENT-REGISTRY.md`)
 - Template file (no real data yet - SAFE)
 - Uses placeholder "[Example Client]"
 - Contains tier structure ($50/$125/$200 monthly pricing)
@@ -597,7 +597,7 @@ rm CLIENT-REGISTRY.md
 ## APPENDIX B: Files Modified
 
 **Backend Models**:
-1. [backend/models/ClientTrainerAssignment.mjs](C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\backend\models\ClientTrainerAssignment.mjs)
+1. [backend/models/ClientTrainerAssignment.mjs](<REPO>\backend\models\ClientTrainerAssignment.mjs)
    - Lines 128-150: Fixed index definitions (snake_case)
    - Lines 155-166: Fixed validation logic (type coercion)
 
@@ -607,7 +607,7 @@ rm CLIENT-REGISTRY.md
    - Partial unique index: `unique_active_assignment`
 
 **Documentation Updated**:
-1. [docs/ai-workflow/VERIFICATION-RESULTS-DAY-1.md](C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\docs\ai-workflow\VERIFICATION-RESULTS-DAY-1.md)
+1. [docs/ai-workflow/VERIFICATION-RESULTS-DAY-1.md](<REPO>\docs\ai-workflow\VERIFICATION-RESULTS-DAY-1.md)
    - Added database schema audit findings
 
 ---

@@ -65,7 +65,7 @@ workflow correction. Do not repeat the stale “already dark in production” cl
 
 ### 2. Authoritative repository state
 
-- Repository: `C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT`
+- Repository: `<REPO>`
 - Isolated worktree: `C:\tmp\sspt-degate-design-20260721`
 - Branch: `codex/degate-design-overhaul-20260721`
 - Baseline and current `origin/main`: `eb4bbdd63794d0d842f5e5c107254f8013544367`

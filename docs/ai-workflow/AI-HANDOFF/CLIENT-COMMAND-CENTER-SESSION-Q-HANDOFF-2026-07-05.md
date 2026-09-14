@@ -10,7 +10,7 @@
 
 ## 0. Orientation for the fresh session (do these in order)
 
-1. You are (probably) in the SHARED checkout `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT`,
+1. You are (probably) in the SHARED checkout `<REPO>`,
    which is **~110+ commits BEHIND origin/main and dirty**. Do NOT build from it, do NOT
    commit its stale root docs (CLAUDE.md/AGENTS.md/ACTIVE-INDEX.md are stale vs origin).
 2. The live working area is the **isolated worktree `c:/tmp/ss-fable`**, currently on

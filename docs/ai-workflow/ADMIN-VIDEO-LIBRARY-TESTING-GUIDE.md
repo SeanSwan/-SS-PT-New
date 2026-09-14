@@ -117,7 +117,7 @@ This will start the Vite dev server on `http://localhost:5173`
 
 **Option A: Quick standalone test (recommended)**
 
-Add this to [frontend/src/routes/main-routes.tsx](c:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\routes\main-routes.tsx) around line 140 (after the lazy loading declarations):
+Add this to [frontend/src/routes/main-routes.tsx](<REPO>\frontend\src\routes\main-routes.tsx) around line 140 (after the lazy loading declarations):
 
 ```typescript
 const VideoLibraryTest = lazyLoadWithErrorHandling(
@@ -194,7 +194,7 @@ Then visit: **http://localhost:5173/test-video-library**
 
 To test with sample data, you can temporarily add mock data to the component:
 
-1. Open [AdminVideoLibrary.tsx](c:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\frontend\src\pages\admin\AdminVideoLibrary.tsx)
+1. Open [AdminVideoLibrary.tsx](<REPO>\frontend\src\pages\admin\AdminVideoLibrary.tsx)
 
 2. Find the `useQuery` for videos (around line 43)
 

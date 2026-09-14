@@ -1,7 +1,7 @@
 # Kimi K3 — Front-End / Design Review
 
 **Reviewer:** OpenRouter `moonshotai/kimi-k3` (effort: high)
-**Document:** C:\Users\BIGOTS~1\AppData\Local\Temp\claude\c--Users-BigotSmasher-Desktop-quick-pt-SS-PT\5ee4c5b4-4b1c-41c6-ad8f-580ad41df9e6\scratchpad\kimi-blueprints-cosign-consult.md
+**Document:** <HOME>\AppData\Local\Temp\claude\<SCRATCH-KEY>\5ee4c5b4-4b1c-41c6-ad8f-580ad41df9e6\scratchpad\kimi-blueprints-cosign-consult.md
 **Seed:** C:\tmp\ss-arcb-batch1-20260722\docs\ai-workflow\AI-HANDOFF\ELEGANCE-BLUEPRINT-ARC-L-LOGGER-2026-07-22.md
 **Tokens:** 2856 in / 5747 out · **Cost:** ~$0.0948 · **Wall:** 237.9s
 

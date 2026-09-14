@@ -40,7 +40,7 @@ Per-change verification: `ollama run hermes-qwen3 --verbose "<fixed prompt>"` (p
 
 ## C. Underutilized perks (ranked; each starts with one sentence)
 
-1. **Inbox drain (broken loop — fix first):** hooks dir empty, memo unread. → session-start hook/daily cron reads `/mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT/.ai-workflow/hermes-inbox/pending/` (WSL path — `C:\` paths silently fail).
+1. **Inbox drain (broken loop — fix first):** hooks dir empty, memo unread. → session-start hook/daily cron reads `<REPO>/.ai-workflow/hermes-inbox/pending/` (WSL path — `C:\` paths silently fail).
 2. **Brain-vault (13.46 GiB, 818 PDFs, wired):** ask "search the brain vault for <topic>" — make it the reflex for research.
 3. **Voice notes:** Whisper STT already ON — send a Telegram voice note instead of typing.
 4. **Morning digest cron:** engine runs, zero jobs — "create a daily 7am cron: drain inbox + kanban + session summary → message me."
@@ -104,7 +104,7 @@ APPLY IN ORDER (each step: change → restart what's needed → re-run the basel
    the .env key's value in place; NEVER print .env contents) at hermes-qwen3. fallback_allowed
    stays false.
 8. Wire the inbox drain: session-start hook (or daily cron) reading
-   /mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT/.ai-workflow/hermes-inbox/pending/ (WSL
+   <REPO>/.ai-workflow/hermes-inbox/pending/ (WSL
    path only), absorb memos, record a consumed-through high-water mark, report in Telegram.
    Do not delete memos; archiving is repo-side.
 9. Propose (draft-only, do NOT create) one daily-digest cron job (inbox + kanban + session

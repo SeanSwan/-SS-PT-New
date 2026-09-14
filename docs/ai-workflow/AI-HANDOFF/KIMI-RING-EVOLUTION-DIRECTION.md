@@ -1,7 +1,7 @@
 # Kimi K3 - Review
 
 **Reviewer:** `moonshotai/kimi-k3` (medium)
-**Document:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/fc35ba13-48c4-4e2a-a55c-0b3010bed2f4/scratchpad/crystal-ring-evolution-brief.md
+**Document:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/fc35ba13-48c4-4e2a-a55c-0b3010bed2f4/scratchpad/crystal-ring-evolution-brief.md
 **Seed:** (none)
 **Tokens:** 1214 in / 2355 out | **Cost:** ~$0.0390 | **Wall:** 46.6s
 

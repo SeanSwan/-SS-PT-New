@@ -10,6 +10,7 @@
  *
  * Output: docs/ai-workflow/AI-HANDOFF/PHASE-5-CODEX-RESPONSE-2026-05-04.md
  */
+import { fetchRedacted } from './lib/egress-fetch.mjs';
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -251,7 +252,7 @@ console.log(`[codex-via-openrouter] prompt size: ${prompt.length} chars (~${Math
 console.log(`[codex-via-openrouter] sending request...`);
 const t0 = Date.now();
 
-const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+const res = await fetchRedacted('https://openrouter.ai/api/v1/chat/completions', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
