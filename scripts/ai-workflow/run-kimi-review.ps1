@@ -9,7 +9,7 @@ param(
   [string]$Seed = '',
   [string]$Out = 'docs/ai-workflow/AI-HANDOFF/KIMI-DESIGN-REVIEW.md',
   [ValidateSet('low', 'medium', 'high')][string]$Effort = 'high',
-  [ValidateRange(1, 100000)][int]$MaxTokens = 16000,
+  [ValidateRange(1, 100000)][int]$MaxTokens = 60000,
   [ValidateRange(0.01, 3)][double]$CapUsd = 3,
   [switch]$ConfirmSpend
 )

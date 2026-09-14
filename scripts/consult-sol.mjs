@@ -84,11 +84,11 @@ console.log(`[consult-sol] model=${MODEL} effort=${EFFORT}`);
 console.log(`[consult-sol] prompt size: ${prompt.length} chars (~${Math.round(prompt.length / 4)} tokens)`);
 console.log('[consult-sol] sending request...');
 // Streaming via the shared helper (2026-08-21). This script previously did a
-// non-streaming POST behind a 600s header-timeout abort with max_tokens 16000
+// non-streaming POST behind a 600s header-timeout abort with a then-tight max_tokens cap
 // and NO truncation guard - the priciest seat on the panel could lose its entire
 // reply past 600s, or be silently cut at 16k and reported as success. See
 // scripts/lib/openrouter-stream.mjs for the failure class.
-const MAX_TOKENS = Number(arg('max-tokens', process.env.SWAN_SOL_MAX_TOKENS || '48000'));
+const MAX_TOKENS = Number(arg('max-tokens', process.env.SWAN_SOL_MAX_TOKENS || '60000'));
 let streamed;
 try {
   streamed = await streamChatCompletion({

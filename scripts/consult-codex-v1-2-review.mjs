@@ -121,7 +121,7 @@ const res = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions'
   body: JSON.stringify({
     model: 'openai/gpt-5.5',
     messages: [{ role: 'user', content: prompt }],
-    max_tokens: 16384,
+    max_tokens: 60_000,
     temperature: 0.2,
   }),
   signal: AbortSignal.timeout(600_000),
