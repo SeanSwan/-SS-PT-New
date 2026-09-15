@@ -279,7 +279,12 @@ describe('Slice 3.7 — plaudMergeRequestsController source contract', () => {
 describe('Slice 3.7 — plaudMergeRoutes mounting', () => {
   it('exports mergeActionRouter for /api/plaud/merge', () => {
     expect(ROUTES_SRC).toMatch(/export\s+const\s+mergeActionRouter/);
-    expect(ROUTES_SRC).toMatch(/r\.post\(\s*['"]\/['"]\s*,\s*mergeHandler/);
+    // Asserts mergeHandler is the handler for POST '/', without forbidding
+    // middleware in front of it. The original pattern required mergeHandler to
+    // sit immediately after the path, which made the mount unextendable: the
+    // client AI-consent gate is deliberately mounted ahead of the handler so a
+    // client who opted out never reaches transcription.
+    expect(ROUTES_SRC).toMatch(/r\.post\(\s*['"]\/['"]\s*,[^)]*\bmergeHandler\b/);
   });
 
   it('exports mergeRequestsRouter for /api/plaud/merge-requests', () => {

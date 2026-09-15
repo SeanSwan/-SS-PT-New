@@ -24,9 +24,27 @@ import {
 import {
   parseSegmentHandler as parseMergeSegmentHandler,
 } from '../../controllers/plaud/plaudMergeSegmentsController.mjs';
+import { requireSubjectAiConsent } from '../../middleware/aiConsent.mjs';
+import { getAiPrivacyProfile } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 
 const router = express.Router();
+
+/**
+ * `POST /api/plaud/merge` transcribes merged client session audio via Gemini
+ * (`plaudMergeController` → `transcribeAudio`), so the CLIENT is the data
+ * subject and the client's consent governs — not the merging trainer's.
+ *
+ * Fail-open on a MISSING profile only (no backfill migration exists); an
+ * explicit opt-out or withdrawal blocks the merge. `skipWhenUnresolved` leaves
+ * the missing/invalid-clientId case to the controller, which rejects it with
+ * `INVALID_CLIENT_ID` in this router's error envelope before any egress.
+ */
+const clientConsentGate = requireSubjectAiConsent(
+  getAiPrivacyProfile,
+  (req) => req.body?.clientId,
+  { failOpenWhenMissing: true, skipWhenUnresolved: true, label: 'plaud-merge' },
+);
 
 // Feature flag (returns 503 PLAUD_DISABLED when off) + auth + role
 router.use(plaudFeatureFlag);
@@ -43,7 +61,7 @@ export const mergeActionRouter = (() => {
   r.use(protect);
   r.use(authorize(['admin', 'trainer']));
   r.use(express.json({ limit: '64kb' }));
-  r.post('/', mergeHandler);
+  r.post('/', clientConsentGate, mergeHandler);
   r.use(handlePlaudAuthzError);
   r.use((err, req, res, _next) => {
     logger.error('[plaudMergeRoutes:merge] unhandled: %s', err.message);

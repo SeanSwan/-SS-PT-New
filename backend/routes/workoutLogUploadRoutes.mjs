@@ -15,6 +15,8 @@ import { transcribeAudio, extractText, isAudioFile } from '../services/voiceTran
 import { parseWorkoutTranscript } from '../services/workoutLogParserService.mjs';
 import { previewHistoricalWorkoutImport } from '../services/historicalWorkoutImportService.mjs';
 import { getLastLoggedWeights, MAX_REQUESTED_NAMES } from '../services/workoutLastWeightService.mjs';
+import { requireSubjectAiConsent } from '../middleware/aiConsent.mjs';
+import { getAiPrivacyProfile } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -119,6 +121,40 @@ function uploadFile(req, res, next) {
   });
 }
 
+/**
+ * Both upload routes send the CLIENT's session content to a third-party model
+ * (`transcribeAudio` → Gemini for audio; the parser for text), so the client is
+ * the data subject and the client's consent governs. `clientId` lives in the
+ * multipart body, so this gate is mounted AFTER `uploadFile`.
+ *
+ * Fail-open on a MISSING profile only — see `requireSubjectAiConsent`. An
+ * explicit opt-out or a withdrawal blocks the upload.
+ */
+/**
+ * The subject is resolved through the route's OWN access scope, not straight
+ * from the body. Looking up an arbitrary caller-supplied clientId before
+ * authorization would turn the gate into an oracle: a client could probe any
+ * user id and tell `AI_CONSENT_DISABLED` apart from the uniform scope refusal,
+ * leaking whether that person had opted out of AI. Unauthorized requests
+ * resolve to no subject and fall through to the handler's existing 403, which
+ * is identical for every client id.
+ */
+const resolveConsentSubject = (req) => {
+  const requestedClientId = parseStrictPositiveInteger(req.body?.clientId);
+  const scope = resolveVoiceUploadScope({
+    role: req.user?.role,
+    requestedClientId,
+    userId: parseStrictPositiveInteger(req.user?.id),
+  });
+  return scope.allowed ? requestedClientId : undefined;
+};
+
+const clientConsentGate = requireSubjectAiConsent(
+  getAiPrivacyProfile,
+  resolveConsentSubject,
+  { failOpenWhenMissing: true, skipWhenUnresolved: true, label: 'workout-log-upload' },
+);
+
 async function extractTranscriptFromFile(file) {
   if (isAudioFile(file.mimetype)) {
     return transcribeAudio(file.buffer, file.originalname);
@@ -184,7 +220,7 @@ export const resolveVoiceUploadScope = ({ role, requestedClientId, userId }) => 
  * POST /upload -- Upload voice memo or text file, get parsed workout
  * (admin/trainer for any client; client/user for SELF only — Phase 3c.3)
  */
-router.post('/upload', authorize(['admin', 'trainer', 'client', 'user']), rateLimiter, uploadFile, async (req, res) => {
+router.post('/upload', authorize(['admin', 'trainer', 'client', 'user']), rateLimiter, uploadFile, clientConsentGate, async (req, res) => {
   try {
     // S7 (JARVIS §6.2): the voice lane sends an already-transcribed `transcript`
     // text field — same route, same parser, no file required. Field addition
@@ -277,7 +313,7 @@ router.post('/upload', authorize(['admin', 'trainer', 'client', 'user']), rateLi
 /**
  * POST /history-preview -- Upload historical records, get draft-only candidates.
  */
-router.post('/history-preview', authorize(['admin', 'trainer']), rateLimiter, uploadFile, async (req, res) => {
+router.post('/history-preview', authorize(['admin', 'trainer']), rateLimiter, uploadFile, clientConsentGate, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No file provided' });
