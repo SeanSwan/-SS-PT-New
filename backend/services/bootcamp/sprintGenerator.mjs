@@ -160,9 +160,8 @@ export async function generateSprintClasses(id, onProgress, actor, request) {
       ? await getSprintExerciseMemoryKeys(sprint.previousSprintId, actor) : new Set();
     // Rebuild from slot truth; a read/decoding failure aborts rather than losing exclusions.
     let memory = await withSprintClaim(sprintId, actor, claim, (_s, transaction) => rebuildMemory(sprintId, transaction));
-    // U2: windowed exclusions — per slot, only memory keys first used within
-    // the last EXCLUSION_WINDOW_WEEKS of THIS sprint join the no-repeat set.
-    const memoryEntries = await getSprintExerciseMemoryEntries(sprintId);
+    // U2: windowed exclusions — only memory keys first used within the last
+    // EXCLUSION_WINDOW_WEEKS of THIS sprint join the no-repeat set.
     const slots = sprint.weeks.flatMap(week => week.classSlots.map(slot => ({ slot, week })))
       .sort((a, b) => a.week.weekNumber - b.week.weekNumber
         || String(a.slot.scheduledDate).localeCompare(String(b.slot.scheduledDate)) || a.slot.id - b.slot.id);
@@ -183,9 +182,14 @@ export async function generateSprintClasses(id, onProgress, actor, request) {
       batch.slots.push(slot);
     }
     let completed = 0;
+    let processed = 0;
     for (const { week, slots: plannedSlots } of weekBatches) {
       assertLive();
       await renewSprintClaim(sprintId, actor, claim);
+      // Reload per batch (Astra hive fix #1): commits from EARLIER batches
+      // changed the memory table; a once-loaded snapshot let later weeks
+      // repeat exercises generated earlier in the SAME run.
+      const memoryEntries = await getSprintExerciseMemoryEntries(sprintId);
       const minWeek = week.weekNumber - EXCLUSION_WINDOW_WEEKS + 1;
       const windowed = new Set([
         ...previous,
@@ -199,14 +203,19 @@ export async function generateSprintClasses(id, onProgress, actor, request) {
       let batchError = null;
       for (let i = 0; i < plannedSlots.length; i++) {
         const result = results[i];
+        processed++;
         if (result.status === 'fulfilled') {
+          completed++;
           memory = await commitSlot(sprintId, actor, claim, plannedSlots[i].id, result.value);
         } else if (!batchError) {
           batchError = result.reason;
         }
-        completed++;
-        onProgress?.({ type: 'progress', completedSlots: completed, totalSlots: slots.length,
-          currentWeek: week.weekNumber, percent: Math.round(completed / slots.length * 100) });
+        // Astra hive fix #2: 'completed' counts only fulfilled slots; failed
+        // ones advance PROCESSING (so the progress bar moves) without being
+        // mislabeled as completed.
+        onProgress?.({ type: 'progress', completedSlots: completed, processedSlots: processed,
+          totalSlots: slots.length, currentWeek: week.weekNumber,
+          percent: Math.round(processed / slots.length * 100) });
       }
       if (batchError) throw batchError;
     }
