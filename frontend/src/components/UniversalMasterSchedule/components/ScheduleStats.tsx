@@ -114,7 +114,6 @@ const ScheduleStats: React.FC<ScheduleStatsProps> = ({
             key={card.key}
             as="button"
             type="button"
-            role="button"
             aria-pressed={statusFilter === card.key}
             aria-label={`${card.label}: ${card.getValue(stats)}. ${card.definition}`}
             data-testid={`schedule-kpi-${card.key}`}

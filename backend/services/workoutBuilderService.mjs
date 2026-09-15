@@ -80,6 +80,12 @@ import {
   scoreExerciseFamiliarity,
   selectWithNoveltyCap,
 } from './exerciseFamiliarityService.mjs';
+import { matchesEquipmentRequirements } from './exerciseConstraintContract.mjs';
+import { distributeExerciseCount, unionOfRecentSessions } from './workoutBuilderAllocation.mjs';
+import {
+  applyVolumeDeloadPrescription,
+  DELOAD_POLICY_VERSION,
+} from './workoutPrescriptionDeload.mjs';
 
 // Pain severity threshold: auto-exclude muscles at or above this level
 const PAIN_AUTO_EXCLUDE_SEVERITY = 7;
@@ -178,14 +184,14 @@ const CATEGORY_TO_WARMUP = {
 
 // ── Helper: Filter exercises by constraints ──────────────────────────
 
-function filterExercises(exercises, constraints, equipmentItems, painRejections = null) {
+function filterExercises(exercises, constraints, equipmentItems, painRejections = null, equipmentProfileActive = false) {
   const { excludedMuscles, compensationTypes, recentlyUsedExercises } = constraints;
   const excludedSet = new Set(excludedMuscles);
   const recentSet = new Set(recentlyUsedExercises);
 
   // Build available equipment set from items
   const availableCategories = new Set();
-  if (equipmentItems && equipmentItems.length > 0) {
+  if (equipmentProfileActive) {
     for (const item of equipmentItems) {
       availableCategories.add(item.category);
     }
@@ -219,9 +225,8 @@ function filterExercises(exercises, constraints, equipmentItems, painRejections 
     }
 
     // Check equipment availability (if equipment list provided)
-    if (availableCategories.size > 0 && ex.equipment && ex.equipment.length > 0) {
-      const hasEquipment = ex.equipment.some(eq => availableCategories.has(eq));
-      if (!hasEquipment) return false;
+    if (equipmentProfileActive && !matchesEquipmentRequirements(ex, [...availableCategories])) {
+      return false;
     }
 
     return true;
@@ -314,7 +319,7 @@ function expandScheduleCategoryToMovementCategories(category) {
   }
 }
 
-function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null, swanCoachReadiness = null, qualityContext = null, gateReport = null, familiarity = null, noveltyBudget = null) {
+function selectExercises(registry, category, count, constraints, equipmentItems, nasmPhase, goalBias = null, swanCoachReadiness = null, qualityContext = null, gateReport = null, familiarity = null, noveltyBudget = null, equipmentProfileActive = false) {
   // H1 FIX: registry is an array of {key, name, muscles, category, equipment, nasmLevel}
   // Filter exercises for this category (movement type match)
   const movementCats = expandScheduleCategoryToMovementCategories(category);
@@ -323,7 +328,7 @@ function selectExercises(registry, category, count, constraints, equipmentItems,
 
   // Apply constraints (pain rejections collected for the trainer-facing report)
   const painRejections = [];
-  const filtered = filterExercises(categoryExercises, constraints, equipmentItems, painRejections);
+  const filtered = filterExercises(categoryExercises, constraints, equipmentItems, painRejections, equipmentProfileActive);
 
   // Quality gate: low-impact is the default — high-impact plyo (jumps/hops/
   // bounds) never enters general strength selection unless the trainer asks
@@ -560,9 +565,9 @@ export async function generateWorkout(options) {
   // Get equipment for selected location
   let equipmentItems = [];
   if (equipmentProfileId) {
-    const profile = context.equipment?.find(p => p.id === equipmentProfileId);
+    const profile = context.equipment?.find(p => Number(p.id) === Number(equipmentProfileId));
     if (!profile) {
-      logger.warn(`Equipment profile ${equipmentProfileId} not found for client ${clientId}, proceeding without equipment filter`);
+      throw new Error('Selected equipment profile unavailable');
     } else {
       equipmentItems = profile.items;
     }
@@ -573,7 +578,6 @@ export async function generateWorkout(options) {
     ? ['push', 'pull', 'squat', 'hinge', 'lunge', 'core']
     : [CATEGORY_MOVEMENT_MAP[category] || 'core'];
 
-  const exercisesPerCategory = Math.ceil(exerciseCount / movementCategories.length);
   let selectedExercises = [];
   const qualityGateReport = [];
 
@@ -582,14 +586,27 @@ export async function generateWorkout(options) {
   const familiarity = await buildExerciseFamiliarity(clientId, registry);
   const noveltyBudget = createNoveltyBudget(familiarity);
 
-  for (const moveCat of movementCategories) {
+  for (const { category: moveCat, count: categoryCount } of distributeExerciseCount(exerciseCount, movementCategories)) {
+    if (categoryCount <= 0) continue;
     const catExercises = selectExercises(
-      registry, moveCat, exercisesPerCategory,
+      registry, moveCat, categoryCount,
       context.constraints, equipmentItems, nasmPhase, goalBias, swanCoachReadiness,
       { trainingStyleMode: trainingStyle.mode, primaryGoal },
-      qualityGateReport, familiarity, noveltyBudget
+      qualityGateReport, familiarity, noveltyBudget, Boolean(equipmentProfileId)
     );
     selectedExercises.push(...catExercises);
+  }
+
+  // An unavailable movement family cannot consume its allocation. Fill unused
+  // capacity through the same eligibility gates, excluding already selected keys.
+  if (selectedExercises.length < exerciseCount) {
+    const selectedKeys = new Set(selectedExercises.map(ex => ex.key));
+    selectedExercises.push(...selectExercises(
+      registry.filter(ex => !selectedKeys.has(ex.key)), category === 'full_body' ? 'full_body' : movementCategories[0],
+      exerciseCount - selectedExercises.length, context.constraints, equipmentItems, nasmPhase,
+      goalBias, swanCoachReadiness, { trainingStyleMode: trainingStyle.mode, primaryGoal },
+      qualityGateReport, familiarity, noveltyBudget, Boolean(equipmentProfileId),
+    ));
   }
 
   // Trim to requested count
@@ -1082,11 +1099,10 @@ export async function generatePlan(options) {
 
   // Extract equipment items for plan context
   let equipmentItems = [];
-  if (equipmentProfileId && context.equipment) {
-    const profile = context.equipment.find(p => p.id === equipmentProfileId);
-    if (profile) {
-      equipmentItems = profile.items || [];
-    }
+  if (equipmentProfileId) {
+    const profile = context.equipment?.find(p => Number(p.id) === Number(equipmentProfileId));
+    if (!profile) throw new Error('Selected equipment profile unavailable');
+    equipmentItems = profile.items || [];
   }
 
   // Phase A: goal-aware mesocycle phase sequence (replaces legacy Math.floor(i/2) ramp).
@@ -1175,7 +1191,10 @@ export async function generatePlan(options) {
   // each exercise with rotationFallback: true (R7 metadata).
   // ─────────────────────────────────────────────────────────────────────
   const registry = registryOverride || (await getExerciseRegistryFromDB());
-  const recentExerciseKeys = [];               // sliding window of last 7 sessions' exercises (flattened)
+  // F07: per-session key batches. The no-repeat window is the UNION of the
+  // last 7 batches (sessions) — truncating flat keys silently degraded the
+  // window to roughly the previous single session.
+  const recentSessionKeyBatches = [];
 
   // Familiarity signal (2026-07-14) — built ONCE for the horizon; a fresh
   // novelty budget is created per generated day. Fail-open: null on error.
@@ -1232,17 +1251,17 @@ export async function generatePlan(options) {
         (ex) => movementCatsForCount === null || movementCatsForCount.includes(ex.category)
       );
       const eligibleAfterFilter = filterExercises(
-        categoryRegistry, context.constraints, equipmentItems
+        categoryRegistry, context.constraints, equipmentItems, null, Boolean(equipmentProfileId)
       );
       const eligiblePoolSize = new Set(eligibleAfterFilter.map((ex) => ex.key)).size;
 
-      // Use last 7 sessions of recent keys for "no recent repeat" — this
-      // OVERRIDES context.constraints.recentlyUsedExercises so the
+      // Use the union of the last 7 SESSIONS' keys for "no recent repeat" —
+      // this OVERRIDES context.constraints.recentlyUsedExercises so the
       // rotation operates ACROSS the generated horizon, not just the
-      // immediate prior session.
+      // immediate prior session (F07: flat slice(-7) keys ≈ one session).
       const constraintsForDay = {
         ...context.constraints,
-        recentlyUsedExercises: recentExerciseKeys.slice(-7),
+        recentlyUsedExercises: unionOfRecentSessions(recentSessionKeyBatches),
       };
 
       // V3a round-2 (Codex 2026-05-03 MEDIUM-2): active-recovery days
@@ -1257,13 +1276,13 @@ export async function generatePlan(options) {
         registry, cat, exerciseCount,
         constraintsForDay, equipmentItems, phase, goalBias, swanCoachReadiness,
         { trainingStyleMode: trainingStyle.mode, primaryGoal },
-        null, planFamiliarity, dayNoveltyBudget
+        null, planFamiliarity, dayNoveltyBudget, Boolean(equipmentProfileId)
       );
 
       // Detect rotation fallback: if pool size < 7 distinct AND any selected
       // exercise was in the recent-7 window, the rotation could not honor
       // strict no-repeat. Mark fallback with metadata.
-      const recentSet = new Set(recentExerciseKeys.slice(-7));
+      const recentSet = new Set(unionOfRecentSessions(recentSessionKeyBatches));
       const rotationFallbackForThisDay = (eligiblePoolSize < 7) && selected.some((ex) => recentSet.has(ex.key));
 
       const baseExercises = selected.map((ex, i) => {
@@ -1301,16 +1320,17 @@ export async function generatePlan(options) {
         ),
         swanCoachReadiness,
       );
+      const isRecoveryDay = cat === DAY_TYPE.active_recovery;
+      const finalExercises = isDeloadWeek && !isRecoveryDay
+        ? applyVolumeDeloadPrescription(exercises)
+        : exercises;
 
-      // Update sliding window with this day's exercises.
-      for (const ex of selected) {
-        recentExerciseKeys.push(ex.key);
-      }
+      // Update the rotation window with this session's key batch (F07).
+      recentSessionKeyBatches.push(selected.map(ex => ex.key));
 
       // Assignment metadata feeds the client dashboard, logger, PDFs, and
       // Swan Coach read context without touching paid-session billing.
-      const isRecoveryDay = cat === DAY_TYPE.active_recovery;
-      const isRecoveryAssignment = isDeloadWeek || isRecoveryDay;
+      const isRecoveryAssignment = isRecoveryDay;
       const assignmentType = isRecoveryAssignment ? 'active_recovery' : 'homework';
       days.push({
         dayNumber,
@@ -1323,7 +1343,15 @@ export async function generatePlan(options) {
         isBillable: false,
         shouldDeductSession: false,
         optPhase: OPT_PHASE_PARAMS[phase].name.toLowerCase().replace(/\s+/g, '_'),
-        exercises,
+        isDeloadWeek,
+        ...(isDeloadWeek && !isRecoveryDay ? {
+          deloadPolicy: {
+            policyVersion: DELOAD_POLICY_VERSION,
+            mode: 'volume_only',
+            factor: 0.7,
+          },
+        } : {}),
+        exercises: finalExercises,
       });
     }
 

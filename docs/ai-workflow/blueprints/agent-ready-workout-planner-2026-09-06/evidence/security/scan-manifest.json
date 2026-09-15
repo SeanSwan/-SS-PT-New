@@ -1,0 +1,134 @@
+{
+  "documentType": "codex-security.scan-manifest",
+  "scan": {
+    "artifacts": [
+      {
+        "mediaType": "application/json",
+        "path": "findings.json",
+        "sha256": "a43ad77fa8c40df8178c70091786597106de9308837325aa7109d2603b83ad52"
+      },
+      {
+        "mediaType": "application/json",
+        "path": "coverage.json",
+        "sha256": "e1c981302bb64e1caef6c09798d6fc9d85cb695f9da3a519908f40647021c0f3"
+      }
+    ],
+    "completedAt": "2026-09-08T04:18:03.271887Z",
+    "coverageRef": "coverage.json",
+    "findingsRef": "findings.json",
+    "id": "45443178-19e1-46bc-9ef8-1558c13b4060",
+    "preservedSources": {
+      "checkpoints/63161f6577dde69eb0bdc4fee4fc03ff69533462a5b2ed196ff6cbb689edefb4.json": "360d1d13058186b2874f4d5064ab6ec8cc850d4cd3dad53a7e8fdd6a6d85e9a1",
+      "checkpoints/a24ebf76fc20356f5d4633ff7b4a34f4a18a64475f304688e767f9fb9815da0e.json": "a24ebf76fc20356f5d4633ff7b4a34f4a18a64475f304688e767f9fb9815da0e",
+      "checkpoints/ba922e40bb38f024c7da87903b49b859d76cae629c8568c05e8ac59c0cf345df.json": "ff6255d0b5b0ff32ecef4506b5d28c0362a7e54f02b48e7d31810666437d2795",
+      "checkpoints/db24ce338801d291a2f1957227db367df603be10480aba06bd940542a09f2e2b.json": "1c5b3d050667e9977e002a7faf678a8f8855e2d2bc1c452bc28bdb3188edae20"
+    },
+    "producer": {
+      "name": "codex-security-plugin",
+      "version": "0.1.23"
+    },
+    "scope": {
+      "artifactsReviewed": [
+        "backend/middleware/aiConsent.mjs",
+        "backend/middleware/piiSanitizationMiddleware.mjs",
+        "backend/middleware/waiverGate.mjs",
+        "backend/middleware/optionalAuth.mjs",
+        "backend/middleware/aiCommandGuards.mjs",
+        "backend/controllers/aiConsentController.mjs",
+        "backend/controllers/publicWaiverController.mjs",
+        "backend/models/AiPrivacyProfile.mjs",
+        "backend/routes/aiRoutes.mjs",
+        "backend/routes/aiChatRoutes.mjs",
+        "backend/routes/aiCommandRoutes.mjs",
+        "backend/routes/publicWaiverRoutes.mjs",
+        "backend/services/aiPrivacyService.mjs",
+        "backend/services/voiceTranscriptionService.mjs",
+        "backend/services/deIdentificationService.mjs",
+        "backend/services/ai/aiEligibilityHelper.mjs",
+        "backend/services/ai/aiChatPromptPrivacy.mjs",
+        "backend/services/ai/phiScanner.mjs",
+        "backend/services/ai/deIdentifier.mjs",
+        "backend/services/ai/intentClassifier.mjs",
+        "backend/services/ai/providerRouter.mjs",
+        "backend/services/ai/contextEngine/clientAccess.mjs",
+        "backend/services/waivers/waiverVersionEligibilityService.mjs",
+        "backend/services/privacy/PIIManager.mjs",
+        "backend/tests/unit/aiChatPromptPrivacy.test.mjs",
+        "backend/utils/logger.mjs"
+      ],
+      "excludePaths": [],
+      "includePaths": [
+        "backend"
+      ],
+      "limitations": [
+        "Live selected providers, privacy retention and network egress were not checked.",
+        "Newer main packet differs from this current working checkout; reconcile findings onto current main before repairs.",
+        "Speech, attachment, embeddings, memory, logs, all secondary enrichment services and all backend files are not exhaustively runtime-tested.",
+        "Child and unknown-age cloud processing must default deny in the proposed policy until verified guardian and age policy is approved."
+      ],
+      "runtimeStatus": "No live auth/SQL/provider egress or production deployment checked",
+      "summary": "Current working checkout: Swan Coach provider and outbound privacy controls",
+      "validationMode": "Static source plus five dependency-isolated reproductions; source unchanged"
+    },
+    "sealedAt": "2026-09-08T04:18:03.271887Z",
+    "startedAt": "2026-09-08T03:37:31.694126Z",
+    "status": "completed",
+    "target": {
+      "displayName": "SS-PT",
+      "kind": "git_worktree",
+      "revision": "a89cbf0f080644877ae8a45729d3f0a59d4cb8b8",
+      "snapshotDigest": "codex-security-snapshot/v1:sha256:053fb510129edc8352e61400554d0fa7afc6584d9843246b92f163a4db8b2230",
+      "targetId": "target_sha256_d83e3e9775e4fbbbd0725d34852fa8bc9092ee2f1b20d7afffb0d15acaa52256"
+    },
+    "threatModel": {
+      "assets": [
+        "Client identities and identity-linked health information: names, contact details, age, injuries, medications, measurements, pain, movement assessments, and workout histories. The documented chat policy deliberately retains fitness and medical information while stripping identity (backend/services/aiPrivacyService.mjs:14-18); workout generation explicitly loads waiver medicalConditions, injuries, and medications into generation context (backend/controllers/aiWorkoutController.mjs:565-578,641-654).",
+        "Client and child privacy and consent decisions. User-supplied objective: verify protection of client, child, and medical data before deciding how to connect alternative brains. Existing application consent state includes aiEnabled, consentVersion, consentedAt, and withdrawnAt; trainers cannot grant consent for clients (backend/controllers/aiConsentController.mjs:49-98). Child-specific cloud eligibility remains an unresolved boundary in the representative chains.",
+        "Conversation contents and target-client associations stored in ai_conversations.messages JSONB. The route stores message content after request middleware processing but before target-specific identity replacement; returned assistant content receives additional target-specific scrubbing when a client is selected (backend/models/AiConversation.mjs:62-66,94-102; backend/routes/aiChatRoutes.mjs:733-785).",
+        "Server-held provider credentials and control over request destinations. Chat reads GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, and VENICE_API_KEY; the workout OpenAI adapter additionally accepts generic AI_API_KEY and AI_BASE_URL overrides (backend/services/aiChatService.mjs:2094-2115; backend/services/ai/adapters/openaiAdapter.mjs:29-31,137-162).",
+        "Backend command authority remains distinct from model output. Command processing performs classification before registry validation, write kill-switch checks, RBAC, client resolution, confirmation, and execution (backend/services/ai/commandExecutor.mjs:516-526). The security of every individual dispatcher was outside this architecture pass."
+      ],
+      "assumptions": [
+        "No authoritative threat model or knowledge base was supplied. Parent reported no root/backend SECURITY.md. A backend policy inventory using resolve_security_md.py found SECURITY.md files only under node_modules, with no nested application policy in this scope.",
+        "Only current offline source was inspected. No application code or tests ran, no provider was contacted, no secret value was read, and no repository file was changed.",
+        "The default chat provider is Gemini only when GEMINI_API_KEY is present; otherwise key presence determines the next provider. Current live key presence, selected models, endpoint overrides, and failover settings are unknown (backend/services/aiChatService.mjs:2094-2115).",
+        "Startup paths differ: server.mjs attempts repository-root .env then dotenv's default lookup; development preloads repository-root .env or backend/.env before module evaluation. Some adapter defaults are module-level environment reads. Actual effective production configuration must be verified without exposing values (backend/server.mjs:22-34; backend/preload-env.cjs:5-13; backend/package.json:8-10; backend/services/ai/adapters/geminiAdapter.mjs:24; backend/services/ai/adapters/anthropicAdapter.mjs:21).",
+        "Documentation/configuration discrepancy: the sendChatMessage comment describes OpenAI-first ordering, but getAvailableProviders implements Gemini-first ordering (backend/services/aiChatService.mjs:2011-2019,2094-2115).",
+        "Documentation/control discrepancy: aiChatRoutes describes consent enforcement but explicitly permits absent profiles and consent query failures (backend/routes/aiChatRoutes.mjs:461-464,565-588).",
+        "A successful identity-strip call is not proof that target identity was available: lookup failure can be swallowed inside aiPrivacyService. Notes have a stronger explicit null-identity withholding branch than current-message stripping (backend/services/aiPrivacyService.mjs:38-49,112-154,241-252).",
+        "No age/guardian eligibility check was identified in the inspected chat, voice, consent-grant, or workout-consent consumer chains. This is a scoped open question, not proof that the entire repository lacks child-related controls.",
+        "The intended medical policy must be clarified by the parent against user requirements: current source intentionally permits identity-stripped medical context to cloud AI. This architecture review does not certify anonymization or compliance.",
+        "The OpenAI-compatible workout adapter could target a local endpoint through existing configuration, but the source does not establish that a local model is installed, reachable, configured, or isolated. Cloud fallback remains possible unless its order/configuration prevents it (backend/services/ai/adapters/openaiAdapter.mjs:29-31,137-162; backend/services/ai/providerRouter.mjs:61-66,149-189)."
+      ],
+      "attackerCapabilities": [
+        "An unauthenticated remote party can reach the web application but does not possess an authenticated role, provider credential, database privilege, or permission to edit deployment configuration. Representative sensitive routes use protect (backend/routes/aiChatRoutes.mjs:283; backend/routes/aiCommandRoutes.mjs:119; backend/routes/aiRoutes.mjs:47-56).",
+        "An authenticated client can submit messages, command context, audio, and TTS text; clients are constrained to self for selected-client chat creation and workout generation. A failed boundary could add another client's data access or cause prohibited outbound processing, but such an impact must be validated against the actual caller and data source (backend/routes/aiChatRoutes.mjs:326-329; backend/controllers/aiWorkoutController.mjs:241-256; backend/routes/aiCommandRoutes.mjs:121-168; backend/routes/aiChatRoutes.mjs:895-922,954-998).",
+        "A trainer can request target-client processing and supply narrative or historical context, but does not automatically possess access to arbitrary clients or authority to grant their AI consent. Assignment/session checks and the no-trainer-consent-grant rule are relevant controls (backend/services/ai/contextEngine/clientAccess.mjs:61-100; backend/controllers/aiConsentController.mjs:54-59).",
+        "External providers receive the request payloads emitted to them and return untrusted generated content. Provider fallback can send a request to another configured recipient. Providers do not thereby receive database credentials or automatic backend command authority (backend/services/aiChatService.mjs:2022-2037; backend/services/ai/providerRouter.mjs:149-189; backend/services/ai/commandExecutor.mjs:516-526).",
+        "Administrative override and deployment-configuration authority are trusted, separately privileged capabilities. Do not assume an ordinary client can set AI_CHAT_CLIENT_ACCESS_SOFT, change AI_BASE_URL, or register adapters."
+      ],
+      "securityObjectives": [
+        "Honor the user's requested client, child, and medical privacy boundaries at every outbound consumer, including classification, raw audio, TTS, server enrichment, and provider fallback.",
+        "Require current actor-to-client authorization before loading or releasing target data; preserve independently enforced backend authorization and confirmation around model-proposed actions.",
+        "Make consent withdrawal, missing consent, verification failure, admin override, and minor/guardian eligibility explicit and consistent with the chosen product policy; source evidence currently shows differing policies between chat and workout generation.",
+        "Apply data minimization to the final complete outbound payload rather than assuming that a request-body middleware protects later-added server context or a separate modality.",
+        "Keep credentials server-side and bind every allowed provider or local endpoint to an explicit recipient policy. A local-only option must also constrain fallback destinations across all affected consumers.",
+        "Keep provider and privacy logs useful without recording sensitive contents; storage retention, encryption, and live log redaction require separate verification."
+      ],
+      "summary": "Source-backed architecture review of the current repository at C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT, limited to Swan Coach provider connections and representative chat, command-classification, workout-generation, and voice privacy boundaries. This is architecture mapping, not completed security-audit coverage. Express mounts /api/ai, /api/ai-chat, and /api/ai-command separately (backend/core/routes.mjs:625-632). Coach's frontend chat action calls useAIChat, which posts conversations and messages to /api/ai-chat (frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.actions.ts:203-204; frontend/src/hooks/useAIChat.ts:425-449). Chat and command classification use sendChatMessage with an internal provider chain; workout generation uses a separate registered-adapter router; transcription and TTS directly call Google. Render configuration starts the backend through npm start and render-start.mjs, while development uses an environment preload before server.mjs (render.yaml:12-23; backend/package.json:8-10; backend/scripts/render-start.mjs:92-95). Actual production configuration, credentials, database contents, network egress, and runtime behavior were not inspected.",
+      "trustBoundaries": [
+        "Authenticated browser to chat conversation: all aiChatRoutes require protect; creation assigns owner and role from req.user, and clients cannot select another target user. Sending messages loads an active conversation scoped to req.user.id (backend/routes/aiChatRoutes.mjs:283,308-329,553-562).",
+        "Trainer to client records: selected-client chat invokes checkClientAccess when both stored conversation role and current role are trainer. The helper permits self, an active assignment, or session history, and denies verification failures. AI_CHAT_CLIENT_ACCESS_SOFT=true changes a denial into warn-and-continue behavior in this chat caller (backend/routes/aiChatRoutes.mjs:599-625; backend/services/ai/contextEngine/clientAccess.mjs:43-100). Workout generation independently requires active trainer assignment, with client requests limited to self (backend/controllers/aiWorkoutController.mjs:241-293).",
+        "Chat consent to outbound AI: the inline chat check denies an existing disabled or withdrawn profile, but explicitly permits missing profiles and failed consent queries. This is materially different from strict requireAiConsent and from workout eligibility (backend/routes/aiChatRoutes.mjs:565-588).",
+        "Chat message and history to cloud providers: strictPiiMiddleware runs on message submission; target-specific identity stripping occurs when enrichUserId exists; recent history is scrubbed again. The caller substitutes withholding placeholders when stripping throws. However, fetchClientIdentity internally returns null on query failure, and stripIdentityFromMessage continues using an empty identity list plus best-effort generic PII sanitization, so not every identity-resolution failure reaches that caller catch (backend/routes/aiChatRoutes.mjs:466,599-640,720-742; backend/services/ai/aiChatPromptPrivacy.mjs:20-47; backend/services/aiPrivacyService.mjs:38-49,112-154).",
+        "Medical data to cloud providers: the request middleware flags medical conditions and medications without necessarily redacting or blocking them. The policy is identity stripping, not a prohibition on external medical-data processing. Server-derived medical context is appended to generation data after initial master-prompt de-identification (backend/middleware/piiSanitizationMiddleware.mjs:195-207; backend/services/aiPrivacyService.mjs:14-18; backend/controllers/aiWorkoutController.mjs:431-447,565-578,641-654).",
+        "Command input to cloud classification: /api/ai-command/execute authenticates and rate-limits, then sanitizes and PHI-strips the primary message before classification. The same request passes previousContext separately, and the classifier inserts it after those message checks. The public route forces selectedClientName to null, providing counterevidence against treating the classifier's selectedClientName option as a current route-supplied identity disclosure (backend/routes/aiCommandRoutes.mjs:119-168; backend/services/ai/commandExecutor.mjs:175-215; backend/services/ai/intentClassifier.mjs:106-138).",
+        "Workout generation to registered providers: controller checks target ownership and consent eligibility, de-identifies its master prompt, assembles server constraints, and invokes routeAiGeneration. The router controls provider order, configuration checks, circuit breakers, retries, and timeout budget, but does not itself establish per-client privacy or consent authorization (backend/controllers/aiWorkoutController.mjs:241-327,431-447,714-721; backend/services/ai/providerRouter.mjs:61-66,136-177).",
+        "Raw audio to Google: /api/ai-chat/transcribe accepts an authenticated upload, enforces rate and size constraints, and sends base64 audio as inlineData to Google before a transcript exists. Text sanitization elsewhere cannot retroactively protect this audio transmission (backend/routes/aiChatRoutes.mjs:895-929; backend/services/voiceTranscriptionService.mjs:84-147).",
+        "TTS text to Google: /api/ai-chat/tts accepts authenticated text, validates its type, length, and voice, then sends the text directly to a Google TTS model. Its route does not include strictPiiMiddleware or the chat conversation's consent/identity checks (backend/routes/aiChatRoutes.mjs:283,954-1008).",
+        "Operator configuration to request recipients: chat has fixed cloud endpoints and an internal key-presence failover chain. Workout generation allows an OpenAI-compatible base URL and configurable provider order. Selecting a custom local workout endpoint does not redirect chat, classification, transcription, or TTS (backend/services/aiChatService.mjs:2015-2037,2094-2151,2155-2170,2191-2212,2232-2268,2312-2325; backend/services/ai/adapters/openaiAdapter.mjs:29-31,137-162; backend/services/ai/providerRouter.mjs:61-66)."
+      ]
+    }
+  },
+  "schemaVersion": "1.0"
+}

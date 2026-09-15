@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-09-13T04:14:07.197Z",
+  "kind": "read-only native-metadata compatibility probe, not an actor approval receipt",
+  "modelField": "servedModel",
+  "observed": null,
+  "defaultSchema": 3,
+  "validation": {
+    "status": "BLOCKED",
+    "message": "actor model mismatch"
+  },
+  "policySha256": "b5fcece7d5f6f16174af4895b7061fbd9d522b747496035d11300d17e9ef6455",
+  "nativeDispatchCount": 3,
+  "nativeResultCount": 3,
+  "workflowStateCreated": false,
+  "nativeHookEnrolled": false,
+  "providerCallsMade": 0
+}

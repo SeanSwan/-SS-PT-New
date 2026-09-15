@@ -23,7 +23,7 @@ import {
   SearchInput, SearchWrapper,
 } from './WorkoutPlannerStyles';
 import { ExerciseListPane, ResultsCount } from './WorkoutPlannerPage.styles';
-import { PlannerEmpty, PlannerSkeleton } from './PlannerStateViews';
+import { PlannerEmpty, PlannerError, PlannerSkeleton } from './PlannerStateViews';
 import { usePlannerData } from './plannerContexts/PlannerDataContext';
 import { usePlannerActions } from './plannerContexts/PlannerActionsContext';
 
@@ -105,6 +105,7 @@ const WorkoutPlannerRolodexPanelV2: React.FC = () => {
   const act = usePlannerActions();
   const {
     filteredExerciseCount, activeFilterCount, exercisesLoading, searchQuery,
+    exercisesLoadError, refreshExercises,
     filterCategory, sourceFilter, exerciseTypeFilter, equipmentFilter, impactFilter,
     exerciseRowRenderer,
   } = data.rolodex;
@@ -253,6 +254,8 @@ const WorkoutPlannerRolodexPanelV2: React.FC = () => {
         <ExerciseListPane>
           {exercisesLoading ? (
             <PlannerSkeleton variant="list" />
+          ) : exercisesLoadError ? (
+            <PlannerError message={exercisesLoadError} onRetry={refreshExercises} />
           ) : filteredExerciseCount === 0 ? (
             <PlannerEmpty
               title={activeFilterCount > 0 ? 'No exercises match this training stack.' : 'No exercises available yet.'}

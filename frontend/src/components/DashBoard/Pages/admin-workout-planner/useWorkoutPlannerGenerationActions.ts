@@ -1,12 +1,5 @@
-/**
- * Hook: useWorkoutPlannerGenerationActions
- * Purpose: Own Swan Coach generation actions and generated-output UI state
- * for the admin/trainer Workout Planner. Cortex P0 (§5.3): generation now
- * honors the deterministic safety gate's acknowledged-review contract —
- * 409 SWAN_COACH_REVIEW_REQUIRED opens the SafetyGateModal and the retry
- * carries planningReviewAcknowledged + the trainer's written reason.
- */
-import { useCallback, useState } from 'react';
+/** Owns Swan Coach generation actions and preserves the SWAN_COACH_REVIEW_REQUIRED gate. */
+import { useCallback, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { logApiError } from '../../../../utils/logApiError';
 import type { WorkoutPlannerBuilderExplanation } from './WorkoutPlannerBuilderPanel';
@@ -69,6 +62,7 @@ interface WorkoutPlannerGenerationActionsInput {
   setPhaseNumber: Dispatch<SetStateAction<number>>;
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
   resetLoadedPlanState: () => void;
+  getCurrentClientId?: () => number | null;
 }
 
 interface PlanApplicationInput {
@@ -108,12 +102,14 @@ export const useWorkoutPlannerGenerationActions = ({
   setPhaseNumber,
   setStatusMsg,
   resetLoadedPlanState,
+  getCurrentClientId,
 }: WorkoutPlannerGenerationActionsInput) => {
   const [generating, setGenerating] = useState(false);
   const [generatingPlan, setGeneratingPlan] = useState(false);
   const [degradedIntelligence, setDegradedIntelligence] = useState(false);
   const [explanations, setExplanations] = useState<WorkoutPlannerBuilderExplanation[]>([]);
   const [showExplanations, setShowExplanations] = useState(false);
+  const requestSequence = useRef(0);
   const {
     guidedCandidates,
     generatingCandidates,
@@ -133,17 +129,19 @@ export const useWorkoutPlannerGenerationActions = ({
     setGeneratedPlan,
     setStatusMsg,
     resetLoadedPlanState,
+    getCurrentClientId,
   });
 
   const clearExplanations = useCallback(() => setExplanations([]), []);
   const handleToggleExplanations = useCallback(() => setShowExplanations(value => !value), []);
 
-  /** Returns review details when the safety gate blocked, null otherwise. */
   const postWorkoutGeneration = useCallback(async (
     selectedClientId: number,
     ack?: PlanningReviewAck,
     overrides?: PlannerGenerateOverrides,
   ) => {
+    const requestId = ++requestSequence.current;
+    const isCurrentRequest = () => requestId === requestSequence.current && (!getCurrentClientId || getCurrentClientId() === selectedClientId);
     setGenerating(true);
     setDegradedIntelligence(false);
     setStatusMsg(null);
@@ -154,7 +152,6 @@ export const useWorkoutPlannerGenerationActions = ({
       const res = await authAxios.post(endpointFor('single'), {
         ...buildWorkoutGenerationRequest({
           selectedClientId,
-          // Spoken overrides win over dropdown state for the immediate call (H4).
           category: overrides?.category ?? category,
           goal: overrides?.goal ?? goal,
           phaseNumber: overrides?.phaseNumber ?? phaseNumber,
@@ -164,8 +161,8 @@ export const useWorkoutPlannerGenerationActions = ({
         }),
         ...(ack ?? {}),
       });
-      const workout = verifiedGeneratedWorkout(res.data, setStatusMsg);
-      if (workout) {
+      const workout = verifiedGeneratedWorkout(res.data, isCurrentRequest() ? setStatusMsg : () => {});
+      if (workout && isCurrentRequest()) {
         applyGeneratedWorkout({
           workout,
           setDegradedIntelligence,
@@ -180,27 +177,26 @@ export const useWorkoutPlannerGenerationActions = ({
       return null;
     } catch (err: unknown) {
       const review = parseSafetyGateReviewError(err);
-      if (review) return review;
+      if (review) return isCurrentRequest() ? review : null;
+      if (!isCurrentRequest()) return null;
       logApiError('Swan Coach workout generation failed', err);
       setStatusMsg(workoutGenerationErrorMessage(err));
       return null;
     } finally {
-      setGenerating(false);
+      if (requestId === requestSequence.current) setGenerating(false);
     }
-  }, [authAxios, category, clearGuidedCandidates, goal, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
+  }, [authAxios, category, clearGuidedCandidates, getCurrentClientId, goal, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
-  /** Returns review details when the safety gate blocked, null otherwise. */
   const postPlanGeneration = useCallback(async (
     selectedClientId: number,
     ack?: PlanningReviewAck,
   ) => {
+    const requestId = ++requestSequence.current;
+    const isCurrentRequest = () => requestId === requestSequence.current && (!getCurrentClientId || getCurrentClientId() === selectedClientId);
     setGeneratingPlan(true);
     setDegradedIntelligence(false);
     setStatusMsg(null);
-    setGeneratedPlan(null);
-    setPlanExercises([]);
     clearGuidedCandidates();
-    resetLoadedPlanState();
     try {
       const res = await authAxios.post(endpointFor('multi_week'), {
         ...buildPlanGenerationRequest({
@@ -215,19 +211,24 @@ export const useWorkoutPlannerGenerationActions = ({
         }),
         ...(ack ?? {}),
       });
-      const plan = verifiedGeneratedPlan(res.data, setStatusMsg);
-      if (plan) applyGeneratedPlan({ plan, setDegradedIntelligence, setGeneratedPlan, setStatusMsg });
+      const plan = verifiedGeneratedPlan(res.data, isCurrentRequest() ? setStatusMsg : () => {});
+      if (plan && isCurrentRequest()) {
+        setPlanExercises([]);
+        resetLoadedPlanState();
+        applyGeneratedPlan({ plan, setDegradedIntelligence, setGeneratedPlan, setStatusMsg });
+      }
       return null;
     } catch (err: unknown) {
       const review = parseSafetyGateReviewError(err);
-      if (review) return review;
+      if (review) return isCurrentRequest() ? review : null;
+      if (!isCurrentRequest()) return null;
       logApiError('Plan generation failed', err);
       setStatusMsg(planGenerationErrorMessage(err));
       return null;
     } finally {
-      setGeneratingPlan(false);
+      if (requestId === requestSequence.current) setGeneratingPlan(false);
     }
-  }, [authAxios, clearGuidedCandidates, goal, hardcoreMethod, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
+  }, [authAxios, clearGuidedCandidates, getCurrentClientId, goal, hardcoreMethod, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
   const onAcknowledged = useCallback(async (
     review: SafetyGateReviewState,
@@ -238,9 +239,6 @@ export const useWorkoutPlannerGenerationActions = ({
       ? await postWorkoutGeneration(review.clientId, ack)
       : await postPlanGeneration(review.clientId, ack);
     if (!reblocked) return null;
-    // The acknowledged retry was 409'd AGAIN (gate state changed between
-    // attempts, or a second gate shares the contract). Never close silently —
-    // surface it and hand the fresh review state back so the modal stays open.
     setStatusMsg({
       type: 'error',
       text: 'The safety review is still required — the gate held the acknowledged retry. Review the updated items and try again.',

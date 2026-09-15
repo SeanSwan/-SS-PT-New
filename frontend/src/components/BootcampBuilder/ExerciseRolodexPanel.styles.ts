@@ -34,6 +34,41 @@ export const ResultCount = styled.span`
   color: var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 42%, transparent));
 `;
 
+export const ProfileError = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 12px 0;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, #f87171 35%, transparent);  // swan-guard-allow-hex rolodex inline error accent, not in the Swan palette
+  border-radius: 8px;
+  background: color-mix(in srgb, #f87171 8%, transparent);  // swan-guard-allow-hex rolodex inline error accent, not in the Swan palette
+  color: #fecaca;  // swan-guard-allow-hex rolodex inline error text, not in the Swan palette
+  font-size: 11px;
+  line-height: 1.35;
+`;
+
+export const ProfileRetryButton = styled.button`
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, #f87171 45%, transparent);  // swan-guard-allow-hex rolodex inline error accent, not in the Swan palette
+  border-radius: 6px;
+  background: transparent;
+  color: #fecaca;  // swan-guard-allow-hex rolodex inline error text, not in the Swan palette
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover,
+  &:focus-visible {
+    background: color-mix(in srgb, #f87171 14%, transparent);  // swan-guard-allow-hex rolodex inline error accent, not in the Swan palette
+    outline: 2px solid #f87171;  // swan-guard-allow-hex rolodex inline error accent, not in the Swan palette
+    outline-offset: 2px;
+  }
+`;
+
 export const SearchBox = styled.div`
   display: flex;
   align-items: center;

@@ -9,7 +9,7 @@
  * └──────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useSprintAPI, CreateSprintParams } from '../../hooks/useSprintAPI';
 import {
   ModalOverlay, ModalContent, ModalTitle,
@@ -48,6 +48,41 @@ const CreateSprintModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
   const [focusRotation, setFocusRotation] = useState<string[]>(['lower_body', 'upper_body', 'full_body']);
   const [defaultFormat, setDefaultFormat] = useState('stations_4x');
   const [strategy, setStrategy] = useState('linear');
+  const modalRef = useRef<HTMLDivElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const focusModal = () => {
+      modalRef.current?.querySelector<HTMLElement>('#sprint-name')?.focus();
+    };
+    requestAnimationFrame(focusModal);
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab' || !modalRef.current) return;
+      const focusable = Array.from(modalRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ));
+      if (focusable.length === 0) return;
+      const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+      const nextIndex = event.shiftKey
+        ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+        : (currentIndex === focusable.length - 1 ? 0 : currentIndex + 1);
+      event.preventDefault();
+      focusable[nextIndex]?.focus();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      restoreFocusRef.current?.focus();
+      restoreFocusRef.current = null;
+    };
+  }, [isOpen, onClose]);
 
   const toggleDay = useCallback((day: string) => {
     setSelectedDays(prev =>
@@ -85,9 +120,9 @@ const CreateSprintModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
   if (!isOpen) return null;
 
   return (
-    <ModalOverlay onPointerDown={onClose} role="dialog" aria-modal="true">
-      <ModalContent onPointerDown={e => e.stopPropagation()}>
-        <ModalTitle>Create Sprint Plan</ModalTitle>
+    <ModalOverlay onPointerDown={onClose} role="dialog" aria-modal="true" aria-labelledby="create-sprint-title">
+      <ModalContent ref={modalRef} onPointerDown={e => e.stopPropagation()}>
+        <ModalTitle id="create-sprint-title">Create Sprint Plan</ModalTitle>
 
         <FormGrid>
           <FullWidthField>
@@ -122,6 +157,7 @@ const CreateSprintModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
                   key={day}
                   type="button"
                   onClick={() => toggleDay(day)}
+                  aria-pressed={selectedDays.includes(day)}
                   $selected={selectedDays.includes(day)}
                   $tone="cyan"
                 >
@@ -139,6 +175,7 @@ const CreateSprintModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
                   key={focus}
                   type="button"
                   onClick={() => toggleFocus(focus)}
+                  aria-pressed={focusRotation.includes(focus)}
                   $selected={focusRotation.includes(focus)}
                   $tone="purple"
                 >

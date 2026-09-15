@@ -1,0 +1,49 @@
+{
+  "recordedAt": "2026-09-13T04:26:21.208Z",
+  "kind": "Root record of observed CUA DOM and screenshot checks; not a synthetic authenticated application test",
+  "scope": "Local synthetic design preview only",
+  "diagrams": {
+    "url": "http://127.0.0.1:5197/audit-diagrams.html?verified=1",
+    "sourceCount": 7,
+    "renderedSvgCount": 7,
+    "syntaxError": false,
+    "sha256": "ac67d17bbe041ffd18ad52a0b99b97787e6a6692c020063a9c7409c009b35632"
+  },
+  "preview": {
+    "url": "http://127.0.0.1:5197/audit-repair-preview.html?final=1",
+    "sha256": "55b62f000e4243a4815dfa9a46d1f4c11a03e99009fee4a81ad15968a285b8af",
+    "desktop": {
+      "innerWidth": 1996,
+      "clientWidth": 1982,
+      "scrollWidth": 1982
+    },
+    "phone": {
+      "requestedViewport": {
+        "width": 414,
+        "height": 896
+      },
+      "observedInnerWidth": 376,
+      "clientWidth": 363,
+      "scrollWidth": 363,
+      "savebarPosition": "static",
+      "screenshotInspected": true
+    },
+    "states": {
+      "equipmentCheckingAllThreeAddButtonsDisabled": true,
+      "conflictVisible": true,
+      "conflictSaveDisabled": true,
+      "searchAccessibleName": "Search exercises"
+    },
+    "corrections": [
+      "Removed sequence-label semicolons after observed Mermaid syntax error, then rendered all seven diagrams.",
+      "Increased compact media text, named the search input, improved link contrast and changed user-facing revision wording to version.",
+      "Removed mobile sticky positioning after observing overlap near the session heading, then verified static footer and no horizontal overflow."
+    ],
+    "viewportRestored": true
+  },
+  "limitations": [
+    "App components have not been repaired or mounted in a synthetic authenticated harness.",
+    "This is not proof of live database, save/reload, actual PDFs, provider cancellation or production behavior.",
+    "Phone width differs from requested emulation due to browser effective scaling; observed CSS and document widths are recorded, not substituted."
+  ]
+}

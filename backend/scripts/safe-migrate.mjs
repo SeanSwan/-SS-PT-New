@@ -54,7 +54,8 @@ async function getSequelize() {
   if (env === 'production' && process.env.DATABASE_URL) {
     return new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
-      dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+      // DB_SSL_DISABLE=1: throwaway shadow containers offer no TLS (workflow only).
+      dialectOptions: process.env.DB_SSL_DISABLE === '1' ? {} : { ssl: { require: true, rejectUnauthorized: false } },
       logging: false,
     });
   }
@@ -300,7 +301,7 @@ async function main() {
     if (env === 'production' && process.env.DATABASE_URL) {
       seq = new Sequelize(process.env.DATABASE_URL, {
         dialect: 'postgres',
-        dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+        dialectOptions: process.env.DB_SSL_DISABLE === '1' ? {} : { ssl: { require: true, rejectUnauthorized: false } },
         logging: false,
       });
     } else {

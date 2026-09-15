@@ -1,0 +1,29 @@
+{
+  "entries": [
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+      "sha256": "6230f64d50e3380c183b20ccac1a505df944ac943b6c7d02142e1540f324b536"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+      "sha256": "e6c356c43164a958bdb0fee513ecbef110d5328b19f60171d0cdae4807cdf43c"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+      "sha256": "e6aab8b44d7b3b168f14e568ca9d9d9e9345cf278b073f915f98d2c47deae880"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/16-approved-luna-build-and-blueprint-audit.md",
+      "sha256": "956ecc72cd355c3d460a4e58b5d10b251f3c0dbb536b7e74d0320b55f77670b5"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.test.tsx",
+      "sha256": "e2e907d63faba433eeb9646097977d86fc76da3a74c2b940beb60b9bb5eb574c"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.tsx",
+      "sha256": "ac3ffba3d2d8cd2879d5e47959fece2e7f219bff1e07f3bc02dda1b6b1a856da"
+    }
+  ],
+  "digest": "e5b31c5ff221944d03001cead578ec074eca51c5796f1a80bde3e1dfe434dc0b"
+}

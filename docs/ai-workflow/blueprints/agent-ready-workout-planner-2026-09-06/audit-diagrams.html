@@ -1,0 +1,119 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Repair contract diagrams</title><style>body{margin:24px;background:#0b121d;color:#edf3fa;font:16px system-ui}h1{font-size:28px}section{padding:20px;margin:20px 0;border:1px solid #526073;border-radius:12px;overflow:auto}.mermaid{background:#f6f8fb;padding:20px;border-radius:8px}a{color:#aed7ff}svg{max-width:100%;height:auto}</style><h1>Repair contract diagrams</h1><p>Canonical source diagrams; design evidence only.</p><section><h2>12-hostile-reconciliation-and-repair.md · 1</h2><pre class="mermaid">flowchart TD
+ A[Select client and draft] --&gt; B[Capture context and loaded revision]
+ B --&gt; C{Access and constraints known?}
+ C --&gt;|No| D[Denied or unavailable with retry]
+ D --&gt; B
+ C --&gt;|Yes| E[Generate or edit draft]
+ E --&gt; F{Response still matches context?}
+ F --&gt;|No| G[Discard stale result]
+ F --&gt;|Yes| H[Review exact draft]
+ H --&gt;|Defer or cancel| I[Preserve prior draft]
+ H --&gt;|Save| J[Validate and transact]
+ J --&gt;|Failure| I
+ J --&gt;|Conflict| K[Keep local draft and original revision]
+ K --&gt;|Reload or save copy| H
+ J --&gt;|Committed| L[Show saved record and revision]
+ L --&gt; M[Preflight and run]
+ M --&gt;|Taught| N[Idempotent history transition]
+ L --&gt;|Rollback release| O[Revert scoped code; preserve saved data]
+</pre></section><section><h2>12-hostile-reconciliation-and-repair.md · 2</h2><pre class="mermaid">sequenceDiagram
+ participant UI as Planner or Bootcamp UI
+ participant API as Authorized API
+ participant DB as Database
+ UI-&gt;&gt;UI: Capture client epoch, draft and revision
+ UI-&gt;&gt;API: Validated request
+ API-&gt;&gt;API: Resolve ownership and trusted IDs
+ API-&gt;&gt;DB: Begin short atomic write
+ alt validation or write fails
+ DB--&gt;&gt;API: Rollback
+ API--&gt;&gt;UI: Error or conflict
+ UI-&gt;&gt;UI: Keep prior content
+ else commit succeeds
+ DB--&gt;&gt;API: Committed snapshot
+ API--&gt;&gt;UI: Snapshot plus revision
+ UI-&gt;&gt;UI: Apply only if context still matches
+ end
+</pre></section><section><h2>12-hostile-reconciliation-and-repair.md · 3</h2><pre class="mermaid">erDiagram
+ TRAINER ||--o{ BOOTCAMP_TEMPLATE : owns
+ BOOTCAMP_TEMPLATE ||--o{ STATION : contains
+ BOOTCAMP_TEMPLATE ||--o{ EXERCISE : contains
+ STATION o|--o{ EXERCISE : groups
+ TRAINER ||--o{ SPRINT : owns
+ SPRINT ||--o{ SPRINT_WEEK : schedules
+ SPRINT_WEEK ||--o{ SLOT : contains
+ SLOT ||--o{ EXERCISE_MEMORY : records
+ SLOT o|--o| CLASS_LOG : confirms
+ CLIENT ||--o{ WORKOUT_PLAN : receives
+</pre></section><section><h2>13-server-repair-contract.md · 1</h2><pre class="mermaid">sequenceDiagram
+ participant C as Authorized caller
+ participant W as Worker
+ participant D as Database
+ C-&gt;&gt;D: Check actor and expected version
+ D-&gt;&gt;D: Lock Sprint and claim new fence
+ D--&gt;&gt;W: Owned operation and lease
+ W-&gt;&gt;W: Generate outside transaction
+ W-&gt;&gt;D: Lock Sprint then slot and verify fence and lease
+ alt stale or write fails
+ D--&gt;&gt;W: Conflict or rollback with old slot preserved
+ else owned and valid
+ D-&gt;&gt;D: Commit slot and memory union together
+ D--&gt;&gt;C: Committed progress
+ end
+ W-&gt;&gt;D: Finalize only owned fence
+ alt lease expired and explicit retry claims newer fence
+ C-&gt;&gt;D: Claim new version and resume committed slots
+ W-&gt;&gt;D: Old finalize rejected
+ end
+</pre></section><section><h2>14-frontend-repair-contract.md · 1</h2><pre class="mermaid">flowchart TD
+ A[Capture client draft edit version] --&gt; B[Begin operation lane ticket]
+ B --&gt; C{Current and allowed?}
+ C --&gt;|No| D[Show blocked reason preserve draft]
+ C --&gt;|Yes| E[Fetch or mutate]
+ E --&gt;|Abort or failure| D
+ E --&gt;|409| F[Conflict keep local baseline]
+ F --&gt;|Keep editing| A
+ F --&gt;|Save as copy| G[POST new draft once]
+ F --&gt;|Load saved| H[Confirm and stage GET record]
+ H --&gt;|New edits or failed GET| D
+ H --&gt;|Accepted valid record| I[Adopt content plus exact revision]
+ G --&gt;|Success current context| I
+ G --&gt;|Outcome unknown| J[Check saved plans no auto retry]
+ E --&gt;|Success| K{Ticket still current?}
+ K --&gt;|No| L[Origin-only result no UI adoption]
+ K --&gt;|Yes| M{Edits after submitted save?}
+ M --&gt;|Yes| N[Adopt saved baseline keep newer edits dirty]
+ M --&gt;|No| I
+</pre></section><section><h2>14-frontend-repair-contract.md · 2</h2><pre class="mermaid">stateDiagram-v2
+ [*] --&gt; NoRun
+ NoRun --&gt; Running: Start valid frozen snapshot
+ Running --&gt; Paused: Pause or leave Run / reconcile now
+ Paused --&gt; Running: Resume same snapshot
+ Paused --&gt; Paused: Skip or restart segment
+ Running --&gt; Running: Skip or restart segment
+ Running --&gt; Complete: Reconcile final deadline
+ Complete --&gt; NoRun: End class
+ Paused --&gt; NoRun: Confirm end or restart
+ Running --&gt; NoRun: Confirm end
+ NoRun --&gt; [*]: Unmount
+ Running --&gt; [*]: Page leaves / release owned capabilities
+ Paused --&gt; [*]: Page leaves / no durable resume claim
+</pre></section><section><h2>14-frontend-repair-contract.md · 3</h2><pre class="mermaid">sequenceDiagram
+ participant Page as Sprint page
+ participant API as Existing Sprint API
+ Page-&gt;&gt;API: POST generate once with authorization
+ alt HTTP denied or JSON error
+ API--&gt;&gt;Page: Error before SSE
+ Page-&gt;&gt;Page: Settle error preserve data
+ else SSE accepted
+ API--&gt;&gt;Page: Valid framed events
+ alt terminal complete or error
+ API--&gt;&gt;Page: Terminal event
+ Page-&gt;&gt;Page: Settle and origin-scoped refresh
+ else EOF or disconnect
+ Page-&gt;&gt;Page: Observation interrupted
+ Page-&gt;&gt;API: User reconnects GET with Last-Event-ID
+ end
+ end
+ Page-&gt;&gt;Page: Back/select other sprint invalidates epoch
+ Page--xAPI: Abort observation only
+</pre></section><script src="evidence/mermaid.min.js"></script><script>mermaid.initialize({startOnLoad:true,theme:"default",securityLevel:"strict"});</script></html>

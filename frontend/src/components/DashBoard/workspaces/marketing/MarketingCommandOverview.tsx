@@ -158,23 +158,19 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
               <MetricLabel>Total leads</MetricLabel>
             </MetricBlock>
             <StyledBox as={MetricBlock}
-              role="button"
-              tabIndex={0}
+              type="button"
               $style={{ cursor: 'pointer' }}
               aria-label={`${stats.hotLeads} hot leads — open filtered list`}
               onClick={() => onOpenLeads?.('hot')}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLeads?.('hot'); } }}
             >
               <MetricValue $tone="purple">{stats.hotLeads}</MetricValue>
               <MetricLabel>Hot leads ›</MetricLabel>
             </StyledBox>
             <StyledBox as={MetricBlock}
-              role="button"
-              tabIndex={0}
+              type="button"
               $style={{ cursor: 'pointer' }}
               aria-label={`${stats.needsFollowUp} follow-ups due — open filtered list`}
               onClick={() => onOpenLeads?.('followups')}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenLeads?.('followups'); } }}
             >
               <MetricValue $tone="gold">{stats.needsFollowUp}</MetricValue>
               <MetricLabel>Follow-ups due ›</MetricLabel>

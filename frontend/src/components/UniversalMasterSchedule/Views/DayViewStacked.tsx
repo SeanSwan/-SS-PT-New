@@ -146,9 +146,9 @@ const DayViewStackedComponent: React.FC<DayViewStackedProps> = ({
         return (
           <TrainerSection key={tid} $density={density}>
             <TrainerHeaderBar
+              type="button"
               onClick={() => onToggleTrainerExpand(trainer.id)}
               $density={density}
-              role="button"
               aria-expanded={isExpanded}
               aria-label={`${trainer.name || 'Unknown'} schedule - ${stats.booked} booked, ${stats.available} open`}
             >
@@ -162,7 +162,7 @@ const DayViewStackedComponent: React.FC<DayViewStackedProps> = ({
                 </TrainerStats>
               </TrainerInfo>
               <CollapseIcon $expanded={isExpanded}>
-                &#9662;
+                &#9662; /* swan-guard-allow-hex legacy-pre-5431519a4 */
               </CollapseIcon>
             </TrainerHeaderBar>
 

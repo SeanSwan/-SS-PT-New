@@ -97,13 +97,6 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
     onLoad(plan.id, plan.name);
   }, [renaming, onLoad, plan.id, plan.name]);
 
-  const handleCardKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (renaming) return;
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onLoad(plan.id, plan.name);
-    }
-  }, [renaming, onLoad, plan.id, plan.name]);
 
   const handleActivate = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -164,13 +157,11 @@ const SavedPlanCard: React.FC<SavedPlanCardProps> = ({
   return (
     <Card
       className="lens2-row"
+      type="button"
       $loaded={loaded}
       $isCurrent={isCurrent}
-      role="button"
-      tabIndex={0}
       aria-label={cardLoadLabel}
       onClick={handleCardClick}
-      onKeyDown={handleCardKeyDown}
       data-testid={`saved-plan-card-${plan.id}`}
     >
       <CardHeader>

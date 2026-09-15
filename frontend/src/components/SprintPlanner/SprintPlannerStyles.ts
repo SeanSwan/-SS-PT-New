@@ -75,7 +75,7 @@ export const PrimaryButton = styled.button`
   }
   &:active { transform: scale(0.97); }
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--ice-wing, #60C0F0);
     outline-offset: 4px;
   }
   &:disabled {
@@ -98,19 +98,20 @@ export const SecondaryButton = styled(PrimaryButton)`
 export const SprintToggleButton = styled(SecondaryButton)<{ $selected: boolean; $tone: 'cyan' | 'purple' }>`
   padding: 6px 12px;
   font-size: 0.75rem;
-  min-height: 36px;
+  /* 44px floor (lane C): a 36px toggle cannot be tapped reliably at arm's length. */
+  min-height: 44px;
   background: ${({ $selected, $tone }) => {
     if (!$selected) return 'transparent';
     return $tone === 'cyan' ? 'rgba(96,192,240,0.15)' : 'rgba(139,92,246,0.15)';
   }};
   border-color: ${({ $selected, $tone }) => {
     if (!$selected) return undefined;
-    return $tone === 'cyan' ? '#60C0F0' : '#8B5CF6';
+    return $tone === 'cyan' ? 'var(--ice-wing, #60C0F0)' : 'var(--wing-purple, #8B5CF6)';
   }};
 `;
 
 export const GenerateButton = styled(PrimaryButton)`
-  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
+  background: linear-gradient(135deg, var(--wing-purple, #8B5CF6), var(--ice-wing, #60C0F0));
   border: none;
 
   &:hover {
@@ -135,7 +136,34 @@ export const SpacedCard = styled(Card)`
   margin-bottom: 16px;
 `;
 
-export const SprintCard = styled(Card)`
+// Native-button twin of Card: same visuals, real button semantics (lane C —
+// sprint cards must stop being role="button" divs with hand-rolled keyboard
+// shims). The resets neutralize UA button chrome without losing Card's theme.
+export const CardButton = styled.button`
+  appearance: none;
+  display: block;
+  width: 100%;
+  background: var(--bg-surface, #1A1A24);
+  border: 1px solid var(--border-soft, rgba(96,192,240,0.12));
+  border-radius: 12px;
+  padding: 20px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: rgba(96,192,240,0.25);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--focus-ring, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;
+
+export const SprintCard = styled(CardButton)`
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -189,10 +217,10 @@ export const StatusBadge = styled.span<{ $status: string }>`
 
   ${({ $status }) => {
     switch ($status) {
-      case 'draft': return css`background: rgba(96,192,240,0.12); color: #60C0F0;`;
-      case 'generating': return css`background: rgba(139,92,246,0.12); color: #8B5CF6; animation: ${pulseGlow} 1.5s ease infinite;`;
-      case 'active': return css`background: rgba(0,255,136,0.12); color: #00ff88;`;
-      case 'completed': return css`background: rgba(198,168,75,0.12); color: #C6A84B;`;
+      case 'draft': return css`background: rgba(96,192,240,0.12); color: var(--ice-wing, #60C0F0);`;
+      case 'generating': return css`background: rgba(139,92,246,0.12); color: var(--wing-purple, #8B5CF6); animation: ${pulseGlow} 1.5s ease infinite;`;
+      case 'active': return css`background: rgba(0,255,136,0.12); color: #00ff88;`;  // swan-guard-allow-hex sprint status accent, not in the Swan palette
+      case 'completed': return css`background: rgba(198,168,75,0.12); color: var(--gilded-fern, #C6A84B);`;
       case 'archived': return css`background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4);`;
       default: return css`background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);`;
     }
@@ -211,7 +239,7 @@ export const ProgressContainer = styled.div`
 export const ProgressFill = styled.div<{ $percent: number }>`
   height: 100%;
   width: ${({ $percent }) => $percent}%;
-  background: linear-gradient(90deg, #8B5CF6, #60C0F0);
+  background: linear-gradient(90deg, var(--wing-purple, #8B5CF6), var(--ice-wing, #60C0F0));
   border-radius: 8px;
   transition: width 0.3s ease;
 `;
@@ -268,12 +296,13 @@ export const WeekLabel = styled.div`
 
   .deload {
     font-size: 0.65rem;
-    color: #C6A84B;
+    color: var(--gilded-fern, #C6A84B);
     text-transform: uppercase;
   }
 `;
 
-export const SlotPill = styled.div<{ $status: string; $dayType: string }>`
+export const SlotPill = styled.button<{ $status: string; $dayType: string }>`
+  appearance: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -284,17 +313,24 @@ export const SlotPill = styled.div<{ $status: string; $dayType: string }>`
   min-height: 56px;
   cursor: pointer;
   font-size: 0.75rem;
+  font-weight: inherit;
   font-family: 'Sora', sans-serif;
+  text-align: center;
   transition: all 0.2s cubic-bezier(0.16,1,0.3,1);
   border: 1px solid transparent;
 
+  &:focus-visible {
+    outline: 3px solid var(--focus-ring, #8B5CF6);
+    outline-offset: 2px;
+  }
+
   ${({ $dayType }) => {
     switch ($dayType) {
-      case 'lower_body': return css`background: rgba(96,130,255,0.12); color: #6082ff;`;
-      case 'upper_body': return css`background: rgba(139,92,246,0.12); color: #8B5CF6;`;
-      case 'cardio': return css`background: rgba(255,160,60,0.12); color: #ffa03c;`;
-      case 'full_body': return css`background: rgba(0,200,120,0.12); color: #00c878;`;
-      default: return css`background: rgba(96,192,240,0.1); color: #60C0F0;`;
+      case 'lower_body': return css`background: rgba(96,130,255,0.12); color: #6082ff;`;  // swan-guard-allow-hex sprint day-type accent, not in the Swan palette
+      case 'upper_body': return css`background: rgba(139,92,246,0.12); color: var(--wing-purple, #8B5CF6);`;
+      case 'cardio': return css`background: rgba(255,160,60,0.12); color: #ffa03c;`;  // swan-guard-allow-hex sprint day-type accent, not in the Swan palette
+      case 'full_body': return css`background: rgba(0,200,120,0.12); color: #00c878;`;  // swan-guard-allow-hex sprint day-type accent, not in the Swan palette
+      default: return css`background: rgba(96,192,240,0.1); color: var(--ice-wing, #60C0F0);`;
     }
   }}
 
@@ -414,11 +450,11 @@ export const CalendarDot = styled.div<{ $dayType: string; $status: string }>`
 
   ${({ $dayType }) => {
     switch ($dayType) {
-      case 'lower_body': return css`background: rgba(96,130,255,0.15); color: #6082ff;`;
-      case 'upper_body': return css`background: rgba(139,92,246,0.15); color: #8B5CF6;`;
-      case 'cardio': return css`background: rgba(255,160,60,0.15); color: #ffa03c;`;
-      case 'full_body': return css`background: rgba(0,200,120,0.15); color: #00c878;`;
-      default: return css`background: rgba(96,192,240,0.12); color: #60C0F0;`;
+      case 'lower_body': return css`background: rgba(96,130,255,0.15); color: #6082ff;`;  // swan-guard-allow-hex sprint day-type accent, not in the Swan palette
+      case 'upper_body': return css`background: rgba(139,92,246,0.15); color: var(--wing-purple, #8B5CF6);`;
+      case 'cardio': return css`background: rgba(255,160,60,0.15); color: #ffa03c;`;  // swan-guard-allow-hex sprint day-type accent, not in the Swan palette
+      case 'full_body': return css`background: rgba(0,200,120,0.15); color: #00c878;`;  // swan-guard-allow-hex sprint day-type accent, not in the Swan palette
+      default: return css`background: rgba(96,192,240,0.12); color: var(--ice-wing, #60C0F0);`;
     }
   }}
 
@@ -461,9 +497,9 @@ export const FormField = styled.div`
     min-height: 44px;
 
     &:focus {
-      outline: 2px solid #60C0F0;
+      outline: 2px solid var(--ice-wing, #60C0F0);
       outline-offset: 2px;
-      border-color: #60C0F0;
+      border-color: var(--ice-wing, #60C0F0);
     }
   }
 `;

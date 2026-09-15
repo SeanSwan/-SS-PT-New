@@ -167,11 +167,14 @@ export function skipRunnerSegment(
     return { ...state, segmentIndex, status: 'complete', segmentEndsAt: null, remainingMs: 0 };
   }
   const remainingMs = segmentDurationMs(next);
+  // A paused class stays paused: skipping to the next command must not start
+  // the clock again without the coach pressing Resume.
+  const paused = state.status === 'paused';
   return {
     ...state,
     segmentIndex,
-    status: 'running',
-    segmentEndsAt: nowMs + remainingMs,
+    status: paused ? 'paused' : 'running',
+    segmentEndsAt: paused ? null : nowMs + remainingMs,
     remainingMs,
   };
 }
@@ -184,10 +187,13 @@ export function restartRunnerSegment(
   const current = segments[state.segmentIndex];
   if (!current || current.phase === 'complete') return state;
   const remainingMs = segmentDurationMs(current);
+  // Same rule as skip: restarting a command while paused re-arms that command
+  // but leaves the run paused.
+  const paused = state.status === 'paused';
   return {
     ...state,
-    status: 'running',
-    segmentEndsAt: nowMs + remainingMs,
+    status: paused ? 'paused' : 'running',
+    segmentEndsAt: paused ? null : nowMs + remainingMs,
     remainingMs,
   };
 }

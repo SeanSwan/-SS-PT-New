@@ -25,6 +25,8 @@ import { reactWindowStyleProps } from '@/components/ui/reactWindowStyleProps';
 interface ExerciseRolodexListProps {
   exercises: ExerciseSlim[];
   isLoading: boolean;
+  loadError?: string | null;
+  onRetry?: () => void;
   selectedId?: string | number | null;
   onAddExercise: (exercise: ExerciseSlim, event: MouseEvent) => void;
   onSelectExercise?: (exercise: ExerciseSlim) => void;
@@ -33,6 +35,8 @@ interface ExerciseRolodexListProps {
 const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
   exercises,
   isLoading,
+  loadError,
+  onRetry,
   selectedId,
   onAddExercise,
   onSelectExercise,
@@ -69,11 +73,9 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
             <ExerciseCard
               key={exercise.id}
               $selected={String(selectedId ?? '') === String(exercise.id)}
+              type="button"
               onClick={() => onSelectExercise?.(exercise)}
-              onKeyDown={(event) => handleCardKeyDown(event, exercise)}
-              role="button"
               aria-label={`Select ${exercise.name}`}
-              tabIndex={0}
             >
               {media.hasMedia && (
                 <MediaPreview aria-label={`${exercise.name} media preview`}>
@@ -112,7 +114,11 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
       {isLoading ? (
         Array.from({ length: 8 }, (_, index) => <SkeletonBlock key={index} />)
       ) : exercises.length === 0 ? (
-        <EmptyMsg>No exercises match your filters.</EmptyMsg>
+        <EmptyMsg role={loadError ? 'alert' : undefined}>
+          {loadError ? (
+            <>{loadError} <button type="button" onClick={onRetry}>Try again</button></>
+          ) : 'No exercises match your filters.'}
+        </EmptyMsg>
       ) : (
         <List
           rowComponent={PairedRowRenderer as any}

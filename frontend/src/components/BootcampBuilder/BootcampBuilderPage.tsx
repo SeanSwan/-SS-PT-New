@@ -22,6 +22,7 @@ import {
   getNextMainBoardSortOrder,
 } from './BootcampBuilderPlacement';
 import { useBootcampSlotActions } from './useBootcampSlotActions';
+import { useBootcampEquipmentProfileGuard } from './useBootcampEquipmentProfileGuard';
 const BootcampBuilderPage: React.FC = () => {
   const api = useBootcampAPI(), classFormat = CUSTOM_BOOTCAMP_FORMAT as ClassFormat;
   const [stationCount, setStationCount] = useState(DEFAULT_BOOTCAMP_STATION_COUNT); const [exercisesPerStation, setExercisesPerStation] = useState(DEFAULT_BOOTCAMP_EXERCISES_PER_STATION);
@@ -43,6 +44,7 @@ const BootcampBuilderPage: React.FC = () => {
   const [activeStation, setActiveStation] = useState<number | null>(null);
   const [selectedRolodexId, setSelectedRolodexId] = useState<string | number | null>(null);
   const { handleDeleteExercise, handleDuplicateExercise, handleMoveExercise } = useBootcampSlotActions({ includeStretch, setBootcamp, setActiveStation });
+  const canUseProfileExercise = useBootcampEquipmentProfileGuard(equipmentProfileId);
   const totalClassMin = bootcamp
     ? (bootcamp.totalClassMin || (bootcamp.totalWorkoutMin || 0) + 13)
     : parseInt(targetDuration, 10) + (includeStretch ? OVERHEAD_MIN : OVERHEAD_MIN - 3);
@@ -77,6 +79,7 @@ const BootcampBuilderPage: React.FC = () => {
     } as any);
   }, [buildMode, classFormat, bootcamp, targetDuration, className, dayType, expectedParticipants, stationCount, exercisesPerStation, includeStretch]);
   const handleSelectFromRolodex = useCallback((exercise: RolodexExercise) => {
+    if (!canUseProfileExercise(exercise)) return;
     setSelectedRolodexId(exercise.id);
     setSelectedExercise(buildBootcampExerciseFromRolodex(exercise, {
       durationSec: 35,
@@ -85,8 +88,9 @@ const BootcampBuilderPage: React.FC = () => {
       stationIndex: 0,
       setupTimeSec: 5,
     }));
-  }, []);
+  }, [canUseProfileExercise]);
   const handleAddFromRolodex = useCallback((exercise: RolodexExercise, suggestedStationIndex?: number) => {
+    if (!canUseProfileExercise(exercise)) return;
     const targetDur = parseInt(targetDuration, 10) || 45;
     const { workSec } = calcWorkIntervalForStructure(stationCount, exercisesPerStation, DEFAULT_BOOTCAMP_ROUNDS, targetDur);
     const maxPerStation = exercisesPerStation;
@@ -159,7 +163,7 @@ const BootcampBuilderPage: React.FC = () => {
       } as any;
     });
     toast.success(`Added: ${exercise.name} -> Station ${placedStationIdx + 1}`);
-  }, [className, classFormat, dayType, targetDuration, expectedParticipants, bootcamp, activeStation, stationCount, exercisesPerStation, includeStretch]);
+  }, [activeStation, bootcamp, canUseProfileExercise, className, classFormat, dayType, expectedParticipants, exercisesPerStation, includeStretch, stationCount, targetDuration]);
   const handleGenerate = useCallback(async () => { const exclusionKeys = getMainBoardExclusionKeys(bootcamp?.exercises);
     setLoading(true);
     setError(null);

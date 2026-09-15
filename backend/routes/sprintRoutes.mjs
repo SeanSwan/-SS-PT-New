@@ -27,6 +27,7 @@ import {
   updateWeek, updateSlot, confirmSlotUsed,
 } from '../services/bootcamp/sprintService.mjs';
 import { generateSprintClasses, regenerateSlot } from '../services/bootcamp/sprintGenerator.mjs';
+import { sprintClaimIsLive, validateGenerationRequest } from '../services/bootcamp/sprintGenerationClaim.mjs';
 import logger from '../utils/logger.mjs';
 
 // ── ARCH-2: In-memory progress store for SSE reconnection ──────────
@@ -50,6 +51,14 @@ const sendSprintEventError = (sendEvent, message) => sendEvent({
   error: message,
   code: SPRINT_GENERATION_ERROR,
 });
+
+const positiveId = (value) => {
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const text = String(value).trim();
+  if (!/^\d+$/.test(text)) return null;
+  const parsed = Number(text);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 // ── Auth: admin + trainer only ───────────────────────────────────────
 router.use(protect);
@@ -89,11 +98,10 @@ router.get('/', async (req, res) => {
 // ── GET /sprints/:id — Get sprint detail ─────────────────────────────
 router.get('/:id', async (req, res) => {
   try {
-    const sprint = await getSprintById(req.params.id);
+    const sprintId = positiveId(req.params.id);
+    if (sprintId === null) return sendSprintRouteError(res, 400, 'Valid sprint ID required');
+    const sprint = await getSprintById(sprintId, { userId: req.user.id, role: req.user.role });
     if (!sprint) return res.status(404).json({ success: false, error: 'Sprint not found' });
-    if (sprint.trainerId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, error: 'Not authorized' });
-    }
     res.json({ success: true, sprint });
   } catch (err) {
     logger.error('[SprintRoutes] Get failed:', err.message);
@@ -104,7 +112,9 @@ router.get('/:id', async (req, res) => {
 // ── PUT /sprints/:id — Update sprint ─────────────────────────────────
 router.put('/:id', async (req, res) => {
   try {
-    const sprint = await updateSprint(req.params.id, req.user.id, req.body);
+    const sprintId = positiveId(req.params.id);
+    if (sprintId === null) return sendSprintRouteError(res, 400, 'Valid sprint ID required');
+    const sprint = await updateSprint(sprintId, req.user.id, req.body);
     res.json({ success: true, sprint });
   } catch (err) {
     logger.error('[SprintRoutes] Update failed:', err.message);
@@ -115,7 +125,9 @@ router.put('/:id', async (req, res) => {
 // ── DELETE /sprints/:id — Archive sprint ─────────────────────────────
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await archiveSprint(req.params.id, req.user.id);
+    const sprintId = positiveId(req.params.id);
+    if (sprintId === null) return sendSprintRouteError(res, 400, 'Valid sprint ID required');
+    const result = await archiveSprint(sprintId, req.user.id);
     res.json(result);
   } catch (err) {
     logger.error('[SprintRoutes] Archive failed:', err.message);
@@ -125,7 +137,22 @@ router.delete('/:id', async (req, res) => {
 
 // ── POST /sprints/:id/generate — SSE progress stream (ARCH-2 reconnection) ──
 router.post('/:id/generate', genLimiter, async (req, res) => {
-  const sprintId = parseInt(req.params.id);
+  const sprintId = positiveId(req.params.id);
+  if (sprintId === null) return sendSprintRouteError(res, 400, 'Valid sprint ID required');
+
+  // Authorize before consulting the process-local job map or writing SSE
+  // headers. The map is an optimization, never an ownership boundary.
+  let authorizedSprint;
+  try {
+    authorizedSprint = await getSprintById(sprintId, {
+      userId: req.user.id,
+      role: req.user.role,
+    });
+  } catch (err) {
+    logger.error('[SprintRoutes] Generate authorization failed:', err.message);
+    return sendSprintRouteError(res, 500, 'Could not authorize sprint generation.');
+  }
+  if (!authorizedSprint) return res.status(404).json({ success: false, error: 'Sprint not found' });
 
   // Reject duplicate generation if one is already in progress (Codex R18 fix)
   const existingJob = sprintJobs.get(sprintId);
@@ -134,6 +161,20 @@ router.post('/:id/generate', genLimiter, async (req, res) => {
       success: false,
       error: 'Generation already in progress for this sprint',
     });
+  }
+
+  // F06: decide the 428/400/409 answers BEFORE committing to SSE headers.
+  // Writing 200 first collapsed every claim/validation failure into one
+  // opaque stream frame. The locked claim check inside claimSprint stays
+  // authoritative — this read-only pre-check is best-effort against a race
+  // (worst case degrades to the pre-F06 behavior).
+  const invalidRequest = validateGenerationRequest(req.body);
+  if (invalidRequest) {
+    logger.warn('[SprintRoutes] Generate rejected pre-stream:', invalidRequest.message);
+    return sendSprintRouteError(res, invalidRequest.status, invalidRequest.message);
+  }
+  if (sprintClaimIsLive(authorizedSprint, Date.now())) {
+    return sendSprintRouteError(res, 409, 'Sprint generation in progress');
   }
 
   // Initialize job store for this sprint
@@ -157,7 +198,10 @@ router.post('/:id/generate', genLimiter, async (req, res) => {
   try {
     sendEvent({ type: 'started', sprintId });
 
-    const result = await generateSprintClasses(sprintId, sendEvent);
+    const result = await generateSprintClasses(sprintId, sendEvent, {
+      userId: req.user.id,
+      role: req.user.role,
+    }, req.body);
 
     sendEvent(result);
     job.done = true;
@@ -170,12 +214,27 @@ router.post('/:id/generate', genLimiter, async (req, res) => {
   }
 
   // Clean up job after TTL
-  setTimeout(() => sprintJobs.delete(sprintId), SPRINT_JOB_TTL);
+  const cleanup = setTimeout(() => {
+    if (sprintJobs.get(sprintId) === job) sprintJobs.delete(sprintId);
+  }, SPRINT_JOB_TTL);
+  cleanup.unref?.();
 });
 
 // ── GET /sprints/:id/generate/stream — Reconnect to in-progress generation ──
 router.get('/:id/generate/stream', async (req, res) => {
-  const sprintId = parseInt(req.params.id);
+  const sprintId = positiveId(req.params.id);
+  if (sprintId === null) return sendSprintRouteError(res, 400, 'Valid sprint ID required');
+  let authorizedSprint;
+  try {
+    authorizedSprint = await getSprintById(sprintId, {
+      userId: req.user.id,
+      role: req.user.role,
+    });
+  } catch (err) {
+    logger.error('[SprintRoutes] Stream authorization failed:', err.message);
+    return sendSprintRouteError(res, 500, 'Could not authorize sprint stream.');
+  }
+  if (!authorizedSprint) return res.status(404).json({ success: false, error: 'Sprint not found' });
   const job = sprintJobs.get(sprintId);
 
   if (!job) {
@@ -220,7 +279,10 @@ router.get('/:id/generate/stream', async (req, res) => {
 // ── PUT /sprints/:id/weeks/:weekId — Update week ─────────────────────
 router.put('/:id/weeks/:weekId', async (req, res) => {
   try {
-    const week = await updateWeek(req.params.id, req.params.weekId, req.user.id, req.body);
+    const sprintId = positiveId(req.params.id);
+    const weekId = positiveId(req.params.weekId);
+    if (sprintId === null || weekId === null) return sendSprintRouteError(res, 400, 'Valid sprint and week IDs required');
+    const week = await updateWeek(sprintId, weekId, req.user.id, req.body);
     res.json({ success: true, week });
   } catch (err) {
     logger.error('[SprintRoutes] UpdateWeek failed:', err.message);
@@ -231,7 +293,10 @@ router.put('/:id/weeks/:weekId', async (req, res) => {
 // ── PUT /sprints/:sprintId/slots/:slotId — Update slot ───────────────
 router.put('/:sprintId/slots/:slotId', async (req, res) => {
   try {
-    const slot = await updateSlot(req.params.sprintId, req.params.slotId, req.user.id, req.body);
+    const sprintId = positiveId(req.params.sprintId);
+    const slotId = positiveId(req.params.slotId);
+    if (sprintId === null || slotId === null) return sendSprintRouteError(res, 400, 'Valid sprint and slot IDs required');
+    const slot = await updateSlot(sprintId, slotId, req.user.id, req.body);
     res.json({ success: true, slot });
   } catch (err) {
     logger.error('[SprintRoutes] UpdateSlot failed:', err.message);
@@ -242,8 +307,11 @@ router.put('/:sprintId/slots/:slotId', async (req, res) => {
 // ── PUT /sprints/:sprintId/slots/:slotId/confirm — Mark as taught ────
 router.put('/:sprintId/slots/:slotId/confirm', async (req, res) => {
   try {
+    const sprintId = positiveId(req.params.sprintId);
+    const slotId = positiveId(req.params.slotId);
+    if (sprintId === null || slotId === null) return sendSprintRouteError(res, 400, 'Valid sprint and slot IDs required');
     const slot = await confirmSlotUsed(
-      req.params.sprintId, req.params.slotId, req.user.id, req.body,
+      sprintId, slotId, req.user.id, req.body,
     );
     res.json({ success: true, slot });
   } catch (err) {
@@ -255,8 +323,11 @@ router.put('/:sprintId/slots/:slotId/confirm', async (req, res) => {
 // ── POST /sprints/:sprintId/slots/:slotId/regenerate — Regen one ─────
 router.post('/:sprintId/slots/:slotId/regenerate', genLimiter, async (req, res) => {
   try {
+    const sprintId = positiveId(req.params.sprintId);
+    const slotId = positiveId(req.params.slotId);
+    if (sprintId === null || slotId === null) return sendSprintRouteError(res, 400, 'Valid sprint and slot IDs required');
     const result = await regenerateSlot(
-      req.params.sprintId, req.params.slotId, req.user.id,
+      sprintId, slotId, { userId: req.user.id, role: req.user.role }, req.body,
     );
     res.json({ success: true, ...result });
   } catch (err) {

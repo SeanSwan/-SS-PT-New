@@ -48,7 +48,13 @@ export const TrainerSection = styled.div<{ $density: DensityMode }>`
     `}
 `;
 
-export const TrainerHeaderBar = styled.div<{ $density: DensityMode }>`
+export const TrainerHeaderBar = styled.button<{ $density: DensityMode }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
   display: flex;
   align-items: center;
   gap: 0.75rem;

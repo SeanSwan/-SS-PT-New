@@ -61,7 +61,15 @@ const SummaryBadge = styled.span<{ $color: string }>`
 
 const ActiveEntriesList = styled.div` margin-top: 20px; `;
 
-const ActiveEntryRow = styled.div<{ $color: string }>`
+const ActiveEntryRow = styled.button<{ $color: string }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   display: flex;
   align-items: center;
   gap: 12px;
@@ -382,7 +390,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
               {activeEntries.map((entry) => {
                 const color = getSeverityColor(entry.painLevel);
                 return (
-                  <ActiveEntryRow key={entry.id} $color={color} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }} onClick={() => handleRegionClick(entry.bodyRegion)}>
+                  <ActiveEntryRow key={entry.id} $color={color} type="button" onClick={() => handleRegionClick(entry.bodyRegion)}>
                     <DotIndicator $color={color} />
                     <EntryLabel>{formatRegionLabel(entry.bodyRegion)}</EntryLabel>
                     <EntryMeta>{entry.painLevel}/10 &middot; {entry.painType}</EntryMeta>

@@ -1,0 +1,23 @@
+{
+  "reason": "Implement H13 engine race/error/cache and worker/fallback parity under FE09 before consumer-state UI adoption. S02 remains separately tested; no backend held files.",
+  "slice": {
+    "id": "S03-exercise-search-engine",
+    "files": [
+      "frontend/src/components/WorkoutLogger/useExerciseSearch.ts",
+      "frontend/src/components/WorkoutLogger/exerciseSearchWorker.ts",
+      "frontend/src/components/WorkoutLogger/exerciseSearchCore.ts",
+      "frontend/src/components/WorkoutLogger/exerciseSearch.worker.ts",
+      "frontend/src/components/WorkoutLogger/exerciseSearchCatalog.ts",
+      "frontend/src/components/WorkoutLogger/useExerciseSearch.test.tsx",
+      "frontend/src/components/WorkoutLogger/exerciseSearchCore.test.ts",
+      "frontend/src/components/WorkoutLogger/exerciseSearchWorker.test.ts"
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/12-hostile-reconciliation-and-repair.md",
+    "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/13-server-repair-contract.md",
+    "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/14-frontend-repair-contract.md",
+    "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/16-approved-luna-build-and-blueprint-audit.md",
+    ".mega-blueprints/artifacts/b214f060bbec9038/s03-architecture.md"
+  ]
+}

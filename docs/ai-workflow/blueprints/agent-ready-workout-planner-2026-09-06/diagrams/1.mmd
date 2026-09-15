@@ -1,0 +1,31 @@
+flowchart TD
+  U[Choose client and scope] --> C[Resolve permissions and constraints]
+  C -->|Denied or missing context| B[Explain block and retain safe draft]
+  B -->|Resolve then retry| C
+  C -->|Allowed| M{Draft source}
+  M --> S[Manual or Swan Coach]
+  M --> L[Personal agent]
+  L -->|Device offline| O[Pause local job]
+  O -->|Reconnect| L
+  O -->|Defer| D[Keep draft]
+  L --> V[Validate candidate against Swan contracts]
+  S --> V
+  V -->|Invalid| E[Field errors and violations]
+  E -->|Revise| M
+  V -->|Valid| P[Preview exact changes]
+  P -->|Cancel or defer| D
+  P -->|Human approves bound version| A[Recheck access and expected revision]
+  A -->|Stale| X[Compare with current revision]
+  X -->|Rebase or copy| V
+  A -->|Allowed| T[Existing transactional plan writer]
+  T -->|Known failure| E
+  T -->|Lost response| Q[Lookup same proposal and receipt]
+  Q -->|Unknown| Q2[Show pending recovery without resaving]
+  Q2 -->|Retry read| Q
+  Q -->|Committed| R[Read back persisted revision]
+  T -->|Committed| R
+  R -->|Verified| F[Saved and checked]
+  R -->|Unavailable| Q2
+  F --> W[Log workout and view actual progress]
+  F -->|Restore requested| H[Review prior snapshot as a new revision]
+  H --> A

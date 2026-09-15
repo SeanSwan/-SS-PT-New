@@ -1,0 +1,201 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; font-src 'self' data:"><title>SwanStudios — Blueprint diagrams</title><style>body{background:#0a0a0f;color:#e0ecf4;font:16px/1.6 system-ui;margin:32px}a{color:#60c0f0}article{background:#141419;border:1px solid #4070c0;border-radius:16px;padding:24px;margin:24px 0;overflow:auto}svg{min-width:600px}h1{font-size:32px}#render-status{color:#e0ecf4}</style><h1>SwanStudios: agents and training</h1><p>Proposed architecture · <a href="README.md">Read blueprint</a> · <a href="wireframes.html">Open wireframes</a></p><p id="render-status" role="status">Rendering 8 diagrams locally…</p><article><h2>1. Workflow</h2><pre class="mermaid">flowchart TD
+  U[Choose client and scope] --&gt; C[Resolve permissions and constraints]
+  C --&gt;|Denied or missing context| B[Explain block and retain safe draft]
+  B --&gt;|Resolve then retry| C
+  C --&gt;|Allowed| M{Draft source}
+  M --&gt; S[Manual or Swan Coach]
+  M --&gt; L[Personal agent]
+  L --&gt;|Device offline| O[Pause local job]
+  O --&gt;|Reconnect| L
+  O --&gt;|Defer| D[Keep draft]
+  L --&gt; V[Validate candidate against Swan contracts]
+  S --&gt; V
+  V --&gt;|Invalid| E[Field errors and violations]
+  E --&gt;|Revise| M
+  V --&gt;|Valid| P[Preview exact changes]
+  P --&gt;|Cancel or defer| D
+  P --&gt;|Human approves bound version| A[Recheck access and expected revision]
+  A --&gt;|Stale| X[Compare with current revision]
+  X --&gt;|Rebase or copy| V
+  A --&gt;|Allowed| T[Existing transactional plan writer]
+  T --&gt;|Known failure| E
+  T --&gt;|Lost response| Q[Lookup same proposal and receipt]
+  Q --&gt;|Unknown| Q2[Show pending recovery without resaving]
+  Q2 --&gt;|Retry read| Q
+  Q --&gt;|Committed| R[Read back persisted revision]
+  T --&gt;|Committed| R
+  R --&gt;|Verified| F[Saved and checked]
+  R --&gt;|Unavailable| Q2
+  F --&gt; W[Log workout and view actual progress]
+  F --&gt;|Restore requested| H[Review prior snapshot as a new revision]
+  H --&gt; A</pre></article><article><h2>2. Proposal states</h2><pre class="mermaid">stateDiagram-v2
+  [*] --&gt; Draft
+  Draft --&gt; Validating: submit bounded candidate
+  Validating --&gt; NeedsChanges: violations
+  NeedsChanges --&gt; Draft: edit
+  Validating --&gt; AwaitingReview: valid
+  AwaitingReview --&gt; Cancelled: cancel or expiry
+  AwaitingReview --&gt; Conflict: context changed
+  Conflict --&gt; Draft: deliberate rebase
+  AwaitingReview --&gt; Applying: human approval and current access
+  Applying --&gt; Failed: transaction rolled back
+  Applying --&gt; Reconciling: response lost
+  Applying --&gt; CommittedUnverified: commit acknowledged
+  Reconciling --&gt; CommittedUnverified: receipt found
+  Reconciling --&gt; Failed: rollback proven
+  CommittedUnverified --&gt; Verified: semantic read-back
+  CommittedUnverified --&gt; CommittedUnverified: retry verification
+  Verified --&gt; [*]
+  Failed --&gt; Draft: new reviewed proposal
+  Cancelled --&gt; [*]</pre></article><article><h2>3. Agent sequence</h2><pre class="mermaid">sequenceDiagram
+  actor H as Human
+  participant E as Personal agent
+  participant G as Swan gateway
+  participant P as Policy and proposal service
+  participant W as Existing plan writer
+  participant DB as PostgreSQL
+  H-&gt;&gt;G: Sign in and consent to selected capabilities
+  G--&gt;&gt;E: Audience-bound authorization result
+  E-&gt;&gt;G: Request minimized training context
+  G-&gt;&gt;P: Check grant and current target access
+  alt Missing or revoked authority
+    P--&gt;&gt;E: Denied without private details
+  else Allowed
+    P--&gt;&gt;E: Typed context and snapshot reference
+    E-&gt;&gt;G: Propose candidate with request ID and revision
+    G-&gt;&gt;P: Validate and deduplicate
+    P--&gt;&gt;H: Review exact candidate and violations
+    alt Human cancels or defers
+      H-&gt;&gt;P: Cancel or retain draft
+    else Human approves
+      H-&gt;&gt;P: Bound approval proof
+      P-&gt;&gt;DB: Begin transaction and check current authority
+      P-&gt;&gt;W: Apply with expected revision and same transaction
+      W-&gt;&gt;DB: Persist plan and proposal outcome
+      DB--&gt;&gt;P: Commit outcome
+      alt Commit known
+        P-&gt;&gt;DB: Read back semantic result
+        P--&gt;&gt;H: Verified or saved-checking receipt
+      else Response uncertain
+        P--&gt;&gt;H: Check same proposal without saving again
+      end
+    end
+  end</pre></article><article><h2>4. Data relationships</h2><pre class="mermaid">erDiagram
+  USER ||--o{ AGENT_CONNECTION : owns
+  AGENT_CONNECTION ||--o{ AGENT_GRANT : authorizes
+  AGENT_CONNECTION ||--o{ AGENT_DEVICE : pairs
+  AGENT_GRANT ||--o{ AGENT_JOB : bounds
+  AGENT_JOB o|--o| COACH_PROPOSAL : produces
+  USER ||--o{ WORKOUT_PLAN : owns_training_record
+  COACH_PROPOSAL o|--o| WORKOUT_PLAN : applies_via_existing_writer
+  WORKOUT_PLAN ||--o{ PLAN_REVISION_SNAPSHOT : preserves
+  WORKOUT_PLAN {
+    uuid id PK
+    int userId FK
+    int trainerId
+    int contentRevision
+    string contentHash
+    json planData
+  }
+  AGENT_GRANT {
+    uuid id PK
+    uuid connectionId FK
+    json capabilityScopes
+    string targetBinding
+    datetime expiresAt
+    int revocationEpoch
+  }</pre></article><article><h2>5. Privacy boundaries</h2><pre class="mermaid">flowchart LR
+  subgraph DEVICE[User-controlled device]
+    E[Hermes or supported companion]
+    M[Local model and local auxiliary models]
+    E &lt;--&gt; M
+  end
+  subgraph SWAN[Swan hosted application]
+    UI[Human UI and consent]
+    G[New authenticated gateway]
+    P[Policy and minimized context]
+    D[(Canonical training data)]
+    W[Existing guarded writer]
+    UI --&gt; G
+    G --&gt; P
+    P --&gt;|Authorized selected fields| D
+    P --&gt;|Human-bound reviewed change| W
+    W --&gt; D
+  end
+  E --&gt;|Outbound HTTPS scoped tools| G
+  P --&gt;|Pseudonymous typed response| E
+  E -. Managed local profile blocks .-&gt; CLOUD[Cloud inference destinations]
+  PRIVATE[Private operator Wiki and infrastructure] -. No customer capability .-&gt; G</pre></article><article><h2>6. Provider and budget gate</h2><pre class="mermaid">flowchart TD
+  Start[Choose task and source] --&gt; Auth[Current actor and target authorization]
+  Auth --&gt; Consent{Consent and age eligibility verified}
+  Consent --&gt;|No or unknown| Deny[Block and keep authorized manual draft]
+  Consent --&gt;|Yes| Envelope[Build allowlisted final context]
+  Envelope --&gt; Privacy{Every field and modality allowed}
+  Privacy --&gt;|No| Deny
+  Privacy --&gt;|Yes| Source{Source selected}
+  Source --&gt;|Local| Device{Paired device available}
+  Device --&gt;|No| Offline[Keep task paused - no cloud fallback]
+  Device --&gt;|Yes| Limits[Claim bounded root task]
+  Source --&gt;|Swan or personal OpenRouter| Price{Fresh allowance and bounded price}
+  Price --&gt;|Unknown or insufficient| Budget[Explain block - no payer switch]
+  Price --&gt;|Valid| Reserve[Atomic reservation across all workers]
+  Reserve --&gt;|Duplicate| Existing[Return same task]
+  Reserve --&gt;|Conflict or ceiling| Budget
+  Reserve --&gt;|Admitted| Limits
+  Limits --&gt;|Call or tool cap reached| Stop[Stop loop and require human review]
+  Limits --&gt;|Allowed| Dispatch[Dispatch approved envelope once]
+  Dispatch --&gt;|Timeout or lost response| Uncertain[Hold reservation and reconcile]
+  Uncertain --&gt;|Unknown| Pending[Display checking - no resend]
+  Pending --&gt;|Status lookup| Uncertain
+  Dispatch --&gt;|Known result| Settle[Settle verified charge]
+  Uncertain --&gt;|Receipt found| Settle
+  Settle --&gt; Validate[Validate exact proposal]
+  Validate --&gt;|Invalid| Revise[Manual revision or new reviewed task]
+  Validate --&gt;|Valid| Review[Human reviews bound version]
+  Review --&gt;|Cancel| Keep[Retain draft]
+  Review --&gt;|Approve| Save[Existing writer rechecks role and revision]
+  Save --&gt;|Conflict| Keep
+  Save --&gt;|Committed| Receipt[Read persisted receipt]
+  Receipt --&gt;|Rollback requested| Restore[Review old snapshot as new revision]</pre></article><article><h2>7. Spending lifecycle</h2><pre class="mermaid">stateDiagram-v2
+  [*] --&gt; Quoted
+  Quoted --&gt; Blocked: stale price or eligibility denied
+  Quoted --&gt; Reserved: atomic claim
+  Reserved --&gt; Cancelled: cancelled before dispatch
+  Reserved --&gt; Dispatching: one admitted call
+  Dispatching --&gt; Uncertain: timeout or lost receipt
+  Uncertain --&gt; Uncertain: status lookup only
+  Uncertain --&gt; Settled: verified receipt
+  Dispatching --&gt; Settled: verified result and cost
+  Settled --&gt; ProposalReady: valid output
+  Settled --&gt; NeedsReview: invalid output
+  ProposalReady --&gt; Reviewed: human decision
+  Reviewed --&gt; Saved: current authorization and revision
+  Reviewed --&gt; Deferred: cancel or stale
+  Blocked --&gt; [*]
+  Cancelled --&gt; [*]
+  Saved --&gt; [*]</pre></article><article><h2>8. Reservation sequence</h2><pre class="mermaid">sequenceDiagram
+  actor Owner
+  participant Swan
+  participant Policy
+  participant Ledger
+  participant Provider
+  Owner-&gt;&gt;Swan: Select own connection and training target
+  Swan-&gt;&gt;Policy: Current role, consent, subject, modality
+  Policy--&gt;&gt;Swan: Allowed envelope or denial
+  Swan--&gt;&gt;Owner: Context manifest, payer, ceiling and quote
+  Owner-&gt;&gt;Swan: Approve one task and request ID
+  Swan-&gt;&gt;Ledger: Atomic idempotent reservation
+  alt Denied or duplicate
+    Ledger--&gt;&gt;Swan: Block or return existing task
+  else Admitted
+    Ledger--&gt;&gt;Swan: Root task and call allowance
+    Swan-&gt;&gt;Provider: Bound request, no hidden retry
+    alt Ambiguous acceptance
+      Swan-&gt;&gt;Ledger: Hold uncertain reservation
+      Swan--&gt;&gt;Owner: Checking charge - no new dispatch
+    else Verified receipt
+      Provider--&gt;&gt;Swan: Result and usage receipt
+      Swan-&gt;&gt;Ledger: Settle verified cost
+      Swan--&gt;&gt;Owner: Exact proposal for review
+    end
+  end</pre></article><script src="evidence/mermaid.min.js"></script><script>mermaid.initialize({startOnLoad:false,theme:'dark',securityLevel:'strict',themeVariables:{fontFamily:'Segoe UI, sans-serif',fontSize:'16px'},flowchart:{htmlLabels:false}});mermaid.run({querySelector:'.mermaid'}).then(()=>{document.getElementById('render-status').textContent='Rendered '+document.querySelectorAll('article svg').length+' of 8 diagrams · Mermaid 11.12.0 · local renderer';}).catch(e=>{document.getElementById('render-status').textContent='RENDER FAILED: '+e.message;});</script></html>

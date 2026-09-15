@@ -79,6 +79,9 @@ jobs:
       # Local container only. Never a production credential — see the header.
       DATABASE_URL: postgres://shadow:shadow@localhost:5432/shadow
       NODE_ENV: production
+      # The plain postgres:16 service offers no TLS; database.mjs defaults to
+      # require-SSL for Render. Disable it here and only here.
+      DB_SSL_DISABLE: '1'
 
     steps:
       - name: Check out the pushed SHA

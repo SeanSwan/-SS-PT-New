@@ -1,0 +1,10 @@
+
+ RUN  v4.0.18 C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/agent-ready-planner-audit-20260906
+
+····························································
+
+ Test Files  5 passed (5)
+      Tests  60 passed (60)
+   Start at  15:16:37
+   Duration  504ms (transform 365ms, setup 0ms, import 884ms, tests 42ms, environment 0ms)
+

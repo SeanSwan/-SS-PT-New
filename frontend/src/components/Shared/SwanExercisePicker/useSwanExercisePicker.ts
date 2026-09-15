@@ -95,6 +95,8 @@ export interface UseSwanExercisePickerReturn {
   totalCount: number;
   isLoading: boolean;
   isSearching: boolean;
+  loadError: string | null;
+  refresh: () => void;
 }
 
 export function useSwanExercisePicker(opts: SwanExercisePickerOptions): UseSwanExercisePickerReturn {
@@ -157,5 +159,7 @@ export function useSwanExercisePicker(opts: SwanExercisePickerOptions): UseSwanE
     totalCount: search.allExercises.length,
     isLoading: search.isLoading,
     isSearching: search.isSearching,
+    loadError: search.loadError,
+    refresh: search.refresh,
   };
 }

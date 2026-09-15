@@ -12,7 +12,7 @@ describe('Bootcamp equipment profile filtering', () => {
       { name: 'TRX Straps', trainerLabel: null, category: 'Suspension', resistanceType: null },
     ]);
 
-    expect(tokens).toEqual(expect.arrayContaining(['adjustable dumbbells', 'home dbs', 'dumbbell', 'trx straps', 'suspension']));
+    expect(tokens).toEqual(expect.arrayContaining(['adjustable_dumbbells', 'home_dbs', 'dumbbell', 'trx_straps', 'suspension']));
   });
 
   it('keeps bodyweight exercises and filters unavailable equipment exercises', () => {

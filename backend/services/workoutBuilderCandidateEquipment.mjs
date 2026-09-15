@@ -2,10 +2,10 @@
  * Equipment filtering helpers for Swan Coach guided workout candidates.
  */
 import logger from '../utils/logger.mjs';
-
-function normalizeEquipmentToken(value) {
-  return String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
-}
+import {
+  matchesEquipmentRequirements,
+  normalizeEquipmentToken,
+} from './exerciseConstraintContract.mjs';
 
 export function equipmentCategoriesFromItems(items = []) {
   const categories = new Set();
@@ -34,8 +34,8 @@ export function equipmentItemsForProfile(context, equipmentProfileId, clientId) 
 }
 
 export function matchesEquipmentProfile(exercise, availableCategories) {
-  if (!availableCategories || availableCategories.size === 0) return true;
-  const equipment = Array.isArray(exercise.equipment) ? exercise.equipment : [];
-  if (equipment.length === 0) return true;
-  return equipment.some(item => availableCategories.has(normalizeEquipmentToken(item)));
+  // null means no profile constraint. An empty Set is a verified-empty
+  // profile and therefore admits only bodyweight/no-equipment movements.
+  if (availableCategories === null || availableCategories === undefined) return true;
+  return matchesEquipmentRequirements(exercise, [...availableCategories]);
 }

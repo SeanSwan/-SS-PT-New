@@ -1,0 +1,100 @@
+{
+  "kind": "Native dispatch accounting only; no inferred provider metadata, decrypted content or approval credit.",
+  "dispatches": [
+    {
+      "timestamp": "2026-09-13T03:46:24.732Z",
+      "tool": "spawn_agent",
+      "target": "backend_hostile_audit",
+      "requestedModel": "gpt-6-astra",
+      "requestedEffort": "xhigh",
+      "continuation": false,
+      "servedModel": null,
+      "outputTokens": null
+    },
+    {
+      "timestamp": "2026-09-13T03:46:36.884Z",
+      "tool": "spawn_agent",
+      "target": "frontend_hostile_audit",
+      "requestedModel": "gpt-6-astra",
+      "requestedEffort": "xhigh",
+      "continuation": false,
+      "servedModel": null,
+      "outputTokens": null
+    },
+    {
+      "timestamp": "2026-09-13T03:53:40.067Z",
+      "tool": "spawn_agent",
+      "target": "acceptance_regressions",
+      "requestedModel": "gpt-5.6-luna",
+      "requestedEffort": "xhigh",
+      "continuation": false,
+      "servedModel": null,
+      "outputTokens": null
+    },
+    {
+      "timestamp": "2026-09-13T03:54:47.594Z",
+      "tool": "followup_task",
+      "target": "frontend_hostile_audit",
+      "requestedModel": null,
+      "requestedEffort": null,
+      "continuation": true,
+      "servedModel": null,
+      "outputTokens": null
+    },
+    {
+      "timestamp": "2026-09-13T03:54:54.614Z",
+      "tool": "followup_task",
+      "target": "backend_hostile_audit",
+      "requestedModel": null,
+      "requestedEffort": null,
+      "continuation": true,
+      "servedModel": null,
+      "outputTokens": null
+    },
+    {
+      "timestamp": "2026-09-13T03:56:58.229Z",
+      "tool": "followup_task",
+      "target": "backend_hostile_audit",
+      "requestedModel": null,
+      "requestedEffort": null,
+      "continuation": true,
+      "servedModel": null,
+      "outputTokens": null
+    },
+    {
+      "timestamp": "2026-09-13T03:57:04.120Z",
+      "tool": "followup_task",
+      "target": "frontend_hostile_audit",
+      "requestedModel": null,
+      "requestedEffort": null,
+      "continuation": true,
+      "servedModel": null,
+      "outputTokens": null
+    },
+    {
+      "timestamp": "2026-09-13T04:07:11.817Z",
+      "tool": "followup_task",
+      "target": "backend_hostile_audit",
+      "requestedModel": null,
+      "requestedEffort": null,
+      "continuation": true,
+      "servedModel": null,
+      "outputTokens": null
+    },
+    {
+      "timestamp": "2026-09-13T04:08:25.199Z",
+      "tool": "followup_task",
+      "target": "frontend_hostile_audit",
+      "requestedModel": null,
+      "requestedEffort": null,
+      "continuation": true,
+      "servedModel": null,
+      "outputTokens": null
+    }
+  ],
+  "astraAuditAndDocumentationDispatches": 8,
+  "lunaAcceptanceDispatches": 1,
+  "externalGlmReviewCalls": 0,
+  "enforcedWorkflowReviewAdmissions": 0,
+  "accountingRule": "Preserve all these dispatches and historical guard usage on enrollment/migration; never reset observed calls or treat source audits as completed implementation review gates."
+}

@@ -66,7 +66,16 @@ describe('bootcamp and sprint planner auth pipeline', () => {
     expect(sprintSource).toContain('apiService.put(`/api/bootcamp/sprints/${id}`');
     expect(sprintSource).toContain('apiService.delete(`/api/bootcamp/sprints/${id}`)');
     expect(sprintSource).toContain('apiService.put(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/confirm`');
-    expect(sprintSource).toContain('apiService.post(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/regenerate`)');
+    // H04 requires a stable operation identity on regenerate, so the call now
+    // carries an { expectedGenerationVersion, operationId } body and the
+    // no-argument form this line used to assert no longer exists. The contract
+    // the line protects is that regenerate goes through apiService (centralized
+    // auth) instead of raw fetch — that is still asserted, just without pinning
+    // the argument list.
+    expect(sprintSource).toContain('apiService.post(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/regenerate`');
+    // The H04 body itself, pinned without brittleness about argument order:
+    // the stable operation identity must travel with the regenerate call.
+    expect(sprintSource).toContain('expectedGenerationVersion, operationId: crypto.randomUUID()');
     expect(sprintSource).toContain('ProductionTokenManager.getToken()');
     expect(sprintSource).toContain('fetch(`/api/bootcamp/sprints/${sprintId}/generate/stream`');
     expect(sprintSource).toContain('fetch(`/api/bootcamp/sprints/${sprintId}/generate`');

@@ -40,6 +40,9 @@ jobs:
 
       - name: Typecheck frontend
         run: npx tsc --noEmit
+        env:
+          # The repo's tsc needs >4GB on the default runner heap (OOMs at ~4GB).
+          NODE_OPTIONS: --max-old-space-size=8192
 
       - name: Run focused frontend tests
         run: npx vitest run src/context/GlobalClientContext.test.ts src/components/BodyMap/BodyMap.clientTarget.test.ts

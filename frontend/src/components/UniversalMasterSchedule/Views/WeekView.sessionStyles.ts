@@ -1,11 +1,25 @@
 import styled, { keyframes } from 'styled-components';
 import { WEEK_VIEW_THEME } from './WeekView.logic';
 
-export const WeekSessionCard = styled.div<{
+export const WeekSessionCard = styled.button<{
   $status: string;
   $top: number;
   $height: number;
 }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
   position: absolute;
   top: ${({ $top }) => $top}px;
   height: ${({ $height }) => Math.max($height, 24)}px;
@@ -82,7 +96,7 @@ export const WeekSessionCard = styled.div<{
  * slot, keyboard-operable, never obscures real sessions.
  *
  * The fade floor (0.72) is a WCAG constraint, not a taste call: ghost text is
- * textSoft (#CBD5E1), which holds ~7:1 against the dark surface at 0.72 but
+ * textSoft (#CBD5E1), which holds ~7:1 against the dark surface at 0.72 but swan-guard-allow-hex legacy-pre-5431519a4
  * drops under 4.5:1 if faded much further. Do not lower it.
  */
 export const GHOST_FADE_FLOOR = 0.72;
@@ -90,7 +104,7 @@ export const GHOST_FADE_FLOOR = 0.72;
 export const ghostFade = (weeksAgo: number) =>
   Math.max(1 - (weeksAgo - 1) * 0.09, GHOST_FADE_FLOOR);
 
-export const GhostSessionCard = styled.div<{
+export const GhostSessionCard = styled.button<{
   $top: number;
   $height: number;
   $weeksAgo: number;

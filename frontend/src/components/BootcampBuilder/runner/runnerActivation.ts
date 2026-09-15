@@ -49,6 +49,9 @@ export interface ActivationResult {
   video: boolean;
 }
 
+let wakeLockGeneration = 0;
+let activeWakeSentinel: WakeSentinelLike | null = null;
+
 /** Call ONLY from inside the Start Class click handler. */
 export async function acquireAll(targets: ActivationTargets): Promise<ActivationResult> {
   const result: ActivationResult = { fullscreen: false, wakeLock: false, audio: false, video: false };
@@ -60,7 +63,7 @@ export async function acquireAll(targets: ActivationTargets): Promise<Activation
     ? (targets.audioContext.state === 'running' ? Promise.resolve() : targets.audioContext.resume())
     : Promise.reject(new Error('no_audio_context'));
   const videoPs = (targets.videos ?? []).map((v) => { v.muted = true; return v.play(); });
-  const wakeP = acquireWakeLock(targets);
+  const wakeP = acquireWakeLock(targets, ++wakeLockGeneration);
 
   result.fullscreen = await settles(fullscreenP, () => targets.onDegraded('fullscreen', 'request rejected'));
   result.audio = await settles(audioP, () => targets.onDegraded('audio', 'context did not resume — cues will be silent'));
@@ -80,7 +83,7 @@ async function settles(p: Promise<unknown>, onFail: () => void): Promise<boolean
  * Acquire the wake lock and KEEP it: re-request on every visibility return,
  * report every release. Returns first-acquisition success.
  */
-async function acquireWakeLock(targets: ActivationTargets): Promise<boolean> {
+async function acquireWakeLock(targets: ActivationTargets, generation: number): Promise<boolean> {
   const api = targets.wakeLockApi;
   if (!api) {
     targets.onDegraded('wake_lock', 'not supported — the screen WILL sleep; see setup checklist');
@@ -90,7 +93,13 @@ async function acquireWakeLock(targets: ActivationTargets): Promise<boolean> {
   const request = async (isReacquire: boolean): Promise<boolean> => {
     try {
       const sentinel = await api.request('screen');
+      if (generation !== wakeLockGeneration) {
+        await sentinel.release?.();
+        return false;
+      }
+      activeWakeSentinel = sentinel;
       sentinel.addEventListener?.('release', () => {
+        if (activeWakeSentinel === sentinel) activeWakeSentinel = null;
         // Released ≠ failed: visibility loss releases it. If we're visible and
         // it released anyway, that's a real degradation.
         if (targets.documentRef?.visibilityState === 'visible') {
@@ -110,4 +119,12 @@ async function acquireWakeLock(targets: ActivationTargets): Promise<boolean> {
   });
 
   return request(false);
+}
+
+/** Invalidate late wake-lock requests when the Run surface is exited. */
+export async function releaseAcquiredWakeLock(): Promise<void> {
+  wakeLockGeneration += 1;
+  const sentinel = activeWakeSentinel;
+  activeWakeSentinel = null;
+  await sentinel?.release?.();
 }

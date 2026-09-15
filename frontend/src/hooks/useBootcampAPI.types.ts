@@ -2,6 +2,8 @@ export type ClassFormat = string;
 export type DayType = 'lower_body' | 'upper_body' | 'cardio' | 'full_body' | 'custom';
 
 export interface BootcampExercise {
+  /** U1: set when pain-aware gating auto-routed an original movement to this one. */
+  painSwap?: { from: string; region: string; severity: number } | null;
   exerciseName: string;
   durationSec: number;
   restSec: number;
@@ -110,6 +112,8 @@ export interface BootcampStretch {
 }
 
 export interface GeneratedBootcamp {
+  /** U1: coach-facing ledger of every pain swap applied during generation. */
+  painSwaps?: Array<{ from: string; to: string; region: string; severity: number | null }>;
   name: string;
   classFormat: ClassFormat;
   classStyle?: ClassStyle;

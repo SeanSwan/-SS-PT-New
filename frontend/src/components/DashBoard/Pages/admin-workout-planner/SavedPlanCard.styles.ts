@@ -18,7 +18,16 @@ const motionGuarded = css`
   }
 `;
 
-export const Card = styled.div<{ $loaded: boolean; $isCurrent: boolean }>`
+// Native button: the whole saved-plan card is one activation target; the div
+// + role="button" + keyboard-shim pattern is replaced by real semantics.
+export const Card = styled.button<{ $loaded: boolean; $isCurrent: boolean }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
   --swan-card-padding: 14px;
   --swan-card-radius: 12px;
   ${swanDataCardShell}

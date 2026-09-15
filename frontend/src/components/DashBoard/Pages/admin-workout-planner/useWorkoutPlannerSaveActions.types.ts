@@ -21,7 +21,7 @@ interface PdfDerivativeSummary {
 }
 
 export interface SaveActionResponseData {
-  plan?: { id?: unknown; title?: unknown };
+  plan?: { id?: unknown; title?: unknown; contentRevision?: unknown };
   pdfDerivative?: PdfDerivativeSummary;
 }
 
@@ -30,6 +30,7 @@ export interface SaveOperationResult {
   planData: unknown;
   saveFields: WorkoutPlanSaveFields;
   planId: string | null;
+  planRevision?: number;
   planTitle?: unknown;
   pdfDerivative?: PdfDerivativeSummary;
 }
@@ -63,5 +64,6 @@ export interface UseWorkoutPlannerSaveActionsInput {
   setSavedSnapshot: Dispatch<SetStateAction<string | null>>;
   setLoadedPlanId: Dispatch<SetStateAction<string | null>>;
   setLoadedPlanName: Dispatch<SetStateAction<string | null>>;
+  setLoadedPlanRevision: Dispatch<SetStateAction<number>>;
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
 }

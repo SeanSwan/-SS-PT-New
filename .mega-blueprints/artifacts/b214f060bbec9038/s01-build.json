@@ -1,0 +1,11 @@
+{
+  "status": "complete",
+  "digest": "e5b31c5ff221944d03001cead578ec074eca51c5796f1a80bde3e1dfe434dc0b",
+  "toolEvidence": {
+    "path": ".mega-blueprints/artifacts/b214f060bbec9038/s01-summary.json",
+    "sha256": "71dcea1ee97a3e1be28bd39b6192193d0b3f782ce157a099efe23767b4342f93"
+  },
+  "actor": "gpt-5.6-luna",
+  "effort": "xhigh",
+  "summary": "Actual Luna acceptance_regressions build: preserves opaque string IDs; adds tracked digit/letter UUID and trimmed-title tests.7component tests and1standaloneUUID pass. API mocked; final Astra review deferred. Root inspected exact two-file diff and raw outputs."
+}

@@ -1,0 +1,1025 @@
+{
+  "documentType": "codex-security.findings",
+  "findings": [
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "priv-01-control"
+          ],
+          "outcome": "An ordinary account can re-enable a victim's withdrawn AI consent, disable their AI features, and retrieve their consent metadata. This finding does not independently grant access to the victim's clinical records.",
+          "sink": "backend/controllers/aiConsentController.mjs",
+          "source": "An active authenticated account with role user and its own linked waiver.",
+          "summary": "User.role supports user and defaults to user: backend/models/User.mjs:123-126. Public registration permits/defaults to user: backend/controllers/authController.mjs:266,548-549. POST /api/public/waivers/submit uses optionalAuth; authenticated submissions link req.user.id directly, regardless of role: backend/controllers/publicWaiverController.mjs:280-303. POST /api/ai/consent/grant and /withdraw use protect without an admin gate: backend/routes/aiRoutes.mjs:68-72. grantAiConsent constrains role client and rejects trainer, but role user falls through to AiPrivacyProfile.findOrCreate/update for body.userId. withdrawAiConsent and getAiConsentStatus repeat the incomplete role restrictions."
+        },
+        "reachability": {
+          "attacker": "An active authenticated account with role user and its own linked waiver.",
+          "entrypoint": "User.role supports user and defaults to user: backend/models/User.mjs:123-126.",
+          "outcome": "An ordinary account can re-enable a victim's withdrawn AI consent, disable their AI features, and retrieve their consent metadata. This finding does not independently grant access to the victim's clinical records.",
+          "summary": "An active authenticated account with role user and its own linked waiver. protect requires an active account and linked waiver for role user. Those prerequisites are achievable through the authenticated public waiver path. Target existence/client-role validation does not authorize the requester."
+        },
+        "summary": "User.role supports user and defaults to user: backend/models/User.mjs:123-126. Public registration permits/defaults to user: backend/controllers/authController.mjs:266,548-549. POST /api/public/waivers/submit uses optionalAuth; authenticated submissions link req.user.id directly, regardless of role: backend/controllers/publicWaiverController.mjs:280-303. POST /api/ai/consent/grant and /withdraw use protect without an admin gate: backend/routes/aiRoutes.mjs:68-72. grantAiConsent constrains role client and rejects trainer, but role user falls through to AiPrivacyProfile.findOrCreate/update for body.userId. withdrawAiConsent and getAiConsentStatus repeat the incomplete role restrictions."
+      },
+      "codeEvidence": [
+        {
+          "code": "    // RBAC: clients can only manage their own consent\n    if (requesterRole === 'client' && targetUserId !== requesterId) {\n      return res.status(403).json({ success: false, message: 'Access denied' });\n    }\n\n    // Trainers cannot grant consent on behalf of clients\n    if (requesterRole === 'trainer') {\n      return res.status(403).json({\n        success: false,\n        message: 'Trainers cannot grant AI consent on behalf of clients.',\n      });\n    }",
+          "endLine": 60,
+          "explanation": "Only an authorized administrator may manage another client's consent; ordinary accounts may manage only their own. Current source violates this boundary as traced above. Counterevidence: protect requires an active account and linked waiver for role user. Those prerequisites are achievable through the authenticated public waiver path. Target existence/client-role validation does not authorize the requester.",
+          "id": "priv-01-control",
+          "label": "Missing privacy or authorization control",
+          "language": "javascript",
+          "path": "backend/controllers/aiConsentController.mjs",
+          "role": "root_control",
+          "startLine": 49
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Parent source review and independent review agree. Five candidates additionally reproduced with real modules and isolated dependencies; deployed behavior not checked."
+      },
+      "findingId": "csf_ec16d12d09357bce5513b30f",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:b19995a55b0f19199b9554ad900f66b463f62b35a3cab08907b09739d7ad6025"
+      },
+      "identity": {
+        "anchor": "ordinary-role-user-accounts-can-grant-or-withdraw-another-client-s-ai-consent"
+      },
+      "locations": [
+        {
+          "endLine": 60,
+          "path": "backend/controllers/aiConsentController.mjs",
+          "role": "root_control",
+          "startLine": 49
+        }
+      ],
+      "occurrenceId": "occ_cd2d429f0075b9271c250ae9",
+      "provenance": {
+        "candidateId": "PRIV-01",
+        "originalCandidates": [
+          {
+            "CWE": "CWE-862",
+            "attacker": "An active authenticated account with role user and its own linked waiver.",
+            "code": "if (requesterRole === 'client' && targetUserId !== requesterId) ...; if (requesterRole === 'trainer') ...;",
+            "confidence": 0.99,
+            "counterevidence": "protect requires an active account and linked waiver for role user. Those prerequisites are achievable through the authenticated public waiver path. Target existence/client-role validation does not authorize the requester.",
+            "file": "backend/controllers/aiConsentController.mjs",
+            "id": "PRIV-01",
+            "impact": "An ordinary account can re-enable a victim's withdrawn AI consent, disable their AI features, and retrieve their consent metadata. This finding does not independently grant access to the victim's clinical records.",
+            "invariant": "Only an authorized administrator may manage another client's consent; ordinary accounts may manage only their own.",
+            "lines": "49-60",
+            "remediation": "For every consent operation, explicitly allow admin cross-account operations and constrain all ordinary account roles to self. Reject unknown roles. Add role-user cross-account grant, withdraw, and status regression cases.",
+            "rule": "Authorize cross-account consent operations explicitly",
+            "severity": "HIGH",
+            "source_to_sink": [
+              "User.role supports user and defaults to user: backend/models/User.mjs:123-126.",
+              "Public registration permits/defaults to user: backend/controllers/authController.mjs:266,548-549.",
+              "POST /api/public/waivers/submit uses optionalAuth; authenticated submissions link req.user.id directly, regardless of role: backend/controllers/publicWaiverController.mjs:280-303.",
+              "POST /api/ai/consent/grant and /withdraw use protect without an admin gate: backend/routes/aiRoutes.mjs:68-72.",
+              "grantAiConsent constrains role client and rejects trainer, but role user falls through to AiPrivacyProfile.findOrCreate/update for body.userId.",
+              "withdrawAiConsent and getAiConsentStatus repeat the incomplete role restrictions."
+            ],
+            "title": "Ordinary role-user accounts can grant or withdraw another client's AI consent"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "For every consent operation, explicitly allow admin cross-account operations and constrain all ordinary account roles to self. Reject unknown roles. Add role-user cross-account grant, withdraw, and status regression cases.",
+      "remediationTests": [
+        "For every consent operation, explicitly allow admin cross-account operations and constrain all ordinary account roles to self. Reject unknown roles. Add role-user cross-account grant, withdraw, and status regression cases."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "priv-01-control"
+        ],
+        "summary": "User.role supports user and defaults to user: backend/models/User.mjs:123-126. Public registration permits/defaults to user: backend/controllers/authController.mjs:266,548-549. POST /api/public/waivers/submit uses optionalAuth; authenticated submissions link req.user.id directly, regardless of role: backend/controllers/publicWaiverController.mjs:280-303. POST /api/ai/consent/grant and /withdraw use protect without an admin gate: backend/routes/aiRoutes.mjs:68-72. grantAiConsent constrains role client and rejects trainer, but role user falls through to AiPrivacyProfile.findOrCreate/update for body.userId. withdrawAiConsent and getAiConsentStatus repeat the incomplete role restrictions."
+      },
+      "ruleId": "authorization.cross-account-ai-consent",
+      "severity": {
+        "level": "high",
+        "rationale": "Cross-account state mutation is reachable by a supported ordinary account with a linked waiver."
+      },
+      "summary": "An ordinary account can re-enable a victim's withdrawn AI consent, disable their AI features, and retrieve their consent metadata. This finding does not independently grant access to the victim's clinical records.",
+      "taxonomy": {
+        "category": "broken-access-control",
+        "cwe": [
+          "CWE-862"
+        ]
+      },
+      "title": "Ordinary role-user accounts can grant or withdraw another client's AI consent",
+      "validation": {
+        "limitations": [
+          "No live database, provider, deployed bundle, actual client disclosure or production configuration was tested."
+        ],
+        "method": "source review plus dependency-isolated synthetic reproduction",
+        "summary": "Only an authorized administrator may manage another client's consent; ordinary accounts may manage only their own. Current source violates this boundary as traced above. Counterevidence: protect requires an active account and linked waiver for role user. Those prerequisites are achievable through the authenticated public waiver path. Target existence/client-role validation does not authorize the requester."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "priv-02-control"
+          ],
+          "outcome": "A demoted account can continue obtaining newly fetched client medical, pain, measurement, and trainer-note context through old conversations.",
+          "sink": "backend/routes/aiChatRoutes.mjs",
+          "source": "A formerly privileged account that retains ownership of an existing conversation; for example, an administrator demoted to trainer.",
+          "summary": "Conversation creation persists req.user.role: backend/routes/aiChatRoutes.mjs:311,335. Message handling loads an owned active conversation: backend/routes/aiChatRoutes.mjs:553-559. Privileged enrichment is selected from conversation.role: backend/routes/aiChatRoutes.mjs:599-602. The client access gate runs only when conversation.role and req.user.role are BOTH trainer: backend/routes/aiChatRoutes.mjs:610. An old admin conversation therefore skips assignment authorization for a currently unassigned trainer. enrichWithUserData receives the old role, reads current health information and trainer notes, then sendChatMessage sends that context to the provider: backend/routes/aiChatRoutes.mjs:695-731."
+        },
+        "reachability": {
+          "attacker": "A formerly privileged account that retains ownership of an existing conversation; for example, an administrator demoted to trainer.",
+          "entrypoint": "Conversation creation persists req.user.role: backend/routes/aiChatRoutes.mjs:311,335.",
+          "outcome": "A demoted account can continue obtaining newly fetched client medical, pain, measurement, and trainer-note context through old conversations.",
+          "summary": "A formerly privileged account that retains ownership of an existing conversation; for example, an administrator demoted to trainer. Authentication reloads the current role from the database, and conversation ownership is enforced. Neither control fixes downstream authorization based on the historical role. The normal trainer-to-trainer path does call the fail-closed client access helper."
+        },
+        "summary": "Conversation creation persists req.user.role: backend/routes/aiChatRoutes.mjs:311,335. Message handling loads an owned active conversation: backend/routes/aiChatRoutes.mjs:553-559. Privileged enrichment is selected from conversation.role: backend/routes/aiChatRoutes.mjs:599-602. The client access gate runs only when conversation.role and req.user.role are BOTH trainer: backend/routes/aiChatRoutes.mjs:610. An old admin conversation therefore skips assignment authorization for a currently unassigned trainer. enrichWithUserData receives the old role, reads current health information and trainer notes, then sendChatMessage sends that context to the provider: backend/routes/aiChatRoutes.mjs:695-731."
+      },
+      "codeEvidence": [
+        {
+          "code": "    const isAdminOrTrainer = conversation.role === 'admin' || conversation.role === 'trainer';\n    const enrichUserId = isAdminOrTrainer\n      ? (conversation.targetUserId || null)   // null = no client selected \u2192 skip enrichment\n      : (conversation.targetUserId || req.user.id);  // clients always enrich with their own data\n\n    // \u2500\u2500 TRAINER RBAC: Verify trainer is assigned to target client \u2500\u2500\n    // Slice A1 (2026-06-10): HARDENED from soft warn-and-continue to the\n    // canonical fail-closed gate (contextEngine/clientAccess.mjs \u2014 active\n    // ClientTrainerAssignment OR session history; pending grants nothing).\n    // Escape hatch: AI_CHAT_CLIENT_ACCESS_SOFT=true restores legacy\n    // warn-only behavior if a real workflow breaks. Admins bypass.\n    if (conversation.targetUserId && conversation.role === 'trainer' && req.user.role === 'trainer') {",
+          "endLine": 610,
+          "explanation": "Current role and current client authorization must govern every new read and provider disclosure. Current source violates this boundary as traced above. Counterevidence: Authentication reloads the current role from the database, and conversation ownership is enforced. Neither control fixes downstream authorization based on the historical role. The normal trainer-to-trainer path does call the fail-closed client access helper.",
+          "id": "priv-02-control",
+          "label": "Missing privacy or authorization control",
+          "language": "javascript",
+          "path": "backend/routes/aiChatRoutes.mjs",
+          "role": "root_control",
+          "startLine": 599
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Parent source review and independent review agree. Five candidates additionally reproduced with real modules and isolated dependencies; deployed behavior not checked."
+      },
+      "findingId": "csf_bdfa2f5473dad7db28863fda",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:f3150c06762c0a91a5d0131024674f536cb4081e5f0b52eaab507a6e80f81b5a"
+      },
+      "identity": {
+        "anchor": "stored-conversation-roles-preserve-privileged-client-access-after-account-demotion"
+      },
+      "locations": [
+        {
+          "endLine": 610,
+          "path": "backend/routes/aiChatRoutes.mjs",
+          "role": "root_control",
+          "startLine": 599
+        }
+      ],
+      "occurrenceId": "occ_3d33c7fe433cd2a65305de4f",
+      "provenance": {
+        "candidateId": "PRIV-02",
+        "originalCandidates": [
+          {
+            "CWE": "CWE-863",
+            "attacker": "A formerly privileged account that retains ownership of an existing conversation; for example, an administrator demoted to trainer.",
+            "code": "if (conversation.targetUserId && conversation.role === 'trainer' && req.user.role === 'trainer')",
+            "confidence": 0.99,
+            "counterevidence": "Authentication reloads the current role from the database, and conversation ownership is enforced. Neither control fixes downstream authorization based on the historical role. The normal trainer-to-trainer path does call the fail-closed client access helper.",
+            "file": "backend/routes/aiChatRoutes.mjs",
+            "id": "PRIV-02",
+            "impact": "A demoted account can continue obtaining newly fetched client medical, pain, measurement, and trainer-note context through old conversations.",
+            "invariant": "Current role and current client authorization must govern every new read and provider disclosure.",
+            "lines": "599-610",
+            "remediation": "Use req.user.role for permissions and enrichment. Call checkClientAccess for every target before loading data, including historical conversations. Revalidate context permissions or invalidate incompatible conversations after role changes.",
+            "rule": "Reauthorize client access against current account privileges on every request",
+            "severity": "HIGH",
+            "source_to_sink": [
+              "Conversation creation persists req.user.role: backend/routes/aiChatRoutes.mjs:311,335.",
+              "Message handling loads an owned active conversation: backend/routes/aiChatRoutes.mjs:553-559.",
+              "Privileged enrichment is selected from conversation.role: backend/routes/aiChatRoutes.mjs:599-602.",
+              "The client access gate runs only when conversation.role and req.user.role are BOTH trainer: backend/routes/aiChatRoutes.mjs:610.",
+              "An old admin conversation therefore skips assignment authorization for a currently unassigned trainer.",
+              "enrichWithUserData receives the old role, reads current health information and trainer notes, then sendChatMessage sends that context to the provider: backend/routes/aiChatRoutes.mjs:695-731."
+            ],
+            "title": "Stored conversation roles preserve privileged client access after account demotion"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Use req.user.role for permissions and enrichment. Call checkClientAccess for every target before loading data, including historical conversations. Revalidate context permissions or invalidate incompatible conversations after role changes.",
+      "remediationTests": [
+        "Use req.user.role for permissions and enrichment. Call checkClientAccess for every target before loading data, including historical conversations. Revalidate context permissions or invalidate incompatible conversations after role changes."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "priv-02-control"
+        ],
+        "summary": "Conversation creation persists req.user.role: backend/routes/aiChatRoutes.mjs:311,335. Message handling loads an owned active conversation: backend/routes/aiChatRoutes.mjs:553-559. Privileged enrichment is selected from conversation.role: backend/routes/aiChatRoutes.mjs:599-602. The client access gate runs only when conversation.role and req.user.role are BOTH trainer: backend/routes/aiChatRoutes.mjs:610. An old admin conversation therefore skips assignment authorization for a currently unassigned trainer. enrichWithUserData receives the old role, reads current health information and trainer notes, then sendChatMessage sends that context to the provider: backend/routes/aiChatRoutes.mjs:695-731."
+      },
+      "ruleId": "authorization.stale-conversation-role",
+      "severity": {
+        "level": "medium",
+        "rationale": "Sensitive processing boundary is source-established; specific workflow, data content or state prerequisite limits likelihood."
+      },
+      "summary": "A demoted account can continue obtaining newly fetched client medical, pain, measurement, and trainer-note context through old conversations.",
+      "taxonomy": {
+        "category": "broken-access-control",
+        "cwe": [
+          "CWE-863"
+        ]
+      },
+      "title": "Stored conversation roles preserve privileged client access after account demotion",
+      "validation": {
+        "limitations": [
+          "No live database, provider, deployed bundle, actual client disclosure or production configuration was tested."
+        ],
+        "method": "independent and parent source review",
+        "summary": "Current role and current client authorization must govern every new read and provider disclosure. Current source violates this boundary as traced above. Counterevidence: Authentication reloads the current role from the database, and conversation ownership is enforced. Neither control fixes downstream authorization based on the historical role. The normal trainer-to-trainer path does call the fail-closed client access helper."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "priv-03-control"
+          ],
+          "outcome": "Clients who never opted into AI can have health and training data sent to cloud providers. A consent-table/query failure also bypasses an existing withdrawal.",
+          "sink": "backend/routes/aiChatRoutes.mjs",
+          "source": "Any authorized chat caller, including a client with a linked waiver that declined AI processing or an assigned trainer targeting that client.",
+          "summary": "Message route checks ai_privacy_profiles: backend/routes/aiChatRoutes.mjs:565-574. SQL errors become an empty result at line 572. Only an existing disabled/withdrawn record blocks; missing records are explicitly allowed at line 584. The outer catch also continues on consent errors. Client context is enriched and dispatched at lines 695-731."
+        },
+        "reachability": {
+          "attacker": "Any authorized chat caller, including a client with a linked waiver that declined AI processing or an assigned trainer targeting that client.",
+          "entrypoint": "Message route checks ai_privacy_profiles: backend/routes/aiChatRoutes.mjs:565-574.",
+          "outcome": "Clients who never opted into AI can have health and training data sent to cloud providers. A consent-table/query failure also bypasses an existing withdrawal.",
+          "summary": "Any authorized chat caller, including a client with a linked waiver that declined AI processing or an assigned trainer targeting that client. An existing disabled or withdrawn profile is denied when the query succeeds. protect's waiver gate requires only a linked waiver, not aiConsentAccepted, and exempts trainers/admins."
+        },
+        "summary": "Message route checks ai_privacy_profiles: backend/routes/aiChatRoutes.mjs:565-574. SQL errors become an empty result at line 572. Only an existing disabled/withdrawn record blocks; missing records are explicitly allowed at line 584. The outer catch also continues on consent errors. Client context is enriched and dispatched at lines 695-731."
+      },
+      "codeEvidence": [
+        {
+          "code": "      const [consentRows] = await sequelize.query(\n        `SELECT \"aiEnabled\", \"withdrawnAt\" FROM ai_privacy_profiles WHERE \"userId\" = :userId LIMIT 1`,\n        { replacements: { userId: consentTargetId }, type: sequelize.QueryTypes.SELECT }\n      ).then(r => [r]).catch(() => [[]]);\n\n      const consent = Array.isArray(consentRows) ? consentRows[0] : consentRows;\n      if (consent) {\n        if (!consent.aiEnabled || consent.withdrawnAt) {\n          return res.status(403).json({\n            success: false,\n            error: 'AI consent has been withdrawn for this user. Please re-enable AI features in privacy settings.',\n            code: 'AI_CONSENT_WITHDRAWN',\n          });\n        }\n      }\n      // If no consent record exists, allow (backwards-compatible \u2014 user may not have been through onboarding yet)\n    } catch (consentErr) {\n      // Non-fatal: if consent table doesn't exist yet (migration pending), allow through\n      logger.warn('[AIChatRoutes] Consent check failed (non-fatal):', consentErr.message);\n    }",
+          "endLine": 588,
+          "explanation": "The absence of affirmative AI consent, or inability to verify it, must prevent provider dispatch. Current source violates this boundary as traced above. Counterevidence: An existing disabled or withdrawn profile is denied when the query succeeds. protect's waiver gate requires only a linked waiver, not aiConsentAccepted, and exempts trainers/admins.",
+          "id": "priv-03-control",
+          "label": "Missing privacy or authorization control",
+          "language": "javascript",
+          "path": "backend/routes/aiChatRoutes.mjs",
+          "role": "root_control",
+          "startLine": 569
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Parent source review and independent review agree. Five candidates additionally reproduced with real modules and isolated dependencies; deployed behavior not checked."
+      },
+      "findingId": "csf_3862bae5a0219456a284b551",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:6292c88c824965e8785f5c4af66ed59fa2eb6e2899968b283a06917a23481b56"
+      },
+      "identity": {
+        "anchor": "chat-discloses-client-data-when-ai-consent-is-missing-or-cannot-be-verified"
+      },
+      "locations": [
+        {
+          "endLine": 588,
+          "path": "backend/routes/aiChatRoutes.mjs",
+          "role": "root_control",
+          "startLine": 569
+        }
+      ],
+      "occurrenceId": "occ_37f853f471984cc981aa8b1e",
+      "provenance": {
+        "candidateId": "PRIV-03",
+        "originalCandidates": [
+          {
+            "CWE": "CWE-636",
+            "attacker": "Any authorized chat caller, including a client with a linked waiver that declined AI processing or an assigned trainer targeting that client.",
+            "code": ").then(r => [r]).catch(() => [[]]); ... // If no consent record exists, allow",
+            "confidence": 0.99,
+            "counterevidence": "An existing disabled or withdrawn profile is denied when the query succeeds. protect's waiver gate requires only a linked waiver, not aiConsentAccepted, and exempts trainers/admins.",
+            "file": "backend/routes/aiChatRoutes.mjs",
+            "id": "PRIV-03",
+            "impact": "Clients who never opted into AI can have health and training data sent to cloud providers. A consent-table/query failure also bypasses an existing withdrawal.",
+            "invariant": "The absence of affirmative AI consent, or inability to verify it, must prevent provider dispatch.",
+            "lines": "569-588",
+            "remediation": "Use one consent decision service with affirmative-consent semantics. Missing consent should deny; verification failure should return a service-unavailable response before enrichment or provider calls.",
+            "rule": "Fail closed when consent is absent or verification fails",
+            "severity": "HIGH",
+            "source_to_sink": [
+              "Message route checks ai_privacy_profiles: backend/routes/aiChatRoutes.mjs:565-574.",
+              "SQL errors become an empty result at line 572.",
+              "Only an existing disabled/withdrawn record blocks; missing records are explicitly allowed at line 584.",
+              "The outer catch also continues on consent errors.",
+              "Client context is enriched and dispatched at lines 695-731."
+            ],
+            "title": "Chat discloses client data when AI consent is missing or cannot be verified"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Use one consent decision service with affirmative-consent semantics. Missing consent should deny; verification failure should return a service-unavailable response before enrichment or provider calls.",
+      "remediationTests": [
+        "Use one consent decision service with affirmative-consent semantics. Missing consent should deny; verification failure should return a service-unavailable response before enrichment or provider calls."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "priv-03-control"
+        ],
+        "summary": "Message route checks ai_privacy_profiles: backend/routes/aiChatRoutes.mjs:565-574. SQL errors become an empty result at line 572. Only an existing disabled/withdrawn record blocks; missing records are explicitly allowed at line 584. The outer catch also continues on consent errors. Client context is enriched and dispatched at lines 695-731."
+      },
+      "ruleId": "consent.chat-fail-open",
+      "severity": {
+        "level": "medium",
+        "rationale": "Sensitive processing boundary is source-established; specific workflow, data content or state prerequisite limits likelihood."
+      },
+      "summary": "Clients who never opted into AI can have health and training data sent to cloud providers. A consent-table/query failure also bypasses an existing withdrawal.",
+      "taxonomy": {
+        "category": "fail-open",
+        "cwe": [
+          "CWE-636"
+        ]
+      },
+      "title": "Chat discloses client data when AI consent is missing or cannot be verified",
+      "validation": {
+        "limitations": [
+          "No live database, provider, deployed bundle, actual client disclosure or production configuration was tested."
+        ],
+        "method": "independent and parent source review",
+        "summary": "The absence of affirmative AI consent, or inability to verify it, must prevent provider dispatch. Current source violates this boundary as traced above. Counterevidence: An existing disabled or withdrawn profile is denied when the query succeeds. protect's waiver gate requires only a linked waiver, not aiConsentAccepted, and exempts trainers/admins."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "priv-04-control"
+          ],
+          "outcome": "The privacy settings withdrawal does not reliably stop subsequent processing of that client's health and training data.",
+          "sink": "backend/services/ai/aiEligibilityHelper.mjs",
+          "source": "An otherwise authorized requester using workout or long-horizon generation for a client who withdrew AI consent.",
+          "summary": "withdrawAiConsent sets aiEnabled=false and withdrawnAt: backend/controllers/aiConsentController.mjs:170-173. checkAiEligibility records a disabled/withdrawn reason but does not return denial: backend/services/ai/aiEligibilityHelper.mjs:91-97. It then accepts any current linked waiver with AI consent: lines 107-120. Workout generation and long-horizon generation call this helper, then dispatch through routeAiGeneration: backend/controllers/aiWorkoutController.mjs:295-301,714-721; backend/controllers/longHorizonController.mjs:210-215,388."
+        },
+        "reachability": {
+          "attacker": "An otherwise authorized requester using workout or long-horizon generation for a client who withdrew AI consent.",
+          "entrypoint": "withdrawAiConsent sets aiEnabled=false and withdrawnAt: backend/controllers/aiConsentController.mjs:170-173.",
+          "outcome": "The privacy settings withdrawal does not reliably stop subsequent processing of that client's health and training data.",
+          "summary": "An otherwise authorized requester using workout or long-horizon generation for a client who withdrew AI consent. The waiver must be linked, AI-accepted, and version-current. Explicit admin overrides require a reason elsewhere, but this waiver path returns ordinary allow without an override warning."
+        },
+        "summary": "withdrawAiConsent sets aiEnabled=false and withdrawnAt: backend/controllers/aiConsentController.mjs:170-173. checkAiEligibility records a disabled/withdrawn reason but does not return denial: backend/services/ai/aiEligibilityHelper.mjs:91-97. It then accepts any current linked waiver with AI consent: lines 107-120. Workout generation and long-horizon generation call this helper, then dispatch through routeAiGeneration: backend/controllers/aiWorkoutController.mjs:295-301,714-721; backend/controllers/longHorizonController.mjs:210-215,388."
+      },
+      "codeEvidence": [
+        {
+          "code": "    if (!consentProfile) {\n      noConsentReason = 'AI_CONSENT_MISSING';\n    } else if (!consentProfile.aiEnabled) {\n      noConsentReason = 'AI_CONSENT_DISABLED';\n    } else if (consentProfile.withdrawnAt) {\n      noConsentReason = 'AI_CONSENT_WITHDRAWN';\n    }\n  } else {\n    logger.debug('[AiEligibility] AiPrivacyProfile model not available', {\n      targetUserId,\n      actorUserId,\n      actorRole,\n      featureType: featureType || null,\n    });\n  }\n\n  // \u2500\u2500 Source 2: Waiver \u2014 version-aware check (5W-F) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n  const waiverEligibility = await evaluateWaiverVersionEligibility({\n    targetUserId,\n    models,\n  });\n\n  if (waiverEligibility.hasWaiverConsent && waiverEligibility.isCurrent) {\n    return {\n      decision: 'allow',\n      reasonCode: null,\n      consentSource: 'waiver_signature',\n      requiresAuditOverride: false,\n      warnings: [],\n    };",
+          "endLine": 120,
+          "explanation": "A recorded AI opt-out must not be revived implicitly through another consent source. Current source violates this boundary as traced above. Counterevidence: The waiver must be linked, AI-accepted, and version-current. Explicit admin overrides require a reason elsewhere, but this waiver path returns ordinary allow without an override warning.",
+          "id": "priv-04-control",
+          "label": "Missing privacy or authorization control",
+          "language": "javascript",
+          "path": "backend/services/ai/aiEligibilityHelper.mjs",
+          "role": "root_control",
+          "startLine": 91
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Parent source review and independent review agree. Five candidates additionally reproduced with real modules and isolated dependencies; deployed behavior not checked."
+      },
+      "findingId": "csf_4405e2a8e87d64d311133ba1",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:e6a7c378faef3014a2fe77c69669db917e4311a1505f1f068d0466592d3cb42e"
+      },
+      "identity": {
+        "anchor": "an-older-signed-waiver-overrides-an-explicit-ai-consent-withdrawal"
+      },
+      "locations": [
+        {
+          "endLine": 120,
+          "path": "backend/services/ai/aiEligibilityHelper.mjs",
+          "role": "root_control",
+          "startLine": 91
+        }
+      ],
+      "occurrenceId": "occ_e1bce3e1ccb9806a9118aaaa",
+      "provenance": {
+        "candidateId": "PRIV-04",
+        "originalCandidates": [
+          {
+            "CWE": "CWE-863",
+            "attacker": "An otherwise authorized requester using workout or long-horizon generation for a client who withdrew AI consent.",
+            "code": "if (waiverEligibility.hasWaiverConsent && waiverEligibility.isCurrent) { return { decision: 'allow', ... }; }",
+            "confidence": 0.99,
+            "counterevidence": "The waiver must be linked, AI-accepted, and version-current. Explicit admin overrides require a reason elsewhere, but this waiver path returns ordinary allow without an override warning.",
+            "file": "backend/services/ai/aiEligibilityHelper.mjs",
+            "id": "PRIV-04",
+            "impact": "The privacy settings withdrawal does not reliably stop subsequent processing of that client's health and training data.",
+            "invariant": "A recorded AI opt-out must not be revived implicitly through another consent source.",
+            "lines": "91-120",
+            "remediation": "Treat an explicit disabled or withdrawn profile as terminal denial. Permit waiver fallback only when there is no later opt-out, using timestamps/versioned consent events if multiple grant sources must coexist.",
+            "rule": "Explicit withdrawal must take precedence over earlier grants",
+            "severity": "HIGH",
+            "source_to_sink": [
+              "withdrawAiConsent sets aiEnabled=false and withdrawnAt: backend/controllers/aiConsentController.mjs:170-173.",
+              "checkAiEligibility records a disabled/withdrawn reason but does not return denial: backend/services/ai/aiEligibilityHelper.mjs:91-97.",
+              "It then accepts any current linked waiver with AI consent: lines 107-120.",
+              "Workout generation and long-horizon generation call this helper, then dispatch through routeAiGeneration: backend/controllers/aiWorkoutController.mjs:295-301,714-721; backend/controllers/longHorizonController.mjs:210-215,388."
+            ],
+            "title": "An older signed waiver overrides an explicit AI-consent withdrawal"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Treat an explicit disabled or withdrawn profile as terminal denial. Permit waiver fallback only when there is no later opt-out, using timestamps/versioned consent events if multiple grant sources must coexist.",
+      "remediationTests": [
+        "Treat an explicit disabled or withdrawn profile as terminal denial. Permit waiver fallback only when there is no later opt-out, using timestamps/versioned consent events if multiple grant sources must coexist."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "priv-04-control"
+        ],
+        "summary": "withdrawAiConsent sets aiEnabled=false and withdrawnAt: backend/controllers/aiConsentController.mjs:170-173. checkAiEligibility records a disabled/withdrawn reason but does not return denial: backend/services/ai/aiEligibilityHelper.mjs:91-97. It then accepts any current linked waiver with AI consent: lines 107-120. Workout generation and long-horizon generation call this helper, then dispatch through routeAiGeneration: backend/controllers/aiWorkoutController.mjs:295-301,714-721; backend/controllers/longHorizonController.mjs:210-215,388."
+      },
+      "ruleId": "consent.withdrawal-waiver-fallback",
+      "severity": {
+        "level": "medium",
+        "rationale": "Sensitive processing boundary is source-established; specific workflow, data content or state prerequisite limits likelihood."
+      },
+      "summary": "The privacy settings withdrawal does not reliably stop subsequent processing of that client's health and training data.",
+      "taxonomy": {
+        "category": "broken-access-control",
+        "cwe": [
+          "CWE-863"
+        ]
+      },
+      "title": "An older signed waiver overrides an explicit AI-consent withdrawal",
+      "validation": {
+        "limitations": [
+          "No live database, provider, deployed bundle, actual client disclosure or production configuration was tested."
+        ],
+        "method": "source review plus dependency-isolated synthetic reproduction",
+        "summary": "A recorded AI opt-out must not be revived implicitly through another consent source. Current source violates this boundary as traced above. Counterevidence: The waiver must be linked, AI-accepted, and version-current. Explicit admin overrides require a reason elsewhere, but this waiver path returns ordinary allow without an override warning."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "priv-05-control"
+          ],
+          "outcome": "A previousContext string containing names, medical narratives, emails, or SSNs bypasses the current-message privacy scan entirely and reaches configured cloud providers.",
+          "sink": "backend/services/ai/intentClassifier.mjs",
+          "source": "An authenticated command caller or a normal client sending sensitive previousContext content.",
+          "summary": "POST /api/ai-command/execute reads body.previousContext and passes it unchanged: backend/routes/aiCommandRoutes.mjs:121,163-168. stepPHIScan scans only ctx.sanitizedInput: backend/services/ai/commandExecutor.mjs:189-205. stepClassify passes previousContext separately: lines 211-215. classifyIntent prepends previousContext after scanning, then invokes sendChatMessage: backend/services/ai/intentClassifier.mjs:121-135. sendChatMessage performs provider dispatch without additional PII sanitization: backend/services/aiChatService.mjs:2015-2037,2255-2268."
+        },
+        "reachability": {
+          "attacker": "An authenticated command caller or a normal client sending sensitive previousContext content.",
+          "entrypoint": "POST /api/ai-command/execute reads body.previousContext and passes it unchanged: backend/routes/aiCommandRoutes.mjs:121,163-168.",
+          "outcome": "A previousContext string containing names, medical narratives, emails, or SSNs bypasses the current-message privacy scan entirely and reaches configured cloud providers.",
+          "summary": "An authenticated command caller or a normal client sending sensitive previousContext content. The current message receives injection and PHI scanning. The mounted route deliberately passes selectedClientName:null, so that optional classifier input is not an additional mounted-route bypass. Route-context tokens are allowlisted."
+        },
+        "summary": "POST /api/ai-command/execute reads body.previousContext and passes it unchanged: backend/routes/aiCommandRoutes.mjs:121,163-168. stepPHIScan scans only ctx.sanitizedInput: backend/services/ai/commandExecutor.mjs:189-205. stepClassify passes previousContext separately: lines 211-215. classifyIntent prepends previousContext after scanning, then invokes sendChatMessage: backend/services/ai/intentClassifier.mjs:121-135. sendChatMessage performs provider dispatch without additional PII sanitization: backend/services/aiChatService.mjs:2015-2037,2255-2268."
+      },
+      "codeEvidence": [
+        {
+          "code": "  if (previousContext) {\n    contextualMessage = `[Recent context: ${previousContext}]\\n\\nCurrent message: ${contextualMessage}`;\n  }\n\n  const systemPrompt = buildClassificationPrompt(userRole);\n\n  let classificationTimer;\n  try {\n    const result = await Promise.race([\n      sendChatMessage(\n        [\n          { role: 'system', content: systemPrompt },\n          { role: 'user', content: contextualMessage },\n        ],\n        { maxTokens: 1000, temperature: 0.1 }",
+          "endLine": 135,
+          "explanation": "History and auxiliary context must receive the same privacy treatment as the current message. Current source violates this boundary as traced above. Counterevidence: The current message receives injection and PHI scanning. The mounted route deliberately passes selectedClientName:null, so that optional classifier input is not an additional mounted-route bypass. Route-context tokens are allowlisted.",
+          "id": "priv-05-control",
+          "label": "Missing privacy or authorization control",
+          "language": "javascript",
+          "path": "backend/services/ai/intentClassifier.mjs",
+          "role": "root_control",
+          "startLine": 121
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Parent source review and independent review agree. Five candidates additionally reproduced with real modules and isolated dependencies; deployed behavior not checked."
+      },
+      "findingId": "csf_8409c8a2b90d193550f167e5",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:e2bca2e264328858af167b89f423ab935dfc7b5f94bb3a520fafb1a8e51be73b"
+      },
+      "identity": {
+        "anchor": "command-history-is-appended-after-phi-scanning-and-sent-to-the-cloud-unchanged"
+      },
+      "locations": [
+        {
+          "endLine": 135,
+          "path": "backend/services/ai/intentClassifier.mjs",
+          "role": "root_control",
+          "startLine": 121
+        }
+      ],
+      "occurrenceId": "occ_30a47730b6596ff228fc8a31",
+      "provenance": {
+        "candidateId": "PRIV-05",
+        "originalCandidates": [
+          {
+            "CWE": "CWE-359",
+            "attacker": "An authenticated command caller or a normal client sending sensitive previousContext content.",
+            "code": "contextualMessage = `[Recent context: ${previousContext}]\\n\\nCurrent message: ${contextualMessage}`;",
+            "confidence": 0.99,
+            "counterevidence": "The current message receives injection and PHI scanning. The mounted route deliberately passes selectedClientName:null, so that optional classifier input is not an additional mounted-route bypass. Route-context tokens are allowlisted.",
+            "file": "backend/services/ai/intentClassifier.mjs",
+            "id": "PRIV-05",
+            "impact": "A previousContext string containing names, medical narratives, emails, or SSNs bypasses the current-message privacy scan entirely and reaches configured cloud providers.",
+            "invariant": "History and auxiliary context must receive the same privacy treatment as the current message.",
+            "lines": "121-135",
+            "remediation": "Construct a bounded, typed prompt envelope and sanitize all history/context before classification. Resolve client names locally to aliases before any LLM call. Add a provider-boundary test using sensitive previousContext with a harmless current message.",
+            "rule": "Sanitize every prompt input before provider dispatch",
+            "severity": "HIGH",
+            "source_to_sink": [
+              "POST /api/ai-command/execute reads body.previousContext and passes it unchanged: backend/routes/aiCommandRoutes.mjs:121,163-168.",
+              "stepPHIScan scans only ctx.sanitizedInput: backend/services/ai/commandExecutor.mjs:189-205.",
+              "stepClassify passes previousContext separately: lines 211-215.",
+              "classifyIntent prepends previousContext after scanning, then invokes sendChatMessage: backend/services/ai/intentClassifier.mjs:121-135.",
+              "sendChatMessage performs provider dispatch without additional PII sanitization: backend/services/aiChatService.mjs:2015-2037,2255-2268."
+            ],
+            "title": "Command history is appended after PHI scanning and sent to the cloud unchanged"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Construct a bounded, typed prompt envelope and sanitize all history/context before classification. Resolve client names locally to aliases before any LLM call. Add a provider-boundary test using sensitive previousContext with a harmless current message.",
+      "remediationTests": [
+        "Construct a bounded, typed prompt envelope and sanitize all history/context before classification. Resolve client names locally to aliases before any LLM call. Add a provider-boundary test using sensitive previousContext with a harmless current message."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "priv-05-control"
+        ],
+        "summary": "POST /api/ai-command/execute reads body.previousContext and passes it unchanged: backend/routes/aiCommandRoutes.mjs:121,163-168. stepPHIScan scans only ctx.sanitizedInput: backend/services/ai/commandExecutor.mjs:189-205. stepClassify passes previousContext separately: lines 211-215. classifyIntent prepends previousContext after scanning, then invokes sendChatMessage: backend/services/ai/intentClassifier.mjs:121-135. sendChatMessage performs provider dispatch without additional PII sanitization: backend/services/aiChatService.mjs:2015-2037,2255-2268."
+      },
+      "ruleId": "privacy.classifier-history",
+      "severity": {
+        "level": "medium",
+        "rationale": "Sensitive processing boundary is source-established; specific workflow, data content or state prerequisite limits likelihood."
+      },
+      "summary": "A previousContext string containing names, medical narratives, emails, or SSNs bypasses the current-message privacy scan entirely and reaches configured cloud providers.",
+      "taxonomy": {
+        "category": "sensitive-data-exposure",
+        "cwe": [
+          "CWE-359"
+        ]
+      },
+      "title": "Command history is appended after PHI scanning and sent to the cloud unchanged",
+      "validation": {
+        "limitations": [
+          "No live database, provider, deployed bundle, actual client disclosure or production configuration was tested."
+        ],
+        "method": "source review plus dependency-isolated synthetic reproduction",
+        "summary": "History and auxiliary context must receive the same privacy treatment as the current message. Current source violates this boundary as traced above. Counterevidence: The current message receives injection and PHI scanning. The mounted route deliberately passes selectedClientName:null, so that optional classifier input is not an additional mounted-route bypass. Route-context tokens are allowlisted."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "priv-06-control"
+          ],
+          "outcome": "An account with withdrawn AI consent can still send identifiable spoken medical history or raw TTS text to Gemini. Text-chat scrubbing happens on a separate path and cannot undo the earlier audio disclosure.",
+          "sink": "backend/routes/aiChatRoutes.mjs",
+          "source": "An authenticated speech caller; accidental disclosure is sufficient.",
+          "summary": "The router applies protect globally: backend/routes/aiChatRoutes.mjs:282-283. /transcribe adds rate limiting and multer, but no AI consent, subject eligibility, or privacy gate: line 895. It passes the raw buffer to transcribeAudio: line 922. voiceTranscriptionService base64-encodes the entire audio and sends inlineData to Gemini: lines 116-137,150-163. /tts adds only the AI rate limiter and sends req.body.text directly to Gemini: backend/routes/aiChatRoutes.mjs:954,955-998."
+        },
+        "reachability": {
+          "attacker": "An authenticated speech caller; accidental disclosure is sufficient.",
+          "entrypoint": "The router applies protect globally: backend/routes/aiChatRoutes.mjs:282-283.",
+          "outcome": "An account with withdrawn AI consent can still send identifiable spoken medical history or raw TTS text to Gemini. Text-chat scrubbing happens on a separate path and cannot undo the earlier audio disclosure.",
+          "summary": "An authenticated speech caller; accidental disclosure is sufficient. Authentication, linked-waiver checks for client/user roles, upload limits, rate limits, and transcription timeout exist. Filename logging was correctly reduced to an extension. These do not authorize raw voice disclosure or enforce AI withdrawal."
+        },
+        "summary": "The router applies protect globally: backend/routes/aiChatRoutes.mjs:282-283. /transcribe adds rate limiting and multer, but no AI consent, subject eligibility, or privacy gate: line 895. It passes the raw buffer to transcribeAudio: line 922. voiceTranscriptionService base64-encodes the entire audio and sends inlineData to Gemini: lines 116-137,150-163. /tts adds only the AI rate limiter and sends req.body.text directly to Gemini: backend/routes/aiChatRoutes.mjs:954,955-998."
+      },
+      "codeEvidence": [
+        {
+          "code": "router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), async (req, res) => {\n  try {\n    if (!req.file) {\n      return res.status(400).json({ success: false, error: 'No audio file provided' });\n    }\n\n    // Atomic check-and-record: prevents race condition between check and record\n    const { allowed, remaining } = checkAndRecordTranscription(req.user.id);\n    if (!allowed) {\n      return res.status(429).json({\n        success: false,\n        error: 'Transcription rate limit reached (10/hour). Please try again later.',\n        remaining: 0,\n      });\n    }\n\n    logger.info('[AI Chat] Transcription request', {\n      userId: req.user?.id,\n      // RULE 8: the upload filename is user-supplied and routinely carries client\n      // PII (\"sarah-jones-knee-injury.m4a\"). Log the extension, not the name \u2014\n      // mimetype and size already cover every diagnostic use this line had.\n      fileExt: getFileExt(req.file.originalname),\n      size: req.file.size,\n      mimetype: req.file.mimetype,\n      remaining,\n    });\n\n    const transcript = await transcribeAudio(req.file.buffer, req.file.originalname);",
+          "endLine": 922,
+          "explanation": "Withdrawing AI consent must stop new AI disclosures, including voice content and text-to-speech. Current source violates this boundary as traced above. Counterevidence: Authentication, linked-waiver checks for client/user roles, upload limits, rate limits, and transcription timeout exist. Filename logging was correctly reduced to an extension. These do not authorize raw voice disclosure or enforce AI withdrawal.",
+          "id": "priv-06-control",
+          "label": "Missing privacy or authorization control",
+          "language": "javascript",
+          "path": "backend/routes/aiChatRoutes.mjs",
+          "role": "root_control",
+          "startLine": 895
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Parent source review and independent review agree. Five candidates additionally reproduced with real modules and isolated dependencies; deployed behavior not checked."
+      },
+      "findingId": "csf_7a2cb4d1f3b2ea7c88043b01",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:ae5790d487cbb5ea644b5ea3849e67256caf5658765fe2f4dd0f9e722f8ca4cb"
+      },
+      "identity": {
+        "anchor": "speech-endpoints-bypass-ai-withdrawal-and-send-raw-sensitive-content-to-gemini"
+      },
+      "locations": [
+        {
+          "endLine": 922,
+          "path": "backend/routes/aiChatRoutes.mjs",
+          "role": "root_control",
+          "startLine": 895
+        }
+      ],
+      "occurrenceId": "occ_9820ad6f0b178e874fae35bb",
+      "provenance": {
+        "candidateId": "PRIV-06",
+        "originalCandidates": [
+          {
+            "CWE": "CWE-359",
+            "attacker": "An authenticated speech caller; accidental disclosure is sufficient.",
+            "code": "router.post('/transcribe', aiRateLimiter, audioUpload.single('audio'), ...); const transcript = await transcribeAudio(req.file.buffer, req.file.originalname);",
+            "confidence": 0.99,
+            "counterevidence": "Authentication, linked-waiver checks for client/user roles, upload limits, rate limits, and transcription timeout exist. Filename logging was correctly reduced to an extension. These do not authorize raw voice disclosure or enforce AI withdrawal.",
+            "file": "backend/routes/aiChatRoutes.mjs",
+            "id": "PRIV-06",
+            "impact": "An account with withdrawn AI consent can still send identifiable spoken medical history or raw TTS text to Gemini. Text-chat scrubbing happens on a separate path and cannot undo the earlier audio disclosure.",
+            "invariant": "Withdrawing AI consent must stop new AI disclosures, including voice content and text-to-speech.",
+            "lines": "895-922",
+            "remediation": "Introduce explicit speech-provider consent and target eligibility checks before dispatch. For identity-blind processing, perform transcription within the approved private boundary and redact text before external inference. Apply text sanitization and current consent to TTS.",
+            "rule": "Apply consent and disclosure policy consistently to speech providers",
+            "severity": "HIGH",
+            "source_to_sink": [
+              "The router applies protect globally: backend/routes/aiChatRoutes.mjs:282-283.",
+              "/transcribe adds rate limiting and multer, but no AI consent, subject eligibility, or privacy gate: line 895.",
+              "It passes the raw buffer to transcribeAudio: line 922.",
+              "voiceTranscriptionService base64-encodes the entire audio and sends inlineData to Gemini: lines 116-137,150-163.",
+              "/tts adds only the AI rate limiter and sends req.body.text directly to Gemini: backend/routes/aiChatRoutes.mjs:954,955-998."
+            ],
+            "title": "Speech endpoints bypass AI withdrawal and send raw sensitive content to Gemini"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Introduce explicit speech-provider consent and target eligibility checks before dispatch. For identity-blind processing, perform transcription within the approved private boundary and redact text before external inference. Apply text sanitization and current consent to TTS.",
+      "remediationTests": [
+        "Introduce explicit speech-provider consent and target eligibility checks before dispatch. For identity-blind processing, perform transcription within the approved private boundary and redact text before external inference. Apply text sanitization and current consent to TTS."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "priv-06-control"
+        ],
+        "summary": "The router applies protect globally: backend/routes/aiChatRoutes.mjs:282-283. /transcribe adds rate limiting and multer, but no AI consent, subject eligibility, or privacy gate: line 895. It passes the raw buffer to transcribeAudio: line 922. voiceTranscriptionService base64-encodes the entire audio and sends inlineData to Gemini: lines 116-137,150-163. /tts adds only the AI rate limiter and sends req.body.text directly to Gemini: backend/routes/aiChatRoutes.mjs:954,955-998."
+      },
+      "ruleId": "privacy.speech-consent-bypass",
+      "severity": {
+        "level": "medium",
+        "rationale": "Sensitive processing boundary is source-established; specific workflow, data content or state prerequisite limits likelihood."
+      },
+      "summary": "An account with withdrawn AI consent can still send identifiable spoken medical history or raw TTS text to Gemini. Text-chat scrubbing happens on a separate path and cannot undo the earlier audio disclosure.",
+      "taxonomy": {
+        "category": "sensitive-data-exposure",
+        "cwe": [
+          "CWE-359"
+        ]
+      },
+      "title": "Speech endpoints bypass AI withdrawal and send raw sensitive content to Gemini",
+      "validation": {
+        "limitations": [
+          "No live database, provider, deployed bundle, actual client disclosure or production configuration was tested."
+        ],
+        "method": "independent and parent source review",
+        "summary": "Withdrawing AI consent must stop new AI disclosures, including voice content and text-to-speech. Current source violates this boundary as traced above. Counterevidence: Authentication, linked-waiver checks for client/user roles, upload limits, rate limits, and transcription timeout exist. Filename logging was correctly reduced to an extension. These do not authorize raw voice disclosure or enforce AI withdrawal."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "priv-07-control"
+          ],
+          "outcome": "A synthetic payload containing clientProfile.name='Alice Example' and health.concerns='Alice Example has diabetes' loses the first name field but preserves the identifying clinical sentence in provider input. Similar free-text names can remain in goal notes and arbitrary retained fields.",
+          "sink": "backend/services/deIdentificationService.mjs",
+          "source": "An authorized caller supplying a master prompt or normal persisted profile text containing the client's name.",
+          "summary": "Workout generation accepts body.masterPromptJson or the stored master prompt: backend/controllers/aiWorkoutController.mjs:348-358. The generated fallback includes user healthConcerns: lines 401-405. deIdentify clones the whole object, removes enumerated identifier paths, and runs only email/phone/SSN regex replacements: backend/services/deIdentificationService.mjs:167,214-230,274-307. It never replaces originalName throughout remaining string fields. SAFE_FIELD_PATHS is not used as an allowlist. buildWorkoutPrompt serializes the complete resulting object: backend/services/ai/promptBuilder.mjs:92-96. The OpenAI adapter sends that prompt directly: backend/services/ai/adapters/openaiAdapter.mjs:144-156."
+        },
+        "reachability": {
+          "attacker": "An authorized caller supplying a master prompt or normal persisted profile text containing the client's name.",
+          "entrypoint": "Workout generation accepts body.masterPromptJson or the stored master prompt: backend/controllers/aiWorkoutController.mjs:348-358.",
+          "outcome": "A synthetic payload containing clientProfile.name='Alice Example' and health.concerns='Alice Example has diabetes' loses the first name field but preserves the identifying clinical sentence in provider input. Similar free-text names can remain in goal notes and arbitrary retained fields.",
+          "summary": "An authorized caller supplying a master prompt or normal persisted profile text containing the client's name. Known structural name/contact/DOB fields are stripped; emails, phone numbers, and SSNs receive recursive replacement. Empty training context fails closed. Output validation runs after disclosure and cannot prevent this leak."
+        },
+        "summary": "Workout generation accepts body.masterPromptJson or the stored master prompt: backend/controllers/aiWorkoutController.mjs:348-358. The generated fallback includes user healthConcerns: lines 401-405. deIdentify clones the whole object, removes enumerated identifier paths, and runs only email/phone/SSN regex replacements: backend/services/deIdentificationService.mjs:167,214-230,274-307. It never replaces originalName throughout remaining string fields. SAFE_FIELD_PATHS is not used as an allowlist. buildWorkoutPrompt serializes the complete resulting object: backend/services/ai/promptBuilder.mjs:92-96. The OpenAI adapter sends that prompt directly: backend/services/ai/adapters/openaiAdapter.mjs:144-156."
+      },
+      "codeEvidence": [
+        {
+          "code": "  // 3. Deep PII scan: search all string values for email/phone patterns and redact\n  scanAndRedactPII(payload, strippedFields);\n\n  // 4. Double-check: ensure no real name leaked into the anonymous label\n  if (originalName && typeof originalName === 'string' && originalName.length > 2) {\n    const currentName = getNestedValue(payload, 'client.name') || '';\n    if (typeof currentName === 'string' && currentName.toLowerCase().includes(originalName.toLowerCase())) {\n      logger.warn('[DeIdentification] Real name leaked into label \u2014 using generic fallback');\n      setNestedValue(payload, 'client.name', anonymousLabel);\n      setNestedValue(payload, 'client.preferredName', anonymousLabel);\n      strippedFields.push('name_leak_corrected');\n    }",
+          "endLine": 240,
+          "explanation": "The advertised identity-blind workout payload must not combine a real client name with medical history. Current source violates this boundary as traced above. Counterevidence: Known structural name/contact/DOB fields are stripped; emails, phone numbers, and SSNs receive recursive replacement. Empty training context fails closed. Output validation runs after disclosure and cannot prevent this leak.",
+          "id": "priv-07-control",
+          "label": "Missing privacy or authorization control",
+          "language": "javascript",
+          "path": "backend/services/deIdentificationService.mjs",
+          "role": "root_control",
+          "startLine": 229
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Parent source review and independent review agree. Five candidates additionally reproduced with real modules and isolated dependencies; deployed behavior not checked."
+      },
+      "findingId": "csf_88e7fe37d85e66fed46a9b01",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:9d91df7599c8084c3bd5612fb5f4afd08d579ed2fb8d319871e0d0801bd2cd6b"
+      },
+      "identity": {
+        "anchor": "workout-de-identification-preserves-known-client-names-embedded-in-clinical-text"
+      },
+      "locations": [
+        {
+          "endLine": 240,
+          "path": "backend/services/deIdentificationService.mjs",
+          "role": "root_control",
+          "startLine": 229
+        }
+      ],
+      "occurrenceId": "occ_f7e9d4a6adee83424e0f12ba",
+      "provenance": {
+        "candidateId": "PRIV-07",
+        "originalCandidates": [
+          {
+            "CWE": "CWE-359",
+            "attacker": "An authorized caller supplying a master prompt or normal persisted profile text containing the client's name.",
+            "code": "scanAndRedactPII(payload, strippedFields); ... const currentName = getNestedValue(payload, 'client.name') || '';",
+            "confidence": 0.99,
+            "counterevidence": "Known structural name/contact/DOB fields are stripped; emails, phone numbers, and SSNs receive recursive replacement. Empty training context fails closed. Output validation runs after disclosure and cannot prevent this leak.",
+            "file": "backend/services/deIdentificationService.mjs",
+            "id": "PRIV-07",
+            "impact": "A synthetic payload containing clientProfile.name='Alice Example' and health.concerns='Alice Example has diabetes' loses the first name field but preserves the identifying clinical sentence in provider input. Similar free-text names can remain in goal notes and arbitrary retained fields.",
+            "invariant": "The advertised identity-blind workout payload must not combine a real client name with medical history.",
+            "lines": "229-240",
+            "remediation": "Build a schema-allowlisted provider payload; recursively scrub known identity terms from all retained free text and validate the final serialized prompt. Apply the same check to serverConstraints added after de-identification.",
+            "rule": "Remove identity throughout the final provider payload, including free text",
+            "severity": "MEDIUM",
+            "source_to_sink": [
+              "Workout generation accepts body.masterPromptJson or the stored master prompt: backend/controllers/aiWorkoutController.mjs:348-358.",
+              "The generated fallback includes user healthConcerns: lines 401-405.",
+              "deIdentify clones the whole object, removes enumerated identifier paths, and runs only email/phone/SSN regex replacements: backend/services/deIdentificationService.mjs:167,214-230,274-307.",
+              "It never replaces originalName throughout remaining string fields. SAFE_FIELD_PATHS is not used as an allowlist.",
+              "buildWorkoutPrompt serializes the complete resulting object: backend/services/ai/promptBuilder.mjs:92-96.",
+              "The OpenAI adapter sends that prompt directly: backend/services/ai/adapters/openaiAdapter.mjs:144-156."
+            ],
+            "title": "Workout de-identification preserves known client names embedded in clinical text"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Build a schema-allowlisted provider payload; recursively scrub known identity terms from all retained free text and validate the final serialized prompt. Apply the same check to serverConstraints added after de-identification.",
+      "remediationTests": [
+        "Build a schema-allowlisted provider payload; recursively scrub known identity terms from all retained free text and validate the final serialized prompt. Apply the same check to serverConstraints added after de-identification."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "priv-07-control"
+        ],
+        "summary": "Workout generation accepts body.masterPromptJson or the stored master prompt: backend/controllers/aiWorkoutController.mjs:348-358. The generated fallback includes user healthConcerns: lines 401-405. deIdentify clones the whole object, removes enumerated identifier paths, and runs only email/phone/SSN regex replacements: backend/services/deIdentificationService.mjs:167,214-230,274-307. It never replaces originalName throughout remaining string fields. SAFE_FIELD_PATHS is not used as an allowlist. buildWorkoutPrompt serializes the complete resulting object: backend/services/ai/promptBuilder.mjs:92-96. The OpenAI adapter sends that prompt directly: backend/services/ai/adapters/openaiAdapter.mjs:144-156."
+      },
+      "ruleId": "privacy.workout-free-text",
+      "severity": {
+        "level": "medium",
+        "rationale": "Sensitive processing boundary is source-established; specific workflow, data content or state prerequisite limits likelihood."
+      },
+      "summary": "A synthetic payload containing clientProfile.name='Alice Example' and health.concerns='Alice Example has diabetes' loses the first name field but preserves the identifying clinical sentence in provider input. Similar free-text names can remain in goal notes and arbitrary retained fields.",
+      "taxonomy": {
+        "category": "sensitive-data-exposure",
+        "cwe": [
+          "CWE-359"
+        ]
+      },
+      "title": "Workout de-identification preserves known client names embedded in clinical text",
+      "validation": {
+        "limitations": [
+          "No live database, provider, deployed bundle, actual client disclosure or production configuration was tested."
+        ],
+        "method": "source review plus dependency-isolated synthetic reproduction",
+        "summary": "The advertised identity-blind workout payload must not combine a real client name with medical history. Current source violates this boundary as traced above. Counterevidence: Known structural name/contact/DOB fields are stripped; emails, phone numbers, and SSNs receive recursive replacement. Empty training context fails closed. Output validation runs after disclosure and cannot prevent this leak."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "priv-08-control"
+          ],
+          "outcome": "A failed identity query leaves known client first/last names in outbound messages or retained history. The outer fail-closed logic does not execute because the lower layer reports ordinary success.",
+          "sink": "backend/services/aiPrivacyService.mjs",
+          "source": "No malicious actor required; an identity query failure plus a message/history item containing the target client's name.",
+          "summary": "fetchClientIdentity catches database errors and returns null: backend/services/aiPrivacyService.mjs:38-50. buildIdentityTerms(null) returns an empty list: line 58. stripIdentityFromMessage continues and returns the message after generic PIIManager scanning: lines 117-160. PIIManager patterns do not recognize names: backend/services/privacy/PIIManager.mjs:10-16. The mounted route/history wrapper withholds only when the stripper throws: backend/routes/aiChatRoutes.mjs:630-638; backend/services/ai/aiChatPromptPrivacy.mjs:34-47."
+        },
+        "reachability": {
+          "attacker": "No malicious actor required; an identity query failure plus a message/history item containing the target client's name.",
+          "entrypoint": "fetchClientIdentity catches database errors and returns null: backend/services/aiPrivacyService.mjs:38-50.",
+          "outcome": "A failed identity query leaves known client first/last names in outbound messages or retained history. The outer fail-closed logic does not execute because the lower layer reports ordinary success.",
+          "summary": "No malicious actor required; an identity query failure plus a message/history item containing the target client's name. strictPiiMiddleware catches common identifiers and certain contextual full-name patterns in the current message. It does not cover arbitrary client-name mentions, and it does not rescan stored history. The existing history failure test mocks a throwing stripper rather than the real helper that swallows lookup errors. stripIdentityFromNotes correctly withholds when identity is null."
+        },
+        "summary": "fetchClientIdentity catches database errors and returns null: backend/services/aiPrivacyService.mjs:38-50. buildIdentityTerms(null) returns an empty list: line 58. stripIdentityFromMessage continues and returns the message after generic PIIManager scanning: lines 117-160. PIIManager patterns do not recognize names: backend/services/privacy/PIIManager.mjs:10-16. The mounted route/history wrapper withholds only when the stripper throws: backend/routes/aiChatRoutes.mjs:630-638; backend/services/ai/aiChatPromptPrivacy.mjs:34-47."
+      },
+      "codeEvidence": [
+        {
+          "code": "    if (results.length === 0) return null;\n    return results[0];\n  } catch (err) {\n    logger.warn('[AIPrivacy] Failed to fetch client identity for stripping:', err.message);\n    return null;\n  }",
+          "endLine": 50,
+          "explanation": "The absence of the identity map must not be treated as successful identity stripping. Current source violates this boundary as traced above. Counterevidence: strictPiiMiddleware catches common identifiers and certain contextual full-name patterns in the current message. It does not cover arbitrary client-name mentions, and it does not rescan stored history. The existing history failure test mocks a throwing stripper rather than the real helper that swallows lookup errors. stripIdentityFromNotes correctly withholds when identity is null.",
+          "id": "priv-08-control",
+          "label": "Missing privacy or authorization control",
+          "language": "javascript",
+          "path": "backend/services/aiPrivacyService.mjs",
+          "role": "root_control",
+          "startLine": 45
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Parent source review and independent review agree. Five candidates additionally reproduced with real modules and isolated dependencies; deployed behavior not checked."
+      },
+      "findingId": "csf_00507c9216c30ff2d28161e1",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:fa7de0b40deb0ee1a96ec813460ecaed1b881e937a16215656c3fee3b61d7e85"
+      },
+      "identity": {
+        "anchor": "identity-lookup-failures-silently-disable-client-name-redaction"
+      },
+      "locations": [
+        {
+          "endLine": 50,
+          "path": "backend/services/aiPrivacyService.mjs",
+          "role": "root_control",
+          "startLine": 45
+        }
+      ],
+      "occurrenceId": "occ_1ee8eabb8e464c5cfcd2a11c",
+      "provenance": {
+        "candidateId": "PRIV-08",
+        "originalCandidates": [
+          {
+            "CWE": "CWE-636",
+            "attacker": "No malicious actor required; an identity query failure plus a message/history item containing the target client's name.",
+            "code": "catch (err) { logger.warn(...); return null; }",
+            "confidence": 0.99,
+            "counterevidence": "strictPiiMiddleware catches common identifiers and certain contextual full-name patterns in the current message. It does not cover arbitrary client-name mentions, and it does not rescan stored history. The existing history failure test mocks a throwing stripper rather than the real helper that swallows lookup errors. stripIdentityFromNotes correctly withholds when identity is null.",
+            "file": "backend/services/aiPrivacyService.mjs",
+            "id": "PRIV-08",
+            "impact": "A failed identity query leaves known client first/last names in outbound messages or retained history. The outer fail-closed logic does not execute because the lower layer reports ordinary success.",
+            "invariant": "The absence of the identity map must not be treated as successful identity stripping.",
+            "lines": "45-50",
+            "remediation": "Return an explicit failure status or throw on unavailable identity. Make every caller withhold sensitive free text on that result. Add tests invoking the actual stripper with a rejected identity query.",
+            "rule": "Propagate privacy failures so the caller can withhold content",
+            "severity": "MEDIUM",
+            "source_to_sink": [
+              "fetchClientIdentity catches database errors and returns null: backend/services/aiPrivacyService.mjs:38-50.",
+              "buildIdentityTerms(null) returns an empty list: line 58.",
+              "stripIdentityFromMessage continues and returns the message after generic PIIManager scanning: lines 117-160.",
+              "PIIManager patterns do not recognize names: backend/services/privacy/PIIManager.mjs:10-16.",
+              "The mounted route/history wrapper withholds only when the stripper throws: backend/routes/aiChatRoutes.mjs:630-638; backend/services/ai/aiChatPromptPrivacy.mjs:34-47."
+            ],
+            "title": "Identity lookup failures silently disable client-name redaction"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Return an explicit failure status or throw on unavailable identity. Make every caller withhold sensitive free text on that result. Add tests invoking the actual stripper with a rejected identity query.",
+      "remediationTests": [
+        "Return an explicit failure status or throw on unavailable identity. Make every caller withhold sensitive free text on that result. Add tests invoking the actual stripper with a rejected identity query."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "priv-08-control"
+        ],
+        "summary": "fetchClientIdentity catches database errors and returns null: backend/services/aiPrivacyService.mjs:38-50. buildIdentityTerms(null) returns an empty list: line 58. stripIdentityFromMessage continues and returns the message after generic PIIManager scanning: lines 117-160. PIIManager patterns do not recognize names: backend/services/privacy/PIIManager.mjs:10-16. The mounted route/history wrapper withholds only when the stripper throws: backend/routes/aiChatRoutes.mjs:630-638; backend/services/ai/aiChatPromptPrivacy.mjs:34-47."
+      },
+      "ruleId": "privacy.identity-lookup-fail-open",
+      "severity": {
+        "level": "medium",
+        "rationale": "Sensitive processing boundary is source-established; specific workflow, data content or state prerequisite limits likelihood."
+      },
+      "summary": "A failed identity query leaves known client first/last names in outbound messages or retained history. The outer fail-closed logic does not execute because the lower layer reports ordinary success.",
+      "taxonomy": {
+        "category": "fail-open",
+        "cwe": [
+          "CWE-636"
+        ]
+      },
+      "title": "Identity lookup failures silently disable client-name redaction",
+      "validation": {
+        "limitations": [
+          "No live database, provider, deployed bundle, actual client disclosure or production configuration was tested."
+        ],
+        "method": "source review plus dependency-isolated synthetic reproduction",
+        "summary": "The absence of the identity map must not be treated as successful identity stripping. Current source violates this boundary as traced above. Counterevidence: strictPiiMiddleware catches common identifiers and certain contextual full-name patterns in the current message. It does not cover arbitrary client-name mentions, and it does not rescan stored history. The existing history failure test mocks a throwing stripper rather than the real helper that swallows lookup errors. stripIdentityFromNotes correctly withholds when identity is null."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "priv-11-control"
+          ],
+          "outcome": "Stored goal titles containing a client's name, email, or identifying medical narrative bypass both request scrubbing and known-client term replacement, even during an otherwise harmless chat request.",
+          "sink": "backend/services/aiChatService.mjs",
+          "source": "A normal client or trainer whose stored goal title contains identifying information.",
+          "summary": "enrichWithUserData fetches goals.title from storage: backend/services/aiChatService.mjs:1333-1340. It inserts g.title directly into the prompt: line 1752. The route adds the enrichment block to systemPrompt after the request middleware has run: backend/routes/aiChatRoutes.mjs:695-702. buildPromptMessages includes systemPrompt and sendChatMessage dispatches it: lines 728-731."
+        },
+        "reachability": {
+          "attacker": "A normal client or trainer whose stored goal title contains identifying information.",
+          "entrypoint": "enrichWithUserData fetches goals.title from storage: backend/services/aiChatService.mjs:1333-1340.",
+          "outcome": "Stored goal titles containing a client's name, email, or identifying medical narrative bypass both request scrubbing and known-client term replacement, even during an otherwise harmless chat request.",
+          "summary": "A normal client or trainer whose stored goal title contains identifying information. Trainer notes, health concerns, session notes, nutrition descriptions, and several other enrichment fields explicitly call stripIdentityFromNotes. Goal titles do not. This is a data-minimization defect, not a claim of cross-account exploitation."
+        },
+        "summary": "enrichWithUserData fetches goals.title from storage: backend/services/aiChatService.mjs:1333-1340. It inserts g.title directly into the prompt: line 1752. The route adds the enrichment block to systemPrompt after the request middleware has run: backend/routes/aiChatRoutes.mjs:695-702. buildPromptMessages includes systemPrompt and sendChatMessage dispatches it: lines 728-731."
+      },
+      "codeEvidence": [
+        {
+          "code": "    // \u2500\u2500 9. GOALS \u2500\u2500\n    if (goals.length > 0) {\n      dataParts.push(`\\n--- GOALS ---\\n${goals.map(g => `[${(g.priority || 'med').toUpperCase()}] ${g.title}: ${g.progressPercentage ?? 0}%${g.targetValue ? ` (${g.currentValue || 0}/${g.targetValue})` : ''}${g.deadline ? ` due:${g.deadline}` : ''}`).join('\\n')}`);\n    }",
+          "endLine": 1753,
+          "explanation": "Server-enriched context must be de-identified just like current messages. Current source violates this boundary as traced above. Counterevidence: Trainer notes, health concerns, session notes, nutrition descriptions, and several other enrichment fields explicitly call stripIdentityFromNotes. Goal titles do not. This is a data-minimization defect, not a claim of cross-account exploitation.",
+          "id": "priv-11-control",
+          "label": "Missing privacy or authorization control",
+          "language": "javascript",
+          "path": "backend/services/aiChatService.mjs",
+          "role": "root_control",
+          "startLine": 1750
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Parent source review and independent review agree. Five candidates additionally reproduced with real modules and isolated dependencies; deployed behavior not checked."
+      },
+      "findingId": "csf_7357bd857ac3fa97a7f91bd2",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:5868b087558ca4571ce92193c2f6a4a90e3192b4123a287ce26439508a166ca5"
+      },
+      "identity": {
+        "anchor": "chat-server-enrichment-inserts-stored-goal-titles-after-all-request-pii-scanning"
+      },
+      "locations": [
+        {
+          "endLine": 1753,
+          "path": "backend/services/aiChatService.mjs",
+          "role": "root_control",
+          "startLine": 1750
+        }
+      ],
+      "occurrenceId": "occ_ee6f480609ed588e6d86e85c",
+      "provenance": {
+        "candidateId": "PRIV-11",
+        "originalCandidates": [
+          {
+            "CWE": "CWE-359",
+            "attacker": "A normal client or trainer whose stored goal title contains identifying information.",
+            "code": "${g.title}: ${g.progressPercentage ?? 0}%",
+            "confidence": 0.98,
+            "counterevidence": "Trainer notes, health concerns, session notes, nutrition descriptions, and several other enrichment fields explicitly call stripIdentityFromNotes. Goal titles do not. This is a data-minimization defect, not a claim of cross-account exploitation.",
+            "file": "backend/services/aiChatService.mjs",
+            "id": "PRIV-11",
+            "impact": "Stored goal titles containing a client's name, email, or identifying medical narrative bypass both request scrubbing and known-client term replacement, even during an otherwise harmless chat request.",
+            "invariant": "Server-enriched context must be de-identified just like current messages.",
+            "lines": "1750-1753",
+            "remediation": "Prefer structured goal categories/numeric progress for provider context; otherwise run stored titles through the same identity scrubber. Add final-envelope assertions covering stored fields independently of the request body.",
+            "rule": "Treat stored user-authored fields as untrusted privacy inputs",
+            "severity": "MEDIUM",
+            "source_to_sink": [
+              "enrichWithUserData fetches goals.title from storage: backend/services/aiChatService.mjs:1333-1340.",
+              "It inserts g.title directly into the prompt: line 1752.",
+              "The route adds the enrichment block to systemPrompt after the request middleware has run: backend/routes/aiChatRoutes.mjs:695-702.",
+              "buildPromptMessages includes systemPrompt and sendChatMessage dispatches it: lines 728-731."
+            ],
+            "title": "Chat server enrichment inserts stored goal titles after all request PII scanning"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Prefer structured goal categories/numeric progress for provider context; otherwise run stored titles through the same identity scrubber. Add final-envelope assertions covering stored fields independently of the request body.",
+      "remediationTests": [
+        "Prefer structured goal categories/numeric progress for provider context; otherwise run stored titles through the same identity scrubber. Add final-envelope assertions covering stored fields independently of the request body."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "priv-11-control"
+        ],
+        "summary": "enrichWithUserData fetches goals.title from storage: backend/services/aiChatService.mjs:1333-1340. It inserts g.title directly into the prompt: line 1752. The route adds the enrichment block to systemPrompt after the request middleware has run: backend/routes/aiChatRoutes.mjs:695-702. buildPromptMessages includes systemPrompt and sendChatMessage dispatches it: lines 728-731."
+      },
+      "ruleId": "privacy.enriched-goal-title",
+      "severity": {
+        "level": "medium",
+        "rationale": "Sensitive processing boundary is source-established; specific workflow, data content or state prerequisite limits likelihood."
+      },
+      "summary": "Stored goal titles containing a client's name, email, or identifying medical narrative bypass both request scrubbing and known-client term replacement, even during an otherwise harmless chat request.",
+      "taxonomy": {
+        "category": "sensitive-data-exposure",
+        "cwe": [
+          "CWE-359"
+        ]
+      },
+      "title": "Chat server enrichment inserts stored goal titles after all request PII scanning",
+      "validation": {
+        "limitations": [
+          "No live database, provider, deployed bundle, actual client disclosure or production configuration was tested."
+        ],
+        "method": "independent and parent source review",
+        "summary": "Server-enriched context must be de-identified just like current messages. Current source violates this boundary as traced above. Counterevidence: Trainer notes, health concerns, session notes, nutrition descriptions, and several other enrichment fields explicitly call stripIdentityFromNotes. Goal titles do not. This is a data-minimization defect, not a claim of cross-account exploitation."
+      }
+    }
+  ],
+  "scanId": "45443178-19e1-46bc-9ef8-1558c13b4060",
+  "schemaVersion": "1.0"
+}

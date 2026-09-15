@@ -1,0 +1,372 @@
+{
+  "createdAt": "2026-09-13T03:53:16.387Z",
+  "status": "PASS",
+  "method": "verified no-replace local copies; portable snapshot separately verified with two restores",
+  "entries": [
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\01-audit.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/01-audit.md",
+      "sha256": "07be7e65e41ae038ae8d4d79fa1b7cd2d581db696aa79150fd9674b0f112932b"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\02-agent-contracts.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/02-agent-contracts.md",
+      "sha256": "407797386f43f36dd1ab822b856a9f98f50082d4510e986cc8936a2a938b03c7"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\03-planner.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/03-planner.md",
+      "sha256": "373ff1eaf6e2f565f1ee73282c3243cbf6b80d7b1e2cb0a3ce4b6f88e276c706"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\04-verification.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/04-verification.md",
+      "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\05-delivery-review.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/05-delivery-review.md",
+      "sha256": "fdb804effa2c98fe92728c8815138ec582891cbd70ba665869b8ef9ca241f757"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\06-diagrams.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/06-diagrams.md",
+      "sha256": "b141d69a4d069b78677769419af0caacd8171e6cb126fff104fb7823dbb2dd01"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\07-hygiene.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/07-hygiene.md",
+      "sha256": "2e053b4394bba8ee5f2ea12a3e736e60c84882cf61c558b1b7b3b97932e85082"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\08-design-synthesis.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/08-design-synthesis.md",
+      "sha256": "2143e42314d77b6061f5b51d77c14bdf9d83843856abffab137e7e1df14f6a71"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\09-model-connections-and-budgets.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/09-model-connections-and-budgets.md",
+      "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\10-coach-privacy-audit.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/10-coach-privacy-audit.md",
+      "sha256": "9838898f16771dbc6a6f97ae9d78b0c9daec10edd61269c24a03263b762bfcfd"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\11-build-workflow.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/11-build-workflow.md",
+      "sha256": "8188370fd86ede8829ef44aed81450043b7743895132b0cf0a8cdb7cac93907a"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\assets\\cormorant.woff2",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/assets/cormorant.woff2",
+      "sha256": "14efb9443652199ade5bc6ba8637b4084acce40a58368a3808f84f55667e3e90"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\assets\\cormorantgaramond-OFL.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/assets/cormorantgaramond-OFL.txt",
+      "sha256": "60700d351cac4650c51f3f9db318d2a420f8b45052dba2715eb5fec41f0f6956"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\assets\\fira.woff2",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/assets/fira.woff2",
+      "sha256": "edc273e94e72c8ee4279c8406f65373d96c518e3fea9cc3f121fed51283e0e70"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\assets\\firacode-OFL.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/assets/firacode-OFL.txt",
+      "sha256": "926041dac670e6922505e35ac1661a4e8d20f1ffeabbbcb5edb5544370702369"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\assets\\jakarta.woff2",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/assets/jakarta.woff2",
+      "sha256": "32971ad7976930539a11c79ce91ce84092df7f25c5be716b594601842f10a7ae"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\assets\\plusjakartasans-OFL.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/assets/plusjakartasans-OFL.txt",
+      "sha256": "995c7199cab65954f545996326755daee7b63cc6b42b06c13da1f9502ab08a99"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\build-evidence.mjs",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/build-evidence.mjs",
+      "sha256": "55e8c6b092614bf17f7a9f170817a1a40dc748e862966f62b00cc4462420bbd8"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\diagrams\\1.mmd",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/diagrams/1.mmd",
+      "sha256": "18513fa725f038c0f179d2f2f742bab0d836a85529859b0ce4bb50a8ebee9fff"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\diagrams\\2.mmd",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/diagrams/2.mmd",
+      "sha256": "88901c851779698c91af87c3913b0a9388a0d3375f169abd772cc2f41d7f17b4"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\diagrams\\3.mmd",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/diagrams/3.mmd",
+      "sha256": "75cf97e23c17c7251ef8023bf384f66c68f52e960ef0e99e5997f8942d644e2f"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\diagrams\\4.mmd",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/diagrams/4.mmd",
+      "sha256": "bf51a090ee17eaef7599fd52c7b9b99f7ee6be73e5490f6216bb2d95be214c3c"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\diagrams\\5.mmd",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/diagrams/5.mmd",
+      "sha256": "b0ff3733e48426e235bf9e6dc6ae9c9e9da20c6958718bac740ed296c2445ef7"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\diagrams\\6.mmd",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/diagrams/6.mmd",
+      "sha256": "1463c4c1eb5f8e7a5b2b0c6b883a3c6b69c87912181c21ec6959c2ee9254adba"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\diagrams\\7.mmd",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/diagrams/7.mmd",
+      "sha256": "843191f6b0c1471497db132243ac68ab641fb747f7e620cdf5f8e5c1417bbb53"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\diagrams\\8.mmd",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/diagrams/8.mmd",
+      "sha256": "5174521c2d141f8febd85c0f852bba0a07785222c715e47ffe9597bd34c23e8d"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\diagrams.html",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/diagrams.html",
+      "sha256": "87660cba7cff926523f4463e92d6ce4567e3951514b057b1d2ee4d91838a1a73"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\artifact-verification.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/artifact-verification.json",
+      "sha256": "d9d46a3a6f61c78a96f408d136ec94e5505534c8ff964fbda43248a500d56a5f"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\coach-architecture.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/coach-architecture.json",
+      "sha256": "b7ed57fad7358b3ae46b2c90be256cfe1c315b26df02d102c7dabe8029788114"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\current-main-backend.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/current-main-backend.txt",
+      "sha256": "960e11a09b70d6a02b17706ef522726baf4b010108ff7f3f86facdc47697b8cf"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\current-main-frontend.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/current-main-frontend.txt",
+      "sha256": "aad2f58354739f7b5acd71719dfa7ac0d01aaba2f3e9c09b76a46545185093fd"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\delivery-v2.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/delivery-v2.json",
+      "sha256": "97b9f9ac56c718179fb051758065ad389ae839950be5971a28e17956203a9147"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\frontend-baseline-sandbox-blocked.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/frontend-baseline-sandbox-blocked.txt",
+      "sha256": "aec1b7a3a2ed7784ef2d3321d6764118bc953637173c163f9d3353f0712a54ae"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\frontend-baseline.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/frontend-baseline.txt",
+      "sha256": "578d8f3cbaf35de7b220218d530af91bd4cf360e648d98663c88f3f2c3e07f0e"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\git-status-before.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/git-status-before.txt",
+      "sha256": "2e5cd4109dd75ce296cb5d57b49c88deb8f5449fdfb30e37944f783fafd96430"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\mermaid.min.js",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/mermaid.min.js",
+      "sha256": "07e37dfa97b337ccc85365d57eddf99b9706f09db3b59b260d0333b23b343c4b"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\planner-controls-red.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/planner-controls-red.txt",
+      "sha256": "ef1ca4e093ec62793a1149e4d356eb28ff458efcba5045a8a593ea575ce496d2"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\planning-history.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/planning-history.txt",
+      "sha256": "9d6e4af07f49731a6fac0da260ea12b0fa6a2924113e0733c68c60dcd16d4241"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\preservation-v2.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/preservation-v2.json",
+      "sha256": "aa82c6e13191000bf4745a3ee9e42164d57746fafc18cc23e57e6577c998f4cc"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\preservation.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/preservation.json",
+      "sha256": "cf07d5c26684a2d93e0d3d45b23313913230b8e168f30427d26f1a18f9164e5e"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\privacy-baseline.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/privacy-baseline.json",
+      "sha256": "52c660bb4a5c1d893922a38922016c32d867225be946947804375754cfcb769a"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\privacy-finish-stability.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/privacy-finish-stability.json",
+      "sha256": "26d99a10f8e29d6edf70db8112d416e64fa3229f1c009e5010f533224d149b39"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\privacy-reproductions.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/privacy-reproductions.json",
+      "sha256": "fc8f78f99355f595a5732466930ef3597a7a3497cce2b03126e017ffe8ef056b"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\readiness-check.txt",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/readiness-check.txt",
+      "sha256": "63faa6c3e4552093830dc55e546716595b86668413ac313feb4ad77b053fd6e3"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\root-inventory.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/root-inventory.json",
+      "sha256": "d8fc2bb9ce7f49d2cd3d3de1a68d9e2e0581d19f2cfd01164fe23b291b7f2cd1"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\security\\coverage.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/security/coverage.json",
+      "sha256": "e1c981302bb64e1caef6c09798d6fc9d85cb695f9da3a519908f40647021c0f3"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\security\\findings.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/security/findings.json",
+      "sha256": "a43ad77fa8c40df8178c70091786597106de9308837325aa7109d2603b83ad52"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\security\\report.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/security/report.md",
+      "sha256": "92eef01c8e791b9b3cb2c57ce644e65b04c8ffa3cd7d93bfc133839321c3a813"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\security\\scan-manifest.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/security/scan-manifest.json",
+      "sha256": "352c9b2cb8b97586df98a49092e736e3397da44c8fb05d9599cedecf8ed66c65"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\security-completion.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/security-completion.json",
+      "sha256": "b9b2694e645e835058b6e2dd12a0c540a3fe3df6bc53247114d542421005143e"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\security-preflight.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/security-preflight.json",
+      "sha256": "dab0341359a8bfd1aad87d6acaeef4f223b0487da2a02aafa906f2872e67a128"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\source-manifest.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/source-manifest.json",
+      "sha256": "b73c02949de8cc3ce93a1819b50096d676bdbbab905422573eeae6a04814e969"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\v2-budget-flow.png",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/v2-budget-flow.png",
+      "sha256": "65fc71b182177a0360e625956e53107fb3765356280df327d39a6c824786cdd5"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\v2-desktop.png",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/v2-desktop.png",
+      "sha256": "98f68372195167449caef5d29323f33f58df7aac590fab26350d3f87ca903b13"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\v2-mobile.png",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/v2-mobile.png",
+      "sha256": "8b8bac97fdba2e247923901e195f2e5fe371a92a6ab4633708ca20a78e181f6b"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\v2-preview-failure.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/v2-preview-failure.json",
+      "sha256": "9f33d0212c685a05d4863dc354d4ed820d13c59fa40fa73bb81d89dfffc7e69a"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\v2-preview-qa.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/v2-preview-qa.json",
+      "sha256": "d00e743d6001d47971cfbd7897bc854db9303898df79404b05d2bddbcc94b776"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\evidence\\wireframe-qa.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/wireframe-qa.json",
+      "sha256": "27ca9fb75640cae0ab5654ba83b9cb955fe653a7894188d65cde7ed663a8f2f5"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\planner-controls.red.test.ts",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/planner-controls.red.test.ts",
+      "sha256": "e599effe5199fbb2db21691e20b687f375623dae895c77c5ac73dc13e91e14e3"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\preview-qa.mjs",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/preview-qa.mjs",
+      "sha256": "551b9e31557c375ad93fe95afe8f327360ed4b7ce8b674bff42406cae67c43e4"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\privacy-reproduce.mjs",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/privacy-reproduce.mjs",
+      "sha256": "2f40e2b9c45523ec50e4b51a6920d7ea777b01083268defba902430342150278"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\readiness.json",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/readiness.json",
+      "sha256": "8c3341a0a2d49bfb963a14a55bde184b6d3b16c499d7e4f5f812fd79cb055bf1"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\README.md",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/README.md",
+      "sha256": "8b0e852d4c28e27bbccbc053b2cadbc31a66bf5cd32cb166c9c770d5fd641526"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\render-diagrams.mjs",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/render-diagrams.mjs",
+      "sha256": "c004c08d87318ea911063fafd085184ab1ee3f4e06ad2c2703a44d62603675bd"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\verification.config.mjs",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/verification.config.mjs",
+      "sha256": "bad155a00d4f64c51c88abdfb81e3f9b5258a9fe5eb2e45ba80fc656260a5905"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\verify-audit-stability.mjs",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/verify-audit-stability.mjs",
+      "sha256": "aa925b380462c29093900f48deabb88709f0167bac7842188e273d0cdec7c12b"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\wireframe-states.html",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/wireframe-states.html",
+      "sha256": "122c4b2100eee64ba35663907ba5b9046519abe45d9f110ba0c6231da2aeda88"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\wireframes.css",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/wireframes.css",
+      "sha256": "0d1d67a648ee92ea50c0402ac4724cbfb2635c4745657d366872e12f96c9c40e"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\wireframes.html",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/wireframes.html",
+      "sha256": "646e013ad897398e3c82f2f51cec59142329ff249645d41ee783fb1bfcd7a4bf"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\blueprints\\agent-ready-workout-planner-2026-09-06\\wireframes.js",
+      "copy": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/wireframes.js",
+      "sha256": "3031259c77218e2151f076622b0863fdeafbef2d8681f93fb18b3e6dacbc9b5a"
+    },
+    {
+      "source": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\ROLODEX-BOOTCAMP-PLANNER-HOSTILE-REVIEW-2026-09-12.md",
+      "copy": "tmp/rolodex-audit-evidence/prior-full-report.md",
+      "sha256": "f561c8ddd2b257c525e6c5e82c5836f0f6e1de9759108d5670fad3ec9dd3725b"
+    },
+    {
+      "source": "C:/Users/BigotSmasher/.codex/attachments/87bbe5e7-eed9-4b59-b554-92840c964c0c/pasted-text.txt",
+      "copy": "tmp/rolodex-audit-evidence/prior-user-paste-1.txt",
+      "sha256": "6531540a7e57246249525fe38811ce731562353c8c17eda2ebb90e82dece7d63"
+    },
+    {
+      "source": "C:/Users/BigotSmasher/.codex/attachments/0ee457e1-cfbe-42fd-be85-14392091c892/pasted-text.txt",
+      "copy": "tmp/rolodex-audit-evidence/prior-user-paste-2.txt",
+      "sha256": "3dc436cb1a18bd4d6ebce517ef707634b89b01d75810f83e93fc8a7e94bab316"
+    }
+  ]
+}

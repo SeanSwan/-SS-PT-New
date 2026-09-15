@@ -18,12 +18,12 @@ import { closestWorkoutPlanHorizon } from '../utils/workoutPlanHorizonTokens';
 
 // ── Brand Colors (print-friendly Crystalline Swan) ───────────────────
 const BRAND = {
-  midnightSapphire: [0, 32, 96] as [number, number, number],    // #002060
-  royalDepth:       [0, 48, 128] as [number, number, number],   // #003080
-  iceWing:          [96, 192, 240] as [number, number, number],  // #60C0F0
-  wingPurple:       [139, 92, 246] as [number, number, number],  // #8B5CF6
-  gildedFern:       [198, 168, 75] as [number, number, number],  // #C6A84B
-  frostWhite:       [224, 236, 244] as [number, number, number], // #E0ECF4
+  midnightSapphire: [0, 32, 96] as [number, number, number],    // #002060 swan-guard-allow-hex jsPDF RGB tuple; CSS custom properties cannot reach PDF output
+  royalDepth:       [0, 48, 128] as [number, number, number],   // #003080 swan-guard-allow-hex jsPDF RGB tuple; CSS custom properties cannot reach PDF output
+  iceWing:          [96, 192, 240] as [number, number, number],  // #60C0F0 swan-guard-allow-hex jsPDF RGB tuple; CSS custom properties cannot reach PDF output
+  wingPurple:       [139, 92, 246] as [number, number, number],  // #8B5CF6 swan-guard-allow-hex jsPDF RGB tuple; CSS custom properties cannot reach PDF output
+  gildedFern:       [198, 168, 75] as [number, number, number],  // #C6A84B swan-guard-allow-hex jsPDF RGB tuple; CSS custom properties cannot reach PDF output
+  frostWhite:       [224, 236, 244] as [number, number, number], // #E0ECF4 swan-guard-allow-hex jsPDF RGB tuple; CSS custom properties cannot reach PDF output
   textDark:         [30, 30, 50] as [number, number, number],
   textMuted:        [100, 110, 130] as [number, number, number],
   white:            [255, 255, 255] as [number, number, number],
@@ -154,6 +154,8 @@ export interface PDFExerciseEntry {
 /** Bootcamp types */
 export interface PDFBootcampExercise {
   exerciseName: string;
+  sourceExerciseName?: string | null;
+  board?: 'main' | 'alternative' | 'lowImpact' | string;
   durationSec: number;
   restSec: number;
   sortOrder: number;
@@ -169,6 +171,9 @@ export interface PDFBootcampExercise {
   ankleMod?: string | null;
   wristMod?: string | null;
   backMod?: string | null;
+  elbowMod?: string | null;
+  footMod?: string | null;
+  hipMod?: string | null;
 }
 
 export interface PDFBootcampStation {
@@ -179,6 +184,9 @@ export interface PDFBootcampStation {
 }
 
 export interface PDFBootcampPlan {
+  rounds?: number;
+  demoDuration?: number;
+  clearDuration?: number;
   name: string;
   classFormat: string;
   dayType: string;
@@ -348,6 +356,9 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
   y = addKeyValue(doc, y, 'Duration', `${data.totalClassMin} min total (${data.totalWorkoutMin} min workout)`);
   y = addKeyValue(doc, y, 'Stations', String(data.stationCount));
   y = addKeyValue(doc, y, 'Participants', String(data.expectedParticipants));
+  if (data.rounds != null) y = addKeyValue(doc, y, 'Rounds', String(data.rounds));
+  if (data.demoDuration != null) y = addKeyValue(doc, y, 'Demo / preparation', `${data.demoDuration} min`);
+  if (data.clearDuration != null) y = addKeyValue(doc, y, 'Clear / transition', `${data.clearDuration} min`);
   y += 3;
 
   // Station layout
@@ -367,17 +378,22 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
     y = getLastAutoTableY(doc, y) + 6;
   }
 
-  // Exercises by station
+  // Main-floor exercises only. Board 2/3 alternatives are reference material,
+  // not additional work, and finishers get their own single section below.
+  const mainExercises = data.exercises.filter(ex => !ex.board || ex.board === 'main');
   const stationGroups = new Map<number, PDFBootcampExercise[]>();
-  data.exercises.forEach(ex => {
-    const si = ex.stationIndex ?? 0;
+  mainExercises.forEach(ex => {
+    if (ex.isCardioFinisher) return;
+    const si = ex.stationIndex ?? -1;
     if (!stationGroups.has(si)) stationGroups.set(si, []);
     stationGroups.get(si)!.push(ex);
   });
 
   stationGroups.forEach((exList, stationIdx) => {
     y = checkPageBreak(doc, y, 25);
-    const stationName = data.stations.find(s => s.stationNumber === stationIdx + 1)?.stationName || `Station ${stationIdx + 1}`;
+    const stationName = stationIdx < 0
+      ? 'Main Floor · Full Group'
+      : data.stations.find(s => s.stationNumber === stationIdx + 1)?.stationName || `Station ${stationIdx + 1}`;
     y = addSectionTitle(doc, y, stationName);
 
     addAutoTable(doc, {
@@ -388,7 +404,7 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
         `${ex.durationSec}s`,
         `${ex.restSec}s`,
         ex.muscleTargets || '-',
-        ex.equipmentRequired || 'BW',
+        ex.equipmentRequired || 'Not specified',
         ex.easyVariation || '-',
         ex.hardVariation || '-',
       ]),
@@ -403,8 +419,33 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
     y = getLastAutoTableY(doc, y) + 5;
   });
 
+  const alternatives = data.exercises.filter(ex => ex.board && ex.board !== 'main');
+  if (alternatives.length > 0) {
+    y = checkPageBreak(doc, y, 25);
+    y = addSectionTitle(doc, y, 'Separate Alternatives · Not Additional Work');
+    addAutoTable(doc, {
+      startY: y,
+      head: [['Source Exercise', 'Alternative', 'Board', 'Duration', 'Rest', 'Equipment']],
+      body: alternatives.map(ex => [
+        ex.sourceExerciseName || 'Unverified source',
+        ex.exerciseName,
+        ex.board === 'lowImpact' ? 'Low-impact swap' : 'Joint-friendly',
+        `${ex.durationSec}s`,
+        `${ex.restSec}s`,
+        ex.equipmentRequired || 'Unverified',
+      ]),
+      theme: 'grid',
+      headStyles: { fillColor: BRAND.royalDepth, textColor: BRAND.white, fontSize: 7, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 7, textColor: BRAND.textDark },
+      alternateRowStyles: { fillColor: BRAND.lightGray },
+      styles: { cellPadding: 2, lineColor: BRAND.borderGray, lineWidth: 0.2 },
+      margin: { left: 16, right: 16 },
+    });
+    y = getLastAutoTableY(doc, y) + 5;
+  }
+
   // Cardio finishers
-  const finishers = data.exercises.filter(ex => ex.isCardioFinisher);
+  const finishers = mainExercises.filter(ex => ex.isCardioFinisher);
   if (finishers.length > 0) {
     y = checkPageBreak(doc, y, 20);
     y = addSectionTitle(doc, y, 'Cardio Finishers');
@@ -444,7 +485,7 @@ export function exportBootcampPDF(data: PDFBootcampPlan): void {
   }
 
   // Modification reference
-  const moddedExercises = data.exercises.filter(ex => ex.kneeMod || ex.shoulderMod || ex.ankleMod || ex.wristMod || ex.backMod);
+  const moddedExercises = mainExercises.filter(ex => ex.kneeMod || ex.shoulderMod || ex.ankleMod || ex.wristMod || ex.backMod || ex.elbowMod || ex.footMod || ex.hipMod);
   if (moddedExercises.length > 0) {
     y = checkPageBreak(doc, y, 25);
     y = addSectionTitle(doc, y, 'Injury Modifications Reference');

@@ -1,0 +1,32 @@
+flowchart TD
+  Start[Choose task and source] --> Auth[Current actor and target authorization]
+  Auth --> Consent{Consent and age eligibility verified}
+  Consent -->|No or unknown| Deny[Block and keep authorized manual draft]
+  Consent -->|Yes| Envelope[Build allowlisted final context]
+  Envelope --> Privacy{Every field and modality allowed}
+  Privacy -->|No| Deny
+  Privacy -->|Yes| Source{Source selected}
+  Source -->|Local| Device{Paired device available}
+  Device -->|No| Offline[Keep task paused - no cloud fallback]
+  Device -->|Yes| Limits[Claim bounded root task]
+  Source -->|Swan or personal OpenRouter| Price{Fresh allowance and bounded price}
+  Price -->|Unknown or insufficient| Budget[Explain block - no payer switch]
+  Price -->|Valid| Reserve[Atomic reservation across all workers]
+  Reserve -->|Duplicate| Existing[Return same task]
+  Reserve -->|Conflict or ceiling| Budget
+  Reserve -->|Admitted| Limits
+  Limits -->|Call or tool cap reached| Stop[Stop loop and require human review]
+  Limits -->|Allowed| Dispatch[Dispatch approved envelope once]
+  Dispatch -->|Timeout or lost response| Uncertain[Hold reservation and reconcile]
+  Uncertain -->|Unknown| Pending[Display checking - no resend]
+  Pending -->|Status lookup| Uncertain
+  Dispatch -->|Known result| Settle[Settle verified charge]
+  Uncertain -->|Receipt found| Settle
+  Settle --> Validate[Validate exact proposal]
+  Validate -->|Invalid| Revise[Manual revision or new reviewed task]
+  Validate -->|Valid| Review[Human reviews bound version]
+  Review -->|Cancel| Keep[Retain draft]
+  Review -->|Approve| Save[Existing writer rechecks role and revision]
+  Save -->|Conflict| Keep
+  Save -->|Committed| Receipt[Read persisted receipt]
+  Receipt -->|Rollback requested| Restore[Review old snapshot as new revision]

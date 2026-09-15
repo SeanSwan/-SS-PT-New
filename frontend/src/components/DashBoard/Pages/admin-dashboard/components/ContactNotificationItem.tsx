@@ -57,10 +57,8 @@ const ContactNotificationItem: React.FC<ContactNotificationItemProps> = ({
       exit={{ opacity: 0, x: -100 }}
       initial={{ opacity: 0, x: 100 }}
       key={notification.id}
+      type="button"
       onClick={() => onClick(notification)}
-      onKeyDown={(e) => onKeyDown(e, notification)}
-      role="button"
-      tabIndex={0}
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
       <NotificationContent>

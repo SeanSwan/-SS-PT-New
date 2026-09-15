@@ -57,6 +57,7 @@ const makeHookInput = (authAxios: any, overrides: Record<string, unknown> = {}) 
   setSavedSnapshot: vi.fn(),
   setLoadedPlanId: vi.fn(),
   setLoadedPlanName: vi.fn(),
+  setLoadedPlanRevision: vi.fn(),
   setStatusMsg: vi.fn(),
   ...overrides,
 });
@@ -197,7 +198,7 @@ describe('useWorkoutPlannerSaveActions', () => {
     expect(input.fetchSavedPlans).toHaveBeenCalledWith(42);
     expect(input.setStatusMsg).toHaveBeenCalledWith({
       type: 'error',
-      text: 'This plan changed on the server. Saved plans were refreshed; review and retry.',
+      text: 'This plan changed on the server. Your draft is preserved. Reload the saved plan explicitly or save this draft as a new plan.',
     });
   });
   it('retains one browser upload only when the server reports legacy rollback mode', async () => {

@@ -27,6 +27,7 @@ export interface BootcampRunAcquisitionResult {
 
 let audioContext: AudioContext | null = null;
 let activeWakeLock: WakeLockSentinelLike | null = null;
+let wakeLockGeneration = 0;
 
 const getAudioContext = (): AudioContext | null => {
   if (audioContext) return audioContext;
@@ -38,21 +39,33 @@ const getAudioContext = (): AudioContext | null => {
 };
 
 const defaultFullscreen = () => {
-  if (typeof document === 'undefined' || document.fullscreenElement) return undefined;
-  return document.documentElement.requestFullscreen?.();
+  if (typeof document === 'undefined') return undefined;
+  // Already fullscreen: an explicit no-op SUCCESS, not a missing request.
+  if (document.fullscreenElement) return Promise.resolve();
+  // A browser without the Fullscreen API yields undefined — settleCapability
+  // reports that as FALSE (H24: missing capability must not report success).
+  return document.documentElement?.requestFullscreen?.() ?? undefined;
 };
 
 const defaultWakeLock = async () => {
   if (typeof navigator === 'undefined') return undefined;
   const wakeNavigator = navigator as Navigator & WakeLockNavigatorLike;
   if (!wakeNavigator.wakeLock?.request) return undefined;
-  activeWakeLock = await wakeNavigator.wakeLock.request('screen');
+  const generation = ++wakeLockGeneration;
+  const sentinel = await wakeNavigator.wakeLock.request('screen');
+  if (generation !== wakeLockGeneration) {
+    await sentinel?.release?.();
+    return undefined;
+  }
+  activeWakeLock = sentinel;
   return activeWakeLock;
 };
 
 const defaultResumeAudio = () => {
   const context = getAudioContext();
-  if (!context || context.state === 'running') return undefined;
+  if (!context) return undefined;
+  // Already unlocked: explicit no-op SUCCESS (H24).
+  if (context.state === 'running') return Promise.resolve();
   return context.resume();
 };
 
@@ -61,6 +74,9 @@ const settleCapability = async (
   started: Promise<unknown> | unknown,
   onError: BootcampRunAcquisitionOptions['onCapabilityError'],
 ): Promise<boolean> => {
+  // H24: an undefined starter means "no request could be made" — that is a
+  // failed acquisition, never a silent success.
+  if (started === undefined || started === null) return false;
   try {
     await started;
     return true;
@@ -130,6 +146,8 @@ export function playBootcampRunnerCue(phase: BootcampRunnerPhase): void {
 }
 
 export async function releaseBootcampWakeLock(): Promise<void> {
-  await activeWakeLock?.release?.();
+  wakeLockGeneration += 1;
+  const lockToRelease = activeWakeLock;
   activeWakeLock = null;
+  await lockToRelease?.release?.();
 }
