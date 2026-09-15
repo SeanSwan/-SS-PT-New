@@ -68,6 +68,13 @@ interface EnhancedScheduleStats extends ScheduleStats {
   };
 }
 
+/**
+ * Sentinel stored in errors.sessions when the backend waiver gate 403s
+ * /api/sessions (waiverGate.mjs). UniversalMasterSchedule renders the
+ * sign-waiver CTA for this state instead of a silent empty schedule.
+ */
+export const SESSIONS_WAIVER_REQUIRED = 'WAIVER_REQUIRED';
+
 interface CalendarDataValues {
   // Core Raw Data (Enhanced with Redux Integration)
   sessions: Session[];
@@ -314,7 +321,7 @@ export const useCalendarData = () => {
     const { showLoading = true, filterOptions } = options;
 
     try {
-      await executeWithCircuitBreaker(
+      const action = await executeWithCircuitBreaker(
         async () => {
           const userRole = user?.role || 'user';
           const userId = user?.id || '';
@@ -341,8 +348,22 @@ export const useCalendarData = () => {
         'loadSessions',
         { showLoading, dataType: 'sessions' }
       );
+
+      // fetchEvents rejects via rejectWithValue, so dispatch RESOLVES with a
+      // rejected action — inspect it here or the failure stays silent.
+      if (action && fetchEvents.rejected.match(action)) {
+        const payload = action.payload as string | { code?: string; message?: string } | undefined;
+        if (payload && typeof payload === 'object' && payload.code === 'WAIVER_REQUIRED') {
+          throw Object.assign(
+            new Error(payload.message || 'Signed waiver required'),
+            { code: SESSIONS_WAIVER_REQUIRED }
+          );
+        }
+        throw new Error(typeof payload === 'string' ? payload : 'Failed to load sessions');
+      }
     } catch (error) {
-      setErrors(prev => ({ ...prev, sessions: 'Failed to load sessions' }));
+      const isWaiverBlock = (error as { code?: string })?.code === SESSIONS_WAIVER_REQUIRED;
+      setErrors(prev => ({ ...prev, sessions: isWaiverBlock ? SESSIONS_WAIVER_REQUIRED : 'Failed to load sessions' }));
       throw error;
     }
   }, [dispatch, user?.id, user?.role, executeWithCircuitBreaker]);
@@ -506,16 +527,21 @@ export const useCalendarData = () => {
     } catch (error) {
       console.error('❌ Error initializing Universal Master Schedule:', error);
       
-      // Record initialization failure with exponential backoff
-      const newFailures = initFailures + 1;
-      sessionStorage.setItem('init_failures', newFailures.toString());
+      // Record initialization failure with exponential backoff.
+      // Exception: the waiver wall is deterministic — loadSessions already
+      // recorded the SESSIONS_WAIVER_REQUIRED sentinel; keep it so the UI
+      // shows the sign-waiver CTA instead of a generic refresh error.
+      if ((error as { code?: string })?.code !== SESSIONS_WAIVER_REQUIRED) {
+        const newFailures = initFailures + 1;
+        sessionStorage.setItem('init_failures', newFailures.toString());
+
+        const errorMessage = newFailures >= 3
+          ? 'Service temporarily unavailable. Please refresh the page or try again later.'
+          : 'Failed to initialize schedule. Please refresh and try again.';
+
+        setErrors(prev => ({ ...prev, sessions: errorMessage }));
+      }
       updateDataHealth(false);
-      
-      const errorMessage = newFailures >= 3 
-        ? 'Service temporarily unavailable. Please refresh the page or try again later.' 
-        : 'Failed to initialize schedule. Please refresh and try again.';
-      
-      setErrors(prev => ({ ...prev, sessions: errorMessage }));
       
       throw error;
     } finally {

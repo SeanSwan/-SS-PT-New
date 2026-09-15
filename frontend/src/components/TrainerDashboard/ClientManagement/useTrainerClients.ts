@@ -73,7 +73,7 @@ const adaptAdminClient = (client: AdminClient): ClientAssignment | null => {
       onboardingComplete: client.onboardingComplete,
       onboardingCompletionPercentage: client.onboardingCompletionPercentage ?? client.onboardingPct ?? null,
       onboardingPct: client.onboardingPct ?? client.onboardingCompletionPercentage ?? null,
-      totalSessionsCompleted: client.totalWorkouts ?? 0,
+      totalSessionsCompleted: client.totalWorkouts ?? null,
       lastSessionDate: client.lastWorkoutDate,
       nextSessionDate: client.nextSessionDate,
       status: 'active',
@@ -104,6 +104,35 @@ const adaptTrainerAssignment = async (
 
   const clientId = String(parsedClientId);
   const assignmentStatus: string = assignment.status || 'active';
+  const baseClientFields = {
+    id: clientId,
+    availableSessions: toSessionCount(assignment.client.availableSessions),
+    fitnessGoal: assignment.client.fitnessGoal ?? null,
+    trainingExperience: assignment.client.trainingExperience ?? null,
+    status: assignmentStatus as Client['status'],
+    joinDate: assignment.client.joinDate || assignment.client.createdAt || null,
+    membershipLevel: assignment.client.membershipLevel || 'basic',
+  };
+
+  // Slice 1 trainer-truth-feeds: prefer the backend's batched roster summary
+  // (all-time completed count, real last/next dates); skip the client fan-out.
+  const rosterSummary = assignment?.client?.rosterSummary;
+  if (rosterSummary && typeof rosterSummary === 'object') {
+    const completedCount = Number(rosterSummary.totalCompletedSessions);
+    return {
+      ...assignment,
+      isActive: assignmentStatus === 'active',
+      client: {
+        ...assignment.client,
+        ...baseClientFields,
+        totalSessionsCompleted: Number.isFinite(completedCount) ? completedCount : null,
+        lastSessionDate: rosterSummary.lastSessionDate ?? undefined,
+        nextSessionDate: rosterSummary.nextSessionDate ?? undefined,
+        goals: { current: 0, completed: 0 },
+        progress: { overallProgress: 0, recentTrend: 'stable', lastAssessment: rosterSummary.lastSessionDate ?? undefined },
+      },
+    };
+  }
 
   try {
     const [sessions, upcomingSessions] = await Promise.all([
@@ -115,12 +144,7 @@ const adaptTrainerAssignment = async (
     const upcomingRows = Array.isArray(upcomingSessions.data) ? upcomingSessions.data : [];
     const client: Client = {
       ...assignment.client,
-      id: clientId,
-      availableSessions: toSessionCount(assignment.client.availableSessions),
-      fitnessGoal: assignment.client.fitnessGoal ?? null,
-      trainingExperience: assignment.client.trainingExperience ?? null,
-      status: assignmentStatus as Client['status'],
-      joinDate: assignment.client.joinDate || assignment.client.createdAt || null,
+      ...baseClientFields,
       totalSessionsCompleted: sessionRows.filter((session: any) => session.status === 'completed').length,
       lastSessionDate: sessionRows[0]?.sessionDate,
       nextSessionDate: upcomingRows[0]?.sessionDate,
@@ -130,7 +154,6 @@ const adaptTrainerAssignment = async (
         recentTrend: 'stable',
         lastAssessment: sessionRows[0]?.sessionDate,
       },
-      membershipLevel: assignment.client.membershipLevel || 'basic',
     };
 
     return {
@@ -145,20 +168,15 @@ const adaptTrainerAssignment = async (
       isActive: assignmentStatus === 'active',
       client: {
         ...assignment.client,
-        id: clientId,
-        availableSessions: toSessionCount(assignment.client.availableSessions),
-        fitnessGoal: assignment.client.fitnessGoal ?? null,
-        trainingExperience: assignment.client.trainingExperience ?? null,
-        status: assignmentStatus as Client['status'],
-        joinDate: assignment.client.joinDate || assignment.client.createdAt || null,
-        totalSessionsCompleted: 0,
+        ...baseClientFields,
+        // Unknown, not zero: the card renders "Logs unavailable" (A1/A8).
+        totalSessionsCompleted: null,
         goals: { current: 0, completed: 0 },
         progress: {
           overallProgress: 0,
           recentTrend: 'stable',
           lastAssessment: undefined,
         },
-        membershipLevel: assignment.client.membershipLevel || 'basic',
       },
     };
   }
@@ -200,11 +218,11 @@ export const useTrainerClients = () => {
       return sum + toSessionCount(assignment.client.availableSessions);
     }, 0);
     const completedSessions = activeClients.reduce(
-      (sum, assignment) => sum + assignment.client.totalSessionsCompleted,
+      (sum, assignment) => sum + (assignment.client.totalSessionsCompleted ?? 0),
       0
     );
     const loggedClients = activeClients.filter((assignment) =>
-      assignment.client.totalSessionsCompleted > 0 || Boolean(assignment.client.lastSessionDate)
+      (assignment.client.totalSessionsCompleted ?? 0) > 0 || Boolean(assignment.client.lastSessionDate)
     ).length;
 
     return {
