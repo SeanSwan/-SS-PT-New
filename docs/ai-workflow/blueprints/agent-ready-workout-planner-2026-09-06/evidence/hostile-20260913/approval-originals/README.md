@@ -4,7 +4,7 @@
 
 Sean authorized independent review of the Rolodex, Bootcamp, Sprint and Planner reports and components, followed by fixes and UI/UX upgrades. [The reconciled audit and repair contract](12-hostile-reconciliation-and-repair.md) extends this same packet against current-main baseline `c0cbe538d8`. The two old reviews targeted a divergent checkout; their claims must be reconciled before implementation. The original packet is preserved. Application implementation and its review gates remain pending; the historical statuses below describe their original dated scope.
 
-Start with the [independent audit and fix register](15-audit-findings-and-fix-register.md). Its 30 requirements have [server](13-server-repair-contract.md) and [frontend](14-frontend-repair-contract.md) implementation contracts, an [interactive state preview](audit-repair-preview.html), [rendered source diagrams](audit-diagrams.html), and the current [blocked readiness receipt](audit-readiness.json). Existing green tests and new intentional RED failures are preserved under evidence/hostile-20260913. No application repairs have been applied or deployed in this continuation.
+Start with the [independent audit and fix register](15-audit-findings-and-fix-register.md). Its 30 requirements have [server](13-server-repair-contract.md) and [frontend](14-frontend-repair-contract.md) implementation contracts, an `interactive state preview` (`audit-repair-preview.html` — not committed; machine-local evidence), `rendered source diagrams` (`audit-diagrams.html` — not committed; machine-local evidence), and the current [blocked readiness receipt](audit-readiness.json). Existing green tests and new intentional RED failures are preserved under evidence/hostile-20260913. No application repairs have been applied or deployed in this continuation.
 
 Artifact: SWAN-AGENT-PLANNER-20260906 · Version 2.0 · Owner: Sean
 Status: upgraded blueprint and interactive preview; app implementation not started. New provider integration is blocked on the privacy repair gates in 10.
@@ -46,16 +46,16 @@ agents cannot leak data. These limits must be visible during connection setup.
 
 | Artifact | Purpose |
 |---|---|
-| [Audit and source receipt](01-audit.md) | Live observations, current-main caller paths, implemented versus missing |
-| [Agent architecture and contracts](02-agent-contracts.md) | Connections, local devices, authorization, privacy, API and storage |
-| [Planner upgrade specification](03-planner.md) | Advanced programming, Rolodex, builder, saved/backup/blended plans |
-| [Tests and traceability](04-verification.md) | Acceptance cases, executed baseline, intentional RED and future gates |
-| [Delivery and hostile review](05-delivery-review.md) | Slices, dependencies, decisions, migration and rollback |
-| [Interactive wireframes](wireframes.html) | Desktop/mobile concept, programming sections, saved plans and agent setup |
-| [Mermaid diagrams](06-diagrams.md) | Workflow, durable states, sequence, data relationships and trust boundaries |
-| [Rendered diagrams](diagrams.html) | Eight diagrams rendered locally with pinned Mermaid |
-| [Scoped hygiene inventory](07-hygiene.md) | Competing surfaces and preservation decisions; no cleanup |
-| [Readiness receipt](readiness.json) | Machine-checkable evidence references; not runtime certification |
+| `Audit and source receipt` (`01-audit.md` — not committed; machine-local evidence) | Live observations, current-main caller paths, implemented versus missing |
+| `Agent architecture and contracts` (`02-agent-contracts.md` — not committed; machine-local evidence) | Connections, local devices, authorization, privacy, API and storage |
+| `Planner upgrade specification` (`03-planner.md` — not committed; machine-local evidence) | Advanced programming, Rolodex, builder, saved/backup/blended plans |
+| `Tests and traceability` (`04-verification.md` — not committed; machine-local evidence) | Acceptance cases, executed baseline, intentional RED and future gates |
+| `Delivery and hostile review` (`05-delivery-review.md` — not committed; machine-local evidence) | Slices, dependencies, decisions, migration and rollback |
+| `Interactive wireframes` (`wireframes.html` — not committed; machine-local evidence) | Desktop/mobile concept, programming sections, saved plans and agent setup |
+| `Mermaid diagrams` (`06-diagrams.md` — not committed; machine-local evidence) | Workflow, durable states, sequence, data relationships and trust boundaries |
+| `Rendered diagrams` (`diagrams.html` — not committed; machine-local evidence) | Eight diagrams rendered locally with pinned Mermaid |
+| `Scoped hygiene inventory` (`07-hygiene.md` — not committed; machine-local evidence) | Competing surfaces and preservation decisions; no cleanup |
+| `Readiness receipt` (`readiness.json` — not committed; machine-local evidence) | Machine-checkable evidence references; not runtime certification |
 
 ## What the audit changed
 
@@ -73,7 +73,7 @@ Upgrade their depth and coordination. Do not rebuild these as parallel systems.
 
 Sean selected **Training Studio with optional Program Map**. The Swan Design Brain and a bounded real Mobbin MCP pass informed the revision. The session dominates; a compact Rolodex and contextual Programming / Coach / Changes inspector support it. My plans keeps current, backup, draft, template and archived workflows distinct. Default Swan Coach works without API setup; personal OpenRouter and local connections are optional.
 
-Read [the design synthesis](08-design-synthesis.md), [connection and spending contracts](09-model-connections-and-budgets.md), and [current Coach privacy audit](10-coach-privacy-audit.md). These govern v2 where v1 wording differs.
+Read `the design synthesis` (`08-design-synthesis.md` — not committed; machine-local evidence), `connection and spending contracts` (`09-model-connections-and-budgets.md` — not committed; machine-local evidence), and `current Coach privacy audit` (`10-coach-privacy-audit.md` — not committed; machine-local evidence). These govern v2 where v1 wording differs.
 
 ## Requirements and measurable outcomes
 
@@ -137,7 +137,7 @@ The complete v1 packet (36 regular files) was copied and SHA256-verified before 
 
 Fresh evidence: evidence/v2-preview-qa.json (eight synthetic workflows and twelve responsive widths), evidence/privacy-reproductions.json (five actual-source gaps reproduced with fake dependencies), and evidence/security/ (sealed security report). Prior 72 frontend + 60 backend PASS and two EXPECTED RED results are dated September 6 evidence, not fresh v2 app runs.
 
-Open [interactive preview](wireframes.html), [state wireframes](wireframe-states.html), [rendered architecture](diagrams.html), and [privacy decision](10-coach-privacy-audit.md). No OpenRouter inference, real accounts, devices or customer data were used. Codex and Mobbin research usage occurred.
+Open `interactive preview` (`wireframes.html` — not committed; machine-local evidence), `state wireframes` (`wireframe-states.html` — not committed; machine-local evidence), `rendered architecture` (`diagrams.html` — not committed; machine-local evidence), and `privacy decision` (`10-coach-privacy-audit.md` — not committed; machine-local evidence). No OpenRouter inference, real accounts, devices or customer data were used. Codex and Mobbin research usage occurred.
 
 ## Build workflow upgrade (v2.1)
 

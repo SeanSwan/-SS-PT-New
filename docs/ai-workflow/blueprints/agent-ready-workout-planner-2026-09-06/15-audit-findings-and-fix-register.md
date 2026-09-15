@@ -22,8 +22,8 @@ Visual work should reinforce correct behavior: a clear client/draft/save strip, 
 |---|---|---|
 | Current-main worktree | `codex/rolodex-bootcamp-planner-20260913` at `c0cbe538d8ed2ca519bb494cdf3282bf43b76699` | Local baseline; no deployment attestation |
 | Prior-review checkout | `f8815a0b1dfba979da4707f3c20e4229009656aa`; 599/2401 commits divergent from inspected origin/main | Old findings cannot transfer automatically |
-| [Frontend baseline](evidence/hostile-20260913/frontend-baseline-native.log) | 124 files / 627 tests PASS | Existing test coverage; no new repairs |
-| [Backend baseline](evidence/hostile-20260913/backend-baseline.log) | 36 files / 369 tests PASS | Synthetic test mode with unreachable DB URL |
+| `Frontend baseline` (`evidence/hostile-20260913/frontend-baseline-native.log` — not committed; machine-local evidence) | 124 files / 627 tests PASS | Existing test coverage; no new repairs |
+| `Backend baseline` (`evidence/hostile-20260913/backend-baseline.log` — not committed; machine-local evidence) | 36 files / 369 tests PASS | Synthetic test mode with unreachable DB URL |
 | Isolated RED acceptance | 2 files / 8 intentional assertion failures; zero import/setup failures | Real frontend exports/hooks, synthetic API/Worker |
 | Backend probes | 14 primary + 8 boundary observations; both scripts exit 0 | Extracted real functions with synthetic dependencies, not DB integration tests |
 | Existing equipment control | 2/2 tests PASS | Demonstrates existing happy-path coverage misses required-equipment failures |

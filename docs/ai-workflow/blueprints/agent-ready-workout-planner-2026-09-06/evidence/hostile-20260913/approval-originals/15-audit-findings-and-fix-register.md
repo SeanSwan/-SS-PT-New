@@ -22,8 +22,8 @@ Visual work should reinforce correct behavior: a clear client/draft/save strip, 
 |---|---|---|
 | Current-main worktree | `codex/rolodex-bootcamp-planner-20260913` at `c0cbe538d8ed2ca519bb494cdf3282bf43b76699` | Local baseline; no deployment attestation |
 | Prior-review checkout | `f8815a0b1dfba979da4707f3c20e4229009656aa`; 599/2401 commits divergent from inspected origin/main | Old findings cannot transfer automatically |
-| [Frontend baseline](evidence/hostile-20260913/frontend-baseline-native.log) | 124 files / 627 tests PASS | Existing test coverage; no new repairs |
-| [Backend baseline](evidence/hostile-20260913/backend-baseline.log) | 36 files / 369 tests PASS | Synthetic test mode with unreachable DB URL |
+| `Frontend baseline` (`evidence/hostile-20260913/frontend-baseline-native.log` — not committed; machine-local evidence) | 124 files / 627 tests PASS | Existing test coverage; no new repairs |
+| `Backend baseline` (`evidence/hostile-20260913/backend-baseline.log` — not committed; machine-local evidence) | 36 files / 369 tests PASS | Synthetic test mode with unreachable DB URL |
 | Isolated RED acceptance | 2 files / 8 intentional assertion failures; zero import/setup failures | Real frontend exports/hooks, synthetic API/Worker |
 | Backend probes | 14 primary + 8 boundary observations; both scripts exit 0 | Extracted real functions with synthetic dependencies, not DB integration tests |
 | Existing equipment control | 2/2 tests PASS | Demonstrates existing happy-path coverage misses required-equipment failures |
@@ -31,7 +31,7 @@ Visual work should reinforce correct behavior: a clear client/draft/save strip, 
 | Live Planner inspection | Read-only mounted V2 page and library inspected; observed identity-chip mismatch and cluttered missing-media treatment | No live generation, client changes or writes; no private browser data packaged |
 | Synthetic design preview | Mermaid SVG rendered; desktop and phone layouts inspected without horizontal overflow; equipment-add disabling and conflict save blocking observed | Wireframe only; not application responsiveness or accessibility certification |
 
-Canonical contracts: [reconciliation and requirements](12-hostile-reconciliation-and-repair.md), [server contract](13-server-repair-contract.md), [frontend contract](14-frontend-repair-contract.md). [Interactive repair preview](audit-repair-preview.html). Detailed reports: [backend](evidence/hostile-20260913/backend-audit.md), [backend boundaries](evidence/hostile-20260913/backend-boundaries.md), [frontend](evidence/hostile-20260913/frontend-audit.md), [frontend boundaries](evidence/hostile-20260913/frontend-boundaries.md).
+Canonical contracts: [reconciliation and requirements](12-hostile-reconciliation-and-repair.md), [server contract](13-server-repair-contract.md), [frontend contract](14-frontend-repair-contract.md). `Interactive repair preview` (`audit-repair-preview.html` — not committed; machine-local evidence). Detailed reports: `backend` (`evidence/hostile-20260913/backend-audit.md` — not committed; machine-local evidence), `backend boundaries` (`evidence/hostile-20260913/backend-boundaries.md` — not committed; machine-local evidence), `frontend` (`evidence/hostile-20260913/frontend-audit.md` — not committed; machine-local evidence), `frontend boundaries` (`evidence/hostile-20260913/frontend-boundaries.md` — not committed; machine-local evidence).
 
 ## Fix register
 

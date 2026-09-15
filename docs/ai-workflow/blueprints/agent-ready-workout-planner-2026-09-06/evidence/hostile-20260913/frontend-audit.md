@@ -20,37 +20,37 @@ The highest-risk surviving defects concern saved data and asynchronous ownership
 
 ### Mounted frontend
 
-- Admin planner, Bootcamp, and Sprint definitions: [UniversalDashboardLayout.routes.tsx:153](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx:153); trainer counterparts at lines 198–208.
-- Those definitions are mapped into routes at [UniversalDashboardLayout.shellPieces.tsx:96](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/UniversalDashboardLayout.shellPieces.tsx:96), with actual JSX mounting of Component at line 108.
-- The shell is mounted by [UniversalDashboardLayout.tsx:192](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/UniversalDashboardLayout.tsx:192); it passes the role-filtered route list.
-- Planner entry [WorkoutPlannerPage.tsx:14](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx:14) mounts WorkoutPlannerProvider and WorkoutPlannerPageLayout.
-- [useWorkoutPlannerOrchestration.ts:68](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/plannerContexts/useWorkoutPlannerOrchestration.ts:68) wires Rolodex; generation at 85; client state at 103; saved plans at 122; save actions at 134; load actions at 157.
-- [BootcampBuilderPage.tsx:25](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx:25) owns class state; side panels and ClassPreviewPanel are mounted at lines 225–282.
-- [SprintPlannerPage.tsx:48](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/SprintPlannerPage.tsx:48) owns sprint selection and generation; CreateSprintModal and SlotDetailPanel are actual child mounts.
-- The old pages/workout client planner is absent. [main-routes.tsx:310](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/routes/main-routes.tsx:310) explains the excision and implements role-specific LegacyWorkoutRedirect.
+- Admin planner, Bootcamp, and Sprint definitions: `UniversalDashboardLayout.routes.tsx:153` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx:153` — not committed; machine-local evidence); trainer counterparts at lines 198–208.
+- Those definitions are mapped into routes at `UniversalDashboardLayout.shellPieces.tsx:96` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/UniversalDashboardLayout.shellPieces.tsx:96` — not committed; machine-local evidence), with actual JSX mounting of Component at line 108.
+- The shell is mounted by `UniversalDashboardLayout.tsx:192` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/UniversalDashboardLayout.tsx:192` — not committed; machine-local evidence); it passes the role-filtered route list.
+- Planner entry `WorkoutPlannerPage.tsx:14` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx:14` — not committed; machine-local evidence) mounts WorkoutPlannerProvider and WorkoutPlannerPageLayout.
+- `useWorkoutPlannerOrchestration.ts:68` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/plannerContexts/useWorkoutPlannerOrchestration.ts:68` — not committed; machine-local evidence) wires Rolodex; generation at 85; client state at 103; saved plans at 122; save actions at 134; load actions at 157.
+- `BootcampBuilderPage.tsx:25` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx:25` — not committed; machine-local evidence) owns class state; side panels and ClassPreviewPanel are mounted at lines 225–282.
+- `SprintPlannerPage.tsx:48` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/SprintPlannerPage.tsx:48` — not committed; machine-local evidence) owns sprint selection and generation; CreateSprintModal and SlotDetailPanel are actual child mounts.
+- The old pages/workout client planner is absent. `main-routes.tsx:310` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/routes/main-routes.tsx:310` — not committed; machine-local evidence) explains the excision and implements role-specific LegacyWorkoutRedirect.
 
 ### Consumer APIs and backend matches
 
-- [useExerciseSearch.ts:102](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/WorkoutLogger/useExerciseSearch.ts:102): GET /api/exercises/library.
-- [exerciseRoutes.mjs:480](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/routes/exerciseRoutes.mjs:480): authenticated library route; Exercise findAll and media formatting at lines 493–515.
-- [useBootcampAPI.ts:79](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/hooks/useBootcampAPI.ts:79): POST /api/bootcamp/generate.
-- [useBootcampAPI.ts:86](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/hooks/useBootcampAPI.ts:86): POST /api/bootcamp/save.
-- [useBootcampAPI.ts:107](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/hooks/useBootcampAPI.ts:107): logClass API; useBootcampTaughtLog invokes logClass and getHistory.
-- [bootcampRoutes.mjs:61](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/routes/bootcampRoutes.mjs:61): generation; save at 130; log at 162; history at 284.
-- [useSprintAPI.ts:256](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/hooks/useSprintAPI.ts:256): POST /api/bootcamp/sprints/:id/generate; reconnect GET at 234.
-- [sprintRoutes.mjs:127](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/routes/sprintRoutes.mjs:127): generation; reconnect stream at 177; slot confirmation at 243; regeneration at 256.
-- [useWorkoutPlannerSaveActions.ts:98](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerSaveActions.ts:98): POST /api/workout-plans; PUT loaded plan at 129; activation at 161.
-- [useWorkoutPlannerLoadPlanActions.ts:190](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerLoadPlanActions.ts:190): GET /api/workout-plans/:id.
-- [workoutPlanRoutes.mjs:294](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/routes/workoutPlanRoutes.mjs:294): detail; create at 468; update at 557.
-- Mount order: [backend/core/routes.mjs:409](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/core/routes.mjs:409) mounts workout plans; 439 mounts Bootcamp; 440 mounts Sprint; 767 mounts exercise routes. The inspected Bootcamp exact paths do not shadow Sprint generation paths. This was a narrow touched-route walk, not a whole-application shadow audit.
+- `useExerciseSearch.ts:102` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/WorkoutLogger/useExerciseSearch.ts:102` — not committed; machine-local evidence): GET /api/exercises/library.
+- `exerciseRoutes.mjs:480` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/routes/exerciseRoutes.mjs:480` — not committed; machine-local evidence): authenticated library route; Exercise findAll and media formatting at lines 493–515.
+- `useBootcampAPI.ts:79` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/hooks/useBootcampAPI.ts:79` — not committed; machine-local evidence): POST /api/bootcamp/generate.
+- `useBootcampAPI.ts:86` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/hooks/useBootcampAPI.ts:86` — not committed; machine-local evidence): POST /api/bootcamp/save.
+- `useBootcampAPI.ts:107` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/hooks/useBootcampAPI.ts:107` — not committed; machine-local evidence): logClass API; useBootcampTaughtLog invokes logClass and getHistory.
+- `bootcampRoutes.mjs:61` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/routes/bootcampRoutes.mjs:61` — not committed; machine-local evidence): generation; save at 130; log at 162; history at 284.
+- `useSprintAPI.ts:256` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/hooks/useSprintAPI.ts:256` — not committed; machine-local evidence): POST /api/bootcamp/sprints/:id/generate; reconnect GET at 234.
+- `sprintRoutes.mjs:127` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/routes/sprintRoutes.mjs:127` — not committed; machine-local evidence): generation; reconnect stream at 177; slot confirmation at 243; regeneration at 256.
+- `useWorkoutPlannerSaveActions.ts:98` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerSaveActions.ts:98` — not committed; machine-local evidence): POST /api/workout-plans; PUT loaded plan at 129; activation at 161.
+- `useWorkoutPlannerLoadPlanActions.ts:190` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerLoadPlanActions.ts:190` — not committed; machine-local evidence): GET /api/workout-plans/:id.
+- `workoutPlanRoutes.mjs:294` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/routes/workoutPlanRoutes.mjs:294` — not committed; machine-local evidence): detail; create at 468; update at 557.
+- Mount order: `backend/core/routes.mjs:409` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/core/routes.mjs:409` — not committed; machine-local evidence) mounts workout plans; 439 mounts Bootcamp; 440 mounts Sprint; 767 mounts exercise routes. The inspected Bootcamp exact paths do not shadow Sprint generation paths. This was a narrow touched-route walk, not a whole-application shadow audit.
 
 ### Authoritative model fields inspected
 
-- [WorkoutPlan.mjs:54](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/models/WorkoutPlan.mjs:54): userId is the assigned client; trainerId at 60; planData JSONB at 137; contentRevision at 144.
-- [BootcampTemplate.mjs:29](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/models/BootcampTemplate.mjs:29): trainerId, name, classFormat, targetDurationMin, demoDurationMin, clearDurationMin, equipmentProfileId, participant capacities.
-- [BootcampClassLog.mjs:23](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/models/BootcampClassLog.mjs:23): classDate, actualParticipants, overflowActivated, exercisesUsed.
-- [SprintClassSlot.mjs:22](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/models/SprintClassSlot.mjs:22): sprintId, scheduledDate, classFormat, status, wasUsed, usedDate, exerciseKeys, generatedClassData.
-- [BootcampSprint.mjs:18](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/models/BootcampSprint.mjs:18): trainerId; sprint status at 63.
+- `WorkoutPlan.mjs:54` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/models/WorkoutPlan.mjs:54` — not committed; machine-local evidence): userId is the assigned client; trainerId at 60; planData JSONB at 137; contentRevision at 144.
+- `BootcampTemplate.mjs:29` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/models/BootcampTemplate.mjs:29` — not committed; machine-local evidence): trainerId, name, classFormat, targetDurationMin, demoDurationMin, clearDurationMin, equipmentProfileId, participant capacities.
+- `BootcampClassLog.mjs:23` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/models/BootcampClassLog.mjs:23` — not committed; machine-local evidence): classDate, actualParticipants, overflowActivated, exercisesUsed.
+- `SprintClassSlot.mjs:22` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/models/SprintClassSlot.mjs:22` — not committed; machine-local evidence): sprintId, scheduledDate, classFormat, status, wasUsed, usedDate, exerciseKeys, generatedClassData.
+- `BootcampSprint.mjs:18` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/models/BootcampSprint.mjs:18` — not committed; machine-local evidence): trainerId; sprint status at 63.
 
 ## Technical Summary — Findings, Contracts, Acceptance Tests
 
@@ -60,12 +60,12 @@ All findings below are verified from current-main source. None is claimed as rep
 
 **Evidence**
 
-- Client selector remains usable during requests: [WorkoutPlannerCommandPanel.sections.tsx:214](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanel.sections.tsx:214).
-- Client change clears displayed exercises and loaded identity but does not invalidate requests: [useWorkoutPlannerClientState.ts:105](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerClientState.ts:105).
-- Generation applies results without checking current client or draft identity: [useWorkoutPlannerGenerationActions.ts:167](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerGenerationActions.ts:167), also plan application at 218–219.
-- Saved-plan loading applies an awaited response unconditionally: [useWorkoutPlannerLoadPlanActions.ts:188](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerLoadPlanActions.ts:188).
-- Save completion writes snapshot and loaded plan identity after awaiting server work: [useWorkoutPlannerSaveActions.ts:168](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerSaveActions.ts:168).
-- Guided candidates likewise apply responses without a context guard: [useWorkoutPlannerGuidedCandidateActions.ts:84](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerGuidedCandidateActions.ts:84).
+- Client selector remains usable during requests: `WorkoutPlannerCommandPanel.sections.tsx:214` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerCommandPanel.sections.tsx:214` — not committed; machine-local evidence).
+- Client change clears displayed exercises and loaded identity but does not invalidate requests: `useWorkoutPlannerClientState.ts:105` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerClientState.ts:105` — not committed; machine-local evidence).
+- Generation applies results without checking current client or draft identity: `useWorkoutPlannerGenerationActions.ts:167` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerGenerationActions.ts:167` — not committed; machine-local evidence), also plan application at 218–219.
+- Saved-plan loading applies an awaited response unconditionally: `useWorkoutPlannerLoadPlanActions.ts:188` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerLoadPlanActions.ts:188` — not committed; machine-local evidence).
+- Save completion writes snapshot and loaded plan identity after awaiting server work: `useWorkoutPlannerSaveActions.ts:168` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerSaveActions.ts:168` — not committed; machine-local evidence).
+- Guided candidates likewise apply responses without a context guard: `useWorkoutPlannerGuidedCandidateActions.ts:84` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerGuidedCandidateActions.ts:84` — not committed; machine-local evidence).
 
 **Trigger and consequence**
 
@@ -88,7 +88,7 @@ Introduce a shared planner context identity/epoch across load, generation, guide
 
 **Evidence**
 
-[planDataBuilder.ts:133](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts:133) saves intensityGuideline from intensityPercent. [workoutPlannerLoadPlanHydration.ts:131](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerLoadPlanHydration.ts:131) unconditionally restores intensityPercent as 70.
+`planDataBuilder.ts:133` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts:133` — not committed; machine-local evidence) saves intensityGuideline from intensityPercent. `workoutPlannerLoadPlanHydration.ts:131` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerLoadPlanHydration.ts:131` — not committed; machine-local evidence) unconditionally restores intensityPercent as 70.
 
 Hydration also replaces exercise metadata with synthetic defaults at lines 121–125: compound, Full Body, empty muscles, and difficulty 300.
 
@@ -111,9 +111,9 @@ Persist a typed prescription and stable exercise identity; hydrate every support
 
 **Evidence**
 
-[useWorkoutPlannerOrchestration.ts:139](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/plannerContexts/useWorkoutPlannerOrchestration.ts:139) derives loadedPlanRevision from the current saved-plan list. [useWorkoutPlannerSaveActions.ts:191](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerSaveActions.ts:191) refreshes that list on 409 while retaining the old draft. An ordinary retry then submits the refreshed revision with stale content.
+`useWorkoutPlannerOrchestration.ts:139` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/plannerContexts/useWorkoutPlannerOrchestration.ts:139` — not committed; machine-local evidence) derives loadedPlanRevision from the current saved-plan list. `useWorkoutPlannerSaveActions.ts:191` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerSaveActions.ts:191` — not committed; machine-local evidence) refreshes that list on 409 while retaining the old draft. An ordinary retry then submits the refreshed revision with stale content.
 
-Backend update correctly receives expectedRevision at [workoutPlanRoutes.mjs:577](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/routes/workoutPlanRoutes.mjs:577). The frontend bypasses that protection on its next attempt.
+Backend update correctly receives expectedRevision at `workoutPlanRoutes.mjs:577` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/backend/routes/workoutPlanRoutes.mjs:577` — not committed; machine-local evidence). The frontend bypasses that protection on its next attempt.
 
 **Repair contract**
 
@@ -130,7 +130,7 @@ Capture revision with the actual loaded content snapshot. A list refresh must ne
 
 **Evidence**
 
-[useWorkoutPlannerSavedPlansState.ts:87](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerSavedPlansState.ts:87) sends only a status activation; lines 93–95 set the saved snapshot to current draft content when IDs match.
+`useWorkoutPlannerSavedPlansState.ts:87` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerSavedPlansState.ts:87` — not committed; machine-local evidence) sends only a status activation; lines 93–95 set the saved snapshot to current draft content when IDs match.
 
 **Trigger and consequence**
 
@@ -151,9 +151,9 @@ Status-only mutations must never alter the content baseline. Make Current may ac
 
 **Evidence**
 
-[ExerciseRolodexPanel.tsx:124](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/ExerciseRolodexPanel.tsx:124) filters only when profileEquipmentLoading is false. While the selected profile request is pending, the full library remains selectable. At line 273 the list receives only library loading state. The add handler does not reject additions while profile truth is unavailable.
+`ExerciseRolodexPanel.tsx:124` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/ExerciseRolodexPanel.tsx:124` — not committed; machine-local evidence) filters only when profileEquipmentLoading is false. While the selected profile request is pending, the full library remains selectable. At line 273 the list receives only library loading state. The add handler does not reject additions while profile truth is unavailable.
 
-[BootcampEquipmentProfileFilter.ts:65](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampEquipmentProfileFilter.ts:65) uses any matching equipment requirement. Lines 36–39 also classify any list containing bodyweight/none as bodyweight-only.
+`BootcampEquipmentProfileFilter.ts:65` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampEquipmentProfileFilter.ts:65` — not committed; machine-local evidence) uses any matching equipment requirement. Lines 36–39 also classify any list containing bodyweight/none as bodyweight-only.
 
 **Trigger and consequence**
 
@@ -177,9 +177,9 @@ Loading or failed equipment truth must prevent profile-dependent additions and p
 
 **Evidence**
 
-[pdfExportService.ts:371](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/services/pdfExportService.ts:371) groups every exercise by station without filtering board. [BootcampBoardViews.ts:17](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBoardViews.ts:17) correctly distinguishes main, alternative, and lowImpact in the UI. PDF finishers are included in station grouping and printed again at line 407.
+`pdfExportService.ts:371` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/services/pdfExportService.ts:371` — not committed; machine-local evidence) groups every exercise by station without filtering board. `BootcampBoardViews.ts:17` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBoardViews.ts:17` — not committed; machine-local evidence) correctly distinguishes main, alternative, and lowImpact in the UI. PDF finishers are included in station grouping and printed again at line 407.
 
-[BootcampBuilderPdfExport.ts:4](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBuilderPdfExport.ts:4) forwards stored totals; the new ClassRail uses compiled runtime through [BootcampClassRail.logic.ts:79](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampClassRail.logic.ts:79).
+`BootcampBuilderPdfExport.ts:4` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBuilderPdfExport.ts:4` — not committed; machine-local evidence) forwards stored totals; the new ClassRail uses compiled runtime through `BootcampClassRail.logic.ts:79` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampClassRail.logic.ts:79` — not committed; machine-local evidence).
 
 **Trigger and consequence**
 
@@ -201,9 +201,9 @@ Use the same board model and compiled timing as Preflight/Run. Print alternative
 
 **Evidence**
 
-[useSprintAPI.ts:256](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/hooks/useSprintAPI.ts:256) passes the initial response to readStream without checking response status/content type. A 401/409/429/500 JSON response produces no SSE event. Empty body or clean EOF before a terminal event behaves similarly.
+`useSprintAPI.ts:256` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/hooks/useSprintAPI.ts:256` — not committed; machine-local evidence) passes the initial response to readStream without checking response status/content type. A 401/409/429/500 JSON response produces no SSE event. Empty body or clean EOF before a terminal event behaves similarly.
 
-[SprintPlannerPage.tsx:81](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/SprintPlannerPage.tsx:81) clears generating only for complete/error events. The cancel closure returned by the click handler is not retained as effect cleanup. An old generation callback can reload its sprint after the user navigates back or selects another.
+`SprintPlannerPage.tsx:81` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/SprintPlannerPage.tsx:81` — not committed; machine-local evidence) clears generating only for complete/error events. The cancel closure returned by the click handler is not retained as effect cleanup. An old generation callback can reload its sprint after the user navigates back or selects another.
 
 **Repair contract**
 
@@ -222,7 +222,7 @@ Validate initial HTTP status and stream content type. Require a terminal event o
 
 **Evidence**
 
-[useExerciseSearch.ts:88](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/WorkoutLogger/useExerciseSearch.ts:88) captures query and changes identity on every keystroke, potentially starting several initial fetches. The effect at lines 205–219 skips search when cache is empty and does not depend on loaded-cache revision. Filling the cache does not rerun the active query. An earlier empty-query fetch can later overwrite results with the entire catalog.
+`useExerciseSearch.ts:88` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/WorkoutLogger/useExerciseSearch.ts:88` — not committed; machine-local evidence) captures query and changes identity on every keystroke, potentially starting several initial fetches. The effect at lines 205–219 skips search when cache is empty and does not depend on loaded-cache revision. Filling the cache does not rerun the active query. An earlier empty-query fetch can later overwrite results with the entire catalog.
 
 Worker failure at lines 75–78 only nulls the worker ref; it neither replays the pending search nor clears busy state. Messages at lines 69–72 apply without request identity.
 
@@ -243,7 +243,7 @@ Separate catalog loading from query state. Search whenever catalog revision, que
 
 **Evidence**
 
-Current useExerciseSearch exposes loadError and refresh, and NASMExerciseRolodex renders error/retry. [Bootcamp's consumer:77](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/ExerciseRolodexPanel.tsx:77) and [planner's consumer:59](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerRolodexState.tsx:59) discard those fields. Their lists report no matches after a failed initial load.
+Current useExerciseSearch exposes loadError and refresh, and NASMExerciseRolodex renders error/retry. `Bootcamp's consumer:77` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/ExerciseRolodexPanel.tsx:77` — not committed; machine-local evidence) and `planner's consumer:59` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerRolodexState.tsx:59` — not committed; machine-local evidence) discard those fields. Their lists report no matches after a failed initial load.
 
 **Repair contract**
 
@@ -260,9 +260,9 @@ Propagate library state through all consumers. Distinguish loading, failed catal
 
 **Evidence**
 
-[BootcampBuilderPage.tsx:166](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx:166) clears the current class before generation succeeds; initialization seeds an empty class while the request runs. Failure loses prior work. Structure changes at 208–209 also clear the entire class immediately.
+`BootcampBuilderPage.tsx:166` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx:166` — not committed; machine-local evidence) clears the current class before generation succeeds; initialization seeds an empty class while the request runs. Failure loses prior work. Structure changes at 208–209 also clear the entire class immediately.
 
-[useWorkoutPlannerPageActions.ts:78](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerPageActions.ts:78) clears both plan forms on duration changes without using its existing confirmation mechanism. [planDataBuilder.ts:151](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts:151) omits persisted goal/category/phase from content signatures; generated signatures omit tempo/rest/intensity/notes. [useWorkoutPlannerPlanContentState.ts:123](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerPlanContentState.ts:123) treats deleting the final exercise as clean.
+`useWorkoutPlannerPageActions.ts:78` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerPageActions.ts:78` — not committed; machine-local evidence) clears both plan forms on duration changes without using its existing confirmation mechanism. `planDataBuilder.ts:151` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts:151` — not committed; machine-local evidence) omits persisted goal/category/phase from content signatures; generated signatures omit tempo/rest/intensity/notes. `useWorkoutPlannerPlanContentState.ts:123` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/DashBoard/Pages/admin-workout-planner/useWorkoutPlannerPlanContentState.ts:123` — not committed; machine-local evidence) treats deleting the final exercise as clean.
 
 **Repair contract**
 
@@ -280,9 +280,9 @@ Keep the last draft until a replacement succeeds. Structural changes that discar
 
 **Evidence**
 
-[SprintPlannerPage.tsx:131](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/SprintPlannerPage.tsx:131) renders a clickable SprintCard. The timeline SlotPill at 229 is a styled div with only onClick. [SprintPlannerStyles.ts:276](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/SprintPlannerStyles.ts:276) confirms the div element.
+`SprintPlannerPage.tsx:131` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/SprintPlannerPage.tsx:131` — not committed; machine-local evidence) renders a clickable SprintCard. The timeline SlotPill at 229 is a styled div with only onClick. `SprintPlannerStyles.ts:276` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/SprintPlannerStyles.ts:276` — not committed; machine-local evidence) confirms the div element.
 
-[CreateSprintModal.tsx:88](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/CreateSprintModal.tsx:88) and [SlotDetailPanel.tsx:141](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/SlotDetailPanel.tsx:141) claim modal dialog semantics without focus containment/restoration, Escape handling, or accessible title association. Day/focus toggles do not expose pressed state.
+`CreateSprintModal.tsx:88` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/CreateSprintModal.tsx:88` — not committed; machine-local evidence) and `SlotDetailPanel.tsx:141` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/SprintPlanner/SlotDetailPanel.tsx:141` — not committed; machine-local evidence) claim modal dialog semantics without focus containment/restoration, Escape handling, or accessible title association. Day/focus toggles do not expose pressed state.
 
 **Repair contract**
 
@@ -314,12 +314,12 @@ Use native buttons for selectable cards/slots. Reuse the established dialog life
 
 Current source anchors for the repaired historical claims:
 
-- [BootcampBuilderSidePanels.tsx:104](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBuilderSidePanels.tsx:104): manual profile; hybrid profile at 141.
-- [BootcampBuilderPage.tsx:163](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx:163): regeneration exclusions.
-- [BootcampTaughtPanel.tsx:51](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampTaughtPanel.tsx:51): taught UI and hook.
-- [NASMExerciseRolodex.tsx:266](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/WorkoutLogger/NASMExerciseRolodex.tsx:266): load error and retry.
-- [BootcampDemoMode.floorDirector.ts:25](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampDemoMode.floorDirector.ts:25): media field readiness.
-- [main-routes.tsx:310](C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/routes/main-routes.tsx:310): old client surface removal and redirects.
+- `BootcampBuilderSidePanels.tsx:104` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBuilderSidePanels.tsx:104` — not committed; machine-local evidence): manual profile; hybrid profile at 141.
+- `BootcampBuilderPage.tsx:163` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampBuilderPage.tsx:163` — not committed; machine-local evidence): regeneration exclusions.
+- `BootcampTaughtPanel.tsx:51` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampTaughtPanel.tsx:51` — not committed; machine-local evidence): taught UI and hook.
+- `NASMExerciseRolodex.tsx:266` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/WorkoutLogger/NASMExerciseRolodex.tsx:266` — not committed; machine-local evidence): load error and retry.
+- `BootcampDemoMode.floorDirector.ts:25` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/components/BootcampBuilder/BootcampDemoMode.floorDirector.ts:25` — not committed; machine-local evidence): media field readiness.
+- `main-routes.tsx:310` (`C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913/frontend/src/routes/main-routes.tsx:310` — not committed; machine-local evidence): old client surface removal and redirects.
 
 ## UI/UX Upgrade Direction — Training Studio, Optional Program Map
 
