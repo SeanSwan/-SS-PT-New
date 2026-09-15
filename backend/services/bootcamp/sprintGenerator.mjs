@@ -167,25 +167,48 @@ export async function generateSprintClasses(id, onProgress, actor, request) {
       .sort((a, b) => a.week.weekNumber - b.week.weekNumber
         || String(a.slot.scheduledDate).localeCompare(String(b.slot.scheduledDate)) || a.slot.id - b.slot.id);
     if (!slots.length || slots.length > 364) throw sprintError('Sprint schedule is empty or exceeds limits', 422);
-    let completed = 0;
+    // U4: batch planned slots by week — same-week slots are independent, so the
+    // batch generates in PARALLEL (allSettled) and commits SEQUENTIALLY so the
+    // exercise-memory stays ordered. The batch is fenced by assertLive gates on
+    // both sides; a failed generation commits its succeeded siblings first,
+    // then throws so the claim's error path closes the ledger row.
+    const weekBatches = [];
     for (const { slot, week } of slots) {
-      assertLive();
-      if (slot.status === 'planned') {
-        await renewSprintClaim(sprintId, actor, claim);
-        const minWeek = week.weekNumber - EXCLUSION_WINDOW_WEEKS + 1;
-        const windowed = new Set([
-          ...previous,
-          ...memoryEntries.filter(entry => entry.weekNumber >= minWeek).map(entry => entry.exerciseKey),
-        ]);
-        const classData = await generateBootcampClass(
-          generationInput(sprint, slot, windowed, weekPrescription(week, sprint.progressionStrategy, sprint.durationWeeks)),
-        );
-        assertLive();
-        memory = await commitSlot(sprintId, actor, claim, slot.id, classData);
+      if (slot.status !== 'planned') continue;
+      let batch = weekBatches[weekBatches.length - 1];
+      if (!batch || batch.week !== week) {
+        batch = { week, slots: [] };
+        weekBatches.push(batch);
       }
-      completed++;
-      onProgress?.({ type: 'progress', completedSlots: completed, totalSlots: slots.length,
-        currentWeek: week.weekNumber, percent: Math.round(completed / slots.length * 100) });
+      batch.slots.push(slot);
+    }
+    let completed = 0;
+    for (const { week, slots: plannedSlots } of weekBatches) {
+      assertLive();
+      await renewSprintClaim(sprintId, actor, claim);
+      const minWeek = week.weekNumber - EXCLUSION_WINDOW_WEEKS + 1;
+      const windowed = new Set([
+        ...previous,
+        ...memoryEntries.filter(entry => entry.weekNumber >= minWeek).map(entry => entry.exerciseKey),
+      ]);
+      const results = await Promise.allSettled(plannedSlots.map(slot =>
+        generateBootcampClass(
+          generationInput(sprint, slot, windowed, weekPrescription(week, sprint.progressionStrategy, sprint.durationWeeks)),
+        )));
+      assertLive();
+      let batchError = null;
+      for (let i = 0; i < plannedSlots.length; i++) {
+        const result = results[i];
+        if (result.status === 'fulfilled') {
+          memory = await commitSlot(sprintId, actor, claim, plannedSlots[i].id, result.value);
+        } else if (!batchError) {
+          batchError = result.reason;
+        }
+        completed++;
+        onProgress?.({ type: 'progress', completedSlots: completed, totalSlots: slots.length,
+          currentWeek: week.weekNumber, percent: Math.round(completed / slots.length * 100) });
+      }
+      if (batchError) throw batchError;
     }
     return { type: 'complete', sprintId, exerciseMemorySize: memory.size };
   });

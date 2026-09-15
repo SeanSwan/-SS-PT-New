@@ -59,8 +59,15 @@ async function loadRosterClientIds(trainerId) {
  * and appends explanations. Returns the painAlerts array.
  */
 export async function applyPainAwareGating({ trainerId, allExercises, explanations }) {
+  // U5 (purity ruling): gates CLONES, collects its own explanations, and
+  // returns { painAlerts, explanations, exercises } — inputs untouched.
+  const localExplanations = [];
   const painAlerts = [];
-  if (!trainerId) return painAlerts;
+  const workingSet = (Array.isArray(allExercises) ? allExercises : []).map(ex => ({ ...ex }));
+
+  if (!trainerId) {
+    return { painAlerts, explanations: localExplanations, exercises: workingSet };
+  }
 
   try {
     const PainEntry = getClientPainEntry();
@@ -77,11 +84,11 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
         // assignments, and other trainers' clients are invisible to this
         // gate — the trainer must know the check ran against nobody, not
         // read the absence of annotations as "no pain in the room".
-        explanations.push({
+        localExplanations.push({
           type: 'pain_gate_roster_empty',
           message: 'Pain-aware gating found no ACTIVE client assignments for this trainer — the class was not checked against any participant\'s pain report. Review Board 1 manually if drop-ins or unassigned clients are attending.',
         });
-        return painAlerts;
+        return { painAlerts, explanations: localExplanations, exercises: workingSet };
       }
       painWhere.userId = { [Op.in]: rosterClientIds };
       aggregationScope = `across ${rosterClientIds.length} active client(s)`;
@@ -94,7 +101,7 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
       where: painWhere,
       attributes: ['bodyRegion', 'side', 'painLevel', 'painType', 'userId'],
     });
-    if (activeEntries.length === 0) return painAlerts;
+    if (activeEntries.length === 0) return { painAlerts, explanations: localExplanations, exercises: workingSet };
 
     const painRegions = [...new Set(activeEntries.map(e => e.bodyRegion))];
     for (const region of painRegions) {
@@ -129,7 +136,7 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
         continue;
       }
 
-      const flagged = allExercises.filter(ex => {
+      const flagged = workingSet.filter(ex => {
         if (ex.board && ex.board !== 'main') return false;
         const rawMuscles = ex.muscleTargets ?? ex.muscles ?? '';
         const exMuscles = normalizeMuscleList(rawMuscles);
@@ -187,21 +194,22 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
     }
 
     if (painAlerts.length > 0) {
-      explanations.push({
+      localExplanations.push({
         type: 'pain_alert',
         message: `Pain-aware gating (${aggregationScope}): ${painAlerts.length} region group(s) flagged; severe regions auto-routed to joint-friendly alternatives. Class-level aggregation only — per-participant safety was NOT computed.`,
       });
     }
+    return { painAlerts, explanations: localExplanations, exercises: workingSet };
   } catch (err) {
     // Fail-VISIBLE (§5.5a): the old silent catch hid a dead query in production.
     logger.warn('[BootcampGenerator] Pain-aware gating unavailable:', err?.message);
-    explanations.push({
+    localExplanations.push({
       type: 'pain_alert_unavailable',
       message: 'Pain data could not be checked for this class — review Board 1 manually against known client injuries.',
     });
   }
 
-  return painAlerts;
+  return { painAlerts, explanations: localExplanations, exercises: workingSet };
 }
 
 /**

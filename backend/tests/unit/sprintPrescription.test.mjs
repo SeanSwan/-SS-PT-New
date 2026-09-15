@@ -38,8 +38,8 @@ const request = { expectedGenerationVersion: 1, operationId: '11111111-1111-4111
 
 // exerciseKeys are seeded so the pre-generation rebuildMemory() pass has slot
 // truth to read without any slot having been generated yet.
-const slot = (id, weekId) => ({ id, sprintId: 1, weekId, status: 'planned', classFormat: '4x4_r2',
-  dayType: 'full_body', exerciseKeys: ['seed-key'], update: vi.fn() });
+const slot = (id, weekId) => { const s = { id, sprintId: 1, weekId, status: 'planned', classFormat: '4x4_r2',
+  dayType: 'full_body', exerciseKeys: ['seed-key'], update: vi.fn(async values => Object.assign(s, values)) }; return s; };
 
 const week = (id, weekNumber, prescription, slots) => ({
   id, weekNumber, isDeloadWeek: prescription.isDeload ?? false,
@@ -185,5 +185,46 @@ describe('U2: exercise-memory exclusion window', () => {
     // Seeded memory truth: ex-w2 (week 2, outside) vs ex-w3 (week 3, inside).
     // Slot keys enter memory via the real bulkCreate, which the mock no-ops.
     expect([...opts.exclusionKeys].sort()).toEqual(['ex-w3']);
+  });
+});
+
+describe('U4: same-week slots generate in parallel', () => {
+  it('starts every same-week generation before the first commit lands', async () => {
+    const order = [];
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    state.generate.mockImplementation((options) => {
+      order.push('gen-' + options.prescriptionIntensity);
+      return gate.then(() => ({ exercises: [{ exerciseName: 'W', board: 'main', key: 'w-' + order.length }], stations: [] }));
+    });
+    // Three planned slots in ONE week.
+    state.sprint.weeks = [week(101, 1, {}, [11, 12, 13])];
+    state.slots = state.sprint.weeks.flatMap(w => w.classSlots);
+
+    const run = generateSprintClasses(1, null, actor, request);
+    await new Promise(resolve => setTimeout(resolve, 20));
+
+    // All three generations STARTED while the gate is still closed.
+    expect(order.filter(o => o.startsWith('gen-'))).toHaveLength(3);
+    expect(state.slots.filter(s => s.status === 'generated')).toHaveLength(0); // no commit yet
+    release();
+    await run;
+    expect(state.generate).toHaveBeenCalledTimes(3);
+  });
+
+  it('commits succeeded siblings and rethrows when one generation in the batch fails', async () => {
+    const calls = [];
+    state.generate.mockImplementation((options) => {
+      calls.push(options.dayType ?? 'x');
+      if (calls.length === 2) return Promise.reject(new Error('mid-batch explosion'));
+      return Promise.resolve({ exercises: [{ exerciseName: 'W' + calls.length, board: 'main', key: 'w' + calls.length }], stations: [] });
+    });
+    state.sprint.weeks = [week(101, 1, {}, [11, 12, 13])];
+    state.slots = state.sprint.weeks.flatMap(w => w.classSlots);
+
+    await expect(generateSprintClasses(1, null, actor, request)).rejects.toThrow('mid-batch explosion');
+    // The two succeeded siblings still committed.
+    const committed = state.slots.filter(s => s.status === 'generated');
+    expect(committed).toHaveLength(2);
   });
 });
