@@ -1,5 +1,16 @@
 # Creator Brains — R2 hostile review + fix packet (2026-09-15)
 
+> **STATUS UPDATE 2026-09-15 (post-review):** N11 CLOSED — the engine + full
+> evidence chain committed at `b8bf3b7b6` on branch
+> `creator-brains-engine-r2-20260915` (155 files; suite re-verified 186/180/0/6
+> after the readiness regen). N9 CLOSED — R1 packet copied in-repo and
+> `readiness.mjs REVIEW_IDENTITY.packet` re-pointed at the canonical relative
+> path; receipt/requirement-map/gate-log regenerated to the self-referential
+> fixed point (`structurallyReady: true`, byte-stable). Operator-identity in the
+> frozen R1 evidence logs handled via `.secretignore` (identity-only; my own docs
+> redacted). **N1-N8, N10, N12-N15 remain OPEN — repair order in §4 is the
+> builder's worklist.**
+
 **Reviewers:** GLM 5.3-Flash (primary pass, this document) · Fable 5.1 (external,
 `FABLE-VERDICT.md`) · Astra `gpt-6-astra` (**BLOCKED — Codex seat usage-limited until
 2026-09-19 22:12**; fire the ready-made command in §7 when it resets).
