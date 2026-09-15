@@ -1,7 +1,9 @@
 import { getSprintClassSlot, getSprintExerciseMemory, getSprintWeek } from '../../models/index.mjs';
 import { generateBootcampClass } from './bootcampGenerator.mjs';
 import { getSprintById, getSprintExerciseMemoryEntries, getSprintExerciseMemoryKeys } from './sprintService.mjs';
-import { claimSprint, renewSprintClaim, withSprintClaim, sprintActor, sprintError } from './sprintGenerationClaim.mjs';
+import { claimSprint, closeGenerationRun, renewSprintClaim, withSprintClaim, sprintActor, sprintError } from './sprintGenerationClaim.mjs';
+import sequelize from '../../database.mjs';
+import logger from '../../utils/logger.mjs';
 
 // F04 restoration (base c0cbe538d): the progression strategy gives weeks with
 // NO explicit modifier a per-week volume multiplier. A week's own
@@ -88,7 +90,7 @@ async function commitSlot(sprintId, actor, claim, slotId, classData) {
   });
 }
 
-async function finish(sprintId, actor, claim, failed) {
+async function finish(sprintId, actor, claim, failed, errorMessage = null) {
   return withSprintClaim(sprintId, actor, claim, async (sprint, transaction) => {
     const slots = await getSprintClassSlot().findAll({ where: { sprintId }, transaction });
     const required = slots.filter(slot => slot.status !== 'skipped');
@@ -96,6 +98,8 @@ async function finish(sprintId, actor, claim, failed) {
     const status = !failed && required.length > 0 && completedSlots === required.length ? 'active' : 'draft';
     await sprint.update({ status, metadata: { ...sprint.metadata, generationClaimV1: null,
       lastGenerationV1: { operationId: claim.operationId, version: claim.version, status, completedSlots } } }, { transaction });
+    await closeGenerationRun(sequelize, sprintId, claim, failed ? 'failed' : 'completed',
+      failed ? 'generation failed; see server logs' : null);
     return { status, totalSlots: required.length, completedSlots, failedSlots: required.length - completedSlots };
   });
 }
@@ -113,7 +117,22 @@ async function runOwned(sprintId, actor, request, work) {
     return { ...result, ...terminal };
   } catch (error) {
     // Cleanup can only release this live fence. Never announce success when DB cleanup fails.
-    try { await finish(sprintId, actor, claim, true); } catch { /* lease expiry allows an explicit retry */ }
+    try {
+      await finish(sprintId, actor, claim, true);
+    } catch (cleanupError) {
+      // D-Q3: a cleanup failure used to be silent — the lease stayed held until
+      // expiry with no ops signal. The ledger row is marked 'orphaned' best-
+      // effort and the failure is LOGGED with the ids ops need to force-release.
+      try {
+        await sequelize.query(
+          `UPDATE generation_runs SET status = 'orphaned', finished_at = NOW(), error_message = :errorMessage
+           WHERE sprint_id = :sprintId AND operation_id = :operationId AND status = 'running'`,
+          { replacements: { sprintId, operationId: claim.operationId, errorMessage: String(cleanupError?.message || cleanupError).slice(0, 500) } },
+        );
+      } catch { /* ledger best-effort; the lease itself still expires */ }
+      logger.error('[SprintGen] claim cleanup failed — lease held until expiry:',
+        { sprintId, operationId: claim.operationId, cleanupError: String(cleanupError), originalError: String(error) });
+    }
     throw error;
   } finally { clearInterval(heartbeat); }
 }

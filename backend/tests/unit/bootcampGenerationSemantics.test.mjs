@@ -161,7 +161,7 @@ describe('bootcamp generation semantics', () => {
   });
 
   it('scales per-exercise work seconds by the week prescription (F04 deload volume)', () => {
-    const { prescribedWorkSec } = __testing__;
+    const { prescribedWorkSec, poolSlotsForClass, estimateClassWorkoutSeconds } = __testing__;
     expect(prescribedWorkSec(40, 1)).toBe(40);
     expect(prescribedWorkSec(40, 0.7)).toBe(28);
     expect(prescribedWorkSec(30, 1.5)).toBe(45);
@@ -174,5 +174,12 @@ describe('bootcamp generation semantics', () => {
     expect(prescribedWorkSec(100, 1.5)).toBe(120);
     expect(prescribedWorkSec(40, 9)).toBe(80);
     expect(prescribedWorkSec(40, -1)).toBe(40);
+
+    // D1/D2 (Astra hive findings, probe-confirmed)
+    expect(poolSlotsForClass('custom', 4, 4, false)).toBe(16);
+    expect(poolSlotsForClass('custom', 4, 4, true)).toBe(12);
+    expect(poolSlotsForClass('full_group', 9, 9, false)).toBe(10);
+    expect(estimateClassWorkoutSeconds([{ durationSec: 40, restSec: 10 }], 2, 4, 30)).toBe((50 * 2) + 90);
+    expect(estimateClassWorkoutSeconds([{ durationSec: 40, restSec: 10 }], 1, 1, 30)).toBe(50);
   });
 });

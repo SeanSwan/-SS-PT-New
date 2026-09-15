@@ -69,6 +69,16 @@ export function validateGenerationRequest(request = {}) {
   return null;
 }
 
+/**
+ * U3 ledger helpers. Every claim lands in generation_runs; finish() closes
+ * it; a cleanup failure or a superseded claim is marked 'orphaned' instead
+ * of vanishing (D-Q3: the ops gap that made cleanup failures silent).
+ * Raw SQL on purpose: this is an ops ledger, not a domain model.
+ */
+async function ledgerRun(sequelize, transaction, sql, replacements) {
+  await sequelize.query(sql, { type: QueryTypes.UPDATE, transaction, replacements });
+}
+
 export async function claimSprint(sprintId, actor, request = {}) {
   const invalid = validateGenerationRequest(request);
   if (invalid) throw invalid;
@@ -80,14 +90,40 @@ export async function claimSprint(sprintId, actor, request = {}) {
     if (sprint.status === 'archived' || sprintClaimIsLive(sprint, now)) {
       throw sprintError('Sprint generation claim conflict');
     }
+    // U3: a dead/superseded claim is being reclaimed — its ledger rows must
+    // not stay 'running' forever.
+    await ledgerRun(sequelize, transaction,
+      `UPDATE generation_runs SET status = 'orphaned', finished_at = :finishedAt
+       WHERE sprint_id = :sprintId AND status = 'running'`,
+      { sprintId, finishedAt: new Date(now) });
     if (Number(sprint.generationVersion) !== request.expectedGenerationVersion) throw sprintError('Sprint version conflict; refresh');
     const claim = { operationId: request.operationId, version: Number(sprint.generationVersion) + 1,
       expiresAt: new Date(now + 120000).toISOString() };
     await sprint.update({ status: 'generating', generationVersion: claim.version,
       metadata: { ...sprint.metadata, generationClaimV1: claim } }, { transaction });
+    await ledgerRun(sequelize, transaction,
+      `INSERT INTO generation_runs (sprint_id, operation_id, version, status, claimed_at)
+       SELECT :sprintId, :operationId, :version, 'running', :claimedAt
+       WHERE NOT EXISTS (SELECT 1 FROM generation_runs WHERE sprint_id = :sprintId AND operation_id = :operationId)`,
+      { sprintId, operationId: claim.operationId, version: claim.version, claimedAt: new Date(now) });
+    await ledgerRun(sequelize, transaction,
+      `UPDATE generation_runs SET status = 'running', version = :version, claimed_at = :claimedAt
+       WHERE sprint_id = :sprintId AND operation_id = :operationId`,
+      { sprintId, operationId: claim.operationId, version: claim.version, claimedAt: new Date(now) });
     return claim;
   });
 }
+/**
+ * U3: close the ledger row. `errorMessage` lands verbatim on 'failed' rows.
+ */
+export async function closeGenerationRun(sequelize, sprintId, claim, status, errorMessage = null) {
+  await sequelize.query(
+    `UPDATE generation_runs SET status = :status, finished_at = NOW(), error_message = :errorMessage
+     WHERE sprint_id = :sprintId AND operation_id = :operationId AND status IN ('running', 'orphaned')`,
+    { type: QueryTypes.UPDATE, replacements: { status, sprintId, operationId: claim.operationId, errorMessage } },
+  );
+}
+
 export async function withSprintClaim(sprintId, actor, claim, action) {
   return withLockedSprint(sprintId, actor, (sprint, transaction, now) => {
     const owned = sprint.metadata?.generationClaimV1;

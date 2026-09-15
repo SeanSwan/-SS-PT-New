@@ -465,12 +465,37 @@ export function resolveBootcampStructure({
   };
 }
 
-// F04: the sprint week prescription
-// UNIT CONTRACT: `durationSec`/return are SECONDS (validated ≥10; clamped 10–120). (deload 0.7 … validated overload 1.5)
+// F04: the sprint week prescription (deload 0.7 … validated overload 1.5)
 // scales per-exercise WORK seconds. Rest, stations and structure are untouched:
 // a deload week is less work per interval, not fewer stations or longer rests.
+// UNIT CONTRACT: `durationSec`/return are SECONDS (validated ≥10; clamped 10–120).
 // Normalized to [0.5, 2] and the scaled interval clamped to [10, 120] so a bad
 // row can neither erase nor explode the class.
+/**
+ * D1: how many pool picks the class will ACTUALLY make. Mirrors
+ * buildStationWorkout: finishers (and their -1 reserve) exist only on
+ * explicit cardio/high-impact classes; full-group draws 10 from the pool.
+ */
+export function poolSlotsForClass(classFormat, stationCount, exercisesPerStation, finishersAppended) {
+  if (classFormat === 'full_group') return 10;
+  const perStation = Math.max(1, (exercisesPerStation ?? 4) - (finishersAppended ? 1 : 0));
+  return Math.max(1, (stationCount ?? 0) * perStation);
+}
+
+/**
+ * D2 (hive arithmetic probe): the built exercise list holds each movement
+ * ONCE, but a `rounds`-round class performs every movement `rounds` times —
+ * and resolveBootcampStructure already divided per-slot durationSec by the
+ * rounds-inclusive totalSlots. Timing must multiply the list back.
+ */
+export function estimateClassWorkoutSeconds(exerciseRows, rounds = 1, stationCount = 0, stationTransitionSec = 0) {
+  const listTotal = (Array.isArray(exerciseRows) ? exerciseRows : [])
+    .reduce((sum, ex) => sum + (Number(ex?.durationSec) || 0) + (Number(ex?.restSec) || 0), 0);
+  const roundFactor = Math.max(1, Number(rounds) || 1);
+  const transitions = Math.max(0, (Number(stationCount) || 0) - 1) * (Number(stationTransitionSec) || 0);
+  return (listTotal * roundFactor) + transitions;
+}
+
 export function prescribedWorkSec(durationSec, prescriptionIntensity) {
   const base = Number(durationSec);
   if (!Number.isFinite(base) || base <= 0) return base;
@@ -643,16 +668,14 @@ export async function generateBootcampClass(options) {
   // class still always generates, but it can no longer generate a WRONG one —
   // the old tail returned the unfiltered pool and put squats back on upper day.
   // SWA-105 Slice 2: this must match what selection ACTUALLY consumes from the
-  // pool, or the ladder relaxes against a phantom need. Stations take
-  // `exercisesPerStation - 1` picks each (the last slot is a cardio finisher,
-  // appended from CARDIO_FINISHERS, not drawn from the pool); full-group takes
-  // 5 compound + 5 accessory, its 5 finishers likewise coming from elsewhere.
-  // Over-stating this made a healthy pool look starved and pulled bodyweight
-  // substitutes into classes that never needed them.
-  const requiredSlots = classFormat === 'full_group'
-    ? 10
-    : Math.max(1, stationCount * Math.max(1, (format.exercisesPerStation ?? 4) - 1));
-  const contract = applyDayTypeContract(availableExercises, dayType, requiredSlots);
+  // pool, or the ladder relaxes against a phantom need. D1 (hive probe): the
+  // -1 finisher reserve applies ONLY on explicit cardio/high-impact classes
+  // (buildStationWorkout gates finishers on allowHighImpactFinishers); a
+  // normal class consumes the FULL exercisesPerStation from the pool.
+  const plannedPoolSlots = poolSlotsForClass(
+    classFormat, stationCount, format.exercisesPerStation ?? 4, explicitHighImpactClass,
+  );
+  const contract = applyDayTypeContract(availableExercises, dayType, plannedPoolSlots);
   availableExercises = contract.pool;
   explanations.push({ type: 'day_type_contract', message: contract.explanation });
 
@@ -728,7 +751,7 @@ export async function generateBootcampClass(options) {
   // Step 5: Build stations or full-group workout
   const contractCtx = {
     dayTypeId: dayType,
-    totalSlots: requiredSlots,
+    totalSlots: plannedPoolSlots,
     highImpactAllowed: explicitHighImpactClass,
   };
   if (classFormat === 'full_group') {
@@ -738,7 +761,7 @@ export async function generateBootcampClass(options) {
       availableExercises, targetMuscles, stationCount, format, combinedExclusions,
       stations, allExercises, explanations,
       undefined, // rng default
-      { dayTypeId: dayType, totalSlots: requiredSlots, allowHighImpactFinishers: explicitHighImpactClass },
+      { dayTypeId: dayType, totalSlots: plannedPoolSlots, allowHighImpactFinishers: explicitHighImpactClass },
     );
   }
 
@@ -757,9 +780,12 @@ export async function generateBootcampClass(options) {
   }
 
   // Step 6: Calculate timing
-  const totalExerciseTime = allExercises.reduce((sum, ex) => sum + ex.durationSec + ex.restSec, 0);
-  const totalStationTransitions = Math.max(0, stationCount - 1) * STATION_TRANSITION_SEC;
-  const totalWorkoutSec = totalExerciseTime + totalStationTransitions;
+  // D2: multiply by rounds — the built list holds each movement once, but a
+  // rounds-round class performs every movement rounds times, and the
+  // per-slot durationSec was already divided by the rounds-inclusive count.
+  const totalWorkoutSec = estimateClassWorkoutSeconds(
+    allExercises, format.rounds ?? 1, stationCount, STATION_TRANSITION_SEC,
+  );
   const totalWorkoutMin = Math.round(totalWorkoutSec / 60);
 
   // Step 7: Generate overflow plan
@@ -1032,6 +1058,8 @@ export const __testing__ = {
   buildExerciseRecord,
   buildStationWorkout,
   normalizeExerciseLibraryId,
+  estimateClassWorkoutSeconds,
+  poolSlotsForClass,
   prescribedWorkSec,
   rankExercisesForBootcamp,
   resolveBootcampStructure,
