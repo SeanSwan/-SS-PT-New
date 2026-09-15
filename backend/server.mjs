@@ -73,6 +73,10 @@ import {
   startWorkoutPlanPdfDerivativeWorker,
   stopWorkoutPlanPdfDerivativeWorker,
 } from './jobs/workoutPlanPdfDerivativeWorker.mjs';
+import {
+  startTrainerCredentialCleanupWorker,
+  stopTrainerCredentialCleanupWorker,
+} from './jobs/trainerCredentialCleanupWorker.mjs';
 
 // ===================== GLOBAL ERROR HANDLERS =====================
 // Prevent server crashes from unhandled promise rejections
@@ -160,6 +164,12 @@ let appInstance = null;
       logger.error('Alert retention worker bootstrap failed (non-fatal): %s', retentionErr.message);
     }
 
+    try {
+      startTrainerCredentialCleanupWorker();
+    } catch (credentialCleanupError) {
+      logger.error('Trainer credential cleanup worker bootstrap failed (non-fatal): %s', credentialCleanupError.message);
+    }
+
     logger.info('🎉 SwanStudios Server is now ready to serve cosmic wellness!');
 
   } catch (error) {
@@ -181,6 +191,7 @@ const gracefulShutdown = async (signal) => {
     stopMarketingPublisherWorker();
     stopWorkoutPlanPdfDerivativeWorker();
     stopAlertRetentionWorker();
+    stopTrainerCredentialCleanupWorker();
   } catch (err) {
     logger.warn('Worker/cron shutdown error: %s', err.message);
   }
