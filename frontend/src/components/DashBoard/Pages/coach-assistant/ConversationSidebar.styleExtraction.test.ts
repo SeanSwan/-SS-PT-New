@@ -28,10 +28,15 @@ describe('ConversationSidebar style and accessibility locks', () => {
     expect(STYLES_SOURCE).toMatch(/export const ConvActionBtn[\s\S]*min-width:\s*44px[\s\S]*height:\s*44px/);
   });
 
-  it('keeps conversation rows keyboard activatable when rendered as role button', () => {
-    expect(ITEM_SOURCE).toContain('handleRowKeyDown');
-    expect(ITEM_SOURCE).toMatch(/onKeyDown=\{handleRowKeyDown\}/);
-    expect(ITEM_SOURCE).toMatch(/e\.key === 'Enter'/);
-    expect(ITEM_SOURCE).toMatch(/e\.key === ' '/);
+  it('keeps conversation selection keyboard-activatable via a REAL nested button', () => {
+    // role=button census refactor: the row is a plain container; selection is a
+    // native <ThreadSelectButton> (Enter/Space come from the browser), and the
+    // rename input renders OUTSIDE that button, never inside one.
+    expect(ITEM_SOURCE).toContain('ThreadSelectButton');
+    expect(ITEM_SOURCE).toMatch(/<ThreadSelectButton\s*\n\s*type="button"/);
+    expect(ITEM_SOURCE).toMatch(/onClick=\{handleSelect\}/);
+    expect(ITEM_SOURCE).not.toMatch(/role="button"/);
+    expect(ITEM_SOURCE).not.toContain('handleRowKeyDown');
+    expect(STYLES_SOURCE).toContain('export const ThreadSelectButton = styled.button');
   });
 });

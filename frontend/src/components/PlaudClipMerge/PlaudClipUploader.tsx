@@ -22,7 +22,15 @@ const ACCEPTED_MIMES = [
 ];
 const MAX_FILES = 5;
 
-const DropZone = styled.div<{ $dragOver: boolean; $disabled: boolean }>`
+const DropZone = styled.button<{ $dragOver: boolean; $disabled: boolean }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -187,12 +195,10 @@ export function PlaudClipUploader({
   return (
     <div>
       <DropZone
-        role="button"
-        tabIndex={0}
+        type="button"
         aria-label="Upload PLAUD clips"
         aria-disabled={isDisabled}
         onClick={onPick}
-        onKeyDown={(e) => { if (!isDisabled && (e.key === 'Enter' || e.key === ' ')) onPick(); }}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}

@@ -11,7 +11,7 @@
  * pre-aimed at the same time.
  */
 import React from 'react';
-import { getWeekSessionDisplay, isKeyboardActivationKey } from './WeekView.logic';
+import { getWeekSessionDisplay } from './WeekView.logic';
 import {
   formatGhostAge,
   getGhostClientName,
@@ -50,15 +50,8 @@ const WeekViewGhostLayer: React.FC<WeekViewGhostLayerProps> = ({ day, ghosts, on
             event.stopPropagation();
             book();
           }}
-          onKeyDown={(event) => {
-            if (!isKeyboardActivationKey(event)) return;
-            event.preventDefault();
-            event.stopPropagation();
-            book();
-          }}
+          type="button"
           title={`${age}: ${display.timeStr} - ${clientName}${display.trainerName ? ` / ${display.trainerName}` : ''}. Tap to book this slot.`}
-          role="button"
-          tabIndex={0}
           aria-label={`${age} ${display.timeStr} ${clientName}. Book this slot.`}
         >
           <GhostTag>{age}</GhostTag>

@@ -44,7 +44,7 @@ export const SidebarContainer = styled.aside<{ $isOpen: boolean }>`
     content: '';
     position: absolute;
     inset: 0;
-    background: #0A0A0F;
+    background: #0A0A0F; /* swan-guard-allow-hex legacy-pre-5431519a4 */
     z-index: -1;
   }
 
@@ -171,6 +171,29 @@ export const GroupLabel = styled.div`
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted, rgba(224, 236, 244, 0.3));
+`;
+
+// H07 census refactor: selection is a REAL button nested in the row, so the
+// rename input never lives inside a button (invalid HTML) and the row itself
+// no longer fakes button semantics.
+export const ThreadSelectButton = styled.button<{ $active?: boolean }>`
+  appearance: none;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
 `;
 
 export const ConvItemRow = styled.div<{ $active?: boolean }>`

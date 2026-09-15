@@ -203,3 +203,22 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
 
   return painAlerts;
 }
+
+/**
+ * H07-B (Sean-approved 2026-09-13): the severe-pain 422 is a BACKSTOP, not a
+ * roster-wide block. Severe regions with flagged exercises are gated first
+ * (auto-routed to joint-friendly alternatives); review is required only when
+ * gating could not make the class safe — an UNMAPPED severe region, or a
+ * flagged exercise left as CAUTION because no alternative existed. A region
+ * whose every flagged exercise was swapped no longer blocks the class: the
+ * swap trail (painSwap/painCaution + the pain_alert explanations) stays on
+ * the generated record.
+ */
+export function severePainReviewRequired(painAlerts) {
+  if (!Array.isArray(painAlerts)) return false;
+  return painAlerts.some(alert => {
+    if ((alert?.severity ?? 0) < 7) return false;
+    if (alert.unmappedRegion) return true;
+    return Array.isArray(alert.cautionExercises) && alert.cautionExercises.length > 0;
+  });
+}

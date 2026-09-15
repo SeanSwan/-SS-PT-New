@@ -11,7 +11,6 @@ import {
   getDayKey,
   getWeekDays,
   getWeekSessionDisplay,
-  isKeyboardActivationKey,
   isSameDay,
   type WeekViewProps,
 } from './WeekView.logic';
@@ -127,24 +126,6 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
     [onSelectSlot]
   );
 
-  const handleSlotKeyDown = useCallback(
-    (day: Date, hour: number, event: React.KeyboardEvent) => {
-      if (!isKeyboardActivationKey(event)) return;
-      event.preventDefault();
-      handleSlotClick(day, hour);
-    },
-    [handleSlotClick]
-  );
-
-  const handleDayHeaderKeyDown = useCallback(
-    (day: Date, event: React.KeyboardEvent) => {
-      if (!isKeyboardActivationKey(event)) return;
-      event.preventDefault();
-      onDrillDown?.(day);
-    },
-    [onDrillDown]
-  );
-
   const handleSessionClick = useCallback(
     (session: any, event: React.MouseEvent) => {
       event.stopPropagation();
@@ -153,15 +134,6 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
     [onSelectSession]
   );
 
-  const handleSessionKeyDown = useCallback(
-    (session: any, event: React.KeyboardEvent) => {
-      if (!isKeyboardActivationKey(event)) return;
-      event.preventDefault();
-      event.stopPropagation();
-      onSelectSession?.(session);
-    },
-    [onSelectSession]
-  );
 
   const currentTimeTop = useMemo(() => {
     const currentHour = Math.floor(currentMinute / 60);
@@ -193,10 +165,8 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
               <DayHeaderCell
                 key={getDayKey(day)}
                 $isToday={isToday}
+                type="button"
                 onClick={() => onDrillDown?.(day)}
-                onKeyDown={(event) => handleDayHeaderKeyDown(day, event)}
-                role="button"
-                tabIndex={0}
                 aria-label={`View ${day.toDateString()}`}
               >
                 <DayName>{DAY_LABELS[day.getDay()]}</DayName>
@@ -226,10 +196,8 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
                     <StyledBox as={HourSlot}
                       key={hour}
                       $style={{ height: PIXELS_PER_HOUR }}
+                      type="button"
                       onClick={(event) => handleSlotClick(day, hour, getScheduleSlotMinuteFromOffset(event.nativeEvent.offsetY, event.currentTarget.clientHeight))}
-                      onKeyDown={(event) => handleSlotKeyDown(day, hour, event)}
-                      role="button"
-                      tabIndex={0}
                       aria-label={`${DAY_LABELS[day.getDay()]} ${formatHour(hour)}`}
                     />
                   ))}
@@ -250,11 +218,9 @@ const WeekViewComponent: React.FC<WeekViewProps> = ({
                         $status={status}
                         $top={top}
                         $height={height}
+                        type="button"
                         onClick={(event) => handleSessionClick(session, event)}
-                        onKeyDown={(event) => handleSessionKeyDown(session, event)}
                         title={`${timeStr} - ${clientName || status}${trainerName ? ` / ${trainerName}` : ''}${sessionsLeft != null ? ` (${sessionsLeft} left)` : ''}`}
-                        role="button"
-                        tabIndex={0}
                       >
                         {sessionsLeft != null && (
                           <WeekSessionsBadge $low={sessionsLeft <= 3}>

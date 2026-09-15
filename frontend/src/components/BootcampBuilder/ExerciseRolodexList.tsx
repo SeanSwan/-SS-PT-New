@@ -73,11 +73,9 @@ const ExerciseRolodexList: React.FC<ExerciseRolodexListProps> = ({
             <ExerciseCard
               key={exercise.id}
               $selected={String(selectedId ?? '') === String(exercise.id)}
+              type="button"
               onClick={() => onSelectExercise?.(exercise)}
-              onKeyDown={(event) => handleCardKeyDown(event, exercise)}
-              role="button"
               aria-label={`Select ${exercise.name}`}
-              tabIndex={0}
             >
               {media.hasMedia && (
                 <MediaPreview aria-label={`${exercise.name} media preview`}>

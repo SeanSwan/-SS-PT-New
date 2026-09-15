@@ -15,7 +15,9 @@ const xrScreen = { width: 414, height: 896 };
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'coach-command-center-mobile.spec.ts',
+  // Sprint a11y gate shares this matrix (bucket-1 slice): the sprint specs
+  // run under the same XR/matrix projects via their @xr/@matrix tags.
+  testMatch: ['coach-command-center-mobile.spec.ts', 'sprint-planner-*.spec.ts'],
   timeout: 120_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,

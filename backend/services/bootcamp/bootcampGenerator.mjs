@@ -27,7 +27,7 @@ import { optimizeStationFlow } from './flowOptimizer.mjs';
 import {
   generateBoard2, applyClassStyle, generateStretches,
 } from './classStyleModifiers.mjs';
-import { applyPainAwareGating } from './painAwareGating.mjs';
+import { applyPainAwareGating, severePainReviewRequired } from './painAwareGating.mjs';
 import { applyDayTypeContract, budgetGate } from './dayTypeContract.mjs';
 import { pickFinishers } from './bootcampFinishers.mjs';
 import { orderPoolWithBrain } from './bootcampBrain.mjs';
@@ -792,7 +792,7 @@ export async function generateBootcampClass(options) {
   // semantics, and swaps severe-pain Board-1 exercises to joint-friendly
   // alternatives instead of only decorating. See painAwareGating.mjs.
   const painAlerts = await applyPainAwareGating({ trainerId, allExercises, explanations });
-  if (painAlerts.some(alert => alert.severity >= 7 && (alert.unmappedRegion || alert.flaggedExercises?.length))) {
+  if (severePainReviewRequired(painAlerts)) {
     throw Object.assign(new Error('Severe pain constraints require verified alternatives and trainer review'), {
       code: 'BOOTCAMP_PAIN_REVIEW_REQUIRED', statusCode: 422,
     });

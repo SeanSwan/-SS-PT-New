@@ -95,7 +95,15 @@ export const TimeHeaderCell = styled.div`
   border-right: 1px solid ${WEEK_VIEW_THEME.borderSoft};
 `;
 
-export const DayHeaderCell = styled.div<{ $isToday: boolean }>`
+export const DayHeaderCell = styled.button<{ $isToday: boolean }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -225,7 +233,15 @@ export const DayColumn = styled.div<{ $isToday: boolean }>`
   }
 `;
 
-export const HourSlot = styled.div`
+export const HourSlot = styled.button`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   border-bottom: 1px solid ${WEEK_VIEW_THEME.borderSoft};
   box-sizing: border-box;
   cursor: pointer;

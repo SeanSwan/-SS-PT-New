@@ -119,7 +119,14 @@ export const MetricGrid = styled.div`
   }
 `;
 
-export const MetricBlock = styled.div`
+export const MetricBlock = styled.button`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
   padding: 14px 0;
   border-bottom: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.1));
 `;

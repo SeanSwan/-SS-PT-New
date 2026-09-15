@@ -184,16 +184,8 @@ const VoiceMemoUpload: React.FC<VoiceMemoUploadProps> = ({
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={onDrop}
-          role="button"
-          tabIndex={0}
+          type="button"
           aria-label="Upload voice memo or file"
-          onKeyDown={(e) => {
-            if (uploading) return;
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              fileInputRef.current?.click();
-            }
-          }}
         >
           <HiddenInput
             ref={fileInputRef}

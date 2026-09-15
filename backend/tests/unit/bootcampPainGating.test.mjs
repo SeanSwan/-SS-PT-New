@@ -29,7 +29,7 @@ vi.mock('../../utils/logger.mjs', () => ({
   default: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: mocks.loggerWarn },
 }));
 
-const { applyPainAwareGating } = await import('../../services/bootcamp/painAwareGating.mjs');
+const { applyPainAwareGating, severePainReviewRequired } = await import('../../services/bootcamp/painAwareGating.mjs');
 
 function mainExercise(overrides = {}) {
   return {
@@ -233,5 +233,45 @@ describe('unmapped-region fail-visible note (hostile-review HIGH-2, 2026-07-13)'
       }),
     ]);
     expect(alerts[0].recommendation).toMatch(/manual/i);
+  });
+});
+
+describe('H07-B: the severe-pain 422 is a backstop, not a roster-wide block', () => {
+  it('does NOT require review when every flagged exercise was auto-routed to an alternative', () => {
+    const fullySwapped = {
+      region: 'left_knee', severity: 8, unmappedRegion: false,
+      flaggedExercises: ['Jump Squat'], swappedExercises: ['Goblet Squat'],
+      cautionExercises: [],
+    };
+    expect(severePainReviewRequired([fullySwapped])).toBe(false);
+  });
+
+  it('still requires review when a severe flagged exercise had NO alternative (caution)', () => {
+    const unswapped = {
+      region: 'left_knee', severity: 8, unmappedRegion: false,
+      flaggedExercises: ['Jump Squat'], swappedExercises: [],
+      cautionExercises: ['Jump Squat'],
+    };
+    expect(severePainReviewRequired([unswapped])).toBe(true);
+  });
+
+  it('still requires review for an unmapped severe region (cannot gate what cannot be mapped)', () => {
+    expect(severePainReviewRequired([
+      { region: 'left_achilles', severity: 9, unmappedRegion: true, flaggedExercises: [], cautionExercises: [] },
+    ])).toBe(true);
+  });
+
+  it('ignores sub-severity alerts entirely', () => {
+    expect(severePainReviewRequired([
+      { region: 'left_knee', severity: 6, flaggedExercises: ['X'], cautionExercises: ['X'] },
+      { region: 'back', severity: 5, unmappedRegion: true },
+    ])).toBe(false);
+  });
+
+  it('mixed regions block only when at least one severe case is unswapped or unmapped', () => {
+    expect(severePainReviewRequired([
+      { region: 'left_knee', severity: 8, flaggedExercises: ['A'], swappedExercises: ['B'], cautionExercises: [] },
+      { region: 'shoulder', severity: 9, flaggedExercises: ['C'], swappedExercises: [], cautionExercises: ['C'] },
+    ])).toBe(true);
   });
 });

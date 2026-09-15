@@ -86,15 +86,8 @@ const SessionCardComponent: React.FC<SessionCardProps> = ({ session, onClick }) 
       $status={status}
       $isPast={isPast}
       $liteMode={schedulePerf.MOBILE_LITE_MODE}
-      role="button"
-      tabIndex={0}
+      type="button"
       onClick={() => onClick?.(session)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onClick?.(session);
-        }
-      }}
       aria-label={`Session ${status} at ${time}`}
     >
       {/* Sessions remaining badge - top right corner */}

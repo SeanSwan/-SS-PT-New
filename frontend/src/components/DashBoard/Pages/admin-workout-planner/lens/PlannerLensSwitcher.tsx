@@ -48,7 +48,9 @@ const CardRail = styled.div`
   }
 `;
 
-const LensCard = styled.div<{ $active: boolean }>`
+// Native button (see SavedPlanCard Card): same look, real semantics.
+const LensCard = styled.button<{ $active: boolean }>`
+  appearance: none; font: inherit; color: inherit; text-align: left; padding: 0; background: none; border: none;
   flex: 0 0 85%; scroll-snap-align: start; cursor: pointer;
   min-height: 96px; padding: 14px; border-radius: 14px;
   background: var(--world-surface, var(--bg-base, #030712));
@@ -93,12 +95,10 @@ const PlannerLensSwitcher: React.FC<PlannerLensSwitcherProps> = ({ activeLensId,
               {entries.map(entry => (
                 <LensCard
                   key={entry!.id}
-                  role="button"
-                  tabIndex={0}
+                  type="button"
                   aria-pressed={entry!.id === activeLensId}
                   $active={entry!.id === activeLensId}
                   onClick={() => { onSelect(entry!.id); setOpen(false); }}
-                  onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(entry!.id); setOpen(false); } }}
                 >
                   <CardName>
                     {entry!.id === activeLensId && <Check size={16} aria-hidden />}

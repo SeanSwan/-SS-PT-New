@@ -123,20 +123,25 @@ describe('SavedPlanCard — card-body Load', () => {
     expect(h.onLoad).toHaveBeenCalledWith('p-50', 'Phase 1 Plan');
   });
 
-  it('Enter key on card body calls onLoad', () => {
+  it('card body is a NATIVE button, so Enter/Space activation is browser-provided', () => {
     const h = handlers();
     render(<SavedPlanCard plan={draftPlan} loaded={false} archiveBlocked={false} {...h} />);
     const card = screen.getByTestId('saved-plan-card-p-50');
+    // The old div+shim was replaced by a real <button>: Enter/Space now come
+    // from the browser (locked end-to-end in sprint-planner-a11y.spec.ts), so
+    // jsdom only has to prove the click contract the keyboard maps to.
+    expect(card.tagName).toBe('BUTTON');
     card.focus();
-    fireEvent.keyDown(card, { key: 'Enter' });
+    fireEvent.click(card);
     expect(h.onLoad).toHaveBeenCalledTimes(1);
   });
 
-  it('Space key on card body calls onLoad', () => {
+  it('space activation routes through the same native button click contract', () => {
     const h = handlers();
     render(<SavedPlanCard plan={draftPlan} loaded={false} archiveBlocked={false} {...h} />);
     const card = screen.getByTestId('saved-plan-card-p-50');
-    fireEvent.keyDown(card, { key: ' ' });
+    expect(card.tagName).toBe('BUTTON');
+    fireEvent.click(card);
     expect(h.onLoad).toHaveBeenCalledTimes(1);
   });
 });
