@@ -53,9 +53,11 @@ describe('Slice 3.11 — PlaudClipUploader source contract', () => {
     expect(UPLOADER_SRC).toMatch(/box-shadow:\s*0\s+0\s+\d+px\s+rgba\(139,\s*92,\s*246,\s*0\.\d+\)/);
   });
 
-  it('keyboard accessible (Enter / Space activates picker)', () => {
-    expect(UPLOADER_SRC).toMatch(/e\.key\s*===\s*['"]Enter['"]/);
-    expect(UPLOADER_SRC).toMatch(/e\.key\s*===\s*['"]\s['"]/);
+  it('keyboard accessible (native button — the platform activates Enter / Space)', () => {
+    // The drop zone is a real <button>, so keyboard activation is native and
+    // role/tabIndex/onKeyDown emulation is deliberately absent (a11y round).
+    expect(UPLOADER_SRC).toMatch(/styled\.button</);
+    expect(UPLOADER_SRC).toMatch(/type="button"/);
   });
 
   it('rejects > 5 files client-side', () => {
