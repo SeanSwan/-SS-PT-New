@@ -1,0 +1,253 @@
+{
+  "source": "C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT",
+  "fixtureRoot": "C:\\Users\\BIGOTS~1\\AppData\\Local\\Temp\\creator-brains-hostile-6fA5WP",
+  "network": "none; synthetic deps; scheduler uses missing executable",
+  "probes": 20,
+  "violations": 0,
+  "results": [
+    {
+      "id": "HR01",
+      "expected": "At most one fetch across both runs",
+      "observed": {
+        "fetched": [
+          0,
+          0
+        ]
+      },
+      "violated": false
+    },
+    {
+      "id": "HR02",
+      "expected": "Only Alpha requested",
+      "observed": {
+        "requested": "UCaaaaaaaaaaaaaaaaaaaaaa",
+        "probed": [
+          "aaaaaaaaaaa"
+        ]
+      },
+      "violated": false
+    },
+    {
+      "id": "HR03",
+      "expected": "Fetch failure returns nonzero",
+      "observed": {
+        "exitCode": 1,
+        "stdout": "fetched 0, deferred 0, no-track 0, failed 1\n  budget 1/60 · transport ops 1/60 · 0s of 45 min\nnote: 1 fetch(es) failed\n"
+      },
+      "violated": false
+    },
+    {
+      "id": "HR04a",
+      "expected": "Malformed state is preserved and blocks",
+      "observed": {
+        "ok": false,
+        "state": "null"
+      },
+      "violated": false
+    },
+    {
+      "id": "HR04b",
+      "expected": "Direct discover preserves corrupt state",
+      "observed": {
+        "state": "{bad"
+      },
+      "violated": false
+    },
+    {
+      "id": "HR05",
+      "expected": "Registry damage blocks without overwrite",
+      "observed": {
+        "runOk": false,
+        "addOk": false,
+        "registryPreserved": true
+      },
+      "violated": false
+    },
+    {
+      "id": "HR06",
+      "expected": "Opposite instructions retain polarity and do not merge",
+      "observed": {
+        "positive": {
+          "modality": "directive",
+          "polarity": "affirm",
+          "keyPhrase": "blur tear trough crease retouching portraits",
+          "action": "blur",
+          "object": "tear trough crease retouching portraits",
+          "condition": "retouching portraits",
+          "statement": "do blur tear trough crease retouching portraits (when retouching portraits)"
+        },
+        "negative": {
+          "modality": "directive",
+          "polarity": "negate",
+          "keyPhrase": "blur tear trough crease retouching portraits",
+          "action": "blur",
+          "object": "tear trough crease retouching portraits",
+          "condition": "retouching portraits",
+          "statement": "do not blur tear trough crease retouching portraits (when retouching portraits)"
+        },
+        "doctrines": [],
+        "conflicts": [
+          {
+            "phrase": "blur tear trough crease retouching portraits",
+            "sides": {
+              "affirm": [
+                {
+                  "creatorId": "UCaaaaaaaaaaaaaaaaaaaaaa",
+                  "url": "https://www.youtube.com/watch?v=aaaaaaaaaaa&t=2s",
+                  "statement": "do blur tear trough crease retouching portraits (when retouching portraits)",
+                  "videoId": "aaaaaaaaaaa"
+                }
+              ],
+              "negate": [
+                {
+                  "creatorId": "UCaaaaaaaaaaaaaaaaaaaaaa",
+                  "url": "https://www.youtube.com/watch?v=bbbbbbbbbbb&t=2s",
+                  "statement": "do not blur tear trough crease retouching portraits (when retouching portraits)",
+                  "videoId": "bbbbbbbbbbb"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "violated": false
+    },
+    {
+      "id": "HR07",
+      "expected": "Distinct channels have immutable distinct namespaces",
+      "observed": {
+        "namespaces": [
+          "UCaaaaaaaaaaaaaaaaaaaaaa",
+          "UCbbbbbbbbbbbbbbbbbbbbbb"
+        ],
+        "generations": [
+          "gen-0001",
+          "gen-0001"
+        ],
+        "slugDir": false,
+        "hitsA": 1
+      },
+      "violated": false
+    },
+    {
+      "id": "HR08",
+      "expected": "Missing doc is repaired or claims invalidated",
+      "observed": {
+        "ok": true,
+        "built": 0,
+        "calls": 0,
+        "hits": 0,
+        "staged": [
+          "UCaaaaaaaaaaaaaaaaaaaaaa-UCaaaaaaaaaaaaaaaaaaaaaa.md",
+          "UCaaaaaaaaaaaaaaaaaaaaaa-UCaaaaaaaaaaaaaaaaaaaaaa.rules.jsonl",
+          "UCaaaaaaaaaaaaaaaaaaaaaa-UCaaaaaaaaaaaaaaaaaaaaaa.timeline.md",
+          "UCaaaaaaaaaaaaaaaaaaaaaa-UCaaaaaaaaaaaaaaaaaaaaaa.topics.md",
+          "_collection.md"
+        ]
+      },
+      "violated": false
+    },
+    {
+      "id": "HR09",
+      "expected": "Fewer than 8 normalized source words on every derived surface",
+      "observed": {
+        "phrase": "frequency separation layers masks brushes dodging burning",
+        "normalizedWords": 7,
+        "creatorTitleVerbatim": false
+      },
+      "violated": false
+    },
+    {
+      "id": "HR10",
+      "expected": "Use a fully mocked OAuth acceptance suite for a repaired adapter",
+      "observed": {
+        "reason": "Skipped: do not launch a new default OAuth flow with synthetic credentials"
+      },
+      "violated": false,
+      "skipped": true
+    },
+    {
+      "id": "HR11",
+      "expected": "Timing edits and tampered content trigger validation/revision",
+      "observed": {
+        "timingWrote": true,
+        "storedMs": 9000,
+        "repairWrote": true,
+        "text": "always preserve texture while adjusting the shadow contrast"
+      },
+      "violated": false
+    },
+    {
+      "id": "HR12",
+      "expected": "Malformed enumeration cannot prove deletion",
+      "observed": {
+        "state": "fetched"
+      },
+      "violated": false
+    },
+    {
+      "id": "HR13",
+      "expected": "Negative timings rejected before persistence",
+      "observed": {
+        "state": "failed_transient"
+      },
+      "violated": false
+    },
+    {
+      "id": "HR14a",
+      "expected": "One writer owns the store and reservation",
+      "observed": {
+        "fetchCalls": 0,
+        "documents": 0
+      },
+      "violated": false
+    },
+    {
+      "id": "HR14b",
+      "expected": "Concurrent newly discovered state is preserved",
+      "observed": {
+        "newVideoSurvives": true
+      },
+      "violated": false
+    },
+    {
+      "id": "HR15",
+      "expected": "Do not infer opposition from directive/caution labels",
+      "observed": {
+        "creators": 1,
+        "conflicts": 0
+      },
+      "violated": false
+    },
+    {
+      "id": "HR16",
+      "expected": "Startup failure writes a durable failed run/digest",
+      "observed": {
+        "exitCode": 2,
+        "runs": 1,
+        "digestDirectory": true
+      },
+      "violated": false
+    },
+    {
+      "id": "HR17",
+      "expected": "Unusable document creates an explicit coverage gap",
+      "observed": {
+        "docCount": 0,
+        "covered": 0,
+        "gaps": 1
+      },
+      "violated": false
+    },
+    {
+      "id": "HR18",
+      "expected": "Fetched identity must match authoritative discovery channel",
+      "observed": {
+        "state": "failed_permanent",
+        "calls": 0,
+        "wroteUnderWrongCreator": false
+      },
+      "violated": false
+    }
+  ]
+}

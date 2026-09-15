@@ -1,0 +1,14 @@
+✔ T-16 @live yt-dlp resolves on this machine (550.4761ms)
+✔ T-16b @live the subtitle probe answers with a language list (2897.0734ms)
+✔ T-16c @live an end-to-end fetch stores a document with real cues (6464.384ms)
+✔ T-16d @live upload enumeration returns STRUCTURED rows for a real channel (1062.9664ms)
+✔ T-16e @live a real channel id resolves from playlist metadata (1203.4649ms)
+✔ T-16f @live a real census covers all three tabs, and knows what it is (5863.5836ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18054.8108

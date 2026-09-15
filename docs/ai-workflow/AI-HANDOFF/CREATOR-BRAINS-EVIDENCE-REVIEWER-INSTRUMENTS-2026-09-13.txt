@@ -1,0 +1,28 @@
+NOT REPRODUCED HR01: {"fetched":[0,0]}
+NOT REPRODUCED HR02: {"requested":"UCaaaaaaaaaaaaaaaaaaaaaa","probed":["aaaaaaaaaaa"]}
+NOT REPRODUCED HR03: {"exitCode":1,"stdout":"fetched 0, deferred 0, no-track 0, failed 1\n  budget 1/60 · transport ops 1/60 · 0s of 45 min\nnote: 1 fetch(es) failed\n"}
+NOT REPRODUCED HR04a: {"ok":false,"state":"null"}
+NOT REPRODUCED HR04b: {"state":"{bad"}
+NOT REPRODUCED HR05: {"runOk":false,"addOk":false,"registryPreserved":true}
+NOT REPRODUCED HR06: {"positive":{"modality":"directive","polarity":"affirm","keyPhrase":"blur tear trough crease retouching portraits","action":"blur","object":"tear trough crease retouching portraits","condition":"retouching portraits","statement":"do blur tear trough crease retouching portraits (when retouching portraits)"},"negative":{"modality":"directive","polarity":"negate","keyPhrase":"blur tear trough crease retouching portraits","action":"blur","object":"tear trough crease retouching portraits","condition":"retouching portraits","statement":"do not blur tear trough crease retouching portraits (when retouching portraits)"},"doctrines":[],"conflicts":[{"phrase":"blur tear trough crease retouching portraits","sides":{"affirm":[{"creatorId":"UCaaaaaaaaaaaaaaaaaaaaaa","url":"https://www.youtube.com/watch?v=aaaaaaaaaaa&t=2s","statement":"do blur tear trough crease retouching portraits (when retouching portraits)","videoId":"aaaaaaaaaaa"}],"negate":[{"creatorId":"UCaaaaaaaaaaaaaaaaaaaaaa","url":"https://www.youtube.com/watch?v=bbbbbbbbbbb&t=2s","statement":"do not blur tear trough crease retouching portraits (when retouching portraits)","videoId":"bbbbbbbbbbb"}]}}]}
+NOT REPRODUCED HR07: {"namespaces":["UCaaaaaaaaaaaaaaaaaaaaaa","UCbbbbbbbbbbbbbbbbbbbbbb"],"generations":["gen-0001","gen-0001"],"slugDir":false,"hitsA":1}
+NOT REPRODUCED HR08: {"ok":true,"built":0,"calls":0,"hits":0,"staged":["UCaaaaaaaaaaaaaaaaaaaaaa-UCaaaaaaaaaaaaaaaaaaaaaa.md","UCaaaaaaaaaaaaaaaaaaaaaa-UCaaaaaaaaaaaaaaaaaaaaaa.rules.jsonl","UCaaaaaaaaaaaaaaaaaaaaaa-UCaaaaaaaaaaaaaaaaaaaaaa.timeline.md","UCaaaaaaaaaaaaaaaaaaaaaa-UCaaaaaaaaaaaaaaaaaaaaaa.topics.md","_collection.md"]}
+NOT REPRODUCED HR09: {"phrase":"frequency separation layers masks brushes dodging burning","normalizedWords":7,"creatorTitleVerbatim":false}
+SKIPPED HR10: {"reason":"Skipped: do not launch a new default OAuth flow with synthetic credentials"}
+NOT REPRODUCED HR11: {"timingWrote":true,"storedMs":9000,"repairWrote":true,"text":"always preserve texture while adjusting the shadow contrast"}
+NOT REPRODUCED HR12: {"state":"fetched"}
+NOT REPRODUCED HR13: {"state":"failed_transient"}
+NOT REPRODUCED HR14a: {"fetchCalls":0,"documents":0}
+NOT REPRODUCED HR14b: {"newVideoSurvives":true}
+NOT REPRODUCED HR15: {"creators":1,"conflicts":0}
+NOT REPRODUCED HR16: {"exitCode":2,"runs":1,"digestDirectory":true}
+NOT REPRODUCED HR17: {"docCount":0,"covered":0,"gaps":1}
+NOT REPRODUCED HR18: {"state":"failed_permanent","calls":0,"wroteUnderWrongCreator":false}
+0/20 invariant violations reproduced. Fixtures retained at C:\Users\BIGOTS~1\AppData\Local\Temp\creator-brains-hostile-6fA5WP
+
+=== transport-probes.mjs ===
+NOT REPRODUCED HR19: {"probe":{"ok":false,"kind":"shape_error","languages":[],"originals":[],"error":"output contained no recognizable subtitle banner — empty, truncated, or a changed format"},"finalState":"failed_transient"}
+NOT REPRODUCED HR20: {"enumerationArgs":["https://www.youtube.com/channel/UCaaaaaaaaaaaaaaaaaaaaaa/videos","--ignore-config","--no-config-locations","--skip-download","--no-warnings","--no-playlist","--no-progress","--flat-playlist","--print","%(.{id,title,duration,view_count,upload_date,channel_id,availability})j"],"ignoreConfigPresent":true,"skipDownloadPresent":true}
+NOT REPRODUCED HR20b: {"mediaGuardRejected":true}
+NOT REPRODUCED HR21: {"ids":["1970-01-01T00-00-00-000Z-5b695b8b","1970-01-01T00-00-00-000Z-006a103a"]}
+

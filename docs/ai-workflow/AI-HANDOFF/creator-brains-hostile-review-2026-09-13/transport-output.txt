@@ -1,0 +1,4 @@
+REPRODUCED HR19: {"probe":{"ok":true,"languages":[],"originals":[]},"finalState":"unavailable"}
+REPRODUCED HR20: {"enumerationArgs":["https://www.youtube.com/channel/UCaaaaaaaaaaaaaaaaaaaaaa/videos","--flat-playlist","--no-warnings","--print","%(id)s\t%(title)s\t%(duration)s\t%(view_count)s\t%(upload_date)s"],"ignoreConfigPresent":false,"skipDownloadPresent":false}
+REPRODUCED HR20b: {"mediaGuardRejected":false}
+REPRODUCED HR21: {"ids":["1970-01-01T00-00-00-000Z-001","1970-01-01T00-00-00-000Z-001"]}

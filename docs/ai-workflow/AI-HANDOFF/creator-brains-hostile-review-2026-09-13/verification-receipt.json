@@ -1,0 +1,20 @@
+{
+  "verifiedAt": "2026-09-13T00:53:18.8704402-07:00",
+  "sourceFiles": 35,
+  "changedSourcePaths": [],
+  "invalidSnapshotPaths": [],
+  "brokenLocalLinks": [],
+  "baseline": {
+    "pass": 54,
+    "fail": 0,
+    "liveSkipped": 4,
+    "qualification": "yt-dlp version lookup stubbed with node.exe; acquisition dependencies synthetic"
+  },
+  "diagnostics": {
+    "main": 20,
+    "transport": 4,
+    "totalInvariantViolations": 24,
+    "networkRequests": 0
+  },
+  "canonicalSourceEdited": false
+}

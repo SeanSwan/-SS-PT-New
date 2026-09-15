@@ -1,0 +1,580 @@
+{
+  "schemaVersion": 1,
+  "phase": "implementation",
+  "ui": false,
+  "project": "creator-brains (SS-PT acquisition engine)",
+  "revision": {
+    "note": "The engine is UNCOMMITTED working-tree state. This hash manifest is the revision marker.",
+    "manifest": "CREATOR-BRAINS-HR23-SOURCE-HASHES-2026-09-13.txt",
+    "manifestSha256": "77d94e11225ed0424c5a100faa63d76e348f69b73df4110a60d6a472e8bee04d"
+  },
+  "reviewIdentity": {
+    "packet": "docs/ai-workflow/AI-HANDOFF/creator-brains-hostile-review-2026-09-13/ (canonical, in this repo since the R2/N9 repair)",
+    "verdict": "REVISE",
+    "findings": 26,
+    "instruments": [
+      "reproduce.mjs (20 invariant checks)",
+      "transport-probes.mjs (4 transport checks)"
+    ],
+    "intake": "reproduced 20/20 and 4/4 against the reviewed revision before any repair",
+    "final": "the same instruments report 0/20 and 0/4, exit 0, against this revision",
+    "adapted": "TWO diagnostic call sites were adapted, each marked REPAIR-ADAPT with a header: HR09 (it read a display-name directory that HR07 correctly removed) and HR07 (it asserted equal slugs, which is now correctly true). Every other diagnostic runs unmodified.",
+    "adjudications": "per-finding dispositions: repair record §0 table and §2.1",
+    "notClaimed": "the review is NOT recorded as approved: no reviewer has re-reviewed the repairs, and none is recorded as passing them."
+  },
+  "blockers": [],
+  "nextSlice": "HR10 live authorization (owner action: create the Desktop OAuth client, set the consent screen to In production, run `cli.mjs authorize`, then `cli.mjs sync`), and the deferred semantic-retrieval work, which is NOT claimed anywhere in this receipt.",
+  "scope": {
+    "implemented": [
+      "acquisition",
+      "storage",
+      "publication",
+      "query",
+      "export",
+      "candidate extraction",
+      "OAuth adapter/consent/pagination (offline-tested)"
+    ],
+    "partial": [
+      "candidate extraction is labelled candidate, never verified"
+    ],
+    "deferred": [
+      "semantic retrieval (lexical search only)"
+    ],
+    "notBuilt": [],
+    "notRun": [
+      "live OAuth authorization",
+      "vault copy to the headless machine (owner-run)"
+    ],
+    "unreconciled": [
+      "Creator_Brains_History_and_Build_Spec.md is MISSING; nothing here supersedes it"
+    ]
+  },
+  "sections": {
+    "baseline": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-REVIEW-REPAIR-RECORD-2026-09-13.md",
+          "sha256": "740fa5bd49eab7400b5df44fabb7a2b699da578e3239291578777412a12bfa09"
+        }
+      ]
+    },
+    "requirements": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-SS-PT-ENGINE-BLUEPRINT-2026-09-12.md",
+          "sha256": "15fa660eaa6ba8d95c5d551cafc7da0677af295224e87d971a2b3ba06e8621d8"
+        }
+      ]
+    },
+    "blueprint": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-SS-PT-ENGINE-BLUEPRINT-2026-09-12.md",
+          "sha256": "15fa660eaa6ba8d95c5d551cafc7da0677af295224e87d971a2b3ba06e8621d8"
+        }
+      ]
+    },
+    "flowchart": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-SS-PT-ENGINE-BLUEPRINT-2026-09-12.md",
+          "sha256": "15fa660eaa6ba8d95c5d551cafc7da0677af295224e87d971a2b3ba06e8621d8"
+        }
+      ]
+    },
+    "contracts": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-SS-PT-ENGINE-BLUEPRINT-2026-09-12.md",
+          "sha256": "15fa660eaa6ba8d95c5d551cafc7da0677af295224e87d971a2b3ba06e8621d8"
+        }
+      ]
+    },
+    "tests": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-EVIDENCE-OFFLINE-SUITE-2026-09-13.txt",
+          "sha256": "549e66c4ef5f28626abb7de39610aef95d784f548745da1eb6f637913911b9ae"
+        },
+        {
+          "path": "CREATOR-BRAINS-HR23-LIVE-2026-09-13.txt",
+          "sha256": "2a4e66a8a615e34bf9fff4e3962cba4e8edbc17281dbddffa6ade0a272d24ae8"
+        }
+      ]
+    },
+    "traceability": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-REVIEW-REPAIR-RECORD-2026-09-13.md",
+          "sha256": "740fa5bd49eab7400b5df44fabb7a2b699da578e3239291578777412a12bfa09"
+        }
+      ]
+    },
+    "slices": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-SS-PT-ENGINE-BLUEPRINT-2026-09-12.md",
+          "sha256": "15fa660eaa6ba8d95c5d551cafc7da0677af295224e87d971a2b3ba06e8621d8"
+        }
+      ]
+    },
+    "review": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-EVIDENCE-REVIEWER-INSTRUMENTS-2026-09-13.txt",
+          "sha256": "ed8ea8f0373f7dea6fb84b884a3c25997211b5f8aa24e4ffc414224c516b744c"
+        },
+        {
+          "path": "CREATOR-BRAINS-EVIDENCE-MUTATIONS-2026-09-13.txt",
+          "sha256": "59ee2815714a9ef49cf3c2cd8e50dde1b9c7c8e39aa7a6609d8ade5a1263e764"
+        }
+      ]
+    },
+    "preservation": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-HR23-SOURCE-HASHES-2026-09-13.txt",
+          "sha256": "77d94e11225ed0424c5a100faa63d76e348f69b73df4110a60d6a472e8bee04d"
+        }
+      ]
+    },
+    "wireframes": {
+      "status": "N/A",
+      "reason": "Headless CLI engine: there is no UI surface to wireframe (stated as N/A in the blueprint §3)."
+    },
+    "state": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-SS-PT-ENGINE-BLUEPRINT-2026-09-12.md",
+          "sha256": "15fa660eaa6ba8d95c5d551cafc7da0677af295224e87d971a2b3ba06e8621d8"
+        }
+      ]
+    },
+    "sequence": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-SS-PT-ENGINE-BLUEPRINT-2026-09-12.md",
+          "sha256": "15fa660eaa6ba8d95c5d551cafc7da0677af295224e87d971a2b3ba06e8621d8"
+        }
+      ]
+    },
+    "erd": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-SS-PT-ENGINE-BLUEPRINT-2026-09-12.md",
+          "sha256": "15fa660eaa6ba8d95c5d551cafc7da0677af295224e87d971a2b3ba06e8621d8"
+        }
+      ]
+    },
+    "permissions": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-SS-PT-ENGINE-BLUEPRINT-2026-09-12.md",
+          "sha256": "15fa660eaa6ba8d95c5d551cafc7da0677af295224e87d971a2b3ba06e8621d8"
+        }
+      ]
+    },
+    "privacy": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-REVIEW-REPAIR-RECORD-2026-09-13.md",
+          "sha256": "740fa5bd49eab7400b5df44fabb7a2b699da578e3239291578777412a12bfa09"
+        }
+      ]
+    },
+    "operations": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-REVIEW-REPAIR-RECORD-2026-09-13.md",
+          "sha256": "740fa5bd49eab7400b5df44fabb7a2b699da578e3239291578777412a12bfa09"
+        }
+      ]
+    }
+  },
+  "requirements": [
+    {
+      "id": "HR01",
+      "acceptance": "The rolling-hour transport budget is persistent across invocations, is counted in transport operations, and a tripped cap DEFERS with a reason rather than reporting a clean zero.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE",
+        "T-MUTATIONS"
+      ]
+    },
+    {
+      "id": "HR02",
+      "acceptance": "A creator selection is honoured exactly: naming one creator never widens into fetching everybody, and a disabled or unknown target is refused.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR03",
+      "acceptance": "Every command’s exit code follows the run verdict (0 ok / 1 failed / 2 refused / 3 deferred), never the fact that a line was printed.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR04",
+      "acceptance": "A damaged state.json blocks the run and is never overwritten by a lenient default; direct callers hit the same refusal.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR05",
+      "acceptance": "A damaged registry.json blocks the run and cannot be replaced by `add`; the owner’s enable/disable decisions are authoritative state.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR06",
+      "acceptance": "always/never keep OPPOSITE polarity and never merge into one doctrine; polarity is a first-class field.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR07",
+      "acceptance": "Two channels with the same display name never share a brain namespace or a generation, and no display-name directory exists.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR08",
+      "acceptance": "Reconciliation runs before scheduling: a `fetched` row with no valid document is re-queued, and a creator with no readable documents publishes an EMPTY generation instead of serving yesterday’s.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR09",
+      "acceptance": "Every published generation passes the fidelity gate over its FINAL serialized bytes; a failing generation is quarantined and the previous one stays current.",
+      "tests": [
+        "T-OFFLINE",
+        "T-MUTATIONS",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR10",
+      "acceptance": "The OAuth lane states its true status at every stage: exchange, consent and pagination are implemented and offline-tested; live authorization has NOT been performed and `sync` says so.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR11",
+      "acceptance": "A document revision is recorded when bytes change, an unchanged rewrite adds no revision, and a tampered document is detected rather than hashed clean.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR12",
+      "acceptance": "A walk that was not certified complete cannot confirm a deletion; a tab inside a title cannot drop a row; an empty-but-successful answer is inconclusive.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR13",
+      "acceptance": "Cue timings are validated at the engine boundary: finite, non-negative, ordered — a negative cue never becomes a citation.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR14",
+      "acceptance": "One writer per store: a cross-process lock refuses a second run with a recorded outcome, is never stolen on age alone, and temp names are unique per writer.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR15",
+      "acceptance": "A contradiction requires the SAME assertion with opposite polarity; compatible caution and directive labels do not conflict.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR16",
+      "acceptance": "Every outcome leaves a record: startup refusals, no-ops and lock-blocked runs write a run journal entry, a run record and a digest; last SUCCESS is tracked separately.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR17",
+      "acceptance": "An invalid document is a coverage GAP, never counted as covered, and gap rows are deduped by video id.",
+      "tests": [
+        "T-OFFLINE",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR18",
+      "acceptance": "Authority is established from the authoritative records: the video’s channel, the registry row and the enabled flag must agree with the named creator, and a mismatch costs no network call.",
+      "tests": [
+        "T-OFFLINE",
+        "T-MUTATIONS",
+        "T-REPRODUCE"
+      ]
+    },
+    {
+      "id": "HR19",
+      "acceptance": "A probe that cannot be understood is a SHAPE ERROR (transient), never \"no captions\"; a machine-translated track is refused rather than attributed to the creator.",
+      "tests": [
+        "T-OFFLINE",
+        "T-LIVE",
+        "T-PROBES"
+      ]
+    },
+    {
+      "id": "HR20",
+      "acceptance": "yt-dlp argv is CONSTRUCTED from an allowlist operation model; no caller passes flags, and every read-only operation carries --ignore-config, --no-config-locations and --skip-download.",
+      "tests": [
+        "T-OFFLINE",
+        "T-PROBES"
+      ]
+    },
+    {
+      "id": "HR21",
+      "acceptance": "Run ids are unique across processes, and a saved run reports whether it overwrote an earlier record.",
+      "tests": [
+        "T-OFFLINE",
+        "T-PROBES"
+      ]
+    },
+    {
+      "id": "HR22",
+      "acceptance": "Incremental discovery and a periodic AUTHORITATIVE census are separate modes; a census is resumable across runs through a per-channel checkpoint, walks every tab before it may judge, and is the only walk allowed to confirm a deletion.",
+      "tests": [
+        "T-OFFLINE",
+        "T-LIVE",
+        "T-MUTATIONS"
+      ]
+    },
+    {
+      "id": "HR23",
+      "acceptance": "A run is bounded in work and time and cannot be set unbounded; a 429 or bot check opens a persisted cooldown every later invocation honours; the backlog is visible with age, projection and the repair action; the no-caption window is configurable and defaults to 48h.",
+      "tests": [
+        "T-OFFLINE",
+        "T-MUTATIONS"
+      ]
+    },
+    {
+      "id": "HR24",
+      "acceptance": "rules.jsonl rows carry schema_version, doc_revision, the support window, explicit polarity, condition, extractor, `validation: candidate` and citation_status — and no surface claims a verified rule.",
+      "tests": [
+        "T-OFFLINE",
+        "T-MUTATIONS"
+      ]
+    },
+    {
+      "id": "HR25",
+      "acceptance": "DURABLE input is separable from DERIVED output: backup copies and hashes, verify re-hashes, restore targets an isolated root, and derived rollback cannot reach the transcript archive.",
+      "tests": [
+        "T-OFFLINE",
+        "T-MUTATIONS"
+      ]
+    },
+    {
+      "id": "HR26",
+      "acceptance": "One authoritative status and receipt, a complete requirement-to-test mapping, REPRODUCIBLE mutation definitions, exact source hashes, and no past or missing review recorded as passed.",
+      "tests": [
+        "T-GATE",
+        "T-MUTATIONS"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-OFFLINE",
+      "command": "node --experimental-test-isolation=none --test scripts/creator-brains/test/*.test.mjs (excluding live.test.mjs)",
+      "requirements": [
+        "HR01",
+        "HR02",
+        "HR03",
+        "HR04",
+        "HR05",
+        "HR06",
+        "HR07",
+        "HR08",
+        "HR09",
+        "HR10",
+        "HR11",
+        "HR12",
+        "HR13",
+        "HR14",
+        "HR15",
+        "HR16",
+        "HR17",
+        "HR18",
+        "HR19",
+        "HR20",
+        "HR21",
+        "HR22",
+        "HR23",
+        "HR24",
+        "HR25"
+      ],
+      "status": "PASS",
+      "proves": "172/172 offline tests green; the HR22 and HR23 RED logs are the pre-repair runs of the same files",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-EVIDENCE-OFFLINE-SUITE-2026-09-13.txt",
+          "sha256": "549e66c4ef5f28626abb7de39610aef95d784f548745da1eb6f637913911b9ae"
+        },
+        {
+          "path": "CREATOR-BRAINS-HR22-RED-2026-09-13.txt",
+          "sha256": "bff9fc4b401d0a38ca45c243b6fde25aa1f90617b9ac828cf1c30d0c055c9b4b"
+        },
+        {
+          "path": "CREATOR-BRAINS-HR23-RED-2026-09-13.txt",
+          "sha256": "677c2cfef7dcfa6f0b4beedde3173433a411d3b5aa1f2da56b8b7890126d357e"
+        }
+      ]
+    },
+    {
+      "id": "T-LIVE",
+      "command": "CREATOR_BRAINS_LIVE=1 node --experimental-test-isolation=none --test scripts/creator-brains/test/live.test.mjs",
+      "requirements": [
+        "HR19",
+        "HR22"
+      ],
+      "status": "PASS",
+      "proves": "real yt-dlp: probe, subtitle fetch, multi-tab census, channel resolution — 6/6",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-HR23-LIVE-2026-09-13.txt",
+          "sha256": "2a4e66a8a615e34bf9fff4e3962cba4e8edbc17281dbddffa6ade0a272d24ae8"
+        }
+      ]
+    },
+    {
+      "id": "T-REPRODUCE",
+      "command": "REVIEW_SOURCE_ROOT=<this tree> node <packet>/reproduce.mjs",
+      "requirements": [
+        "HR01",
+        "HR02",
+        "HR03",
+        "HR04",
+        "HR05",
+        "HR06",
+        "HR07",
+        "HR08",
+        "HR09",
+        "HR10",
+        "HR11",
+        "HR12",
+        "HR13",
+        "HR14",
+        "HR15",
+        "HR16",
+        "HR17",
+        "HR18"
+      ],
+      "status": "PASS",
+      "proves": "the reviewer's own instrument reports 0/20 invariant violations, exit 0",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-EVIDENCE-REVIEWER-INSTRUMENTS-2026-09-13.txt",
+          "sha256": "ed8ea8f0373f7dea6fb84b884a3c25997211b5f8aa24e4ffc414224c516b744c"
+        }
+      ]
+    },
+    {
+      "id": "T-PROBES",
+      "command": "REVIEW_SOURCE_ROOT=<this tree> node <packet>/transport-probes.mjs",
+      "requirements": [
+        "HR19",
+        "HR20",
+        "HR21"
+      ],
+      "status": "PASS",
+      "proves": "the reviewer's transport probes report 0/4, exit 0 — including the argv allowlist and cross-process run ids",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-EVIDENCE-REVIEWER-INSTRUMENTS-2026-09-13.txt",
+          "sha256": "ed8ea8f0373f7dea6fb84b884a3c25997211b5f8aa24e4ffc414224c516b744c"
+        }
+      ]
+    },
+    {
+      "id": "T-MUTATIONS",
+      "command": "node scripts/creator-brains/mutation-check.mjs",
+      "requirements": [
+        "HR09",
+        "HR18",
+        "HR22",
+        "HR23",
+        "HR24",
+        "HR25",
+        "HR26",
+        "HR01"
+      ],
+      "status": "PASS",
+      "proves": "10/10 mutations killed by a named test, every file restored byte-for-byte; the six that survived the first run are the gaps this slice closed",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-EVIDENCE-MUTATIONS-2026-09-13.txt",
+          "sha256": "59ee2815714a9ef49cf3c2cd8e50dde1b9c7c8e39aa7a6609d8ade5a1263e764"
+        }
+      ]
+    },
+    {
+      "id": "T-GATE",
+      "command": "node scripts/build-protocol/check-readiness.mjs <this receipt>",
+      "requirements": [
+        "HR26"
+      ],
+      "status": "PASS",
+      "proves": "the installed readiness integrity gate reports structurallyReady with no errors against this receipt",
+      "evidence": [
+        {
+          "path": "CREATOR-BRAINS-EVIDENCE-READINESS-GATE-2026-09-13.txt",
+          "sha256": "534c605f99d2a8a86fd42ed65048a248d05e48ccebf8d5ddcfb2dd397c653551"
+        },
+        {
+          "path": "CREATOR-BRAINS-REQUIREMENT-MAP-2026-09-13.md",
+          "sha256": "89ed00ba113fef2180dc0c5f9f84b8d46ebdc2d21c36f740a0ddcd65a41d90fa"
+        }
+      ]
+    }
+  ]
+}

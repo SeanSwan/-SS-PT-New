@@ -1,0 +1,96 @@
+✖ HR22a an interrupted sweep resumes at the tab that failed — no gap, no re-walk (27.4796ms)
+✖ HR22b 250 mixed-content rows: every id once, no tab walked twice, under a 1-tab-per-run bound (48.8181ms)
+✖ HR22c a deletion is confirmed by an authoritative sweep, never by an incremental walk (25.457ms)
+✖ HR22d the daily job sweeps on a cadence, and `discover --full` forces one (16.4286ms)
+✔ HR22e a tab failure mid-sweep confirms nothing (25.2885ms)
+✖ HR22f a stale partial sweep is discarded rather than resumed weeks later (19.9202ms)
+✔ HR22g a store that has never been swept walks all three tabs from the start (11.0794ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 2
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 235.5863
+
+✖ failing tests:
+
+test at scripts\creator-brains\test\resume.test.mjs:121:1
+✖ HR22a an interrupted sweep resumes at the tab that failed — no gap, no re-walk (27.4796ms)
+  AssertionError [ERR_ASSERTION]: a walk that lost a tab does not report success
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/resume.test.mjs:142:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: true,
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\resume.test.mjs:164:1
+✖ HR22b 250 mixed-content rows: every id once, no tab walked twice, under a 1-tab-per-run bound (48.8181ms)
+  AssertionError [ERR_ASSERTION]: the whole corpus was reached across the runs
+  
+  100 !== 250
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/resume.test.mjs:193:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 100,
+    expected: 250,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\resume.test.mjs:203:1
+✖ HR22c a deletion is confirmed by an authoritative sweep, never by an incremental walk (25.457ms)
+  AssertionError [ERR_ASSERTION]: the sweep observes the absence (first confirmation)
+  
+  undefined !== 1
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/resume.test.mjs:237:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\resume.test.mjs:257:1
+✖ HR22d the daily job sweeps on a cadence, and `discover --full` forces one (16.4286ms)
+  AssertionError [ERR_ASSERTION]: the first daily run performs the authoritative sweep that is due
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/resume.test.mjs:274:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\resume.test.mjs:321:1
+✖ HR22f a stale partial sweep is discarded rather than resumed weeks later (19.9202ms)
+  AssertionError [ERR_ASSERTION]: the whole corpus is present after the stale sweep restarts
+  
+  4 !== 6
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/resume.test.mjs:337:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 6,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

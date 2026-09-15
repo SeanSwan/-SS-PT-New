@@ -1,0 +1,183 @@
+{
+  "reviewDate": "2026-09-13T00:42:36.7744555-07:00",
+  "sourceRoot": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT",
+  "head": "fbca1bb2bd010b467d44c7b175cbfab74982a86e",
+  "branch": "wip/comms-notifications-2026-07-05",
+  "files": [
+    {
+      "path": "scripts\\creator-brains\\cli.mjs",
+      "sha256": "5E54A7AC510D7508702E05858D8974C5F89338B2541E3C5146201E1EE45454CC",
+      "bytes": 13071
+    },
+    {
+      "path": "scripts\\creator-brains\\README.md",
+      "sha256": "0FA6A18DED3F98324D6214E9E6AC26780E00AE3C572A649A65010B80A116D4B9",
+      "bytes": 9306
+    },
+    {
+      "path": "scripts\\creator-brains\\run-daily.mjs",
+      "sha256": "44D36A21F91BC0F789EADAE3257C80E33CD5A976DAB30B28BD6B9B12309D87BB",
+      "bytes": 4721
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\canary.mjs",
+      "sha256": "25D801F847C380E2EA18DBDC964910C4CB1EA3C8F2D09C786631C6A21D504FA7",
+      "bytes": 3546
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\digest.mjs",
+      "sha256": "809DBDDE45F6A7D1883A0A963F18903C623752646D89AA2FE4B44A3DF17CB4BE",
+      "bytes": 6447
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\discover.mjs",
+      "sha256": "ACFE78469CA412AB48A9A11F0A308332D28F0D909AF3F79366AE4225960B9978",
+      "bytes": 6446
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\enumerate.mjs",
+      "sha256": "9EA33A638FD5AC47B6BE5DE7229C2A0E84D97348949C3BE53248435CA7EC8BC6",
+      "bytes": 2776
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\export.mjs",
+      "sha256": "6AF6080943D2B4166E4789EAF892A2CA3CD8AE6FF907EBB8CC321AFA2AAC8AC5",
+      "bytes": 6833
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\extract.mjs",
+      "sha256": "220C9A303791FA19349FF759CA22AD4F9BCE2424DAFC8EF8CCFC15CB21968029",
+      "bytes": 9249
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\fetch.mjs",
+      "sha256": "DD8EB9D854FF6A2E7B5621AA66138A23C9CC377861B364FAD1A3AA4F1C94FAF8",
+      "bytes": 9635
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\fsm.mjs",
+      "sha256": "DDC96B876C4806640BAB30E1339CBFB684881F6C012F2139B33748A1366812F9",
+      "bytes": 12671
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\ledger.mjs",
+      "sha256": "1C028CF2810623D59533CD887DF3B15800BD19D77B37D9017C628EAC8F970494",
+      "bytes": 4843
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\lexicon.mjs",
+      "sha256": "B537F592BE1F7D20CFD2270D90AD2677590846C00ABDDEB5133BFE7D807FBBA7",
+      "bytes": 9481
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\paths.mjs",
+      "sha256": "9551DEE1A0652FF9815C9CF154DB1F89A21821FD70092B652656A8688A68E10C",
+      "bytes": 6425
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\pipeline.mjs",
+      "sha256": "4D703EEDE1230950E41E203AE1E6585D3D004390BE948794BC6489E855487AF0",
+      "bytes": 8207
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\probe.mjs",
+      "sha256": "7FA401CA6F8AE40010FA26C596CCEA875944C53A05851261244D9D70B804C4A4",
+      "bytes": 6320
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\query.mjs",
+      "sha256": "DFB8D3770A5FC8F9A55598F5F113A7C9D1D00A7C52D7A21F2BFC3016A408165B",
+      "bytes": 6118
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\registry.mjs",
+      "sha256": "50E6C3A68AFE26F2E1B453E6156846188F39459134A4B86F185FB3B4CD7F85F6",
+      "bytes": 5764
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\render.mjs",
+      "sha256": "5830744251A1AAD716EFD8AE0B2554584B8D4B0FF67906C36F9DAF516A077C0D",
+      "bytes": 10600
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\run.mjs",
+      "sha256": "5E4B61F37A17302143795AA3839715724C435E1F4B5D461669EE4D39BEE245E4",
+      "bytes": 9891
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\store.mjs",
+      "sha256": "14E810DDE4F525CB2CF9E47DA8CB72BC5FB2A2ADAD6E01C41A897F4ACDF102B2",
+      "bytes": 10764
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\subs.mjs",
+      "sha256": "4D6ECB2842D1B34ABF820FE470190E0F9862BAC0E44B0E9BB73EEBB8ACB72E43",
+      "bytes": 7336
+    },
+    {
+      "path": "scripts\\creator-brains\\lib\\ytdlp.mjs",
+      "sha256": "C67743B6EE83E2501FE1293FB6C742B851B9C941C13025C4CBEB972E48FB43AD",
+      "bytes": 10757
+    },
+    {
+      "path": "scripts\\creator-brains\\test\\brain.test.mjs",
+      "sha256": "62D8347F26A8A7E3FD48B1B5EA55581339C599229325BDA637732E8C18CB28FE",
+      "bytes": 7637
+    },
+    {
+      "path": "scripts\\creator-brains\\test\\cli.test.mjs",
+      "sha256": "6D08EB8A8846BF815D1E69AF60142D8D2F18A1AC0BDCDCA1F16197B027A422D7",
+      "bytes": 5353
+    },
+    {
+      "path": "scripts\\creator-brains\\test\\helpers.mjs",
+      "sha256": "6C21F792493A6BB91C23FCD3ECCCED1E8E2529AF43533947A257B5D33CBD81CC",
+      "bytes": 5088
+    },
+    {
+      "path": "scripts\\creator-brains\\test\\live.test.mjs",
+      "sha256": "401BB493485E4E43CE5DB0B46C16C97AD8772944825E67399E08CCB3C1DF8659",
+      "bytes": 4110
+    },
+    {
+      "path": "scripts\\creator-brains\\test\\reliability.test.mjs",
+      "sha256": "99451D1F1D28C794C36282F7DFFD426DDCA1C1C6AFE8654DF8A6C282CB24A10A",
+      "bytes": 13558
+    },
+    {
+      "path": "scripts\\creator-brains\\test\\system.test.mjs",
+      "sha256": "347F0579546F85628EC31EA24DEDCE4C18AA2D1752CD289C93D4624C165E7B6E",
+      "bytes": 11982
+    },
+    {
+      "path": "scripts\\creator-brains\\test\\tier.test.mjs",
+      "sha256": "0CA89760A1F40BD55B9616AE3CDA2D4AA1541CBC9DBAD3C8AE664211C4EDDFD5",
+      "bytes": 12700
+    },
+    {
+      "path": "scripts\\creator-brains\\test\\unit.test.mjs",
+      "sha256": "2774EBDC5744070436BB858CDE50C11ED6224B24422CC674E193DFA7E90007DB",
+      "bytes": 18445
+    },
+    {
+      "path": "scripts\\swan-scout\\yt-scout-lib.mjs",
+      "sha256": "0AF655D848C2B2E499FD4FF4254ABBB93811EAA02786432F9146E440B0285890",
+      "bytes": 11922
+    },
+    {
+      "path": "scripts\\swan-scout\\yt-scout-transcript.mjs",
+      "sha256": "CB9BB699157730CD4425CE92606FC2E5027702B34ED01DF2C46E50FDFF8D5CD2",
+      "bytes": 8965
+    },
+    {
+      "path": "docs\\ai-workflow\\AI-HANDOFF\\CREATOR-BRAINS-SS-PT-ENGINE-BLUEPRINT-2026-09-12.md",
+      "sha256": "27B87E7C0B0306F475C0DC6636E57FF9ED7A1574336CF8F19B350FEE629470AE",
+      "bytes": 49291
+    },
+    {
+      "path": "scripts\\swan-scout\\yt-scout-cache.mjs",
+      "sha256": "5CD05D6CE455E4505887A54BD080943E21D0BCC8D0575173C612C699FD276A93",
+      "bytes": 10129
+    }
+  ]
+}

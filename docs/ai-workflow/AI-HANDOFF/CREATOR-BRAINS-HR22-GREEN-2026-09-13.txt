@@ -1,0 +1,20 @@
+Alpha: 8 known
+census: 1 complete, 0 in progress, 0 resumed (--full forced)
+  confirmed gone: 1 · awaiting a second observation: 0
+✔ HR22d1 a creator that has never been swept is due; a recent one is not (1.4926ms)
+✔ HR22c a deletion is confirmed by an authoritative sweep, never by an incremental walk (57.5018ms)
+✔ HR22d the daily job sweeps on a cadence, and `discover --full` forces one (37.5955ms)
+✔ HR22h a FAILED census leaves the creator due for the next run (23.9149ms)
+✔ HR22a an interrupted sweep resumes at the tab that failed — no gap, no re-walk (20.7489ms)
+✔ HR22b 250 mixed-content rows: every id once, no tab walked twice, under a 1-tab-per-run bound (46.3533ms)
+✔ HR22e a tab failure mid-sweep confirms nothing (20.7169ms)
+✔ HR22f a stale partial sweep is discarded rather than resumed weeks later (20.1608ms)
+✔ HR22g a store that has never been swept walks all three tabs from the start (12.5352ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 293.8208

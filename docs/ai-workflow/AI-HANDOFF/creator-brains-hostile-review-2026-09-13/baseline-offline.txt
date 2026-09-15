@@ -1,0 +1,66 @@
+✔ T-08 build emits the four brain artifacts with resolvable citations (22.9755ms)
+✔ T-08b the brain is scoped to ONE creator — no cross-contamination (5.1543ms)
+✔ T-08c a claim whose source document is gone is DROPPED, and the gap is NAMED (INV-6) (8.9063ms)
+✔ T-11 query returns creator-grouped hits with deep links and no transcript spans (15.8412ms)
+✔ T-11b query can be narrowed to one creator (14.2981ms)
+✔ T-11c an empty query is refused, not answered with everything (0.7067ms)
+✔ T-19 the CLI module exposes the documented commands (7.7872ms)
+✔ T-20 a FLAG is never mistaken for a creator reference (36.2015ms)
+✔ T-20b the first query term is not swallowed (9.011ms)
+﹣ T-16 @live yt-dlp resolves on this machine (0.1125ms) # network test — set CREATOR_BRAINS_LIVE=1 to run
+﹣ T-16b @live the subtitle probe answers with a language list (0.0477ms) # network test — set CREATOR_BRAINS_LIVE=1 to run
+﹣ T-16c @live an end-to-end fetch stores a document with real cues (0.0249ms) # network test — set CREATOR_BRAINS_LIVE=1 to run
+﹣ T-16d @live uploading enumeration returns rows for a real channel (0.0309ms) # network test — set CREATOR_BRAINS_LIVE=1 to run
+✔ T-21 a video inside its backoff window is NOT retried by the runner (52.0023ms)
+✔ T-21b a no-track video is re-probed once, then goes terminal — it does not loop forever (99.1681ms)
+✔ T-22 a run whose fetches all fail does NOT report ok (review F4) (56.1213ms)
+✔ T-22b a mid-loop failure still reports the fetches already done (review F11) (30.8102ms)
+✔ T-23 an unparseable state.json refuses the run instead of overwriting it (review F6) (25.715ms)
+✔ T-24 two runs at the same instant get different ids (review F14) (48.5245ms)
+✔ T-25 re-fetching EDITED captions records a revision rather than overwriting silently (5.1641ms)
+✔ T-09 a run with a FAILING canary still writes a digest and reports ok:false (29.448ms)
+✔ T-09b a run with NO new videos still writes a digest and reports ok:true (28.2969ms)
+✔ T-09c every run is persisted as a run record with phases (34.5471ms)
+✔ T-10 sync with no credential is BLOCKED with steps — never an empty success (0.9997ms)
+✔ T-10b a credential file that exists but is unreadable is a FAILURE, not a success (1.3784ms)
+✔ T-13 a credential token never reaches a run record, digest, or ledger (45.0601ms)
+✔ T-13b the run record redacts any key-shaped string it is handed (0.3308ms)
+✔ T-15 running the daily job twice over the same corpus is a no-op the second time (92.0284ms)
+✔ T-15b a budget-tripped run reports DEFERRED with a reason, never a clean zero (42.9499ms)
+✔ T-18 a video that vanished from a COMPLETE enumeration is marked deleted_upstream (249.1703ms)
+✔ T-12d a LONG VIDEO TITLE cannot leak transcript text into Lane C (review F1) (48.6573ms)
+✔ T-12e rules.jsonl keeps its extension when staged (review F5) (13.9863ms)
+✔ T-12f two non-Latin-titled creators do not share one brain directory (review F12) (4.2313ms)
+✔ T-12g a stale vault artifact is reaped, but a foreign file is left alone (22.6363ms)
+✔ T-12 the phrase cap is enforced directly, not just hoped for (0.3089ms)
+✔ T-12 no Lane C artifact contains an 8+ word verbatim transcript run (827.4331ms)
+✔ T-12b the export path cannot read Lane B (import-graph fact, not a promise) (0.3676ms)
+✔ T-12c export stages only DERIVED files (15.7778ms)
+✔ T-01 registry accepts @handle, channel URL and UC id; rejects a phrase (4.7061ms)
+✔ T-01b a new creator is born DISABLED (trigger law) (1.7906ms)
+✔ T-02 discovery enumerates past 200 videos and a second run finds 0 new (4.0324ms)
+✔ T-02b a TRUNCATED walk is flagged, so a delta is never mistaken for completeness (2.1158ms)
+✔ T-03 fetching twice stores one document and reports unchanged (2.7006ms)
+✔ T-03b the creator-brains store has NO pruning path — scout pruning cannot reach it (3.6582ms)
+✔ T-04 a probe that cannot answer is failed_transient, never no_track_confirmed (0.5125ms)
+✔ T-04b an answered probe with no wanted track IS no_track_confirmed (0.528ms)
+✔ T-04c a probe answered YES but an empty payload is a FAILURE, not a no-track (0.4312ms)
+✔ T-04d malformed json3 fails CLOSED with a shape reason (0.4976ms)
+✔ T-05 a fresh no-track video waits, then goes unavailable after the window (0.13ms)
+✔ T-06 the FSM retries a failure but never re-fetches a success (0.0642ms)
+✔ T-06b illegal transitions throw rather than corrupting the record (0.087ms)
+✔ T-06c repeated transient failures become permanent after MAX_ATTEMPTS (0.0701ms)
+✔ T-07 a tripped budget REFUSES with a reason and never reports a clean zero (0.2205ms)
+✔ T-14 a video id NOT produced by discovery is refused before any network call (0.4229ms)
+✔ T-26 a probe returning no languages array is a FAILURE, not "no captions" (review F2) (0.5949ms)
+✔ T-26b a machine-translated track is REFUSED, not passed off as the creator's words (review W7) (0.6291ms)
+✔ T-27 selfCheck reports FAILURE for an explicit yt-dlp path that does not run (review F3) (2.3166ms)
+✔ T-17 the engine reuses the scout json3 parser rather than a second one (0.1386ms)
+ℹ tests 58
+ℹ suites 0
+ℹ pass 54
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 4
+ℹ todo 0
+ℹ duration_ms 1947.5349

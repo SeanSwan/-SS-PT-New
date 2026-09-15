@@ -1,0 +1,63 @@
+{
+  "source": "C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT",
+  "network": "none",
+  "probes": 4,
+  "violations": 0,
+  "results": [
+    {
+      "id": "HR19",
+      "expected": "Exit-0 empty probe is an unanswered/shape failure",
+      "observed": {
+        "probe": {
+          "ok": false,
+          "kind": "shape_error",
+          "languages": [],
+          "originals": [],
+          "error": "output contained no recognizable subtitle banner — empty, truncated, or a changed format"
+        },
+        "finalState": "failed_transient"
+      },
+      "violated": false
+    },
+    {
+      "id": "HR20",
+      "expected": "Ignore ambient config and enforce approved effects centrally",
+      "observed": {
+        "enumerationArgs": [
+          "https://www.youtube.com/channel/UCaaaaaaaaaaaaaaaaaaaaaa/videos",
+          "--ignore-config",
+          "--no-config-locations",
+          "--skip-download",
+          "--no-warnings",
+          "--no-playlist",
+          "--no-progress",
+          "--flat-playlist",
+          "--print",
+          "%(.{id,title,duration,view_count,upload_date,channel_id,availability})j"
+        ],
+        "ignoreConfigPresent": true,
+        "skipDownloadPresent": true
+      },
+      "violated": false
+    },
+    {
+      "id": "HR20b",
+      "expected": "Central effect guard rejects inline media options",
+      "observed": {
+        "mediaGuardRejected": true
+      },
+      "violated": false
+    },
+    {
+      "id": "HR21",
+      "expected": "Cross-process runs have unique IDs",
+      "observed": {
+        "ids": [
+          "1970-01-01T00-00-00-000Z-5b695b8b",
+          "1970-01-01T00-00-00-000Z-006a103a"
+        ]
+      },
+      "violated": false
+    }
+  ]
+}

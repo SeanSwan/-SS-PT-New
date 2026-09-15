@@ -1,0 +1,26 @@
+mutation definitions: 10 selected of 10
+anchor validation: every mutation matches exactly once, every killer test exists
+
+✖ killed  M1 (F2 / CB-04) — a SECOND confirmed absence stops being terminal (the no-track retry loop returns)
+           killer: test/reliability.test.mjs → T-21b a no-track video is re-probed once, then goes terminal — it does not loop forever (908.2346ms)
+✖ killed  M2 (HR18) — the authority check stops comparing the video channel with the creator channel
+           killer: test/mutation-gaps.test.mjs → MG1 (kills M2) a video from another channel is refused even without the discovery binding (9.1376ms)
+✖ killed  M3 (HR09 / CB-12) — the Lane C verbatim cap is raised from 7 words to 12
+           killer: test/mutation-gaps.test.mjs → MG2 (kills M3) the fidelity gate rejects an 8-word shared run, not just the phrase cap (1.9111ms)
+✖ killed  M4 (HR01 / CB-07) — the rolling-hour budget stops refusing when it is exhausted
+           killer: test/review-repairs.test.mjs → HR01 a rolling-hour cap is shared across invocations, not reset per run (55.0858ms)
+✖ killed  M5 (HR23) — the shared throttle cooldown stops gating new transport operations
+           killer: test/mutation-gaps.test.mjs → MG3 (kills M5) an ACTIVE cooldown refuses a reservation at the ledger, not only at the phase (9.2396ms)
+✖ killed  M6 (HR23) — the admission wrapper stops consulting the per-run work bound
+           killer: test/mutation-gaps.test.mjs → MG4 (kills M6) the admission wrapper refuses when the run work bound is spent (17.1122ms)
+✖ killed  M7 (HR22) — a sweep certifies every tab it asked for, without checking that each one answered
+           killer: test/resume.test.mjs → HR22a an interrupted sweep resumes at the tab that failed — no gap, no re-walk (38.2195ms)
+✖ killed  M8 (HR22) — a walk that covered PART of the corpus is allowed to certify the whole of it
+           killer: test/census.test.mjs → HR22i a walk given PART of the corpus certifies nothing and judges nothing (9.8528ms)
+✖ killed  M9 (HR25) — verification stops comparing the stored hash with the file on disk
+           killer: test/backup.test.mjs → BK2b verification CATCHES a corrupted or missing file (28.5155ms)
+✖ killed  M10 (HR24) — candidate rows are labelled `verified` instead of `candidate`
+           killer: test/mutation-gaps.test.mjs → MG5 (kills M10) the rendered contract uses the SAME candidate label the extractor names (13.614ms)
+
+mutations run: 10 · killed: 10 · suspect: 0 · survived: 0
+every definition was killed by the test it names, and every file was restored byte-for-byte

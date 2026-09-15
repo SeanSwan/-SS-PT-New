@@ -1,0 +1,191 @@
+✖ HR23a a run work bound stops the fetch loop early and DEFERS the rest (214.2686ms)
+✖ HR23b the FIRST 429 stops the run instead of hammering the remaining queue (56.6952ms)
+✖ HR23c a tripped throttle blocks the NEXT invocation, then expires (61.4096ms)
+✖ HR23d an invalid bound is REFUSED at the CLI boundary, never read as unlimited (65.3473ms)
+✖ HR23i `status` reports backlog age, projection and retry exhaustion (1079.8837ms)
+✖ HR23j a throttled run reports DEFERRED, not a failure and not a success (32.7586ms)
+✖ HR23i2 status on an empty store still reports a backlog line (436.5477ms)
+✖ HR23e the "fresh" tier is reachable in BOTH real date formats (0.3409ms)
+✔ HR23e2 a fresh upload is ordered ahead of an older backlog (0.2358ms)
+✔ HR23f one new upload outranks a 4,000-item backlog, and planning stays cheap (2304.742ms)
+✔ HR23g a budget that fits one video per creator advances every creator (68.3542ms)
+✖ HR23h the no-caption retry window is configurable at the CLI (34.1183ms)
+✖ HR23h2 a nonsense window is refused rather than silently defaulted (35.2263ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 3
+ℹ fail 10
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4458.6045
+
+✖ failing tests:
+
+test at scripts\creator-brains\test\bounds.test.mjs:96:1
+✖ HR23a a run work bound stops the fetch loop early and DEFERS the rest (214.2686ms)
+  AssertionError [ERR_ASSERTION]: exactly one video fits in a two-operation bound
+  
+  30 !== 1
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/bounds.test.mjs:107:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 30,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\bounds.test.mjs:119:1
+✖ HR23b the FIRST 429 stops the run instead of hammering the remaining queue (56.6952ms)
+  AssertionError [ERR_ASSERTION]: a rate limit stops the loop (made 20 probes)
+  
+  20 !== 1
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/bounds.test.mjs:126:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 20,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\bounds.test.mjs:137:1
+✖ HR23c a tripped throttle blocks the NEXT invocation, then expires (61.4096ms)
+  AssertionError [ERR_ASSERTION]: the run that hit the limit stopped at one probe
+  
+  20 !== 1
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/bounds.test.mjs:143:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 20,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\bounds.test.mjs:165:1
+✖ HR23d an invalid bound is REFUSED at the CLI boundary, never read as unlimited (65.3473ms)
+  AssertionError [ERR_ASSERTION]: '--max-ops=0' is refused with exit 2 (got 0)
+  
+  0 !== 2
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/bounds.test.mjs:174:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\bounds.test.mjs:181:1
+✖ HR23i `status` reports backlog age, projection and retry exhaustion (1079.8837ms)
+  AssertionError [ERR_ASSERTION]: the backlog is reported
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/bounds.test.mjs:198:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'store:      C:\\Users\\BIGOTS~1\\AppData\\Local\\Temp\\cb-hr23i-OpfukH\nyt-dlp:     ok (2026.08.19) via resolved via uvx yt-dlp\ncreators:   1 (1 enabled)\nstate:      ok\nvideos:     120 tracked · 0 fetched (0%)\n              pending: 119\n              failed_transient: 1\nbudget:     0/60 yt-dlp transport operations per rolling hour\nlock:       free\nlast run:   never\n...',
+    expected: /backlog/i,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\bounds.test.mjs:208:1
+✖ HR23j a throttled run reports DEFERRED, not a failure and not a success (32.7586ms)
+  AssertionError [ERR_ASSERTION]: a throttled run exits 3 (got 1)
+  
+  1 !== 3
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/bounds.test.mjs:218:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\bounds.test.mjs:226:1
+✖ HR23i2 status on an empty store still reports a backlog line (436.5477ms)
+  AssertionError [ERR_ASSERTION]: the line is always present, so its absence is never ambiguous
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/bounds.test.mjs:229:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'store:      C:\\Users\\BIGOTS~1\\AppData\\Local\\Temp\\cb-hr23i2-B61BDf\nyt-dlp:     ok (2026.08.19) via resolved via uvx yt-dlp\ncreators:   0 (0 enabled)\nstate:      absent (first run)\nvideos:     0 tracked · 0 fetched (0%)\nbudget:     0/60 yt-dlp transport operations per rolling hour\nlock:       free\nlast run:   never\nlast good:  NEVER — no acquisition has completed\ndocuments:  0 transcript document(s)\n...',
+    expected: /backlog/i,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\freshness.test.mjs:78:1
+✖ HR23e the "fresh" tier is reachable in BOTH real date formats (0.3409ms)
+  AssertionError [ERR_ASSERTION]: a video published today via discovery is FRESH
+  
+  3 !== 2
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/freshness.test.mjs:83:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 3,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\freshness.test.mjs:185:1
+✖ HR23h the no-caption retry window is configurable at the CLI (34.1183ms)
+  AssertionError [ERR_ASSERTION]: the configured 2-hour window is what was scheduled
+  
+  48 !== 2
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/freshness.test.mjs:202:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 48,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at scripts\creator-brains\test\freshness.test.mjs:214:1
+✖ HR23h2 a nonsense window is refused rather than silently defaulted (35.2263ms)
+  AssertionError [ERR_ASSERTION]: a zero-hour window is a refusal, not a default (got 0)
+  
+  0 !== 2
+  
+      at TestContext.<anonymous> (file:///C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/scripts/creator-brains/test/freshness.test.mjs:220:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

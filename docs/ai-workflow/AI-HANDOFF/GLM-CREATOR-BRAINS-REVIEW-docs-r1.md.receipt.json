@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "requestedModel": "glm-5.3",
+  "servedModel": null,
+  "reviewRoundId": "call_b4709f37-4730-4efd-97b1-1f15e29ecdc7",
+  "endpoint": "https://api.z.ai/api/coding/paas/v4/chat/completions",
+  "billing": "coding-plan",
+  "maxTokens": 34000,
+  "tokenPolicy": "numeric",
+  "timeoutMs": 600000,
+  "status": "unknown",
+  "reason": "in-flight",
+  "stage": "transport",
+  "dispatched": true,
+  "terminal": false,
+  "sawDone": false,
+  "finishReason": null,
+  "usage": {},
+  "requestSha256": "d0283e199aea1ca4450fa28cd83026d108ef0992a092f8c8179d937e03b363b9",
+  "contentSha256": null,
+  "wallMs": 12
+}

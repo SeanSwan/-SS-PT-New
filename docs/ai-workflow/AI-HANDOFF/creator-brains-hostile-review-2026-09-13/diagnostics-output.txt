@@ -1,0 +1,39 @@
+REPRODUCED HR01: {"fetched":[1,1]}
+REPRODUCED HR02: {"requested":"UCaaaaaaaaaaaaaaaaaaaaaa","probed":["aaaaaaaaaaa","bbbbbbbbbbb"]}
+REPRODUCED HR03: {"exitCode":0,"stdout":"fetched 0, deferred 0, no-track 0, failed 2\nnote: 2 fetch(es) failed\n"}
+REPRODUCED HR04a: {"ok":true,"state":"{\n  \"version\": 1,\n  \"videos\": {}\n}\n"}
+REPRODUCED HR04b: {"state":"{\n  \"version\": 1,\n  \"videos\": {}\n}\n"}
+REPRODUCED HR05: {"runOk":true,"addOk":true,"registryPreserved":false}
+REPRODUCED HR06: {"positive":{"modality":"directive","phrase":"blur tear trough crease retouching portraits"},"negative":{"modality":"directive","phrase":"blur tear trough crease retouching portraits"},"doctrines":[{"phrase":"blur tear trough crease retouching portraits","modality":"directive","videos":2,"cites":["https://www.youtube.com/watch?v=aaaaaaaaaaa&t=2s","https://www.youtube.com/watch?v=bbbbbbbbbbb&t=2s"],"tStartMs":2000,"videoId":"aaaaaaaaaaa"}],"conflicts":[]}
+REPRODUCED HR07: {"slugs":["common-name","common-name"],"hitsA":0}
+REPRODUCED HR08: {"ok":true,"built":0,"calls":0,"hits":1,"staged":["example.md","example.rules.jsonl","example.timeline.md","example.topics.md","_collection.md"]}
+REPRODUCED HR09: {"phrase":"frequency-separation layers-masks brushes-dodging burning-contrast clarity-texture detail-sharpening noise-reduction","normalizedWords":14,"creatorTitleVerbatim":true}
+REPRODUCED HR10: {"reason":"oauth_exchange_not_implemented","blocked":true}
+REPRODUCED HR11: {"timingWrote":false,"storedMs":1000,"repairWrote":false,"text":"corrupt replacement"}
+REPRODUCED HR12: {"parsedRows":0,"state":"deleted_upstream"}
+REPRODUCED HR13: {"state":"fetched","cites":["https://www.youtube.com/watch?v=aaaaaaaaaaa&t=-9s"]}
+REPRODUCED HR14a: {"fetchCalls":2,"documents":1}
+REPRODUCED HR14b: {"newVideoSurvives":false}
+REPRODUCED HR15: {"creators":1,"conflicts":1}
+REPRODUCED HR16: {"exitCode":2,"runs":0,"digestDirectory":false}
+REPRODUCED HR17: {"docCount":1,"covered":0,"gaps":0}
+REPRODUCED HR18: {"state":"fetched","calls":1,"wroteUnderWrongCreator":true}
+20/20 invariant violations reproduced. Fixtures retained at C:\Users\BIGOTS~1\AppData\Local\Temp\creator-brains-hostile-zI9NBZ
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Review RED: implementation violates required invariants; see diagnostic-results.json
+
+20 !== 0
+
+    at file:///C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/docs/ai-workflow/AI-HANDOFF/creator-brains-hostile-review-2026-09-13/reproduce.mjs:182:8 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 20,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.19.0
