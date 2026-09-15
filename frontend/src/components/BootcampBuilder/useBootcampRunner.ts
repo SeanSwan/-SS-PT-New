@@ -23,7 +23,17 @@ function restoreRunnerState(bootcamp: GeneratedBootcamp, segments: ReturnType<ty
   return memoryCheckpoints.get(bootcamp) ?? createRunnerState(segments, Date.now());
 }
 
-export function useBootcampRunner(bootcamp: GeneratedBootcamp) {
+/**
+ * Fable D-10: the parent contract, FORMALIZED. The checkpoint map and the
+ * restore effect key on this object's identity, so the parent MUST keep it
+ * referentially stable while a class is live — a same-content new object
+ * silently restarts the class from segment 0.
+ */
+export interface BootcampRunnerParentContract {
+  bootcamp: GeneratedBootcamp;
+}
+
+export function useBootcampRunner({ bootcamp }: BootcampRunnerParentContract) {
   // PARENT CONTRACT: `bootcamp` must stay referentially stable while a class is
   // live. The checkpoint map and the restore effect are keyed on the object
   // identity, so a parent that recreates the prop mid-run (same content, new

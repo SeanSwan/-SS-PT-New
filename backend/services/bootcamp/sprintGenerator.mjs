@@ -1,6 +1,6 @@
 import { getSprintClassSlot, getSprintExerciseMemory, getSprintWeek } from '../../models/index.mjs';
 import { generateBootcampClass } from './bootcampGenerator.mjs';
-import { getSprintById, getSprintExerciseMemoryKeys } from './sprintService.mjs';
+import { getSprintById, getSprintExerciseMemoryEntries, getSprintExerciseMemoryKeys } from './sprintService.mjs';
 import { claimSprint, renewSprintClaim, withSprintClaim, sprintActor, sprintError } from './sprintGenerationClaim.mjs';
 
 // F04 restoration (base c0cbe538d): the progression strategy gives weeks with
@@ -118,6 +118,9 @@ async function runOwned(sprintId, actor, request, work) {
   } finally { clearInterval(heartbeat); }
 }
 
+/** U2: exclusions stay hot for this many weeks of the CURRENT sprint. */
+export const EXCLUSION_WINDOW_WEEKS = 4;
+
 function generationInput(sprint, slot, exclusions, weekPrescriptionIntensity) {
   return {
     classFormat: slot.classFormat || sprint.defaultFormat,
@@ -138,6 +141,9 @@ export async function generateSprintClasses(id, onProgress, actor, request) {
       ? await getSprintExerciseMemoryKeys(sprint.previousSprintId, actor) : new Set();
     // Rebuild from slot truth; a read/decoding failure aborts rather than losing exclusions.
     let memory = await withSprintClaim(sprintId, actor, claim, (_s, transaction) => rebuildMemory(sprintId, transaction));
+    // U2: windowed exclusions — per slot, only memory keys first used within
+    // the last EXCLUSION_WINDOW_WEEKS of THIS sprint join the no-repeat set.
+    const memoryEntries = await getSprintExerciseMemoryEntries(sprintId);
     const slots = sprint.weeks.flatMap(week => week.classSlots.map(slot => ({ slot, week })))
       .sort((a, b) => a.week.weekNumber - b.week.weekNumber
         || String(a.slot.scheduledDate).localeCompare(String(b.slot.scheduledDate)) || a.slot.id - b.slot.id);
@@ -147,8 +153,13 @@ export async function generateSprintClasses(id, onProgress, actor, request) {
       assertLive();
       if (slot.status === 'planned') {
         await renewSprintClaim(sprintId, actor, claim);
+        const minWeek = week.weekNumber - EXCLUSION_WINDOW_WEEKS + 1;
+        const windowed = new Set([
+          ...previous,
+          ...memoryEntries.filter(entry => entry.weekNumber >= minWeek).map(entry => entry.exerciseKey),
+        ]);
         const classData = await generateBootcampClass(
-          generationInput(sprint, slot, new Set([...previous, ...memory]), weekPrescription(week, sprint.progressionStrategy, sprint.durationWeeks)),
+          generationInput(sprint, slot, windowed, weekPrescription(week, sprint.progressionStrategy, sprint.durationWeeks)),
         );
         assertLive();
         memory = await commitSlot(sprintId, actor, claim, slot.id, classData);

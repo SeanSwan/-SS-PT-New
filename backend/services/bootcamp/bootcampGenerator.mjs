@@ -27,7 +27,7 @@ import { optimizeStationFlow } from './flowOptimizer.mjs';
 import {
   generateBoard2, applyClassStyle, generateStretches,
 } from './classStyleModifiers.mjs';
-import { applyPainAwareGating, severePainReviewRequired } from './painAwareGating.mjs';
+import { applyPainAwareGating, severePainReviewRequired, collectPainSwaps } from './painAwareGating.mjs';
 import { applyDayTypeContract, budgetGate } from './dayTypeContract.mjs';
 import { pickFinishers } from './bootcampFinishers.mjs';
 import { orderPoolWithBrain } from './bootcampBrain.mjs';
@@ -465,7 +465,8 @@ export function resolveBootcampStructure({
   };
 }
 
-// F04: the sprint week prescription (deload 0.7 … validated overload 1.5)
+// F04: the sprint week prescription
+// UNIT CONTRACT: `durationSec`/return are SECONDS (validated ≥10; clamped 10–120). (deload 0.7 … validated overload 1.5)
 // scales per-exercise WORK seconds. Rest, stations and structure are untouched:
 // a deload week is less work per interval, not fewer stations or longer rests.
 // Normalized to [0.5, 2] and the scaled interval clamped to [10, 120] so a bad
@@ -473,6 +474,14 @@ export function resolveBootcampStructure({
 export function prescribedWorkSec(durationSec, prescriptionIntensity) {
   const base = Number(durationSec);
   if (!Number.isFinite(base) || base <= 0) return base;
+  // P1.1 unit lock (Fable D-4): callers pass SECONDS. A base below 10 is a
+  // rep-count-magnitude caller bug — throw instead of clamping it into a
+  // plausible-looking interval.
+  if (base < 10) {
+    throw new TypeError(
+      `prescribedWorkSec: durationSec must be SECONDS (got ${base}) — a rep count was likely passed`,
+    );
+  }
   const intensity = Number(prescriptionIntensity);
   if (!Number.isFinite(intensity) || intensity <= 0) return base;
   const scaled = Math.min(Math.max(intensity, 0.5), 2);
@@ -849,6 +858,9 @@ export async function generateBootcampClass(options) {
     // real generate -> save path.
     equipmentProfileId: equipmentProfileId ?? null,
     spaceProfileId: spaceProfileId ?? null,
+    // U1: the coach-facing swap ledger — which movements replaced which, and
+    // why, so a live class can be narrated without reading explanations JSON.
+    painSwaps: collectPainSwaps(allExercises),
     stations,
     exercises: allWithBoard2,
     stretches,

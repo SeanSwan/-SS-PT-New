@@ -30,6 +30,7 @@ vi.mock('../../utils/logger.mjs', () => ({
 }));
 
 const { applyPainAwareGating, severePainReviewRequired } = await import('../../services/bootcamp/painAwareGating.mjs');
+const gatingModule = await import('../../services/bootcamp/painAwareGating.mjs');
 
 function mainExercise(overrides = {}) {
   return {
@@ -273,5 +274,22 @@ describe('H07-B: the severe-pain 422 is a backstop, not a roster-wide block', ()
       { region: 'left_knee', severity: 8, flaggedExercises: ['A'], swappedExercises: ['B'], cautionExercises: [] },
       { region: 'shoulder', severity: 9, flaggedExercises: ['C'], swappedExercises: [], cautionExercises: ['C'] },
     ])).toBe(true);
+  });
+});
+
+describe('U1: pain swaps are projected onto the generated class', () => {
+  it('collects swap facts from gated exercises and skips ungated ones', () => {
+    const collectPainSwaps = gatingModule.collectPainSwaps;
+    const exercises = [
+      { exerciseName: 'Goblet Squat', painSwap: { from: 'Jump Squat', region: 'left_knee', severity: 8 } },
+      { exerciseName: 'Push Up' },
+      { exerciseName: 'Wall Sit', painSwap: { from: 'Lunge', region: 'right_knee', severity: 7 } },
+    ];
+    expect(collectPainSwaps(exercises)).toEqual([
+      { from: 'Jump Squat', to: 'Goblet Squat', region: 'left_knee', severity: 8 },
+      { from: 'Lunge', to: 'Wall Sit', region: 'right_knee', severity: 7 },
+    ]);
+    expect(collectPainSwaps([{ exerciseName: 'Plank' }])).toEqual([]);
+    expect(collectPainSwaps([])).toEqual([]);
   });
 });

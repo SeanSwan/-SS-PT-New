@@ -343,6 +343,17 @@ export async function confirmSlotUsed(sprintId, slotId, trainerId, body = {}) {
     return slot;
   });
 }
+/**
+ * U2: memory entries WITH their week of first use. The generation loop
+ * windows exclusions from these instead of the ever-growing key union.
+ */
+export async function getSprintExerciseMemoryEntries(sprintId) {
+  const rows = await getSprintExerciseMemory().findAll({
+    where: { sprintId }, attributes: ['exerciseKey', 'weekNumber'],
+  });
+  return rows.map(r => ({ exerciseKey: r.exerciseKey, weekNumber: r.weekNumber ?? 0 }));
+}
+
 export async function getSprintExerciseMemoryKeys(sprintId, actor) {
   const normalizedSprintId = normalizePositiveId(sprintId, 'sprint');
   if (!await getSprintById(normalizedSprintId, actor)) throw sprintError('Sprint not found', 404);

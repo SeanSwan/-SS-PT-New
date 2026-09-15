@@ -96,7 +96,7 @@ describe('useBootcampRunner stage-exit pause', () => {
     vi.setSystemTime(T0);
     const bootcamp = plan();
 
-    const first = renderHook(() => useBootcampRunner(bootcamp));
+    const first = renderHook(() => useBootcampRunner({ bootcamp }));
     expect(first.result.current.state.status).toBe('running');
     const exitIndex = first.result.current.state.segmentIndex;
     const exitRemainingMs = first.result.current.state.remainingMs;
@@ -111,7 +111,7 @@ describe('useBootcampRunner stage-exit pause', () => {
     // One hour elsewhere — far longer than the 620s fixture.
     vi.setSystemTime(T0 + 60 * 60 * 1_000);
 
-    const second = renderHook(() => useBootcampRunner(bootcamp));
+    const second = renderHook(() => useBootcampRunner({ bootcamp }));
 
     expect(second.result.current.state.status).toBe('paused');
     expect(second.result.current.state.segmentIndex).toBe(exitIndex);
@@ -124,14 +124,14 @@ describe('useBootcampRunner stage-exit pause', () => {
     vi.setSystemTime(T0);
     const bootcamp = plan();
 
-    const first = renderHook(() => useBootcampRunner(bootcamp));
+    const first = renderHook(() => useBootcampRunner({ bootcamp }));
     act(() => {
       vi.setSystemTime(T0 + 5_000);
     });
     first.unmount();
     vi.setSystemTime(T0 + 30 * 60 * 1_000);
 
-    const second = renderHook(() => useBootcampRunner(bootcamp));
+    const second = renderHook(() => useBootcampRunner({ bootcamp }));
     const frozen = second.result.current.state;
     expect(frozen.status).toBe('paused');
 
@@ -154,7 +154,7 @@ describe('useBootcampRunner stage-exit pause', () => {
     vi.setSystemTime(T0);
     const bootcamp = plan();
 
-    const { result } = renderHook(() => useBootcampRunner(bootcamp), {
+    const { result } = renderHook(() => useBootcampRunner({ bootcamp }), {
       wrapper: StrictMode,
     });
 

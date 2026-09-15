@@ -79,3 +79,68 @@ describe('worker vs fallback scorer parity', () => {
     expect(__testing__.WORKER_CODE).toContain('onmessage');
   });
 });
+
+describe('P1.3: scorer goldens — pinned result contracts (Fable D-5)', () => {
+  // Both paths (worker + fallback) must produce EXACTLY these id orderings.
+  // A scorer change that alters any ordering fails here and in the parity
+  // suite above — order is part of the product contract.
+  const GOLDENS: Array<{ q: string; c: string | null; ids: string[] }> = [
+  { q: "press",
+      c: null,
+      ids: [  "1"
+    ] },
+    { q: "bp",
+      c: null,
+      ids: [  "1"
+    ] },
+    { q: "bench press",
+      c: null,
+      ids: [  "1"
+    ] },
+    { q: "flexibility",
+      c: null,
+      ids: [  "3"
+    ] },
+    { q: "str",
+      c: null,
+      ids: [  "3",
+        "1",
+        "2",
+        "4"
+    ] },
+    { q: "quadriceps",
+      c: null,
+      ids: [  "3",
+        "2"
+    ] },
+    { q: "pecs",
+      c: null,
+      ids: [  "1",
+        "4"
+    ] },
+    { q: "qdr",
+      c: null,
+      ids: [  "3",
+        "2"
+    ] },
+    { q: "",
+      c: "Chest",
+      ids: [] },
+    { q: "press",
+      c: "chest",
+      ids: [] }
+];
+
+  it.each(GOLDENS.map(g => [g.q || '(empty)', g.c, g.ids]))(
+    'golden %s / category %s', 
+    (q: string, c: string | null, ids: string[]) => {
+      expect(searchExercisesSync(CORPUS, q as string, c as string | null).map(x => x.id)).toEqual(ids);
+      const self = { postMessage: vi.fn() } as unknown as { postMessage: (m: { type: string; exercises?: ExerciseSlim[] }) => void; onmessage: (e: { data: unknown }) => void };
+      new Function('self', __testing__.WORKER_CODE)(self);
+      self.onmessage({ data: { type: 'CACHE', exercises: CORPUS } });
+      self.onmessage({ data: { type: 'SEARCH', query: q as string, category: c as string | null, sequence: 1 } });
+      const payloads = (self as unknown as { postMessage: ReturnType<typeof vi.fn> }).postMessage.mock.calls.map(([p]) => p as { type: string; exercises?: ExerciseSlim[] });
+      const results = payloads.find(p => p.type === 'RESULTS');
+      expect((results?.exercises ?? []).map(x => x.id)).toEqual(ids);
+    });
+});

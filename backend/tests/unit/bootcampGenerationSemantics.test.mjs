@@ -168,8 +168,9 @@ describe('bootcamp generation semantics', () => {
     expect(prescribedWorkSec(40, null)).toBe(40);
     expect(prescribedWorkSec(40, undefined)).toBe(40);
     expect(prescribedWorkSec(40, '0.7')).toBe(28);
-    // Guard rails: never a degenerate interval, never runaway volume.
-    expect(prescribedWorkSec(5, 0.7)).toBe(10);
+    // P1.1 unit lock (Fable D-4): the input is SECONDS. A rep-count-magnitude
+    // base (< 10s) is a caller bug — fail loudly instead of silently clamping.
+    expect(() => prescribedWorkSec(5, 0.7)).toThrow(/SECONDS/);
     expect(prescribedWorkSec(100, 1.5)).toBe(120);
     expect(prescribedWorkSec(40, 9)).toBe(80);
     expect(prescribedWorkSec(40, -1)).toBe(40);

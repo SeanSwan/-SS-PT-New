@@ -222,3 +222,20 @@ export function severePainReviewRequired(painAlerts) {
     return Array.isArray(alert.cautionExercises) && alert.cautionExercises.length > 0;
   });
 }
+
+/**
+ * U1: project the swap facts onto the generated class so the trainer-facing
+ * surfaces (demo board, runner) can SAY 'this movement replaced X because of
+ * your knee' without parsing the explanation prose.
+ */
+export function collectPainSwaps(exercises) {
+  if (!Array.isArray(exercises)) return [];
+  return exercises
+    .filter(ex => ex?.painSwap?.from)
+    .map(ex => ({
+      from: ex.painSwap.from,
+      to: ex.exerciseName,
+      region: ex.painSwap.region,
+      severity: ex.painSwap.severity ?? null,
+    }));
+}

@@ -29,6 +29,7 @@ import {
   DemoHeader,
   DemoImage,
   DemoMediaPill,
+  DemoSwapBadge,
   DemoMediaStage,
   DemoPlaceholder,
   DemoShell,
@@ -251,6 +252,11 @@ const BootcampDemoMode: React.FC<BootcampDemoModeProps> = ({ bootcamp, onSelectE
                         )}
                         <DemoMediaPill>{mediaPillLabel}</DemoMediaPill>
                       </DemoMediaStage>
+                      {exercise.painSwap && (
+                        <DemoSwapBadge aria-label={`This movement replaced ${exercise.painSwap.from} because of ${exercise.painSwap.region.replace(/_/g, ' ')} pain`}>
+                          ⇄ Swapped from {exercise.painSwap.from}
+                        </DemoSwapBadge>
+                      )}
                       <DemoExerciseName>{exerciseIndex + 1}. {exercise.exerciseName}</DemoExerciseName>
                       <DemoExerciseMeta>
                         {exercise.durationSec}s work / {exercise.restSec}s rest

@@ -38,7 +38,7 @@ const formatEndTime = (epochMs: number): string => new Date(epochMs).toLocaleTim
 });
 
 const BootcampRunnerClock: React.FC<BootcampRunnerClockProps> = ({ bootcamp }) => {
-  const runner = useBootcampRunner(bootcamp);
+  const runner = useBootcampRunner({ bootcamp });
   const segment = runner.currentSegment;
   const paused = runner.state.status === 'paused';
   const complete = runner.state.status === 'complete';
