@@ -174,7 +174,7 @@ const applyServerDerivedChargeAmount = async (session, billingOptions, transacti
       Order: getOrder(),
       OrderItem: getOrderItem(),
       StorefrontItem: getStorefrontItem()
-    }, { transaction });
+    }, { transaction, durationMinutes: session.duration });
   } catch (error) {
     logger.warn(
       `[Cancellation] package pricing lookup failed for session ${session.id}: ${error.message}`
