@@ -8,7 +8,7 @@
  *   - Profile Detail — shows items within a profile + scan/add/approve
  *   - Scan Result — approval flow for AI-scanned equipment
  *
- * Crystalline Swan theme: Midnight Sapphire (#002060), Swan Cyan (#60C0F0), /* swan-guard-allow-hex legacy-pre-5431519a4 */
+ * Crystalline Swan theme: Midnight Sapphire (#002060), Swan Cyan (#60C0F0), swan-guard-allow-hex legacy-pre-5431519a4
  * glassmorphic panels, 44px touch targets.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';

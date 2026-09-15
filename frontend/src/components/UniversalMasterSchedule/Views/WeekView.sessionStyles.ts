@@ -96,7 +96,7 @@ export const WeekSessionCard = styled.button<{
  * slot, keyboard-operable, never obscures real sessions.
  *
  * The fade floor (0.72) is a WCAG constraint, not a taste call: ghost text is
- * textSoft (#CBD5E1), which holds ~7:1 against the dark surface at 0.72 but /* swan-guard-allow-hex legacy-pre-5431519a4 */
+ * textSoft (#CBD5E1), which holds ~7:1 against the dark surface at 0.72 but swan-guard-allow-hex legacy-pre-5431519a4
  * drops under 4.5:1 if faded much further. Do not lower it.
  */
 export const GHOST_FADE_FLOOR = 0.72;
