@@ -7,7 +7,7 @@
  */
 
 import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
-import { FORMAT_CONFIG } from './bootcampConstants.mjs';
+import { FORMAT_CONFIG, CUSTOM_STRUCTURE_LIMITS, STATION_TRANSITION_SEC, TRANSITION_TIME_SEC } from './bootcampConstants.mjs';
 
 
 function clampInt(value, fallback, min, max) {
