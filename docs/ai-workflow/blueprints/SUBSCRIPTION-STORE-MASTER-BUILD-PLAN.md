@@ -19,19 +19,19 @@
 
 1. [Executive Summary](#1-executive-summary)
 2. [Access Hierarchy](#2-access-hierarchy)
-3. [Subscription Tiers](#3-subscription-tiers)
+3. [Subscription Tiers](#3-subscription-tiers-final)
 4. [AI Cost Model](#4-ai-cost-model)
-5. [Build Phases](#5-build-phases)
+5. [Build Phases](#5-build-phases-priority-order)
 6. [Phase 1: Backend Foundation](#6-phase-1-backend-foundation)
 7. [Phase 2: /ascension Page](#7-phase-2-ascension-page)
 8. [Phase 3: Store Memberships](#8-phase-3-store-memberships)
-9. [Phase 4: Global Paywall (402 Interceptor)](#9-phase-4-global-paywall)
+9. [Phase 4: Global Paywall (402 Interceptor)](#9-phase-4-global-paywall-402-interceptor)
 10. [Phase 5: Feature Gating](#10-phase-5-feature-gating)
 11. [Phase 6: Trainer Access Tiers](#11-phase-6-trainer-access-tiers)
-12. [Phase 7: Anti-Abuse & Security](#12-phase-7-anti-abuse)
-13. [Phase 8: Onboarding & Tour](#13-phase-8-onboarding)
+12. [Phase 7: Anti-Abuse & Security](#12-phase-7-usage-monitoring--anti-abuse)
+13. [Phase 8: Onboarding & Tour](#13-phase-8-onboarding--tour)
 14. [File Change Manifest](#14-file-change-manifest)
-15. [Risks & Mitigations](#15-risks)
+15. [Risks & Mitigations](#15-risks--mitigations)
 
 ---
 

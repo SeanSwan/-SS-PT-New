@@ -583,6 +583,7 @@ backend/
 │   └── 20251113000002-enhance-exercise-library-table.cjs
 └── core/
     └── routes.mjs                     # Import adminVideoRoutes
+```
 
 **Total Files to Create:** 10 files
 **Total LOC Estimate:** 1,500-2,000 lines

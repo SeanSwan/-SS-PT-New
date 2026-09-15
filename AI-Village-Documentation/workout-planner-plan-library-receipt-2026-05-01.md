@@ -31,7 +31,7 @@ REV 1 carried forward: the 6 verified findings (1.1-1.6), the canonical surface 
 
 ### 1.1 ✅ Backend `WorkoutPlan` already supports multiple rows per `userId`
 
-**Evidence:** [backend/models/WorkoutPlan.mjs:102-107](backend/models/WorkoutPlan.mjs#L102-L107)
+**Evidence:** [backend/models/WorkoutPlan.mjs:102-107](../backend/models/WorkoutPlan.mjs#L102-L107)
 
 ```js
 status: {
@@ -45,23 +45,23 @@ The model has no unique constraint on `(userId, status='active')`. The status en
 
 ### 1.2 ✅ `GET /api/workout-plans?clientId=` lists multiple plans
 
-**Evidence:** [backend/routes/workoutPlanRoutes.mjs:54-90](backend/routes/workoutPlanRoutes.mjs#L54-L90), called from [WorkoutPlannerPage.tsx:552](frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx#L552). Multi-plan listing already works end-to-end.
+**Evidence:** [backend/routes/workoutPlanRoutes.mjs:54-90](../backend/routes/workoutPlanRoutes.mjs#L54-L90), called from [WorkoutPlannerPage.tsx:552](../frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx#L552). Multi-plan listing already works end-to-end.
 
 ### 1.3 ✅ Frontend Saved Plans panel already renders multiple cards
 
-**Evidence:** [WorkoutPlannerPage.tsx:1232-1283](frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx#L1232-L1283).
+**Evidence:** [WorkoutPlannerPage.tsx:1232-1283](../frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx#L1232-L1283).
 
 ### 1.4 ✅ `handleSave` always POSTs a new plan
 
-**Evidence:** [WorkoutPlannerPage.tsx:500](frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx#L500) — no PUT branch.
+**Evidence:** [WorkoutPlannerPage.tsx:500](../frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx#L500) — no PUT branch.
 
 ### 1.5 ✅ POST defaults `status: 'active'`
 
-**Evidence:** [workoutPlanRoutes.mjs:193](backend/routes/workoutPlanRoutes.mjs#L193) + model default. Two saves create two `'active'` rows.
+**Evidence:** [workoutPlanRoutes.mjs:193](../backend/routes/workoutPlanRoutes.mjs#L193) + model default. Two saves create two `'active'` rows.
 
 ### 1.6 ✅ `GET /api/workout-plans/client/:userId` returns most-recent active plan
 
-**Evidence:** [workoutPlanRoutes.mjs:101-104](backend/routes/workoutPlanRoutes.mjs#L101-L104).
+**Evidence:** [workoutPlanRoutes.mjs:101-104](../backend/routes/workoutPlanRoutes.mjs#L101-L104).
 
 ### 1.7 ✅ NEW: Consumer-ordering divergence confirmed (Codex #7)
 
@@ -77,7 +77,7 @@ Once one-active invariant is enforced, both return the same unique row. Until en
 | File | Role | Classification | Evidence |
 |---|---|---|---|
 | **`frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx`** | Plan builder + saved-plans panel | **CANONICAL** | mounted at `/dashboard/trainer/workout-planner`; verified by Sean's screenshots throughout this session |
-| **`backend/routes/workoutPlanRoutes.mjs`** | Plan CRUD | **CANONICAL** | mounted at `/api/workout-plans` AND `/api/workout/plans` ([core/routes.mjs:330-331](backend/core/routes.mjs#L330-L331)) |
+| **`backend/routes/workoutPlanRoutes.mjs`** | Plan CRUD | **CANONICAL** | mounted at `/api/workout-plans` AND `/api/workout/plans` ([core/routes.mjs:330-331](../backend/core/routes.mjs#L330-L331)) |
 | **`backend/models/WorkoutPlan.mjs`** | Plan ORM model | **CANONICAL** | only WorkoutPlan model in repo |
 | **`backend/middleware/verifyClientAccess.mjs`** | Authz gate | **CANONICAL** | already wired on PUT/:id, GET/:id, DELETE/:id, PUT/:id/advance |
 | `frontend/src/pages/workout/components/WorkoutPlanner.tsx` (489-line) | Older plan-list component | **LEGACY** | mounted by `WorkoutDashboard.tsx:253`; superseded by canonical admin-workout-planner page |
@@ -97,7 +97,7 @@ Once one-active invariant is enforced, both return the same unique row. Until en
 
 | Caller field | Real model column | Match | Source |
 |---|---|---|---|
-| `userId` | `userId` (INTEGER, FK) | ✅ | [WorkoutPlan.mjs:60](backend/models/WorkoutPlan.mjs#L60) |
+| `userId` | `userId` (INTEGER, FK) | ✅ | [WorkoutPlan.mjs:60](../backend/models/WorkoutPlan.mjs#L60) |
 | `trainerId` | `trainerId` (INTEGER, FK, nullable) | ✅ | model |
 | `title` | `title` (STRING, NOT NULL) | ✅ | model |
 | `description` | `description` (TEXT, nullable) | ✅ | model |
@@ -377,11 +377,11 @@ status: ['draft', 'active', 'paused'].includes(status) ? status : 'draft',
 
 After the slice ships, ALL CANONICAL frontend callers pass explicit `status: 'draft'`. The `'active'` path on POST exists for backward compatibility and goes through the invariant-enforcing transaction.
 
-**Model default change** ([WorkoutPlan.mjs:104](backend/models/WorkoutPlan.mjs#L104)): change `defaultValue: 'active'` to `defaultValue: 'draft'`. Any insert that omits `status` defaults to draft.
+**Model default change** ([WorkoutPlan.mjs:104](../backend/models/WorkoutPlan.mjs#L104)): change `defaultValue: 'active'` to `defaultValue: 'draft'`. Any insert that omits `status` defaults to draft.
 
 ### 6.5 CHANGE: `DELETE /api/workout-plans/:id` archive guard (Codex #5)
 
-Current handler at [line 367](backend/routes/workoutPlanRoutes.mjs#L367) sets `status: 'completed'`. Add invariant check:
+Current handler at [line 367](../backend/routes/workoutPlanRoutes.mjs#L367) sets `status: 'completed'`. Add invariant check:
 
 ```js
 // Before update: if this is currently active, ensure user has at least one

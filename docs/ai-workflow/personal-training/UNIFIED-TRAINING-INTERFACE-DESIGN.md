@@ -10,16 +10,16 @@
 
 ## 📋 TABLE OF CONTENTS
 
-1. [Overview](#overview)
-2. [Design Principles](#design-principles)
+1. [Overview](#-overview)
+2. [Design Principles](#-design-principles)
 3. [User Interface Layout](#user-interface-layout)
-4. [Personal Training Mode](#personal-training-mode)
+4. [Personal Training Mode](#-personal-training-mode)
 5. [Boot Camp Mode](#boot-camp-mode)
-6. [Navigation & Toggle System](#navigation--toggle-system)
-7. [Responsive Design](#responsive-design)
-8. [Galaxy-Swan Theme Integration](#galaxy-swan-theme-integration)
-9. [Data Flow & API Integration](#data-flow--api-integration)
-10. [Implementation Roadmap](#implementation-roadmap)
+6. [Navigation & Toggle System](#-navigation--toggle-system)
+7. [Responsive Design](#-responsive-design)
+8. [Galaxy-Swan Theme Integration](#-galaxy-swan-theme-integration)
+9. [Data Flow & API Integration](#-data-flow--api-integration)
+10. [Implementation Roadmap](#-implementation-roadmap)
 
 ---
 
@@ -96,7 +96,7 @@ The **Unified Training Interface** is a single-page component within the SwanStu
 
 ---
 
-## 🖥️ USER INTERFACE LAYOUT
+## USER INTERFACE LAYOUT
 
 ### Page Structure
 
@@ -259,7 +259,7 @@ The **Unified Training Interface** is a single-page component within the SwanStu
 
 ---
 
-## 🏋️ BOOT CAMP MODE
+## BOOT CAMP MODE
 
 ### Left Sidebar: Class List
 

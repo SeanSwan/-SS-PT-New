@@ -7,12 +7,22 @@ on:
     paths:
       - '**.md'
       - 'docs/**'
+      - 'scripts/ci/**'
+      - '.github/markdown-link-check-config.json'
+      - '.github/workflows/docs-check.yml'
+      - 'package.json'
+      - 'package-lock.json'
   pull_request:
     branches:
       - main
     paths:
       - '**.md'
       - 'docs/**'
+      - 'scripts/ci/**'
+      - '.github/markdown-link-check-config.json'
+      - '.github/workflows/docs-check.yml'
+      - 'package.json'
+      - 'package-lock.json'
   schedule:
     # Run weekly on Mondays at 9 AM UTC
     - cron: '0 9 * * 1'
@@ -28,13 +38,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check links in all markdown files
-        uses: gaurav-nelson/github-action-markdown-link-check@v1
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          # Check all markdown files in the repository
-          use-quiet-mode: 'no'
-          use-verbose-mode: 'yes'
-          config-file: '.github/markdown-link-check-config.json'
+          node-version: '22'
+
+      # The check runs the repository's own script against the repository's own
+      # locked dependency, so CI and a developer machine execute the same engine
+      # with the same strictness. Previously this job delegated to a third-party
+      # action that global-installed markdown-link-check@3.8.7 (pinned in that
+      # action's entrypoint.sh at SHA 5c5dfc0a) while the lock pins 3.14.2, and
+      # that swept the entire tree including frozen archives.
+      - name: Install locked checker
+        run: npm ci --ignore-scripts
+
+      # The guard tests must run in a pipeline or they guard nothing. They assert
+      # that the exclusion manifest stays explicit, evidenced, non-nested and
+      # shrink-only, and that no frozen path leaks into the checked scope.
+      - name: Check the scope manifest
+        run: node --test scripts/ci/__tests__/docsLinkScope.test.mjs
+
+      - name: Check documentation links
+        run: node scripts/ci/check-docs-links.mjs --json=docs-link-check-receipt.json
+
+      - name: Upload receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-link-check-receipt
+          path: docs-link-check-receipt.json
+          if-no-files-found: ignore
 
       - name: Generate report on failure
         if: failure()
@@ -43,16 +76,28 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Some documentation links are broken. Please review the logs above and fix the broken links." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Reproduce locally with the exact same command CI ran:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "npm ci --ignore-scripts" >> $GITHUB_STEP_SUMMARY
+          echo "node scripts/ci/check-docs-links.mjs" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Common Issues:" >> $GITHUB_STEP_SUMMARY
           echo "- Incorrect relative paths" >> $GITHUB_STEP_SUMMARY
           echo "- Files moved without updating links" >> $GITHUB_STEP_SUMMARY
           echo "- External URLs that are down or changed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "If the failure is in a frozen archive or a vendored skill bundle, see" >> $GITHUB_STEP_SUMMARY
+          echo "\`scripts/ci/docs-link-scope.json\` — exclusions are explicit and must carry a reason." >> $GITHUB_STEP_SUMMARY
           echo "See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for link checking guidelines." >> $GITHUB_STEP_SUMMARY
 
       - name: Success summary
         if: success()
         run: |
-          echo "## ✅ All Documentation Links Valid" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Documentation Link Check Passed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All markdown links in the repository are working correctly!" >> $GITHUB_STEP_SUMMARY
+          echo "Every link in checked documentation resolved. Frozen archives, generated" >> $GITHUB_STEP_SUMMARY
+          echo "transcripts and vendored skill bundles are tracked as a separate ledger whose" >> $GITHUB_STEP_SUMMARY
+          echo "rows fail if they exceed their recorded baseline — see the step log for the" >> $GITHUB_STEP_SUMMARY
+          echo "observed totals, including any links suppressed by in-file disable comments." >> $GITHUB_STEP_SUMMARY
