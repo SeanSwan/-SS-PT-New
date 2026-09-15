@@ -57,10 +57,15 @@ try {
     sequelize = new Sequelize(databaseUrl, {
       dialect: 'postgres',
       dialectOptions: {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false // Required for Render PostgreSQL connections
-        }
+        // DB_SSL_DISABLE=1 is for throwaway shadow-DB containers only (e.g. the
+        // migration-shadow-check workflow): a plain postgres:16 service offers no
+        // TLS. Unset everywhere else — Render keeps its required SSL.
+        ...(process.env.DB_SSL_DISABLE === '1' ? {} : {
+          ssl: {
+            require: true,
+            rejectUnauthorized: false // Required for Render PostgreSQL connections
+          }
+        })
       },
       pool: {
         max: 15, // Increased max connections for production
@@ -101,10 +106,12 @@ try {
     sequelize = new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
       dialectOptions: {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false
-        }
+        ...(process.env.DB_SSL_DISABLE === '1' ? {} : {
+          ssl: {
+            require: true,
+            rejectUnauthorized: false
+          }
+        })
       },
       pool: {
         max: 5,

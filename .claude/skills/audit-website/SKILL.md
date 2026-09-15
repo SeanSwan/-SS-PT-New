@@ -25,7 +25,7 @@ It will provide you a list of issues as well as suggestions on how to fix them.
 
 You can look up the docs for any rule with this template:
 
-https://docs.squirrelscan.com/rules/{rule_category}/{rule_id}
+`https://docs.squirrelscan.com/rules/<rule_category>/<rule_id>`
 
 example:
 
