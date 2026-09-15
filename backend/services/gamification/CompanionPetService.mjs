@@ -25,6 +25,30 @@ import {
 
 export { EVOLUTION_STAGES, PET_SPECIES } from './companionPetConfig.mjs';
 
+const MAX_PET_NAME_LENGTH = 50;
+
+/**
+ * Sanitize a user-supplied pet name at the service boundary (defense-in-depth,
+ * independent of any controller-level validation). Collapses whitespace, strips
+ * control characters and angle brackets (stored-XSS defense), trims, and caps
+ * length. Returns '' for non-strings / empty / fully-stripped input so callers
+ * can fall back to a safe default or reject.
+ */
+export const sanitizePetName = (value) => {
+  if (typeof value !== 'string') return '';
+  const collapsed = value.replace(/\s+/g, ' ');
+  let cleaned = '';
+  for (const ch of collapsed) {
+    const code = ch.codePointAt(0);
+    // Strip C0 controls (<0x20), DEL + C1 controls (0x7f-0x9f), and angle brackets.
+    if (code < 0x20 || (code >= 0x7f && code <= 0x9f) || ch === '<' || ch === '>') continue;
+    cleaned += ch;
+  }
+  // Cap length by CODE POINT (not UTF-16 unit) so an astral glyph straddling the
+  // boundary is never cut mid-surrogate into a lone (invalid) surrogate half.
+  return [...cleaned.trim()].slice(0, MAX_PET_NAME_LENGTH).join('');
+};
+
 const buildInitialState = () => ({
   evolutionStage: 0,
   health: 80,
@@ -45,10 +69,10 @@ const normalizeInventory = (value) => ({
 export class CompanionPetService {
   static async adoptPet(userId, species, petName) {
     if (!userId || typeof userId !== 'number') throw new Error('Invalid userId');
-    if (!petName || typeof petName !== 'string') throw new Error('Invalid pet name');
     if (!PET_SPECIES[species]) {
       throw new Error(`Invalid species: ${species}. Choose: ${Object.keys(PET_SPECIES).join(', ')}`);
     }
+    const safeName = sanitizePetName(petName) || PET_SPECIES[species].name;
 
     const { default: Gamification } = await import('../../models/Gamification.mjs');
     const transaction = await Gamification.sequelize.transaction();
@@ -64,7 +88,7 @@ export class CompanionPetService {
 
       await record.update({
         petSpecies: species,
-        petName: petName || PET_SPECIES[species].name,
+        petName: safeName,
         petState: buildInitialState(),
         petInventory: { unlockedMods: [], equippedMods: [] },
       }, { transaction });
@@ -219,8 +243,7 @@ export class CompanionPetService {
 
   static async renamePet(userId, newName) {
     if (!userId || typeof userId !== 'number') throw new Error('Invalid userId');
-    if (!newName || typeof newName !== 'string') throw new Error('Invalid pet name');
-    const safeName = newName.trim().slice(0, 50);
+    const safeName = sanitizePetName(newName);
     if (!safeName) throw new Error('Pet name cannot be empty');
 
     const { default: Gamification } = await import('../../models/Gamification.mjs');
