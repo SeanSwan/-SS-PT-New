@@ -272,6 +272,7 @@ import roleRoutes from '../routes/roleRoutes.mjs';
 import clientTrainerAssignmentRoutes from '../routes/clientTrainerAssignmentRoutes.mjs';
 import trainerPermissionsRoutes from '../routes/trainerPermissionsRoutes.mjs';
 import dailyWorkoutFormRoutes from '../routes/dailyWorkoutFormRoutes.mjs';
+import locationRoutes from '../routes/locationRoutes.mjs';
 
 // ===================== WEBHOOKS =====================
 import stripeWebhookRouter from '../webhooks/stripeWebhook.mjs';
@@ -417,6 +418,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/sessions/deductions', sessionDeductionRoutes); // Auto-deduction and payment application
   app.use('/api/sessions', sessionsRoutes);
   app.use('/api/session-types', sessionTypeRoutes); // Session type management (Phase 5)
+  app.use('/api/locations', locationRoutes); // Physical facilities (SWA-74 gym-ops spine S0)
   app.use('/api/schedule', scheduleRoutes); // Calendar view schedule endpoint
   app.use('/api/schedule-ai', scheduleAiRoutes);
   app.use('/api/availability', availabilityRoutes);
