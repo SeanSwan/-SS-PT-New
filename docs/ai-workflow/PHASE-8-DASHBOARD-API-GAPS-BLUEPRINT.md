@@ -475,7 +475,7 @@ Quick hardening enhancements approved and implemented on 2026-01-06 to 2026-01-0
 - ✅ [backend/routes/goalRoutes.mjs](../../backend/routes/goalRoutes.mjs) (enhanced, 295 lines)
 
 **Test Suite Created** (490 lines, 19 comprehensive tests):
-- ✅ [backend/test-phase8-apis.mjs](../../backend/test-phase8-apis.mjs)
+- ✅ `backend/test-phase8-apis.mjs` (since removed; the file no longer exists in the repository)
   - Suite 1: Client Profile Update (7 tests)
   - Suite 2: Trainer Today Sessions (3 tests)
   - Suite 3: Trainer Weekly Goals (3 tests)

@@ -50,6 +50,14 @@ const INTENTIONALLY_REACHABLE = new Map([
     roles: ['trainer'],
     reason: 'admin OR trainer by design; returns the same fields /public already gives anonymously. Clients and raw users must still be denied.',
   }],
+  ['/api/admin/compliance/at-risk', {
+    roles: ['trainer'],
+    reason: 'assigned-client intervention queue is intentionally trainer-readable; mounted access tests enforce trainer assignment scoping and preserve client/user denial',
+  }],
+  ['/api/admin/compliance/at-risk/', {
+    roles: ['trainer'],
+    reason: 'same assignment-scoped intervention queue through its narrow mount; no sibling admin routes or other non-admin roles are allowed',
+  }],
 ]);
 
 /** Roles that must not be able to read admin surfaces. */

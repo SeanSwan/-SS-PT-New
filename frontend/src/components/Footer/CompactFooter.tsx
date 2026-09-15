@@ -12,6 +12,7 @@ import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { Copyright as CopyrightIcon } from 'lucide-react';
 import device from '../../styles/breakpoints';
+import { useAuth } from '../../context/AuthContext';
 
 // Styled components
 const CompactFooterContainer = styled.footer`
@@ -77,6 +78,11 @@ const FooterLink = styled(Link)`
 `;
 
 const CompactFooter: React.FC = () => {
+  const { user } = useAuth();
+  // Authenticated users retain the protected to="/support" Report Room.
+  const helpHref = user ? '/support' : '/contact';
+  const helpLabel = user ? 'Report a problem' : 'Get help';
+
   return (
     <CompactFooterContainer className="compact-footer">
       <Copyright>
@@ -86,7 +92,7 @@ const CompactFooter: React.FC = () => {
       <FooterLinks>
         <FooterLink to="/privacy">Privacy</FooterLink>
         <FooterLink to="/terms">Terms</FooterLink>
-        <FooterLink to="/support">Report a problem</FooterLink>
+        <FooterLink to={helpHref}>{helpLabel}</FooterLink>
       </FooterLinks>
     </CompactFooterContainer>
   );

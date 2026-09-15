@@ -1,0 +1,515 @@
+{
+  "schemaVersion": 1,
+  "phase": "plan",
+  "ui": true,
+  "blockers": [],
+  "nextSlice": "Second final independent Astra review of all combined changes and explicit adjudication of AF1-01 through AF1-05.",
+  "sections": {
+    "baseline": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "requirements": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "blueprint": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "flowchart": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "contracts": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "tests": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "traceability": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "slices": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "review": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        },
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/orchestrator-audit.md",
+          "sha256": "eddbbf0749e0cffdfe3b8c058707b031efcf18b496a4712463a5db5c028ce646"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/astra-final-1-report.json",
+          "sha256": "57bdb952e15da165092b4cdd2a63751acb4579dca49be9aadfeef7300b992461"
+        }
+      ]
+    },
+    "wireframes": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "state": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "sequence": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "erd": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "permissions": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "privacy": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "operations": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/README.md",
+          "sha256": "57dfd0b80da0c3c47f9ebb3562a50fce94b06f806ae5cbb4f406ef7816715df5"
+        }
+      ]
+    },
+    "preservation": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "docs/ai-workflow/blueprints/full-site-repair-2026-09-12/originals/manifest.json",
+          "sha256": "1d6f426dc692bed7961384caa40c467b5336971cd0b6022960c51156cafeb9bc"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/README-before-final-closure.md",
+          "sha256": "3c717e86176b67024ec6b2f9a82ac38dca8a245ce95bd53ee48e861c694d22a9"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/readiness-before-final-closure.json",
+          "sha256": "54c7f07d153ba1b402791717bad4197bfd8d367013396727e0cbf48234f886b7"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/before-final-review-repairs-README.md",
+          "sha256": "35c892033bbc815e6f4c51c3c324c30adaeef1b19c4b5fadb756ab6bc68b7aa5"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/before-final-review-repairs-readiness.json",
+          "sha256": "cad678e7900540b541c072447e59935973ca6f396b4b9c2c5a0fd248281431e2"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/before-final-review-repairs-orchestrator-audit.md",
+          "sha256": "28ff6259fa46c0045ebeccbb56590dad969ad8cfe75a0a965c37b50c87e20f0f"
+        }
+      ]
+    }
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "acceptance": "Queue append survives flush; only acknowledged immutable IDs are deleted.",
+      "tests": [
+        "T1"
+      ]
+    },
+    {
+      "id": "R2",
+      "acceptance": "Actor/client ownership prevents cross-account replay and preserves legacy data.",
+      "tests": [
+        "T2"
+      ]
+    },
+    {
+      "id": "R3",
+      "acceptance": "Client-info failure is unavailable with retry; no fabricated credits or stale response.",
+      "tests": [
+        "T3"
+      ]
+    },
+    {
+      "id": "R4",
+      "acceptance": "Trainer data/mutations are assignment-scoped before reads or provider work.",
+      "tests": [
+        "T4"
+      ]
+    },
+    {
+      "id": "R5",
+      "acceptance": "Required context/compliance failure and malformed rows cannot produce all-clear.",
+      "tests": [
+        "T5"
+      ]
+    },
+    {
+      "id": "R6",
+      "acceptance": "Concurrent session grants preserve balances and rollback on failure.",
+      "tests": [
+        "T6"
+      ]
+    },
+    {
+      "id": "R7",
+      "acceptance": "Notifications share one store and remain recipient/generation scoped with truthful retry.",
+      "tests": [
+        "T7"
+      ]
+    },
+    {
+      "id": "R8",
+      "acceptance": "Messaging/root sockets follow canonical token lifecycle; messages use durable receipts.",
+      "tests": [
+        "T8"
+      ]
+    },
+    {
+      "id": "R9",
+      "acceptance": "Earned reward UI is mounted, replay guarded, accessible and motion respecting.",
+      "tests": [
+        "T9"
+      ]
+    },
+    {
+      "id": "R10",
+      "acceptance": "Final frontend/backend regressions and canonical type-check/build pass.",
+      "tests": [
+        "T10"
+      ]
+    },
+    {
+      "id": "R11",
+      "acceptance": "Offers reach mounted manager, validate pricing receipts and prevent duplicate pending action.",
+      "tests": [
+        "T11"
+      ]
+    },
+    {
+      "id": "R12",
+      "acceptance": "Marketplace concurrent purchase/equip and failed transactions preserve actual local DB state.",
+      "tests": [
+        "T12"
+      ]
+    },
+    {
+      "id": "R13",
+      "acceptance": "Public/admin navigation and public accessibility/configuration recovery satisfy bounded contracts.",
+      "tests": [
+        "T13"
+      ]
+    },
+    {
+      "id": "R14",
+      "acceptance": "Malformed optional provider discovery does not disable the password login page.",
+      "tests": [
+        "T14"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1",
+      "requirements": [
+        "R1"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S1-luna-report.json where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S1-luna-report.json",
+          "sha256": "e74267af33128372dd46ecd2830d0a7f3fa3ff9d41c1f90c42dcbfa3f23d97c6"
+        }
+      ]
+    },
+    {
+      "id": "T2",
+      "requirements": [
+        "R2"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S1-luna-report.json where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S1-luna-report.json",
+          "sha256": "e74267af33128372dd46ecd2830d0a7f3fa3ff9d41c1f90c42dcbfa3f23d97c6"
+        }
+      ]
+    },
+    {
+      "id": "T3",
+      "requirements": [
+        "R3"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S2-workoutlogger-green.stdout.log where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S2-workoutlogger-green.stdout.log",
+          "sha256": "c807bb92704c677d34757a9e0e622a5299d20fec1643f23548c69f3a19762b20"
+        }
+      ]
+    },
+    {
+      "id": "T4",
+      "requirements": [
+        "R4"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S2-integrity-v2-evidence.json where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S2-integrity-v2-evidence.json",
+          "sha256": "1f67de82ce601c839195f131c7b6757af7ad5910b0d291c4675520306f4bdeae"
+        }
+      ]
+    },
+    {
+      "id": "T5",
+      "requirements": [
+        "R5"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S2b-data-truth-evidence.json where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S2b-data-truth-evidence.json",
+          "sha256": "793dfa42834a18a5264df8f2d282549e45aadc77e7462304d609c9afa6abd3d4"
+        }
+      ]
+    },
+    {
+      "id": "T6",
+      "requirements": [
+        "R6"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S3-parent-postgres-final.log where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S3-parent-postgres-final.log",
+          "sha256": "2b0135fe61554b89479ae9d9cfa7802db5a64dd68ba331532cfffdab7d2e8d28"
+        }
+      ]
+    },
+    {
+      "id": "T7",
+      "requirements": [
+        "R7"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S4-luna-report.json where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S4-luna-report.json",
+          "sha256": "15ef33bf3b597e9fade5e44b698fe31764ee957346ac574fe568025855e25db6"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/AF1-02-repair-report.json",
+          "sha256": "9c2ff1a49a74a98de8e08ebcbb33fffa261600faae3bd4e04a216a633d14dddc"
+        }
+      ]
+    },
+    {
+      "id": "T8",
+      "requirements": [
+        "R8"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S12-luna-report.json where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S12-luna-report.json",
+          "sha256": "b6579b45febd104555a365463f19503e587f4c7988e477e36247a60c300206da"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/AF1-01-04-repair-report.json",
+          "sha256": "f6bc9fa85c55b278449f66a2107cc05958daef413f7af6041da987161a4c870a"
+        }
+      ]
+    },
+    {
+      "id": "T9",
+      "requirements": [
+        "R9"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/celebration-browser-proof-5.json where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/celebration-browser-proof-5.json",
+          "sha256": "7ebaaff254697aa9fc8c8d619afe228c9bc872c9d1f0745eb89ec661aed1c4ea"
+        }
+      ]
+    },
+    {
+      "id": "T10",
+      "requirements": [
+        "R10"
+      ],
+      "command": "frontend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; backend: same with NODE_ENV=test and isolated unreachable DATABASE_URL; frontend: npm run type-check; npm run build",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/final-frontend-4-result.json",
+          "sha256": "b62f5c7fd156d54d5d48d0b2d45ff3bf90650cff48af17fc9ce9a98a1476f642"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/final-backend-3-result.json",
+          "sha256": "8fb961647277df3a44161f0ce39d9229c57c9a10c219951004f09c2a47a777da"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/final-types-build-4-result.json",
+          "sha256": "105bcf08a8e5b615671db5cd440bbcc650e63d626ae7e789ea6de9597ae4c3ec"
+        }
+      ]
+    },
+    {
+      "id": "T11",
+      "requirements": [
+        "R11"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S7-offers-config-browser-evidence.json where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S7-offers-config-browser-evidence.json",
+          "sha256": "010a42c7f0550e25b6fad26b4cb9be8a9bcfb94fe55ecb9f32bbef3865ef9ee7"
+        },
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/AF1-03-05-repair-report.json",
+          "sha256": "6e199012b817e443f479bddda07dff3f10ad9903ac4f30ae4723235912980be8"
+        }
+      ]
+    },
+    {
+      "id": "T12",
+      "requirements": [
+        "R12"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/parent-marketplace-postgres-green.log where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/parent-marketplace-postgres-green.log",
+          "sha256": "3e9af465f75b61e4281ef530e7c72ad9e9002531ace77430e00dcf35ab316ab3"
+        }
+      ]
+    },
+    {
+      "id": "T13",
+      "requirements": [
+        "R13"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S13-luna-report.json where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S13-luna-report.json",
+          "sha256": "f67db315fc80e63071138247df8255a78fda630128f18c676b419015ee846239"
+        }
+      ]
+    },
+    {
+      "id": "T14",
+      "requirements": [
+        "R14"
+      ],
+      "command": "frontend and backend: node node_modules/vitest/vitest.mjs run --maxWorkers=4 --reporter=default --reporter=json; repeat the additional isolated PostgreSQL/browser command preserved in .mega-blueprints/artifacts/55c0633e8d876db7/S11-luna-report.json where applicable",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": ".mega-blueprints/artifacts/55c0633e8d876db7/S11-luna-report.json",
+          "sha256": "c760509c284576118aea281cb407180e109627a714029b1901b08bab9c48698f"
+        }
+      ]
+    }
+  ],
+  "reviewDisposition": "PENDING_FINAL_ASTRA_REREVIEW_AFTER_REVISE",
+  "boundaries": {
+    "productionAuthenticated": "NOT RUN",
+    "deployment": "NOT RUN",
+    "paidReview": "N/A user selected native Astra",
+    "nativeHookExecution": "UNPROVEN"
+  }
+}

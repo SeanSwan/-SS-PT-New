@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 /**
- * gates-fire-report.mjs — the INSTRUMENT for the heredoc gate's shadow period.
+ * gates-fire-report.mjs — the INSTRUMENT that ENDED the heredoc gate's shadow period.
  *
- * WHY: the heredoc-escape gate shipped SHADOW BY DEFAULT (PR #72, 2026-08-25) with a
+ * CONCLUDED 2026-08-26: this report produced the denominator (1,737 fires, 73 would-block,
+ * 4.2%, 0 hatch uses) that justified flipping the default to ENFORCE. The script stays —
+ * the same number now measures regressions rather than readiness.
+ *
+ * WHY (original): the heredoc-escape gate shipped SHADOW BY DEFAULT (PR #72, 2026-08-25) with a
  * 14-day observe-then-enforce plan. A shadow log nobody can read is a dead instrument —
  * the corpus's own lesson ("an instrument that did not run reports clean"). This script
  * turns .ai-workflow/gates/fires.jsonl into the enforce/keep-observing decision.

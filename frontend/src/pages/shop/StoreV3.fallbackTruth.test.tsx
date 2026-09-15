@@ -1,3 +1,4 @@
+vi.mock('../../hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, beforeEach, vi } from 'vitest';
@@ -98,7 +99,7 @@ describe.each([
     await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith('/api/storefront'));
 
     expect(await screen.findByText(/failed to load packages/i)).toBeInTheDocument();
-    expect(screen.getByText(/we couldn't load the training packages/i)).toBeInTheDocument();
+    expect(screen.getByText(/we couldn't load the training (packages|choices)/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /retry loading/i })).toBeInTheDocument();
     expect(mockPackagesGrid).not.toHaveBeenCalled();
   });

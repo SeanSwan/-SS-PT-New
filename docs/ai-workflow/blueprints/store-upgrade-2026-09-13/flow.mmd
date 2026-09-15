@@ -1,0 +1,21 @@
+flowchart TD
+  A[Browse store] --> B[Load current catalog]
+  B -->|failure| C[Visible retry with independent content]
+  C -->|retry| B
+  B -->|empty| D[Consultation or memberships]
+  B -->|ready| E{Item type and access}
+  E -->|hidden training| F[Pricing inquiry]
+  E -->|public physical or granted training| G[Compare known facts]
+  G --> H{Authenticated and sellable}
+  H -->|no| I[Sign in or unavailable reason]
+  I --> A
+  H -->|yes| J[Single cart mutation]
+  J -->|failed| K[Visible error and deliberate retry]
+  K --> G
+  J -->|receipt| L[Existing checkout]
+  L -->|cancel or defer| A
+  L --> M[Verify payment and fulfillment]
+  M -->|unknown| N[Retry verification or support]
+  N --> M
+  M -->|fulfilled| O[Reduced-motion aware celebration]
+  A -->|rollback release| P[Restore prior main without data changes]

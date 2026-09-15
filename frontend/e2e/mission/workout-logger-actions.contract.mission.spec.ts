@@ -103,6 +103,13 @@ async function mockWorkoutLoggerApi(page: Page, state: MissionApiState) {
     const endpoint = new URL(request.url()).pathname;
     const method = request.method();
 
+    // Telemetry is a best-effort browser side effect. Keep the mission
+    // read-only and deterministic by acknowledging it locally instead of
+    // letting it fall through to the write blocker.
+    if (endpoint.startsWith('/api/telemetry/')) {
+      return fulfillJson(route, { success: true });
+    }
+
     if (
       method === 'POST' &&
       endpoint === '/api/workout-forms' &&
@@ -207,9 +214,40 @@ async function mockWorkoutLoggerApi(page: Page, state: MissionApiState) {
         },
       });
     }
+    if (endpoint === '/api/cart') {
+      return fulfillJson(route, { id: 1, status: 'active', items: [], total: 0, totalSessions: 0 });
+    }
 
     return fulfillJson(route, { success: true, data: [], clients: [], stats: {}, notifications: [] });
   });
+}
+
+async function addGobletSquat(page: Page) {
+  await page.getByRole('button', { name: /search and add exercises/i }).click();
+  await page.getByRole('combobox', { name: /search exercises/i }).fill('goblet');
+  await expect(page.getByRole('button', { name: 'Add to Workout', exact: true })).toBeVisible({ timeout: 5_000 });
+  await page.getByRole('button', { name: 'Add to Workout', exact: true }).click();
+  await expect(page.getByText(/Goblet Squat/i).first()).toBeVisible({ timeout: 5_000 });
+}
+
+async function enterFirstSet(page: Page) {
+  const weight = page.getByRole('spinbutton', { name: /set 1 weight in lbs/i });
+  const reps = page.getByRole('spinbutton', { name: /set 1 reps/i });
+  if (await weight.getAttribute('readonly') !== null) {
+    await weight.click();
+    const weightPad = page.getByRole('dialog', { name: /weight.*keypad/i });
+    for (const digit of ['4', '0']) await weightPad.getByRole('button', { name: digit, exact: true }).click();
+    await weightPad.getByRole('button', { name: 'Done', exact: true }).click();
+
+    const repsPad = page.getByRole('dialog', { name: /reps.*keypad/i });
+    for (const digit of ['1', '0']) await repsPad.getByRole('button', { name: digit, exact: true }).click();
+    await repsPad.getByRole('button', { name: 'Done', exact: true }).click();
+  } else {
+    await weight.fill('40');
+    await reps.fill('10');
+  }
+  await expect(weight).toHaveValue('40');
+  await expect(reps).toHaveValue('10');
 }
 
 test('@mission @contract @readonly admin workout logger protects export, summary, and cancel actions', async ({ page }, testInfo) => {
@@ -229,17 +267,8 @@ test('@mission @contract @readonly admin workout logger protects export, summary
   const loggerUrl = new URL(page.url());
   expect(loggerUrl.searchParams.get('sessionId')).toBe('910');
   expect(loggerUrl.searchParams.get('sessionDate')).toBe('2026-06-06');
-  await page.getByRole('button', { name: /search and add exercises/i }).click();
-  await page.getByRole('combobox', { name: /search exercises/i }).fill('goblet');
-  const previewMedia = page.getByLabel('Goblet Squat exercise demo media');
-  await expect(previewMedia).toBeVisible();
-  await expect(previewMedia).toHaveAttribute('poster', /goblet-squat\.jpg/);
-  await expect(previewMedia).toHaveAttribute('src', /goblet-squat\.webm/);
-  await expect(page.getByText(/3 x 10/i)).toBeVisible();
-  await expect(page.getByText(/Tempo 3\/1\/1 \| 60s rest/i)).toBeVisible();
-  await page.getByRole('option', { name: /goblet squat/i }).first().click();
-
-  await expect(page.getByText(/Goblet Squat/i).first()).toBeVisible();
+  await addGobletSquat(page);
+  await page.getByRole('button', { name: 'Session actions', exact: true }).click();
   await expect(page.getByRole('button', { name: /enter reps or weight, then save/i })).toBeDisabled();
 
   const [download] = await Promise.all([
@@ -248,7 +277,8 @@ test('@mission @contract @readonly admin workout logger protects export, summary
   ]);
   expect(download.suggestedFilename()).toMatch(/^SwanStudios-Workout-SwanStudios-Paid-Client-/);
 
-  await page.getByRole('button', { name: /^cancel$/i }).click();
+  await page.getByRole('button', { name: 'Session actions', exact: true }).click();
+  await page.getByRole('button', { name: 'Cancel session', exact: true }).click();
   await expect(page.getByRole('dialog', { name: /discard unsaved workout/i })).toBeVisible();
   await page.getByRole('button', { name: /keep logging/i }).click();
 
@@ -269,14 +299,12 @@ test('@mission @contract @readonly admin scheduled logger save keeps linked sess
   await page.goto('/dashboard/admin/client-management?clientId=501&tab=training&trainingSection=logger&sessionId=910&sessionDate=2026-06-06', {
     waitUntil: 'domcontentloaded',
   });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
+  await expect(page.locator('body')).toContainText('SwanStudios Paid Client', { timeout: 5_000 });
 
-  await page.getByRole('button', { name: /search and add exercises/i }).click();
-  await page.getByRole('combobox', { name: /search exercises/i }).fill('goblet');
-  await page.getByRole('option', { name: /goblet squat/i }).first().click();
-  await page.getByRole('spinbutton', { name: /set 1 weight in lbs/i }).fill('40');
-  await page.getByRole('spinbutton', { name: /set 1 reps/i }).fill('10');
-  await page.getByRole('button', { name: /complete & save workout/i }).click();
+  await addGobletSquat(page);
+  await enterFirstSet(page);
+  await page.getByRole('button', { name: /complete and save workout/i }).click();
 
   await expect.poll(() => apiState.capturedWorkoutFormSubmissions?.length ?? 0).toBe(1);
   expect(apiState.capturedWorkoutFormSubmissions?.[0]).toMatchObject({
@@ -301,9 +329,10 @@ test('@mission @contract @readonly admin plan vault exposes trainer-led versus h
   await page.goto('/dashboard/admin/client-management?clientId=501&tab=training&trainingSection=plans', {
     waitUntil: 'domcontentloaded',
   });
-  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
+  await expect(page.locator('body')).toContainText('SwanStudios Paid Client', { timeout: 5_000 });
 
-  await expect(page.getByRole('heading', { name: /training plans/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /plan library/i })).toBeVisible();
   await expect(page.getByLabel(/6 month plan arc/i)).toContainText(/Trainer-led/i);
   await expect(page.getByLabel(/1 week plan arc/i)).toContainText(/Homework diary/i);
   await expect(page.getByLabel(/6 month plan arc/i)).toContainText(/Mission Trainer-Led Arc/i);

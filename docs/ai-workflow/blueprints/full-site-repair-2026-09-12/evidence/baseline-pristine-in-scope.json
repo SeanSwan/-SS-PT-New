@@ -1,0 +1,725 @@
+{
+  "tool": "scripts/ci/check-docs-links.mjs",
+  "at": "2026-09-13T09:29:46.029Z",
+  "toolVersion": "3.14.2",
+  "scope": "in",
+  "concurrency": 1,
+  "counts": {
+    "tracked": 2930,
+    "inScopeFiles": 1144,
+    "excludedFiles": 1786,
+    "checkedFiles": 1144,
+    "confirmedFiles": 28,
+    "inScopeDead": 105,
+    "excludedDead": 0,
+    "inScopeUnreadable": 0,
+    "excludedUnreadable": 0
+  },
+  "ledger": [
+    {
+      "path": ".agents/",
+      "recorded": 75,
+      "observed": 0,
+      "recordedUnreadable": 0,
+      "observedUnreadable": 0
+    },
+    {
+      "path": ".claude/",
+      "recorded": 1,
+      "observed": 0,
+      "recordedUnreadable": 0,
+      "observedUnreadable": 0
+    },
+    {
+      "path": ".continue/",
+      "recorded": 1,
+      "observed": 0,
+      "recordedUnreadable": 0,
+      "observedUnreadable": 0
+    },
+    {
+      "path": ".cursor/",
+      "recorded": 1,
+      "observed": 0,
+      "recordedUnreadable": 0,
+      "observedUnreadable": 0
+    },
+    {
+      "path": "archive/",
+      "recorded": 16,
+      "observed": 0,
+      "recordedUnreadable": 1,
+      "observedUnreadable": 0
+    },
+    {
+      "path": "docs/ai-workflow/archive/",
+      "recorded": 23,
+      "observed": 0,
+      "recordedUnreadable": 0,
+      "observedUnreadable": 0
+    },
+    {
+      "path": "docs/_attic/",
+      "recorded": 1,
+      "observed": 0,
+      "recordedUnreadable": 0,
+      "observedUnreadable": 0
+    },
+    {
+      "path": "AI-Village-Documentation/validation-prompts/",
+      "recorded": 1128,
+      "observed": 0,
+      "recordedUnreadable": 0,
+      "observedUnreadable": 0
+    },
+    {
+      "path": "docs/ai-workflow/validation-reports/",
+      "recorded": 42,
+      "observed": 0,
+      "recordedUnreadable": 0,
+      "observedUnreadable": 0
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/",
+      "recorded": 577,
+      "observed": 0,
+      "recordedUnreadable": 0,
+      "observedUnreadable": 0
+    }
+  ],
+  "inScopeDead": [
+    {
+      "file": "AI-Village-Documentation/FIGMA-AI-SETUP-GUIDE.md",
+      "link": "https://magician.design/",
+      "statusCode": 0,
+      "err": "Error: Max redirects reached. Possible loop in: https://www.mycocards.com/"
+    },
+    {
+      "file": "AI-Village-Documentation/FIGMA-AI-SETUP-GUIDE.md",
+      "link": "https://dribbble.com/tags/fitness-app",
+      "statusCode": 202,
+      "err": null
+    },
+    {
+      "file": "AI-Village-Documentation/README.md",
+      "link": "AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md'"
+    },
+    {
+      "file": "AI-Village-Documentation/SWANSTUDIOS-SOCIAL-STYLING-REFERENCE.md",
+      "link": "#5-styled-components",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "AI-Village-Documentation/SWANSTUDIOS-SOCIAL-STYLING-REFERENCE.md",
+      "link": "#6-component-hierarchy",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "AI-Village-Documentation/SWANSTUDIOS-SOCIAL-STYLING-REFERENCE.md",
+      "link": "#7-haptic-moderation",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "AI-Village-Documentation/SWANSTUDIOS-SOCIAL-STYLING-REFERENCE.md",
+      "link": "#9-rarity-status-badges",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "AI-Village-Documentation/SWANSTUDIOS-SOCIAL-STYLING-REFERENCE.md",
+      "link": "#10-true-glass-surface",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "AI-Village-Documentation/SWANSTUDIOS-SOCIAL-STYLING-REFERENCE.md",
+      "link": "#11-spring-motion-animation",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-codex-review-prompt-2026-05-01.md",
+      "link": "backend/routes/workoutBuilderRoutes.mjs",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\backend\\routes\\workoutBuilderRoutes.mjs'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "backend/models/WorkoutPlan.mjs#L102-L107",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\backend\\models\\WorkoutPlan.mjs'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "backend/routes/workoutPlanRoutes.mjs#L54-L90",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\backend\\routes\\workoutPlanRoutes.mjs'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx#L552",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\frontend\\src\\components\\DashBoard\\Pages\\admin-workout-planner\\WorkoutPlannerPage.tsx'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx#L1232-L1283",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\frontend\\src\\components\\DashBoard\\Pages\\admin-workout-planner\\WorkoutPlannerPage.tsx'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx#L500",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\frontend\\src\\components\\DashBoard\\Pages\\admin-workout-planner\\WorkoutPlannerPage.tsx'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "backend/routes/workoutPlanRoutes.mjs#L193",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\backend\\routes\\workoutPlanRoutes.mjs'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "backend/routes/workoutPlanRoutes.mjs#L101-L104",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\backend\\routes\\workoutPlanRoutes.mjs'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "backend/core/routes.mjs#L330-L331",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\backend\\core\\routes.mjs'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "backend/models/WorkoutPlan.mjs#L60",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\backend\\models\\WorkoutPlan.mjs'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "backend/models/WorkoutPlan.mjs#L104",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\backend\\models\\WorkoutPlan.mjs'"
+    },
+    {
+      "file": "AI-Village-Documentation/workout-planner-plan-library-receipt-2026-05-01.md",
+      "link": "backend/routes/workoutPlanRoutes.mjs#L367",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\backend\\routes\\workoutPlanRoutes.mjs'"
+    },
+    {
+      "file": "docs/CUSTOM-PACKAGE-USER-GUIDE.md",
+      "link": "https://swanstudios.com/faq",
+      "statusCode": 0,
+      "err": "Error: write EPROTO 30DF0000:error:0A000458:SSL routines:ssl3_read_bytes:tlsv1 unrecognized name:openssl\\ssl\\record\\rec_layer_s3.c:918:SSL alert number 112\n"
+    },
+    {
+      "file": "docs/CUSTOM-PACKAGE-USER-GUIDE.md",
+      "link": "https://swanstudios.com/terms",
+      "statusCode": 0,
+      "err": "Error: write EPROTO 30DF0000:error:0A000458:SSL routines:ssl3_read_bytes:tlsv1 unrecognized name:openssl\\ssl\\record\\rec_layer_s3.c:918:SSL alert number 112\n"
+    },
+    {
+      "file": "docs/CUSTOM-PACKAGE-USER-GUIDE.md",
+      "link": "https://swanstudios.com/refunds",
+      "statusCode": 0,
+      "err": "Error: write EPROTO 30DF0000:error:0A000458:SSL routines:ssl3_read_bytes:tlsv1 unrecognized name:openssl\\ssl\\record\\rec_layer_s3.c:918:SSL alert number 112\n"
+    },
+    {
+      "file": "docs/ai-workflow/ADMIN-VIDEO-LIBRARY-BACKEND-IMPLEMENTATION-PLAN.md",
+      "link": "#testing-strategy",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/AI-REVIEW-REQUEST-DASHBOARD-ARCHITECTURE.md",
+      "link": "../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md'"
+    },
+    {
+      "file": "docs/ai-workflow/EXERCISE-DATABASE-API-RESEARCH.md",
+      "link": "https://www.exercisedb.dev/docs",
+      "statusCode": 0,
+      "err": "Error: certificate has expired"
+    },
+    {
+      "file": "docs/ai-workflow/NASM-IMPLEMENTATION-ROADMAP.md",
+      "link": "../../frontend/src/pages/admin/AdminVideoLibrary.tsx",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\frontend\\src\\pages\\admin\\AdminVideoLibrary.tsx'"
+    },
+    {
+      "file": "docs/ai-workflow/NASM-IMPLEMENTATION-ROADMAP.md",
+      "link": "../../frontend/src/components/admin/VideoCard.tsx",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\frontend\\src\\components\\admin\\VideoCard.tsx'"
+    },
+    {
+      "file": "docs/ai-workflow/NASM-IMPLEMENTATION-ROADMAP.md",
+      "link": "../../frontend/src/components/admin/VideoPlayerModal.tsx",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\frontend\\src\\components\\admin\\VideoPlayerModal.tsx'"
+    },
+    {
+      "file": "docs/ai-workflow/NASM-IMPLEMENTATION-ROADMAP.md",
+      "link": "../../frontend/src/pages/admin/VideoLibraryTest.tsx",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\frontend\\src\\pages\\admin\\VideoLibraryTest.tsx'"
+    },
+    {
+      "file": "docs/ai-workflow/PHASE-8-DASHBOARD-API-GAPS-BLUEPRINT.md",
+      "link": "../../backend/test-phase8-apis.mjs",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\backend\\test-phase8-apis.mjs'"
+    },
+    {
+      "file": "docs/ai-workflow/README.md",
+      "link": "../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\AI-Village-Documentation\\AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md'"
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-1-TESTING-RESULTS.md",
+      "link": "../../backend/test-video-library.mjs",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\backend\\test-video-library.mjs'"
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "link": "#executive-summary",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "link": "#context--prerequisites",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "link": "#quality-standards",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "link": "#phase-2-objectives",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "link": "#task-breakdown",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "link": "#architecture--data-flow",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "link": "#implementation-details",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "link": "#testing-requirements",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "link": "#success-criteria",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/VIDEO-LIBRARY-PHASE-2-BLUEPRINT.md",
+      "link": "#ai-village-coordination",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md",
+      "link": "#2-7-star-documentation-standard",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md",
+      "link": "#3-no-monolith-file-rule",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md",
+      "link": "#5-nasm-opt-model-integration",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md",
+      "link": "#6-1rm-conversion-engine",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md",
+      "link": "#7-nasm-calculator-suite",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md",
+      "link": "#8-comprehensive-exercise-database",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md",
+      "link": "#9-nasm-standard-workout-forms",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md",
+      "link": "#appendix-b-1rm-conversion-chart",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT-V2.md",
+      "link": "#appendix-c-full-exercise-database",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/EMBEDDED-AI-TERMINAL-AND-WORKOUT-LOGGER-MASTER-PROMPT.md",
+      "link": "#2-blueprint-first-protocol",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#2-chart-data-pipeline",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#3-exercise-rolodex-chart",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#4-sports-goal-system",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#5-ai-assistant-upgrades",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#6-trainer-admin-client-panel",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#7-user-dashboard-social-profile",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#8-gamification-integration",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#9-new-backend-endpoints",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#10-new-frontend-components",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#11-claudemd-updates",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#12-implementation-order",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/ENHANCED-CHART-ANALYTICS-AND-AI-INTEGRATION-MASTER-PROMPT.md",
+      "link": "#13-ceo-overrides",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "link": "mailto:trainer@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "link": "mailto:client-paid@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "link": "mailto:client-free@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "link": "mailto:admin@swanstudios.dev",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "link": "mailto:trainer@swanstudios.dev",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "link": "mailto:client-paid@test.dev",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "link": "mailto:client-free@test.dev",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/SUBSCRIPTION-STORE-MASTER-BUILD-PLAN.md",
+      "link": "#3-subscription-tiers",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/SUBSCRIPTION-STORE-MASTER-BUILD-PLAN.md",
+      "link": "#5-build-phases",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/SUBSCRIPTION-STORE-MASTER-BUILD-PLAN.md",
+      "link": "#9-phase-4-global-paywall",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/SUBSCRIPTION-STORE-MASTER-BUILD-PLAN.md",
+      "link": "#12-phase-7-anti-abuse",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/SUBSCRIPTION-STORE-MASTER-BUILD-PLAN.md",
+      "link": "#13-phase-8-onboarding",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/SUBSCRIPTION-STORE-MASTER-BUILD-PLAN.md",
+      "link": "#15-risks",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/design-brain/techniques.md",
+      "link": "https://threejs.org/manual/en/webgpurenderer",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/design-brain/techniques.md",
+      "link": "https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/",
+      "statusCode": 0,
+      "err": "Error: socket hang up"
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-CLEANUP-PLAN.md",
+      "link": "mailto:client@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-CLEANUP-PLAN.md",
+      "link": "mailto:user@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "link": "mailto:testclient_...@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "link": "mailto:client@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "link": "mailto:user@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "link": "mailto:smoketest_...@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "link": "mailto:phase2test_...@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "link": "mailto:pwtest_...@test.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "link": "#overview",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "link": "#design-principles",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "link": "#user-interface-layout",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "link": "#personal-training-mode",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "link": "#boot-camp-mode",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "link": "#navigation--toggle-system",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "link": "#responsive-design",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "link": "#galaxy-swan-theme-integration",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "link": "#data-flow--api-integration",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/personal-training/UNIFIED-TRAINING-INTERFACE-DESIGN.md",
+      "link": "#implementation-roadmap",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/references/NASM-CES-TAXONOMY.md",
+      "link": "https://my.clevelandclinic.org/health/symptoms/22091-pronation",
+      "statusCode": 404,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/references/NASM-CES-TAXONOMY.md",
+      "link": "https://orthoinfo.aaos.org/en/diseases--conditions/rotator-cuff-tears/",
+      "statusCode": 0,
+      "err": "Error: socket hang up"
+    },
+    {
+      "file": "docs/ai-workflow/references/archive/ROUTER-UPGRADES-GT6.md",
+      "link": "https://routerhax.com/what-is-wpa3/",
+      "statusCode": 502,
+      "err": null
+    },
+    {
+      "file": "docs/ai-workflow/reviews/homepage-hero-enhancement.md",
+      "link": "../../current/GALAXY-SWAN-THEME-DOCS.md",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\docs\\current\\GALAXY-SWAN-THEME-DOCS.md'"
+    },
+    {
+      "file": "docs/archive/MASTER_PROMPT_V26_API.md",
+      "link": "mailto:privacy@company.com",
+      "statusCode": 400,
+      "err": null
+    },
+    {
+      "file": "docs/index.md",
+      "link": "../frontend/src/pages/workout/README.md",
+      "statusCode": 400,
+      "err": "Error: ENOENT: no such file or directory, access 'C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\s17-pristine-baseline\\frontend\\src\\pages\\workout\\README.md'"
+    }
+  ],
+  "excludedDead": [],
+  "inScopeErrors": [],
+  "excludedErrors": []
+}

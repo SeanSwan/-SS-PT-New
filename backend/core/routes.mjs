@@ -171,7 +171,7 @@ import adminReconciliationRoutes from '../routes/adminReconciliationRoutes.mjs';
 import adminChargeCardRoutes from '../routes/adminChargeCardRoutes.mjs';
 import adminWaiverRoutes from '../routes/adminWaiverRoutes.mjs';
 import publicWaiverRoutes from '../routes/publicWaiverRoutes.mjs';
-import adminComplianceRoutes from '../routes/adminComplianceRoutes.mjs';
+import adminComplianceRoutes, { atRiskComplianceRoutes } from '../routes/adminComplianceRoutes.mjs';
 
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
@@ -271,7 +271,9 @@ import roleRoutes from '../routes/roleRoutes.mjs';
 // ===================== NASM WORKOUT TRACKING SYSTEM =====================
 import clientTrainerAssignmentRoutes from '../routes/clientTrainerAssignmentRoutes.mjs';
 import trainerPermissionsRoutes from '../routes/trainerPermissionsRoutes.mjs';
+import trainerOnboardingRoutes from '../routes/trainerOnboardingRoutes.mjs';
 import dailyWorkoutFormRoutes from '../routes/dailyWorkoutFormRoutes.mjs';
+import locationRoutes from '../routes/locationRoutes.mjs';
 
 // ===================== WEBHOOKS =====================
 import stripeWebhookRouter from '../webhooks/stripeWebhook.mjs';
@@ -417,6 +419,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/sessions/deductions', sessionDeductionRoutes); // Auto-deduction and payment application
   app.use('/api/sessions', sessionsRoutes);
   app.use('/api/session-types', sessionTypeRoutes); // Session type management (Phase 5)
+  app.use('/api/locations', locationRoutes); // Physical facilities (SWA-74 gym-ops spine S0)
   app.use('/api/schedule', scheduleRoutes); // Calendar view schedule endpoint
   app.use('/api/schedule-ai', scheduleAiRoutes);
   app.use('/api/availability', availabilityRoutes);
@@ -495,6 +498,10 @@ export const setupRoutes = async (app) => {
 
   // ===================== ADMIN & MANAGEMENT ROUTES =====================
   app.use('/api/admin/flags', adminFlagRoutes); // Launch Control (admin-only; self-gates protect+authorize)
+  // The trainer-safe compliance collection must precede the global admin
+  // router. Only this narrow path is trainer-visible; compliance siblings and
+  // every other /api/admin route retain their admin guards.
+  app.use('/api/admin/compliance/at-risk', atRiskComplianceRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', adminDebugRoutes);
 
@@ -770,6 +777,7 @@ export const setupRoutes = async (app) => {
 
   // ===================== NASM WORKOUT TRACKING SYSTEM ROUTES =====================
   // Note: client-trainer-assignments routes registered earlier to avoid conflicts
+  app.use('/api/trainer-onboarding', trainerOnboardingRoutes); // Trainer applications (SWA-62)
   app.use('/api/trainer-permissions', trainerPermissionsRoutes);
   app.use('/api/workout-forms', dailyWorkoutFormRoutes);
 

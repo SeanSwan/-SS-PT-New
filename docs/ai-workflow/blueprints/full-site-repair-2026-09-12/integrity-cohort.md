@@ -1,0 +1,11 @@
+# Integrity repair cohort — execution amendment 1
+
+2026-09-12. Astra architecture decision under the user's explicit full-site implementation authorization and “Luna builds; Astra reviews combined fixes.” Preserve the initial controller, evidence and review consumption through supported migration. No review has been consumed or passed. Native enrollment is recorded; native hook execution remains unproven.
+
+S1 (workout durability), S2 (assignment access), and S3 (manual grants) are disjoint bounded sub-slices within one active integrity cohort so three Luna builders can work concurrently. Their existing detailed contracts remain canonical, with no relaxation of acceptance criteria. Original S1 has not frozen: parent regression found two failing existing tests; those tests join its owned scope. Every sub-slice must provide actual passing test evidence before the cohort freezes. Final independent Astra review remains deferred.
+
+Ownership: build_s1 owns only the WorkoutLogger source/tests; build_access owns debate route authorization and renewal routes/controller/service/access helper plus tests; build_grants owns manual-grant router and validation/concurrency tests. Shared existing tests may be adjusted only to reflect a documented behavior change, never to suppress a failure. No shared source ownership and no production effects. Parent owns orchestration artifacts, contracts and integration verification.
+
+Grant test database is the dedicated loopback PostgreSQL instance specified in S3-grants.md. Tests must refuse any other database. Access tests use synthetic fixtures and stub providers. Required evidence includes intended RED failures, GREEN targeted tests, parent regression, and the combined final suite. Unknown browser/provider/production boundaries remain explicit.
+
+All ten blueprint categories remain in README.md and the linked S1/S2/S3 contracts; this is an execution-order amendment, not a replacement packet. Rollback is code revert in the isolated worktree; preserve audit and controller history. Entry: baseline tests and contract inspection completed. Exit: all three sub-slices pass their observable acceptance criteria with no open integrity defect. Next: unavailable-data and notification/realtime/reward cohorts, then the final hostile review.

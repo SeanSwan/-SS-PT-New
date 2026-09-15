@@ -294,6 +294,7 @@ export class GamificationPointsService {
       source,
       sourceId,
       transactionType,
+      metadata,
     };
     if (outerTransaction) {
       const result = await execute(outerTransaction);

@@ -5,12 +5,10 @@
  */
 import React from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { AlertTriangle, ArrowLeft, CheckCircle, Home, Lock, Mail, Phone, Shield, Star, User } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle, Home, Loader, Lock, Mail, Package, Phone, RefreshCw, Shield, User } from 'lucide-react';
 import GlowButton from '../ui/buttons/GlowButton';
-import PaymentMethodSelector from '../Checkout/PaymentMethodSelector';
 import CheckoutButton from './CheckoutButton';
 import CheckoutFulfillmentSection from './CheckoutFulfillmentSection';
-import OrderReviewStep from './OrderReviewStep';
 import type { CheckoutCustomerInfo } from './CheckoutView.types';
 import type { CheckoutFulfillmentDetails, CheckoutFulfillmentIntent } from './CheckoutView.logic';
 import {
@@ -76,7 +74,7 @@ const CheckoutHero: React.FC<{ onCancel?: () => void }> = ({ onCancel }) => (
       Back
     </BackButton>
     <CheckoutTitle>Secure Checkout</CheckoutTitle>
-    <CheckoutSubtitle>Complete your SwanStudios training package purchase</CheckoutSubtitle>
+    <CheckoutSubtitle>Complete your SwanStudios purchase</CheckoutSubtitle>
   </CheckoutHeader>
 );
 
@@ -93,10 +91,6 @@ const CheckoutSecurityBadges: React.FC = () => (
     <SecurityBadge>
       <CheckCircle size={16} aria-hidden="true" />
       PCI Compliant
-    </SecurityBadge>
-    <SecurityBadge>
-      <Star size={16} aria-hidden="true" />
-      Money Back Guarantee
     </SecurityBadge>
   </SecurityBadges>
 );
@@ -153,18 +147,16 @@ const PaymentActionSection: React.FC<{
     animate={{ opacity: 1, x: 0 }}
     transition={{ duration: 0.5, delay: 0.2 }}
   >
-    <PaymentMethodSelector total={total}>
-      <ActionButtonContainer>
-        <CheckoutButton
-          onClick={onCheckout}
-          disabled={disabled}
-          isLoading={isProcessing}
-          amount={total}
-          amountLabel={amountLabel}
-          amountAriaLabel={amountAriaLabel}
-        />
-      </ActionButtonContainer>
-    </PaymentMethodSelector>
+    <ActionButtonContainer>
+      <CheckoutButton
+        onClick={onCheckout}
+        disabled={disabled}
+        isLoading={isProcessing}
+        amount={total}
+        amountLabel={amountLabel}
+        amountAriaLabel={amountAriaLabel}
+      />
+    </ActionButtonContainer>
   </CheckoutSection>
 );
 
@@ -217,6 +209,68 @@ const CheckoutStatusMessages: React.FC<{
   </AnimatePresence>
 );
 
+export const CheckoutLoadingState: React.FC = () => (
+  <CheckoutContainer role="status" aria-busy="true">
+    <CheckoutHeader>
+      <Loader size={28} aria-hidden="true" />
+      <CheckoutTitle>Loading your cart</CheckoutTitle>
+      <CheckoutSubtitle>We are checking the current cart before opening payment.</CheckoutSubtitle>
+    </CheckoutHeader>
+  </CheckoutContainer>
+);
+
+export const CheckoutCartErrorState: React.FC<{ message: string; onRetry: () => void; onCancel?: () => void }> = ({ message, onRetry, onCancel }) => (
+  <CheckoutContainer>
+    <CheckoutHeader>
+      <CheckoutTitle>We could not load your cart</CheckoutTitle>
+      <CheckoutSubtitle>{message}</CheckoutSubtitle>
+    </CheckoutHeader>
+    <ActionButtonContainer>
+      <GlowButton variant="primary" size="large" fullWidth aria-label="Retry cart" onClick={onRetry}>
+        <RefreshCw size={18} aria-hidden="true" /> Retry
+      </GlowButton>
+      <GlowButton variant="ghost" size="large" fullWidth aria-label="Browse the store" onClick={onCancel ?? goToStore}>
+        <Home size={18} aria-hidden="true" /> Browse the store
+      </GlowButton>
+    </ActionButtonContainer>
+  </CheckoutContainer>
+);
+
+export const CheckoutEmptyState: React.FC<{ onCancel?: () => void }> = ({ onCancel }) => (
+  <CheckoutContainer data-testid="checkout-empty-state">
+    <CheckoutHeader>
+      <Package size={32} aria-hidden="true" />
+      <CheckoutTitle>Your cart is empty</CheckoutTitle>
+      <CheckoutSubtitle>Add an item from the store before opening secure payment.</CheckoutSubtitle>
+    </CheckoutHeader>
+    <ActionButtonContainer>
+      <GlowButton variant="primary" size="large" fullWidth aria-label="Browse the store" onClick={onCancel ?? goToStore}>
+        <Package size={18} aria-hidden="true" /> Browse the store
+      </GlowButton>
+    </ActionButtonContainer>
+  </CheckoutContainer>
+);
+
+const CheckoutOrderSummary: React.FC<{ cart: any; subtotal: number; tax: number | null; taxLabel: string; total: number; sessionCount: number }> = ({ cart, subtotal, tax, taxLabel, total, sessionCount }) => {
+  const items = cart?.items || [];
+  return (
+    <CheckoutSection aria-label="Order summary">
+      <SectionTitle><Package size={20} aria-hidden="true" /> Order summary</SectionTitle>
+      {items.map((item: any, index: number) => (
+        <div key={item.id || index}>
+          <strong>{item.storefrontItem?.name || item.packageName || item.name || 'Store item'}</strong>
+          {item.productVariant?.label ? ` · ${item.productVariant.label}` : ''}
+          <div>Qty {item.quantity} · ${Number(item.price || 0).toFixed(2)} each</div>
+        </div>
+      ))}
+      {sessionCount > 0 && <div>{sessionCount} training sessions</div>}
+      <div>Subtotal: ${subtotal.toFixed(2)}</div>
+      <div>Tax: {tax === null ? taxLabel : `$${tax.toFixed(2)}`}</div>
+      <strong>Total: ${total.toFixed(2)}</strong>
+    </CheckoutSection>
+  );
+};
+
 export const CheckoutReadyView: React.FC<{
   cart: any;
   checkoutReady: boolean;
@@ -234,6 +288,9 @@ export const CheckoutReadyView: React.FC<{
   tax: number | null;
   taxLabel: string;
   total: number;
+  cartLoading?: boolean;
+  cartError?: string | null;
+  onRetryCart?: () => void;
 }> = ({
   cart,
   checkoutReady,
@@ -251,7 +308,14 @@ export const CheckoutReadyView: React.FC<{
   tax,
   taxLabel,
   total,
+  cartLoading = false,
+  cartError = null,
+  onRetryCart = () => undefined,
 }) => {
+  if (cartLoading && !cart) return <CheckoutLoadingState />;
+  if (cartError && !cart) return <CheckoutCartErrorState message={cartError} onRetry={onRetryCart} onCancel={onCancel} />;
+  if (!cart || !cart.items?.length) return <CheckoutEmptyState onCancel={onCancel} />;
+
   const usesStripeTax = tax === null;
   const amountLabel = usesStripeTax ? 'Subtotal Before Stripe Tax' : 'Total Amount';
   const amountAriaLabel = usesStripeTax
@@ -287,7 +351,7 @@ export const CheckoutReadyView: React.FC<{
         <CheckoutStatusMessages error={error} success={success} />
       </MainSection>
 
-      <OrderReviewStep
+      <CheckoutOrderSummary
         cart={cart}
         subtotal={subtotal}
         tax={tax}

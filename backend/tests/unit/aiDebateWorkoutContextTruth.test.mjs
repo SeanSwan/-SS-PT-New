@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const ROUTE_SRC = readFileSync(resolve(__dirname, '../../routes/aiDebateRoutes.mjs'), 'utf8');
+const CONTEXT_SRC = readFileSync(resolve(__dirname, '../../services/ai/debate/debateClientContextService.mjs'), 'utf8');
 const CORE_ROUTES_SRC = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
 
 describe('aiDebateRoutes workout context truth path', () => {
@@ -15,16 +16,17 @@ describe('aiDebateRoutes workout context truth path', () => {
   });
 
   it('enriches direct debate starts from workout_logs joined to workout_sessions', () => {
-    expect(ROUTE_SRC).toMatch(/FROM\s+workout_sessions\s+ws/i);
-    expect(ROUTE_SRC).toMatch(/JOIN\s+workout_logs\s+wl/i);
-    expect(ROUTE_SRC).toMatch(/wl\."sessionId"\s*=\s*ws\.id/i);
-    expect(ROUTE_SRC).toMatch(/ws\."userId"\s*=\s*:clientId/i);
-    expect(ROUTE_SRC).toMatch(/ws\.status\s*=\s*'completed'/i);
-    expect(ROUTE_SRC).toMatch(/json_agg\(json_build_object/i);
-    expect(ROUTE_SRC).toMatch(/'exerciseName',\s*wl\."exerciseName"/i);
-    expect(ROUTE_SRC).toMatch(/ORDER\s+BY\s+ws\.date\s+DESC/i);
-    expect(ROUTE_SRC).not.toMatch(/SELECT\s+exercises,\s*"createdAt"\s+FROM\s+"WorkoutSessions"/);
-    expect(ROUTE_SRC).not.toMatch(/"WorkoutSessions"/);
-    expect(ROUTE_SRC).not.toMatch(/sessionDate/);
+    expect(ROUTE_SRC).toContain('buildDebateClientContext');
+    expect(CONTEXT_SRC).toMatch(/FROM\s+workout_sessions\s+ws/i);
+    expect(CONTEXT_SRC).toMatch(/JOIN\s+workout_logs\s+wl/i);
+    expect(CONTEXT_SRC).toMatch(/wl\."sessionId"\s*=\s*ws\.id/i);
+    expect(CONTEXT_SRC).toMatch(/ws\."userId"\s*=\s*:clientId/i);
+    expect(CONTEXT_SRC).toMatch(/ws\.status\s*=\s*'completed'/i);
+    expect(CONTEXT_SRC).toMatch(/json_agg\(json_build_object/i);
+    expect(CONTEXT_SRC).toMatch(/'exerciseName',\s*wl\."exerciseName"/i);
+    expect(CONTEXT_SRC).toMatch(/ORDER\s+BY\s+ws\.date\s+DESC/i);
+    expect(CONTEXT_SRC).not.toMatch(/SELECT\s+exercises,\s*"createdAt"\s+FROM\s+"WorkoutSessions"/);
+    expect(CONTEXT_SRC).not.toMatch(/"WorkoutSessions"/);
+    expect(CONTEXT_SRC).not.toMatch(/sessionDate/);
   });
 });

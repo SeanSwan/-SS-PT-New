@@ -224,7 +224,7 @@ const itemVariants = {
 interface MobileMenuProps {
   isOpen: boolean;
   onToggle: () => void;
-  user: any;
+  user: unknown;
   isActive: (path: string) => boolean;
   isRoleEnabled: (role: string) => boolean;
   onLogout: () => void;
@@ -251,7 +251,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           </motion.div>
           {isRoleEnabled('admin') && (
             <motion.div variants={itemVariants}>
-              <MobileNavLink to="/dashboard/default" onClick={closeMobileMenu} $isActive={isActive('/dashboard')}>
+              <MobileNavLink to="/dashboard/admin/overview" onClick={closeMobileMenu} $isActive={isActive('/dashboard')}>
                 <LayoutDashboard size={20} /> Admin Dashboard
               </MobileNavLink>
             </motion.div>

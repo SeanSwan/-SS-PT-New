@@ -438,8 +438,12 @@ Option B: External
 ## RESOURCES
 
 - **Figma Tutorial:** https://www.youtube.com/watch?v=FTFaQWZBqQ8 (15min crash course)
-- **Magician Plugin Docs:** https://magician.design/
+- **Magician Plugin Docs:** retired — the standalone Magician site is gone (the domain no longer belongs to the project) and no replacement documentation is published.
 - **v0.dev Examples:** https://v0.dev/showcase
+<!-- The Dribbble tag page answers automated clients with an empty HTTP 202 bot-check,
+     so the checker cannot read it. Two independent fetches returned 202 with no body.
+     The URL is left because it is a live Dribbble tag page for a human reader. -->
+<!-- markdown-link-check-disable-next-line -->
 - **Design Inspiration:** https://dribbble.com/tags/fitness-app
 
 ---

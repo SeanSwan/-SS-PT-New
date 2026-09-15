@@ -29,6 +29,62 @@ interface WorkoutClientDrawerProps {
   onSelect: (client: ClientInfo) => void;
 }
 
+type ClientListResult =
+  | { ok: true; clients: ClientInfo[] }
+  | { ok: false };
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null
+);
+
+const hasOwn = (value: Record<string, unknown>, key: string): boolean => (
+  Object.prototype.hasOwnProperty.call(value, key)
+);
+
+const normalizeClient = (value: unknown): ClientInfo | null => {
+  if (!isRecord(value)) return null;
+  if (!Number.isInteger(value.id) || (value.id as number) <= 0) return null;
+  if (typeof value.firstName !== 'string' || typeof value.lastName !== 'string') return null;
+  if (hasOwn(value, 'email') && typeof value.email !== 'string') return null;
+
+  const client: ClientInfo = {
+    id: value.id as number,
+    firstName: value.firstName,
+    lastName: value.lastName,
+  };
+
+  if (typeof value.email === 'string') client.email = value.email;
+  if (typeof value.photo === 'string') client.photo = value.photo;
+  if (typeof value.availableSessions === 'number') {
+    client.availableSessions = value.availableSessions;
+  }
+  if (typeof value.lastWorkoutDate === 'string') {
+    client.lastWorkoutDate = value.lastWorkoutDate;
+  }
+
+  return client;
+};
+
+const parseClientList = (payload: unknown): ClientListResult => {
+  if (isRecord(payload) && hasOwn(payload, 'success') && payload.success !== true) return { ok: false };
+  let rows: unknown;
+  if (Array.isArray(payload)) {
+    rows = payload;
+  } else if (isRecord(payload) && hasOwn(payload, 'users')) {
+    rows = payload.users;
+  } else if (isRecord(payload) && hasOwn(payload, 'data')) {
+    rows = payload.data;
+  } else {
+    return { ok: false };
+  }
+
+  if (!Array.isArray(rows)) return { ok: false };
+  const clients = rows.map(normalizeClient);
+  if (clients.some((client) => client === null)) return { ok: false };
+
+  return { ok: true, clients: clients as ClientInfo[] };
+};
+
 // ---- Framer Motion Physics (per Gemini spec) ----
 
 const drawerSpring = {
@@ -57,12 +113,36 @@ const WorkoutClientDrawer: React.FC<WorkoutClientDrawerProps> = ({
   onClose,
   onSelect,
 }) => {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [clients, setClients] = useState<ClientInfo[]>([]);
+  const [clientsOwnerId, setClientsOwnerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+  const actorId = user?.id ?? null;
+  const isOpenRef = useRef(isOpen);
+  const mountedRef = useRef(true);
+  const requestGenerationRef = useRef(0);
+  const requestControllerRef = useRef<AbortController | null>(null);
+  const focusTimerRef = useRef<number | null>(null);
+
+  isOpenRef.current = isOpen;
+
+  const clearFocusTimer = useCallback(() => {
+    if (focusTimerRef.current !== null) {
+      window.clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = null;
+    }
+  }, []);
+
+  const invalidateRequest = useCallback(() => {
+    requestGenerationRef.current += 1;
+    requestControllerRef.current?.abort();
+    requestControllerRef.current = null;
+    clearFocusTimer();
+  }, [clearFocusTimer]);
 
   // Responsive detection
   useEffect(() => {
@@ -72,53 +152,121 @@ const WorkoutClientDrawer: React.FC<WorkoutClientDrawerProps> = ({
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Fetch clients
+  // Fetch clients from the one backend-owned, authorized client directory.
   const fetchClients = useCallback(async () => {
+    const generation = requestGenerationRef.current + 1;
+    requestGenerationRef.current = generation;
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
+
     setLoading(true);
+    setError(false);
+    setClients([]);
+    setClientsOwnerId(null);
+
     try {
       const res = await authAxios.get('/api/admin/users', {
         params: { role: 'client', limit: 100 },
+        signal: controller.signal,
       });
-      const data = res.data?.users || res.data?.data || res.data || [];
-      setClients(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Failed to fetch clients:', err);
-      // Try alternate endpoint
-      try {
-        const res2 = await authAxios.get('/api/users', {
-          params: { role: 'client', limit: 100 },
-        });
-        const data2 = res2.data?.users || res2.data?.data || res2.data || [];
-        setClients(Array.isArray(data2) ? data2 : []);
-      } catch {
-        setClients([]);
+      const current = (
+        mountedRef.current &&
+        isOpenRef.current &&
+        requestGenerationRef.current === generation
+      );
+      if (current) {
+        const result = parseClientList(res?.data);
+        if (result.ok) {
+          setClients(result.clients);
+          setClientsOwnerId(actorId);
+        } else {
+          setError(true);
+        }
       }
+    } catch {
+      const current = (
+        mountedRef.current &&
+        isOpenRef.current &&
+        requestGenerationRef.current === generation
+      );
+      // Superseded/closed requests already fail the generation/open fence.
+      // Cancellation of the current open request is still unavailable data.
+      if (current) setError(true);
     } finally {
-      setLoading(false);
+      if (
+        mountedRef.current &&
+        isOpenRef.current &&
+        requestGenerationRef.current === generation
+      ) {
+        setLoading(false);
+        requestControllerRef.current = null;
+      }
     }
-  }, [authAxios]);
+  }, [actorId, authAxios]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      invalidateRequest();
+    };
+  }, [invalidateRequest]);
 
   // Reset & fetch on open
   useEffect(() => {
-    if (isOpen) {
-      setSearchTerm('');
-      fetchClients();
-      setTimeout(() => searchRef.current?.focus(), 300);
+    if (!isOpen) {
+      invalidateRequest();
+      setClients([]);
+      setClientsOwnerId(null);
+      setError(false);
+      setLoading(false);
+      return;
     }
-  }, [isOpen, fetchClients]);
+
+    setSearchTerm('');
+    setClients([]);
+    setClientsOwnerId(null);
+    setError(false);
+    if (!actorId) {
+      invalidateRequest();
+      setLoading(false);
+      return;
+    }
+    void fetchClients();
+    clearFocusTimer();
+    focusTimerRef.current = window.setTimeout(() => {
+      searchRef.current?.focus();
+      focusTimerRef.current = null;
+    }, 300);
+
+    return clearFocusTimer;
+  }, [actorId, clearFocusTimer, fetchClients, invalidateRequest, isOpen]);
+
+  const handleClose = useCallback(() => {
+    invalidateRequest();
+    setClients([]);
+    setClientsOwnerId(null);
+    setError(false);
+    setLoading(false);
+    onClose();
+  }, [invalidateRequest, onClose]);
 
   // Escape key
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') handleClose();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [isOpen, onClose]);
+  }, [handleClose, isOpen]);
 
   // Filter clients
-  const filtered = clients.filter((c) => {
+  const selectableClients = actorId !== null && clientsOwnerId === actorId
+    ? clients
+    : [];
+  const filtered = selectableClients.filter((c) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     const full = `${c.firstName} ${c.lastName}`.toLowerCase();
@@ -127,13 +275,13 @@ const WorkoutClientDrawer: React.FC<WorkoutClientDrawerProps> = ({
 
   const handleSelect = (client: ClientInfo) => {
     onSelect(client);
-    onClose();
+    handleClose();
   };
 
   // Mobile swipe-to-close
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (info.offset.y > 100 || info.velocity.y > 500) {
-      onClose();
+      handleClose();
     }
   };
 
@@ -156,7 +304,7 @@ const WorkoutClientDrawer: React.FC<WorkoutClientDrawerProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onPointerDown={onClose}
+            onPointerDown={handleClose}
           />
           <DrawerContainer
             $isMobile={isMobile}
@@ -175,7 +323,7 @@ const WorkoutClientDrawer: React.FC<WorkoutClientDrawerProps> = ({
             {/* Header */}
             <DrawerHeader>
               <DrawerTitle>Select Client</DrawerTitle>
-              <CloseBtn onClick={onClose} aria-label="Close client drawer">
+              <CloseBtn onClick={handleClose} aria-label="Close client drawer">
                 <X size={20} />
               </CloseBtn>
             </DrawerHeader>
@@ -183,7 +331,7 @@ const WorkoutClientDrawer: React.FC<WorkoutClientDrawerProps> = ({
             {/* Search */}
             <SearchSection>
               <SearchWrapper>
-                <Search size={16} color="#8892b0" />
+                <Search size={16} color="var(--text-secondary, #8892b0)" />
                 <SearchInput
                   ref={searchRef}
                   type="text"
@@ -198,12 +346,19 @@ const WorkoutClientDrawer: React.FC<WorkoutClientDrawerProps> = ({
             {/* Client List */}
             <ClientListArea>
               {loading ? (
-                <EmptyState>
+                <EmptyState role="status" aria-live="polite">
                   <LoadingDot />
                   Loading clients...
                 </EmptyState>
+              ) : error ? (
+                <EmptyState role="alert">
+                  <span>Client list unavailable. Try again.</span>
+                  <RetryBtn type="button" onClick={() => void fetchClients()}>
+                    Retry
+                  </RetryBtn>
+                </EmptyState>
               ) : filtered.length === 0 ? (
-                <EmptyState>
+                <EmptyState role="status">
                   {searchTerm
                     ? `No clients match "${searchTerm}"`
                     : 'No clients found'}
@@ -312,14 +467,14 @@ const DrawerHeader = styled.div`
 const DrawerTitle = styled.h2`
   font-size: 18px;
   font-weight: 700;
-  color: #f0f0ff;
+  color: var(--text-primary, #f0f0ff);
   margin: 0;
 `;
 
 const CloseBtn = styled.button`
   background: none;
   border: none;
-  color: #8892b0;
+  color: var(--text-secondary, #8892b0);
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
@@ -332,7 +487,7 @@ const CloseBtn = styled.button`
 
   &:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: #f0f0ff;
+    color: var(--text-primary, #f0f0ff);
   }
 `;
 
@@ -353,7 +508,7 @@ const SearchWrapper = styled.div`
   transition: all 0.2s;
 
   &:focus-within {
-    border-color: #60C0F0;
+    border-color: var(--accent-primary, #60C0F0);
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.1);
   }
 `;
@@ -362,13 +517,13 @@ const SearchInput = styled.input`
   background: none;
   border: none;
   outline: none;
-  color: #f0f0ff;
+  color: var(--text-primary, #f0f0ff);
   font-size: 14px;
   flex: 1;
   min-height: 24px;
 
   &::placeholder {
-    color: #8892b0;
+    color: var(--text-secondary, #8892b0);
   }
 `;
 
@@ -402,7 +557,7 @@ const ClientRow = styled(motion.button)`
   }
 
   &:focus-visible {
-    outline: 2px solid #8B5CF6;
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
     outline-offset: 2px;
   }
 `;
@@ -415,14 +570,14 @@ const ClientAvatar = styled.div<{ $src?: string }>`
     const safe = $src ? sanitizeImageUrl($src) : null;
     return safe
       ? `url(${cssUrlValue(safe)}) center/cover no-repeat`
-      : 'linear-gradient(135deg, #8B5CF6, #8B5CF6)';
+      : 'linear-gradient(135deg, var(--accent-secondary, #8B5CF6), var(--accent-secondary, #8B5CF6))';
   }};
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   font-weight: 700;
-  color: #002060;
+  color: var(--midnight-sapphire, #002060);
   flex-shrink: 0;
   text-transform: uppercase;
 `;
@@ -435,7 +590,7 @@ const ClientDetails = styled.div`
 const ClientName = styled.div`
   font-size: 16px;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text-primary, #ffffff);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -462,7 +617,7 @@ const SessionPill = styled.div<{ $low: boolean }>`
   flex-shrink: 0;
   background: ${(p) =>
     p.$low ? 'rgba(239, 68, 68, 0.15)' : 'rgba(139, 92, 246, 0.15)'};
-  color: ${(p) => (p.$low ? '#fca5a5' : '#67e8f9')};
+  color: ${(p) => (p.$low ? 'var(--danger-text, #fca5a5)' : 'var(--accent-primary, #67e8f9)')};
   border: 1px solid
     ${(p) =>
       p.$low ? 'rgba(239, 68, 68, 0.3)' : 'rgba(139, 92, 246, 0.3)'};
@@ -476,15 +631,31 @@ const EmptyState = styled.div`
   gap: 12px;
   padding: 48px 24px;
   font-size: 14px;
-  color: #8892b0;
+  color: var(--text-secondary, #8892b0);
   text-align: center;
+`;
+
+const RetryBtn = styled.button`
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid rgba(96, 192, 240, 0.5);
+  border-radius: 10px;
+  background: rgba(96, 192, 240, 0.12);
+  color: var(--text-primary, #e0ecf4);
+  cursor: pointer;
+  font: inherit;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-secondary, #8B5CF6);
+    outline-offset: 2px;
+  }
 `;
 
 const LoadingDot = styled.div`
   width: 24px;
   height: 24px;
   border: 2px solid rgba(139, 92, 246, 0.2);
-  border-top-color: #60C0F0;
+  border-top-color: var(--accent-primary, #60C0F0);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 

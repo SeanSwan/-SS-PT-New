@@ -424,7 +424,7 @@ A: Yes! The wizard is fully keyboard accessible:
 
 3. **Phone**: 1-800-SWAN-GYM (1-800-792-6496)
 
-4. **FAQ Page**: [swanstudios.com/faq](https://swanstudios.com/faq)
+4. **FAQ Page**: [sswanstudios.com/faq](https://sswanstudios.com/faq)
 
 ---
 
@@ -460,7 +460,7 @@ For technical implementation details, see:
 
 ## Legal
 
-Custom packages are subject to standard [Terms of Service](https://swanstudios.com/terms) and [Refund Policy](https://swanstudios.com/refunds).
+Custom packages are subject to standard [Terms of Service](https://sswanstudios.com/terms) and [Refund Policy](https://sswanstudios.com/refunds).
 
 All session packages must be used within their expiration period. Unused sessions are non-refundable after 30 days from purchase.
 

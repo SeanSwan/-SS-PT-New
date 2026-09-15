@@ -18,6 +18,7 @@ vi.mock('../../utils/logger.mjs', () => ({
 }));
 
 const { emitGamificationEvent } = await import('../../socket/gamificationEvents.mjs');
+const { emitLedgerRealtimeEvent } = await import('../../services/gamification/GamificationRealtimeEvents.mjs');
 
 describe('gamificationEvents Socket.IO bridge', () => {
   beforeEach(() => {
@@ -57,5 +58,36 @@ describe('gamificationEvents Socket.IO bridge', () => {
         points: 5,
       },
     });
+  });
+
+  it('emits distinct committed workout ledger rows within the legacy debounce window', () => {
+    emitLedgerRealtimeEvent({
+      duplicate: false,
+      pointsAwarded: 5,
+      newBalance: 105,
+      pointTransaction: { id: 1201, sourceId: 501 },
+    }, {
+      userId: 7,
+      source: 'workout_completion',
+      sourceId: 501,
+      transactionType: 'earn',
+    });
+    emitLedgerRealtimeEvent({
+      duplicate: false,
+      pointsAwarded: 8,
+      newBalance: 113,
+      pointTransaction: { id: '1202', sourceId: 502 },
+    }, {
+      userId: 7,
+      source: 'workout_completion',
+      sourceId: 502,
+      transactionType: 'earn',
+    });
+
+    expect(emitted.filter(item => item.event === 'gamification:workout_completed')).toHaveLength(2);
+    expect(emitted.map(item => item.payload.eventId)).toEqual([
+      'point-transaction:1201',
+      'point-transaction:1202',
+    ]);
   });
 });

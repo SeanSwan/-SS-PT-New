@@ -15,7 +15,7 @@ import {
 } from './messagingApiAdapters';
 import { apiFetch } from './messagingApiFetch';
 import { createMessagingErrorState, type MessagingErrorState } from './messagingSafeErrors';
-import { useMessagingLifecycleEffects } from './useMessagingLifecycleEffects';
+import { useMessagingActorScope, useMessagingLifecycleEffects } from './useMessagingLifecycleEffects';
 import { useMessagingSocketEffects } from './useMessagingSocketEffects';
 import { useMessagingGroupActions } from './useMessagingGroupActions';
 
@@ -62,63 +62,84 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingClearTimers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
   const fetchAbortRef = useRef<AbortController | null>(null);
+  const pendingSendKeysRef = useRef<Set<string>>(new Set());
+  const conversationRequestRef = useRef(0);
+  activeConvRef.current = activeConversationId;
+  const { actorGeneration, ownsState, isCurrentActor, scopedSetters, conversationFetchAbortRef } = useMessagingActorScope({
+    currentUserId,
+    enabled,
+    error,
+    mountedRef,
+    fetchAbortRef,
+    activeConvRef,
+    pendingSendKeysRef,
+    typingClearTimers,
+    typingTimeoutRef,
+    setConversations,
+    setActiveConversationId,
+    setMessages,
+    setTypingUsers,
+    setOnlineUserIds,
+    setPendingMessages,
+    setError,
+    setMessagesLoading,
+    setLoading,
+  });
 
   useEffect(() => {
-    activeConvRef.current = activeConversationId;
+    setPendingMessages([]);
   }, [activeConversationId]);
 
-  useEffect(() => {
-    if (error?.type !== 'transient') return undefined;
-    const timer = setTimeout(() => {
-      if (mountedRef.current) setError(null);
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [error]);
-
   const fetchConversations = useCallback(async () => {
-    if (!currentUserId || !enabled) {
-      if (mountedRef.current) setLoading(false);
-      return;
-    }
+    if (!isCurrentActor(actorGeneration)) return;
+    const requestId = ++conversationRequestRef.current;
+    conversationFetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    conversationFetchAbortRef.current = controller;
+    const isCurrentRead = () => isCurrentActor(actorGeneration)
+      && requestId === conversationRequestRef.current && !controller.signal.aborted;
     try {
-      const data = await apiFetch<unknown>('/conversations');
-      if (mountedRef.current) {
+      const data = await apiFetch<unknown>('/conversations', { signal: controller.signal });
+      if (isCurrentRead()) {
         setConversations(normalizeConversationsPayload(data));
         setError(null);
       }
     } catch {
-      if (mountedRef.current) setError(createMessagingErrorState('conversations'));
+      if (isCurrentRead()) setError(createMessagingErrorState('conversations'));
     } finally {
-      if (mountedRef.current) setLoading(false);
+      if (isCurrentRead()) setLoading(false);
     }
-  }, [currentUserId, enabled]);
+  }, [actorGeneration, conversationFetchAbortRef, isCurrentActor]);
 
   const fetchMessages = useCallback(async (convId: string | number) => {
-    if (!convId || !enabled) return;
+    if (!convId || !isCurrentActor(actorGeneration)) return;
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
+    const isCurrentRead = () => isCurrentActor(actorGeneration)
+      && fetchAbortRef.current === controller && !controller.signal.aborted
+      && String(activeConvRef.current) === String(convId);
 
     if (mountedRef.current) setMessagesLoading(true);
     try {
       const segment = encodeMessagingPathSegment(convId);
       const data = await apiFetch<unknown>(`/conversations/${segment}/messages?limit=500&sort=desc`, { signal: controller.signal });
-      if (mountedRef.current && String(activeConvRef.current) === String(convId)) {
+      if (isCurrentRead()) {
         setMessages(normalizeMessagesPayload(data));
       }
     } catch (err: unknown) {
-      if (!isMessagingRequestCancellation(err) && mountedRef.current) setError(createMessagingErrorState('messages'));
+      if (!isMessagingRequestCancellation(err) && isCurrentRead()) setError(createMessagingErrorState('messages'));
     } finally {
-      if (mountedRef.current) setMessagesLoading(false);
+      if (isCurrentRead()) setMessagesLoading(false);
     }
-  }, [enabled]);
+  }, [actorGeneration, isCurrentActor]);
 
   const applyConversationUpdate = useCallback((conversation: ConversationData | null) => {
-    if (!conversation || !mountedRef.current) return;
+    if (!conversation || !isCurrentActor(actorGeneration)) return;
     setConversations(prev => prev.some(item => String(item.id) === String(conversation.id))
       ? prev.map(item => String(item.id) === String(conversation.id) ? conversation : item)
       : [conversation, ...prev]);
-  }, []);
+  }, [actorGeneration, isCurrentActor]);
 
   const {
     renameConversation,
@@ -126,91 +147,111 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
     updateParticipantRole,
     removeConversationParticipant,
   } = useMessagingGroupActions({
-    enabled,
+    enabled: enabled && currentUserId !== null,
     currentUserId,
     mountedRef,
     applyConversationUpdate,
-    setConversations,
-    setActiveConversationId,
-    setMessages,
-    setError,
+    setConversations: scopedSetters.setConversations,
+    setActiveConversationId: scopedSetters.setActiveConversationId,
+    setMessages: scopedSetters.setMessages,
+    setError: scopedSetters.setError,
   });
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (!enabled || !activeConversationId || !content.trim()) return;
+  const sendMessage = useCallback(async (content: string): Promise<boolean> => {
+    if (!isCurrentActor(actorGeneration) || !activeConversationId || !content.trim()) return false;
     const trimmed = content.trim();
+    const submittedConversationId = activeConversationId;
+    const pendingKey = `${actorGeneration}:${String(submittedConversationId)}\u0000${trimmed}`;
 
-    if (connected) {
-      setPendingMessages(prev => [...prev, trimmed]);
-      emit('send_message', { conversationId: activeConversationId, content: trimmed });
-      return;
-    }
+    if (pendingSendKeysRef.current.has(pendingKey)) return false;
+    pendingSendKeysRef.current.add(pendingKey);
+    setPendingMessages(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
 
     try {
-      const segment = encodeMessagingPathSegment(activeConversationId);
+      const segment = encodeMessagingPathSegment(submittedConversationId);
       const data = await apiFetch<unknown>(`/conversations/${segment}/messages`, {
         method: 'POST',
         body: JSON.stringify({ content: trimmed }),
       });
       const sentMessage = normalizeMessagePayload(data);
-      if (mountedRef.current) {
-        if (sentMessage) setMessages(prev => [...prev, sentMessage]);
-        fetchConversations();
+      const stillCurrent = isCurrentActor(actorGeneration)
+        && String(activeConvRef.current) === String(submittedConversationId);
+      if (!stillCurrent) return false;
+      if (!sentMessage) {
+        setError(createMessagingErrorState('send', 'persistent'));
+        return false;
       }
+      setMessages(prev => prev.some(message => String(message.id) === String(sentMessage.id))
+        ? prev
+        : [...prev, sentMessage]);
+      setPendingMessages(prev => prev.filter(item => item !== trimmed));
+      void fetchConversations();
+      return true;
     } catch {
-      if (mountedRef.current) setError(createMessagingErrorState('send'));
+      if (isCurrentActor(actorGeneration) && String(activeConvRef.current) === String(submittedConversationId)) {
+        setError(createMessagingErrorState('send', 'persistent'));
+      }
+      return false;
+    } finally {
+      pendingSendKeysRef.current.delete(pendingKey);
+      if (isCurrentActor(actorGeneration) && String(activeConvRef.current) === String(submittedConversationId)) {
+        setPendingMessages(prev => prev.filter(item => item !== trimmed));
+      }
     }
-  }, [activeConversationId, connected, emit, enabled, fetchConversations]);
+  }, [activeConversationId, actorGeneration, isCurrentActor, fetchConversations]);
 
   const emitTyping = useCallback(() => {
-    if (!enabled || !activeConversationId || !connected || typingTimeoutRef.current) return;
+    if (!isCurrentActor(actorGeneration) || !activeConversationId || !connected || typingTimeoutRef.current) return;
     emit('is_typing', { conversationId: activeConversationId });
     typingTimeoutRef.current = setTimeout(() => {
       typingTimeoutRef.current = null;
     }, 2000);
-  }, [activeConversationId, connected, emit, enabled]);
+  }, [activeConversationId, actorGeneration, connected, emit, isCurrentActor]);
 
   const markAsRead = useCallback((conversationId: string | number, lastMessageId: string | number) => {
-    if (enabled && connected) emit('mark_as_read', { conversationId, lastMessageId });
-  }, [connected, emit, enabled]);
+    if (isCurrentActor(actorGeneration) && connected) emit('mark_as_read', { conversationId, lastMessageId });
+  }, [actorGeneration, connected, emit, isCurrentActor]);
 
   const createConversation = useCallback(async (input: CreateConversationInput) => {
-    if (!enabled) return null;
+    if (!isCurrentActor(actorGeneration)) return null;
     try {
       const data = await apiFetch<unknown>('/conversations', {
         method: 'POST',
         body: JSON.stringify(normalizeCreateConversationInput(input)),
       });
       const conversation = normalizeConversationPayload(data);
-      if (mountedRef.current) {
+      if (isCurrentActor(actorGeneration)) {
         await fetchConversations();
+        if (!isCurrentActor(actorGeneration)) return null;
         if (conversation) setActiveConversationId(conversation.id);
+        return conversation;
       }
-      return conversation;
+      return null;
     } catch {
-      if (mountedRef.current) setError(createMessagingErrorState('create'));
+      if (isCurrentActor(actorGeneration)) setError(createMessagingErrorState('create'));
       return null;
     }
-  }, [enabled, fetchConversations]);
+  }, [actorGeneration, isCurrentActor, fetchConversations]);
 
 
   const searchUsers = useCallback(async (query: string): Promise<SearchUserResult[]> => {
-    if (!enabled) return [];
+    if (!isCurrentActor(actorGeneration)) return [];
     try {
       const data = await apiFetch<unknown>(`/users/search${query ? `?q=${encodeURIComponent(query)}` : ''}`);
-      return normalizeSearchUsersPayload(data);
+      return isCurrentActor(actorGeneration) ? normalizeSearchUsersPayload(data) : [];
     } catch {
       return [];
     }
-  }, [enabled]);
+  }, [actorGeneration, isCurrentActor]);
 
   const selectConversation = useCallback((convId: string | number) => {
-    if (!enabled) return;
+    if (!isCurrentActor(actorGeneration)) return;
+    activeConvRef.current = convId;
     setActiveConversationId(convId);
     setTypingUsers([]);
     setPendingMessages([]);
     fetchMessages(convId);
-  }, [enabled, fetchMessages]);
+  }, [actorGeneration, isCurrentActor, fetchMessages]);
 
   const getOtherParticipant = useCallback((conv: ConversationData) => {
     if (!currentUserId) return conv.participants[0] || null;
@@ -222,25 +263,24 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
   useMessagingSocketEffects({
     enabled,
     connected,
-    conversations,
+    conversations: ownsState ? conversations : [],
     emit,
     on,
     activeConvRef,
     currentUserId,
     mountedRef,
     typingClearTimers,
-    setMessages,
-    setPendingMessages,
-    setConversations,
-    setTypingUsers,
-    setOnlineUserIds,
+    setMessages: scopedSetters.setMessages,
+    setConversations: scopedSetters.setConversations,
+    setTypingUsers: scopedSetters.setTypingUsers,
+    setOnlineUserIds: scopedSetters.setOnlineUserIds,
   });
 
   useMessagingLifecycleEffects({
     enabled,
     connected,
-    activeConversationId,
-    messages,
+    activeConversationId: ownsState ? activeConversationId : null,
+    messages: ownsState ? messages : [],
     currentUserId,
     mountedRef,
     pollRef,
@@ -257,17 +297,17 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
   });
 
   return {
-    conversations,
-    activeConversationId,
-    messages,
+    conversations: ownsState ? conversations : [],
+    activeConversationId: ownsState ? activeConversationId : null,
+    messages: ownsState ? messages : [],
     loading,
     messagesLoading,
-    error,
-    typingUsers,
-    onlineUserIds,
+    error: ownsState ? error : null,
+    typingUsers: ownsState ? typingUsers : [],
+    onlineUserIds: ownsState ? onlineUserIds : new Set<number>(),
     connected,
     connectionState,
-    pendingMessages,
+    pendingMessages: ownsState ? pendingMessages : [],
     sendMessage,
     createConversation,
     renameConversation,
@@ -277,7 +317,7 @@ export function useMessaging(currentUserId: number | null, options: UseMessaging
     selectConversation,
     searchUsers,
     getOtherParticipant,
-    setActiveConversationId,
+    setActiveConversationId: scopedSetters.setActiveConversationId,
     emitTyping,
     markAsRead,
     dismissError,

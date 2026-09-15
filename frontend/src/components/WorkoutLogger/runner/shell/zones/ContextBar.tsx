@@ -116,7 +116,9 @@ export interface ContextBarProps {
   formattedVolume?: string;
   clientFirstName: string;
   clientLastName: string;
-  availableSessions: number;
+  availableSessions: number | null;
+  /** Distinguishes an unavailable balance from a confirmed zero balance. */
+  clientInfoUnavailable?: boolean;
   clientSource?: string | null;
   workoutDate?: string | null;
   totalSets: number;
@@ -143,6 +145,7 @@ const ContextBar: React.FC<ContextBarProps> = React.memo(({
   clientFirstName,
   clientLastName,
   availableSessions,
+  clientInfoUnavailable = false,
   clientSource,
   workoutDate,
   totalSets,
@@ -160,7 +163,9 @@ const ContextBar: React.FC<ContextBarProps> = React.memo(({
     const id = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(id);
   }, [sessionStartedAt]);
-  const signal = getClientSessionSignal({ clientSource: clientSource || undefined, availableSessions });
+  const signal = clientInfoUnavailable
+    ? { label: 'information unavailable', note: 'client information could not be loaded', tone: 'neutral' as const }
+    : getClientSessionSignal({ clientSource: clientSource || undefined, availableSessions });
   const parsed = workoutDate ? new Date(`${workoutDate}T00:00:00`) : null;
   const displayDate = parsed && !Number.isNaN(parsed.getTime())
     ? parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })

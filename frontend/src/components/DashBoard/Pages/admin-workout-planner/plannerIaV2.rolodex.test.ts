@@ -9,7 +9,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
 const read = (rel: string) => readFileSync(resolve(__dirname, rel), 'utf8');
@@ -64,9 +64,13 @@ describe('S18 Rolodex V2 contract', () => {
     expect(layout).toContain('<WorkoutPlannerRolodexPanel'); // V1 branch keeps its panel
   });
 
-  it('adds zero new dependencies (package.json untracked-diff = 0)', () => {
-    const changed = execSync('git diff HEAD --name-only', { cwd: resolve(__dirname), encoding: 'utf8' })
-      .split(/\r?\n/).filter(line => /(^|\/)package\.json$/.test(line));
-    expect(changed).toEqual([]);
+  it('adds zero new dependencies while permitting unrelated script changes', () => {
+    const baseline = JSON.parse(execFileSync('git', ['show', 'HEAD:frontend/package.json'], {
+      cwd: resolve(__dirname), encoding: 'utf8',
+    }));
+    const current = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8'));
+    for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+      expect(current[field] ?? {}).toEqual(baseline[field] ?? {});
+    }
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync, readdirSync } from 'fs';
 import { resolve } from 'path';
+import { mapStorefrontItem } from '../../services/store/storefrontDisplayService.mjs';
 
 /**
  * Product variant + storefront product-field foundation - Phase 1 (2026-06-13).
@@ -53,13 +54,74 @@ describe('product variant + storefront product-field foundation (Phase 1)', () =
 
   it('storefront API exposes the product fields the UI needs', () => {
     const routes = read('routes/storeFrontRoutes.mjs');
-    expect(routes).toContain("const getStorefrontItemKind = (item) => valueOrFallback(item.itemKind, 'training_package')");
-    expect(routes).toContain("'PHYSICAL_PRODUCT'");
-    expect(routes).toContain('isTaxable: item.isTaxable');
-    expect(routes).toContain("fulfillmentType: valueOrFallback(item.fulfillmentType, 'none')");
-    expect(routes).toContain('variants: getMappedProductVariants(item)');
+    expect(routes).toContain("import { mapStorefrontItem } from '../services/store/storefrontDisplayService.mjs'");
+    expect(routes).toContain('const mapped = mapStorefrontItem(item)');
     expect(routes).toContain('include: variantInclude');
     expect(routes).toContain("as: 'variants'");
+
+    const physicalProduct = mapStorefrontItem({
+      id: 41,
+      name: 'Recovery drink',
+      packageType: 'fixed',
+      itemKind: 'physical_product',
+      isTaxable: true,
+      fulfillmentType: 'local_delivery',
+      stockQuantity: 12,
+      totalCost: '24.00',
+      price: '99.00',
+      variants: [{
+        id: 411,
+        storefrontItemId: 41,
+        label: '16 oz',
+        sku: 'DRINK-16',
+        price: '8.50',
+        stockQuantity: 4,
+        attributes: { size: '16 oz' },
+        displayOrder: 1,
+        isActive: true,
+      }],
+      isSpecialOffer: true,
+      activeSpecial: { bonusSessions: 10 },
+    });
+
+    expect(physicalProduct).toMatchObject({
+      itemKind: 'physical_product',
+      itemType: 'PHYSICAL_PRODUCT',
+      isTaxable: true,
+      fulfillmentType: 'local_delivery',
+      stockQuantity: 12,
+      totalCost: 24,
+      displayPrice: 24,
+      price: 24,
+    });
+    expect(physicalProduct.variants).toEqual([
+      expect.objectContaining({
+        id: 411,
+        label: '16 oz',
+        sku: 'DRINK-16',
+        price: 8.5,
+        stockQuantity: 4,
+      }),
+    ]);
+    expect(physicalProduct).not.toHaveProperty('isSpecialOffer');
+    expect(physicalProduct).not.toHaveProperty('activeSpecial');
+
+    const trainingPackage = mapStorefrontItem({
+      id: 42,
+      name: '10-session package',
+      packageType: 'fixed',
+      totalCost: '1750.00',
+      itemKind: undefined,
+      isTaxable: false,
+      fulfillmentType: undefined,
+      variants: [],
+    });
+    expect(trainingPackage).toMatchObject({
+      itemKind: 'training_package',
+      itemType: 'TRAINING_PACKAGE_FIXED',
+      isTaxable: false,
+      fulfillmentType: 'none',
+    });
   });
 
   it('admin storefront exposes product-only variant CRUD endpoints', () => {

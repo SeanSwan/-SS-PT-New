@@ -9,7 +9,26 @@
 import axios from 'axios';
 import { ProductionTokenManager } from './api.service';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
+/**
+ * Keep the public waiver transport self-contained. The configured value may be
+ * an origin or an existing `/api` base, so normalize it before appending the
+ * public waiver route. An empty production value deliberately stays relative
+ * to the current site; local development keeps the backend fallback.
+ */
+const resolvePublicApiOrigin = (): string => {
+  const configured = [
+    import.meta.env.VITE_API_URL,
+    import.meta.env.VITE_API_BASE_URL,
+    import.meta.env.VITE_BACKEND_URL,
+  ]
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .find(Boolean);
+
+  if (!configured) return import.meta.env.PROD ? '' : 'http://localhost:10000';
+  return configured.replace(/\/+$/, '').replace(/\/api$/i, '');
+};
+
+const API_BASE_URL = resolvePublicApiOrigin();
 
 const publicWaiverApi = axios.create({
   baseURL: `${API_BASE_URL}/api/public/waivers`,

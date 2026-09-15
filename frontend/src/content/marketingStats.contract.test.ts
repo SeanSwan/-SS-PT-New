@@ -22,9 +22,6 @@ const MODULE_CONSUMERS = [
   'pages/gallery/VIPConversionModal.tsx',
   'components/DashBoard/UniversalDashboardLayout.routes.tsx',
   'components/BootcampBuilder/BootcampBuilderChrome.tsx',
-  // Store surfaces escaped the P1-2 lock and shipped "25+ Years" live
-  // (caught by the 2026-07-28 launch audit): V3 = mounted, V2 = lazy fallback.
-  'pages/shop/StoreV3.tsx',
   'pages/shop/StoreV2.tsx',
 ];
 
@@ -38,6 +35,10 @@ const FALLBACKS = [
   'pages/about/About.V3.tsx',
   'components/WhySwanStudios/WhySwanStudios.tsx',
   'content/teach-me/index.ts',
+  // StoreV3 is the mounted catalog surface, but it currently renders live
+  // catalog/method copy without a marketing-stat claim. Keep its retired-literal
+  // guard without requiring an unused marketingStats import.
+  'pages/shop/StoreV3.tsx',
 ];
 
 describe('marketing stats single source of truth', () => {

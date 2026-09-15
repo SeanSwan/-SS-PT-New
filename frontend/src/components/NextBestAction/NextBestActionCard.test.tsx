@@ -2,9 +2,9 @@
  * NextBestActionCard tests (Phase 1.5a)
  *
  * Locks: ready-state rendering (title/message/CTA/constraints/secondary),
- * truthful error/cold-start fallback with a working CTA (never a silent
- * hide), the always-present rules-transparency disclosure, the onLogWorkout
- * override for log-class CTAs, and the two home mounts (source truth).
+ * truthful unavailable/retry recovery, the always-present rules-transparency
+ * disclosure, source-owned CTA routing, the onLogWorkout override for
+ * log-class CTAs, and the two home mounts (source truth).
  */
 
 import { fireEvent, render, screen } from '@testing-library/react';
@@ -75,14 +75,53 @@ describe('NextBestActionCard', () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('shows a truthful actionable fallback on error — never a silent hide', () => {
-    mockUsePulse.mockReturnValue({ status: 'error', pulse: null, refetch: vi.fn() });
+  it('shows a truthful unavailable state and retries the hook without a stale CTA', () => {
+    const refetch = vi.fn();
+    mockUsePulse.mockReturnValue({ status: 'error', pulse: null, liteNba: null, refetch });
     render(<NextBestActionCard />);
 
-    expect(screen.getByText(/your next move starts here/i)).toBeInTheDocument();
+    expect(screen.getByText(/guidance unavailable/i)).toBeInTheDocument();
+    expect(screen.getByText(/could not load your next step/i)).toBeInTheDocument();
     expect(screen.getByText(NBA_DISCLOSURE_COPY)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /log a workout/i }));
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/workouts');
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('preserves source-owned rest guidance navigation', () => {
+    mockUsePulse.mockReturnValue(readyPulse({
+      primary: {
+        code: 'rest_day',
+        priority: 1,
+        title: 'Take a recovery day',
+        message: 'Choose gentle movement or rest.',
+        cta: { label: 'Open recovery plan', href: '/dashboard/client/recovery' },
+      },
+    }));
+    render(<NextBestActionCard />);
+    fireEvent.click(screen.getByRole('button', { name: /open recovery plan/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/client/recovery');
+  });
+
+  it('does not render or navigate malformed guidance from a defensive hook double', () => {
+    const refetch = vi.fn();
+    mockUsePulse.mockReturnValue({
+      status: 'ready',
+      pulse: {
+        nextBestAction: {
+          primary: { code: 'unsafe', priority: 1, title: ['bad'], message: { bad: true }, cta: { label: 'Unsafe', href: 'https://unsafe.example' } },
+          secondary: [{ code: 'bad-secondary', priority: 1, title: ['bad'], message: 'bad', cta: null }],
+        },
+      },
+      liteNba: null,
+      refetch,
+    });
+    render(<NextBestActionCard />);
+    expect(screen.getByText(/guidance unavailable/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /unsafe/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+    expect(refetch).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('renders a loading skeleton while fetching', () => {
@@ -94,10 +133,10 @@ describe('NextBestActionCard', () => {
 
   it('is mounted on both canonical homes (source truth)', () => {
     const userHome = readFileSync(resolve(__dirname, '../UserDashboard/components/HomeTabNextBestAction.tsx'), 'utf8');
-    const clientRail = readFileSync(resolve(__dirname, '../UserDashboard/components/ClientDashboardHome.railSections.tsx'), 'utf8');
+    const clientHome = readFileSync(resolve(__dirname, '../UserDashboard/components/ClientDashboardHome.tsx'), 'utf8');
     expect(userHome).toContain("import NextBestActionCard from '../../NextBestAction/NextBestActionCard'");
     expect(userHome).toContain('<NextBestActionCard bare hideHeader onLogWorkout={onLogWorkout} />');
-    expect(clientRail).toContain("import NextBestActionCard from '../../NextBestAction/NextBestActionCard'");
-    expect(clientRail).toContain('<NextBestActionCard bare hideHeader />');
+    expect(clientHome).toContain("import NextBestActionCard from '../../NextBestAction/NextBestActionCard'");
+    expect(clientHome).toContain('<NextBestActionCard bare hideHeader onLogWorkout={props.onLogWorkout} />');
   });
 });

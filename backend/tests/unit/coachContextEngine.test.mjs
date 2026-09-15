@@ -110,14 +110,14 @@ describe('buildCoachContext', () => {
     expect(r.aliasMap['Client-7']).toContain('Maria');
   });
 
-  it('a failing domain degrades instead of throwing', async () => {
+  it('fails closed when a required health domain is unavailable', async () => {
     accessMock.mockResolvedValue({ allowed: true, via: 'admin', reason: null });
     const r = await buildCoachContext({ user: { id: 1, role: 'admin' }, targetClientId: 7, sequelize: fakeSequelize({ failDomain: 'pain' }) });
 
-    expect(r.ok).toBe(true);
-    const pain = r.dataQuality.find((d) => d.domain === 'pain');
-    expect(pain.status).toBe('degraded');
-    expect(r.context.painEntries).toEqual([]);
+    expect(r.ok).toBe(false);
+    expect(r.deniedReason).toBe('data_unavailable');
+    expect(r.message).toContain('temporarily unavailable');
+    expect(r.dataQuality.find((d) => d.domain === 'pain')?.status).toBe('unavailable');
   });
 
   it('reports gamification status following the profile domain (live since A2)', async () => {
@@ -128,13 +128,12 @@ describe('buildCoachContext', () => {
     expect(r.context.gamification.rankTitle).toBe('First Flight');
   });
 
-  it('does not fabricate level or rank context when the profile domain degrades', async () => {
+  it('does not fabricate a brief when the profile domain is unavailable', async () => {
     accessMock.mockResolvedValue({ allowed: true, via: 'admin', reason: null });
     const r = await buildCoachContext({ user: { id: 1, role: 'admin' }, targetClientId: 7, sequelize: fakeSequelize({ failDomain: 'profile' }) });
-    expect(r.ok).toBe(true);
-    expect(r.dataQuality.find((d) => d.domain === 'gamification')?.status).toBe('degraded');
-    expect(r.context.gamification.level).toBeNull();
-    expect(r.context.gamification.rankTitle).toBeNull();
+    expect(r.ok).toBe(false);
+    expect(r.deniedReason).toBe('data_unavailable');
+    expect(r.dataQuality.find((d) => d.domain === 'profile')?.status).toBe('unavailable');
   });
   it('adds displayed badge rewards to PII-safe gamification context without media or descriptions', async () => {
     accessMock.mockResolvedValue({ allowed: true, via: 'admin', reason: null });

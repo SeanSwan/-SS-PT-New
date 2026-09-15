@@ -14,7 +14,7 @@
 2. [Spring Physics Constants](#2-spring-physics-constants)
 3. [Variant Color Helpers](#3-variant-color-helpers)
 4. [Keyframe Animations](#4-keyframe-animations)
-5. [Styled Components — Full CSS-in-JS Code](#5-styled-components)
+5. [Styled Components — Full CSS-in-JS Code](#5-styled-components--full-css-in-js-code)
    - 5.1 SocialContainer
    - 5.2 SocialHeader
    - 5.3 HeaderTitle
@@ -35,12 +35,12 @@
    - 5.18 EmptyState
    - 5.19 Spinner
    - 5.20 LoadingDots
-6. [Component Hierarchy & Data Flow](#6-component-hierarchy)
-7. [Haptic Moderation System](#7-haptic-moderation)
+6. [Component Hierarchy & Data Flow](#6-component-hierarchy--data-flow)
+7. [Haptic Moderation System](#7-haptic-moderation-system)
 8. [Responsive Breakpoints](#8-responsive-breakpoints)
-9. [Rarity / Status Badge Spec](#9-rarity-status-badges)
-10. [True Glass Surface Spec](#10-true-glass-surface)
-11. [Spring Motion & Animation Spec](#11-spring-motion-animation)
+9. [Rarity / Status Badge Spec](#9-rarity--status-badge-spec)
+10. [True Glass Surface Spec](#10-true-glass-surface-spec)
+11. [Spring Motion & Animation Spec](#11-spring-motion--animation-spec)
 12. [Typography Spec](#12-typography-spec)
 13. [Icon Usage Map](#13-icon-usage-map)
 14. [Backend API Integration](#14-backend-api-integration)

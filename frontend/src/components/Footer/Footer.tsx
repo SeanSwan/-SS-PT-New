@@ -283,7 +283,7 @@ const CopyrightText = styled.p`
   margin: 0;
 
   .heart {
-    color: #ff6b6b;
+    color: var(--accent-error, #ff6b6b);
   }
 `;
 
@@ -294,6 +294,17 @@ const BottomLinks = styled.div`
   @media (max-width: 768px) {
     justify-content: center;
   }
+`;
+
+const FooterDisclaimer = styled.p`
+  color: ${({ theme }) => theme.text.secondary};
+  font-family: ${({ theme }) => theme.fonts.ui};
+  font-size: 0.8rem;
+  line-height: 1.5;
+  max-width: 700px;
+  margin: 1rem auto 0;
+  text-align: center;
+  padding: 0 1rem;
 `;
 
 const SmallFooterLink = styled(Link)`
@@ -425,19 +436,11 @@ const EnhancedFooter: React.FC = () => {
           <SmallFooterLink to="/terms">Terms of Service</SmallFooterLink>
         </BottomLinks>
 
-        <StyledBox as="p" $style={{
-          color: 'rgba(224, 236, 244, 0.35)',
-          fontSize: '0.7rem',
-          lineHeight: 1.5,
-          maxWidth: '700px',
-          margin: '1rem auto 0',
-          textAlign: 'center',
-          padding: '0 1rem',
-        }}>
+        <FooterDisclaimer>
           SwanStudios is a fitness tracking and community platform intended for general wellness purposes only.
           It is not a medical device and does not provide medical advice, diagnosis, or treatment.
           Consult a physician before starting any exercise program.
-        </StyledBox>
+        </FooterDisclaimer>
       </BottomFooter>
     </FooterContainer>
   );

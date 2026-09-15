@@ -13,6 +13,7 @@ import {
 import { PrimaryStack, RightRail } from './ClientDashboardHome.priorityStyles';
 import { ClientProfileHero, ClientQuickActions, ClientSidebar, ClientTopNavigation, NextSessionCard } from './ClientDashboardHome.sections';
 import { ClientRightRail } from './ClientDashboardHome.railSections';
+import { CardBody, Kicker, PanelCard, PanelHeader } from './ClientDashboardHome.cardStyles';
 import {
   CommunityFeedCard,
   PerformanceZoneCard,
@@ -25,6 +26,7 @@ import type { ClientDashboardHomeProps } from './ClientDashboardHome.types';
 import SocialProgressAnalyticsPreview from './SocialProgressAnalyticsPreview';
 import FirstSessionOrientationStrip from './FirstSessionOrientationStrip';
 import CoachVoiceRecapCard from './CoachVoiceRecapCard';
+import NextBestActionCard from '../../NextBestAction/NextBestActionCard';
 
 const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
   const embedded = !!props.embedded;
@@ -48,6 +50,10 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
             <PrimaryStack>
               <ClientProfileHero {...props} />
               <ClientQuickActions actions={props.quickActions} onNavigate={props.onNavigate} onTarget={props.onTarget} />
+              <PanelCard data-testid="home-coach-compass">
+                <PanelHeader><Kicker>Coach compass</Kicker></PanelHeader>
+                <CardBody><NextBestActionCard bare hideHeader onLogWorkout={props.onLogWorkout} /></CardBody>
+              </PanelCard>
               {/* The plan the member is paying for — above the fold, always present.
                   The shelf owns its own loading/empty/error states, so this slot is
                   never conditionally removed. */}
@@ -74,7 +80,13 @@ const ClientDashboardHome: React.FC<ClientDashboardHomeProps> = (props) => {
                 {!zeroHistory && <QuickPostCard {...props} />}
               </TwoColumnGrid>
               <TwoColumnGrid>
-                <WeeklyInsightsCard insights={props.insights} />
+                <WeeklyInsightsCard
+                  insights={props.insights}
+                  historyStatus={props.historyStatus}
+                  hasHistory={!!props.trainingProof.lastSession}
+                  onRetryHistory={props.onRetryHistory}
+                  onLogWorkout={props.onLogWorkout}
+                />
                 <PerformanceZoneCard {...props} />
               </TwoColumnGrid>
             </PrimaryStack>

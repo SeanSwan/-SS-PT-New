@@ -18,7 +18,7 @@ export const CardShell = styled.article`
   display: flex;
   flex-direction: column;
   align-self: stretch;
-  height: auto;
+  height: 100%;
   max-height: none;
   min-height: 100%;
   overflow: visible;

@@ -11,7 +11,7 @@
 
 ### **📄 LAZY & FORGETFUL? USE THIS ONE PROMPT:**
 
-**File:** [AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md](AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md) ⭐⭐⭐
+**File:** [AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md](AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md) ⭐⭐⭐
 
 **What it does:**
 1. Copy the ENTIRE file (Ctrl+A, Ctrl+C)
@@ -59,7 +59,7 @@ This folder contains the complete AI Village workflow system for SwanStudios dev
 
 ## 🚀 Quick Start (Read These First)
 
-### 1. **AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md** ⭐ START HERE (NEW)
+### 1. **AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md** ⭐ START HERE (NEW)
 **Read Time:** One-time copy-paste
 **Use:** Copy entire file → Paste into any AI → Done!
 - Auto-detects which AI is reading

@@ -40,7 +40,8 @@
     "code-health:dupes": "fallow dupes --format json",
     "code-health:health": "fallow health --format json",
     "code-health:fix-preview": "fallow fix --dry-run --format json",
-    "check-docs-links": "npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json",
+    "check-docs-links": "node scripts/ci/check-docs-links.mjs",
+    "check-docs-links:in": "node scripts/ci/check-docs-links.mjs --scope=in",
     "lint:degalaxy": "node scripts/ci/check-degalaxy.mjs",
     "sentinel": "node scripts/tree-sentinel.mjs",
     "sentinel:fast": "node scripts/tree-sentinel.mjs --fast",
@@ -49,7 +50,8 @@
     "tokens:check": "node scripts/hooks/token-registry-check.mjs",
     "prepare": "node scripts/install-git-hooks.mjs",
     "hooks:install": "node scripts/install-git-hooks.mjs",
-    "hooks:check": "node scripts/install-git-hooks.mjs --check"
+    "hooks:check": "node scripts/install-git-hooks.mjs --check",
+    "db:drift-check": "node backend/scripts/schema-drift-check.mjs"
   },
   "devDependencies": {
     "fallow": "^2.88.3",

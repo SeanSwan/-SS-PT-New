@@ -1,0 +1,13 @@
+# S11 — optional sign-in discovery must not crash password login
+
+Astra parent runtime finding, 2026-09-12. The synthetic browser GET /api/auth/providers returned a malformed successful envelope. FederatedAuthApi.getAuthMethods returned undefined, EnhancedLoginProviders dereferenced methods.providers, and the mounted /login route became Application error with no help links. This is a malformed-response resilience defect, not evidence the production provider currently returns that payload.
+
+Requirement R14: optional auth-method discovery must fail closed for provider choices while preserving password login and signed-out help. Validate the existing response methods object, boolean flags, providers array, provider IDs and nonblank labels at the API boundary. Reject malformed responses so the component's existing catch preserves emptyMethods. Valid server-enabled methods remain authoritative; no invented provider activation, new auth fallback, token changes, provider call, mail or weakened login guard.
+
+Exact source/test scope: frontend/src/services/federatedAuthApi.ts, new frontend/src/services/federatedAuthApi.discovery.test.ts, existing frontend/src/pages/EnhancedLoginProviders.test.tsx. The component source should remain unchanged unless a demonstrated issue requires a separately declared expansion.
+
+Wireframe at both widths: existing email/password form and [Get help] remain; optional [Continue with provider] choices appear only after valid discovery. Loading/empty/discovery failure has no extra provider choices; password validation and login errors stay existing. Retry is normal page reload; no automatic provider or credential submission. Keyboard, focus and responsive layout unchanged.
+
+Contract flow: login mount -> GET providers -> validate method DTO -> display enabled choices; HTTP or shape failure -> hide optional choices, keep password form/help. Cancellation ignores unmounted response through existing active flag. No schema/ERD/migration applies; privacy remains public capability metadata only. Rollback is reverting validator and its tests; no persisted state.
+
+Tests: actual API adapter rejects undefined/null/missing providers/non-array/bad booleans/malformed provider entries, accepts valid empty/enabled methods; existing component catches discovery rejection without disabling password parent; production mounted browser reproduction keeps /login form and /contact help visible with the same malformed API response. Preserve the prior browser failure logs as RED. Parent final suite/type/build and combined Astra review cover this bounded extension to the current completion cohort.

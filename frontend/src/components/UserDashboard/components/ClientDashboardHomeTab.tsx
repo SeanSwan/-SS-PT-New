@@ -80,7 +80,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   backgroundSettings,
 }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { profile: gamProfile, levelProgress, leaderboard } = useGamificationData();
   const { isElite } = useSubscription();
   const { summary: macroSummary, loading: macroSummaryLoading } = useMacroSummary();
@@ -161,7 +161,12 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
   // Settled means SUCCESSFULLY settled — a failed fetch must never be read as
   // "zero history" (a veteran client with a transient error would get the
   // first-session orientation strip + lose the composer).
-  const workoutHistorySettled = !workoutSessions.isLoading && !workoutSessions.error;
+  const historyStatus = workoutSessions.isLoading
+    ? 'loading' as const
+    : workoutSessions.error
+      ? 'error' as const
+      : 'ready' as const;
+  const workoutHistorySettled = historyStatus === 'ready';
   const performanceScore = useMemo(
     () => buildPerformanceScore(trainingProof, progressPercent, streakDays),
     [progressPercent, streakDays, trainingProof],
@@ -189,6 +194,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
 
   const handleTarget = (target: ClientDashboardTarget) => {
     if (target === 'dashboard') onTabChange('home');
+    if (target === 'community') navigate('/dashboard/client/community');
     if (target === 'progress') onTabChange('progress');
     if (target === 'nutrition') onTabChange('nutrition');
     if (target === 'challenges') onTabChange('challenges');
@@ -200,6 +206,7 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
     if (target === 'workouts') navigate('/dashboard/client/workouts');
     if (target === 'coach') navigate(homeTrainingCoachPath);
     if (target === 'sessions') navigate('/dashboard/client/schedule');
+    if (target === 'signout') logout();
   };
 
   const shareProgress = () => {
@@ -263,6 +270,9 @@ const ClientDashboardHomeTab: React.FC<ClientDashboardHomeTabProps> = ({
         sessionPreview={sessionPreview}
         trainingProof={trainingProof}
         workoutHistorySettled={workoutHistorySettled}
+        historyStatus={historyStatus}
+        onRetryHistory={() => { void workoutSessions.refetch(); }}
+        onLogWorkout={() => navigate(quickLogPath)}
         insights={insights}
         performanceScore={performanceScore}
         macroSummary={macroSummary}

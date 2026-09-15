@@ -74,7 +74,7 @@ export const TIER_DEFINITIONS = {
       'Coach-designed workout plans (unlimited, with review flow)',
       'Workout logging (unlimited)',
       'Nutrition & macro counter',
-      'Exercise library (840+ exercises)',
+      'Exercise library',
       'Social feed & community',
       'Gamification (XP, levels, badges, streaks)',
       'Basic progress summaries and workout stats',

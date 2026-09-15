@@ -23,6 +23,7 @@ import type {
 
 export type ClientDashboardTarget =
   | 'dashboard'
+  | 'community'
   | 'progress'
   | 'workouts'
   | 'coach'
@@ -33,7 +34,10 @@ export type ClientDashboardTarget =
   | 'challenges'
   | 'notifications'
   | 'messages'
-  | 'search';
+  | 'search'
+  | 'signout';
+
+export type ClientDashboardHistoryStatus = 'loading' | 'ready' | 'error';
 
 export interface ClientDashboardAction {
   label: string;
@@ -83,6 +87,11 @@ export interface ClientDashboardHomeProps {
    * fetch is still loading.
    */
   workoutHistorySettled?: boolean;
+  /** Explicit workout-history lifecycle; kept optional for older home mounts. */
+  historyStatus?: ClientDashboardHistoryStatus;
+  onRetryHistory?: () => void;
+  /** Assignment-aware workout route supplied by the adapter. */
+  onLogWorkout?: () => void;
   insights: InsightRow[];
   performanceScore: number | null;
   macroSummary: MacroSummary | null;

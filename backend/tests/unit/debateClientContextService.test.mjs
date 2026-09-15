@@ -47,4 +47,31 @@ describe('debateClientContextService', () => {
     });
     expect(JSON.stringify(deIdentified)).not.toContain('Private');
   });
+
+  it('propagates required health query failure instead of substituting empty enrichment', async () => {
+    const sequelize = {
+      QueryTypes: { SELECT: 'SELECT' },
+      query: vi.fn()
+        .mockResolvedValueOnce([{ id: 42, firstName: 'Synthetic', isActive: true }])
+        .mockRejectedValueOnce(new Error('pain table unavailable')),
+    };
+
+    await expect(buildDebateClientContext(42, sequelize)).rejects.toMatchObject({
+      code: 'AI_CONTEXT_UNAVAILABLE',
+    });
+  });
+
+  it('preserves legitimate empty enrichment arrays', async () => {
+    const sequelize = {
+      QueryTypes: { SELECT: 'SELECT' },
+      query: vi.fn()
+        .mockResolvedValueOnce([{ id: 42, firstName: 'Synthetic', isActive: true }])
+        .mockResolvedValue([]),
+    };
+
+    const result = await buildDebateClientContext(42, sequelize);
+
+    expect(result.deIdentified.clientAlias).toBe('Client-42');
+    expect(sequelize.query).toHaveBeenCalledTimes(5);
+  });
 });

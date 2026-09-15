@@ -9,11 +9,11 @@
  *          assignments when the caller is a trainer — no new engine, no
  *          per-client fan-out).
  * DATA TRUTH: risk level, reason, and days-since come straight from logged
- *          workout sessions; the card self-hides on fetch failure and says
- *          "everyone's on track" honestly when the list is empty.
+ *          workout sessions; unavailable responses stay visible with retry,
+ *          while a validated empty list says "everyone's on track."
  * ============================================================================
  */
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { UserCheck } from 'lucide-react';
@@ -120,36 +120,113 @@ interface AtRiskClient {
 
 const MAX_ROWS = 4;
 
+const QueueError = styled.p`
+  margin: 0;
+  color: var(--danger, #e05260);
+`;
+
+const RetryButton = styled.button`
+  min-height: 44px;
+  align-self: flex-start;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-primary, #60c0f0);
+  background: transparent;
+  color: var(--text-primary, #e0ecf4);
+  cursor: pointer;
+`;
+
+const isValidClient = (value: unknown): value is AtRiskClient => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const client = value as Partial<AtRiskClient>;
+  return typeof client.id === 'number'
+    && Number.isSafeInteger(client.id)
+    && client.id > 0
+    && typeof client.firstName === 'string'
+    && typeof client.lastName === 'string'
+    && ['critical', 'warning', 'watch'].includes(String(client.riskLevel))
+    && typeof client.reason === 'string'
+    && typeof client.daysSinceLastWorkout === 'number'
+    && Number.isFinite(client.daysSinceLastWorkout);
+};
+
+const parseClients = (response: { data?: { clients?: unknown } }): AtRiskClient[] => {
+  if (!response?.data || !Array.isArray(response.data.clients)) {
+    throw new Error('Malformed intervention response');
+  }
+  if (!response.data.clients.every(isValidClient)) {
+    throw new Error('Malformed intervention row');
+  }
+  return response.data.clients.map((client) => ({
+    ...client,
+    id: client.id,
+    daysSinceLastWorkout: client.daysSinceLastWorkout,
+  })).slice(0, MAX_ROWS);
+};
+
 const TrainerInterventionQueue: React.FC = () => {
   const { authAxios } = useAuth();
   const navigate = useNavigate();
   const [clients, setClients] = useState<AtRiskClient[] | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
+  const mounted = useRef(true);
 
-  useEffect(() => {
-    // Self-hiding is the contract: any auth/transport irregularity (including
-    // harnesses without a real axios) resolves to "render nothing", never a
-    // crash on the trainer's home.
+  const fetchClients = useCallback(async () => {
+    const currentRequest = ++requestId.current;
+    setLoading(true);
+    setClients(null);
+    setError(null);
     if (typeof authAxios?.get !== 'function') {
-      setFailed(true);
-      return undefined;
+      if (mounted.current && currentRequest === requestId.current) {
+        setLoading(false);
+        setError('Client intervention data could not be loaded.');
+      }
+      return;
     }
-    let mounted = true;
-    Promise.resolve()
-      .then(() => authAxios.get('/api/admin/compliance/at-risk'))
-      .then((res: { data?: { clients?: AtRiskClient[] } }) => {
-        if (!mounted) return;
-        setClients(Array.isArray(res?.data?.clients) ? res.data.clients.slice(0, MAX_ROWS) : []);
-      })
-      .catch(() => {
-        if (mounted) setFailed(true);
-      });
-    return () => { mounted = false; };
+    try {
+      const response = await authAxios.get('/api/admin/compliance/at-risk');
+      if (!mounted.current || currentRequest !== requestId.current) return;
+      setClients(parseClients(response));
+    } catch {
+      if (mounted.current && currentRequest === requestId.current) {
+        setError('Client intervention data is temporarily unavailable.');
+      }
+    } finally {
+      if (mounted.current && currentRequest === requestId.current) setLoading(false);
+    }
   }, [authAxios]);
 
-  // Self-hide on failure/denial: a wrong guess about client risk is worse
-  // than no card. Loading renders nothing (the queue appears when ready).
-  if (failed || clients === null) return null;
+  useEffect(() => {
+    mounted.current = true;
+    fetchClients();
+    return () => {
+      mounted.current = false;
+      requestId.current += 1;
+    };
+  }, [fetchClients]);
+
+  if (loading && clients === null) {
+    return (
+      <QueueCard aria-label="Client interventions">
+        <QueueTitle><UserCheck size={16} aria-hidden="true" />Client interventions</QueueTitle>
+        <AllClear>Loading intervention data…</AllClear>
+      </QueueCard>
+    );
+  }
+
+  if (error) {
+    return (
+      <QueueCard aria-label="Client interventions">
+        <QueueTitle><UserCheck size={16} aria-hidden="true" />Client interventions</QueueTitle>
+        <QueueError role="alert" aria-live="polite">{error}</QueueError>
+        <RetryButton type="button" onClick={fetchClients}>Retry</RetryButton>
+      </QueueCard>
+    );
+  }
+
+  if (clients === null) return null;
 
   return (
     <QueueCard aria-label="Client interventions">

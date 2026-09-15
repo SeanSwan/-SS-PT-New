@@ -25,7 +25,15 @@ export interface Client {
   onboardingComplete?: boolean;
   onboardingCompletionPercentage?: number | null;
   onboardingPct?: number | null;
-  totalSessionsCompleted: number;
+  // null = unknown (per-client stats could not be loaded) — the UI renders
+  // "Logs unavailable" instead of fabricating a zero (dual-review Slice 1).
+  totalSessionsCompleted: number | null;
+  /** Batched server-side summary from the assignments endpoint; when present the UI never fabricates stats. */
+  rosterSummary?: {
+    totalCompletedSessions: number;
+    lastSessionDate: string | null;
+    nextSessionDate: string | null;
+  };
   lastSessionDate?: string;
   nextSessionDate?: string;
   status: ClientStatus;

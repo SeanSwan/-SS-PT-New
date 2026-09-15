@@ -150,27 +150,11 @@ async function emitNotificationToUser(userId, notification) {
       const unreadCount = await Notification.count({
         where: { userId, read: false }
       });
-      io.to(`user:${userId}`).emit('notification:count', { unreadCount });
+      io.to(`user:${userId}`).emit('notification:count', { unreadCount, userId });
     }
   } catch (err) {
     // Socket failures must never break notification creation
     logger.warn(`Socket emit failed for user ${userId}: ${err.message}`);
-  }
-}
-
-/**
- * Emit a notification event to the 'admin' room (all connected admins).
- *
- * @param {object} notification - The notification record to broadcast
- */
-function emitNotificationToAdminRoom(notification) {
-  try {
-    const io = getIO();
-    if (!io) return;
-
-    io.to('admin').emit('notification:new', notification);
-  } catch (err) {
-    logger.warn(`Socket emit to admin room failed: ${err.message}`);
   }
 }
 
@@ -200,14 +184,15 @@ export const createAndEmit = async (options) => {
 };
 
 /**
- * Create admin notifications in the database AND emit them via Socket.IO.
+ * Create admin notifications in the database AND emit each persisted row to
+ * only the row's recipient room.
  *
  * @param {object} options - Same shape as createAdminNotification options
  * @returns {Promise<{success: boolean, notifications?: object[], error?: string}>}
  */
 export const createAdminAndEmit = async (options) => {
   const result = await createAdminNotification(options);
-  // Per-user emits + broadcast to admin room are handled inside createAdminNotification now
+  // Per-recipient emits are handled inside createAdminNotification.
   return result;
 };
 
@@ -417,15 +402,10 @@ export const createAdminNotification = async (options) => {
     
     logger.info(`Created ${type} notification for ${adminUsers.length} admin users`);
 
-    // Emit real-time notifications via Socket.IO
+    // Emit each persisted row only to its own recipient's room.
     try {
       const io = getIO();
       if (io) {
-        // Broadcast to the admin room so all connected admins get it immediately
-        for (const notification of notifications) {
-          emitNotificationToAdminRoom(notification);
-        }
-        // Also emit per-user so each admin's unread count updates
         for (const admin of adminUsers) {
           const adminNotif = notifications.find(n => n.userId === admin.id);
           if (adminNotif) {

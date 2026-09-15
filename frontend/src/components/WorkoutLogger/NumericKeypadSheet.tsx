@@ -51,15 +51,36 @@ const NumericKeypadSheet: React.FC<NumericKeypadSheetProps> = ({
 }) => {
   const [entry, setEntry] = useState('');
   const sheetRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => { if (open) setEntry(''); }, [open]);
+  // The row keeps this sheet mounted while Done advances weight → reps. The
+  // label/decimal contract is the field identity, so a new field always starts
+  // with a fresh entry instead of appending to the prior field's digits.
+  const fieldIdentity = `${label}:${allowDecimal ? 'decimal' : 'integer'}`;
+  useEffect(() => { if (open) setEntry(''); }, [open, fieldIdentity]);
 
   useEffect(() => {
     if (!open) return undefined;
     const node = sheetRef.current;
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && !node?.contains(active)) {
+      openerRef.current = active;
+    }
     node?.focus();
     return undefined;
   }, [open]);
+
+  const restoreFocusIfClosed = () => {
+    // Weight → reps keeps the same sheet open. Waiting one task lets the row
+    // apply its state transition; only a genuinely closed/unmounted sheet
+    // restores the original invoking control.
+    window.setTimeout(() => {
+      if (sheetRef.current && document.body.contains(sheetRef.current)) return;
+      const opener = openerRef.current;
+      if (opener && document.contains(opener)) opener.focus();
+      openerRef.current = null;
+    }, 0);
+  };
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -69,6 +90,7 @@ const NumericKeypadSheet: React.FC<NumericKeypadSheetProps> = ({
       if (Number.isFinite(parsed)) { vibrate(20); onCommit(parsed); }
     }
     onClose(reason);
+    restoreFocusIfClosed();
   };
 
   const press = (digit: string) => {
@@ -92,9 +114,28 @@ const NumericKeypadSheet: React.FC<NumericKeypadSheetProps> = ({
         aria-label={`${label} keypad`}
         tabIndex={-1}
         onKeyDown={(e) => {
+          if (e.key === 'Tab') {
+            const focusable = Array.from(
+              e.currentTarget.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+              ),
+            );
+            if (focusable.length === 0) {
+              e.preventDefault();
+              return;
+            }
+            const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+            const nextIndex = e.shiftKey
+              ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+              : (currentIndex === -1 || currentIndex === focusable.length - 1 ? 0 : currentIndex + 1);
+            e.preventDefault();
+            focusable[nextIndex]?.focus();
+            return;
+          }
           if (e.key === 'Escape') { e.preventDefault(); commitIfDirty('dismiss'); }
-          if (e.key >= '0' && e.key <= '9') press(e.key);
-          if (e.key === '.' && allowDecimal) press('.');
+          const modified = e.metaKey || e.ctrlKey || e.altKey || e.shiftKey;
+          if (!modified && e.key >= '0' && e.key <= '9') press(e.key);
+          if (!modified && e.key === '.' && allowDecimal) press('.');
           if (e.key === 'Backspace') setEntry((p) => p.slice(0, -1));
           if (e.key === 'Enter') { e.preventDefault(); commitIfDirty('done'); }
         }}

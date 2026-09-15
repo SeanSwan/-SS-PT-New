@@ -44,14 +44,22 @@ const GIT_ACTIVITY_RE = /git(?:\s+-C\s+(?:"[^"]+"|'[^']+'|\S+))?\s+(commit|push)
 
 const BLOCK_REASON =
   'Before stopping, run the Hermes closeout gate. This turn shows substantial completed work ' +
-  '(file changes and/or a git commit/push) with no Hermes artifact emitted. If it completed a ' +
-  'substantial implementation, feature, architecture decision, hard bug root cause, deployment, ' +
-  'security change, major review, or final plan with transferable facts: invoke hermes-inbox and ' +
-  'write a privacy-safe memo to .ai-workflow/hermes-inbox/pending/. If the permanent lesson came ' +
-  'from a verified Fable-tier synthesis, also invoke hermes-learning-packet (sub-Fable output ' +
-  'never enters the durable corpus). Run the secret/privacy scan, report the artifact path, then ' +
-  'stop. If this turn was genuinely not substantial (analysis only, partial work, Q&A), state ' +
-  'that in one line and stop — do not fabricate an artifact.';
+  '(file changes and/or a git commit/push) with no Hermes artifact emitted.' +
+  '\n\nWRITE ONE ONLY IF THIS TURN PRODUCED A TRANSFERABLE FACT — something a future session ' +
+  'on a different machine would need and could not re-derive. A turn that restates known state ' +
+  '(the same open items, the same blockers, the same next action) is NOT that, and a memo ' +
+  'repeating it is noise that costs review capacity. Measured 2026-08-26: of 512 pending memos ' +
+  'only TWO open items recurred, and every open item from the final three days was one agent ' +
+  'restating three facts it had already reported.' +
+  '\n\nDESTINATION (changed 2026-08-26): write to .ai-workflow/hermes-inbox/consumed/<YYYY-MM>/ ' +
+  'by default. That is the archive the error corpus is mined from — writing there preserves the ' +
+  'record at zero drain cost. Use pending/ ONLY when Hermes must ACT on it, so that a non-empty ' +
+  'pending/ means something again. If the permanent lesson came from a verified Fable-tier ' +
+  'synthesis, also invoke hermes-learning-packet (sub-Fable output never enters the durable ' +
+  'corpus). Run the secret/privacy scan, report the artifact path, then stop.' +
+  '\n\nIf this turn was genuinely not substantial, or produced no transferable fact, state that ' +
+  'in one line and stop — do not fabricate an artifact. An honest one-liner is the CORRECT ' +
+  'outcome for most build turns, not a failure to comply.';
 
 /** True for a real human/user message line (not a tool_result envelope). */
 /**

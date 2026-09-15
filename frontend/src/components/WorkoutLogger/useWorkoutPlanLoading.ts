@@ -9,7 +9,7 @@
  * unchanged. Owns the plan/client state (nothing above the call site reads
  * it); the component consumes the returned values.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import type { ExerciseEntry } from '../../services/nasmApiService';
 import type { WorkoutLoggerPlanLoadOutcome } from './WorkoutLoggerEmptyPlanState';
@@ -47,6 +47,8 @@ interface WorkoutPlanLoadingParams {
   setExercises: React.Dispatch<React.SetStateAction<ExerciseEntry[]>>;
 }
 
+export type ClientInfoStatus = 'loading' | 'ready' | 'unavailable';
+
 export function useWorkoutPlanLoading({
   autoLoadTodayPlan,
   autoLoadTodayPlanRef,
@@ -70,15 +72,25 @@ export function useWorkoutPlanLoading({
   const [loadedPlanContext, setLoadedPlanContext] = useState<PlannedAssignment | null>(null);
   // C4b: why the loader came back empty — drives the in-page empty state.
   const [planLoadOutcome, setPlanLoadOutcome] = useState<WorkoutLoggerPlanLoadOutcome | null>(null);
-  // Value intentionally unread today (no loading UI yet) — kept so a future
-  // client-loading state can surface without re-plumbing the fetch.
-  const [, setIsLoadingClient] = useState(true);
+  const [isLoadingClient, setIsLoadingClient] = useState(true);
+  const [clientInfoStatus, setClientInfoStatus] = useState<ClientInfoStatus>('loading');
+  const [clientInfoError, setClientInfoError] = useState<string | null>(null);
+  const clientInfoRequestGeneration = useRef(0);
+  const clientInfoHasSettled = useRef(false);
 
   const executeLoadClientData = useCallback(async () => {
+    const requestGeneration = clientInfoRequestGeneration.current + 1;
+    clientInfoRequestGeneration.current = requestGeneration;
     setIsLoadingClient(true);
+    setClientInfoStatus('loading');
+    setClientInfoError(null);
+    // A target change/retry must not leave the previous target's information
+    // visible while the new request is pending.
+    setClient(null);
     try {
       if (typeof effectiveClientId !== 'number') {
-        setClient(null);
+        setClientInfoStatus('unavailable');
+        setClientInfoError('A client must be selected before loading information.');
         return;
       }
 
@@ -89,44 +101,62 @@ export function useWorkoutPlanLoading({
       const axiosResponse = await api.get(infoUrl);
       const data = axiosResponse?.data ?? axiosResponse;
 
-      if (data.success && data.client) {
+      if (requestGeneration !== clientInfoRequestGeneration.current) return;
+
+      if (data.success && data.client && Number(data.client.id) === effectiveClientId) {
+        const availableSessions = typeof data.client.availableSessions === 'number'
+          && Number.isFinite(data.client.availableSessions)
+          ? data.client.availableSessions
+          : null;
         setClient({
           id: data.client.id,
           firstName: data.client.firstName,
           lastName: data.client.lastName,
           email: data.client.email,
-          availableSessions: data.client.availableSessions,
+          availableSessions,
           clientSource: data.client.clientSource,
           phone: data.client.phone
         });
+        setClientInfoStatus('ready');
         if (data.client.hasWorkoutToday) {
           toast.warning(`${data.client.firstName} already has a workout logged for today`);
         }
-        if (!isNonDeductingClientSource(data.client.clientSource) && data.client.availableSessions <= 1) {
+        if (!isNonDeductingClientSource(data.client.clientSource)
+          && typeof availableSessions === 'number'
+          && availableSessions <= 1) {
           toast.warning(`${data.client.firstName} has only ${data.client.availableSessions} session(s) remaining`);
         }
       } else {
-        throw new Error(data.message || 'Failed to load client data');
+        throw new Error(data.message || 'Client information did not match the selected client');
       }
     } catch (error: unknown) {
+      if (requestGeneration !== clientInfoRequestGeneration.current) return;
       console.error('Failed to load client data:', error);
-      setClient({
-        id: effectiveClientId ?? 0,
-        firstName: 'Client',
-        lastName: typeof effectiveClientId === 'number' ? `#${effectiveClientId}` : '',
-        email: '',
-        availableSessions: 0,
-        clientSource: null,
-        phone: ''
-      });
-      toast.error(getErrorMessage(error, 'Failed to load client information'));
+      setClient(null);
+      const message = getErrorMessage(error, 'Failed to load client information');
+      setClientInfoStatus('unavailable');
+      setClientInfoError(message);
+      toast.error(message);
     } finally {
-      setIsLoadingClient(false);
+      if (requestGeneration === clientInfoRequestGeneration.current) {
+        setIsLoadingClient(false);
+        clientInfoHasSettled.current = true;
+      }
     }
   }, [effectiveClientId, isClientSelfMode]);
 
   useEffect(() => {
     executeLoadClientData();
+    return () => {
+      // Invalidate an in-flight request before unmount or a target change can
+      // let its catch/finally path toast or mutate state after this surface is
+      // gone. The next effect/request receives a newer generation.
+      clientInfoRequestGeneration.current += 1;
+    };
+  }, [executeLoadClientData]);
+
+  const retryClientInfo = useCallback(() => {
+    void executeLoadClientData();
   }, [executeLoadClientData]);
 
   const loadTodaysPlan = useCallback(async () => {
@@ -200,13 +230,18 @@ export function useWorkoutPlanLoading({
 
   return {
     client,
+    clientInfoError,
+    clientInfoStatus,
     handleApplyGeneratedPlanDay,
     handleRepeatLastSession,
     isLoadingPlan,
+    isLoadingClient,
+    isInitialClientLoad: isLoadingClient && !clientInfoHasSettled.current,
     isRepeatingSession,
     loadTodaysPlan,
     loadedPlanContext,
     planLoadOutcome,
     plannedAssignment,
+    retryClientInfo,
   };
 }
