@@ -361,8 +361,6 @@ export const useCalendarData = () => {
         }
         throw new Error(typeof payload === 'string' ? payload : 'Failed to load sessions');
       }
-
-      return action;
     } catch (error) {
       const isWaiverBlock = (error as { code?: string })?.code === SESSIONS_WAIVER_REQUIRED;
       setErrors(prev => ({ ...prev, sessions: isWaiverBlock ? SESSIONS_WAIVER_REQUIRED : 'Failed to load sessions' }));

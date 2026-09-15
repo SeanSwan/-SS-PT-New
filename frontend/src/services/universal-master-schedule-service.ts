@@ -144,7 +144,8 @@ class UniversalMasterScheduleService {
       // Waiver gate (waiverGate.mjs) 403s client/user accounts without a
       // linked waiver. Tag the error so the Redux layer can surface the
       // waiver wall instead of a silent empty schedule.
-      if (error?.response?.status === 403 && error?.response?.data?.code === 'WAIVER_REQUIRED') {
+      const httpError = error as { response?: { status?: number; data?: { code?: string } } };
+      if (httpError?.response?.status === 403 && httpError?.response?.data?.code === 'WAIVER_REQUIRED') {
         const waiverError: Error & { code?: string } = new Error('Signed waiver required');
         waiverError.code = 'WAIVER_REQUIRED';
         throw waiverError;
