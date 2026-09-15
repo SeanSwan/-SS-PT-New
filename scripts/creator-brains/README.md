@@ -47,6 +47,10 @@ node scripts/creator-brains/cli.mjs query "shadow lift" --creator UCxxxx
 
 `node scripts/creator-brains/cli.mjs` with no arguments prints the full command list.
 
+**No flags to memorize:** `node scripts/creator-brains/launch.mjs` (or double-click
+`Creator Brains.cmd` on the Desktop) opens an interactive menu — pick creators by
+number, run the daily pass, ask the brains. Same commands underneath.
+
 ## The daily job
 
 ```powershell
@@ -161,7 +165,7 @@ Until you authorize, the manual list is fully functional.
 ## Tests
 
 ```powershell
-# Everything (130 tests, no network; the concurrency file spawns real child processes)
+# Everything (191 offline tests, no network; the concurrency file spawns real child processes)
 node --experimental-test-isolation=none --test `
   scripts/creator-brains/test/unit.test.mjs `
   scripts/creator-brains/test/brain.test.mjs `
@@ -176,7 +180,8 @@ node --experimental-test-isolation=none --test `
   scripts/creator-brains/test/consent.test.mjs `
   scripts/creator-brains/test/review-repairs.test.mjs `
   scripts/creator-brains/test/review-repairs-derived.test.mjs `
-  scripts/creator-brains/test/review-repairs-store.test.mjs
+  scripts/creator-brains/test/review-repairs-store.test.mjs `
+  scripts/creator-brains/test/launcher.test.mjs
 
 # Just the review-repair regressions (one per hostile-review finding)
 node --experimental-test-isolation=none --test `
