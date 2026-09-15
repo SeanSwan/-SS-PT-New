@@ -271,7 +271,9 @@ import roleRoutes from '../routes/roleRoutes.mjs';
 // ===================== NASM WORKOUT TRACKING SYSTEM =====================
 import clientTrainerAssignmentRoutes from '../routes/clientTrainerAssignmentRoutes.mjs';
 import trainerPermissionsRoutes from '../routes/trainerPermissionsRoutes.mjs';
+import trainerOnboardingRoutes from '../routes/trainerOnboardingRoutes.mjs';
 import dailyWorkoutFormRoutes from '../routes/dailyWorkoutFormRoutes.mjs';
+import locationRoutes from '../routes/locationRoutes.mjs';
 
 // ===================== WEBHOOKS =====================
 import stripeWebhookRouter from '../webhooks/stripeWebhook.mjs';
@@ -417,6 +419,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/sessions/deductions', sessionDeductionRoutes); // Auto-deduction and payment application
   app.use('/api/sessions', sessionsRoutes);
   app.use('/api/session-types', sessionTypeRoutes); // Session type management (Phase 5)
+  app.use('/api/locations', locationRoutes); // Physical facilities (SWA-74 gym-ops spine S0)
   app.use('/api/schedule', scheduleRoutes); // Calendar view schedule endpoint
   app.use('/api/schedule-ai', scheduleAiRoutes);
   app.use('/api/availability', availabilityRoutes);
@@ -774,6 +777,7 @@ export const setupRoutes = async (app) => {
 
   // ===================== NASM WORKOUT TRACKING SYSTEM ROUTES =====================
   // Note: client-trainer-assignments routes registered earlier to avoid conflicts
+  app.use('/api/trainer-onboarding', trainerOnboardingRoutes); // Trainer applications (SWA-62)
   app.use('/api/trainer-permissions', trainerPermissionsRoutes);
   app.use('/api/workout-forms', dailyWorkoutFormRoutes);
 

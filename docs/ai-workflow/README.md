@@ -9,7 +9,7 @@
 
 ### **New to SwanStudios AI Village?**
 1. Read the [AI Village Handbook](../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md) - Complete guide to AI roles and workflows (NEW: Section 6.6 Design Workflow)
-2. Review the [Master Onboarding Prompt](../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md) - Onboarding guide for all AIs (v2.1 - "Ask Before Coding" enforcement)
+2. Review the [Master Onboarding Prompt](../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md) - Onboarding guide for all AIs ("Ask Before Coding" enforcement)
 3. Check [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md) - Active project status
 
 ### **Designing New Features?**
@@ -318,7 +318,7 @@ All SwanStudios features must follow the Galaxy-Swan Theme:
 
 **AI Village Questions:**
 - Roles & responsibilities: See [AI Village Handbook](../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)
-- AI onboarding: See [Master Onboarding Prompt v2.1](../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md)
+- AI onboarding: See [Master Onboarding Prompt](../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md)
 - MinMax v2 role: See Handbook Section 6.5
 
 **Project-Specific Questions:**

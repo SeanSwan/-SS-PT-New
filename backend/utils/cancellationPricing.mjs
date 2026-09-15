@@ -10,6 +10,10 @@
  */
 
 import logger from './logger.mjs';
+import { expectedRateForDuration, durationMismatchReason } from './cancellationDuration.mjs';
+
+// Re-exported so existing importers of this module keep working unchanged.
+export { expectedRateForDuration };
 
 // Default fallback prices (only used if no package found)
 const FALLBACK_PRICES = {
@@ -34,6 +38,10 @@ const SPECIAL_PACKAGE_THRESHOLDS = {
  */
 export async function getClientPackagePricing(clientId, models, options = {}) {
   const { Order, OrderItem, StorefrontItem } = models;
+  // The duration of the session being priced. Optional: omitting it reproduces the exact
+  // pre-duration behaviour, which is what the two unmounted legacy callers still get.
+  const { durationMinutes } = options;
+  const fallbackRate = expectedRateForDuration(durationMinutes);
   // Join the caller's transaction when given one so this read does not
   // acquire a second pooled connection while the first is held.
   const txn = options.transaction ? { transaction: options.transaction } : {};
@@ -85,7 +93,7 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
     if (!recentOrder || storefrontItems.length === 0) {
       logger.info(`No completed order found for client ${clientId}, using fallback pricing`);
       return {
-        pricePerSession: FALLBACK_PRICES.STANDARD_60_MIN,
+        pricePerSession: fallbackRate,
         packageName: 'Standard (Fallback)',
         isFallback: true,
         isSpecialPackage: false,
@@ -122,7 +130,7 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
           `per-session rates (${distinctRates.join(", ")}); cannot attribute this session`
       );
       return {
-        pricePerSession: FALLBACK_PRICES.STANDARD_60_MIN,
+        pricePerSession: fallbackRate,
         packageName: 'Ambiguous (multiple package rates)',
         isFallback: true,
         isSpecialPackage: false,
@@ -149,7 +157,7 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
           `cannot derive a session rate`
       );
       return {
-        pricePerSession: FALLBACK_PRICES.STANDARD_60_MIN,
+        pricePerSession: fallbackRate,
         packageName: 'No per-session package found',
         isFallback: true,
         isSpecialPackage: false,
@@ -160,6 +168,29 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
     // sessions > 0 is guaranteed by the filter above, so this is a true per-session
     // rate rather than a whole-purchase price.
     const pricePerSession = parseFloat(sessionPackage.price) / sessionPackage.sessions;
+
+    // SWA-212 headline: the rate above is derived with no knowledge of how long the cancelled
+    // session actually is, so on a two-rate business it was wrong by $65 in either direction.
+    // We cannot pick the right package (no duration on StorefrontItem) but we can refuse to
+    // offer a number we can prove does not apply.
+    const mismatch = durationMismatchReason(
+      durationMinutes,
+      sessionPackage,
+      Math.round(pricePerSession * 100) / 100
+    );
+    if (mismatch) {
+      logger.info(
+        `Client ${clientId}: package "${sessionPackage.name}" cannot price this session ` +
+          `(${mismatch}); refusing to derive a rate`
+      );
+      return {
+        pricePerSession: fallbackRate,
+        packageName: 'Duration mismatch (cannot attribute)',
+        isFallback: true,
+        isSpecialPackage: false,
+        requiresAdminReview: true
+      };
+    }
 
     // Detect if this is a special/promotional package
     const isSpecialPackage = detectSpecialPackage(sessionPackage, pricePerSession);
@@ -178,7 +209,7 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
   } catch (error) {
     logger.error('Error fetching client package pricing:', error);
     return {
-      pricePerSession: FALLBACK_PRICES.STANDARD_60_MIN,
+      pricePerSession: fallbackRate,
       packageName: 'Standard (Error Fallback)',
       isFallback: true,
       isSpecialPackage: false,

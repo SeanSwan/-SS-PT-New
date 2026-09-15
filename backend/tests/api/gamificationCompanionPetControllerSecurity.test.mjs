@@ -69,11 +69,11 @@ describe('gamification companion pet controller security hardening', () => {
 
     expect(coreRoutesSource).toContain("app.use('/api/gamification', gamificationV1Routes)");
     expect(routeSource).toContain("router.get('/users/:userId/pet', authenticate, authorizeResourceAccess('userId'), gamificationController.getPet)");
-    expect(routeSource).toContain("router.post('/users/:userId/pet/adopt', authenticate, authorizeResourceAccess('userId'), gamificationController.adoptPet)");
-    expect(routeSource).toContain("router.post('/users/:userId/pet/interact', authenticate, authorizeResourceAccess('userId'), gamificationController.interactWithPet)");
-    expect(routeSource).toContain("router.post('/users/:userId/pet/activity', authenticate, authorizeResourceAccess('userId'), gamificationController.recordPetActivity)");
-    expect(routeSource).toContain("router.put('/users/:userId/pet/rename', authenticate, authorizeResourceAccess('userId'), gamificationController.renamePet)");
-    expect(routeSource).toContain("router.delete('/users/:userId/pet', authenticate, authorizeResourceAccess('userId'), gamificationController.releasePet)");
+    expect(routeSource).toContain("router.post('/users/:userId/pet/adopt', authenticate, authorizeResourceAccess('userId'), companionActionLimiter, gamificationController.adoptPet)");
+    expect(routeSource).toContain("router.post('/users/:userId/pet/interact', authenticate, authorizeResourceAccess('userId'), companionActionLimiter, gamificationController.interactWithPet)");
+    expect(routeSource).toContain("router.post('/users/:userId/pet/activity', authenticate, authorizeResourceAccess('userId'), pointActionLimiter, gamificationController.recordPetActivity)");
+    expect(routeSource).toContain("router.put('/users/:userId/pet/rename', authenticate, authorizeResourceAccess('userId'), companionActionLimiter, gamificationController.renamePet)");
+    expect(routeSource).toContain("router.delete('/users/:userId/pet', authenticate, authorizeResourceAccess('userId'), companionActionLimiter, gamificationController.releasePet)");
     expect(companionHookSource).toContain("getGamificationUserPath(userId, '/pet')");
     expect(companionHookSource).toContain("getGamificationUserPath(userId, '/pet/adopt')");
     expect(companionHookSource).toContain("getGamificationUserPath(userId, '/pet/interact')");

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "_comment": "The CONTRACT for Hermes learning packets. Data, not code (Kimi 2026-08-13 Q2c: a hardcoded schema is not inspectable or diffable). scripts/hermes-learning-validate.mjs reads this; any emitter must satisfy it. Bump schema_version on any change to required_* and record why in changelog.",
 
   "required_frontmatter": [
@@ -63,7 +63,9 @@
     "_comment": "Warn, never gate. Kimi Q2/section 2: gating on a field present in 5/18 packets is wrong.",
     "supersedes_target_must_exist": true,
     "recommended_headings_present": true,
-    "reviewed_by_present": true
+    "reviewed_by_present": true,
+    "_strict_yaml_comment": "Frontmatter that our naive parser accepts but a standards-compliant YAML parser rejects. WARNING not error, for two reasons: several failing packets belong to other agents' in-flight sessions and gating would block work that is not theirs to fix; and the parser (js-yaml) is NOT a declared dependency, so the check can be unavailable. When unavailable the tool says so explicitly - absence of a strict warning never implies conformance. Set false to disable.",
+    "strict_yaml": true
   },
 
   "changelog": [
@@ -71,6 +73,11 @@
       "version": "1.0.0",
       "date": "2026-08-13",
       "why": "First contract. Motivated by 18 packets carrying 8 distinct frontmatter shapes, because every packet was hand-written from memory and no validator existed. Kimi K3 ranked this the single highest-value thing to build: the validator is the contract, the emitter is merely one producer of it, and a validator that only accepts emitter output cannot migrate the existing corpus."
+    },
+    {
+      "version": "1.1.0",
+      "date": "2026-08-18",
+      "why": "Added the strict_yaml warning. No change to required_* - additive warning only, so no packet that passed 1.0.0 fails 1.1.0. Motivated by a measured contradiction: the corpus satisfied this contract while 8 packets were unreadable to any standards-compliant YAML parser, because parseFrontmatter is deliberately naive. A ninth was produced by our own corrective pass, which emitted a colon-space inside an unquoted scalar - the naive parser accepted it, so nothing caught it until a real parser was run by hand. Kept as a WARNING because several failing packets belong to other agents' live sessions and a gate that blocks the wrong person gets switched off."
     }
   ]
 }

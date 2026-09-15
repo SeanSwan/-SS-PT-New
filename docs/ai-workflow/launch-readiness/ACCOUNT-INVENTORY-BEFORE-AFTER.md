@@ -14,14 +14,14 @@
 | 3 | client@swanstudios.com | client@swanstudios.com | client | 5 | Dev seed |
 | 4 | trainer | trainer@swanstudios.com | trainer | 0 | Dev seed |
 | 5 | Jazzypoo | loveswanstudios@protonmail.com | admin | 0 | **Real admin** |
-| 6 | testclient_1769476642999 | testclient_...@test.com | client | 0 | Auto-test |
-| 7 | testclient_1769476700866 | testclient_...@test.com | client | 0 | Auto-test |
-| 8-25 | testclient_176947* (18 accts) | testclient_...@test.com | client | 10 ea | Auto-test batch |
-| 28 | client | client@test.com | client | 5 | Dev seed |
-| 29 | user | user@test.com | user | 0 | Dev seed |
-| 30 | smoketest_1770850875607 | smoketest_...@test.com | user | 0 | Smoke test |
-| 31 | phase2test_1770850989514 | phase2test_...@test.com | user | 0 | Phase 2 test |
-| 32 | pwtest_1770851002738 | pwtest_...@test.com | user | 0 | Playwright test |
+| 6 | testclient_1769476642999 | `testclient_...@test.com` | client | 0 | Auto-test |
+| 7 | testclient_1769476700866 | `testclient_...@test.com` | client | 0 | Auto-test |
+| 8-25 | testclient_176947* (18 accts) | `testclient_...@test.com` | client | 10 ea | Auto-test batch |
+| 28 | client | `client@test.com` | client | 5 | Dev seed |
+| 29 | user | `user@test.com` | user | 0 | Dev seed |
+| 30 | smoketest_1770850875607 | `smoketest_...@test.com` | user | 0 | Smoke test |
+| 31 | phase2test_1770850989514 | `phase2test_...@test.com` | user | 0 | Phase 2 test |
+| 32 | pwtest_1770851002738 | `pwtest_...@test.com` | user | 0 | Playwright test |
 
 **Breakdown:** 3 admin, 1 trainer, 22 client, 4 user
 
@@ -35,8 +35,8 @@
 | 2 | SeanSwan | ogpswan@yahoo.com | admin | 0 | **ACTIVE** (Owner) |
 | 4 | trainer | trainer@swanstudios.com | trainer | 0 | **ACTIVE** (Test trainer) |
 | 5 | Jazzypoo | loveswanstudios@protonmail.com | admin | 0 | **ACTIVE** (Jazzy) |
-| 28 | client | client@test.com | client | 5 | **ACTIVE** (Test client) |
-| 29 | user | user@test.com | user | 0 | **ACTIVE** (Test user) |
+| 28 | client | `client@test.com` | client | 5 | **ACTIVE** (Test client) |
+| 29 | user | `user@test.com` | user | 0 | **ACTIVE** (Test user) |
 
 **Breakdown:** 3 admin, 1 trainer, 1 client, 1 user
 

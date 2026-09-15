@@ -80,7 +80,12 @@ Session.init({
   location: {
     type: DataTypes.STRING,
     allowNull: true,
-    comment: 'Physical location for the session'
+    comment: 'LEGACY free-text location. Superseded by locationId; retained until a backfill slice migrates it. Do not remove.'
+  },
+  locationId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'FK to locations.id. Nullable: pre-existing sessions have no location row yet (SWA-74 S0).'
   },
   clientName: {
     type: DataTypes.STRING,

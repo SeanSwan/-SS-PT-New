@@ -10,7 +10,7 @@
 ## Table of Contents
 
 1. [Vision & Problem Statement](#1-vision--problem-statement)
-2. [Blueprint-First Protocol (NEW MANDATORY)](#2-blueprint-first-protocol)
+2. [Blueprint-First Protocol (NEW MANDATORY)](#2-blueprint-first-protocol-new-mandatory)
 3. [Embedded AI Terminal Architecture](#3-embedded-ai-terminal-architecture)
 4. [Workout Logger Redesign](#4-workout-logger-redesign)
 5. [NASM Exercise Database](#5-nasm-exercise-database)

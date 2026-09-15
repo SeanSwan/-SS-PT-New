@@ -383,9 +383,9 @@ sequenceDiagram
 | Role | Email | Password | State |
 |------|-------|----------|-------|
 | Admin | admin@swanstudios.com | [secure] | Active, full access |
-| Trainer | trainer@test.com | [secure] | Active, has clients |
-| Client (with credits) | client-paid@test.com | [secure] | 10 sessions |
-| Client (no credits) | client-free@test.com | [secure] | 0 sessions |
+| Trainer | `trainer@test.com` | [secure] | Active, has clients |
+| Client (with credits) | `client-paid@test.com` | [secure] | 10 sessions |
+| Client (no credits) | `client-free@test.com` | [secure] | 0 sessions |
 
 #### Packages (Seed)
 | Name | Sessions | Price | Duration |
@@ -564,10 +564,10 @@ node backend/scripts/dev-test-seeder.mjs
 Test Credentials:
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@swanstudios.dev | AdminTest123! |
-| Trainer | trainer@swanstudios.dev | TrainerTest123! |
-| Client (paid) | client-paid@test.dev | ClientTest123! |
-| Client (free) | client-free@test.dev | ClientTest123! |
+| Admin | `admin@swanstudios.dev` | AdminTest123! |
+| Trainer | `trainer@swanstudios.dev` | TrainerTest123! |
+| Client (paid) | `client-paid@test.dev` | ClientTest123! |
+| Client (free) | `client-free@test.dev` | ClientTest123! |
 
 ---
 

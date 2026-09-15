@@ -174,7 +174,7 @@ const applyServerDerivedChargeAmount = async (session, billingOptions, transacti
       Order: getOrder(),
       OrderItem: getOrderItem(),
       StorefrontItem: getStorefrontItem()
-    }, { transaction });
+    }, { transaction, durationMinutes: session.duration });
   } catch (error) {
     logger.warn(
       `[Cancellation] package pricing lookup failed for session ${session.id}: ${error.message}`
@@ -773,8 +773,13 @@ class UnifiedSessionService {
           filter.userId = userId;
         }
       } else if (user.role === 'user') {
-        // Social-only accounts are valid auth users but do not own training sessions.
-        return [];
+        // Role 'user' is the User model default (User.mjs role ENUM) and the
+        // client dashboard maps it onto the client surface (UniversalSchedule
+        // normalizeAuthRole 'user' -> 'client'). These accounts may own
+        // sessions, so the schedule must return their own truth instead of a
+        // silent empty list. Strictly OWN sessions only — unlike role
+        // 'client' they are not offered bookable available slots.
+        filter.userId = user.id;
       } else {
         // Unknown role - deny access
         logger.warn(`[UnifiedSessionService] Unknown role: ${user.role}`);
@@ -790,7 +795,7 @@ class UnifiedSessionService {
           ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions', 'clientSource', 'sessionBillingMode'] // Trainer sees their clients
           : ['id', 'firstName', 'lastName', 'photo']; // Clients see minimal info
 
-      const trainerAttributes = user.role === 'client'
+      const trainerAttributes = ['client', 'user'].includes(user.role)
         ? ['id', 'firstName', 'lastName', 'photo', 'bio', 'specialties'] // No trainer email/phone to clients
         : ['id', 'firstName', 'lastName', 'email', 'photo', 'bio', 'specialties'];
 
