@@ -67,8 +67,9 @@ router.get('/', async (req, res) => {
     const SORTABLE_LEAD_FIELDS = ['createdAt', 'updatedAt', 'score', 'nextFollowUpAt', 'lastContactedAt', 'status', 'firstName', 'lastName', 'email', 'contactCount'];
     const sortColumn = SORTABLE_LEAD_FIELDS.includes(sortBy) ? sortBy : 'createdAt';
     const sortDir = String(sortOrder).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 50), 100);
+    const pageNum = Math.max(1, Number.isNaN(parseInt(page, 10)) ? 1 : parseInt(page, 10));
+    const parsedLimit = parseInt(limit, 10);
+    const limitNum = Math.min(Math.max(1, Number.isNaN(parsedLimit) ? 50 : parsedLimit), 100);
     const offset = (pageNum - 1) * limitNum;
 
     const { rows: leads, count: total } = await Lead.findAndCountAll({

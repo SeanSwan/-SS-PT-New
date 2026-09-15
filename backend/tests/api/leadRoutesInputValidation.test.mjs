@@ -21,8 +21,11 @@ const src = readFileSync(resolve(__dirname, '../../routes/leadRoutes.mjs'), 'utf
 
 const SORTABLE = ['createdAt', 'updatedAt', 'score', 'nextFollowUpAt', 'lastContactedAt', 'status', 'firstName', 'lastName', 'email', 'contactCount'];
 const sortCol = (s) => (SORTABLE.includes(s) ? s : 'createdAt');
-const clampPage = (p) => Math.max(1, parseInt(p, 10) || 1);
-const clampLimit = (l) => Math.min(Math.max(1, parseInt(l, 10) || 50), 100);
+const clampPage = (p) => Math.max(1, Number.isNaN(parseInt(p, 10)) ? 1 : parseInt(p, 10));
+const clampLimit = (l) => {
+  const parsed = parseInt(l, 10);
+  return Math.min(Math.max(1, Number.isNaN(parsed) ? 50 : parsed), 100);
+};
 
 describe('HR-005 lead list input validation', () => {
   it('whitelists sortBy (arbitrary/unknown column falls back to createdAt)', () => {
