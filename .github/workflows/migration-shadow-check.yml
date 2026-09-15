@@ -1,0 +1,154 @@
+name: Migration Shadow Check
+
+# WHY THIS EXISTS (SWA-200, panel 2026-08-23)
+# -------------------------------------------
+# Ox Alpha, asked what nobody was proposing: "everyone is guarding the push; nobody is
+# guarding the migration." render.yaml builds `main` with `npm run migrate:production`, so a
+# push to main runs migrations against the production database, unsupervised.
+#
+# Every gate built before this one is CLIENT-SIDE — pre-commit and pre-push hooks, living in
+# the same clients they police. GLM: "nothing distinguishes 'gate passed' from 'gate not
+# installed'." Verified: a fresh clone has core.hooksPath unset and every hook silently skips.
+# Kimi, on the local backend audit: "it's a deploy-safety gate wearing a commit-hygiene
+# costume. It belongs at the deploy boundary, not the push boundary."
+#
+# This is that boundary. It runs on GitHub, from the pushed SHA, against a throwaway
+# database. It cannot be skipped with --no-verify, cannot be missing because a checkout
+# forgot to configure hooks, and — unlike every local gate — it tests THE ARTIFACT THAT
+# ACTUALLY DEPLOYS rather than the state of somebody's laptop.
+#
+# Grok, on the local Rule 42 gate: it enforces "this laptop's backend/ is clean", not "the SHA
+# Render will boot". This job checks the second one, which is the predicate that matches the
+# 2026-04-12 crash-loop incident.
+#
+# NOT PRODUCTION. The `postgres` service below is an empty ephemeral container that lives and
+# dies with the job. No production credential is used, and none should ever be added: the
+# whole value is that this is the one place migrations can fail harmlessly.
+#
+# WHAT IT CANNOT DO. An empty database is not production. A migration that succeeds here can
+# still fail against real data — a NOT NULL added to a populated column, a unique index over
+# existing duplicates. Catching "does it run at all" is a floor, not a ceiling. The stronger
+# version restores a production snapshot into the shadow database first; that needs Sean's
+# decision on snapshot handling and is deliberately not assumed here.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/migrations/**'
+      - 'backend/models/**'
+      - 'backend/scripts/safe-migrate.mjs'
+      - 'backend/scripts/pre-migrate-guard.mjs'
+      - 'backend/package.json'
+      - 'render.yaml'
+      - '.github/workflows/migration-shadow-check.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/migrations/**'
+      - 'backend/models/**'
+      - 'backend/scripts/safe-migrate.mjs'
+  workflow_dispatch:
+
+concurrency:
+  # One shadow run per ref. A superseded run tells you about a SHA nobody is deploying.
+  group: migration-shadow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shadow-migrate:
+    runs-on: ubuntu-latest
+    name: Migrations run clean on a throwaway database
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: shadow
+          POSTGRES_PASSWORD: shadow
+          POSTGRES_DB: shadow
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U shadow"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Local container only. Never a production credential — see the header.
+      DATABASE_URL: postgres://shadow:shadow@localhost:5432/shadow
+      NODE_ENV: production
+
+    steps:
+      - name: Check out the pushed SHA
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Deliberately `npm install`, not `npm ci` — it is what render.yaml:66 runs. A shadow
+      # check that installs differently from the deploy is testing a different artifact.
+      - name: Install backend dependencies exactly as the deploy does
+        working-directory: backend
+        run: npm install --no-audit --no-fund
+
+      - name: Report the pending migration set before running it
+        working-directory: backend
+        run: node scripts/pre-migrate-guard.mjs --check
+
+      # THE ACTUAL GATE. If migrations cannot apply to an empty database from this SHA, the
+      # deploy would carry them to production and fail there instead — mid-build, after the
+      # push has already been accepted.
+      - name: Run migrations against the shadow database
+        working-directory: backend
+        run: npm run migrate:production
+
+      - name: Run them AGAIN — migrations must be idempotent
+        working-directory: backend
+        run: npm run migrate:production
+        # Render can rebuild the same SHA (manual redeploy, cache miss, a restart). A
+        # migration set that only survives one application is a latent outage waiting for
+        # the next redeploy, and nothing else in the system checks this.
+
+      # The failure this whole layer exists for is a boot crash: ERR_MODULE_NOT_FOUND from an
+      # untracked file, or a missing-export SyntaxError from an uncommitted one. Rule 42's
+      # local gate infers that from the pusher's working tree. This imports the entry point
+      # from the pushed SHA and finds out.
+      - name: Prove the backend entry point actually loads from this SHA
+        working-directory: backend
+        run: |
+          ENTRY=$(node -p "require('./package.json').main || 'server.mjs'")
+          echo "entry point: $ENTRY"
+          node --input-type=module -e "
+            const t = setTimeout(() => { console.log('loaded; exiting before the server settles'); process.exit(0); }, 20000);
+            try {
+              await import('./' + process.env.ENTRY);
+              clearTimeout(t);
+              console.log('entry point imported without throwing');
+              process.exit(0);
+            } catch (e) {
+              clearTimeout(t);
+              console.error('ENTRY POINT FAILED TO LOAD — this SHA would crash-loop on Render:');
+              console.error(e && e.stack || e);
+              process.exit(1);
+            }
+          "
+        env:
+          ENTRY: server.mjs
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Migration shadow check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Ran the pushed SHA's migrations against a throwaway Postgres, twice (idempotence)," >> $GITHUB_STEP_SUMMARY
+          echo "then imported the backend entry point to prove it loads." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This tests the artifact that deploys — not the state of anyone's working tree," >> $GITHUB_STEP_SUMMARY
+          echo "and it cannot be skipped with \`--no-verify\` or by a checkout that never" >> $GITHUB_STEP_SUMMARY
+          echo "configured \`core.hooksPath\`." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Limit:** an empty database is not production. A migration that passes here can" >> $GITHUB_STEP_SUMMARY
+          echo "still fail against real rows. See SWA-200 for the snapshot-restore version." >> $GITHUB_STEP_SUMMARY
