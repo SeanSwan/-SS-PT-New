@@ -1,0 +1,121 @@
+name: Three.js Fleet + Brain Console
+
+# Enforces the verification scripts for the 20-variant Three.js fleet and the Swan Brain
+# Console. WHY THIS EXISTS — and the reason is uncomfortable: the same lesson was already
+# learned once in this repo for the Swan Lens guards, whose header reads "the guards were
+# shipped as npm scripts wired to NOTHING ... a guard nobody runs is not a guard."
+#
+# This workstream then repeated that mistake across THREE hostile-review rounds. Every
+# green number it reported — 24/24 gallery checks, 0 colour fallbacks, 37/37 contracts —
+# was evidence about one afternoon, produced by scripts a human had to remember to type.
+# Two of the defects those rounds found (a dead rail reserve, and a palette that never
+# reached a single scene) survived precisely because nothing ran the verifier
+# automatically. This workflow makes them enforcing.
+#
+#   node --test scripts/swan-brain-console/engine-contract.test.mjs
+#       the console derives the engine's BLOCKED/UNKNOWN state instead of hardcoding it,
+#       and exposes no write control
+#   fleet.contract.test.ts   — 20 parked variants, unique divergence tuples, copy gate
+#   runtime.contract.test.ts — motion gating, colour-token parsing, scroll semantics,
+#                              context-loss policy
+#   gallery-verify.mjs       — every variant actually RENDERS: frames, primitives,
+#                              zero hardcoded-palette fallbacks
+#
+# Deliberately NOT run here: console-verify.mjs needs a browser AND a live server, and the
+# console is a local operator tool rather than a deployed surface. Its checks are covered
+# for the fleet by gallery-verify; the console UI itself stays a local-run gate.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/src/pages/HomePage/three-worlds/**'
+      - 'frontend/src/pages/DesignPlayground/**'
+      - 'frontend/qa-worlds.tsx'
+      - 'frontend/qa-worlds.html'
+      - 'scripts/swan-brain-console/**'
+      - '.github/workflows/three-worlds-fleet.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/src/pages/HomePage/three-worlds/**'
+      - 'frontend/src/pages/DesignPlayground/**'
+      - 'frontend/qa-worlds.tsx'
+      - 'frontend/qa-worlds.html'
+      - 'scripts/swan-brain-console/**'
+      - '.github/workflows/three-worlds-fleet.yml'
+  workflow_dispatch:
+
+jobs:
+  contracts:
+    name: Contracts (no browser)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Dependency-free: the engine contract reads files and derives state.
+      - name: Console — engine state is derived, not hardcoded
+        run: node --test scripts/swan-brain-console/engine-contract.test.mjs
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci --prefer-offline --no-audit --fund=false
+
+      - name: Fleet + runtime contracts
+        working-directory: frontend
+        run: npx vitest run src/pages/HomePage/three-worlds/__tests__/
+
+      # Type check THE FLEET, scoped by tsconfig.three-worlds.json (round 4): a
+      # full-tree tsc needs >8GB heap on this frontend (measured locally on Node 24 —
+      # it aborts at Node's default and still dies at 8GB), which a 7GB hosted runner
+      # cannot satisfy, so the full check would be a guard that always crashes instead
+      # of running. The scoped config keeps the same strict settings and checks every
+      # three-worlds + DesignPlayground file; the full-tree tsc remains a LOCAL gate
+      # (npm run verify sets a 14GB heap explicitly).
+      - name: Type check the fleet
+        working-directory: frontend
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: npx tsc --noEmit -p tsconfig.three-worlds.json
+
+  renders:
+    name: Renders (headless Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci --prefer-offline --no-audit --fund=false
+
+      # Software rendering keeps this runnable on a GPU-less runner. It is the same
+      # renderer that first exposed the context-loss crash, so it is a meaningful
+      # environment rather than a convenient one.
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start the QA harness
+        working-directory: frontend
+        run: |
+          npx vite --port 5199 --strictPort > /tmp/vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:5199/qa-worlds.html > /dev/null; then
+              echo "harness ready after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "harness failed to start"; cat /tmp/vite.log; exit 1
+
+      - name: Every variant renders — frames, primitives, zero colour fallbacks
+        run: node scripts/swan-brain-console/gallery-verify.mjs
+
+      - name: Stop the harness
+        if: always()
+        run: pkill -f "vite --port 5199" || true

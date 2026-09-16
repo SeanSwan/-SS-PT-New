@@ -1,0 +1,173 @@
+/*
+ * onboard.css — first-run briefing, glossary and QoL styling for the console.
+ * @module scripts/swan-brain-console/app/onboard
+ *
+ * Deliberately a SEPARATE file from app.css: app.css is already over the rule-4
+ * line cap (343 lines), and this layer is an independent concern (orientation, not
+ * core layout). Tokens reference the :root palette app.css declares.
+ * House rules: >=44px interactive controls (rule 2), var(--token, #fallback)
+ * values (rule 6), visible focus rings (rule 7), low-motion working surface.
+ */
+
+/* ── Welcome card (first-run briefing) ────────────────────────────────────── */
+.welcome {
+  margin: 0 0 1rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--ice-wing) 35%, transparent);
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--primary) 45%, transparent) 0%, transparent 65%),
+    color-mix(in srgb, var(--carbon) 92%, transparent);
+  max-width: 90ch;
+}
+.welcome h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-ui);
+  font-size: 1.15rem;
+  color: var(--ice-wing);
+}
+.welcome p { margin: 0.4rem 0; font-size: 0.9rem; max-width: 80ch; }
+.welcome-note { color: var(--muted); }
+
+.welcome-steps {
+  margin: 0.5rem 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+}
+.welcome-steps li { list-style: none; }
+
+/* Step buttons look like links but keep the 44px floor (rule 2). */
+.goto,
+.dismiss {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  font-family: var(--font-ui);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+.goto {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--ice-wing) 40%, transparent);
+  color: var(--ice-wing);
+}
+.goto:hover {
+  border-color: color-mix(in srgb, var(--ice-wing) 70%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--ice-wing) 30%, transparent);
+}
+.dismiss {
+  margin-top: 0.5rem;
+  background: linear-gradient(135deg, var(--primary), var(--surface));
+  border: 1px solid color-mix(in srgb, var(--ice-wing) 30%, transparent);
+  color: var(--frost);
+}
+.dismiss:hover {
+  box-shadow: 0 0 18px color-mix(in srgb, var(--purple) 45%, transparent);
+}
+.goto:focus-visible,
+.dismiss:focus-visible,
+.help-btn:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow:
+    0 0 0 2px var(--obsidian),
+    0 0 0 4px var(--purple),
+    0 0 12px 4px color-mix(in srgb, var(--purple) 55%, transparent);
+}
+
+/* ── Header help button ───────────────────────────────────────────────────── */
+.help-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--ice-wing) 40%, transparent);
+  background: color-mix(in srgb, var(--primary) 55%, transparent);
+  color: var(--ice-wing);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.help-btn:hover { box-shadow: 0 0 14px color-mix(in srgb, var(--ice-wing) 35%, transparent); }
+
+/* ── Glossary ─────────────────────────────────────────────────────────────── */
+.glossary {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--carbon) 85%, transparent);
+  font-size: 0.85rem;
+  max-width: 90ch;
+}
+.glossary summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--ice-wing);
+  font-family: var(--font-ui);
+  font-weight: 600;
+}
+.glossary summary:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.glossary dt { margin-top: 0.5rem; font-family: var(--font-ui); font-weight: 600; color: var(--frost); }
+.glossary dd { margin: 0.15rem 0 0; color: var(--muted); }
+.glossary code { color: var(--arctic-cyan); }
+
+/* ── Keyboard hint ────────────────────────────────────────────────────────── */
+.kbd-hint {
+  margin: 0;
+  padding: 0.15rem clamp(1rem, 3vw, 2rem) 0.4rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* ── Fleet / Canvas render links (deep links into the visual gallery) ─────── */
+.render-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.7rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--ice-wing) 35%, transparent);
+  color: var(--ice-wing);
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.render-link:hover {
+  border-color: color-mix(in srgb, var(--ice-wing) 70%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ice-wing) 28%, transparent);
+}
+.render-link:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.artlink { margin: 0.3rem 0 0; }
+
+/* ── Roadmap "do today" lines on the unbuilt tabs ─────────────────────────── */
+.today {
+  margin: 0;
+  padding: 0.75rem 0.95rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--gilded) 45%, transparent);
+  background: color-mix(in srgb, var(--gilded) 9%, transparent);
+  font-size: 0.88rem;
+  max-width: 90ch;
+}
+
+/* ── Engine chip tone: DECLARED_BLOCKED is the EXPECTED state — calm, explained,
+      not an alarm. (UNKNOWN keeps the loud treatment via .blocked.) ─────────── */
+.status dd { position: relative; }
+.status dd#stat-engine { color: var(--ice-wing); cursor: help; border-bottom: 1px dotted var(--muted); }
+.status dd.blocked { color: var(--danger); }
+
+@media (max-width: 700px) {
+  .welcome, .glossary, .today { max-width: none; }
+  .goto, .dismiss { width: 100%; justify-content: center; }
+}

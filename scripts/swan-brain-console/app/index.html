@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Swan Brain Console</title>
+<link rel="stylesheet" href="/app.css">
+<link rel="stylesheet" href="/onboard.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <div>
+      <h1>Swan Brain Console</h1>
+      <p class="sub">Design Brain operator surface — read-only</p>
+    </div>
+  </div>
+  <dl class="status" id="status" aria-live="polite">
+    <div><dt>Doctrine</dt><dd id="stat-doctrine">—</dd></div>
+    <div><dt>Variants</dt><dd id="stat-fleet">—</dd></div>
+    <div><dt>Archetypes</dt><dd id="stat-archetypes">—</dd></div>
+    <div><dt>Engine</dt><dd id="stat-engine" class="blocked">—</dd></div>
+  </dl>
+  <button type="button" class="help-btn" id="help-toggle" aria-label="Reopen the getting-started briefing">?</button>
+</header>
+
+<nav class="tabs" id="tabs" aria-label="Console sections">
+  <button type="button" role="tab" id="tab-doctrine" aria-controls="panel-doctrine" aria-selected="true" tabindex="0">Doctrine</button>
+  <button type="button" role="tab" id="tab-fleet" aria-controls="panel-fleet" aria-selected="false" tabindex="-1">Fleet</button>
+  <button type="button" role="tab" id="tab-canvas" aria-controls="panel-canvas" aria-selected="false" tabindex="-1">Canvas</button>
+  <button type="button" role="tab" id="tab-copy" aria-controls="panel-copy" aria-selected="false" tabindex="-1">Copy</button>
+  <button type="button" role="tab" id="tab-engine" aria-controls="panel-engine" aria-selected="false" tabindex="-1">Engine</button>
+  <button type="button" role="tab" id="tab-seats" aria-controls="panel-seats" aria-selected="false" tabindex="-1">Seats</button>
+  <button type="button" role="tab" id="tab-memory" aria-controls="panel-memory" aria-selected="false" tabindex="-1">Memory</button>
+  <button type="button" role="tab" id="tab-ship" aria-controls="panel-ship" aria-selected="false" tabindex="-1">Ship</button>
+</nav>
+<p class="kbd-hint" aria-hidden="true">Tip: use ← → arrow keys to move between tabs.</p>
+
+<main id="main">
+  <section class="welcome" id="welcome" hidden aria-label="Getting-started briefing">
+    <h2>Start here — what this console is</h2>
+    <p><strong>Twenty AI-built homepage designs</strong> (the "fleet") are competing to become the next
+      SwanStudios front page. This console is the briefing room: the design rules they follow, their
+      structural line-up, and an honest report of what the system can and cannot do yet.</p>
+    <p><strong>Nothing here can break anything.</strong> The console is read-only and runs only on your
+      machine — there is no button anywhere that writes to the site, the repo, or the learning engine.</p>
+    <p><strong>The loop is three steps:</strong></p>
+    <ol class="welcome-steps">
+      <li><button type="button" class="goto" data-goto="doctrine">1 · Skim the Doctrine tab</button> — the rules every variant was built against.</li>
+      <li><button type="button" class="goto" data-goto="fleet">2 · Shortlist in the Fleet tab</button> — then open a variant's <em>Watch it move</em> link to judge it live.</li>
+      <li><button type="button" class="goto" data-goto="engine">3 · Check the Engine tab</button> — what the system saves today, and why.</li>
+    </ol>
+    <p class="welcome-note">The winner never ships from here: promotion happens as a normal reviewed
+      commit, so every design, accessibility and review gate still applies.</p>
+    <button type="button" class="dismiss" id="welcome-dismiss">Got it — don't show this again</button>
+  </section>
+
+  <details class="glossary">
+    <summary>Glossary — the words this console uses</summary>
+    <dl>
+      <dt><code>DECLARED_BLOCKED</code></dt>
+      <dd>The learning engine's own documentation declares durable writes locked until a signed
+        security adapter exists. <strong>Expected today — not an error.</strong> (The console believes
+        the docs; it cannot probe the gate itself. <code>VERIFIED_BLOCKED</code> would mean the console
+        checked the lock directly; <code>UNKNOWN</code> means it can't tell and demands human review.)</dd>
+      <dt>Divergence tuple <code>nav · hero · grid</code></dt>
+      <dd>The three structural choices that make a variant unique: where navigation lives, how the hero
+        scene moves, how content grids. No two of the twenty share a tuple.</dd>
+      <dt>Archetype</dt>
+      <dd>A named page recipe (there are 22) from the design brain — e.g. "cinematic 3D scroll website".</dd>
+      <dt>Wildcard</dt>
+      <dd>Exactly one variant (v18) seeded with a deliberately alien idea, so the tournament can't
+        converge on safe sameness.</dd>
+      <dt>Spec mode</dt>
+      <dd>The engine's persistence flag for generated specs. It is off by policy; the Doctrine tab
+        reports the real value rather than assuming.</dd>
+      <dt>Canvas round</dt>
+      <dd>A judging batch of five variants — small enough that a three-second thumbnail pass is honest.</dd>
+    </dl>
+  </details>
+
+  <p class="banner" id="engine-banner" hidden></p>
+
+  <section class="panel" id="panel-doctrine" role="tabpanel" aria-labelledby="tab-doctrine" tabindex="0">
+    <h2>Doctrine</h2>
+    <p class="lede">The design system the fleet is judged against, read from disk on every request —
+      this console keeps no copy of its own. <strong>What to do here:</strong> read it once, so you know
+      the standard every variant was built against.</p>
+    <div id="doctrine-archetypes" class="cards"></div>
+    <table class="table" id="doctrine-table">
+      <caption>Canonical doctrine documents and their real size on disk</caption>
+      <thead><tr><th scope="col">Document</th><th scope="col">Role</th><th scope="col">Lines</th><th scope="col">Headings</th><th scope="col">State</th></tr></thead>
+      <tbody id="doctrine-rows"></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="panel-fleet" role="tabpanel" aria-labelledby="tab-fleet" tabindex="0" hidden>
+    <h2>Fleet</h2>
+    <p class="lede">Twenty front-page candidates. Each row shows <em>how that variant differs</em>: where
+      navigation lives, how the hero moves, how content grids — plus the cost it accepts for that choice.
+      <strong>What to do here:</strong> shortlist the structures you like, then use a row's
+      <em>Watch it move</em> link to judge it live in the browser gallery.</p>
+    <div id="fleet-summary" class="cards"></div>
+    <table class="table" id="fleet-table">
+      <caption>Structural divergence contract per variant</caption>
+      <thead><tr><th scope="col">ID</th><th scope="col">Title</th><th scope="col">Nav model</th><th scope="col">Hero mechanic</th><th scope="col">Grid</th><th scope="col">Cost it accepts</th><th scope="col">Render</th></tr></thead>
+      <tbody id="fleet-rows"></tbody>
+    </table>
+  </section>
+
+  <section class="panel" id="panel-canvas" role="tabpanel" aria-labelledby="tab-canvas" tabindex="0" hidden>
+    <h2>Canvas</h2>
+    <p class="lede">Tournament rounds of five — small enough that a quick thumbnail pass is honest; the
+      wildcard sits last. <strong>What to do here:</strong> walk the rounds in order, note which IDs
+      survive, and use <em>Watch it move</em> on the survivors before deciding.</p>
+    <div id="canvas-rounds"></div>
+  </section>
+
+  <section class="panel" id="panel-copy" role="tabpanel" aria-labelledby="tab-copy" tabindex="0" hidden>
+    <h2>Copy</h2>
+    <p class="lede">The language check. Phrases that read as AI filler are banned outright, and every
+      stat resolves from your real marketing numbers — none are invented.
+      <strong>What to do here:</strong> sanity-check tone; nothing on these pages should sound
+      machine-written.</p>
+    <div id="copy-body"></div>
+  </section>
+
+  <section class="panel" id="panel-engine" role="tabpanel" aria-labelledby="tab-engine" tabindex="0" hidden>
+    <h2>Engine</h2>
+    <p class="lede">The Design Brain learning loop. It is fail-closed by design, and this panel reports
+      that state rather than offering controls that cannot work.
+      <strong>What to do here:</strong> nothing to operate — this tab exists so the console cannot lie
+      to you about what is being saved.</p>
+    <div id="engine-body"></div>
+  </section>
+
+  <section class="panel" id="panel-seats" role="tabpanel" aria-labelledby="tab-seats" tabindex="0" hidden>
+    <h2>Seats</h2>
+    <p class="lede">Model seats are not wired in this build.</p>
+    <p class="planned" role="note"><strong>NOT BUILT — v1 fence.</strong> Seat selection lives in environment variables today, and the console deliberately does not wrap them yet: a picker implies the choice is verified, and the recorded Ox-as-Grok misfires show an env-var seat silently picks the wrong model. Building this panel needs a verified identity check first, not a dropdown.</p>
+    <p class="today"><strong>Do today instead:</strong> ask the agent to verify which model a seat is
+      actually serving before any paid run — the receipt names the exact check.</p>
+  </section>
+
+  <section class="panel" id="panel-memory" role="tabpanel" aria-labelledby="tab-memory" tabindex="0" hidden>
+    <h2>Memory</h2>
+    <p class="lede">Durable learning is not readable from here yet.</p>
+    <p class="planned" role="note"><strong>NOT BUILT — blocked upstream.</strong> The engine's memory is only writable through the fail-closed path shown on the Engine tab, so there is nothing new to browse. Showing an empty memory browser would imply the loop is running when it is not.</p>
+    <p class="today"><strong>Do today instead:</strong> nothing is recorded yet — once the engine
+      unlocks, design picks will start landing here without any extra step.</p>
+  </section>
+
+  <section class="panel" id="panel-ship" role="tabpanel" aria-labelledby="tab-ship" tabindex="0" hidden>
+    <h2>Ship</h2>
+    <p class="lede">Promotion is a reviewed commit, never a console action.</p>
+    <p class="planned" role="note"><strong>NOT BUILT — by design.</strong> Promoting a variant means moving its import from the parked registry into a canonical route in a normal reviewed commit (<code>DesignPlayground/README.md</code>). A one-click promote button would bypass the design, accessibility, responsive and hostile-review gates that rule exist to enforce.</p>
+    <p class="today"><strong>Do today instead:</strong> name the winning variant in chat — the agent
+      promotes it through the full gate chain and hands you the receipt.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>Read-only · localhost only · GET only · no engine writes · every count computed at read time.</p>
+  <p id="generated"></p>
+</footer>
+
+<script src="/app.js" type="module"></script>
+<script src="/onboard.js" type="module"></script>
+</body>
+</html>

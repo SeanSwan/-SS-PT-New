@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.json",
+  "files": [
+    "src/env.d.ts",
+    "src/vite-env.d.ts",
+    "src/types/styled.d.ts",
+    "src/types/window.d.ts",
+    "src/types/process.d.ts"
+  ],
+  "include": [
+    "qa-worlds.tsx",
+    "src/pages/HomePage/three-worlds/**/*",
+    "src/pages/DesignPlayground/**/*",
+    "src/hooks/useAnimationTier.ts",
+    "src/hooks/useReducedMotion.ts",
+    "src/content/marketingStats.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/assets/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts"
+  ]
+}
