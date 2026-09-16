@@ -56,6 +56,12 @@ if either the `PROOF:` token or the `DRY-LOOP: CLEAN×2` marker is absent.
 authoring AND at closeout — a hash mismatch means the builder touched the gate =
 automatic REVISE. If exempt/trivial: "Gate Evidence: exempt — <reason>".)
 
+=== SECTION 1c — Plan Fidelity Diff (Ouroboros hardening, 2026-09-15) ===
+If this task had a governing plan/brainstorm/spec doc (grill-me doc, PRD, ticket):
+  Governing plan: [path | none]
+  Per numbered decision/commitment in the plan: [shipped as planned | deviated — one-line reason | dropped — one-line reason]
+  An undisclosed deviation from a governing plan caps this closeout at NARROW-CLAIM-PASS.
+
 === SECTION 2 — Forbidden-Language Filter (rule 34) ===
 Scan the closeout text for these forbidden phrases:
   [ ] "should be fixed"
@@ -167,7 +173,21 @@ For every unchecked item: fix it, narrow the claim, or mark STATUS: FAIL.
   [ ] No yoga/meditation language (rule 9)
   [ ] Commit style type(scope): description (rule 13)
 
+4.6 AI-slop patterns (anti-slop hardening, 2026-09-15):
+  [ ] Single-use abstraction (helper/interface with exactly one implementation or caller)
+  [ ] Speculative exports/params/props added "for later" with no current caller
+  [ ] try/catch that swallows errors instead of failing fast on real failure modes
+  [ ] Defensive re-checks of invariants already guaranteed upstream
+  [ ] Unnecessary optional chaining / default fallbacks on non-nullable values
+  [ ] Duplicated logic where an existing helper was importable
+  [ ] Comments restating what the adjacent code line does
+For each hit: delete it, or name the concrete reason it must exist.
+
 === SECTION 5 — Verification Evidence ===
+Verdict classes (Reticle hardening, 2026-09-15) — every check below is exactly one of:
+  WORKED (executed, observed success) | FAILED (executed, observed failure) | UNKNOWN (could not execute — say why).
+UNKNOWN is never reported as a pass. UI claims require driving the real app flow
+(open it, use it, cite screenshot/network/DOM evidence) — code-reading alone is not a verdict.
 Test commands run: [exact commands]
 Test results: [pass/fail counts]
 Typecheck: [command and result, or "not run — reason"]

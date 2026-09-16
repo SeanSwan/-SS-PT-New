@@ -112,6 +112,7 @@ Core reference set (most frequently used):
 - `SWANSTUDIOS-DASHBOARD-VISION-BRIEF.md`
 - `BEST-IN-CLASS-TRAINING-APP-STRATEGY.md`
 - `FABLE-CONTEXT-COMPRESSION-PROTOCOL.md` (NEW 2026-07-04) - when/how to reduce Fable context spend; unreviewed proxies remain blocked
+- `CLAUDE-CODE-8-REPO-EVAL-2026-09-15.md` (NEW 2026-09-15) - evaluation of the 8-repo Claude Code upgrade video vs house doctrine; chisle + image-to-threejs skill adoptions, closeout hardening, optional real-tool install menu
 - `NASM-OPT-PROTOCOL.md`
 - `GAMIFICATION-SYSTEM.md`
 - `CHART-ANALYTICS-SYSTEM.md`
