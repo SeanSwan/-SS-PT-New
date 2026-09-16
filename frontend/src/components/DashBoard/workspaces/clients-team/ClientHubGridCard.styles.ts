@@ -18,7 +18,7 @@ export const CardShell = styled.article`
   display: flex;
   flex-direction: column;
   align-self: stretch;
-  height: auto;
+  height: 100%;
   max-height: none;
   min-height: 100%;
   overflow: visible;
@@ -89,7 +89,7 @@ export const Avatar = styled.span<{ $source?: ClientSourceTone }>`
     $source === 'mf'
       ? 'linear-gradient(135deg, var(--rarity-rare, #C6A84B), var(--accent-secondary, #8B5CF6))'
       : $source === 'external'
-        ? 'linear-gradient(135deg, var(--bg-elevated, #141419), var(--tertiary, #4070C0))'
+        ? 'linear-gradient(135deg, var(--bg-elevated, #1A1A24), var(--tertiary, #4070C0))'
       : 'linear-gradient(135deg, var(--primary, #002060), var(--accent-primary, #60C0F0))'};
 
   @container clientcard (max-width: 300px) {

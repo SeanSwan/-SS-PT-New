@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapStorefrontItemToStoreItem } from './storeCatalog';
+import { formatStorePrice, mapStorefrontItemToStoreItem } from './storeCatalog';
 
 describe('storeCatalog mapper', () => {
   it('preserves physical product fields and sorted variants', () => {
@@ -41,5 +41,48 @@ describe('storeCatalog mapper', () => {
     expect(item.fulfillmentType).toBe('none');
     expect(item.packageType).toBe('fixed');
     expect(item.variants).toEqual([]);
+  });
+
+  it('keeps only strict positive money values and preserves cents', () => {
+    const item = mapStorefrontItemToStoreItem({
+      id: 22,
+      name: 'Truthful pricing',
+      totalCost: '17.25',
+      displayPrice: '17.25',
+      pricePerSession: '17junk',
+      variants: [
+        { id: 1, label: 'Valid', price: '6.50' },
+        { id: 2, label: 'Malformed', price: '6.50 USD' },
+        { id: 3, label: 'Zero', price: 0 },
+      ],
+    });
+
+    expect(item.displayPrice).toBe(17.25);
+    expect(item.totalCost).toBe(17.25);
+    expect(item.pricePerSession).toBeNull();
+    expect(item.variants.map((variant) => variant.price)).toEqual([6.5, null, null]);
+  });
+
+  it('formats unavailable money honestly instead of inventing a free price', () => {
+    expect(formatStorePrice(null)).toBe('Price unavailable');
+    expect(formatStorePrice(undefined)).toBe('Price unavailable');
+    expect(formatStorePrice(17.25)).toBe('$17.25');
+  });
+
+  it('does not recover a redacted canonical display price from another hidden field', () => {
+    const item = mapStorefrontItemToStoreItem({ id: 23, name: 'Redacted', displayPrice: null, totalCost: '8400.00', price: '8400.00' });
+    expect(item.displayPrice).toBeNull();
+    expect(item.price).toBeNull();
+  });
+
+  it('normalizes malformed item and variant identities so they cannot authorize a cart write', () => {
+    const item = mapStorefrontItemToStoreItem({
+      id: '1.5',
+      name: 'Malformed identity',
+      displayPrice: '10.00',
+      variants: [{ id: 0, storefrontItemId: 1, label: 'Broken', price: '2.00' }],
+    });
+    expect(item.id).toBe(0);
+    expect(item.variants[0].id).toBe(0);
   });
 });

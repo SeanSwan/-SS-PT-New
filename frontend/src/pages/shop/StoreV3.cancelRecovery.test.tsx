@@ -1,3 +1,4 @@
+vi.mock('../../hooks/useReducedMotion', () => ({ useReducedMotion: () => true }));
 /**
  * Checkout-cancel recovery deep link (Lane 4 launch audit, 2026-08-03)
  * ====================================================================

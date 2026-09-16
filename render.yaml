@@ -104,6 +104,8 @@ services:
         sync: false  # Set manually in Render dashboard; canonical Vite/Stripe publishable key
       - key: ENCRYPTION_MASTER_KEY
         sync: false  # Set manually in Render dashboard; 64-character hex key for at-rest encryption
+      - key: ADMIN_ACCESS_CODE
+        sync: false  # Required startup secret; set manually in Render dashboard
       - key: REDIS_URL
         fromService:
           type: redis

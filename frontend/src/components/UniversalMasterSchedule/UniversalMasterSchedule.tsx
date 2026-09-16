@@ -23,6 +23,7 @@ import ScheduleStats from './components/ScheduleStats';
 import ScheduleCalendar from './components/ScheduleCalendar';
 import ScheduleModals from './components/ScheduleModals';
 import ClientTimeline from './components/ClientTimeline';
+import WaiverRequiredNotice from './components/WaiverRequiredNotice';
 import BookingDrawer from './components/BookingDrawer';
 import ScheduleAiOperatorDock from './ScheduleAiOperatorDock';
 import TrainingPlanProjectionLayer from './TrainingPlanProjectionLayer';
@@ -30,7 +31,7 @@ import { ErrorBoundary } from '../ui/ErrorBoundary';
 import SessionTypeManager from './Config/SessionTypeManager';
 
 // Hooks
-import { useCalendarData } from './hooks/useCalendarData';
+import { useCalendarData, SESSIONS_WAIVER_REQUIRED } from './hooks/useCalendarData';
 import { useSchedule } from '../../hooks/useSchedule';
 import { useSessionCredits } from './hooks/useSessionCredits';
 import { useToast } from '../../hooks/use-toast';
@@ -102,6 +103,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     trainers,
     loading: dataLoading,
     scheduleError,
+    errors: dataErrors,
     initializeComponent,
     refreshData
   } = useCalendarData();
@@ -327,7 +329,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   // Initialization
   useEffect(() => {
-    initializeComponent({ realTimeEnabled: true });
+    // loadSessions now surfaces rejected fetches (including the waiver
+    // sentinel) by throwing — contain them here; the error state is
+    // already recorded in useCalendarData for the UI.
+    initializeComponent({ realTimeEnabled: true })
+      .catch((initError) => logger.warn('Schedule initialization failed:', initError));
   }, [initializeComponent]);
 
   useKeyboardShortcuts({
@@ -844,6 +850,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         selectedTrainerId={selectedTrainerId}
         adminViewScope={adminViewScope}
       />
+      {/* Waiver wall: never render a silent empty schedule when the backend
+          403s /api/sessions for a missing waiver — explain and unblock. */}
+      {mode === 'client' && dataErrors.sessions === SESSIONS_WAIVER_REQUIRED && (
+        <WaiverRequiredNotice />
+      )}
       <TrainingPlanProjectionLayer
         mode={mode}
         activeView={activeView}

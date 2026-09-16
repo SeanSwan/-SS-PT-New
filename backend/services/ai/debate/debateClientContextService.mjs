@@ -4,14 +4,20 @@ function selectType(sequelize) {
   return sequelize?.QueryTypes?.SELECT || 'SELECT';
 }
 
-async function safeQuery(sequelize, sql, replacements) {
+const CONTEXT_UNAVAILABLE = 'AI_CONTEXT_UNAVAILABLE';
+
+async function requiredQuery(sequelize, sql, replacements) {
   try {
-    return await sequelize.query(sql, {
+    const rows = await sequelize.query(sql, {
       replacements,
       type: selectType(sequelize),
     });
+    if (!Array.isArray(rows)) throw new Error('invalid query response');
+    return rows;
   } catch {
-    return [];
+    const error = new Error('Required client health data is temporarily unavailable.');
+    error.code = CONTEXT_UNAVAILABLE;
+    throw error;
   }
 }
 
@@ -24,7 +30,7 @@ export async function buildDebateClientContext(clientId, sequelize, fallbackClie
   }
 
   const replacements = { clientId };
-  const [clientRow] = await safeQuery(
+  const profileRows = await requiredQuery(
     sequelize,
     // "Users" has no age/nasmPhase; the column is singular "fitnessGoal" (SWA-71).
     `SELECT id, "firstName", "lastName", "dateOfBirth", gender,
@@ -34,9 +40,10 @@ export async function buildDebateClientContext(clientId, sequelize, fallbackClie
      LIMIT 1`,
     replacements,
   );
+  const clientRow = profileRows[0];
 
-  const [painEntries, recentWorkouts, macroLogs, goals] = await Promise.allSettled([
-    safeQuery(
+  const [painEntries, recentWorkouts, macroLogs, goals] = await Promise.all([
+    requiredQuery(
       sequelize,
       // client_pain_entries / "bodyRegion" (SWA-71); aliased to keep the output shape.
       `SELECT "bodyRegion" AS "bodyPart", "painLevel" as level, "isActive"
@@ -46,7 +53,7 @@ export async function buildDebateClientContext(clientId, sequelize, fallbackClie
        LIMIT 10`,
       replacements,
     ),
-    safeQuery(
+    requiredQuery(
       sequelize,
       `SELECT
          ws.id,
@@ -71,7 +78,7 @@ export async function buildDebateClientContext(clientId, sequelize, fallbackClie
        LIMIT 5`,
       replacements,
     ),
-    safeQuery(
+    requiredQuery(
       sequelize,
       `SELECT calories, protein, carbs, fat
        FROM daily_macro_logs
@@ -80,7 +87,7 @@ export async function buildDebateClientContext(clientId, sequelize, fallbackClie
        LIMIT 7`,
       replacements,
     ),
-    safeQuery(
+    requiredQuery(
       sequelize,
       // lowercase `goals` / "progressPercentage" (SWA-71); ::float since NUMERIC arrives as text.
       `SELECT title, description, "progressPercentage"::float AS progress, status
@@ -98,10 +105,10 @@ export async function buildDebateClientContext(clientId, sequelize, fallbackClie
   };
 
   return deIdentifyClient(client, {
-    painEntries: painEntries.status === 'fulfilled' ? painEntries.value : [],
-    workouts: recentWorkouts.status === 'fulfilled' ? recentWorkouts.value : [],
-    macroLogs: macroLogs.status === 'fulfilled' ? macroLogs.value : [],
-    goals: goals.status === 'fulfilled' ? goals.value : [],
+    painEntries,
+    workouts: recentWorkouts,
+    macroLogs,
+    goals,
   });
 }
 

@@ -4,7 +4,7 @@
  * falling back to demo client data.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import {
@@ -80,41 +80,86 @@ type FilterType = 'all' | RiskLevel;
 
 const filters: FilterType[] = ['all', 'critical', 'warning', 'watch'];
 const isRiskFilter = (value: FilterType): value is RiskLevel => value !== 'all';
-
+const riskLevels = new Set<RiskLevel>(['critical', 'warning', 'watch']);
+const isFiniteNumber = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value);
+const hasControlCharacter = (value: string) => [...value].some(char => {
+  const code = char.charCodeAt(0);
+  return code < 32 || code === 127;
+});
+const isSafeDisplayName = (value: unknown): value is string => (
+  typeof value === 'string'
+  && value.trim().length > 0
+  && value.length <= 120
+  && !hasControlCharacter(value)
+);
+function parseComplianceClients(payload: unknown): AtRiskClient[] | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const rows = (payload as { clients?: unknown }).clients;
+  if (!Array.isArray(rows)) return null;
+  return rows.every(row => {
+    if (!row || typeof row !== 'object') return false;
+    const candidate = row as Partial<AtRiskClient>;
+    return typeof candidate.id === 'number' && Number.isSafeInteger(candidate.id) && candidate.id > 0
+      && isSafeDisplayName(candidate.firstName) && isSafeDisplayName(candidate.lastName)
+      && riskLevels.has(candidate.riskLevel as RiskLevel)
+      && isSafeDisplayName(candidate.reason)
+      && isFiniteNumber(candidate.daysSinceLastWorkout)
+      && isFiniteNumber(candidate.complianceRate7d)
+      && isFiniteNumber(candidate.complianceRate30d)
+      && (candidate.sessionsRemaining == null || isFiniteNumber(candidate.sessionsRemaining));
+  }) ? rows as AtRiskClient[] : null;
+}
 /** Messages surface for check-ins. Client preselect needs deep-link support
  *  in the messaging page — owned by the comms lane (unmerged WIP branch),
  *  so this routes to the surface without touching messaging internals. */
 const ADMIN_MESSAGES_ROUTE = '/dashboard/admin/messages';
 
 const ClientComplianceDashboard: React.FC = () => {
-  const { authAxios } = useAuth();
+  const { authAxios, user } = useAuth();
   const navigate = useNavigate();
   const [clients, setClients] = useState<AtRiskClient[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
+  const actorKey = user?.id ?? null;
+  const actorKeyRef = useRef(actorKey);
+  actorKeyRef.current = actorKey;
 
   const fetchCompliance = useCallback(async (silent = false) => {
+    const requestId = ++requestIdRef.current;
+    const requestActorKey = actorKey;
+    const isCurrentRequest = () => requestId === requestIdRef.current
+      && requestActorKey === actorKeyRef.current;
+    if (!silent) setLoading(true);
+    else setRefreshing(true);
     try {
-      if (!silent) setLoading(true);
-      else setRefreshing(true);
       const res = await authAxios.get('/api/admin/compliance/at-risk');
-      const nextClients = Array.isArray(res.data?.clients) ? res.data.clients : [];
+      const nextClients = parseComplianceClients(res.data);
+      if (!nextClients) throw new Error('Invalid compliance response');
+      if (!isCurrentRequest()) return;
       setClients(nextClients);
       setError(null);
     } catch {
+      if (!isCurrentRequest()) return;
       setClients([]);
       setError('Compliance data could not be loaded.');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (isCurrentRequest()) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  }, [authAxios]);
+  }, [actorKey, authAxios]);
 
   useEffect(() => {
-    fetchCompliance();
-  }, [fetchCompliance]);
+    setClients([]);
+    setError(null);
+    setFilter('all');
+    void fetchCompliance();
+    return () => { requestIdRef.current += 1; };
+  }, [actorKey, fetchCompliance]);
 
   const openClientProfile = useCallback((clientId: number) => {
     const route = buildClientProfileRoute(clientId);
@@ -132,6 +177,7 @@ const ClientComplianceDashboard: React.FC = () => {
     watch: clients.filter(c => c.riskLevel === 'watch').length,
   };
   const avgCompliance = Math.round(clients.reduce((sum, client) => sum + client.complianceRate30d, 0) / (clients.length || 1));
+  const metricsKnown = !loading && !error;
 
   return (
     <CommandCard>
@@ -139,7 +185,7 @@ const ClientComplianceDashboard: React.FC = () => {
         <HeaderLeft>
           <AlertTriangle size={20} color={RISK_WARNING} />
           <Title>Needs Attention</Title>
-          <ClientCount>{clients.length} client{clients.length !== 1 ? 's' : ''}</ClientCount>
+          <ClientCount>{metricsKnown ? `${clients.length} client${clients.length !== 1 ? 's' : ''}` : '— clients'}</ClientCount>
         </HeaderLeft>
         <RefreshBtn type="button" onClick={() => fetchCompliance(true)} whileTap={{ rotate: 180 }} disabled={refreshing} aria-label="Refresh client compliance">
           <RefreshCw size={16} className={refreshing ? 'spinning' : ''} />
@@ -150,26 +196,26 @@ const ClientComplianceDashboard: React.FC = () => {
         {filters.map(f => (
           <FilterPill key={f} type="button" $active={filter === f} onClick={() => setFilter(f)}>
             {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
-            {isRiskFilter(f) && <PillCount $level={f}>{counts[f]}</PillCount>}
+            {isRiskFilter(f) && <PillCount $level={f}>{metricsKnown ? counts[f] : '—'}</PillCount>}
           </FilterPill>
         ))}
       </FilterBar>
 
       <StatsRow>
         <StatBox $level="critical">
-          <StatNum>{counts.critical}</StatNum>
+          <StatNum>{metricsKnown ? counts.critical : '—'}</StatNum>
           <StatLbl>Critical</StatLbl>
         </StatBox>
         <StatBox $level="warning">
-          <StatNum>{counts.warning}</StatNum>
+          <StatNum>{metricsKnown ? counts.warning : '—'}</StatNum>
           <StatLbl>Warning</StatLbl>
         </StatBox>
         <StatBox $level="watch">
-          <StatNum>{counts.watch}</StatNum>
+          <StatNum>{metricsKnown ? counts.watch : '—'}</StatNum>
           <StatLbl>Watch</StatLbl>
         </StatBox>
         <StatBox $level="healthy">
-          <StatNum>{avgCompliance}%</StatNum>
+          <StatNum>{metricsKnown ? `${avgCompliance}%` : '—'}</StatNum>
           <StatLbl>Avg Compliance</StatLbl>
         </StatBox>
       </StatsRow>
@@ -186,7 +232,7 @@ const ClientComplianceDashboard: React.FC = () => {
         ) : filtered.length === 0 ? (
           <EmptyState>
             <CheckCircle2 size={32} color={RISK_HEALTHY} />
-            <span>All clients are on track!</span>
+            <span>{clients.length === 0 ? 'No current interventions' : `No ${filter} clients in this result`}</span>
           </EmptyState>
         ) : (
           <AnimatePresence>

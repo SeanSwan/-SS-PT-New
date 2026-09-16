@@ -33,7 +33,8 @@ export interface StoreItem {
   totalSessions?: number | null;
   price?: number | null;
   totalCost?: number | null;
-  displayPrice: number;
+  /** Canonical server-resolved display amount; null means unavailable. */
+  displayPrice: number | null;
   theme?: string;
   isActive: boolean;
   imageUrl: string | null;

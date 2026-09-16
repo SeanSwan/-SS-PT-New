@@ -67,6 +67,15 @@ const challengeViewLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, message: 'Too many challenge view events. Please try again later.' }
 });
+// Rate limiter for companion pet mutations (generous for humans, blocks scripted abuse)
+const companionActionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  keyGenerator: (req) => `companion:${req.user?.id || req.ip}`,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many companion actions. Please slow down and try again shortly.' }
+});
 
 // ============================================================================
 // USER STATS & PROGRESS ENDPOINTS
@@ -782,10 +791,10 @@ router.put('/users/:userId/job-class', authenticate, authorizeResourceAccess('us
 // ===================== COMPANION PET ENDPOINTS =====================
 router.get('/pet/config', authenticate, requireUser, gamificationController.getPetConfig);
 router.get('/users/:userId/pet', authenticate, authorizeResourceAccess('userId'), gamificationController.getPet);
-router.post('/users/:userId/pet/adopt', authenticate, authorizeResourceAccess('userId'), gamificationController.adoptPet);
-router.post('/users/:userId/pet/interact', authenticate, authorizeResourceAccess('userId'), gamificationController.interactWithPet);
-router.post('/users/:userId/pet/activity', authenticate, authorizeResourceAccess('userId'), gamificationController.recordPetActivity);
-router.put('/users/:userId/pet/rename', authenticate, authorizeResourceAccess('userId'), gamificationController.renamePet);
-router.delete('/users/:userId/pet', authenticate, authorizeResourceAccess('userId'), gamificationController.releasePet);
+router.post('/users/:userId/pet/adopt', authenticate, authorizeResourceAccess('userId'), companionActionLimiter, gamificationController.adoptPet);
+router.post('/users/:userId/pet/interact', authenticate, authorizeResourceAccess('userId'), companionActionLimiter, gamificationController.interactWithPet);
+router.post('/users/:userId/pet/activity', authenticate, authorizeResourceAccess('userId'), pointActionLimiter, gamificationController.recordPetActivity);
+router.put('/users/:userId/pet/rename', authenticate, authorizeResourceAccess('userId'), companionActionLimiter, gamificationController.renamePet);
+router.delete('/users/:userId/pet', authenticate, authorizeResourceAccess('userId'), companionActionLimiter, gamificationController.releasePet);
 
 export default router;

@@ -348,17 +348,29 @@ test('R3 ALLOW: legit hatch as a real command-line comment still works after the
 
 // --- shadow-by-default ship decision ---------------------------------------------------
 
-test('shadow: default is SHADOW (no env); enforce only on explicit opt-in', () => {
+test('shadow: default is ENFORCE (no env); shadow only on explicit opt-out', () => {
+  // Contract INVERTED 2026-08-26 on the shadow period’s own data: 1,737 fires,
+  // 73 would-block (4.2%), 0 hatch uses. Enforcement is now the default and the
+  // opt-OUT is explicit — the reverse of the ship-time contract this test asserted.
   const saved = process.env.SWAN_HEREDOC_GATE;
   try {
     delete process.env.SWAN_HEREDOC_GATE;
-    assert.equal(isShadow(), true, 'no env → shadow');
+    assert.equal(isShadow(), false, 'no env -> ENFORCE (was shadow before 2026-08-26)');
+    process.env.SWAN_HEREDOC_GATE = '';
+    assert.equal(isShadow(), false, 'empty env -> ENFORCE, not an accidental opt-out');
     process.env.SWAN_HEREDOC_GATE = 'shadow';
-    assert.equal(isShadow(), true, 'explicit shadow → shadow');
+    assert.equal(isShadow(), true, 'explicit shadow -> shadow');
+    process.env.SWAN_HEREDOC_GATE = 'off';
+    assert.equal(isShadow(), true, 'off -> shadow');
+    process.env.SWAN_HEREDOC_GATE = 'log';
+    assert.equal(isShadow(), true, 'log -> shadow');
     process.env.SWAN_HEREDOC_GATE = 'enforce';
-    assert.equal(isShadow(), false, 'enforce → blocking');
+    assert.equal(isShadow(), false, 'enforce -> blocking');
     process.env.SWAN_HEREDOC_GATE = 'block';
-    assert.equal(isShadow(), false, 'block → blocking');
+    assert.equal(isShadow(), false, 'block -> blocking');
+    // An unrecognised value must FAIL SAFE to enforcement, never silently disable the gate.
+    process.env.SWAN_HEREDOC_GATE = 'yes-please';
+    assert.equal(isShadow(), false, 'unrecognised value -> ENFORCE (fail safe, not fail open)');
   } finally {
     if (saved === undefined) delete process.env.SWAN_HEREDOC_GATE; else process.env.SWAN_HEREDOC_GATE = saved;
   }

@@ -127,7 +127,7 @@ const token = jwt.sign(
 ## Test Suite Implementation
 
 ### Test Script Created
-**File:** [backend/test-video-library.mjs](../../backend/test-video-library.mjs)
+**File:** `backend/test-video-library.mjs` (since removed; the file no longer exists in the repository)
 
 **Coverage:**
 - 12 total tests covering all 10 Video Library endpoints
@@ -462,7 +462,7 @@ router.get(
 - backend/routes/videoLibraryRoutes.mjs (`../../backend/routes/videoLibraryRoutes.mjs:43`) - Fixed auth middleware import
 
 ### Testing Utilities Created
-- [backend/test-video-library.mjs](../../backend/test-video-library.mjs) - Comprehensive test suite
+- `backend/test-video-library.mjs` (since removed; the file no longer exists in the repository) - Comprehensive test suite
 - [backend/generate-admin-token.mjs](../../backend/generate-admin-token.mjs) - JWT token generator
 
 ### Documentation

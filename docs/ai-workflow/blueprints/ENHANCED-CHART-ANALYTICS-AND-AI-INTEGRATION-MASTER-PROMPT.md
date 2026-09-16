@@ -12,18 +12,18 @@
 ## TABLE OF CONTENTS
 
 1. [Executive Summary](#1-executive-summary)
-2. [Chart Data Pipeline — Connect Victory Charts to Real API](#2-chart-data-pipeline)
-3. [Exercise Rolodex Chart — All-Time Exercise History](#3-exercise-rolodex-chart)
-4. [Sports Goal System — Expanded Goal Categories](#4-sports-goal-system)
-5. [AI Assistant Upgrades — SwanStudios Assistant](#5-ai-assistant-upgrades)
-6. [Trainer & Admin Client Panel — Chart Visibility](#6-trainer-admin-client-panel)
-7. [User Dashboard / Social Profile — Chart Integration](#7-user-dashboard-social-profile)
-8. [Gamification Integration — Exercise Challenges](#8-gamification-integration)
-9. [New Backend Endpoints Required](#9-new-backend-endpoints)
-10. [New Frontend Components Required](#10-new-frontend-components)
-11. [CLAUDE.md Updates Required](#11-claudemd-updates)
-12. [Implementation Order](#12-implementation-order)
-13. [CEO Overrides & Design Decisions](#13-ceo-overrides)
+2. [Chart Data Pipeline — Connect Victory Charts to Real API](#2-chart-data-pipeline--connect-victory-charts-to-real-api)
+3. [Exercise Rolodex Chart — All-Time Exercise History](#3-exercise-rolodex-chart--all-time-exercise-history)
+4. [Sports Goal System — Expanded Goal Categories](#4-sports-goal-system--expanded-goal-categories)
+5. [AI Assistant Upgrades — SwanStudios Assistant](#5-ai-assistant-upgrades--swanstudios-assistant)
+6. [Trainer & Admin Client Panel — Chart Visibility](#6-trainer--admin-client-panel--chart-visibility)
+7. [User Dashboard / Social Profile — Chart Integration](#7-user-dashboard--social-profile--chart-integration)
+8. [Gamification Integration — Exercise Challenges](#8-gamification-integration--exercise-challenges)
+9. [New Backend Endpoints Required](#9-new-backend-endpoints-required)
+10. [New Frontend Components Required](#10-new-frontend-components-required)
+11. [CLAUDE.md Updates Required](#11-claudemd-updates-required)
+12. [Implementation Order](#12-implementation-order-ai-village-validated--ceo-approved)
+13. [CEO Overrides & Design Decisions](#13-ceo-overrides--design-decisions)
 
 ---
 

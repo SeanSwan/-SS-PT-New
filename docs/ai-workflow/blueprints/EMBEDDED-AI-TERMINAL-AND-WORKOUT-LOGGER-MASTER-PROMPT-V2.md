@@ -12,14 +12,14 @@
 ## Table of Contents
 
 1. [Vision & Problem Statement](#1-vision--problem-statement)
-2. [7-Star Documentation Standard (NEW MANDATORY)](#2-7-star-documentation-standard)
-3. [No-Monolith File Rule (NEW MANDATORY)](#3-no-monolith-file-rule)
+2. [7-Star Documentation Standard (NEW MANDATORY)](#2-7-star-documentation-standard-new-mandatory)
+3. [No-Monolith File Rule (NEW MANDATORY)](#3-no-monolith-file-rule-new-mandatory)
 4. [Blueprint-First Protocol](#4-blueprint-first-protocol)
-5. [NASM OPT Model Integration (NEW)](#5-nasm-opt-model-integration)
-6. [1RM Conversion Engine (NEW)](#6-1rm-conversion-engine)
-7. [NASM Calculator Suite (NEW)](#7-nasm-calculator-suite)
-8. [Comprehensive Exercise Database — 500+ Exercises (EXPANDED)](#8-comprehensive-exercise-database)
-9. [NASM-Standard Workout Forms (NEW)](#9-nasm-standard-workout-forms)
+5. [NASM OPT Model Integration (NEW)](#5-nasm-opt-model-integration-new)
+6. [1RM Conversion Engine (NEW)](#6-1rm-conversion-engine-new)
+7. [NASM Calculator Suite (NEW)](#7-nasm-calculator-suite-new)
+8. [Comprehensive Exercise Database — 500+ Exercises (EXPANDED)](#8-comprehensive-exercise-database--500-exercises-expanded)
+9. [NASM-Standard Workout Forms (NEW)](#9-nasm-standard-workout-forms-new)
 10. [Embedded AI Terminal Architecture](#10-embedded-ai-terminal-architecture)
 11. [Workout Logger Redesign](#11-workout-logger-redesign)
 12. [Voice-First Dictation Workflow](#12-voice-first-dictation-workflow)
@@ -31,8 +31,8 @@
 
 **Appendices:**
 - [A: NASM OPT Phase Specifications](#appendix-a-nasm-opt-phase-specifications)
-- [B: 1RM Conversion Chart (5–1000 lbs)](#appendix-b-1rm-conversion-chart)
-- [C: Full Exercise Database (500+ Exercises by Category)](#appendix-c-full-exercise-database)
+- [B: 1RM Conversion Chart (5–1000 lbs)](#appendix-b-1rm-conversion-chart-51000-lbs)
+- [C: Full Exercise Database (500+ Exercises by Category)](#appendix-c-full-exercise-database-500-exercises-by-category)
 - [D: AI Village Amendments from V1.0](#appendix-d-ai-village-amendments-from-v10)
 - [E: Files To Create / Modify](#appendix-e-files-to-create--modify)
 

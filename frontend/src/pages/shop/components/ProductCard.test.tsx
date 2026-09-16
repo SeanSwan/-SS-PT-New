@@ -45,6 +45,16 @@ const product: StoreItem = {
 };
 
 describe('ProductCard', () => {
+  it('does not offer a priced stocked physical item without required variants', () => {
+    render(<ProductCard product={{ ...product, stockQuantity: 10, variants: [] }} canViewPrices canPurchase onAddToCart={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: /add product/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /options unavailable/i })).toBeDisabled();
+    expect(screen.getByText(/options.*unavailable/i)).toBeInTheDocument();
+  });
+  it.each([0, -1, 1.5])('does not offer purchase for invalid item identity %s', id => {
+    render(<ProductCard product={{ ...product, id }} canViewPrices canPurchase onAddToCart={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /add product/i })).toBeDisabled();
+  });
   it('renders variant picker, local delivery, tax, and product add state', () => {
     render(<ProductCard product={product} canViewPrices canPurchase onAddToCart={vi.fn()} />);
 
@@ -53,8 +63,8 @@ describe('ProductCard', () => {
     expect(screen.getByRole('radio', { name: /everyday 16oz trial/i })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('radio', { name: /organic 1\.5l day bottle/i })).toBeDisabled();
     expect(screen.getByText('$6.50')).toBeInTheDocument();
-    expect(screen.getByText(/local delivery \/ pickup only/i)).toBeInTheDocument();
-    expect(screen.getByText(/stripe tax checkout/i)).toBeInTheDocument();
+    expect(screen.getByText(/local delivery or pickup/i)).toBeInTheDocument();
+    expect(screen.getByText(/applicable tax is calculated at checkout/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add product/i })).toBeEnabled();
   });
 
@@ -84,11 +94,51 @@ describe('ProductCard', () => {
     expect(onAddToCart).toHaveBeenCalledWith(stockedProduct, stockedProduct.variants[1]);
   });
 
-  it('does not show product price to non-granted visitors (invitation model)', () => {
+  it('uses a tracked variant stock value before the parent stock value', () => {
+    render(
+      <ProductCard
+        product={{ ...product, stockQuantity: 0, variants: [{ ...product.variants[0], stockQuantity: 3 }] }}
+        canViewPrices
+        canPurchase
+        onAddToCart={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /add product/i })).toBeEnabled();
+    expect(screen.getByText(/ready for cart/i)).toBeInTheDocument();
+  });
+
+  it('keeps physical product prices public while reserving purchase for signed-in buyers', () => {
     render(<ProductCard product={product} canViewPrices={false} />);
 
-    expect(screen.getAllByText(/by invitation/i).length).toBeGreaterThan(0);
-    expect(screen.queryByText('$6.50')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /purchase by invitation/i })).toBeDisabled();
+    expect(screen.getByText('$6.50')).toBeInTheDocument();
+    const signIn = screen.getByRole('link', { name: /sign in to purchase/i });
+    expect(signIn).toHaveAttribute('href', expect.stringMatching(/^\/login\?returnUrl=/));
+  });
+
+  it('does not offer an unpriced product for purchase', () => {
+    render(
+      <ProductCard
+        product={{ ...product, displayPrice: null, price: null, totalCost: null, variants: product.variants.map(variant => ({ ...variant, price: null })) }}
+        canViewPrices={false}
+        canPurchase
+        onAddToCart={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /price unavailable/i })).toBeDisabled();
+  });
+
+  it('disables a malformed variant identity even when its price and stock look valid', () => {
+    render(
+      <ProductCard
+        product={{ ...product, variants: [{ ...product.variants[0], id: 0 }] }}
+        canViewPrices={false}
+        canPurchase
+        onAddToCart={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('radio', { name: /everyday 16oz trial/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /sold out|price unavailable|variant/i })).toBeDisabled();
   });
 });

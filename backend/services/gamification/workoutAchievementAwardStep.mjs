@@ -50,7 +50,7 @@ export async function awardWorkoutAchievementsBestEffort(
             source: "achievement_earned",
             sourceId: null,
             description: `Achievement earned: ${name}`,
-            metadata: { achievementId, workoutId },
+            metadata: { achievementId, achievementName: name, workoutId },
             awardedBy,
             idempotencyKey: `workout-achievement:${userId}:${achievementId}`,
             maxPoints: Number.MAX_SAFE_INTEGER,

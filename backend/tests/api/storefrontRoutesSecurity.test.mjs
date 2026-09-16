@@ -13,14 +13,16 @@ function readRepoFile(pathFromRoot) {
 const routeSource = readRepoFile('backend/routes/storeFrontRoutes.mjs');
 const coreRoutesSource = readRepoFile('backend/core/routes.mjs');
 const shopSource = readRepoFile('frontend/src/pages/shop/StoreV3.tsx');
+const catalogHookSource = readRepoFile('frontend/src/pages/shop/useStorefrontCatalog.ts');
 const productDetailSource = readRepoFile('frontend/src/components/Shop/ProductDetail.tsx');
 const pricingHookSource = readRepoFile('frontend/src/hooks/useCustomPackagePricing.ts');
 
 describe('storefront route security contract', () => {
   it('maps the live public storefront surface before route hardening', () => {
     expect(coreRoutesSource).toContain("app.use('/api/storefront', storefrontRoutes)");
-    expect(shopSource).toContain("api.get('/api/storefront')");
-    expect(productDetailSource).toContain('api.get(`/api/storefront/${id}`)');
+    expect(shopSource).toContain('useStorefrontCatalog()');
+    expect(catalogHookSource).toContain("api.get('/api/storefront')");
+    expect(productDetailSource).toContain('client.get(`/api/storefront/${encodeURIComponent(id)}`)');
     expect(pricingHookSource).toContain('/api/storefront/calculate-price?sessions=${sessionCount}');
   });
 

@@ -6,7 +6,7 @@
  * - Hide variant prices from visitors without price access.
  * - Preserve 44px+ touch targets and overflow-safe copy on small phones.
  */
-import React from 'react';
+import React, { useRef } from 'react';
 import styled from 'styled-components';
 import type { ProductVariant } from './storeCatalog.types';
 import { formatStorePrice, hasStockAvailable } from './storeCatalog';
@@ -14,7 +14,7 @@ import { formatStorePrice, hasStockAvailable } from './storeCatalog';
 interface ProductVariantPickerProps {
   variants: ProductVariant[];
   selectedVariantId: number | null;
-  parentPrice: number;
+  parentPrice: number | null;
   canViewPrices: boolean;
   onSelect: (variant: ProductVariant) => void;
 }
@@ -115,7 +115,7 @@ const EmptyVariants = styled.div`
   padding: 0.85rem;
 `;
 
-const variantPrice = (variant: ProductVariant, parentPrice: number) => (
+const variantPrice = (variant: ProductVariant, parentPrice: number | null) => (
   variant.price ?? parentPrice
 );
 
@@ -123,8 +123,12 @@ const stockLabel = (variant: ProductVariant): string => {
   if (!variant.isActive) return 'Unavailable';
   if (variant.stockQuantity === 0) return 'Sold out';
   if (typeof variant.stockQuantity === 'number') return `${variant.stockQuantity} left`;
-  return 'Made fresh';
+  return 'Available';
 };
+
+const isAvailable = (variant: ProductVariant): boolean => (
+  Number.isSafeInteger(variant.id) && variant.id > 0 && variant.isActive && hasStockAvailable(variant.stockQuantity)
+);
 
 const ProductVariantPicker: React.FC<ProductVariantPickerProps> = ({
   variants,
@@ -133,6 +137,19 @@ const ProductVariantPicker: React.FC<ProductVariantPickerProps> = ({
   canViewPrices,
   onSelect,
 }) => {
+  const buttons = useRef(new Map<number, HTMLButtonElement>());
+  const available = variants.filter(isAvailable);
+  const tabStopId = available.find(variant => variant.id === selectedVariantId)?.id ?? available[0]?.id;
+  const navigateOptions = (event: React.KeyboardEvent<HTMLButtonElement>, currentId: number) => {
+    if (!['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'].includes(event.key) || !available.length) return;
+    event.preventDefault();
+    const current = available.findIndex(variant => variant.id === currentId);
+    const step = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+    const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? available.length - 1 : (current + step + available.length) % available.length;
+    const next = available[nextIndex];
+    onSelect(next);
+    buttons.current.get(next.id)?.focus();
+  };
   if (!variants.length) {
     return (
       <PickerWrap>
@@ -147,17 +164,20 @@ const ProductVariantPicker: React.FC<ProductVariantPickerProps> = ({
       <PickerLabel>Choose Variant</PickerLabel>
       <VariantGrid role="radiogroup" aria-label="Product variants">
         {variants.map((variant) => {
-          const disabled = !variant.isActive || !hasStockAvailable(variant.stockQuantity);
-          const selected = selectedVariantId === variant.id;
+          const disabled = !isAvailable(variant);
+          const selected = !disabled && selectedVariantId === variant.id;
 
           return (
             <VariantButton
               key={variant.id}
+              ref={node => { if (node) buttons.current.set(variant.id, node); else buttons.current.delete(variant.id); }}
               type="button"
               role="radio"
               aria-checked={selected}
               $selected={selected}
               disabled={disabled}
+              tabIndex={!disabled && variant.id === tabStopId ? 0 : -1}
+              onKeyDown={event => navigateOptions(event, variant.id)}
               onClick={() => onSelect(variant)}
             >
               <VariantName>{variant.label}</VariantName>

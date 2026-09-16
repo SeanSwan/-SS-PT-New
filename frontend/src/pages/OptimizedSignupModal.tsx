@@ -6,7 +6,7 @@
  * U.S. standard units (lbs/inches), and better viewport handling.
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, Variants } from "framer-motion";
@@ -16,6 +16,7 @@ import GlowButton from "../components/ui/GlowButton";
 import ProgressBar from "../components/ProgressBar/ProgressBar";
 import AuthLayout from "../layouts/AuthLayout";
 import { logger } from '@/utils/logger';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 // --- Asset Paths ---
 const Logo = "/Logo.png";
@@ -84,8 +85,37 @@ const VideoBackground = styled.div`
     transition: opacity 1.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    video {
+      opacity: 0;
+      transition: none;
+    }
+  }
+
   &.video-ready video {
     opacity: 1;
+  }
+`;
+
+const VideoMotionButton = styled.button`
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 2;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(224, 236, 244, 0.75);
+  border-radius: 999px;
+  background: rgba(7, 17, 31, 0.82);
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.875rem;
+  cursor: pointer;
+  pointer-events: auto;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
   }
 `;
 
@@ -103,6 +133,10 @@ const ModalContent = styled(motion.div)`
   margin: 20px 0 60px 0; /* Increased top margin */
   overflow: visible; /* Changed from auto to prevent nested scrollbars */
   transition: all 0.3s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 
   /* Custom scrollbar with theme colors */
   &::-webkit-scrollbar { width: 8px; }
@@ -187,6 +221,11 @@ const LogoCircle = styled.div`
   box-shadow: ${({ theme }) => theme.shadows.cosmic};
   transition: all 0.3s ease;
 
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
+  }
+
   &:before {
     content: '';
     position: absolute;
@@ -203,6 +242,10 @@ const LogoCircle = styled.div`
     transform: scale(1.05);
     box-shadow: ${({ theme }) => theme.shadows.primary}, ${({ theme }) => theme.shadows.cosmic};
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
+  }
 `;
 
 const LogoImage = styled.img`
@@ -215,10 +258,19 @@ const LogoImage = styled.img`
   filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}40);
   transition: all 0.3s ease;
 
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
+  }
+
   /* Swan-inspired enhancement */
   &:hover {
     filter: drop-shadow(0 0 15px ${({ theme }) => theme.colors.primary}70);
     transform: scale(1.05) rotate(2deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
   }
 `;
 
@@ -236,10 +288,19 @@ const HeaderText = styled.h1`
   text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;
   transition: all 0.3s ease;
 
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
+  }
+
   /* Swan Studios brand enhancement */
   &:hover {
     animation: ${shimmer} 2s linear infinite;
     text-shadow: 0 0 15px ${({ theme }) => theme.colors.primary}70;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
   }
 `;
 
@@ -300,7 +361,8 @@ const InputField = styled.input`
   border-radius: 8px;
   background: ${({ theme }) => theme.background.elevated};
   color: ${({ theme }) => theme.text.primary};
-  font-size: 0.9rem; /* Reduced size */
+  font-size: 16px;
+  min-height: 44px;
   transition: all 0.3s ease;
 
   &:focus {
@@ -329,7 +391,8 @@ const SelectField = styled.select`
   border-radius: 8px;
   background: rgba(30, 30, 60, 0.3);
   color: white;
-  font-size: 0.9rem; /* Reduced size */
+  font-size: 16px;
+  min-height: 44px;
   transition: all 0.3s ease;
   appearance: none; /* Remove default arrow */
   background-image: linear-gradient(45deg, transparent 50%, rgba(139, 92, 246, 0.7) 50%),
@@ -354,7 +417,7 @@ const SelectField = styled.select`
 
   /* Style for options - note: limited styling available */
   option {
-    background-color: #1e1e3e;
+    background-color: var(--bg-elevated, #1A1A24);
     color: white;
   }
 `;
@@ -406,13 +469,13 @@ const ForgotPasswordLink = styled(motion.button)`
 `;
 
 const ErrorMessage = styled(motion.p)`
-  color: #ff4d6d;
+  color: var(--danger, #ff4d6d);
   text-align: center;
   margin-bottom: 1rem; /* Reduced margin */
   background: rgba(255, 77, 109, 0.1);
   padding: 8px; /* Reduced padding */
   border-radius: 8px;
-  border-left: 3px solid #ff4d6d;
+  border-left: 3px solid var(--danger, #ff4d6d);
   font-size: 0.85rem; /* Reduced size */
 `;
 
@@ -439,8 +502,8 @@ const ButtonContainer = styled.div`
 `;
 
 const HelpText = styled.div`
-  font-size: 0.75rem;
-  color: rgba(139, 92, 246, 0.7);
+  font-size: 0.875rem;
+  color: ${({ theme }) => theme.text.secondary};
   margin-top: 0.25rem;
   line-height: 1.3;
 `;
@@ -491,13 +554,13 @@ const HeightField = styled.div`
 
 // Enhanced UI Components
 const FieldError = styled.div`
-  color: #ff6b9d;
+  color: var(--error-accent, #ff6b9d);
   font-size: 0.75rem;
   margin-top: 0.25rem;
   padding: 0.25rem 0.5rem;
   background: rgba(255, 107, 157, 0.1);
   border-radius: 4px;
-  border-left: 2px solid #ff6b9d;
+  border-left: 2px solid var(--error-accent, #ff6b9d);
 `;
 
 const PasswordStrengthContainer = styled.div`
@@ -517,10 +580,10 @@ const PasswordStrengthBar = styled.div<{ strength: number }>`
     height: 100%;
     width: ${props => props.strength}%;
     background: ${props =>
-      props.strength < 30 ? '#ff4d6d' :
-      props.strength < 60 ? '#ffa726' :
-      props.strength < 80 ? '#66bb6a' :
-      '#60C0F0'
+      props.strength < 30 ? 'var(--danger, #ff4d6d)' :
+      props.strength < 60 ? 'var(--warning, #ffa726)' :
+      props.strength < 80 ? 'var(--success, #66bb6a)' :
+      'var(--accent-primary, #60C0F0)'
     };
     transition: all 0.3s ease;
     border-radius: 2px;
@@ -530,17 +593,17 @@ const PasswordStrengthBar = styled.div<{ strength: number }>`
 const PasswordStrengthText = styled.div<{ strength: number }>`
   font-size: 0.7rem;
   color: ${props =>
-    props.strength < 30 ? '#ff6b9d' :
-    props.strength < 60 ? '#ffa726' :
-    props.strength < 80 ? '#66bb6a' :
-    '#60C0F0'
+    props.strength < 30 ? 'var(--error-accent, #ff6b9d)' :
+    props.strength < 60 ? 'var(--warning, #ffa726)' :
+    props.strength < 80 ? 'var(--success, #66bb6a)' :
+    'var(--accent-primary, #60C0F0)'
   };
   text-align: center;
 `;
 
 const PasswordToggle = styled.button`
   position: absolute;
-  right: 12px;
+  right: 4px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -548,10 +611,18 @@ const PasswordToggle = styled.button`
   color: rgba(139, 92, 246, 0.7);
   cursor: pointer;
   font-size: 0.9rem;
-  padding: 4px;
+  min-width: 44px;
+  /* Override the shared mobile form-button rule: this is an inline tool. */
+  width: 44px !important;
+  max-width: 44px !important;
+  min-height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
-    color: #60C0F0;
+    color: var(--accent-primary, #60C0F0);
   }
 `;
 
@@ -559,7 +630,7 @@ const InputFieldWithToggle = styled.div`
   position: relative;
 
   input {
-    padding-right: 45px;
+    padding-right: 56px;
   }
 `;
 
@@ -574,9 +645,26 @@ const OptimizedSignupModal: React.FC = () => {
   const { register } = useAuth();
   useUniversalTheme();
   const controls = useAnimation();
+  const prefersReducedMotion = useReducedMotion();
 
   const [videoReady, setVideoReady] = useState(false);
+  const [videoPaused, setVideoPaused] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ));
+  const videoRef = useRef<HTMLVideoElement>(null);
   const handleVideoReady = useCallback(() => setVideoReady(true), []);
+
+  const toggleVideoMotion = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || prefersReducedMotion) return;
+    if (videoPaused) {
+      setVideoPaused(false);
+      void video.play().catch(() => setVideoPaused(true));
+      return;
+    }
+    video.pause();
+    setVideoPaused(true);
+  }, [prefersReducedMotion, videoPaused]);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -626,8 +714,19 @@ const OptimizedSignupModal: React.FC = () => {
 
   // Trigger entrance animation on mount
   useEffect(() => {
-    controls.start("visible");
-  }, [controls]);
+    controls.start(prefersReducedMotion ? { opacity: 1, scale: 1 } : "visible");
+  }, [controls, prefersReducedMotion]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (prefersReducedMotion || videoPaused) {
+      video.pause();
+      if (prefersReducedMotion) setVideoPaused(true);
+      return;
+    }
+    void video.play().catch(() => setVideoPaused(true));
+  }, [prefersReducedMotion, videoPaused]);
 
   // Scroll to top and reset any scrolling position when component mounts
   useEffect(() => {
@@ -957,10 +1056,28 @@ const OptimizedSignupModal: React.FC = () => {
   return (
     <AuthLayout>
       <SignupContainer>
-        <VideoBackground className={videoReady ? 'video-ready' : ''}>
-          <video autoPlay loop muted playsInline onCanPlayThrough={handleVideoReady}>
+        <VideoBackground className={videoReady && !prefersReducedMotion ? 'video-ready' : ''}>
+          <video
+            ref={videoRef}
+            autoPlay={!prefersReducedMotion && !videoPaused}
+            loop
+            muted
+            playsInline
+            aria-hidden="true"
+            tabIndex={-1}
+            onCanPlayThrough={handleVideoReady}
+          >
             <source src={powerBackground} type="video/mp4" />
           </video>
+          {!prefersReducedMotion && (
+            <VideoMotionButton
+              type="button"
+              aria-label={videoPaused ? 'Resume background animation' : 'Pause background animation'}
+              onClick={toggleVideoMotion}
+            >
+              {videoPaused ? 'Resume animation' : 'Pause animation'}
+            </VideoMotionButton>
+          )}
         </VideoBackground>
 
         <ModalContent
@@ -973,7 +1090,7 @@ const OptimizedSignupModal: React.FC = () => {
           <CloseButton
             onClick={handleClose}
             aria-label="Close sign up modal"
-            whileTap={{ scale: 0.9 }}
+            whileTap={prefersReducedMotion ? undefined : { scale: 0.9 }}
           >
             <span>×</span>
           </CloseButton>
@@ -1017,7 +1134,7 @@ const OptimizedSignupModal: React.FC = () => {
                     required
                     disabled={isLoading}
                     $style={{
-                      borderColor: fieldErrors.firstName ? '#ff6b9d' : '',
+                      borderColor: fieldErrors.firstName ? 'var(--error-accent, #ff6b9d)' : '',
                       boxShadow: fieldErrors.firstName ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                     }}
                   />
@@ -1037,7 +1154,7 @@ const OptimizedSignupModal: React.FC = () => {
                     required
                     disabled={isLoading}
                     $style={{
-                      borderColor: fieldErrors.lastName ? '#ff6b9d' : '',
+                      borderColor: fieldErrors.lastName ? 'var(--error-accent, #ff6b9d)' : '',
                       boxShadow: fieldErrors.lastName ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                     }}
                   />
@@ -1058,7 +1175,7 @@ const OptimizedSignupModal: React.FC = () => {
                   required
                   disabled={isLoading}
                   $style={{
-                    borderColor: fieldErrors.email ? '#ff6b9d' : '',
+                    borderColor: fieldErrors.email ? 'var(--error-accent, #ff6b9d)' : '',
                     boxShadow: fieldErrors.email ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                   }}
                 />
@@ -1119,7 +1236,7 @@ const OptimizedSignupModal: React.FC = () => {
                   required
                   disabled={isLoading}
                   $style={{
-                    borderColor: fieldErrors.username ? '#ff6b9d' : '',
+                      borderColor: fieldErrors.username ? 'var(--error-accent, #ff6b9d)' : '',
                     boxShadow: fieldErrors.username ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                   }}
                 />
@@ -1144,12 +1261,13 @@ const OptimizedSignupModal: React.FC = () => {
                       required
                       disabled={isLoading}
                       $style={{
-                        borderColor: fieldErrors.password ? '#ff6b9d' : '',
+                        borderColor: fieldErrors.password ? 'var(--error-accent, #ff6b9d)' : '',
                         boxShadow: fieldErrors.password ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                       }}
                     />
                     <PasswordToggle
                       type="button"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                       onClick={() => setShowPassword(!showPassword)}
                       disabled={isLoading}
                     >
@@ -1187,12 +1305,13 @@ const OptimizedSignupModal: React.FC = () => {
                       required
                       disabled={isLoading}
                       $style={{
-                        borderColor: fieldErrors.confirmPassword ? '#ff6b9d' : '',
+                      borderColor: fieldErrors.confirmPassword ? 'var(--error-accent, #ff6b9d)' : '',
                         boxShadow: fieldErrors.confirmPassword ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
                       }}
                     />
                     <PasswordToggle
                       type="button"
+                      aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       disabled={isLoading}
                     >
@@ -1343,7 +1462,7 @@ const OptimizedSignupModal: React.FC = () => {
             </ButtonContainer>
           </form>
 
-          <ForgotPasswordLink onClick={handleForgotPassword} whileTap={{ scale: 0.95 }}>
+          <ForgotPasswordLink onClick={handleForgotPassword} whileTap={prefersReducedMotion ? undefined : { scale: 0.95 }}>
             Having trouble? Contact support.
           </ForgotPasswordLink>
         </ModalContent>

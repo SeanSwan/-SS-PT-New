@@ -10,8 +10,11 @@ import styled from 'styled-components';
 
 export const PrimaryStack = styled.div`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
 
   @media (max-width: 600px) {
     > [data-testid='client-program-shelf'] {
@@ -27,6 +30,9 @@ export const PrimaryStack = styled.div`
 export const RightRail = styled.aside`
   display: grid;
   align-content: start;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
 `;

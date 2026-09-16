@@ -23,6 +23,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../hooks/use-toast';
+import { useReducedMotion } from 'framer-motion';
 import GlowButton from '../ui/buttons/GlowButton';
 import api from '../../services/api.service';
 import { buildOrderDataFromActivationStatus, fetchCheckoutActivationStatus, getActivationCta } from './checkoutActivation';
@@ -35,6 +36,7 @@ import { SessionsCount, SessionsDescription, SessionsHighlight, SessionsTitle, S
 import { SuccessContent, SuccessHeader, SuccessIcon, SuccessSubtitle, SuccessTitle } from './SuccessPage.styles';
 import { SuccessPageErrorState, SuccessPageInventoryReviewState, SuccessPageLoadingState } from './SuccessPage.stateViews';
 import SuccessPageOrderDetails from './SuccessPageOrderDetails';
+import { diagnosticFromUnknownError, toCheckoutDiagnostic } from './checkoutDiagnostics';
 
 const SuccessPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -42,19 +44,21 @@ const SuccessPage: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const { clearCart } = useCart();
   const { toast } = useToast();
+  const prefersReducedMotion = useReducedMotion();
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [supportReviewMessage, setSupportReviewMessage] = useState<string | null>(null);
   const [orderData, setOrderData] = useState<CheckoutSuccessOrderData | null>(null);
   const [activationStatus, setActivationStatus] = useState<CheckoutActivationStatus | null>(null);
+  const [verificationConfirmed, setVerificationConfirmed] = useState(false);
 
   const sessionId = searchParams.get('session_id');
 
   const refreshCheckoutUser = useCallback(async () => {
     const result = await refreshUser();
     if (!result.success) {
-      logger.warn('[Success Page] User refresh after checkout failed:', result.error);
+      logger.warn('[Success Page]', toCheckoutDiagnostic({ operation: 'refresh_user', status: 'failed', code: 'UNAVAILABLE', retryable: true }));
     }
   }, [refreshUser]);
 
@@ -63,8 +67,9 @@ const SuccessPage: React.FC = () => {
       setIsLoading(true);
       setError(null);
       setSupportReviewMessage(null);
+      setVerificationConfirmed(false);
 
-      logger.log('[Success Page] Verifying Stripe session:', sessionId);
+      logger.log('[Success Page]', toCheckoutDiagnostic({ operation: 'verify_session', status: 'started', hasSessionId: Boolean(sessionId) }));
 
       const response = await api.post('/api/v2/payments/verify-session', {
         sessionId
@@ -73,8 +78,9 @@ const SuccessPage: React.FC = () => {
       if (response.data.success) {
         const orderData = response.data.data;
         setOrderData(orderData);
+        setVerificationConfirmed(true);
 
-        logger.log('[Success Page] Order verified:', orderData);
+        logger.log('[Success Page]', toCheckoutDiagnostic({ operation: 'verify_session', status: 'succeeded', hasSessionId: Boolean(sessionId) }));
 
         clearCart();
         await refreshCheckoutUser();
@@ -82,12 +88,9 @@ const SuccessPage: React.FC = () => {
         try {
           const status = await fetchCheckoutActivationStatus(api, sessionId || '');
           setActivationStatus(status);
-          logger.log('[Success Page] Activation status resolved:', {
-            nextStep: status.activation.nextStep,
-            nextRoute: status.activation.nextRoute,
-          });
-        } catch (activationError) {
-          logger.warn('[Success Page] Activation status unavailable:', activationError);
+           logger.log('[Success Page]', toCheckoutDiagnostic({ operation: 'activation_status', status: 'succeeded' }));
+         } catch (activationError) {
+          logger.warn('[Success Page]', diagnosticFromUnknownError('activation_status', activationError));
           setActivationStatus(null);
         }
 
@@ -106,7 +109,7 @@ const SuccessPage: React.FC = () => {
       }
 
     } catch (error: any) {
-      logger.error('[Success Page] Verification failed:', error.message);
+       logger.error('[Success Page]', diagnosticFromUnknownError('verify_session', error));
       const responseError = error.response?.data?.error;
 
       if (responseError?.requiresSupportReview) {
@@ -127,6 +130,7 @@ const SuccessPage: React.FC = () => {
         if (status.activation.paid) {
           setActivationStatus(status);
           setOrderData(buildOrderDataFromActivationStatus(status, user?.email));
+          setVerificationConfirmed(true);
           clearCart();
           await refreshCheckoutUser();
           toast({
@@ -137,7 +141,7 @@ const SuccessPage: React.FC = () => {
           return;
         }
       } catch (activationError) {
-        logger.warn('[Success Page] Activation status recovery failed:', activationError);
+        logger.warn('[Success Page]', diagnosticFromUnknownError('activation_status', activationError));
       }
 
       // This buyer has already been through Stripe. Never show them a raw
@@ -148,8 +152,7 @@ const SuccessPage: React.FC = () => {
       // not know the charge settled) but does stop them paying twice.
       const serverDetails = error.response?.data?.error?.details;
       const serverMessage = serverDetails || error.response?.data?.message;
-      logger.error('[Success Page] Verification failed:', error);
-      setError(
+       setError(
         serverMessage ||
         "We couldn't confirm your order automatically. If your payment went through it has been received — please don't pay again. Contact support with your order reference below and we'll finish activating your sessions."
       );
@@ -219,6 +222,10 @@ const SuccessPage: React.FC = () => {
     return <SuccessPageInventoryReviewState message={supportReviewMessage} onGoHome={handleGoToHome} />;
   }
 
+  if (!verificationConfirmed || !orderData) {
+    return <SuccessPageLoadingState />;
+  }
+
   const primaryCta = getActivationCta(activationStatus);
   const customerDisplayName = orderData?.customerName
     || [user?.firstName, user?.lastName].filter(Boolean).join(' ')
@@ -230,30 +237,31 @@ const SuccessPage: React.FC = () => {
 
   return (
     <SuccessContainer
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+      animate={prefersReducedMotion ? false : { opacity: 1, y: 0 }}
+      transition={prefersReducedMotion ? undefined : { duration: 0.5 }}
     >
       <SuccessHeader>
         <SuccessIcon
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 0.6, type: "spring" }}
+          initial={prefersReducedMotion ? false : { scale: 0 }}
+          animate={prefersReducedMotion ? false : { scale: 1 }}
+          transition={prefersReducedMotion ? undefined : { duration: 0.6, type: "spring" }}
+          $reducedMotion={Boolean(prefersReducedMotion)}
         >
           <CheckCircle size={50} aria-hidden="true" />
         </SuccessIcon>
         <SuccessTitle>Payment Successful!</SuccessTitle>
         <SuccessSubtitle>
-          Your training package purchase has been completed successfully
+          Your order has been confirmed. Review your purchase details below.
         </SuccessSubtitle>
       </SuccessHeader>
 
       <SuccessContent>
-        {orderData && typeof orderData.sessionsAdded === 'number' && orderData.sessionsAdded > 0 && (
+          {typeof orderData.sessionsAdded === 'number' && orderData.sessionsAdded > 0 && (
           <SessionsHighlight
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+            animate={prefersReducedMotion ? false : { opacity: 1, y: 0 }}
+            transition={prefersReducedMotion ? undefined : { duration: 0.5, delay: 0.2 }}
           >
             <SessionsTitle>
               <Calendar size={24} />
@@ -266,14 +274,12 @@ const SuccessPage: React.FC = () => {
           </SessionsHighlight>
         )}
 
-        {orderData && (
-          <SuccessPageOrderDetails
-            orderData={orderData}
-            customerDisplayName={customerDisplayName}
-            customerEmailDisplay={customerEmailDisplay}
-            orderDateDisplay={orderDateDisplay}
-          />
-        )}
+        <SuccessPageOrderDetails
+          orderData={orderData}
+          customerDisplayName={customerDisplayName}
+          customerEmailDisplay={customerEmailDisplay}
+          orderDateDisplay={orderDateDisplay}
+        />
 
         <ActionGrid>
           <GlowButton

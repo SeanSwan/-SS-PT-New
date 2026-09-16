@@ -38,7 +38,7 @@ This document requests comprehensive review from all 5 AI Village members for:
    - Rollback strategy
 
 ### Supporting Context
-3. **[AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md](../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md)**
+3. **[AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md](../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V5.md)**
    - Project context and standards
    - Phase 0 requirements
 

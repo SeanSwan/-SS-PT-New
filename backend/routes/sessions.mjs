@@ -39,7 +39,7 @@ import { getSessionAnalyticsFavoriteExercises } from '../services/sessionAnalyti
 import { getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
 import logger from '../utils/logger.mjs';
 import { createNotification } from '../controllers/notificationController.mjs';
-import { getClientPackagePricing } from '../utils/cancellationPricing.mjs';
+import { getClientPackagePricing, expectedRateForDuration } from '../utils/cancellationPricing.mjs';
 import { recordCancellationBillingDecision } from '../services/sessions/sessionCancellationReviewService.mjs';
 import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
 import { processSessionDeduction, sendDeductionNotification } from '../utils/notification.mjs';
@@ -125,7 +125,7 @@ const cancellationPricingModels = () => ({
 });
 
 const getSessionPackagePricing = async (session) => {
-  const fallbackPrice = Number(session.duration || 60) >= 60 ? 175 : 110;
+  const fallbackPrice = expectedRateForDuration(session.duration);
 
   if (!session.userId) {
     return {
@@ -140,7 +140,9 @@ const getSessionPackagePricing = async (session) => {
     };
   }
 
-  const packageInfo = await getClientPackagePricing(session.userId, cancellationPricingModels());
+  const packageInfo = await getClientPackagePricing(session.userId, cancellationPricingModels(), {
+    durationMinutes: session.duration
+  });
   const pricePerSession = parseMoneyAmount(packageInfo.pricePerSession);
   const defaultChargeAmount = pricePerSession ?? fallbackPrice;
 

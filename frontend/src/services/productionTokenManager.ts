@@ -1,6 +1,14 @@
 import axios from 'axios';
 import { logger } from '@/utils/logger';
 
+type TokenObserver = (token: string | null) => void;
+export type RefreshOutcome = {
+  status: 'refreshed' | 'expired' | 'superseded';
+  token: string | null;
+  generation: number;
+};
+type RefreshWaiter = (outcome: RefreshOutcome) => void;
+
 export class ProductionTokenManager {
   private static readonly TOKEN_KEY = 'token';
   private static readonly REFRESH_TOKEN_KEY = 'refreshToken';
@@ -9,8 +17,71 @@ export class ProductionTokenManager {
 
   private static authFailureCount = 0;
   private static readonly MAX_AUTH_FAILURES = 3;
-  private static isRefreshing = false;
-  private static refreshSubscribers: Array<(token: string) => void> = [];
+  private static tokenObservers = new Set<TokenObserver>();
+  private static storageObserverAttached = false;
+  private static refreshGeneration = 0;
+  private static nextRefreshId = 0;
+  private static activeRefreshId: number | null = null;
+  private static refreshSubscribers: RefreshWaiter[] = [];
+
+  private static readonly handleStorageChange = (event: StorageEvent): void => {
+    if (event.key !== null && ![this.TOKEN_KEY, this.REFRESH_TOKEN_KEY, this.USER_KEY, this.TOKEN_TIMESTAMP_KEY].includes(event.key)) return;
+    this.invalidateActiveRefresh();
+    this.notifyTokenObservers(event.key === this.TOKEN_KEY ? event.newValue : undefined);
+  };
+
+  private static ensureStorageObserver(): void {
+    if (this.storageObserverAttached || typeof window === 'undefined') return;
+    window.addEventListener('storage', this.handleStorageChange);
+    this.storageObserverAttached = true;
+  }
+
+  private static notifyTokenObservers(tokenOverride?: string | null): void {
+    const token = tokenOverride === undefined ? this.getToken() : tokenOverride;
+    this.tokenObservers.forEach((observer) => {
+      try {
+        observer(token);
+      } catch (error) {
+        logger.warn('[TokenManager] Auth observer failed:', error);
+      }
+    });
+  }
+
+  static getAuthGeneration(): number {
+    this.ensureStorageObserver();
+    return this.refreshGeneration;
+  }
+
+  private static refreshOutcome(status: RefreshOutcome['status'], token: string | null = null): RefreshOutcome {
+    return { status, token, generation: this.refreshGeneration };
+  }
+
+  private static settleRefresh(refreshId: number, outcome: RefreshOutcome): void {
+    if (this.activeRefreshId !== refreshId) return;
+    this.activeRefreshId = null;
+    const subscribers = this.refreshSubscribers;
+    this.refreshSubscribers = [];
+    subscribers.forEach((resolve) => resolve(outcome));
+  }
+
+  private static invalidateActiveRefresh(): void {
+    this.refreshGeneration += 1;
+    const activeRefreshId = this.activeRefreshId;
+    this.activeRefreshId = null;
+    const subscribers = this.refreshSubscribers;
+    this.refreshSubscribers = [];
+    subscribers.forEach((resolve) => resolve(this.refreshOutcome('superseded')));
+    // The request which owns activeRefreshId may still be in flight. Its
+    // generation check prevents its late response from restoring auth or
+    // settling a newer refresh operation.
+    if (activeRefreshId !== null) logger.debug('[TokenManager] Active refresh invalidated');
+  }
+
+  static subscribe(observer: TokenObserver): () => void {
+    this.tokenObservers.add(observer);
+    this.ensureStorageObserver();
+    return () => this.tokenObservers.delete(observer);
+  }
 
   static getToken(): string | null {
     try {
@@ -22,10 +93,16 @@ export class ProductionTokenManager {
   }
 
   static setToken(token: string): void {
+    this.setTokenInternal(token, true);
+  }
+
+  private static setTokenInternal(token: string, invalidateRefresh: boolean): void {
+    if (invalidateRefresh) this.invalidateActiveRefresh();
     try {
       localStorage.setItem(this.TOKEN_KEY, token);
       localStorage.setItem(this.TOKEN_TIMESTAMP_KEY, Date.now().toString());
       this.authFailureCount = 0;
+      this.notifyTokenObservers();
     } catch (error) {
       console.error('[TokenManager] Error setting token:', error);
     }
@@ -41,6 +118,11 @@ export class ProductionTokenManager {
   }
 
   static setRefreshToken(refreshToken: string): void {
+    this.setRefreshTokenInternal(refreshToken, true);
+  }
+
+  private static setRefreshTokenInternal(refreshToken: string, invalidateRefresh: boolean): void {
+    if (invalidateRefresh) this.invalidateActiveRefresh();
     try {
       localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
     } catch (error) {
@@ -59,6 +141,7 @@ export class ProductionTokenManager {
   }
 
   static setUser(user: any): void {
+    this.invalidateActiveRefresh();
     try {
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     } catch (error) {
@@ -67,12 +150,14 @@ export class ProductionTokenManager {
   }
 
   static clearAuthData(): void {
+    this.invalidateActiveRefresh();
     try {
       localStorage.removeItem(this.TOKEN_KEY);
       localStorage.removeItem(this.REFRESH_TOKEN_KEY);
       localStorage.removeItem(this.USER_KEY);
       localStorage.removeItem(this.TOKEN_TIMESTAMP_KEY);
       this.authFailureCount = 0;
+      this.notifyTokenObservers();
       logger.log('[TokenManager] Auth data cleared');
     } catch (error) {
       console.error('[TokenManager] Error clearing auth data:', error);
@@ -97,18 +182,27 @@ export class ProductionTokenManager {
   }
 
   static async refreshAccessToken(apiBaseUrl?: string): Promise<string | null> {
-    if (this.isRefreshing) {
+    return (await this.refreshAccessTokenOutcome(apiBaseUrl)).token;
+  }
+
+  /** API callers must distinguish expired current auth from superseded work. */
+  static async refreshAccessTokenOutcome(apiBaseUrl?: string): Promise<RefreshOutcome> {
+    this.ensureStorageObserver();
+    if (this.activeRefreshId !== null) {
       return new Promise((resolve) => {
         this.refreshSubscribers.push(resolve);
       });
     }
 
-    this.isRefreshing = true;
+    const refreshId = ++this.nextRefreshId;
+    const generation = this.refreshGeneration;
+    this.activeRefreshId = refreshId;
     const refreshToken = this.getRefreshToken();
 
     if (!refreshToken) {
-      this.isRefreshing = false;
-      return null;
+      const outcome = this.refreshOutcome('expired');
+      this.settleRefresh(refreshId, outcome);
+      return outcome;
     }
 
     try {
@@ -128,26 +222,43 @@ export class ProductionTokenManager {
         const newToken = response.data.token;
         const newRefreshToken = response.data.refreshToken || refreshToken;
 
-        this.setToken(newToken);
-        this.setRefreshToken(newRefreshToken);
+        if (generation !== this.refreshGeneration || this.getRefreshToken() !== refreshToken) {
+          const outcome = this.refreshOutcome('superseded');
+          this.settleRefresh(refreshId, outcome);
+          return outcome;
+        }
+
+        this.setTokenInternal(newToken, false);
+        // Token observers may synchronously replace authentication. Do not let
+        // the retired refresh write credentials or claim the new generation.
+        if (generation !== this.refreshGeneration) {
+          const outcome = this.refreshOutcome('superseded');
+          this.settleRefresh(refreshId, outcome);
+          return outcome;
+        }
+        this.setRefreshTokenInternal(newRefreshToken, false);
 
         logger.log('[TokenManager] Token refreshed successfully');
 
-        this.refreshSubscribers.forEach(callback => callback(newToken));
-        this.refreshSubscribers = [];
-        this.isRefreshing = false;
-
-        return newToken;
+        const outcome = this.refreshOutcome('refreshed', newToken);
+        this.settleRefresh(refreshId, outcome);
+        return outcome;
       }
 
       throw new Error('Invalid refresh response');
     } catch (error) {
       console.error('[TokenManager] Token refresh failed:', error);
-      this.clearAuthData();
-      this.refreshSubscribers.forEach(callback => callback(''));
-      this.refreshSubscribers = [];
-      this.isRefreshing = false;
-      return null;
+      let superseded = generation !== this.refreshGeneration;
+      if (!superseded) {
+        const invalidationGeneration = generation + 1;
+        this.clearAuthData();
+        // Our clear advances once; any additional advance belongs to an
+        // observer's replacement login and must never be reported expired.
+        superseded = this.refreshGeneration !== invalidationGeneration;
+      }
+      const outcome = this.refreshOutcome(superseded ? 'superseded' : 'expired');
+      this.settleRefresh(refreshId, outcome);
+      return outcome;
     }
   }
 

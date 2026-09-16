@@ -34,6 +34,7 @@ import {
   sessionBankReadinessFor,
   trimmedOrFallback,
   workoutCountFor,
+  workoutsKnownFor,
   workoutProofLabelFor,
 } from './clientCardReadiness';
 import ClientHubGridCardActions, {
@@ -97,7 +98,7 @@ const ClientCardMetrics = ({
   <MetricGrid data-swan-card-section="admin-metrics">
     <Metric>
       <Dumbbell size={14} aria-hidden="true" />
-      {workoutCountFor(client)} workouts
+      {workoutsKnownFor(client) ? `${workoutCountFor(client)} workouts` : 'Logs unavailable'}
     </Metric>
     <Metric $tone={sessionSignal.tone}>
       <Activity size={14} aria-hidden="true" />
@@ -165,7 +166,7 @@ const ClientWorkoutProofPanel = ({ client }: { client: ClientOption }) => (
     </ProofHeader>
     <ProofValue>
       <span>{workoutProofLabelFor(client)}</span>
-      <small>{workoutCountFor(client) > 0 ? 'chart-ready activity' : 'log first session'}</small>
+      <small>{!workoutsKnownFor(client) ? 'log data unavailable' : workoutCountFor(client) > 0 ? 'chart-ready activity' : 'log first session'}</small>
       {lastLoggedLabelFor(client) && <small>{lastLoggedLabelFor(client)}</small>}
     </ProofValue>
   </ProofPanel>

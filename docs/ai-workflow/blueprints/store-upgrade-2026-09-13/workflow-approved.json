@@ -1,0 +1,2411 @@
+{
+  "schemaVersion": 4,
+  "mode": "explicit-task-override",
+  "taskId": "store-upgrade-20260913",
+  "sessionId": "01a098a4-1c60-7fe2-bdd0-0fa6a5673993",
+  "repoRoot": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\store-upgrade-20260913",
+  "policyHash": "79aa03e0f3c44317e85f7bb771837d04c5d42b761656842f510acee8c4d3a8a8",
+  "authorization": {
+    "authorizedBy": "user",
+    "instruction": "Sean: Yes, you have full approval. Please continue. Approval of finishing tested implementation followed by combined Astra review/repair, deferring further GLM; preserve findings/history/counters. One free reset only if needed is separately authorized.",
+    "cadence": "final-astra",
+    "reviewCallsPerTask": 12,
+    "allowAdditionalSlices": true
+  },
+  "origin": {
+    "previousState": {
+      "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/workflow.json",
+      "sha256": "14e401369976eaebbc5c5eda620b4d01a612e7035b0700b9c299d78fc69333fc"
+    },
+    "state": {
+      "schemaVersion": 3,
+      "taskId": "store-upgrade-20260913",
+      "sessionId": "01a098a4-1c60-7fe2-bdd0-0fa6a5673993",
+      "repoRoot": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\store-upgrade-20260913",
+      "profile": "sequential-astra",
+      "extras": [],
+      "localModel": null,
+      "policyHash": "79aa03e0f3c44317e85f7bb771837d04c5d42b761656842f510acee8c4d3a8a8",
+      "index": 0,
+      "stage": "slice",
+      "status": "paused",
+      "calls": 4,
+      "inFlight": null,
+      "slices": [
+        {
+          "id": "S1",
+          "files": [
+            "backend/routes/storeFrontRoutes.mjs",
+            "backend/services/store/storefrontDisplayService.mjs",
+            "backend/tests/api/storefrontDisplayTruth.test.mjs",
+            "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+            "backend/tests/api/storefrontPriceGating.test.mjs",
+            "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+            "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+            "backend/tests/api/storefrontSpecialMoneyPath.test.mjs",
+            "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/README.md",
+            "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/flow.mmd",
+            "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+            "docs\\ai-workflow\\blueprints\\store-upgrade-2026-09-13\\README.md"
+          ],
+          "allowedFiles": [
+            "backend/routes/storeFrontRoutes.mjs",
+            "backend/services/store/storefrontDisplayService.mjs",
+            "backend/tests/api/storefrontDisplayTruth.test.mjs",
+            "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+            "backend/tests/api/storefrontPriceGating.test.mjs",
+            "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+            "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+            "backend/tests/api/storefrontSpecialMoneyPath.test.mjs"
+          ],
+          "builder": {
+            "role": "builder",
+            "model": "gpt-5.6-luna",
+            "provider": "openai-codex",
+            "billing": "subscription",
+            "effort": "xhigh",
+            "selectionEvidence": null,
+            "assignedAt": 1789267927548
+          },
+          "status": "review",
+          "round": 2,
+          "reviews": [
+            {
+              "seat": "glm",
+              "status": "complete",
+              "verdict": "APPROVE",
+              "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+              "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+              "role": "GLM_53",
+              "requestedModel": "glm-5.3",
+              "servedModel": "glm-5.3",
+              "provider": "zai-coding-plan",
+              "billing": "subscription",
+              "effort": null,
+              "attemptId": "store-upgrade-20260913:S1:2:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+              "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-glm-review.json",
+              "sha256": "6fb1e32329e9cac5f7ca5e31450c2745a6a51d82423ee460a1a2c4dba6350fb9"
+            },
+            {
+              "seat": "glmflash",
+              "status": "complete",
+              "verdict": "APPROVE",
+              "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+              "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+              "role": "GLM_53_FLASH",
+              "requestedModel": "glm-5.3-flash",
+              "servedModel": "glm-5.3-flash",
+              "provider": "zai-coding-plan",
+              "billing": "subscription",
+              "effort": null,
+              "attemptId": "store-upgrade-20260913:S1:2:glmflash:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+              "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-flash-review.json",
+              "sha256": "32d72c6fe9f903d84345bfc562e1325a47dc5427c815f57cb7aa946eb35bf263"
+            },
+            {
+              "seat": "astra",
+              "status": "complete",
+              "verdict": "REVISE",
+              "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+              "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+              "role": "ASTRA_FINAL",
+              "requestedModel": "gpt-6-astra",
+              "servedModel": "gpt-6-astra",
+              "provider": "openai-codex",
+              "billing": "subscription",
+              "effort": "xhigh",
+              "attemptId": "store-upgrade-20260913:S1:2:astra:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+              "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-review.json",
+              "sha256": "db309025fcc10775d5be51e1a1c0b302112a5c1b1980004316b73e652d9babfc"
+            }
+          ],
+          "findings": {
+            "glm:F1": {
+              "id": "F1",
+              "priority": "medium",
+              "title": "Variant-table availability cache latches false permanently on transient failure",
+              "files": [
+                "backend/routes/storeFrontRoutes.mjs"
+              ],
+              "explanation": "cachedVariantTableAvailable is set false on any describeTable error, including a transient startup/connection blip. Variants (prices, stock) then silently vanish from all catalog responses for the process lifetime; a later-healed DB never retries. Failure direction is hide-not-leak, so severity is capped, but it is a silent, unrecoverable degradation.",
+              "fix": "Only latch on definitive 'table does not exist' errors (e.g., check error name/table-missing code); for other errors return [] without caching, or add a short TTL/retry window before latching.",
+              "status": "open",
+              "seat": "glm",
+              "findingKey": "glm:F1",
+              "report": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-glm-review.json",
+                "sha256": "6fb1e32329e9cac5f7ca5e31450c2745a6a51d82423ee460a1a2c4dba6350fb9"
+              }
+            },
+            "glm:F2": {
+              "id": "F2",
+              "priority": "low",
+              "title": "Display money serialized as unrounded float",
+              "files": [
+                "backend/services/store/storefrontDisplayService.mjs"
+              ],
+              "explanation": "resolveDisplayPrice and parsePositiveMoney return Decimal.toNumber() without 2-dp quantization. A stored 3+ dp value (or non-DECIMAL column) would surface as e.g. 12.305 in the public DTO. Charge rails correctly keep Decimal; this is display-only cosmetic risk.",
+              "fix": "Quantize at serialization: parsed.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber() in resolveDisplayPrice (and optionally parsePositiveMoney).",
+              "status": "rejected",
+              "seat": "glm",
+              "findingKey": "glm:F2",
+              "report": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-glm-review.json",
+                "sha256": "6fb1e32329e9cac5f7ca5e31450c2745a6a51d82423ee460a1a2c4dba6350fb9"
+              },
+              "reason": "The hypothesized stored 3+ decimal-place values are outside the inspected currency schema: StorefrontItem price, pricePerSession and totalCost, and ProductVariant price are DECIMAL(10,2). Model-calculated totals also use toFixed(2). The mapper performs no arithmetic before serialization. This is not an established defect for supported persisted inputs; live schema drift remains unverified. Adding display-only rounding without evidence could undermine the deliberate shared resolver contract.",
+              "evidence": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-source-evidence.json",
+                "sha256": "917c41ef40c3910c2dd88f49106d56719357093c1d7c1fbf275110289bfcac44"
+              },
+              "adjudicatedBy": "astra"
+            },
+            "glm:F3": {
+              "id": "F3",
+              "priority": "low",
+              "title": "Monthly priceDetails can interpolate nulls",
+              "files": [
+                "backend/services/store/storefrontDisplayService.mjs"
+              ],
+              "explanation": "For packageType 'monthly' with missing months/sessionsPerWeek, priceDetails renders \"null months, undefined sessions/week\". Harmless for money truth, but it is a user-visible string on the public DTO.",
+              "fix": "Build priceDetails only when both fields are present; otherwise emit null.",
+              "status": "open",
+              "seat": "glm",
+              "findingKey": "glm:F3",
+              "report": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-glm-review.json",
+                "sha256": "6fb1e32329e9cac5f7ca5e31450c2745a6a51d82423ee460a1a2c4dba6350fb9"
+              }
+            },
+            "glmflash:F1": {
+              "id": "F1",
+              "priority": "LOW",
+              "title": "Price-column sorting can contradict canonical display price",
+              "files": [
+                "backend/routes/storeFrontRoutes.mjs",
+                "backend/services/store/storefrontDisplayService.mjs"
+              ],
+              "explanation": "sortBy is validated against rawAttributes, so ?sortBy=price|totalCost orders by the raw column. After this repair the shown amount is the resolved price (variant -> totalCost -> price, garbage skipped), so list order can visibly disagree with displayed prices (e.g., garbage price column but valid totalCost, or variant-priced physical products).",
+              "fix": "When sortBy is a money field, sort the mapped items in JS by resolved displayPrice (before stripping for gated users), or exclude money fields from sortBy and default to displayOrder.",
+              "status": "open",
+              "seat": "glmflash",
+              "findingKey": "glmflash:F1",
+              "report": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-flash-review.json",
+                "sha256": "32d72c6fe9f903d84345bfc562e1325a47dc5427c815f57cb7aa946eb35bf263"
+              }
+            },
+            "glmflash:F2": {
+              "id": "F2",
+              "priority": "LOW",
+              "title": "Duplicated description sanitizer risks write/read divergence",
+              "files": [
+                "backend/routes/storeFrontRoutes.mjs",
+                "backend/services/store/storefrontDisplayService.mjs"
+              ],
+              "explanation": "sanitizeStorefrontDescription exists in both the admin write path and the public display mapping. Two copies will drift; a future change to one (e.g., new entity decoding) silently leaves the other stale.",
+              "fix": "Extract to a shared util module and import it in both places.",
+              "status": "rejected",
+              "seat": "glmflash",
+              "findingKey": "glmflash:F2",
+              "report": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-flash-review.json",
+                "sha256": "32d72c6fe9f903d84345bfc562e1325a47dc5427c815f57cb7aa946eb35bf263"
+              },
+              "reason": "The two sanitizers currently have equivalent non-string handling and identical replacement order and patterns. The provider identifies possible future maintenance drift, not present behavioral divergence. Shared extraction is optional cleanup and does not justify a blocking defect.",
+              "evidence": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-source-evidence.json",
+                "sha256": "917c41ef40c3910c2dd88f49106d56719357093c1d7c1fbf275110289bfcac44"
+              },
+              "adjudicatedBy": "astra"
+            },
+            "glmflash:F3": {
+              "id": "F3",
+              "priority": "LOW",
+              "title": "Variant include is latched off permanently after one transient failure",
+              "files": [
+                "backend/routes/storeFrontRoutes.mjs"
+              ],
+              "explanation": "cachedVariantTableAvailable=false after a single describeTable failure (e.g., transient DB blip) disables variants for the lifetime of the process, silently degrading the catalog. Acceptable as fail-safe, but unrecoverable without restart.",
+              "fix": "Time-box the negative cache (e.g., retry after N minutes) or log at error level with an operator-visible signal instead of a one-time warn.",
+              "status": "open",
+              "seat": "glmflash",
+              "findingKey": "glmflash:F3",
+              "report": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-flash-review.json",
+                "sha256": "32d72c6fe9f903d84345bfc562e1325a47dc5427c815f57cb7aa946eb35bf263"
+              }
+            },
+            "astra:ASTRA-F1": {
+              "id": "ASTRA-F1",
+              "priority": "P2",
+              "title": "A transient variant probe failure permanently disables variant inclusion",
+              "explanation": "The catch block sets the module-level availability cache to false for every error. Subsequent requests return an empty include without retrying. A recovered connection therefore cannot restore variant prices, options or stock until process restart. This behavior exists in HEAD already, but remains a real unresolved defect. GLM F1 and Flash F3 describe the same issue.",
+              "files": [
+                "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/store-upgrade-20260913/backend/routes/storeFrontRoutes.mjs:126"
+              ],
+              "status": "open",
+              "seat": "astra",
+              "findingKey": "astra:ASTRA-F1",
+              "report": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-review.json",
+                "sha256": "db309025fcc10775d5be51e1a1c0b302112a5c1b1980004316b73e652d9babfc"
+              }
+            },
+            "astra:ASTRA-F2": {
+              "id": "ASTRA-F2",
+              "priority": "P3",
+              "title": "Nullable monthly fields produce invalid public description text",
+              "explanation": "The mapper interpolates months and sessionsPerWeek unconditionally for monthly packages. Both fields permit null in StorefrontItem, and the calculation hook does not require them. A supported monthly record can therefore produce 'null months, null sessions/week'. The baseline has the same defect; extraction has preserved it.",
+              "files": [
+                "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/store-upgrade-20260913/backend/services/store/storefrontDisplayService.mjs:108",
+                "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/store-upgrade-20260913/backend/models/StorefrontItem.mjs:79"
+              ],
+              "status": "open",
+              "seat": "astra",
+              "findingKey": "astra:ASTRA-F2",
+              "report": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-review.json",
+                "sha256": "db309025fcc10775d5be51e1a1c0b302112a5c1b1980004316b73e652d9babfc"
+              }
+            },
+            "astra:ASTRA-F3": {
+              "id": "ASTRA-F3",
+              "priority": "P3",
+              "title": "Supported price sorting can contradict the returned price",
+              "explanation": "The query sorts and paginates using the raw price column, while the mapper now returns totalCost before price. For example, A(price=100,totalCost=900) and B(price=200,totalCost=400) return in A,B order for price ASC while displaying 900,400. These values fit the model schema. The finding holds without malformed data or variant assumptions. Sorting only the retrieved page in JavaScript would not repair ordering across pages.",
+              "files": [
+                "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/store-upgrade-20260913/backend/routes/storeFrontRoutes.mjs:235",
+                "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/store-upgrade-20260913/backend/services/store/storefrontDisplayService.mjs:98"
+              ],
+              "status": "open",
+              "seat": "astra",
+              "findingKey": "astra:ASTRA-F3",
+              "report": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-review.json",
+                "sha256": "db309025fcc10775d5be51e1a1c0b302112a5c1b1980004316b73e652d9babfc"
+              }
+            }
+          },
+          "reviewHistory": [
+            {
+              "id": "S1",
+              "files": [
+                "backend/routes/storeFrontRoutes.mjs",
+                "backend/services/store/storefrontDisplayService.mjs",
+                "backend/tests/api/storefrontDisplayTruth.test.mjs",
+                "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+                "backend/tests/api/storefrontPriceGating.test.mjs",
+                "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+                "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+                "backend/tests/api/storefrontSpecialMoneyPath.test.mjs",
+                "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/README.md",
+                "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/flow.mmd",
+                "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+                "docs\\ai-workflow\\blueprints\\store-upgrade-2026-09-13\\README.md"
+              ],
+              "allowedFiles": [
+                "backend/routes/storeFrontRoutes.mjs",
+                "backend/services/store/storefrontDisplayService.mjs",
+                "backend/tests/api/storefrontDisplayTruth.test.mjs",
+                "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+                "backend/tests/api/storefrontPriceGating.test.mjs",
+                "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+                "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+                "backend/tests/api/storefrontSpecialMoneyPath.test.mjs"
+              ],
+              "builder": {
+                "role": "builder",
+                "model": "gpt-5.6-luna",
+                "provider": "openai-codex",
+                "billing": "subscription",
+                "effort": "xhigh",
+                "selectionEvidence": null,
+                "assignedAt": 1789267927548
+              },
+              "status": "review",
+              "round": 1,
+              "reviews": [],
+              "findings": {},
+              "route": {
+                "requested": "sequential-astra",
+                "selected": [
+                  {
+                    "seat": "glm",
+                    "model": "glm-5.3",
+                    "provider": "zai-coding-plan",
+                    "billing": "subscription",
+                    "effort": null
+                  },
+                  {
+                    "seat": "glmflash",
+                    "model": "glm-5.3-flash",
+                    "provider": "zai-coding-plan",
+                    "billing": "subscription",
+                    "effort": null
+                  },
+                  {
+                    "seat": "astra",
+                    "model": "gpt-6-astra",
+                    "provider": "openai-codex",
+                    "billing": "subscription",
+                    "effort": "xhigh"
+                  }
+                ],
+                "skipped": [],
+                "grade": "SELECTED_REVIEWERS"
+              },
+              "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+              "snapshot": [
+                {
+                  "path": "backend/routes/storeFrontRoutes.mjs",
+                  "sha256": "c12456612c7808835a7a035c422f1153cc31ea35b089f7ba2ac57462662ab2f8"
+                },
+                {
+                  "path": "backend/services/store/storefrontDisplayService.mjs",
+                  "sha256": "440f01192744f61eed9a16ce9696633df15c39b89b1367ee8c0316cec42fc08b"
+                },
+                {
+                  "path": "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+                  "sha256": "44baf80a1bb4cbd4fad201d116418447cb925fbe3db87523e35f6e3fdb380191"
+                },
+                {
+                  "path": "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+                  "sha256": "ba53fb93b4cb21968f787c6ec1730502a42dc3e6035579e6963b08a9c006f666"
+                },
+                {
+                  "path": "backend/tests/api/storefrontDisplayTruth.test.mjs",
+                  "sha256": "9883f52af343be366c51af70459ebda04c6a4ae220a4753fe1b90bc306fcc10d"
+                },
+                {
+                  "path": "backend/tests/api/storefrontPriceGating.test.mjs",
+                  "sha256": "c549c22241d4e74ae334ab5aadd8ce1de8c25282ca17dbbbbcf35385323ac106"
+                },
+                {
+                  "path": "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+                  "sha256": "97509d002b659e348dce352f22bacf607a4a8a4f8a31b6e04585a952e3bf4fb6"
+                },
+                {
+                  "path": "backend/tests/api/storefrontSpecialMoneyPath.test.mjs",
+                  "sha256": "8d36fb0c5d819514364470c8a2146724dc3a652556e32772de0627b2b40c6d46"
+                },
+                {
+                  "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/README.md",
+                  "sha256": "22aa431f0a82731d008df14cd15613568c1ec12ded0fbda61552421f7cf1e7e6"
+                },
+                {
+                  "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/flow.mmd",
+                  "sha256": "07a9d11a16e78cd8de7d4933d38fe1397c1501e9b63a9bf0440dce132332aebc"
+                },
+                {
+                  "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+                  "sha256": "0a2209e89076a9d3401e9c5370d42e5de2a172d774d4d3859e86a2536c08d100"
+                },
+                {
+                  "path": "docs\\ai-workflow\\blueprints\\store-upgrade-2026-09-13\\README.md",
+                  "sha256": "22aa431f0a82731d008df14cd15613568c1ec12ded0fbda61552421f7cf1e7e6"
+                }
+              ],
+              "tests": {
+                "status": "PASS",
+                "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+                "command": "node node_modules/vitest/vitest.mjs run tests/api/storefrontDisplayTruth.test.mjs tests/api/storefrontDisplayRoutes.test.mjs tests/api/storefrontPriceGating.test.mjs tests/api/storefrontRoutesSecurity.test.mjs tests/api/storefrontCommerceFields.contract.test.mjs tests/api/storefrontSpecialMoneyPath.test.mjs tests/api/itemPricingParity.test.mjs tests/api/storefrontPublicSpecialHiddenContract.test.mjs tests/api/storefrontCurrencyPrecision.contract.test.mjs --reporter=dot",
+                "toolEvidence": {
+                  "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-tests-tool.json",
+                  "sha256": "b7d21de157a1da33fc01ba34cfadf9cd5272369d08f5d2d8c538c6fd9cda27f8"
+                },
+                "passed": 70,
+                "boundary": "Mocked models/auth, real Express and price/stripping helpers. No real DB/Stripe.",
+                "evidence": {
+                  "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-tests.json",
+                  "sha256": "6099b9abe3594ea0572cf13c0c7b63f5bc03f58860bbb543591c6446157dc141"
+                }
+              },
+              "packet": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-packet.json",
+                "sha256": "4191f5b45d208b35cce3a2ee4bfc78dbcd3a3110c831de0c7652e1af8b412b46"
+              },
+              "buildReceipt": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-build.json",
+                "sha256": "d637157fe44b5620471224e610c92885f59246daa3adde7c2da0e3d8931c876a"
+              },
+              "adjudications": []
+            }
+          ],
+          "route": {
+            "requested": "sequential-astra",
+            "selected": [
+              {
+                "seat": "glm",
+                "model": "glm-5.3",
+                "provider": "zai-coding-plan",
+                "billing": "subscription",
+                "effort": null
+              },
+              {
+                "seat": "glmflash",
+                "model": "glm-5.3-flash",
+                "provider": "zai-coding-plan",
+                "billing": "subscription",
+                "effort": null
+              },
+              {
+                "seat": "astra",
+                "model": "gpt-6-astra",
+                "provider": "openai-codex",
+                "billing": "subscription",
+                "effort": "xhigh"
+              }
+            ],
+            "skipped": [],
+            "grade": "SELECTED_REVIEWERS"
+          },
+          "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "snapshot": [
+            {
+              "path": "backend/routes/storeFrontRoutes.mjs",
+              "sha256": "c12456612c7808835a7a035c422f1153cc31ea35b089f7ba2ac57462662ab2f8"
+            },
+            {
+              "path": "backend/services/store/storefrontDisplayService.mjs",
+              "sha256": "440f01192744f61eed9a16ce9696633df15c39b89b1367ee8c0316cec42fc08b"
+            },
+            {
+              "path": "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+              "sha256": "44baf80a1bb4cbd4fad201d116418447cb925fbe3db87523e35f6e3fdb380191"
+            },
+            {
+              "path": "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+              "sha256": "ba53fb93b4cb21968f787c6ec1730502a42dc3e6035579e6963b08a9c006f666"
+            },
+            {
+              "path": "backend/tests/api/storefrontDisplayTruth.test.mjs",
+              "sha256": "9883f52af343be366c51af70459ebda04c6a4ae220a4753fe1b90bc306fcc10d"
+            },
+            {
+              "path": "backend/tests/api/storefrontPriceGating.test.mjs",
+              "sha256": "c549c22241d4e74ae334ab5aadd8ce1de8c25282ca17dbbbbcf35385323ac106"
+            },
+            {
+              "path": "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+              "sha256": "97509d002b659e348dce352f22bacf607a4a8a4f8a31b6e04585a952e3bf4fb6"
+            },
+            {
+              "path": "backend/tests/api/storefrontSpecialMoneyPath.test.mjs",
+              "sha256": "8d36fb0c5d819514364470c8a2146724dc3a652556e32772de0627b2b40c6d46"
+            },
+            {
+              "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/README.md",
+              "sha256": "22aa431f0a82731d008df14cd15613568c1ec12ded0fbda61552421f7cf1e7e6"
+            },
+            {
+              "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/flow.mmd",
+              "sha256": "07a9d11a16e78cd8de7d4933d38fe1397c1501e9b63a9bf0440dce132332aebc"
+            },
+            {
+              "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+              "sha256": "0a2209e89076a9d3401e9c5370d42e5de2a172d774d4d3859e86a2536c08d100"
+            },
+            {
+              "path": "docs\\ai-workflow\\blueprints\\store-upgrade-2026-09-13\\README.md",
+              "sha256": "22aa431f0a82731d008df14cd15613568c1ec12ded0fbda61552421f7cf1e7e6"
+            }
+          ],
+          "tests": {
+            "status": "PASS",
+            "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+            "command": "node node_modules/vitest/vitest.mjs run tests/api/storefrontDisplayTruth.test.mjs tests/api/storefrontDisplayRoutes.test.mjs tests/api/storefrontPriceGating.test.mjs tests/api/storefrontRoutesSecurity.test.mjs tests/api/storefrontCommerceFields.contract.test.mjs tests/api/storefrontSpecialMoneyPath.test.mjs tests/api/itemPricingParity.test.mjs tests/api/storefrontPublicSpecialHiddenContract.test.mjs tests/api/storefrontCurrencyPrecision.contract.test.mjs --reporter=dot",
+            "toolEvidence": {
+              "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-tests-tool.json",
+              "sha256": "b7d21de157a1da33fc01ba34cfadf9cd5272369d08f5d2d8c538c6fd9cda27f8"
+            },
+            "passed": 70,
+            "boundary": "Mocked models/auth, real Express and price/stripping helpers. No real DB/Stripe.",
+            "evidence": {
+              "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-tests.json",
+              "sha256": "6099b9abe3594ea0572cf13c0c7b63f5bc03f58860bbb543591c6446157dc141"
+            }
+          },
+          "packet": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-packet.json",
+            "sha256": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351"
+          },
+          "buildReceipt": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-build.json",
+            "sha256": "ef628dd6f9155fb48ed5ff344bfb0148ec29cb4d6c39257d00b8f8ba1e9cb51e"
+          },
+          "adjudications": [
+            {
+              "findingKey": "glm:F2",
+              "status": "rejected",
+              "reason": "The hypothesized stored 3+ decimal-place values are outside the inspected currency schema: StorefrontItem price, pricePerSession and totalCost, and ProductVariant price are DECIMAL(10,2). Model-calculated totals also use toFixed(2). The mapper performs no arithmetic before serialization. This is not an established defect for supported persisted inputs; live schema drift remains unverified. Adding display-only rounding without evidence could undermine the deliberate shared resolver contract.",
+              "evidence": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-source-evidence.json",
+                "sha256": "917c41ef40c3910c2dd88f49106d56719357093c1d7c1fbf275110289bfcac44"
+              }
+            },
+            {
+              "findingKey": "glmflash:F2",
+              "status": "rejected",
+              "reason": "The two sanitizers currently have equivalent non-string handling and identical replacement order and patterns. The provider identifies possible future maintenance drift, not present behavioral divergence. Shared extraction is optional cleanup and does not justify a blocking defect.",
+              "evidence": {
+                "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-source-evidence.json",
+                "sha256": "917c41ef40c3910c2dd88f49106d56719357093c1d7c1fbf275110289bfcac44"
+              }
+            }
+          ]
+        },
+        {
+          "id": "S2",
+          "files": [
+            "frontend/src/pages/shop/StoreV3.tsx",
+            "frontend/src/pages/shop/StoreV3.styles.ts",
+            "frontend/src/pages/shop/useStorefrontCatalog.ts",
+            "frontend/src/pages/shop/useStorefrontCatalog.test.tsx",
+            "frontend/src/pages/shop/StoreV3.experience.test.tsx",
+            "frontend/src/pages/shop/components/storeCatalog.ts",
+            "frontend/src/pages/shop/components/storeCatalog.types.ts",
+            "frontend/src/pages/shop/components/storeCatalog.test.ts",
+            "frontend/src/pages/shop/components/PackageCard.tsx",
+            "frontend/src/pages/shop/components/PackageCard.styles.ts",
+            "frontend/src/pages/shop/components/PackageCard.truth.test.tsx",
+            "frontend/src/pages/shop/components/PackagesGrid.tsx",
+            "frontend/src/pages/shop/components/PackagesGrid.styles.ts",
+            "frontend/src/pages/shop/components/ProductCard.tsx",
+            "frontend/src/pages/shop/components/ProductCard.test.tsx",
+            "frontend/src/pages/shop/components/StoreStory.tsx",
+            "frontend/src/pages/shop/components/StoreSpotlight.tsx",
+            "frontend/src/pages/shop/components/StoreComparison.tsx",
+            "frontend/src/pages/shop/components/StoreExperience.styles.ts",
+            "frontend/src/pages/shop/components/MembershipsSection.tsx",
+            "frontend/src/pages/shop/components/MembershipsSection.test.tsx",
+            "frontend/src/pages/shop/components/MembershipSummary.tsx",
+            "frontend/src/pages/AscensionPage/AscensionPage.tsx",
+            "frontend/src/pages/AscensionPage/VaultCard.tsx",
+            "frontend/src/pages/AscensionPage/AscensionPage.purchase.test.tsx",
+            "frontend/src/hooks/useSubscription.ts",
+            "frontend/src/hooks/useSubscription.test.tsx",
+            "frontend/src/components/Shop/ProductDetail.tsx",
+            "frontend/src/components/Shop/ProductDetail.styles.ts",
+            "frontend/src/components/Shop/ProductDetailContent.tsx",
+            "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+            "frontend/src/components/NewCheckout/CheckoutView.tsx",
+            "frontend/src/components/NewCheckout/CheckoutView.sections.tsx",
+            "frontend/src/components/NewCheckout/CheckoutView.empty.test.tsx",
+            "frontend/src/components/NewCheckout/SuccessPage.tsx",
+            "frontend/src/components/NewCheckout/SuccessPage.styles.ts",
+            "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+            "frontend/src/components/NewCheckout/checkoutDiagnostics.ts",
+            "frontend/src/components/NewCheckout/checkoutDiagnostics.test.ts",
+            "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/README.md",
+            "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/flow.mmd",
+            "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+            "docs\\ai-workflow\\blueprints\\store-upgrade-2026-09-13\\README.md"
+          ],
+          "allowedFiles": [
+            "frontend/src/pages/shop/StoreV3.tsx",
+            "frontend/src/pages/shop/StoreV3.styles.ts",
+            "frontend/src/pages/shop/useStorefrontCatalog.ts",
+            "frontend/src/pages/shop/useStorefrontCatalog.test.tsx",
+            "frontend/src/pages/shop/StoreV3.experience.test.tsx",
+            "frontend/src/pages/shop/components/storeCatalog.ts",
+            "frontend/src/pages/shop/components/storeCatalog.types.ts",
+            "frontend/src/pages/shop/components/storeCatalog.test.ts",
+            "frontend/src/pages/shop/components/PackageCard.tsx",
+            "frontend/src/pages/shop/components/PackageCard.styles.ts",
+            "frontend/src/pages/shop/components/PackageCard.truth.test.tsx",
+            "frontend/src/pages/shop/components/PackagesGrid.tsx",
+            "frontend/src/pages/shop/components/PackagesGrid.styles.ts",
+            "frontend/src/pages/shop/components/ProductCard.tsx",
+            "frontend/src/pages/shop/components/ProductCard.test.tsx",
+            "frontend/src/pages/shop/components/StoreStory.tsx",
+            "frontend/src/pages/shop/components/StoreSpotlight.tsx",
+            "frontend/src/pages/shop/components/StoreComparison.tsx",
+            "frontend/src/pages/shop/components/StoreExperience.styles.ts",
+            "frontend/src/pages/shop/components/MembershipsSection.tsx",
+            "frontend/src/pages/shop/components/MembershipsSection.test.tsx",
+            "frontend/src/pages/shop/components/MembershipSummary.tsx",
+            "frontend/src/pages/AscensionPage/AscensionPage.tsx",
+            "frontend/src/pages/AscensionPage/VaultCard.tsx",
+            "frontend/src/pages/AscensionPage/AscensionPage.purchase.test.tsx",
+            "frontend/src/hooks/useSubscription.ts",
+            "frontend/src/hooks/useSubscription.test.tsx",
+            "frontend/src/components/Shop/ProductDetail.tsx",
+            "frontend/src/components/Shop/ProductDetail.styles.ts",
+            "frontend/src/components/Shop/ProductDetailContent.tsx",
+            "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+            "frontend/src/components/NewCheckout/CheckoutView.tsx",
+            "frontend/src/components/NewCheckout/CheckoutView.sections.tsx",
+            "frontend/src/components/NewCheckout/CheckoutView.empty.test.tsx",
+            "frontend/src/components/NewCheckout/SuccessPage.tsx",
+            "frontend/src/components/NewCheckout/SuccessPage.styles.ts",
+            "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+            "frontend/src/components/NewCheckout/checkoutDiagnostics.ts",
+            "frontend/src/components/NewCheckout/checkoutDiagnostics.test.ts"
+          ],
+          "builder": {
+            "role": "builder",
+            "model": "gpt-5.6-luna",
+            "provider": "openai-codex",
+            "billing": "subscription",
+            "effort": "xhigh",
+            "selectionEvidence": null,
+            "assignedAt": 1789267927553
+          },
+          "status": "build",
+          "round": 0,
+          "reviews": [],
+          "findings": {},
+          "reviewHistory": []
+        }
+      ],
+      "events": [
+        {
+          "type": "frozen",
+          "slice": "S1",
+          "round": 1,
+          "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "packet": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-packet.json",
+            "sha256": "4191f5b45d208b35cce3a2ee4bfc78dbcd3a3110c831de0c7652e1af8b412b46"
+          },
+          "tests": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-tests.json",
+            "sha256": "6099b9abe3594ea0572cf13c0c7b63f5bc03f58860bbb543591c6446157dc141"
+          },
+          "buildReceipt": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-build.json",
+            "sha256": "d637157fe44b5620471224e610c92885f59246daa3adde7c2da0e3d8931c876a"
+          },
+          "builder": {
+            "role": "builder",
+            "model": "gpt-5.6-luna",
+            "provider": "openai-codex",
+            "billing": "subscription",
+            "effort": "xhigh",
+            "selectionEvidence": null,
+            "assignedAt": 1789267927548
+          }
+        },
+        {
+          "type": "freeze",
+          "slice": "S1",
+          "round": 1,
+          "at": "2026-09-13T03:11:37.673Z"
+        },
+        {
+          "type": "admitted",
+          "attemptId": "store-upgrade-20260913:S1:1:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "glm",
+          "slice": "S1",
+          "round": 1,
+          "run": {
+            "id": "store-upgrade-20260913:S1:1:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+            "seat": "glm",
+            "dispatch": {
+              "toolName": "exec_command",
+              "inputHash": "9616c21909133bec5324219cc78d79c148dfc35c93c2cfdffe22dae124043f69"
+            },
+            "reviewer": {
+              "seat": "glm",
+              "model": "glm-5.3",
+              "provider": "zai-coding-plan",
+              "billing": "subscription",
+              "effort": null
+            },
+            "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+            "packetDigest": "4191f5b45d208b35cce3a2ee4bfc78dbcd3a3110c831de0c7652e1af8b412b46",
+            "preflightCheckedAt": "2026-09-13T03:09:43.195Z",
+            "startedAt": 1789269109743,
+            "deadline": 1789269709743
+          },
+          "at": "2026-09-13T03:11:49.743Z"
+        },
+        {
+          "type": "admit",
+          "slice": "S1",
+          "round": 1,
+          "at": "2026-09-13T03:11:49.743Z"
+        },
+        {
+          "type": "reconciled",
+          "attemptId": "store-upgrade-20260913:S1:1:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "slice": "S1",
+          "round": 1,
+          "receipt": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-glm-terminal.json",
+            "sha256": "cd8a0d63a67aa118bae670f94264539eb5aca677b2fe976d12b402bf4357697f"
+          }
+        },
+        {
+          "type": "reconcile",
+          "slice": "S1",
+          "round": 1,
+          "at": "2026-09-13T03:13:47.841Z"
+        },
+        {
+          "type": "frozen",
+          "slice": "S1",
+          "round": 2,
+          "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "packet": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-packet.json",
+            "sha256": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351"
+          },
+          "tests": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-tests.json",
+            "sha256": "6099b9abe3594ea0572cf13c0c7b63f5bc03f58860bbb543591c6446157dc141"
+          },
+          "buildReceipt": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-build.json",
+            "sha256": "ef628dd6f9155fb48ed5ff344bfb0148ec29cb4d6c39257d00b8f8ba1e9cb51e"
+          },
+          "builder": {
+            "role": "builder",
+            "model": "gpt-5.6-luna",
+            "provider": "openai-codex",
+            "billing": "subscription",
+            "effort": "xhigh",
+            "selectionEvidence": null,
+            "assignedAt": 1789267927548
+          }
+        },
+        {
+          "type": "freeze",
+          "slice": "S1",
+          "round": 2,
+          "at": "2026-09-13T03:22:26.828Z"
+        },
+        {
+          "type": "admitted",
+          "attemptId": "store-upgrade-20260913:S1:2:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "glm",
+          "slice": "S1",
+          "round": 2,
+          "run": {
+            "id": "store-upgrade-20260913:S1:2:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+            "seat": "glm",
+            "dispatch": {
+              "toolName": "exec_command",
+              "inputHash": "93468c6ebb8a5b016f46b69e495f1439dcf58352a4de92af5af312143be6f354"
+            },
+            "reviewer": {
+              "seat": "glm",
+              "model": "glm-5.3",
+              "provider": "zai-coding-plan",
+              "billing": "subscription",
+              "effort": null
+            },
+            "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+            "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+            "preflightCheckedAt": "2026-09-13T03:20:44.581Z",
+            "startedAt": 1789269747831,
+            "deadline": 1789270347831
+          },
+          "at": "2026-09-13T03:22:27.831Z"
+        },
+        {
+          "type": "admit",
+          "slice": "S1",
+          "round": 2,
+          "at": "2026-09-13T03:22:27.831Z"
+        },
+        {
+          "type": "reviewed",
+          "attemptId": "store-upgrade-20260913:S1:2:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "glm",
+          "slice": "S1",
+          "round": 2,
+          "receipt": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-glm-review.json",
+            "sha256": "6fb1e32329e9cac5f7ca5e31450c2745a6a51d82423ee460a1a2c4dba6350fb9"
+          },
+          "completedAt": 1789269921665
+        },
+        {
+          "type": "review",
+          "slice": "S1",
+          "round": 2,
+          "at": "2026-09-13T03:25:21.681Z"
+        },
+        {
+          "type": "admitted",
+          "attemptId": "store-upgrade-20260913:S1:2:glmflash:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "glmflash",
+          "slice": "S1",
+          "round": 2,
+          "run": {
+            "id": "store-upgrade-20260913:S1:2:glmflash:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+            "seat": "glmflash",
+            "dispatch": {
+              "toolName": "exec_command",
+              "inputHash": "0bcbe6b271b3831895e9319f5217d2f20b6cd221adcbcea4510c6e1b81babbce"
+            },
+            "reviewer": {
+              "seat": "glmflash",
+              "model": "glm-5.3-flash",
+              "provider": "zai-coding-plan",
+              "billing": "subscription",
+              "effort": null
+            },
+            "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+            "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+            "preflightCheckedAt": "2026-09-13T03:26:16.108Z",
+            "startedAt": 1789269982840,
+            "deadline": 1789270582840
+          },
+          "at": "2026-09-13T03:26:22.840Z"
+        },
+        {
+          "type": "admit",
+          "slice": "S1",
+          "round": 2,
+          "at": "2026-09-13T03:26:22.840Z"
+        },
+        {
+          "type": "reviewed",
+          "attemptId": "store-upgrade-20260913:S1:2:glmflash:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "glmflash",
+          "slice": "S1",
+          "round": 2,
+          "receipt": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-flash-review.json",
+            "sha256": "32d72c6fe9f903d84345bfc562e1325a47dc5427c815f57cb7aa946eb35bf263"
+          },
+          "completedAt": 1789270164488
+        },
+        {
+          "type": "review",
+          "slice": "S1",
+          "round": 2,
+          "at": "2026-09-13T03:29:24.503Z"
+        },
+        {
+          "type": "admitted",
+          "attemptId": "store-upgrade-20260913:S1:2:astra:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "astra",
+          "slice": "S1",
+          "round": 2,
+          "run": {
+            "id": "store-upgrade-20260913:S1:2:astra:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+            "seat": "astra",
+            "dispatch": {
+              "toolName": "collaboration.spawn_agent",
+              "inputHash": "e8cda5696b2878b5a6bf6af7331eb7e099a8d7363dcea24f8de01a719b6b6652"
+            },
+            "reviewer": {
+              "seat": "astra",
+              "model": "gpt-6-astra",
+              "provider": "openai-codex",
+              "billing": "subscription",
+              "effort": "xhigh"
+            },
+            "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+            "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+            "preflightCheckedAt": "2026-09-13T03:29:25.469Z",
+            "startedAt": 1789270219745,
+            "deadline": 1789270819745
+          },
+          "at": "2026-09-13T03:30:19.745Z"
+        },
+        {
+          "type": "admit",
+          "slice": "S1",
+          "round": 2,
+          "at": "2026-09-13T03:30:19.745Z"
+        },
+        {
+          "type": "reviewed",
+          "attemptId": "store-upgrade-20260913:S1:2:astra:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "astra",
+          "slice": "S1",
+          "round": 2,
+          "receipt": {
+            "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-review.json",
+            "sha256": "db309025fcc10775d5be51e1a1c0b302112a5c1b1980004316b73e652d9babfc"
+          },
+          "completedAt": 1789270472871
+        },
+        {
+          "type": "review",
+          "slice": "S1",
+          "round": 2,
+          "at": "2026-09-13T03:34:32.891Z"
+        }
+      ],
+      "planReceipt": {
+        "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+        "sha256": "0a2209e89076a9d3401e9c5370d42e5de2a172d774d4d3859e86a2536c08d100"
+      },
+      "plannerReceipt": {
+        "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/evidence/planner.json",
+        "sha256": "3e7ece97d78b713561a8590fcba4fa3777d9dfec3e40db9317755e03985d991b"
+      },
+      "previousStatus": "active"
+    },
+    "calls": 4,
+    "carriedCalls": [],
+    "events": [
+      {
+        "type": "frozen",
+        "slice": "S1",
+        "round": 1,
+        "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "packet": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-packet.json",
+          "sha256": "4191f5b45d208b35cce3a2ee4bfc78dbcd3a3110c831de0c7652e1af8b412b46"
+        },
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-tests.json",
+          "sha256": "6099b9abe3594ea0572cf13c0c7b63f5bc03f58860bbb543591c6446157dc141"
+        },
+        "buildReceipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-build.json",
+          "sha256": "d637157fe44b5620471224e610c92885f59246daa3adde7c2da0e3d8931c876a"
+        },
+        "builder": {
+          "role": "builder",
+          "model": "gpt-5.6-luna",
+          "provider": "openai-codex",
+          "billing": "subscription",
+          "effort": "xhigh",
+          "selectionEvidence": null,
+          "assignedAt": 1789267927548
+        }
+      },
+      {
+        "type": "freeze",
+        "slice": "S1",
+        "round": 1,
+        "at": "2026-09-13T03:11:37.673Z"
+      },
+      {
+        "type": "admitted",
+        "attemptId": "store-upgrade-20260913:S1:1:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "glm",
+        "slice": "S1",
+        "round": 1,
+        "run": {
+          "id": "store-upgrade-20260913:S1:1:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "glm",
+          "dispatch": {
+            "toolName": "exec_command",
+            "inputHash": "9616c21909133bec5324219cc78d79c148dfc35c93c2cfdffe22dae124043f69"
+          },
+          "reviewer": {
+            "seat": "glm",
+            "model": "glm-5.3",
+            "provider": "zai-coding-plan",
+            "billing": "subscription",
+            "effort": null
+          },
+          "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "packetDigest": "4191f5b45d208b35cce3a2ee4bfc78dbcd3a3110c831de0c7652e1af8b412b46",
+          "preflightCheckedAt": "2026-09-13T03:09:43.195Z",
+          "startedAt": 1789269109743,
+          "deadline": 1789269709743
+        },
+        "at": "2026-09-13T03:11:49.743Z"
+      },
+      {
+        "type": "admit",
+        "slice": "S1",
+        "round": 1,
+        "at": "2026-09-13T03:11:49.743Z"
+      },
+      {
+        "type": "reconciled",
+        "attemptId": "store-upgrade-20260913:S1:1:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "slice": "S1",
+        "round": 1,
+        "receipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-glm-terminal.json",
+          "sha256": "cd8a0d63a67aa118bae670f94264539eb5aca677b2fe976d12b402bf4357697f"
+        }
+      },
+      {
+        "type": "reconcile",
+        "slice": "S1",
+        "round": 1,
+        "at": "2026-09-13T03:13:47.841Z"
+      },
+      {
+        "type": "frozen",
+        "slice": "S1",
+        "round": 2,
+        "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "packet": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-packet.json",
+          "sha256": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351"
+        },
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-tests.json",
+          "sha256": "6099b9abe3594ea0572cf13c0c7b63f5bc03f58860bbb543591c6446157dc141"
+        },
+        "buildReceipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-build.json",
+          "sha256": "ef628dd6f9155fb48ed5ff344bfb0148ec29cb4d6c39257d00b8f8ba1e9cb51e"
+        },
+        "builder": {
+          "role": "builder",
+          "model": "gpt-5.6-luna",
+          "provider": "openai-codex",
+          "billing": "subscription",
+          "effort": "xhigh",
+          "selectionEvidence": null,
+          "assignedAt": 1789267927548
+        }
+      },
+      {
+        "type": "freeze",
+        "slice": "S1",
+        "round": 2,
+        "at": "2026-09-13T03:22:26.828Z"
+      },
+      {
+        "type": "admitted",
+        "attemptId": "store-upgrade-20260913:S1:2:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "glm",
+        "slice": "S1",
+        "round": 2,
+        "run": {
+          "id": "store-upgrade-20260913:S1:2:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "glm",
+          "dispatch": {
+            "toolName": "exec_command",
+            "inputHash": "93468c6ebb8a5b016f46b69e495f1439dcf58352a4de92af5af312143be6f354"
+          },
+          "reviewer": {
+            "seat": "glm",
+            "model": "glm-5.3",
+            "provider": "zai-coding-plan",
+            "billing": "subscription",
+            "effort": null
+          },
+          "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+          "preflightCheckedAt": "2026-09-13T03:20:44.581Z",
+          "startedAt": 1789269747831,
+          "deadline": 1789270347831
+        },
+        "at": "2026-09-13T03:22:27.831Z"
+      },
+      {
+        "type": "admit",
+        "slice": "S1",
+        "round": 2,
+        "at": "2026-09-13T03:22:27.831Z"
+      },
+      {
+        "type": "reviewed",
+        "attemptId": "store-upgrade-20260913:S1:2:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "glm",
+        "slice": "S1",
+        "round": 2,
+        "receipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-glm-review.json",
+          "sha256": "6fb1e32329e9cac5f7ca5e31450c2745a6a51d82423ee460a1a2c4dba6350fb9"
+        },
+        "completedAt": 1789269921665
+      },
+      {
+        "type": "review",
+        "slice": "S1",
+        "round": 2,
+        "at": "2026-09-13T03:25:21.681Z"
+      },
+      {
+        "type": "admitted",
+        "attemptId": "store-upgrade-20260913:S1:2:glmflash:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "glmflash",
+        "slice": "S1",
+        "round": 2,
+        "run": {
+          "id": "store-upgrade-20260913:S1:2:glmflash:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "glmflash",
+          "dispatch": {
+            "toolName": "exec_command",
+            "inputHash": "0bcbe6b271b3831895e9319f5217d2f20b6cd221adcbcea4510c6e1b81babbce"
+          },
+          "reviewer": {
+            "seat": "glmflash",
+            "model": "glm-5.3-flash",
+            "provider": "zai-coding-plan",
+            "billing": "subscription",
+            "effort": null
+          },
+          "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+          "preflightCheckedAt": "2026-09-13T03:26:16.108Z",
+          "startedAt": 1789269982840,
+          "deadline": 1789270582840
+        },
+        "at": "2026-09-13T03:26:22.840Z"
+      },
+      {
+        "type": "admit",
+        "slice": "S1",
+        "round": 2,
+        "at": "2026-09-13T03:26:22.840Z"
+      },
+      {
+        "type": "reviewed",
+        "attemptId": "store-upgrade-20260913:S1:2:glmflash:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "glmflash",
+        "slice": "S1",
+        "round": 2,
+        "receipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-flash-review.json",
+          "sha256": "32d72c6fe9f903d84345bfc562e1325a47dc5427c815f57cb7aa946eb35bf263"
+        },
+        "completedAt": 1789270164488
+      },
+      {
+        "type": "review",
+        "slice": "S1",
+        "round": 2,
+        "at": "2026-09-13T03:29:24.503Z"
+      },
+      {
+        "type": "admitted",
+        "attemptId": "store-upgrade-20260913:S1:2:astra:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "astra",
+        "slice": "S1",
+        "round": 2,
+        "run": {
+          "id": "store-upgrade-20260913:S1:2:astra:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "seat": "astra",
+          "dispatch": {
+            "toolName": "collaboration.spawn_agent",
+            "inputHash": "e8cda5696b2878b5a6bf6af7331eb7e099a8d7363dcea24f8de01a719b6b6652"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "model": "gpt-6-astra",
+            "provider": "openai-codex",
+            "billing": "subscription",
+            "effort": "xhigh"
+          },
+          "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+          "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+          "preflightCheckedAt": "2026-09-13T03:29:25.469Z",
+          "startedAt": 1789270219745,
+          "deadline": 1789270819745
+        },
+        "at": "2026-09-13T03:30:19.745Z"
+      },
+      {
+        "type": "admit",
+        "slice": "S1",
+        "round": 2,
+        "at": "2026-09-13T03:30:19.745Z"
+      },
+      {
+        "type": "reviewed",
+        "attemptId": "store-upgrade-20260913:S1:2:astra:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "astra",
+        "slice": "S1",
+        "round": 2,
+        "receipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-review.json",
+          "sha256": "db309025fcc10775d5be51e1a1c0b302112a5c1b1980004316b73e652d9babfc"
+        },
+        "completedAt": 1789270472871
+      },
+      {
+        "type": "review",
+        "slice": "S1",
+        "round": 2,
+        "at": "2026-09-13T03:34:32.891Z"
+      }
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/README.md",
+    "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/flow.mmd",
+    "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+    "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/APPROVED-CONTINUATION.md"
+  ],
+  "scopes": [
+    {
+      "id": "S1-repair",
+      "files": [
+        "backend/routes/storeFrontRoutes.mjs",
+        "backend/services/store/storefrontDisplayService.mjs",
+        "backend/tests/api/storefrontDisplayTruth.test.mjs",
+        "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+        "backend/tests/api/storefrontPriceGating.test.mjs",
+        "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+        "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+        "backend/tests/api/storefrontSpecialMoneyPath.test.mjs",
+        "backend/tests/api/storefrontRecoveryAndSorting.test.mjs"
+      ]
+    },
+    {
+      "id": "S2",
+      "files": [
+        "frontend/src/pages/shop/StoreV3.tsx",
+        "frontend/src/pages/shop/StoreV3.styles.ts",
+        "frontend/src/pages/shop/useStorefrontCatalog.ts",
+        "frontend/src/pages/shop/useStorefrontCatalog.test.tsx",
+        "frontend/src/pages/shop/StoreV3.experience.test.tsx",
+        "frontend/src/pages/shop/components/storeCatalog.ts",
+        "frontend/src/pages/shop/components/storeCatalog.types.ts",
+        "frontend/src/pages/shop/components/storeCatalog.test.ts",
+        "frontend/src/pages/shop/components/PackageCard.tsx",
+        "frontend/src/pages/shop/components/PackageCard.styles.ts",
+        "frontend/src/pages/shop/components/PackageCard.truth.test.tsx",
+        "frontend/src/pages/shop/components/PackagesGrid.tsx",
+        "frontend/src/pages/shop/components/PackagesGrid.styles.ts",
+        "frontend/src/pages/shop/components/ProductCard.tsx",
+        "frontend/src/pages/shop/components/ProductCard.test.tsx",
+        "frontend/src/pages/shop/components/StoreStory.tsx",
+        "frontend/src/pages/shop/components/StoreSpotlight.tsx",
+        "frontend/src/pages/shop/components/StoreComparison.tsx",
+        "frontend/src/pages/shop/components/StoreExperience.styles.ts",
+        "frontend/src/pages/shop/components/MembershipsSection.tsx",
+        "frontend/src/pages/shop/components/MembershipsSection.test.tsx",
+        "frontend/src/pages/shop/components/MembershipSummary.tsx",
+        "frontend/src/pages/AscensionPage/AscensionPage.tsx",
+        "frontend/src/pages/AscensionPage/VaultCard.tsx",
+        "frontend/src/pages/AscensionPage/AscensionPage.purchase.test.tsx",
+        "frontend/src/hooks/useSubscription.ts",
+        "frontend/src/hooks/useSubscription.test.tsx",
+        "frontend/src/components/Shop/ProductDetail.tsx",
+        "frontend/src/components/Shop/ProductDetail.styles.ts",
+        "frontend/src/components/Shop/ProductDetailContent.tsx",
+        "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.sections.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.empty.test.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.styles.ts",
+        "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+        "frontend/src/components/NewCheckout/checkoutDiagnostics.ts",
+        "frontend/src/components/NewCheckout/checkoutDiagnostics.test.ts",
+        "frontend/src/pages/AscensionPage/components/VaultCard.tsx"
+      ]
+    },
+    {
+      "id": "S3-integration",
+      "files": [
+        "frontend/src/pages/shop/components/ProductVariantPicker.tsx",
+        "frontend/src/pages/shop/components/ProductVariantPicker.test.tsx",
+        "frontend/src/pages/shop/StoreV3.pricingTrust.contract.test.tsx",
+        "frontend/src/pages/shop/StoreV3.fallbackTruth.test.tsx",
+        "frontend/src/pages/shop/StoreV3.cancelRecovery.test.tsx",
+        "frontend/src/components/Shop/ProductDetail.imageSanitize.contract.test.tsx"
+      ],
+      "planFiles": [
+        ".mega-blueprints/artifacts/44866dbf60f0c9c9/S3-INTEGRATION.md"
+      ]
+    },
+    {
+      "id": "S4-repair",
+      "files": [
+        "frontend/src/components/Shop/ProductDetail.tsx",
+        "frontend/src/components/Shop/ProductDetailContent.tsx",
+        "frontend/src/components/Shop/ProductDetail.styles.ts",
+        "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.moneyPathSafety.test.ts",
+        "frontend/src/pages/shop/storePriceGating.contract.test.ts"
+      ],
+      "planFiles": [
+        ".mega-blueprints/artifacts/44866dbf60f0c9c9/S4-REPAIR.md"
+      ]
+    }
+  ],
+  "calls": 7,
+  "events": [
+    {
+      "type": "frozen",
+      "slice": "S1",
+      "round": 1,
+      "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+      "packet": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-packet.json",
+        "sha256": "4191f5b45d208b35cce3a2ee4bfc78dbcd3a3110c831de0c7652e1af8b412b46"
+      },
+      "tests": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-tests.json",
+        "sha256": "6099b9abe3594ea0572cf13c0c7b63f5bc03f58860bbb543591c6446157dc141"
+      },
+      "buildReceipt": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-build.json",
+        "sha256": "d637157fe44b5620471224e610c92885f59246daa3adde7c2da0e3d8931c876a"
+      },
+      "builder": {
+        "role": "builder",
+        "model": "gpt-5.6-luna",
+        "provider": "openai-codex",
+        "billing": "subscription",
+        "effort": "xhigh",
+        "selectionEvidence": null,
+        "assignedAt": 1789267927548
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "S1",
+      "round": 1,
+      "at": "2026-09-13T03:11:37.673Z"
+    },
+    {
+      "type": "admitted",
+      "attemptId": "store-upgrade-20260913:S1:1:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+      "seat": "glm",
+      "slice": "S1",
+      "round": 1,
+      "run": {
+        "id": "store-upgrade-20260913:S1:1:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "glm",
+        "dispatch": {
+          "toolName": "exec_command",
+          "inputHash": "9616c21909133bec5324219cc78d79c148dfc35c93c2cfdffe22dae124043f69"
+        },
+        "reviewer": {
+          "seat": "glm",
+          "model": "glm-5.3",
+          "provider": "zai-coding-plan",
+          "billing": "subscription",
+          "effort": null
+        },
+        "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "packetDigest": "4191f5b45d208b35cce3a2ee4bfc78dbcd3a3110c831de0c7652e1af8b412b46",
+        "preflightCheckedAt": "2026-09-13T03:09:43.195Z",
+        "startedAt": 1789269109743,
+        "deadline": 1789269709743
+      },
+      "at": "2026-09-13T03:11:49.743Z"
+    },
+    {
+      "type": "admit",
+      "slice": "S1",
+      "round": 1,
+      "at": "2026-09-13T03:11:49.743Z"
+    },
+    {
+      "type": "reconciled",
+      "attemptId": "store-upgrade-20260913:S1:1:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+      "slice": "S1",
+      "round": 1,
+      "receipt": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-glm-terminal.json",
+        "sha256": "cd8a0d63a67aa118bae670f94264539eb5aca677b2fe976d12b402bf4357697f"
+      }
+    },
+    {
+      "type": "reconcile",
+      "slice": "S1",
+      "round": 1,
+      "at": "2026-09-13T03:13:47.841Z"
+    },
+    {
+      "type": "frozen",
+      "slice": "S1",
+      "round": 2,
+      "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+      "packet": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-packet.json",
+        "sha256": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351"
+      },
+      "tests": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-tests.json",
+        "sha256": "6099b9abe3594ea0572cf13c0c7b63f5bc03f58860bbb543591c6446157dc141"
+      },
+      "buildReceipt": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-build.json",
+        "sha256": "ef628dd6f9155fb48ed5ff344bfb0148ec29cb4d6c39257d00b8f8ba1e9cb51e"
+      },
+      "builder": {
+        "role": "builder",
+        "model": "gpt-5.6-luna",
+        "provider": "openai-codex",
+        "billing": "subscription",
+        "effort": "xhigh",
+        "selectionEvidence": null,
+        "assignedAt": 1789267927548
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "S1",
+      "round": 2,
+      "at": "2026-09-13T03:22:26.828Z"
+    },
+    {
+      "type": "admitted",
+      "attemptId": "store-upgrade-20260913:S1:2:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+      "seat": "glm",
+      "slice": "S1",
+      "round": 2,
+      "run": {
+        "id": "store-upgrade-20260913:S1:2:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "glm",
+        "dispatch": {
+          "toolName": "exec_command",
+          "inputHash": "93468c6ebb8a5b016f46b69e495f1439dcf58352a4de92af5af312143be6f354"
+        },
+        "reviewer": {
+          "seat": "glm",
+          "model": "glm-5.3",
+          "provider": "zai-coding-plan",
+          "billing": "subscription",
+          "effort": null
+        },
+        "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+        "preflightCheckedAt": "2026-09-13T03:20:44.581Z",
+        "startedAt": 1789269747831,
+        "deadline": 1789270347831
+      },
+      "at": "2026-09-13T03:22:27.831Z"
+    },
+    {
+      "type": "admit",
+      "slice": "S1",
+      "round": 2,
+      "at": "2026-09-13T03:22:27.831Z"
+    },
+    {
+      "type": "reviewed",
+      "attemptId": "store-upgrade-20260913:S1:2:glm:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+      "seat": "glm",
+      "slice": "S1",
+      "round": 2,
+      "receipt": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-glm-review.json",
+        "sha256": "6fb1e32329e9cac5f7ca5e31450c2745a6a51d82423ee460a1a2c4dba6350fb9"
+      },
+      "completedAt": 1789269921665
+    },
+    {
+      "type": "review",
+      "slice": "S1",
+      "round": 2,
+      "at": "2026-09-13T03:25:21.681Z"
+    },
+    {
+      "type": "admitted",
+      "attemptId": "store-upgrade-20260913:S1:2:glmflash:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+      "seat": "glmflash",
+      "slice": "S1",
+      "round": 2,
+      "run": {
+        "id": "store-upgrade-20260913:S1:2:glmflash:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "glmflash",
+        "dispatch": {
+          "toolName": "exec_command",
+          "inputHash": "0bcbe6b271b3831895e9319f5217d2f20b6cd221adcbcea4510c6e1b81babbce"
+        },
+        "reviewer": {
+          "seat": "glmflash",
+          "model": "glm-5.3-flash",
+          "provider": "zai-coding-plan",
+          "billing": "subscription",
+          "effort": null
+        },
+        "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+        "preflightCheckedAt": "2026-09-13T03:26:16.108Z",
+        "startedAt": 1789269982840,
+        "deadline": 1789270582840
+      },
+      "at": "2026-09-13T03:26:22.840Z"
+    },
+    {
+      "type": "admit",
+      "slice": "S1",
+      "round": 2,
+      "at": "2026-09-13T03:26:22.840Z"
+    },
+    {
+      "type": "reviewed",
+      "attemptId": "store-upgrade-20260913:S1:2:glmflash:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+      "seat": "glmflash",
+      "slice": "S1",
+      "round": 2,
+      "receipt": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-flash-review.json",
+        "sha256": "32d72c6fe9f903d84345bfc562e1325a47dc5427c815f57cb7aa946eb35bf263"
+      },
+      "completedAt": 1789270164488
+    },
+    {
+      "type": "review",
+      "slice": "S1",
+      "round": 2,
+      "at": "2026-09-13T03:29:24.503Z"
+    },
+    {
+      "type": "admitted",
+      "attemptId": "store-upgrade-20260913:S1:2:astra:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+      "seat": "astra",
+      "slice": "S1",
+      "round": 2,
+      "run": {
+        "id": "store-upgrade-20260913:S1:2:astra:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "seat": "astra",
+        "dispatch": {
+          "toolName": "collaboration.spawn_agent",
+          "inputHash": "e8cda5696b2878b5a6bf6af7331eb7e099a8d7363dcea24f8de01a719b6b6652"
+        },
+        "reviewer": {
+          "seat": "astra",
+          "model": "gpt-6-astra",
+          "provider": "openai-codex",
+          "billing": "subscription",
+          "effort": "xhigh"
+        },
+        "digest": "9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+        "packetDigest": "e2c9d8575916e0bae90594c2a077887f821318825da65b2359b7322b2c28a351",
+        "preflightCheckedAt": "2026-09-13T03:29:25.469Z",
+        "startedAt": 1789270219745,
+        "deadline": 1789270819745
+      },
+      "at": "2026-09-13T03:30:19.745Z"
+    },
+    {
+      "type": "admit",
+      "slice": "S1",
+      "round": 2,
+      "at": "2026-09-13T03:30:19.745Z"
+    },
+    {
+      "type": "reviewed",
+      "attemptId": "store-upgrade-20260913:S1:2:astra:9b019f28c6555a9bb311e2dc391c49fd461a133fd75b7c819ac475c6e894c1c2",
+      "seat": "astra",
+      "slice": "S1",
+      "round": 2,
+      "receipt": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-r2-astra-review.json",
+        "sha256": "db309025fcc10775d5be51e1a1c0b302112a5c1b1980004316b73e652d9babfc"
+      },
+      "completedAt": 1789270472871
+    },
+    {
+      "type": "review",
+      "slice": "S1",
+      "round": 2,
+      "at": "2026-09-13T03:34:32.891Z"
+    },
+    {
+      "type": "explicit-migration",
+      "at": "2026-09-13T03:53:24.249Z",
+      "previousSessionId": "01a098a4-1c60-7fe2-bdd0-0fa6a5673993",
+      "sessionId": "01a098a4-1c60-7fe2-bdd0-0fa6a5673993",
+      "previousPolicyHash": "79aa03e0f3c44317e85f7bb771837d04c5d42b761656842f510acee8c4d3a8a8",
+      "previousCalls": 4,
+      "carriedCalls": 0,
+      "calls": 4,
+      "authorization": {
+        "authorizedBy": "user",
+        "instruction": "Sean: Yes, you have full approval. Please continue. Approval of finishing tested implementation followed by combined Astra review/repair, deferring further GLM; preserve findings/history/counters. One free reset only if needed is separately authorized.",
+        "cadence": "final-astra",
+        "reviewCallsPerTask": 12,
+        "allowAdditionalSlices": true
+      },
+      "contractDigest": "b61155debf98ce42cf0890c2fe7dccd3df8c3fc523d7f731374b8ee945beb1e1"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "S1-repair",
+      "digest": "21ada06ac3a283dec3c72d96d209c8d7c1d44b8f9a4dc9bb0358a92b91386faf",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-repair-tests.json",
+          "sha256": "b8cd11801f1ac01a067dd382aa215478eecefaa2a8891968b440163b23f73990"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-repair-build.json",
+          "sha256": "0dcee6f1db178402a8ff1369cd26cb54bcf03b6433071d43d56c9a1c74e73e08"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "S1-repair",
+      "at": "2026-09-13T03:56:12.075Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "S1-repair",
+      "digest": "21ada06ac3a283dec3c72d96d209c8d7c1d44b8f9a4dc9bb0358a92b91386faf"
+    },
+    {
+      "type": "advance",
+      "slice": "S1-repair",
+      "at": "2026-09-13T03:56:12.151Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "S3-integration",
+        "files": [
+          "frontend/src/pages/shop/components/ProductVariantPicker.tsx",
+          "frontend/src/pages/shop/components/ProductVariantPicker.test.tsx",
+          "frontend/src/pages/shop/StoreV3.pricingTrust.contract.test.tsx",
+          "frontend/src/pages/shop/StoreV3.fallbackTruth.test.tsx",
+          "frontend/src/pages/shop/StoreV3.cancelRecovery.test.tsx",
+          "frontend/src/components/Shop/ProductDetail.imageSanitize.contract.test.tsx"
+        ],
+        "planFiles": [
+          ".mega-blueprints/artifacts/44866dbf60f0c9c9/S3-INTEGRATION.md"
+        ]
+      },
+      "reason": "Nullable catalog money reaches shared selector; restore radiogroup keyboard contract and align obsolete source-shape tests with the approved extraction and mixed-catalog pricing truth.",
+      "previousContractDigest": "b61155debf98ce42cf0890c2fe7dccd3df8c3fc523d7f731374b8ee945beb1e1",
+      "contractDigest": "4f7e5e6d5059d6fbca9bb9a1f9226004b537844ea37fb9e09a0e7b6a9be220f3"
+    },
+    {
+      "type": "append-slice",
+      "slice": "S2",
+      "at": "2026-09-13T04:07:30.523Z"
+    },
+    {
+      "type": "override-scope-appended",
+      "scope": {
+        "id": "S4-repair",
+        "files": [
+          "frontend/src/components/Shop/ProductDetail.tsx",
+          "frontend/src/components/Shop/ProductDetailContent.tsx",
+          "frontend/src/components/Shop/ProductDetail.styles.ts",
+          "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+          "frontend/src/components/NewCheckout/SuccessPage.tsx",
+          "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+          "frontend/src/components/NewCheckout/CheckoutView.moneyPathSafety.test.ts",
+          "frontend/src/pages/shop/storePriceGating.contract.test.ts"
+        ],
+        "planFiles": [
+          ".mega-blueprints/artifacts/44866dbf60f0c9c9/S4-REPAIR.md"
+        ]
+      },
+      "reason": "Repair reviewed variant quantity and auth edge cases, detail recovery and sticky price, neutral success copy, and obsolete extraction contracts.",
+      "previousContractDigest": "4f7e5e6d5059d6fbca9bb9a1f9226004b537844ea37fb9e09a0e7b6a9be220f3",
+      "contractDigest": "bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872"
+    },
+    {
+      "type": "append-slice",
+      "slice": "S2",
+      "at": "2026-09-13T04:20:32.533Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "S2",
+      "digest": "3095fd569a6031ceea1a370f37745be3dbca476b179007d57bd97240de13b206",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s2-tests.json",
+          "sha256": "bd4b193bc16a4a1f28d39ad19e62961dab77ef99d585555706dee734c5061ddb"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s2-build.json",
+          "sha256": "24a82e5b68caf2272b686a38a2434bb8db9a0c4318f10058c7f777ba08c683bf"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "S2",
+      "at": "2026-09-13T04:30:29.599Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "S2",
+      "digest": "3095fd569a6031ceea1a370f37745be3dbca476b179007d57bd97240de13b206"
+    },
+    {
+      "type": "advance",
+      "slice": "S2",
+      "at": "2026-09-13T04:30:29.685Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "S3-integration",
+      "digest": "83c7d42b45a115909949255304f73796a3f0bae0bfb6c18e4e8529e057a967ae",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s3-tests.json",
+          "sha256": "9a4bffd81a62c60f57c0492d74640f3fe36247f5b676fc1085f163e9adfe34d6"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s3-build.json",
+          "sha256": "e47e63d46b2b5d22b0b731cba12bb79b4ed05da2bba55738910f3f02edc89678"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "S3-integration",
+      "at": "2026-09-13T04:33:40.530Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "S3-integration",
+      "digest": "83c7d42b45a115909949255304f73796a3f0bae0bfb6c18e4e8529e057a967ae"
+    },
+    {
+      "type": "advance",
+      "slice": "S3-integration",
+      "at": "2026-09-13T04:33:40.743Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "S4-repair",
+      "digest": "3b07ac06e2a10db7a01554674a1f3867b7908ec7197fa122076401028598aacd",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s4-tests.json",
+          "sha256": "09c405f6bd663dfaee7a9a129596239f942da9f5ff6c75d7f9980b0559631240"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s4-build.json",
+          "sha256": "40c1c3975d40644d448606545dacbfa1b055d361a96879e035c328a4f577a534"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "S4-repair",
+      "at": "2026-09-13T04:35:03.206Z"
+    },
+    {
+      "type": "override-tested",
+      "slice": "S4-repair",
+      "digest": "3b07ac06e2a10db7a01554674a1f3867b7908ec7197fa122076401028598aacd"
+    },
+    {
+      "type": "advance",
+      "slice": "S4-repair",
+      "at": "2026-09-13T04:35:03.276Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "FINAL",
+      "digest": "387817bcc0d8f247d34ff0aa0e8773fd6e38583d095e17cc195326a5590fe11c",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-tests.json",
+          "sha256": "b3d76eecb554bf9a79017e49362c514875d2bb74920c79deedb0f3872d05bf3d"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-build.json",
+          "sha256": "6fd3f51206c44631adaedffcb856e3d9374255b99447c699d17411064ef7a31d"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "FINAL",
+      "at": "2026-09-13T04:41:54.172Z"
+    },
+    {
+      "type": "override-admitted",
+      "run": {
+        "id": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:1:5:387817bcc0d8f247d34ff0aa0e8773fd6e38583d095e17cc195326a5590fe11c",
+        "seat": "astra",
+        "digest": "387817bcc0d8f247d34ff0aa0e8773fd6e38583d095e17cc195326a5590fe11c",
+        "dispatch": {
+          "toolName": "collaboration.spawn_agent",
+          "inputHash": "e79ded484dc275d75641b74c0956f49db592666e34212f0e258238db46729170"
+        },
+        "preflight": {
+          "model": "gpt-6-astra",
+          "effort": "xhigh",
+          "provider": "openai-codex",
+          "billing": "subscription",
+          "available": true,
+          "entitlementVerified": true,
+          "quotaAvailable": true,
+          "recipientAuthorized": true,
+          "privacyApproved": true,
+          "extraUsage": false,
+          "checkedAt": "2026-09-13T04:42:35.753Z"
+        },
+        "startedAt": 1789274555865,
+        "deadline": 1789275155865
+      }
+    },
+    {
+      "type": "admit",
+      "slice": "FINAL",
+      "at": "2026-09-13T04:42:35.865Z"
+    },
+    {
+      "type": "override-reviewed",
+      "attemptId": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:1:5:387817bcc0d8f247d34ff0aa0e8773fd6e38583d095e17cc195326a5590fe11c",
+      "review": {
+        "attemptId": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:1:5:387817bcc0d8f247d34ff0aa0e8773fd6e38583d095e17cc195326a5590fe11c",
+        "digest": "387817bcc0d8f247d34ff0aa0e8773fd6e38583d095e17cc195326a5590fe11c",
+        "receipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-astra-review.json",
+          "sha256": "10b2aa97a750660ee9ebcb605310fde8dfd2475b3eee05a48d9c5ab0b6838e2b"
+        }
+      }
+    },
+    {
+      "type": "review",
+      "slice": "FINAL",
+      "at": "2026-09-13T04:48:21.547Z"
+    },
+    {
+      "type": "fix",
+      "slice": "FINAL",
+      "at": "2026-09-13T04:48:21.614Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "FINAL",
+      "digest": "fb258a2dbafdb0200b6162aada3e698c7e78d03ec72f33624d196f93e646b642",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-r2-tests.json",
+          "sha256": "de18d28ebc3afd28995817c6e0f015f467bb1130ac20aed18f4a0922743e2d8b"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-r2b-build.json",
+          "sha256": "09a75e38368e97114059acccffffa4aab6ad7f619bfadd785deee244ef7490d8"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "FINAL",
+      "at": "2026-09-13T05:07:22.782Z"
+    },
+    {
+      "type": "override-admitted",
+      "run": {
+        "id": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:2:6:fb258a2dbafdb0200b6162aada3e698c7e78d03ec72f33624d196f93e646b642",
+        "seat": "astra",
+        "digest": "fb258a2dbafdb0200b6162aada3e698c7e78d03ec72f33624d196f93e646b642",
+        "dispatch": {
+          "toolName": "collaboration.spawn_agent",
+          "inputHash": "39de8a9b85c7a594d05ca002168b2accf0cab5a987d5d2b6e96d7710442ad6d6"
+        },
+        "preflight": {
+          "model": "gpt-6-astra",
+          "effort": "xhigh",
+          "provider": "openai-codex",
+          "billing": "subscription",
+          "available": true,
+          "entitlementVerified": true,
+          "quotaAvailable": true,
+          "recipientAuthorized": true,
+          "privacyApproved": true,
+          "extraUsage": false,
+          "checkedAt": "2026-09-13T05:07:22.554Z"
+        },
+        "startedAt": 1789276042933,
+        "deadline": 1789276642933
+      }
+    },
+    {
+      "type": "admit",
+      "slice": "FINAL",
+      "at": "2026-09-13T05:07:22.933Z"
+    },
+    {
+      "type": "override-reviewed",
+      "attemptId": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:2:6:fb258a2dbafdb0200b6162aada3e698c7e78d03ec72f33624d196f93e646b642",
+      "review": {
+        "attemptId": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:2:6:fb258a2dbafdb0200b6162aada3e698c7e78d03ec72f33624d196f93e646b642",
+        "digest": "fb258a2dbafdb0200b6162aada3e698c7e78d03ec72f33624d196f93e646b642",
+        "receipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-r2-astra-review.json",
+          "sha256": "f6cac699e37597dec7aba53c58f04ed51cad34c7e2d188d63a22d55483348e6e"
+        }
+      }
+    },
+    {
+      "type": "review",
+      "slice": "FINAL",
+      "at": "2026-09-13T05:12:47.139Z"
+    },
+    {
+      "type": "fix",
+      "slice": "FINAL",
+      "at": "2026-09-13T05:12:47.222Z"
+    },
+    {
+      "type": "override-frozen",
+      "slice": "FINAL",
+      "digest": "bf1121ee6f4e0d03f59231bdecd5fe582cc4a24237d9eb2fd276cde4928b22cd",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-r3-tests.json",
+          "sha256": "1aeb5b27aaee3e8027964d85c981a18c8456d2f2bac353b575f1ed7e7eedf6a1"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-r3-build.json",
+          "sha256": "bff4c450c8617859ec8fcf770cac048c7e0d661d7a2b5c641c648b3ddb1ed43e"
+        }
+      }
+    },
+    {
+      "type": "freeze",
+      "slice": "FINAL",
+      "at": "2026-09-13T05:16:44.036Z"
+    },
+    {
+      "type": "override-admitted",
+      "run": {
+        "id": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:3:7:bf1121ee6f4e0d03f59231bdecd5fe582cc4a24237d9eb2fd276cde4928b22cd",
+        "seat": "astra",
+        "digest": "bf1121ee6f4e0d03f59231bdecd5fe582cc4a24237d9eb2fd276cde4928b22cd",
+        "dispatch": {
+          "toolName": "collaboration.spawn_agent",
+          "inputHash": "0cc6f37afbcdc7bb2b389aab2346e07a9dbb5144317d2a090a3d238c2142495a"
+        },
+        "preflight": {
+          "model": "gpt-6-astra",
+          "effort": "xhigh",
+          "provider": "openai-codex",
+          "billing": "subscription",
+          "available": true,
+          "entitlementVerified": true,
+          "quotaAvailable": true,
+          "recipientAuthorized": true,
+          "privacyApproved": true,
+          "extraUsage": false,
+          "checkedAt": "2026-09-13T05:17:17.318Z"
+        },
+        "startedAt": 1789276637412,
+        "deadline": 1789277237412
+      }
+    },
+    {
+      "type": "admit",
+      "slice": "FINAL",
+      "at": "2026-09-13T05:17:17.413Z"
+    },
+    {
+      "type": "override-reviewed",
+      "attemptId": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:3:7:bf1121ee6f4e0d03f59231bdecd5fe582cc4a24237d9eb2fd276cde4928b22cd",
+      "review": {
+        "attemptId": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:3:7:bf1121ee6f4e0d03f59231bdecd5fe582cc4a24237d9eb2fd276cde4928b22cd",
+        "digest": "bf1121ee6f4e0d03f59231bdecd5fe582cc4a24237d9eb2fd276cde4928b22cd",
+        "receipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-r3-astra-review.json",
+          "sha256": "781983129f81d48f98f909d682a5a69ff31b97ec514936617cb0a197449c3c5b"
+        }
+      }
+    },
+    {
+      "type": "review",
+      "slice": "FINAL",
+      "at": "2026-09-13T05:23:13.547Z"
+    },
+    {
+      "type": "advance",
+      "slice": "FINAL",
+      "at": "2026-09-13T05:23:13.718Z"
+    }
+  ],
+  "status": "complete",
+  "stage": "final",
+  "index": 3,
+  "inFlight": null,
+  "slices": [
+    {
+      "id": "S1-repair",
+      "files": [
+        "backend/routes/storeFrontRoutes.mjs",
+        "backend/services/store/storefrontDisplayService.mjs",
+        "backend/tests/api/storefrontDisplayTruth.test.mjs",
+        "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+        "backend/tests/api/storefrontPriceGating.test.mjs",
+        "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+        "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+        "backend/tests/api/storefrontSpecialMoneyPath.test.mjs",
+        "backend/tests/api/storefrontRecoveryAndSorting.test.mjs",
+        "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/README.md",
+        "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/flow.mmd",
+        "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+        "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/APPROVED-CONTINUATION.md"
+      ],
+      "allowedFiles": [
+        "backend/routes/storeFrontRoutes.mjs",
+        "backend/services/store/storefrontDisplayService.mjs",
+        "backend/tests/api/storefrontDisplayTruth.test.mjs",
+        "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+        "backend/tests/api/storefrontPriceGating.test.mjs",
+        "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+        "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+        "backend/tests/api/storefrontSpecialMoneyPath.test.mjs",
+        "backend/tests/api/storefrontRecoveryAndSorting.test.mjs"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "21ada06ac3a283dec3c72d96d209c8d7c1d44b8f9a4dc9bb0358a92b91386faf",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-repair-tests.json",
+          "sha256": "b8cd11801f1ac01a067dd382aa215478eecefaa2a8891968b440163b23f73990"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s1-repair-build.json",
+          "sha256": "0dcee6f1db178402a8ff1369cd26cb54bcf03b6433071d43d56c9a1c74e73e08"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "S2",
+      "files": [
+        "frontend/src/pages/shop/StoreV3.tsx",
+        "frontend/src/pages/shop/StoreV3.styles.ts",
+        "frontend/src/pages/shop/useStorefrontCatalog.ts",
+        "frontend/src/pages/shop/useStorefrontCatalog.test.tsx",
+        "frontend/src/pages/shop/StoreV3.experience.test.tsx",
+        "frontend/src/pages/shop/components/storeCatalog.ts",
+        "frontend/src/pages/shop/components/storeCatalog.types.ts",
+        "frontend/src/pages/shop/components/storeCatalog.test.ts",
+        "frontend/src/pages/shop/components/PackageCard.tsx",
+        "frontend/src/pages/shop/components/PackageCard.styles.ts",
+        "frontend/src/pages/shop/components/PackageCard.truth.test.tsx",
+        "frontend/src/pages/shop/components/PackagesGrid.tsx",
+        "frontend/src/pages/shop/components/PackagesGrid.styles.ts",
+        "frontend/src/pages/shop/components/ProductCard.tsx",
+        "frontend/src/pages/shop/components/ProductCard.test.tsx",
+        "frontend/src/pages/shop/components/StoreStory.tsx",
+        "frontend/src/pages/shop/components/StoreSpotlight.tsx",
+        "frontend/src/pages/shop/components/StoreComparison.tsx",
+        "frontend/src/pages/shop/components/StoreExperience.styles.ts",
+        "frontend/src/pages/shop/components/MembershipsSection.tsx",
+        "frontend/src/pages/shop/components/MembershipsSection.test.tsx",
+        "frontend/src/pages/shop/components/MembershipSummary.tsx",
+        "frontend/src/pages/AscensionPage/AscensionPage.tsx",
+        "frontend/src/pages/AscensionPage/VaultCard.tsx",
+        "frontend/src/pages/AscensionPage/AscensionPage.purchase.test.tsx",
+        "frontend/src/hooks/useSubscription.ts",
+        "frontend/src/hooks/useSubscription.test.tsx",
+        "frontend/src/components/Shop/ProductDetail.tsx",
+        "frontend/src/components/Shop/ProductDetail.styles.ts",
+        "frontend/src/components/Shop/ProductDetailContent.tsx",
+        "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.sections.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.empty.test.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.styles.ts",
+        "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+        "frontend/src/components/NewCheckout/checkoutDiagnostics.ts",
+        "frontend/src/components/NewCheckout/checkoutDiagnostics.test.ts",
+        "frontend/src/pages/AscensionPage/components/VaultCard.tsx",
+        "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/README.md",
+        "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/flow.mmd",
+        "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+        "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/APPROVED-CONTINUATION.md"
+      ],
+      "allowedFiles": [
+        "frontend/src/pages/shop/StoreV3.tsx",
+        "frontend/src/pages/shop/StoreV3.styles.ts",
+        "frontend/src/pages/shop/useStorefrontCatalog.ts",
+        "frontend/src/pages/shop/useStorefrontCatalog.test.tsx",
+        "frontend/src/pages/shop/StoreV3.experience.test.tsx",
+        "frontend/src/pages/shop/components/storeCatalog.ts",
+        "frontend/src/pages/shop/components/storeCatalog.types.ts",
+        "frontend/src/pages/shop/components/storeCatalog.test.ts",
+        "frontend/src/pages/shop/components/PackageCard.tsx",
+        "frontend/src/pages/shop/components/PackageCard.styles.ts",
+        "frontend/src/pages/shop/components/PackageCard.truth.test.tsx",
+        "frontend/src/pages/shop/components/PackagesGrid.tsx",
+        "frontend/src/pages/shop/components/PackagesGrid.styles.ts",
+        "frontend/src/pages/shop/components/ProductCard.tsx",
+        "frontend/src/pages/shop/components/ProductCard.test.tsx",
+        "frontend/src/pages/shop/components/StoreStory.tsx",
+        "frontend/src/pages/shop/components/StoreSpotlight.tsx",
+        "frontend/src/pages/shop/components/StoreComparison.tsx",
+        "frontend/src/pages/shop/components/StoreExperience.styles.ts",
+        "frontend/src/pages/shop/components/MembershipsSection.tsx",
+        "frontend/src/pages/shop/components/MembershipsSection.test.tsx",
+        "frontend/src/pages/shop/components/MembershipSummary.tsx",
+        "frontend/src/pages/AscensionPage/AscensionPage.tsx",
+        "frontend/src/pages/AscensionPage/VaultCard.tsx",
+        "frontend/src/pages/AscensionPage/AscensionPage.purchase.test.tsx",
+        "frontend/src/hooks/useSubscription.ts",
+        "frontend/src/hooks/useSubscription.test.tsx",
+        "frontend/src/components/Shop/ProductDetail.tsx",
+        "frontend/src/components/Shop/ProductDetail.styles.ts",
+        "frontend/src/components/Shop/ProductDetailContent.tsx",
+        "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.sections.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.empty.test.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.styles.ts",
+        "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+        "frontend/src/components/NewCheckout/checkoutDiagnostics.ts",
+        "frontend/src/components/NewCheckout/checkoutDiagnostics.test.ts",
+        "frontend/src/pages/AscensionPage/components/VaultCard.tsx"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "3095fd569a6031ceea1a370f37745be3dbca476b179007d57bd97240de13b206",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s2-tests.json",
+          "sha256": "bd4b193bc16a4a1f28d39ad19e62961dab77ef99d585555706dee734c5061ddb"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s2-build.json",
+          "sha256": "24a82e5b68caf2272b686a38a2434bb8db9a0c4318f10058c7f777ba08c683bf"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "S3-integration",
+      "allowedFiles": [
+        "frontend/src/pages/shop/components/ProductVariantPicker.tsx",
+        "frontend/src/pages/shop/components/ProductVariantPicker.test.tsx",
+        "frontend/src/pages/shop/StoreV3.pricingTrust.contract.test.tsx",
+        "frontend/src/pages/shop/StoreV3.fallbackTruth.test.tsx",
+        "frontend/src/pages/shop/StoreV3.cancelRecovery.test.tsx",
+        "frontend/src/components/Shop/ProductDetail.imageSanitize.contract.test.tsx"
+      ],
+      "files": [
+        "frontend/src/pages/shop/components/ProductVariantPicker.tsx",
+        "frontend/src/pages/shop/components/ProductVariantPicker.test.tsx",
+        "frontend/src/pages/shop/StoreV3.pricingTrust.contract.test.tsx",
+        "frontend/src/pages/shop/StoreV3.fallbackTruth.test.tsx",
+        "frontend/src/pages/shop/StoreV3.cancelRecovery.test.tsx",
+        "frontend/src/components/Shop/ProductDetail.imageSanitize.contract.test.tsx",
+        ".mega-blueprints/artifacts/44866dbf60f0c9c9/S3-INTEGRATION.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "83c7d42b45a115909949255304f73796a3f0bae0bfb6c18e4e8529e057a967ae",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s3-tests.json",
+          "sha256": "9a4bffd81a62c60f57c0492d74640f3fe36247f5b676fc1085f163e9adfe34d6"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s3-build.json",
+          "sha256": "e47e63d46b2b5d22b0b731cba12bb79b4ed05da2bba55738910f3f02edc89678"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
+    },
+    {
+      "id": "S4-repair",
+      "allowedFiles": [
+        "frontend/src/components/Shop/ProductDetail.tsx",
+        "frontend/src/components/Shop/ProductDetailContent.tsx",
+        "frontend/src/components/Shop/ProductDetail.styles.ts",
+        "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.moneyPathSafety.test.ts",
+        "frontend/src/pages/shop/storePriceGating.contract.test.ts"
+      ],
+      "files": [
+        "frontend/src/components/Shop/ProductDetail.tsx",
+        "frontend/src/components/Shop/ProductDetailContent.tsx",
+        "frontend/src/components/Shop/ProductDetail.styles.ts",
+        "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.moneyPathSafety.test.ts",
+        "frontend/src/pages/shop/storePriceGating.contract.test.ts",
+        ".mega-blueprints/artifacts/44866dbf60f0c9c9/S4-REPAIR.md"
+      ],
+      "status": "tested",
+      "round": 0,
+      "reviews": [],
+      "findings": {},
+      "digest": "3b07ac06e2a10db7a01554674a1f3867b7908ec7197fa122076401028598aacd",
+      "frozen": {
+        "tests": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s4-tests.json",
+          "sha256": "09c405f6bd663dfaee7a9a129596239f942da9f5ff6c75d7f9980b0559631240"
+        },
+        "build": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/s4-build.json",
+          "sha256": "40c1c3975d40644d448606545dacbfa1b055d361a96879e035c328a4f577a534"
+        }
+      },
+      "reviewDisposition": "deferred-to-final"
+    }
+  ],
+  "contractDigest": "bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872",
+  "finalReview": {
+    "id": "FINAL",
+    "files": [
+      "backend/routes/storeFrontRoutes.mjs",
+      "backend/services/store/storefrontDisplayService.mjs",
+      "backend/tests/api/storefrontDisplayTruth.test.mjs",
+      "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+      "backend/tests/api/storefrontPriceGating.test.mjs",
+      "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+      "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+      "backend/tests/api/storefrontSpecialMoneyPath.test.mjs",
+      "backend/tests/api/storefrontRecoveryAndSorting.test.mjs",
+      "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/README.md",
+      "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/flow.mmd",
+      "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+      "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/APPROVED-CONTINUATION.md",
+      "frontend/src/pages/shop/StoreV3.tsx",
+      "frontend/src/pages/shop/StoreV3.styles.ts",
+      "frontend/src/pages/shop/useStorefrontCatalog.ts",
+      "frontend/src/pages/shop/useStorefrontCatalog.test.tsx",
+      "frontend/src/pages/shop/StoreV3.experience.test.tsx",
+      "frontend/src/pages/shop/components/storeCatalog.ts",
+      "frontend/src/pages/shop/components/storeCatalog.types.ts",
+      "frontend/src/pages/shop/components/storeCatalog.test.ts",
+      "frontend/src/pages/shop/components/PackageCard.tsx",
+      "frontend/src/pages/shop/components/PackageCard.styles.ts",
+      "frontend/src/pages/shop/components/PackageCard.truth.test.tsx",
+      "frontend/src/pages/shop/components/PackagesGrid.tsx",
+      "frontend/src/pages/shop/components/PackagesGrid.styles.ts",
+      "frontend/src/pages/shop/components/ProductCard.tsx",
+      "frontend/src/pages/shop/components/ProductCard.test.tsx",
+      "frontend/src/pages/shop/components/StoreStory.tsx",
+      "frontend/src/pages/shop/components/StoreSpotlight.tsx",
+      "frontend/src/pages/shop/components/StoreComparison.tsx",
+      "frontend/src/pages/shop/components/StoreExperience.styles.ts",
+      "frontend/src/pages/shop/components/MembershipsSection.tsx",
+      "frontend/src/pages/shop/components/MembershipsSection.test.tsx",
+      "frontend/src/pages/shop/components/MembershipSummary.tsx",
+      "frontend/src/pages/AscensionPage/AscensionPage.tsx",
+      "frontend/src/pages/AscensionPage/VaultCard.tsx",
+      "frontend/src/pages/AscensionPage/AscensionPage.purchase.test.tsx",
+      "frontend/src/hooks/useSubscription.ts",
+      "frontend/src/hooks/useSubscription.test.tsx",
+      "frontend/src/components/Shop/ProductDetail.tsx",
+      "frontend/src/components/Shop/ProductDetail.styles.ts",
+      "frontend/src/components/Shop/ProductDetailContent.tsx",
+      "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+      "frontend/src/components/NewCheckout/CheckoutView.tsx",
+      "frontend/src/components/NewCheckout/CheckoutView.sections.tsx",
+      "frontend/src/components/NewCheckout/CheckoutView.empty.test.tsx",
+      "frontend/src/components/NewCheckout/SuccessPage.tsx",
+      "frontend/src/components/NewCheckout/SuccessPage.styles.ts",
+      "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+      "frontend/src/components/NewCheckout/checkoutDiagnostics.ts",
+      "frontend/src/components/NewCheckout/checkoutDiagnostics.test.ts",
+      "frontend/src/pages/AscensionPage/components/VaultCard.tsx",
+      "frontend/src/pages/shop/components/ProductVariantPicker.tsx",
+      "frontend/src/pages/shop/components/ProductVariantPicker.test.tsx",
+      "frontend/src/pages/shop/StoreV3.pricingTrust.contract.test.tsx",
+      "frontend/src/pages/shop/StoreV3.fallbackTruth.test.tsx",
+      "frontend/src/pages/shop/StoreV3.cancelRecovery.test.tsx",
+      "frontend/src/components/Shop/ProductDetail.imageSanitize.contract.test.tsx",
+      ".mega-blueprints/artifacts/44866dbf60f0c9c9/S3-INTEGRATION.md",
+      "frontend/src/components/NewCheckout/CheckoutView.moneyPathSafety.test.ts",
+      "frontend/src/pages/shop/storePriceGating.contract.test.ts",
+      ".mega-blueprints/artifacts/44866dbf60f0c9c9/S4-REPAIR.md"
+    ],
+    "allowedFiles": [
+      "backend/routes/storeFrontRoutes.mjs",
+      "backend/services/store/storefrontDisplayService.mjs",
+      "backend/tests/api/storefrontDisplayTruth.test.mjs",
+      "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+      "backend/tests/api/storefrontPriceGating.test.mjs",
+      "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+      "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+      "backend/tests/api/storefrontSpecialMoneyPath.test.mjs",
+      "backend/tests/api/storefrontRecoveryAndSorting.test.mjs",
+      "frontend/src/pages/shop/StoreV3.tsx",
+      "frontend/src/pages/shop/StoreV3.styles.ts",
+      "frontend/src/pages/shop/useStorefrontCatalog.ts",
+      "frontend/src/pages/shop/useStorefrontCatalog.test.tsx",
+      "frontend/src/pages/shop/StoreV3.experience.test.tsx",
+      "frontend/src/pages/shop/components/storeCatalog.ts",
+      "frontend/src/pages/shop/components/storeCatalog.types.ts",
+      "frontend/src/pages/shop/components/storeCatalog.test.ts",
+      "frontend/src/pages/shop/components/PackageCard.tsx",
+      "frontend/src/pages/shop/components/PackageCard.styles.ts",
+      "frontend/src/pages/shop/components/PackageCard.truth.test.tsx",
+      "frontend/src/pages/shop/components/PackagesGrid.tsx",
+      "frontend/src/pages/shop/components/PackagesGrid.styles.ts",
+      "frontend/src/pages/shop/components/ProductCard.tsx",
+      "frontend/src/pages/shop/components/ProductCard.test.tsx",
+      "frontend/src/pages/shop/components/StoreStory.tsx",
+      "frontend/src/pages/shop/components/StoreSpotlight.tsx",
+      "frontend/src/pages/shop/components/StoreComparison.tsx",
+      "frontend/src/pages/shop/components/StoreExperience.styles.ts",
+      "frontend/src/pages/shop/components/MembershipsSection.tsx",
+      "frontend/src/pages/shop/components/MembershipsSection.test.tsx",
+      "frontend/src/pages/shop/components/MembershipSummary.tsx",
+      "frontend/src/pages/AscensionPage/AscensionPage.tsx",
+      "frontend/src/pages/AscensionPage/VaultCard.tsx",
+      "frontend/src/pages/AscensionPage/AscensionPage.purchase.test.tsx",
+      "frontend/src/hooks/useSubscription.ts",
+      "frontend/src/hooks/useSubscription.test.tsx",
+      "frontend/src/components/Shop/ProductDetail.tsx",
+      "frontend/src/components/Shop/ProductDetail.styles.ts",
+      "frontend/src/components/Shop/ProductDetailContent.tsx",
+      "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+      "frontend/src/components/NewCheckout/CheckoutView.tsx",
+      "frontend/src/components/NewCheckout/CheckoutView.sections.tsx",
+      "frontend/src/components/NewCheckout/CheckoutView.empty.test.tsx",
+      "frontend/src/components/NewCheckout/SuccessPage.tsx",
+      "frontend/src/components/NewCheckout/SuccessPage.styles.ts",
+      "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+      "frontend/src/components/NewCheckout/checkoutDiagnostics.ts",
+      "frontend/src/components/NewCheckout/checkoutDiagnostics.test.ts",
+      "frontend/src/pages/AscensionPage/components/VaultCard.tsx",
+      "frontend/src/pages/shop/components/ProductVariantPicker.tsx",
+      "frontend/src/pages/shop/components/ProductVariantPicker.test.tsx",
+      "frontend/src/pages/shop/StoreV3.pricingTrust.contract.test.tsx",
+      "frontend/src/pages/shop/StoreV3.fallbackTruth.test.tsx",
+      "frontend/src/pages/shop/StoreV3.cancelRecovery.test.tsx",
+      "frontend/src/components/Shop/ProductDetail.imageSanitize.contract.test.tsx",
+      "frontend/src/components/NewCheckout/CheckoutView.moneyPathSafety.test.ts",
+      "frontend/src/pages/shop/storePriceGating.contract.test.ts"
+    ],
+    "status": "approved",
+    "round": 3,
+    "reviews": [
+      {
+        "attemptId": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:1:5:387817bcc0d8f247d34ff0aa0e8773fd6e38583d095e17cc195326a5590fe11c",
+        "digest": "387817bcc0d8f247d34ff0aa0e8773fd6e38583d095e17cc195326a5590fe11c",
+        "receipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-astra-review.json",
+          "sha256": "10b2aa97a750660ee9ebcb605310fde8dfd2475b3eee05a48d9c5ab0b6838e2b"
+        }
+      },
+      {
+        "attemptId": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:2:6:fb258a2dbafdb0200b6162aada3e698c7e78d03ec72f33624d196f93e646b642",
+        "digest": "fb258a2dbafdb0200b6162aada3e698c7e78d03ec72f33624d196f93e646b642",
+        "receipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-r2-astra-review.json",
+          "sha256": "f6cac699e37597dec7aba53c58f04ed51cad34c7e2d188d63a22d55483348e6e"
+        }
+      },
+      {
+        "attemptId": "store-upgrade-20260913:bccbc49842c0864da326f96c3fb7ff22342db5c7dcf35c03f4294917c4cb0872:FINAL:3:7:bf1121ee6f4e0d03f59231bdecd5fe582cc4a24237d9eb2fd276cde4928b22cd",
+        "digest": "bf1121ee6f4e0d03f59231bdecd5fe582cc4a24237d9eb2fd276cde4928b22cd",
+        "receipt": {
+          "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-r3-astra-review.json",
+          "sha256": "781983129f81d48f98f909d682a5a69ff31b97ec514936617cb0a197449c3c5b"
+        }
+      }
+    ],
+    "findings": {},
+    "digest": "bf1121ee6f4e0d03f59231bdecd5fe582cc4a24237d9eb2fd276cde4928b22cd",
+    "frozen": {
+      "tests": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-r3-tests.json",
+        "sha256": "1aeb5b27aaee3e8027964d85c981a18c8456d2f2bac353b575f1ed7e7eedf6a1"
+      },
+      "build": {
+        "path": ".mega-blueprints/artifacts/44866dbf60f0c9c9/final-r3-build.json",
+        "sha256": "bff4c450c8617859ec8fcf770cac048c7e0d661d7a2b5c641c648b3ddb1ed43e"
+      }
+    },
+    "previousDigest": "fb258a2dbafdb0200b6162aada3e698c7e78d03ec72f33624d196f93e646b642",
+    "repairRequired": true
+  }
+}

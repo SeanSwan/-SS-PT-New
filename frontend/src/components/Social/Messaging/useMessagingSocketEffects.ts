@@ -17,7 +17,6 @@ interface UseMessagingSocketEffectsParams {
   setConversations: Dispatch<SetStateAction<ConversationData[]>>;
   setMessages: Dispatch<SetStateAction<MessageData[]>>;
   setOnlineUserIds: Dispatch<SetStateAction<Set<number>>>;
-  setPendingMessages: Dispatch<SetStateAction<string[]>>;
   setTypingUsers: Dispatch<SetStateAction<TypingUser[]>>;
   typingClearTimers: MutableRefObject<Map<number, ReturnType<typeof setTimeout>>>;
 }
@@ -34,7 +33,6 @@ export function useMessagingSocketEffects({
   setConversations,
   setMessages,
   setOnlineUserIds,
-  setPendingMessages,
   setTypingUsers,
   typingClearTimers,
 }: UseMessagingSocketEffectsParams): void {
@@ -58,7 +56,6 @@ export function useMessagingSocketEffects({
           if (prev.some(m => String(m.id) === String(typedMsg.id))) return prev;
           return [...prev, typedMsg];
         });
-        setPendingMessages(prev => prev.filter(p => p !== typedMsg.content));
       }
 
       setConversations(prev => prev.map(conv => {
@@ -79,7 +76,7 @@ export function useMessagingSocketEffects({
 
     const cleanup = on('new_message', handleNewMessage);
     return cleanup;
-  }, [connected, on, enabled, activeConvRef, setMessages, setPendingMessages, setConversations]);
+  }, [connected, on, enabled, activeConvRef, setMessages, setConversations]);
 
   useEffect(() => {
     if (!enabled || !connected) return;

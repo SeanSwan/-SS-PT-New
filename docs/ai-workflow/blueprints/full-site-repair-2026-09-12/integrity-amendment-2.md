@@ -1,0 +1,11 @@
+# Integrity amendment 2 — source and browser evidence
+
+Parent verification found two acceptance gaps before freezing the cohort. Preserve every earlier receipt as provisional evidence, not approval.
+
+1. Actor-scoped array persistence remains vulnerable to a second tab appending after a remover reads and before its stale write. The deterministic `queue-cross-tab-probe.mjs` returned persisted true for append B then lost B. Acknowledgement tombstones did not fix that ordering. Use immutable per-entry localStorage keys and confirmed-key removal for the newly introduced actor-scoped format. Enumerate actual storage keys; fail visibly when enumeration/storage is unavailable. No shared array/index rewrite. Existing deployed client-only arrays remain untouched for owner recovery. Synchronous queueSubmission API stays compatible; Web Locks serialize flush where supported. Exactly-once network delivery without server idempotency is not claimed.
+
+2. Canonical `assertAssignmentOrAdmin` intentionally converts database failures to false. New route try/catch therefore cannot distinguish denial from unavailable. Add optional fourth options argument `{throwOnUnavailable:true}` with default false, preserving every old consumer; the opt-in throws typed ASSIGNMENT_LOOKUP_UNAVAILABLE. New debate/renewal paths opt in and return sanitized 503 before domain reads/writes. Test the actual helper, not a mocked assumption about its failure behavior. Retain strict ID parsing and existing role semantics.
+
+3. Actual Mobile414 browser proves the keypad copies weight digits into reps, yielding 4010 when the user enters 40 lb then 10 reps. This joins the integrity cohort because it corrupts workout data. Apply the exact transition/focus contract in mobile-keypad-audit.md. Existing numeric keypad tests and an integrated real-row transition regression are required, then rerun the same immutable browser assertions. Parent owns browser fixture artifacts; a Luna builder owns source/test changes.
+
+No reviews consumed, no production data touched, no new schema or framework. These are bounded repairs based on newly measured failures under the original user authorization. Current source edits remain review-pending until combined Astra review.

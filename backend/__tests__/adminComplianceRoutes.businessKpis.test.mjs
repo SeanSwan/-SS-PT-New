@@ -70,7 +70,7 @@ describe('admin compliance business KPI route truth handling', () => {
     expect(sequelizeQuery.mock.calls[2][0]).toContain('FROM sessions');
   });
 
-  it('falls back to zero utilization when the session query is unavailable', async () => {
+  it('returns retryable unavailable when the session query is unavailable', async () => {
     sequelizeQuery
       .mockResolvedValueOnce([[{ totalRevenue: 0, mrr: 0 }]])
       .mockResolvedValueOnce([[{ activeClients: 0, newClients: 0, churnedClients: 0 }]])
@@ -78,12 +78,36 @@ describe('admin compliance business KPI route truth handling', () => {
 
     const res = await request(app).get('/api/admin/analytics/business-kpis');
 
-    expect(res.status).toBe(200);
-    expect(res.body.data).toMatchObject({
-      sessionsThisMonth: 0,
-      sessionsLastMonth: 0,
-      sessionUtilization: 0,
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({
+      success: false,
+      error: 'compliance_unavailable',
+      message: 'Compliance data is temporarily unavailable. Please retry.',
     });
+  });
+
+  it('returns retryable unavailable for malformed KPI query rows', async () => {
+    sequelizeQuery
+      .mockResolvedValueOnce([[{ totalRevenue: 0, mrr: 0 }]])
+      .mockResolvedValueOnce([[{ activeClients: 0, newClients: 0, churnedClients: 0 }]])
+      .mockResolvedValueOnce([null]);
+
+    const res = await request(app).get('/api/admin/analytics/business-kpis');
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('compliance_unavailable');
+  });
+
+  it('returns retryable unavailable when an aggregate field is missing', async () => {
+    sequelizeQuery
+      .mockResolvedValueOnce([[{ totalRevenue: 0 }]])
+      .mockResolvedValueOnce([[{ activeClients: 0, newClients: 0, churnedClients: 0 }]])
+      .mockResolvedValueOnce([[{ sessionsThisMonth: 0, sessionsLastMonth: 0, bookedSessionsThisMonth: 0 }]]);
+
+    const res = await request(app).get('/api/admin/analytics/business-kpis');
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toBe('compliance_unavailable');
   });
 
   it('does not retain the old hardcoded session utilization placeholder', () => {

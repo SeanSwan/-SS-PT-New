@@ -13,7 +13,7 @@
 - 📝 **Prompts:** [AI-ROLE-PROMPTS.md](../archive/old-versions/AI-ROLE-PROMPTS.md)
 - 🎯 **Process Guide:** [PHASE-0-DESIGN-APPROVAL.md](../archive/phase-0/PHASE-0-DESIGN-APPROVAL.md)
 - 🔍 **Current State:** [CURRENT-PAGES-ANALYSIS.md](../archive/old-versions/CURRENT-PAGES-ANALYSIS.md)
-- 🎨 **Theme Specs:** [../../current/GALAXY-SWAN-THEME-DOCS.md](../../current/GALAXY-SWAN-THEME-DOCS.md)
+- 🎨 **Theme Specs:** `docs/current/GALAXY-SWAN-THEME-DOCS.md` (retired — the Galaxy-Swan theme was replaced by Crystalline Swan; the file now lives under `archive/pending-deletion/2026-05-15/retired-theme-docs/`)
 
 ---
 

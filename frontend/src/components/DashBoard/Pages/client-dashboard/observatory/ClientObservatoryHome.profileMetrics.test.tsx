@@ -182,6 +182,7 @@ describe('ClientObservatoryHome profile metric truth', () => {
     });
 
     expect(screen.queryByText('+50 XP')).not.toBeInTheDocument();
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    const xpStatuses = screen.queryAllByRole('status').filter((status) => /XP/i.test(status.textContent ?? ''));
+    expect(xpStatuses).toHaveLength(0);
   });
 });

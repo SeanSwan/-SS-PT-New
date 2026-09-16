@@ -271,15 +271,20 @@ export const UserMenuButton = styled.button`
 export const DashboardFrame = styled.div<{ $embedded?: boolean }>`
   display: grid;
   grid-template-columns: ${({ $embedded }) => ($embedded ? 'minmax(0, 1fr)' : '242px minmax(0, 1fr)')};
+  min-width: 0;
+  width: 100%;
   min-height: ${({ $embedded }) => ($embedded ? 'auto' : 'calc(100vh - 58px)')};
 
   @media (max-width: 980px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 `;
 
 export const MainCanvas = styled.main<{ $embedded?: boolean }>`
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: ${({ $embedded }) => ($embedded ? '18px 18px 22px' : '18px 24px 26px')};
 
   @media (max-width: 760px) {
@@ -295,8 +300,11 @@ export const ContentGrid = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr) 326px;
   gap: 20px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 
   @media (max-width: 1280px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 `;

@@ -143,11 +143,13 @@ export function useWorkoutSubmit({
       // queueSubmission reports whether it ACTUALLY persisted. If it did not,
       // the draft must survive — clearing it would destroy the only remaining
       // copy of the workout. (queueSubmission raises the error toast itself.)
-      offlineQueue.queueSubmission(formData);
+      const persisted = offlineQueue.queueSubmission(formData) !== false;
       isSubmittingRef.current = false;
       setIsSubmitting(false);
-      ack?.(true);
-      return WORKOUT_SUBMIT_OUTCOME.KEPT_LOCAL;
+      ack?.(persisted);
+      return persisted
+        ? WORKOUT_SUBMIT_OUTCOME.KEPT_LOCAL
+        : WORKOUT_SUBMIT_OUTCOME.FAILED;
     }
 
     setLastChallengeProgress(null);
@@ -213,8 +215,10 @@ export function useWorkoutSubmit({
         toast.error(message || 'Workout was not saved. Please review and try again.');
         outcome = WORKOUT_SUBMIT_OUTCOME.FAILED;
       } else {
-        offlineQueue.queueSubmission(formData);
-        outcome = WORKOUT_SUBMIT_OUTCOME.KEPT_LOCAL;
+        const persisted = offlineQueue.queueSubmission(formData) !== false;
+        outcome = persisted
+          ? WORKOUT_SUBMIT_OUTCOME.KEPT_LOCAL
+          : WORKOUT_SUBMIT_OUTCOME.FAILED;
       }
     } finally {
       clearTimeout(timeoutId);

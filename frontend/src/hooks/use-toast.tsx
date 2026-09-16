@@ -13,16 +13,19 @@
  * - Stellar theme integration
  */
 
-import React, { createContext, useContext, useState, useCallback, useRef, forwardRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { AuthContext } from '../context/authContextState';
 
 // Types
 export type ToastVariant = 'success' | 'error' | 'warning' | 'info' | 'default' | 'destructive';
 
 export interface Toast {
   id: string;
+  /** Private notifications are visible only to this authenticated owner. */
+  ownerId?: string;
   title?: string;
   description: string;
   variant?: ToastVariant;
@@ -165,16 +168,16 @@ const ToastWrapper = styled(motion.div)<{ variant: Toast['variant'] }>`
     background: ${props => {
       switch (props.variant) {
         case 'success':
-          return 'linear-gradient(90deg, #22c55e, #16a34a)';
+          return 'linear-gradient(90deg, var(--color-success, #22c55e), color-mix(in srgb, var(--color-success, #22c55e) 82%, black))';
         case 'warning':
-          return 'linear-gradient(90deg, #f59e0b, #d97706)';
+          return 'linear-gradient(90deg, var(--color-warning, #f59e0b), color-mix(in srgb, var(--color-warning, #f59e0b) 82%, black))';
         case 'error':
         case 'destructive':
-          return 'linear-gradient(90deg, #ef4444, #dc2626)';
+          return 'linear-gradient(90deg, var(--color-error, #ef4444), color-mix(in srgb, var(--color-error, #ef4444) 82%, black))';
         case 'info':
-          return 'linear-gradient(90deg, #3b82f6, #2563eb)';
+          return 'linear-gradient(90deg, var(--color-primary-blue, #50A0F0), var(--accent-tertiary, #4070c0))';
         default:
-          return 'linear-gradient(90deg, #60C0F0, #3b82f6)';
+          return 'linear-gradient(90deg, var(--accent-primary, #60C0F0), var(--color-primary-blue, #50A0F0))';
       }
     }};
   }
@@ -192,16 +195,16 @@ const ToastIcon = styled.div<{ variant: Toast['variant'] }>`
   color: ${props => {
     switch (props.variant) {
       case 'success':
-        return '#22c55e';
+        return 'var(--color-success, #22c55e)';
       case 'warning':
-        return '#f59e0b';
+        return 'var(--color-warning, #f59e0b)';
       case 'error':
       case 'destructive':
-        return '#ef4444';
+        return 'var(--color-error, #ef4444)';
       case 'info':
-        return '#3b82f6';
+        return 'var(--color-primary-blue, #50A0F0)';
       default:
-        return '#60C0F0';
+        return 'var(--accent-primary, #60C0F0)';
     }
   }};
 
@@ -278,6 +281,10 @@ const ToastComponent = forwardRef<HTMLDivElement, {
   toast: Toast;
   onDismiss: (id: string) => void;
 }>(({ toast, onDismiss }, ref) => {
+  const auth = useContext(AuthContext);
+  // AnimatePresence can retain an exiting toast. Fence the text and actions
+  // inside the retained component so an owner change hides them immediately.
+  if (toast.ownerId !== undefined && toast.ownerId !== String(auth?.user?.id ?? '')) return null;
   const getIcon = () => {
     switch (toast.variant) {
       case 'success':
@@ -342,6 +349,8 @@ interface ToastProviderProps {
 }
 
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
+  const auth = useContext(AuthContext);
+  const ownerId = String(auth?.user?.id ?? '');
   const [toasts, setToasts] = useState<Toast[]>([]);
   const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
@@ -357,6 +366,17 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 
     // Remove toast
     setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  useEffect(() => {
+    toasts.forEach(entry => {
+      if (entry.ownerId !== undefined && entry.ownerId !== ownerId) dismiss(entry.id);
+    });
+  }, [toasts, ownerId, dismiss]);
+
+  useEffect(() => () => {
+    timeoutRefs.current.forEach(timeout => clearTimeout(timeout));
+    timeoutRefs.current.clear();
   }, []);
 
   const toast = useCallback((toastOptions: Omit<Toast, 'id'>) => {

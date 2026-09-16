@@ -1,0 +1,14 @@
+{
+  "billing": "subscription",
+  "effort": "xhigh",
+  "planDigest": "0a2209e89076a9d3401e9c5370d42e5de2a172d774d4d3859e86a2536c08d100",
+  "toolEvidence": {
+    "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/evidence/native-planner-metadata.json",
+    "sha256": "451e120b5e7fc87d333f0e60e8e247f0bd6594e02120c6e218b5a65104e5eee0"
+  },
+  "servedModel": "gpt-6-astra",
+  "requestedModel": "gpt-6-astra",
+  "provider": "openai-codex",
+  "role": "planner",
+  "status": "complete"
+}

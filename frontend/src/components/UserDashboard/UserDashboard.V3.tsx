@@ -27,7 +27,6 @@ import UserDashboardTabBarV3 from './components/UserDashboardTabBarV3';
 import UserDashboardTabsV3 from './components/UserDashboardTabsV3';
 import { resetUserDashboardTabScroll } from './components/UserDashboardTabScroll';
 import { useUserDashboardV3Controller } from './hooks/useUserDashboardV3Controller';
-import { useGamificationRealtime } from '../../hooks/gamification/useGamificationRealtime';
 import { buildUserDashboardTeachCoachRoute } from './UserDashboardTeachCoachRoute';
 import UserDashboardBackgroundControlsDisclosure from './backgrounds/UserDashboardBackgroundControlsDisclosure';
 import useUserDashboardBackgroundPreference from './backgrounds/useUserDashboardBackgroundPreference';
@@ -37,9 +36,9 @@ const EditProfileModal = lazy(() => import('./components/EditProfileModal'));
 
 const UserDashboardV3: React.FC = () => {
   const dashboard = useUserDashboardV3Controller();
-  // Level-up fireworks: subscribes to gamification:level_up and fires the
-  // CelebrationPortal takeover + refreshes the rank pill (2026-07-14).
-  useGamificationRealtime();
+  // Realtime rewards are mounted once by GamificationRealtimeBridge at the
+  // authenticated app boundary, covering this shell and legacy V3 together.
+  // The bridge owns useGamificationRealtime().
   const navigate = useNavigate();
   const location = useLocation();
   const { tab: urlTab } = useParams<{ tab?: string }>();

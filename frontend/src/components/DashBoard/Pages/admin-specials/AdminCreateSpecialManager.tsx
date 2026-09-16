@@ -5,9 +5,9 @@
  * policy + validity gate mirror the server (specialPricing.ts); the server re-validates
  * and is authoritative on submit (POST /api/custom-packages).
  *
- * Mount: /dashboard/admin/create-special (route registry). Mirrors AdminSpecialsManager.
+ * Mount: /dashboard/admin/admin-specials (route registry). Mirrors AdminSpecialsManager.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import apiService from '../../../../services/api';
 import { useGlobalClient } from '../../../../context/GlobalClientContext';
 import * as S from './createSpecial.styles';
@@ -20,6 +20,40 @@ interface CreateResult {
   effectiveHourlyRate: number;
   storefrontItemId?: number;
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object';
+
+const UNCONFIRMED_CREATE = 'Creation could not be confirmed. Check existing specials before retrying.';
+
+/**
+ * The create endpoint's pricing object is the financial receipt. A successful
+ * HTTP status alone cannot confirm the special: without these fields the UI
+ * must retain the form and ask the admin to inspect existing specials before
+ * retrying, because the server may have already committed it.
+ */
+const readAuthoritativeCreateResult = (value: unknown): CreateResult | null => {
+  if (!isRecord(value) || value.success !== true || !isRecord(value.pricing)) return null;
+
+  const totalSessions = value.pricing.totalSessions;
+  const effectiveHourlyRate = value.pricing.effectiveHourlyRate;
+  if (
+    typeof totalSessions !== 'number' || !Number.isInteger(totalSessions) || totalSessions <= 0
+    || typeof effectiveHourlyRate !== 'number' || !Number.isFinite(effectiveHourlyRate) || effectiveHourlyRate <= 0
+  ) return null;
+
+  const storefrontItemId = value.storefrontItemId;
+  if (storefrontItemId !== undefined &&
+      (typeof storefrontItemId !== 'number' || !Number.isInteger(storefrontItemId) || storefrontItemId <= 0)) {
+    return null;
+  }
+
+  return {
+    totalSessions,
+    effectiveHourlyRate,
+    ...(storefrontItemId === undefined ? {} : { storefrontItemId }),
+  };
+};
 
 const AdminCreateSpecialManager: React.FC = () => {
   const { clientList, loadingClients } = useGlobalClient();
@@ -36,6 +70,27 @@ const AdminCreateSpecialManager: React.FC = () => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CreateResult | null>(null);
+  const submittingRef = useRef(false);
+  const mountedRef = useRef(false);
+  const clientGenerationRef = useRef(0);
+
+  useEffect(() => {
+    // React StrictMode replays setup after cleanup on the same mounted instance.
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      clientGenerationRef.current += 1;
+    };
+  }, []);
+
+  const selectClient = (nextClientId: string) => {
+    if (nextClientId === clientId) return;
+    // Invalidate synchronously: comparing IDs alone accepts an old A -> B -> A response.
+    clientGenerationRef.current += 1;
+    setClientId(nextClientId);
+    setError(null);
+    setResult(null);
+  };
 
   const paidSessions = useMemo(
     () => BASE_PACKAGES.find((p) => p.key === basePackageType)?.paidSessions ?? 10,
@@ -70,7 +125,9 @@ const AdminCreateSpecialManager: React.FC = () => {
   }, [clientId, targetNum, validityType, expiresAt, maxRedemptions]);
 
   const submit = useCallback(async () => {
-    if (blocker) return;
+    if (blocker || submittingRef.current) return;
+    submittingRef.current = true;
+    const submittedGeneration = clientGenerationRef.current;
     setSubmitting(true);
     setError(null);
     setResult(null);
@@ -87,18 +144,31 @@ const AdminCreateSpecialManager: React.FC = () => {
         name,
         adminNote,
       });
-      const data = res.data || {};
-      setResult({
-        totalSessions: data.pricing?.totalSessions ?? pricing.totalSessions,
-        effectiveHourlyRate: data.pricing?.effectiveHourlyRate ?? pricing.effectiveHourlyRate,
-        storefrontItemId: data.storefrontItemId,
-      });
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Could not create the special. Please try again.');
+      if (!mountedRef.current || clientGenerationRef.current !== submittedGeneration) return;
+      const receipt = readAuthoritativeCreateResult(res.data);
+      if (!receipt) {
+        setError(UNCONFIRMED_CREATE);
+        return;
+      }
+      setResult(receipt);
+    } catch (e: unknown) {
+      if (!mountedRef.current || clientGenerationRef.current !== submittedGeneration) return;
+      const response = isRecord(e) && isRecord(e.response) ? e.response : undefined;
+      const status = response?.status;
+      // Network loss, timeouts and 5xx responses may occur after the commit.
+      const rejected = typeof status === 'number' && status >= 400 && status < 500 && status !== 408;
+      const serverMessage = response && isRecord(response.data) && typeof response.data.message === 'string'
+        ? response.data.message
+        : undefined;
+      setError(rejected
+        ? serverMessage || 'The server rejected this special. Check the form before retrying.'
+        : UNCONFIRMED_CREATE);
     } finally {
-      setSubmitting(false);
+      // Keep one create in flight across client selections, then release the form.
+      submittingRef.current = false;
+      if (mountedRef.current) setSubmitting(false);
     }
-  }, [blocker, clientId, basePackageType, targetNum, validityType, maxRedemptions, expiresAt, name, adminNote, pricing]);
+  }, [blocker, clientId, basePackageType, targetNum, validityType, maxRedemptions, expiresAt, name, adminNote]);
 
   return (
     <S.Page>
@@ -113,7 +183,7 @@ const AdminCreateSpecialManager: React.FC = () => {
         <S.FormCard>
           <S.Field>
             <S.Label htmlFor="cs-client">Client</S.Label>
-            <S.Select id="cs-client" value={clientId} onChange={(e) => setClientId(e.target.value)}>
+            <S.Select id="cs-client" value={clientId} onChange={(e) => selectClient(e.target.value)}>
               <option value="">{loadingClients ? 'Loading clients…' : 'Select a client…'}</option>
               {clientList.map((c) => (
                 <option key={c.id} value={String(c.id)}>{`${c.firstName} ${c.lastName}`.trim() || `Client #${c.id}`}</option>
@@ -204,11 +274,11 @@ const AdminCreateSpecialManager: React.FC = () => {
             <S.TextArea id="cs-note" value={adminNote} onChange={(e) => setAdminNote(e.target.value)} />
           </S.Field>
 
-          {error && <S.Banner $kind="error">{error}</S.Banner>}
+          {error && <S.Banner role="alert" aria-live="assertive" $kind="error">{error}</S.Banner>}
           {result && (
-            <S.Banner $kind="success">
+            <S.Banner role="status" aria-live="polite" $kind="success">
               Special created — {result.totalSessions} sessions at ~${Math.round(result.effectiveHourlyRate)}/session effective.
-              {result.storefrontItemId ? ' It now appears in this client’s store. (Shareable link + notification arrive in the next slice.)' : ''}
+              {result.storefrontItemId ? ' It now appears in this client’s store.' : ''}
             </S.Banner>
           )}
 

@@ -215,6 +215,14 @@ export async function getActiveRenewalAlerts(options = {}) {
     order: [['urgencyScore', 'DESC'], ['alertTriggeredDate', 'ASC']]
   };
 
+  // HTTP trainer callers provide a fresh active-assignment snapshot. Keep the
+  // filter in the database query so limit/order/include cannot leak an
+  // out-of-scope alert before an in-memory clamp runs. Cron/admin callers omit
+  // clientIds and retain the existing global behavior.
+  if (Array.isArray(options.clientIds)) {
+    queryOptions.where.userId = { [Op.in]: options.clientIds };
+  }
+
   // Filter by urgency threshold
   if (options.minUrgency) {
     queryOptions.where.urgencyScore = {
@@ -235,8 +243,8 @@ export async function getActiveRenewalAlerts(options = {}) {
  *
  * @returns {Array} Array of critical renewal alerts
  */
-export async function getCriticalAlerts() {
-  return await getActiveRenewalAlerts({ minUrgency: 8 });
+export async function getCriticalAlerts(options = {}) {
+  return await getActiveRenewalAlerts({ ...options, minUrgency: 8 });
 }
 
 /**
@@ -247,11 +255,13 @@ export async function getCriticalAlerts() {
  * @param {string} notes - Contact notes
  * @returns {Object} Updated alert
  */
-export async function markAlertAsContacted(alertId, contactedBy, notes = '') {
+export async function markAlertAsContacted(alertId, contactedBy, notes = '', options = {}) {
   const { RenewalAlert } = getModels();
-  const alert = await RenewalAlert.findByPk(alertId);
+  const alert = options.alert || await RenewalAlert.findByPk(alertId);
   if (!alert) {
-    throw new Error('Alert not found');
+    const error = new Error('Alert not found');
+    error.code = 'ALERT_NOT_FOUND';
+    throw error;
   }
 
   await alert.update({
@@ -271,11 +281,13 @@ export async function markAlertAsContacted(alertId, contactedBy, notes = '') {
  * @param {string} notes - Renewal notes
  * @returns {Object} Updated alert
  */
-export async function markAlertAsRenewed(alertId, notes = '') {
+export async function markAlertAsRenewed(alertId, notes = '', options = {}) {
   const { RenewalAlert } = getModels();
-  const alert = await RenewalAlert.findByPk(alertId);
+  const alert = options.alert || await RenewalAlert.findByPk(alertId);
   if (!alert) {
-    throw new Error('Alert not found');
+    const error = new Error('Alert not found');
+    error.code = 'ALERT_NOT_FOUND';
+    throw error;
   }
 
   await alert.update({
@@ -294,11 +306,13 @@ export async function markAlertAsRenewed(alertId, notes = '') {
  * @param {string} notes - Dismissal reason
  * @returns {Object} Updated alert
  */
-export async function dismissAlert(alertId, notes = '') {
+export async function dismissAlert(alertId, notes = '', options = {}) {
   const { RenewalAlert } = getModels();
-  const alert = await RenewalAlert.findByPk(alertId);
+  const alert = options.alert || await RenewalAlert.findByPk(alertId);
   if (!alert) {
-    throw new Error('Alert not found');
+    const error = new Error('Alert not found');
+    error.code = 'ALERT_NOT_FOUND';
+    throw error;
   }
 
   await alert.update({
@@ -319,6 +333,10 @@ export async function dismissAlert(alertId, notes = '') {
 export async function getRenewalAlertStats(options = {}) {
   const { RenewalAlert } = getModels();
   const whereClause = {};
+
+  if (Array.isArray(options.clientIds)) {
+    whereClause.userId = { [Op.in]: options.clientIds };
+  }
 
   if (options.startDate) {
     whereClause.alertTriggeredDate = {

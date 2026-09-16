@@ -64,7 +64,9 @@ async function getSessionPackagePricing(session) {
     };
   }
 
-  const packageInfo = await getClientPackagePricing(session.userId, cancellationPricingModels());
+  const packageInfo = await getClientPackagePricing(session.userId, cancellationPricingModels(), {
+    durationMinutes: session.duration
+  });
   const pricePerSession = parseMoneyAmount(packageInfo.pricePerSession);
   const defaultChargeAmount = pricePerSession ?? fallbackPrice;
 

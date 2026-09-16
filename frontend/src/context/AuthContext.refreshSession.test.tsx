@@ -32,7 +32,8 @@ vi.mock('../services/api.service', () => ({
     getToken: mocks.getToken,
     getRefreshToken: mocks.getRefreshToken,
     isTokenExpired: mocks.isTokenExpired,
-    refreshAccessToken: mocks.refreshAccessToken,
+    refreshAccessTokenOutcome: mocks.refreshAccessToken,
+    getAuthGeneration: () => 1,
   },
 }));
 
@@ -91,7 +92,7 @@ describe('AuthProvider session refresh on boot', () => {
     mocks.getToken.mockReturnValue('expired-access-token');
     mocks.getRefreshToken.mockReturnValue('valid-refresh-token');
     mocks.isTokenExpired.mockReturnValue(true);
-    mocks.refreshAccessToken.mockResolvedValue('fresh-access-token');
+    mocks.refreshAccessToken.mockResolvedValue({ status: 'refreshed', token: 'fresh-access-token', generation: 1 });
     mocks.getValidatedToken
       .mockReturnValueOnce(null)
       .mockReturnValue('fresh-access-token');
@@ -125,7 +126,7 @@ describe('AuthProvider session refresh on boot', () => {
     });
 
     expect(mocks.refreshAccessToken).toHaveBeenCalledTimes(1);
-    expect(mocks.storeToken).toHaveBeenCalledWith('fresh-access-token');
+    expect(mocks.storeToken).not.toHaveBeenCalled();
     expect(mocks.setAuthToken).toHaveBeenCalledWith('fresh-access-token');
     expect(mocks.apiGet).toHaveBeenCalledWith('/api/auth/me');
     expect(mocks.cleanupAllTokens).not.toHaveBeenCalled();
