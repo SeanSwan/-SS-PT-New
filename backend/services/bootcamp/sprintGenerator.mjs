@@ -25,18 +25,27 @@ const PROGRESSION = {
     if (weekNum <= 9) return 1.1;
     return 1.05;
   },
-  random: () => 0.85 + Math.random() * 0.3,
+  // Astra hive fix #6: deterministic from (sprintId, weekNumber) — regenerating
+  // a single slot must reproduce the same volume the full-sprint run produced.
+  random: (weekNum, totalWeeks, sprintId = 0) => {
+    void totalWeeks;
+    let h = ((weekNum * 2654435761) ^ (sprintId * 40503)) >>> 0;  // Knuth + sprintId scatter
+    h = ((h >>> 16) ^ h) * 0x45d9f3b >>> 0;
+    h = ((h >>> 16) ^ h) * 0x45d9f3b >>> 0;
+    h = ((h >>> 16) ^ h) >>> 0;
+    return 0.85 + (h % 1000) / 1000 * 0.3;
+  },
 };
 
 /**
  * The single decision for "how hard should this week's classes be generated".
  * Order: explicit week modifier > deload default (0.7) > strategy fallback.
  */
-export function weekPrescription(week, strategy = 'linear', durationWeeks = 0) {
+export function weekPrescription(week, strategy = 'linear', durationWeeks = 0, sprintId = 0) {
   const progressionFn = PROGRESSION[strategy] || PROGRESSION.linear;
   const explicit = Number(week?.intensityModifier);
   if (week?.isDeloadWeek) return explicit > 0 ? explicit : 0.7;
-  return explicit > 0 ? explicit : progressionFn(week?.weekNumber ?? 1, durationWeeks);
+  return explicit > 0 ? explicit : progressionFn(week?.weekNumber ?? 1, durationWeeks, sprintId);
 }
 
 function positiveId(value) {
@@ -65,12 +74,18 @@ async function rebuildMemory(sprintId, transaction) {
     where: { sprintId, status: ['generated', 'taught'] }, order: [['scheduledDate', 'ASC'], ['id', 'ASC']], transaction,
   });
   const union = new Map();
+  // Astra hive fix #7: batch the week lookups — was an N+1 findByPk per slot.
+  const weekIds = [...new Set(slots.map(s => s.weekId).filter(Boolean))];
+  const weekRows = weekIds.length
+    ? await getSprintWeek().findAll({ where: { id: weekIds }, attributes: ['id', 'weekNumber'], transaction })
+    : [];
+  const weekNumberById = new Map(weekRows.map(w => [w.id, w.weekNumber]));
   for (const slot of slots) {
     const keys = slot.exerciseKeys?.length ? slot.exerciseKeys : mainExerciseKeys(slot.generatedClassData);
-    const week = await getSprintWeek().findByPk(slot.weekId, { attributes: ['weekNumber'], transaction });
-    if (!week) throw sprintError('Sprint week missing', 422);
+    const weekNumber = weekNumberById.get(slot.weekId);
+    if (weekNumber == null) throw sprintError('Sprint week missing', 422);
     for (const key of keys) if (!union.has(key)) union.set(key, {
-      sprintId, exerciseKey: key, slotId: slot.id, weekNumber: week.weekNumber,
+      sprintId, exerciseKey: key, slotId: slot.id, weekNumber,
     });
   }
   await getSprintExerciseMemory().destroy({ where: { sprintId }, transaction });
@@ -140,7 +155,7 @@ async function runOwned(sprintId, actor, request, work) {
 /** U2: exclusions stay hot for this many weeks of the CURRENT sprint. */
 export const EXCLUSION_WINDOW_WEEKS = 4;
 
-function generationInput(sprint, slot, exclusions, weekPrescriptionIntensity) {
+function generationInput(sprint, slot, exclusions, weekPrescriptionIntensity, rosterCache) {
   return {
     classFormat: slot.classFormat || sprint.defaultFormat,
     classStyle: slot.classStyle || sprint.defaultStyle, dayType: slot.dayType,
@@ -148,6 +163,7 @@ function generationInput(sprint, slot, exclusions, weekPrescriptionIntensity) {
     exclusionKeys: exclusions, includeStretch: true, stretchDurationMin: 5,
     // F04: the week's prescription scales generated work volume (deload 0.7 …).
     prescriptionIntensity: weekPrescriptionIntensity,
+    rosterCache,
     // Workload progression must never select an impact category.
   };
 }
@@ -160,6 +176,8 @@ export async function generateSprintClasses(id, onProgress, actor, request) {
       ? await getSprintExerciseMemoryKeys(sprint.previousSprintId, actor) : new Set();
     // Rebuild from slot truth; a read/decoding failure aborts rather than losing exclusions.
     let memory = await withSprintClaim(sprintId, actor, claim, (_s, transaction) => rebuildMemory(sprintId, transaction));
+    // U6: scoped roster cache — one query per generation, not per slot.
+    const rosterCache = new Map();
     // U2: windowed exclusions — only memory keys first used within the last
     // EXCLUSION_WINDOW_WEEKS of THIS sprint join the no-repeat set.
     const slots = sprint.weeks.flatMap(week => week.classSlots.map(slot => ({ slot, week })))
@@ -197,7 +215,7 @@ export async function generateSprintClasses(id, onProgress, actor, request) {
       ]);
       const results = await Promise.allSettled(plannedSlots.map(slot =>
         generateBootcampClass(
-          generationInput(sprint, slot, windowed, weekPrescription(week, sprint.progressionStrategy, sprint.durationWeeks)),
+          generationInput(sprint, slot, windowed, weekPrescription(week, sprint.progressionStrategy, sprint.durationWeeks, sprintId), rosterCache),
         )));
       assertLive();
       let batchError = null;
@@ -234,7 +252,7 @@ export async function regenerateSlot(id, targetId, trainerId, request) {
     // F04: a regenerated class must obey the same week prescription as the
     // original full-sprint run, so the week is loaded from the slot.
     const week = slot.weekId ? await getSprintWeek().findByPk(slot.weekId) : null;
-    const prescription = week ? weekPrescription(week, sprint.progressionStrategy, sprint.durationWeeks) : 1;
+    const prescription = week ? weekPrescription(week, sprint.progressionStrategy, sprint.durationWeeks, sprintId) : 1;
     const exclusions = sprint.previousSprintId
       ? await getSprintExerciseMemoryKeys(sprint.previousSprintId, actor) : new Set();
     const others = await getSprintClassSlot().findAll({ where: { sprintId, status: ['generated', 'taught'] } });

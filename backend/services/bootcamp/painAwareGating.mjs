@@ -58,7 +58,7 @@ async function loadRosterClientIds(trainerId) {
  * Mutates flagged Board-1 exercise objects in place (painSwap / painCaution)
  * and appends explanations. Returns the painAlerts array.
  */
-export async function applyPainAwareGating({ trainerId, allExercises, explanations }) {
+export async function applyPainAwareGating({ trainerId, allExercises, explanations, rosterCache }) {
   // U5 (purity ruling): gates CLONES, collects its own explanations, and
   // returns { painAlerts, explanations, exercises } — inputs untouched.
   const localExplanations = [];
@@ -75,7 +75,14 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
     // Roster semantics (§5.5b): aggregate across the trainer's ACTIVE CLIENTS.
     // Fall back to trainer-authored entries — honestly labeled — only when the
     // assignment model is unavailable.
-    const rosterClientIds = await loadRosterClientIds(trainerId);
+    // U6: per-call-scope cache — a 364-slot sprint calls this once per slot;
+    // the roster does not change mid-generation, so a scoped cache eliminates
+    // 363 redundant queries without risking a stale roster across sessions.
+    let rosterClientIds = rosterCache?.get(trainerId);
+    if (rosterClientIds === undefined) {
+      rosterClientIds = await loadRosterClientIds(trainerId);
+      if (rosterCache) rosterCache.set(trainerId, rosterClientIds);
+    }
     const painWhere = { isActive: true, painLevel: { [Op.gte]: PAIN_FLAG_SEVERITY } };
     let aggregationScope;
     if (Array.isArray(rosterClientIds)) {

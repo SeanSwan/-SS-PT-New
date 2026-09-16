@@ -19,7 +19,7 @@ const models = vi.hoisted(() => ({
   sprint: { findOne: vi.fn(), findByPk: vi.fn(), update: vi.fn() },
   slot: { findAll: vi.fn(), findOne: vi.fn(), update: vi.fn(), count: vi.fn() },
   memory: { findAll: vi.fn(), destroy: vi.fn(), bulkCreate: vi.fn(), findOrCreate: vi.fn() },
-  week: { findByPk: vi.fn() },
+  week: { findByPk: vi.fn(), findAll: vi.fn() },
   log: { create: vi.fn() },
 }));
 vi.mock('../../models/index.mjs', () => ({
@@ -55,6 +55,7 @@ beforeEach(() => {
     update: vi.fn(async values => Object.assign(state.sprint, values)) };
   models.sprint.findOne.mockImplementation(async ({ where }) => where.id === 1 && (where.trainerId == null || where.trainerId === 7) ? state.sprint : null);
   models.memory.findAll.mockResolvedValue([]);
+  models.week.findAll.mockImplementation(async () => state.sprint?.weeks ?? []);
   models.slot.findAll.mockImplementation(async ({ where } = {}) => state.slots.filter(s => !where?.status || (Array.isArray(where.status) ? where.status : [where.status]).includes(s.status)));
   models.slot.findOne.mockImplementation(async ({ where }) => state.slots.find(s => s.id === where.id) ?? null);
   models.week.findByPk.mockImplementation(async id => state.sprint.weeks.find(w => w.id === id) ?? null);
@@ -121,7 +122,7 @@ describe('P1.2: the generation payload crosses no client PII to any model bounda
     await generateSprintClasses(1, null, actor, request);
     const ALLOWLIST = new Set([
       'classFormat', 'classStyle', 'dayType', 'spaceProfileId', 'trainerId',
-      'exclusionKeys', 'includeStretch', 'stretchDurationMin', 'prescriptionIntensity',
+      'exclusionKeys', 'includeStretch', 'stretchDurationMin', 'prescriptionIntensity', 'rosterCache',
     ]);
     for (const [options] of state.generate.mock.calls) {
       const keys = Object.keys(options);

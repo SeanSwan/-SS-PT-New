@@ -5,7 +5,7 @@ const models = vi.hoisted(() => ({
   sprint: { findOne: vi.fn(), findByPk: vi.fn(), update: vi.fn() },
   slot: { findAll: vi.fn(), findOne: vi.fn(), update: vi.fn(), count: vi.fn() },
   memory: { findAll: vi.fn(), destroy: vi.fn(), bulkCreate: vi.fn(), findOrCreate: vi.fn() },
-  week: { findByPk: vi.fn() },
+  week: { findByPk: vi.fn(), findAll: vi.fn() },
   log: { create: vi.fn() },
 }));
 vi.mock('../../models/index.mjs', () => ({
@@ -35,6 +35,7 @@ beforeEach(() => {
   models.sprint.update.mockResolvedValue([1]);
   models.slot.findAll.mockImplementation(async () => state.slots);
   models.memory.findAll.mockResolvedValue([]);
+  models.week.findAll.mockImplementation(async () => state.sprint?.weeks ?? []);
   models.memory.findOrCreate.mockResolvedValue([{}, true]);
 });
 
