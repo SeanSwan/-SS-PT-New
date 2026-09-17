@@ -89,9 +89,26 @@ function Write-Step([string]$Text) { Write-Host "  $Text" }
 function Resolve-BindAddress {
   param([string]$Requested)
   if ($Requested -and $Requested -ne 'auto') { return $Requested }
-  $ip = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-    Where-Object { $_.InterfaceAlias -match 'WSL' } |
-    Select-Object -First 1 -ExpandProperty IPAddress
+
+  $ip = $null
+  try {
+    $ip = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop |
+      Where-Object { $_.InterfaceAlias -match 'WSL' } |
+      Select-Object -First 1 -ExpandProperty IPAddress
+  } catch { }
+
+  if (-not $ip) {
+    # Fallback for constrained shells where the NetTCPIP cmdlets are unavailable:
+    # read the vEthernet (WSL) adapter block straight out of ipconfig.
+    $inWslBlock = $false
+    foreach ($line in (ipconfig)) {
+      if ($line -match 'adapter\s') { $inWslBlock = ($line -match 'WSL') ; continue }
+      if ($inWslBlock -and $line -match 'IPv4 Address[^:]*:\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)') {
+        $ip = $Matches[1]; break
+      }
+    }
+  }
+
   if ($ip) { return $ip }
   Write-Step 'WARNING: no WSL vNIC found; falling back to 127.0.0.1 (Hermes will NOT reach this)'
   return '127.0.0.1'
@@ -171,10 +188,22 @@ $script:Bind = Resolve-BindAddress -Requested $BindAddress
 # --------------------------------------------------------------------------- status
 if ($Mode -eq 'status') {
   $tunnel = Get-TunnelProcess
+  # A forward may also have been started outside this script (another shell, a task, an operator).
+  # Report it honestly instead of claiming "down" just because our state file has no pid.
+  $foreign = $null
+  if (-not $tunnel) {
+    $foreign = Get-CimInstance Win32_Process -Filter "Name='ssh.exe'" -ErrorAction SilentlyContinue |
+      Where-Object { $_.CommandLine -match [regex]::Escape(":$LocalPort`:") } |
+      Select-Object -First 1
+  }
+  $tunnelDesc = if ($tunnel) { "up (pid $($tunnel.Id))" }
+    elseif ($foreign) { "up (pid $($foreign.ProcessId), started outside this script)" }
+    elseif ($healthy) { 'up (listener not attributable from this shell)' }
+    else { 'down' }
   Write-Host 'MiniSwan GSQ status'
   Write-Step ("bind address    : $script:Bind (port $LocalPort)")
-  Write-Step ("tunnel          : " + $(if ($tunnel) { "up (pid $($tunnel.Id))" } else { 'down' }))
-  Write-Step ("local /health   : " + $(if (Test-LocalHealth -Port $LocalPort -Bind $script:Bind) { 'ok' } else { 'not answering' }))
+  Write-Step ("tunnel          : $tunnelDesc")
+  Write-Step ("local /health   : " + $(if ($healthy) { 'ok' } else { 'not answering' }))
   $target = if (Test-SshReady -Target $SshTarget) { $SshTarget } elseif (Test-SshReady -Target $FallbackTarget) { $FallbackTarget } else { $null }
   if (-not $target) { Write-Step 'miniswan        : asleep or unreachable'; exit 3 }
   $rc = Get-RemoteController -Target $target -Mode 'Status'
