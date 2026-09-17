@@ -51,6 +51,8 @@ function sanitizeFoodContext(raw) {
 import { protect } from '../middleware/authMiddleware.mjs';
 import { aiRateLimiter } from '../middleware/aiRateLimiter.mjs';
 import { requireSubscription } from '../middleware/requireSubscription.mjs';
+import { requireAiConsent } from '../middleware/aiConsent.mjs';
+import { getAiPrivacyProfile } from '../models/index.mjs';
 import AiConversation from '../models/AiConversation.mjs';
 import {
   getSystemPrompt,
@@ -108,6 +110,30 @@ const audioUpload = multer({
 });
 
 const router = express.Router();
+
+/**
+ * VOICE CONSENT GATE — audio egress requires active AI consent.
+ *
+ * The chat path checks consent before sending TEXT to a model, and
+ * mealPlanRoutes gates meal-photo egress the same way. The transcribe route
+ * did neither, so a user who had withdrawn AI consent could still have their
+ * recorded voice — client names, injuries and schedules spoken aloud — sent to
+ * a third-party model. Fitness and injury data is "consumer health data" under
+ * Washington My Health My Data and Nevada SB 370, where third-party sharing is
+ * opt-in and carries a private right of action, so this gate is the difference
+ * between a documented consent decision and an undocumented disclosure.
+ *
+ * Mirrors mealPlanRoutes' selfPhotoConsentGate: the requester is always the
+ * subject for this route (a trainer records on their own account), so userId
+ * resolves to req.user.id. Placed BEFORE multer so a withdrawn-consent request
+ * is refused without buffering 25MB of audio.
+ */
+const voiceConsentGate = requireAiConsent(getAiPrivacyProfile);
+const selfVoiceConsentGate = (req, res, next) => {
+  req.body = { ...(req.body || {}), userId: req.user?.id };
+  return voiceConsentGate(req, res, next);
+};
+
 const AI_CHAT_MESSAGE_MAX_CHARS = 12000;
 const COACH_ACTION_PROPOSAL_FAILED_CODE = 'COACH_PROPOSAL_CREATE_FAILED';
 const COACH_ACTION_PROPOSAL_FAILED_MESSAGE = 'Coach could not prepare that draft safely. Review the message and try again.';
@@ -1047,7 +1073,7 @@ router.delete('/conversations/:id', async (req, res) => {
  */
 // S7/A9 (JARVIS): strictPiiMiddleware closes the voice-audit gap — any text
 // fields riding the multipart body are sanitized like every other AI route.
-router.post('/transcribe', requireSubscription('pro', { feature: 'generation' }), aiRateLimiter, audioUpload.single('audio'), strictPiiMiddleware, async (req, res) => {
+router.post('/transcribe', requireSubscription('pro', { feature: 'generation' }), aiRateLimiter, selfVoiceConsentGate, audioUpload.single('audio'), strictPiiMiddleware, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No audio file provided' });
