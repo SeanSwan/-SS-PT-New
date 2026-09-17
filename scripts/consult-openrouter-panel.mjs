@@ -70,7 +70,12 @@ if (!existsSync(documentPath)) {
 const MAX_TOKENS = Number(process.env.PANEL_MAX_TOKENS) || 60000;
 const REASONING_MAX = Number(process.env.PANEL_REASONING_MAX) || Math.floor(MAX_TOKENS / 2);
 const document = readForEgress(documentPath, { label: 'document' });
-const system = `You are ${label}, consulted as an elite mobile product/UX designer and frontend architect by SwanStudios (a premium personal-training SaaS; dark-first "Crystalline Swan" brand: deep sapphire surfaces, Ice Wing cyan #60C0F0 accents, Gilded Fern gold #C6A84B for earned states, Wing Purple #8B5CF6 for AI-coach elements). Answer the consult packet's questions directly, ranked, and concretely. Be adversarial where the plan is weak — vague praise is useless. Markdown output.`;
+// Optional role override (added 2026-09-16). Default is UNCHANGED, so existing
+// design-panel callers keep the UX-designer framing. `--system` exists because an
+// infrastructure/VRAM/install packet must not be adjudicated through a product-design
+// persona - the role mismatch silently degrades the answer.
+const systemOverride = opt('system');
+const system = systemOverride || `You are ${label}, consulted as an elite mobile product/UX designer and frontend architect by SwanStudios (a premium personal-training SaaS; dark-first "Crystalline Swan" brand: deep sapphire surfaces, Ice Wing cyan #60C0F0 accents, Gilded Fern gold #C6A84B for earned states, Wing Purple #8B5CF6 for AI-coach elements). Answer the consult packet's questions directly, ranked, and concretely. Be adversarial where the plan is weak — vague praise is useless. Markdown output.`;
 
 // Resolved request shape prints in BOTH modes: the dry-run is the free
 // pre-flight that proves ceiling/reasoning/key before any spend is authorized.
