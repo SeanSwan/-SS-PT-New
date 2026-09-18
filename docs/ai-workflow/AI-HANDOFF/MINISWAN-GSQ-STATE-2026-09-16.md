@@ -120,3 +120,48 @@ the exact address Hermes uses, with the key read in-memory and never printed:
   awake) or stay on-demand (current design).
 - Confirm D1 is closed on the deployed task, not just in this document.
 - Verify the `gsq-api.key` rotation path is documented before the key is ever changed.
+
+---
+
+## Addendum 2026-09-17 — launcher fixes, freeze recovery, and the 5090 sibling launcher
+
+All findings below are [VERIFIED] live unless tagged otherwise.
+
+**Repo launcher (`scripts/miniswan/miniswan-gsq.ps1`) — two defects fixed:**
+1. `-Mode status` read `$healthy` before assignment, so local `/health` always reported
+   "not answering". Status now probes through the same bind the start path uses.
+2. `Get-RemoteController` lost backslashes in transit: the remote `-File` argument arrived as
+   `C:swanhermes-profilesgsqMiniSwan-GSQ.ps1` and every remote controller call failed. The remote
+   path is now converted to forward slashes (Windows PowerShell accepts them; backslashes can no
+   longer be eaten). Remote controller JSON verified answering after the fix.
+
+**Freeze aftermath on MiniSwan:** the 2026-09-17 PC freeze killed llama-server (pid 12048) without
+the controller knowing, leaving `state.json` at phase `READY` with a dead identity. The controller
+has no self-heal for this by design (`RECOVERY_REQUIRED_PROCESS_IDENTITY` from every mode).
+Recovery applied: `state.json` renamed to `state.json.stale-20260917` (kept for audit) after
+verifying no llama-server process, no 18081 listener, and idle VRAM. Controller then answered
+`ALREADY_STOPPED` cleanly.
+
+**Admission-floor finding (open):** with the box's current desktop baseline (~1.9 GiB used), free
+VRAM is ~14.48 GiB — below the profile's `minimumFreeMiBAfterUnload: 15000`. `-Mode start`
+therefore refuses (`GPU_BUSY_FREE_14160_MIN_15000`). Not a defect in the launcher; the gate is the
+owned safety design. Options when Sean wants MiniSwan loads to succeed again: close the desktop VRAM
+users on that box, reboot it, or lower the floor in `mini-profile.json` (his call).
+
+**New sibling launcher for the 5090 box:** `scripts/local-gpu/qwen5090.ps1` +
+Desktop clickables (`Desktop\@Everything\{Qwen Uncensored,MiniSwan Qwen} - {LOAD,UNLOAD,STATUS}.cmd`).
+The 5090 stack serves the SAME uncensored 27B through two backends that can never both hold VRAM:
+Ollama (`qwen3.8-uncensored:latest`, server must stay up for Hermes aux compression) and NInfer
+(`ninfer-serve.exe`, Hermes' active chat provider per `ninfer_config.py selected` → `local-ninfer`).
+The launcher is routing-aware, calls each backend's owned scripts only, never touches Hermes config,
+never kills the Ollama server, and verifies eviction by polling (a live Hermes gateway reloads the
+Ollama model on demand — UNLOAD reports this instead of silently losing the race). Full cycle tested:
+load restored NInfer (weights 16.95 GiB in ~3 s, listening 172.26.128.1:18080), unload released both
+backends to 2.8/31.8 GiB used. Residual: the first NInfer start invocation did not return for ~25 min
+(server itself was healthy and listening; second invocation returned normally — cause [UNKNOWN],
+watch on repeat use).
+
+**Security note (rule 59):** `ninfer-serve.exe` takes its bearer key inline (`--api-key <value>` on
+the command line), visible to any local process via process listings. Recommend switching to a key
+file (as the GSQ profile does with `--api-key-file`) and rotating the key at the next convenient
+window. Value not reproduced anywhere.

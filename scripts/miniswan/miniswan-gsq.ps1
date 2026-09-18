@@ -133,7 +133,12 @@ function Resolve-ReachableTarget {
 
 function Get-RemoteController {
   param([string]$Target, [string]$Mode)
-  $remote = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$RemoteController`" -Mode $Mode -Json"
+  # Forward slashes on purpose: the path crosses local PowerShell -> ssh argv ->
+  # the remote shell, and backslashes were observed being stripped in transit
+  # (remote -File got 'C:swanhermes-profilesgsqMiniSwan-GSQ.ps1', 2026-09-17).
+  # Windows PowerShell accepts forward-slash paths natively.
+  $remotePath = $RemoteController -replace '\\', '/'
+  $remote = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$remotePath`" -Mode $Mode -Json"
   $out = & ssh -o BatchMode=yes -o ConnectTimeout=20 $Target $remote 2>&1
   $code = $LASTEXITCODE
   $text = ($out | Out-String).Trim()
@@ -196,6 +201,9 @@ if ($Mode -eq 'status') {
       Where-Object { $_.CommandLine -match [regex]::Escape(":$LocalPort`:") } |
       Select-Object -First 1
   }
+  # Health must be probed through the same bind the start path uses (the WSL vNIC),
+  # otherwise status always reports "not answering" - $healthy was never assigned here.
+  $healthy = Test-LocalHealth -Port $LocalPort -Bind $script:Bind
   $tunnelDesc = if ($tunnel) { "up (pid $($tunnel.Id))" }
     elseif ($foreign) { "up (pid $($foreign.ProcessId), started outside this script)" }
     elseif ($healthy) { 'up (listener not attributable from this shell)' }
