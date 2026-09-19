@@ -3,6 +3,7 @@ import { Op } from 'sequelize';
 import logger from '../../utils/logger.mjs';
 import { bannedTerms } from '../social/feedEnrichment.mjs';
 import { verifyBridgeRequest } from '../../services/swanBridgeSignature.mjs';
+import { fetchAndDecodeSpotlightImage } from '../../services/spotlightImageFetch.mjs';
 
 /**
  * SwanGuard → SwanStudios Spotlight ingest.
@@ -154,24 +155,42 @@ router.post('/spotlight', spotlightJsonParser, async (req, res) => {
  * Re-host a SwanGuard image into SwanStudios' own R2 bucket.
  * Returns null on any failure — the caller renders a text-only card (blueprint ban #4:
  * never hot-link SwanGuard's URL in a production render path).
+ *
+ * HARDENED 2026-09-19, and two real defects were fixed here rather than one.
+ *
+ * (a) SSRF. The old version checked the protocol of the URL it was HANDED and then
+ *     called fetch with defaults — which follows redirects. A host returning
+ *     `302 → http://169.254.169.254/...` therefore defeated the check completely,
+ *     because the protocol was only ever inspected on the first hop. It also applied
+ *     its size cap AFTER `arrayBuffer()` had buffered the entire body, so the cap
+ *     bounded what was stored, not what was consumed. `fetchAndDecodeSpotlightImage`
+ *     now owns validation, the no-redirect fetch, the streamed cap, and the decode.
+ *
+ * (b) A wrong import. `uploadPhoto` was destructured from `r2StorageService.mjs`,
+ *     which does not export it — it lives in `photoStorageService.mjs`. Every call
+ *     threw `TypeError: uploadPhoto is not a function`, and this function's own
+ *     catch reported it as a non-fatal degradation and returned null. So image
+ *     re-hosting has never once succeeded, and the design ("a broken image degrades
+ *     to a text-only card") is precisely what made that invisible. Verified by
+ *     runtime introspection: `r2StorageService.uploadPhoto === undefined`.
  */
 async function rehostImage(url, itemId) {
   try {
-    const parsed = new URL(url);
-    if (!/^https?:$/.test(parsed.protocol)) return null;
-    const response = await fetch(parsed, { signal: AbortSignal.timeout(8000) });
-    if (!response.ok) return null;
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.startsWith('image/')) return null;
-    const buffer = Buffer.from(await response.arrayBuffer());
-    if (buffer.length === 0 || buffer.length > 8 * 1024 * 1024) return null;
+    const decoded = await fetchAndDecodeSpotlightImage(url);
+    if (!decoded.ok) {
+      logger.warn(`Spotlight image for ${itemId} not re-hosted (${decoded.code}): ${decoded.message}`);
+      return null;
+    }
 
-    const { uploadPhoto } = await import('../../services/r2StorageService.mjs');
-    const result = await uploadPhoto(buffer, {
+    // `uploadPhoto` is the single choke point for every upload caller and re-sniffs the
+    // bytes itself, deriving the stored extension and Content-Type from them rather than
+    // from anything this call declares.
+    const { uploadPhoto } = await import('../../services/photoStorageService.mjs');
+    const result = await uploadPhoto(decoded.buffer, {
       userId: 0,
       category: 'swan-spotlight',
-      originalFilename: `${itemId}.png`,
-      contentType
+      originalFilename: `${itemId}.${decoded.ext}`,
+      contentType: decoded.contentType
     });
     return result?.url ?? null;
   } catch (error) {
