@@ -57,9 +57,22 @@ export function renderClaim(c) {
  * Pure core: claims[] → packet markdown.
  * `disp` is the events disposition map; when present, only fresh/merge-queue claims get DECIDE blocks
  * and corroborations are summarised as FYI (no letter). `noveltyBlock`/`fyi` are prepended strings.
+ *
+ * Hostile finding F1a (2026-09-18): a claim Sean had ALREADY adjudicated was re-presented as a
+ * DECIDE block on the next cycle, because synthesize regenerates claims from receipts and every
+ * regenerated row carries status=proposed. His letter on that block was then silently dropped by
+ * adjudicate's idempotency guard. `adjudicatedIds` (claim ids already in claims.jsonl) is the
+ * authoritative "do not ask again" set; withheld claims are named so nothing disappears quietly.
  */
-export function renderPacket(claims, { batchId, disp = null, noveltyBlock = '', fyi = '' }) {
+export function renderPacket(claims, { batchId, disp = null, adjudicatedIds = null, noveltyBlock = '', fyi = '' }) {
   let proposed = claims.filter((c) => c.status === 'proposed');
+  const withheld = [];
+  if (adjudicatedIds) {
+    proposed = proposed.filter((c) => {
+      if (adjudicatedIds.has(c.claimId)) { withheld.push(c.claimId); return false; }
+      return true;
+    });
+  }
   if (disp) {
     // Suppress claims already folded by corroborate; keep fresh, merge-queue, and any not-yet-scored.
     proposed = proposed.filter((c) => {
@@ -75,6 +88,14 @@ export function renderPacket(claims, { batchId, disp = null, noveltyBlock = '', 
     '> Unmarked claims stay proposed — skipping is allowed, guessing is not.',
     '',
   ];
+  if (withheld.length) {
+    head.push(
+      `> ${withheld.length} claim(s) already adjudicated and withheld from this batch:`,
+      `> ${withheld.join(', ')}`,
+      '> (they live in claims.jsonl; re-deciding them is not possible and will be reported as ignored)',
+      '',
+    );
+  }
   const parts = [];
   if (noveltyBlock) parts.push(noveltyBlock, '');
   parts.push(head.join('\n'));
@@ -91,7 +112,9 @@ export function renderFyi(events, runId) {
   const corr = inRun.filter((e) => e.kind === 'corroborate' || e.kind === 'corroborate-same-product');
   const mq = inRun.filter((e) => e.kind === 'merge-queue');
   const contra = inRun.filter((e) => e.kind === 'contradiction-candidate');
-  if (!corr.length && !mq.length && !contra.length) return '';
+  const stale = inRun.filter((e) => e.kind === 'stale-decision-evidence');
+  const unmatched = inRun.filter((e) => e.kind === 'grown-unmatched');
+  if (!corr.length && !mq.length && !contra.length && !stale.length && !unmatched.length) return '';
   const lines = ['## THIS BATCH'];
   if (corr.length) {
     lines.push(`AUTO-CORROBORATED (FYI, no action): ${corr.length}`);
@@ -109,6 +132,29 @@ export function renderFyi(events, runId) {
     lines.push(`CONTRADICTION CANDIDATES (never auto-resolved): ${contra.length}`);
     for (const e of contra) lines.push(`  ${e.claimId} vs ${e.matchedClaimId} — accepting the new claim cross-links both`);
   }
+  if (stale.length) {
+    // R2-1 (round-2 review): a claim decided AGAINST (rejected/merged) gained evidence. The decision
+    // stands and nothing was written — but the new evidence must be VISIBLE, or a rejection silently
+    // becomes a permanent blind spot. (R3-1: `trial` is not decided-against and is not reported here;
+    // a trial claim's evidence flows to an accepted neighbour, or shows up under RESTATED below.)
+    lines.push(`NEW EVIDENCE ON DECIDED CLAIMS (no action taken — your decision stands): ${stale.length}`);
+    for (const e of stale) {
+      const prod = e.addedProducts?.length ? `+${e.addedProducts.join(', +')}` : 'no new products';
+      lines.push(`  ${e.claimId} was ${e.decidedStatus} — ${prod} now restate it. Revisit by hand if you want to.`);
+    }
+  }
+  if (unmatched.length) {
+    // R3-3 (round-3 review): receipts restating a ledgered claim that no accepted claim absorbed.
+    // Before this the receipts were orphaned with NO surface anywhere naming them. Nothing was
+    // written; this is the prompt to accept, merge, or reject deliberately.
+    lines.push(`RESTATED BUT NOT CORROBORATED (nothing absorbed these receipts — your call): ${unmatched.length}`);
+    for (const e of unmatched) {
+      const why = e.reason === 'below-auto-gate'
+        ? `scored S=${e.similarity?.S ?? '?'} against ${e.candidateClaimId} — below the auto-gate; suggest: m ${e.candidateClaimId}`
+        : `no accepted claim matches (status ${e.status})`;
+      lines.push(`  ${e.claimId} — ${why}; ${e.receiptRefs?.length ?? 0} receipt(s) unabsorbed`);
+    }
+  }
   return lines.join('\n');
 }
 
@@ -117,6 +163,7 @@ function main() {
   const root = resolveDataRoot(i !== -1 ? process.argv[i + 1] : undefined);
   const claims = readJsonl(join(root, 'claims-proposed.jsonl'));
   const events = readJsonl(join(root, 'events.jsonl'));
+  const adjudicatedIds = new Set(loadClaims(join(root, 'claims.jsonl')).map((c) => c.claimId));
   const batchId = new Date().toISOString().slice(0, 10);
 
   // novelty header + FYI (only when the corroborate step has produced events)
@@ -129,8 +176,16 @@ function main() {
     disp = dispositions(events);
   }
 
-  const file = join(root, 'batches', `BATCH-${batchId}.md`);
-  safeWriteText(root, file, renderPacket(claims, { batchId, disp, noveltyBlock, fyi }));
+  // Hostile finding F8 (2026-09-18): the batch path was the bare date, so re-running packet
+  // overwrote the file Sean was mid-edit on and destroyed his letters. An edited batch is preserved
+  // by writing the new batch to a timestamped sibling instead.
+  let file = join(root, 'batches', `BATCH-${batchId}.md`);
+  if (existsSync(file) && /^DECIDE:\s*[artm]\b/mi.test(readFileSync(file, 'utf8'))) {
+    const stamp = new Date().toISOString().slice(11, 16).replace(':', '');
+    file = join(root, 'batches', `BATCH-${batchId}-${stamp}.md`);
+    console.log(`note: BATCH-${batchId}.md carries your letters — preserved; writing BATCH-${batchId}-${stamp}.md`);
+  }
+  safeWriteText(root, file, renderPacket(claims, { batchId, disp, adjudicatedIds, noveltyBlock, fyi }));
   console.log(`packet -> ${file}`);
   console.log('edit the DECIDE lines, then run adjudicate.');
   return 0;

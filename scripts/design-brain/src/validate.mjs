@@ -17,6 +17,24 @@ const DENIED_FIELDS = [
   'accountEmail', 'customerData',
 ];
 
+/**
+ * Key allowlists — the hand validator's enforcement of the schemas' `additionalProperties: false`.
+ * Hostile finding (2026-09-18): the validator checked required fields and denied fields but never
+ * rejected UNKNOWN keys, so the documented contract and the enforced contract disagreed.
+ * `CLAIM_KEYS` includes the fields the engine itself adds on rev+1 (rev/updatedUtc/autoUpdate) and
+ * the merge-absorption field (mergedFrom) — the schema is updated alongside this list.
+ */
+const RECEIPT_KEYS = new Set([
+  'receiptId', 'runId', 'domainId', 'product', 'refType', 'surface', 'platform', 'stepCount',
+  'hierarchyNotes', 'stateNotes', 'principleCandidates', 'inspectorActorId', 'openedAtUtc',
+]);
+const CLAIM_KEYS = new Set([
+  'claimId', 'domainId', 'principle', 'workflowPhase', 'userRole', 'products', 'receiptRefs',
+  'exceptions', 'contradictions', 'swanTranslation', 'confidence', 'singleSource', 'status',
+  'mergedInto', 'mergedFrom', 'humanDecision', 'createdUtc', 'rev', 'updatedUtc', 'autoUpdate',
+  'runIdSeen',
+]);
+
 const REF_TYPES = new Set(['screen', 'flow', 'section']);
 const PLATFORMS = new Set(['ios', 'android', 'web']);
 const STATUSES = new Set(['proposed', 'accepted', 'rejected', 'trial', 'merged']);
@@ -25,10 +43,59 @@ const LEVELS = new Set(['low', 'medium', 'high']);
 const isStr = (v, min = 1) => typeof v === 'string' && v.trim().length >= min;
 const isIso = (v) => typeof v === 'string' && !Number.isNaN(new Date(v).getTime());
 
+/**
+ * Denied fields are a hard fail at ANY DEPTH. Hostile finding (2026-09-18): the scan was
+ * top-level-only, so `{"meta":{"screenshot":"data:image/png;base64,…"}}` sailed through the rule
+ * that exists to keep screenshots/HTML/tokens out of the corpus for ToS + Rule 8 reasons.
+ */
 function deniedFieldErrors(obj) {
   const errs = [];
-  for (const k of Object.keys(obj)) {
-    if (DENIED_FIELDS.includes(k)) errs.push(`denied field present: ${k}`);
+  const seen = new Set();
+  const walk = (node, path) => {
+    if (node == null || typeof node !== 'object' || seen.has(node)) return;
+    seen.add(node);
+    if (Array.isArray(node)) {
+      node.forEach((v, i) => walk(v, `${path}[${i}]`));
+      return;
+    }
+    for (const [k, v] of Object.entries(node)) {
+      if (DENIED_FIELDS.includes(k)) errs.push(`denied field present: ${path ? `${path}.` : ''}${k}`);
+      walk(v, path ? `${path}.${k}` : k);
+    }
+  };
+  walk(obj, '');
+  return errs;
+}
+
+/** Unknown-key errors — the enforced half of `additionalProperties: false`. */
+function unknownFieldErrors(obj, allowed) {
+  return Object.keys(obj).filter((k) => !allowed.has(k)).map((k) => `unknown field: ${k}`);
+}
+
+/**
+ * Nested `additionalProperties: false` (R2-5, round-2 review). The top-level allowlists were
+ * enforced but the schema also closes `confidence` and `swanTranslation`, and nothing checked them —
+ * so `{"confidence":{"level":"low","basis":"x","sneaky":1}}` validated. Closed for the two nested
+ * objects the schema actually constrains.
+ */
+const NESTED_KEYS = {
+  confidence: new Set(['level', 'basis']),
+  swanTranslation: new Set(['cPatterns', 'tokens', 'qaRisks']),
+  autoUpdate: new Set([
+    'kind', 'actor', 'utc', 'runId', 'receiptRefs', 'addedProducts',
+    'prevConfidence', 'nextConfidence',
+  ]),
+  humanDecision: new Set(['actor', 'utc', 'batchId', 'note']),
+};
+
+function nestedUnknownFieldErrors(obj) {
+  const errs = [];
+  for (const [key, allowed] of Object.entries(NESTED_KEYS)) {
+    const v = obj[key];
+    if (v == null || typeof v !== 'object' || Array.isArray(v)) continue;
+    for (const k of Object.keys(v)) {
+      if (!allowed.has(k)) errs.push(`unknown field: ${key}.${k}`);
+    }
   }
   return errs;
 }
@@ -37,7 +104,11 @@ function deniedFieldErrors(obj) {
 export function validateReceipt(r) {
   const errors = [];
   if (typeof r !== 'object' || r == null) return { ok: false, errors: ['not an object'] };
-  errors.push(...deniedFieldErrors(r));
+  errors.push(
+    ...deniedFieldErrors(r),
+    ...unknownFieldErrors(r, RECEIPT_KEYS),
+    ...nestedUnknownFieldErrors(r),
+  );
   if (!isStr(r.receiptId) || !/^RCP-[A-Za-z0-9-]{4,}$/.test(r.receiptId)) errors.push('receiptId must match RCP-…');
   if (!isStr(r.domainId)) errors.push('domainId required');
   if (!isStr(r.product, 2)) errors.push('product required');
@@ -62,7 +133,11 @@ export function validateReceipt(r) {
 export function validateClaim(c) {
   const errors = [];
   if (typeof c !== 'object' || c == null) return { ok: false, errors: ['not an object'] };
-  errors.push(...deniedFieldErrors(c));
+  errors.push(
+    ...deniedFieldErrors(c),
+    ...unknownFieldErrors(c, CLAIM_KEYS),
+    ...nestedUnknownFieldErrors(c),
+  );
   if (!isStr(c.claimId) || !/^CLM-[A-Za-z0-9-]{4,}$/.test(c.claimId)) errors.push('claimId must match CLM-…');
   if (!isStr(c.domainId)) errors.push('domainId required');
   if (!isStr(c.principle, 20)) errors.push('principle must be substantive (≥20 chars)');

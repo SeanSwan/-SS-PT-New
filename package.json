@@ -39,7 +39,8 @@
     "check:main-parity": "node scripts/check-main-parity.mjs",
     "backup": "node scripts/backup-repo.mjs",
     "backup:verify": "node scripts/backup-repo.mjs --verify-only",
-    "db:drift-check": "node backend/scripts/schema-drift-check.mjs"
+    "db:drift-check": "node backend/scripts/schema-drift-check.mjs",
+    "design-brain:test": "node --test \"scripts/design-brain/tests/*.test.mjs\""
   },
   "devDependencies": {
     "fallow": "^2.88.3",

@@ -70,9 +70,21 @@ function preflight(root, target, content, label) {
   assertTextContent(content, label);
 }
 
+/**
+ * The audit ledger is itself a write into the data root, so it goes through the SAME preflight as
+ * every other write. Hostile finding (2026-09-18): audit() previously called mkdirSync/appendFileSync
+ * directly, so a `ledger/` junction planted inside the root redirected the tamper-evidence ledger
+ * OUTSIDE the jail — the one write path the module's own rule 2 did not cover. Validated before the
+ * primary write so a bad ledger fails the whole operation instead of half-succeeding.
+ */
+function assertAuditWritable(root, probeLine) {
+  const ledger = join(root, 'ledger', 'writes.jsonl');
+  preflight(root, ledger, probeLine, 'append to the audit ledger');
+  return ledger;
+}
+
 function audit(root, action, target, bytes) {
   const ledger = join(root, 'ledger', 'writes.jsonl');
-  mkdirSync(dirname(ledger), { recursive: true });
   appendFileSync(ledger, JSON.stringify({
     ts: new Date().toISOString(), action, target: String(target), bytes,
   }) + '\n');
@@ -81,7 +93,9 @@ function audit(root, action, target, bytes) {
 /** Atomic full-file write (temp sibling + rename), jailed + audited. */
 export function safeWriteText(root, target, content) {
   preflight(root, target, content, `write to ${target}`);
+  const ledger = assertAuditWritable(root, '{"action":"probe"}\n');
   mkdirSync(dirname(resolve(target)), { recursive: true });
+  mkdirSync(dirname(ledger), { recursive: true });
   const tmp = resolve(target) + '.tmp-' + process.pid;
   writeFileSync(tmp, content);
   renameSync(tmp, resolve(target));
@@ -93,7 +107,9 @@ export function safeWriteText(root, target, content) {
 export function appendJsonl(root, target, obj) {
   const line = JSON.stringify(obj) + '\n';
   preflight(root, target, line, `append to ${target}`);
+  const ledger = assertAuditWritable(root, '{"action":"probe"}\n');
   mkdirSync(dirname(resolve(target)), { recursive: true });
+  mkdirSync(dirname(ledger), { recursive: true });
   appendFileSync(resolve(target), line);
   audit(root, 'append', target, Buffer.byteLength(line));
   return resolve(target);

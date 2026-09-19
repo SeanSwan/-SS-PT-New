@@ -82,8 +82,22 @@ function main() {
 
   if (process.argv.includes('--build') && emitted) {
     const tool = join(vault, 'tools', 'hermes2_brain_search.py');
+    // R2-4 (round-2 review): this used to throw an uncaught execFileSync error AFTER the collection
+    // had already been written, so a successful emit reported itself as a total failure. The emit is
+    // the deliverable; the build is optional plumbing. Report it loudly and exit 0.
+    if (!existsSync(tool)) {
+      console.error(`⚠ emitted ${emitted} claim(s) OK, but the vault build tool was not found: ${tool}`);
+      console.error('  the collection is written; run the build yourself (the tool lives in the WSL vault).');
+      return 0;
+    }
     console.log('rebuilding vault index…');
-    execFileSync('python3', [tool, 'build'], { stdio: 'inherit' });
+    try {
+      execFileSync('python3', [tool, 'build'], { stdio: 'inherit' });
+    } catch (err) {
+      console.error(`⚠ emitted ${emitted} claim(s) OK, but the vault build FAILED: ${err.message}`);
+      console.error('  the collection is written; re-run the build once the vault tool is fixed.');
+      return 0;
+    }
   } else if (emitted) {
     console.log('run the vault build (or pass --build) to make claims searchable.');
   }

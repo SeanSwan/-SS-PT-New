@@ -40,6 +40,31 @@
     "singleSource": { "type": "boolean" },
     "status": { "enum": ["proposed", "accepted", "rejected", "trial", "merged"] },
     "mergedInto": { "type": "string" },
+    "mergedFrom": {
+      "type": "array", "items": { "type": "string" },
+      "description": "claimIds absorbed by this claim via an `m` merge letter; their products/receiptRefs are unioned into this record"
+    },
+    "rev": {
+      "type": "integer", "minimum": 1,
+      "description": "fold revision. claims.jsonl is append-authoritative: an update is an append of the full record with the same claimId and rev+1; loadClaims() folds to the latest rev"
+    },
+    "updatedUtc": { "type": "string", "format": "date-time" },
+    "autoUpdate": {
+      "type": "object",
+      "description": "audit block written ONLY by auto-corroboration. Its presence proves the mutation was machine-applied and confidence moved solely via confidenceFor()",
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["corroborate", "corroborate-same-product"] },
+        "actor": { "type": "string" },
+        "utc": { "type": "string" },
+        "runId": { "type": "string" },
+        "receiptRefs": { "type": "array", "items": { "type": "string" } },
+        "addedProducts": { "type": "array", "items": { "type": "string" } },
+        "prevConfidence": { "type": "object" },
+        "nextConfidence": { "type": "object" }
+      }
+    },
+    "runIdSeen": { "type": "string", "description": "legacy/optional: the run that produced this row" },
     "humanDecision": {
       "type": "object", "additionalProperties": false,
       "properties": {
