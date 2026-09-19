@@ -11,7 +11,9 @@ let enrichmentCache = {
   items: [],
 };
 
-const bannedTerms = [
+// Exported so the SwanGuard Spotlight bridge ingest can reuse this exact list as its
+// SECOND positivity gate instead of duplicating it (which would drift). Blueprint §4.1.
+export const bannedTerms = [
   'campaign',
   'diagnosis',
   'election',

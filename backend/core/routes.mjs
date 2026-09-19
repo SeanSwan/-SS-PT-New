@@ -103,6 +103,9 @@ import creatorEconomyRoutes from '../routes/creatorEconomyRoutes.mjs';
 import gamificationV1Routes from '../routes/gamificationV1Routes.mjs';
 import badgeRoutes from '../routes/badgeRoutes.mjs';
 import socialRoutes from '../routes/social/index.mjs';
+// S3 — SwanGuard -> SwanStudios Spotlight bridge. Mounted under /api/bridge, which the
+// global JSON parser deliberately skips so the HMAC can hash the raw request bytes.
+import bridgeIngestRoutes from '../routes/bridge/bridgeIngestRoutes.mjs';
 import goalRoutes from '../routes/goalRoutes.mjs';
 import socialGoalRoutes from '../routes/socialGoalRoutes.mjs';
 import streakRoutes from '../routes/streakRoutes.mjs';
@@ -421,6 +424,8 @@ export const setupRoutes = async (app) => {
 
   // Social routes (separate system)
   app.use('/api/social', socialRoutes);
+  // SwanGuard Spotlight bridge (S3). Owns its body parser; see core/middleware/index.mjs.
+  app.use('/api/bridge', bridgeIngestRoutes);
   app.use('/api/goals', goalRoutes);
   app.use('/api/goals', socialGoalRoutes); // Social features: supporters, comments, likes, milestones
   app.use('/api/streaks', streakRoutes);

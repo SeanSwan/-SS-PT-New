@@ -24,6 +24,8 @@ import ReportPostModal from './components/ReportPostModal';
 import DeletePostConfirmDialog from './components/DeletePostConfirmDialog';
 import PostEditComposer from './components/PostEditComposer';
 import PostShareDialog from './components/PostShareDialog';
+import CoachSignalBanner from './components/CoachSignalBanner';
+import { useMenuClickOutside } from './hooks/useMenuClickOutside';
 
 import {
   PostCardWrapper,
@@ -65,16 +67,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
   const gradient = CATEGORY_GRADIENTS[post.type] || CATEGORY_GRADIENTS.general;
   const isOwnPost = !!(user?.id && user.id === post.user.id);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [menuOpen]);
+  useMenuClickOutside(menuOpen, menuRef, () => setMenuOpen(false));
 
   useEffect(() => {
     if (showPointNotification) {
@@ -213,6 +206,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onLike, onReact, onRemoveReac
           onMute={handleMute}
           isOwnPost={isOwnPost}
         />
+
+        {post.coachSignal && <CoachSignalBanner signal={post.coachSignal} />}
 
         {editMode ? (
           <PostEditComposer

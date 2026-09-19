@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import { Trophy } from 'lucide-react';
+import SpotlightRail from '../../Social/Spotlight/SpotlightRail';
 import {
   ActionButton,
   CardBody,
@@ -26,6 +27,10 @@ export function ClientRightRail({ activeChallenge, challengeLoading, badges, lea
   'activeChallenge' | 'challengeLoading' | 'badges' | 'leaderboardRows' | 'trendingTags' | 'trendingLoading' | 'onTarget'>) {
   return (
     <>
+      {/* S3 — Swan Spotlight sits at the top of the rail: it is the editorial surface
+          Sean curates, and it self-hides when the flag is off, when it is muted, or when
+          there is nothing live (no standing tombstone). */}
+      <SpotlightRail />
       <RailChallenge activeChallenge={activeChallenge} challengeLoading={challengeLoading} onTarget={onTarget} />
       {/* Progressive disclosure (audit 2026-09-12 A-2/D6): rail panels appear
           when they have something real to show — no standing tombstones. */}

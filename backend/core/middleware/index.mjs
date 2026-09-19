@@ -33,14 +33,16 @@ export const setupMiddleware = async (app) => {
   //   - /api/session-packages/webhook  — direct session-package Stripe webhook
   //   - /api/subscriptions/webhook     — Stripe subscription webhook route
   //   - /api/plaud/webhook             — PLAUD Auto-Ingestion (Phase 5)
+  //   - /api/bridge                    — SwanGuard Spotlight bridge (S3), HMAC over raw body
   // Each webhook route applies its own raw-aware parser (express.raw for
-  // Stripe; express.json with verify hook for PLAUD).
+  // Stripe; express.json with verify hook for PLAUD and the Swan bridge).
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/webhook')
         || req.path.startsWith('/webhooks')
         || req.path.startsWith('/api/cart/webhook')
         || req.path.startsWith('/api/session-packages/webhook')
         || req.path.startsWith('/api/subscriptions/webhook')
+        || req.path.startsWith('/api/bridge')
         || req.path.startsWith('/api/plaud/webhook')) {
       return next();
     }

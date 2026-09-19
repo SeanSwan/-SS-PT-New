@@ -35,13 +35,14 @@
  */
 
 import React, { useState } from 'react';
-import { Sparkles, Share2, Trophy, Dumbbell, ThumbsUp } from 'lucide-react';
+import { Sparkles, Share2, Trophy, Dumbbell, ThumbsUp, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getPersonalLogWorkoutDashboardPath } from '../../UserDashboard/components/swanCoachDashboardRoute';
 import InlineChallengeFinder from './InlineChallengeFinder';
 import InlineMilestoneShare from './InlineMilestoneShare';
 import InlineCheerPicker from './InlineCheerPicker';
+import InlineSignalPicker from './InlineSignalPicker';
 import {
   ActionChip,
   ChipRow,
@@ -63,7 +64,11 @@ const NAV_CHIPS = [
   },
 ] as const;
 
-type DockPanel = 'share' | 'finder' | 'cheer';
+type DockPanel = 'share' | 'finder' | 'cheer' | 'signal';
+
+// S1 Coach Signal: send affordance is trainer/admin-only (server enforces the
+// active-assignment + daily-cap rules; the chip is just visibility).
+const isCoachRole = (role?: string) => role === 'trainer' || role === 'admin';
 
 const SocialCoachDock: React.FC = () => {
   const { user } = useAuth();
@@ -137,6 +142,19 @@ const SocialCoachDock: React.FC = () => {
             <ThumbsUp size={15} />
             Cheer a friend
           </ActionChip>
+          {/* S1 Coach Signal: gold, rationed coach recognition on a client's
+              real post (5/day, active-assignment enforced server-side). */}
+          {isCoachRole(user?.role) && (
+            <ActionChip
+              onClick={() => togglePanel('signal')}
+              aria-label="Send a coach signal"
+              aria-expanded={openPanel === 'signal'}
+              aria-controls="coach-signal-picker"
+            >
+              <ShieldCheck size={15} />
+              Send a Signal
+            </ActionChip>
+          )}
         </ChipRow>
 
         {/* Lazy mounts: each panel's data fetch only fires when the user asks. */}
@@ -145,6 +163,7 @@ const SocialCoachDock: React.FC = () => {
         )}
         {openPanel === 'finder' && <InlineChallengeFinder />}
         {openPanel === 'cheer' && <InlineCheerPicker />}
+        {openPanel === 'signal' && isCoachRole(user?.role) && <InlineSignalPicker />}
       </DockInner>
     </DockShell>
   );

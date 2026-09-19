@@ -137,6 +137,18 @@ export const TwoColumnGrid = styled.div`
   }
 `;
 
+/**
+ * S1.5 — full-width slot for the social dock above the feed row. The dock is a chip
+ * rail, so it spans the primary stack rather than taking a grid cell.
+ */
+export const SocialDockSlot = styled.div`
+  min-width: 0;
+
+  & > * {
+    max-width: 100%;
+  }
+`;
+
 export const ThreeColumnGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

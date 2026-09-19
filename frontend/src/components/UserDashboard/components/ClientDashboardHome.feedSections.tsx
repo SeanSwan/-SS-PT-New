@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import PostMediaLightbox from '../../Social/Feed/components/PostMediaLightbox';
+import PromptChips from '../../Social/Prompts/PromptChips';
 import { sanitizeImageUrl } from '../../../utils/imageUrl';
 import {
   Activity,
@@ -98,6 +99,8 @@ export function QuickPostCard(props: Pick<ClientDashboardHomeProps,
           aria-label="Write a community post"
         />
         <ChipRow>
+          {/* S4 — one-tap prompt nudge. Prefills only; the member always edits before posting. */}
+          <PromptChips onPick={props.onPostTextChange} />
           {moodOptions.map(([mood, label]) => (
             <MoodChip key={`${label}-${mood}`} type="button" $active={props.activeMood === mood} onClick={() => props.onSetMood(mood)}>
               {label}

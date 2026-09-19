@@ -172,3 +172,29 @@ export const BrowseAllButton = styled.button`
     transition: none;
   }
 `;
+
+/**
+ * Optional coach-signal note field. Lives here rather than as an inline style so the
+ * panel keeps ONE visual vocabulary and no hardcoded colors (hostile review F4.3,
+ * 2026-09-18). 44px min target per the house touch standard.
+ */
+export const SignalNoteField = styled.input`
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-gold, #C6A84B) 40%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-base, #030712) 55%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 0.82rem;
+
+  &::placeholder {
+    color: color-mix(in srgb, var(--text-primary, #E0ECF4) 55%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-gold, #C6A84B);
+    outline-offset: 2px;
+  }
+`;

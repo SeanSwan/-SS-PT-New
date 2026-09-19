@@ -392,6 +392,43 @@ router.get('/feed', async (req, res) => {
     });
     const likedPostIds = new Set(userLikes.map(like => like.targetId));
 
+    // Coach Signals (S1): today's signals on these posts, batch-fetched, non-fatal on failure.
+    let coachSignalMap = {};
+    try {
+      const startOfUtcDay = new Date();
+      startOfUtcDay.setUTCHours(0, 0, 0, 0);
+      const CoachSignal = (await import('../../models/social/CoachSignal.mjs')).default;
+      const signals = await CoachSignal.findAll({
+        where: { postId: { [Op.in]: postIds }, createdAt: { [Op.gte]: startOfUtcDay } },
+        attributes: ['postId', 'coachId', 'note'],
+        raw: true
+      });
+      const signalCoachIds = [...new Set(signals.map(s => s.coachId))];
+      const signalCoaches = signalCoachIds.length
+        ? await getUser().findAll({
+            where: { id: { [Op.in]: signalCoachIds } },
+            attributes: ['id', 'firstName', 'lastName', 'username', 'photo'],
+            raw: true
+          })
+        : [];
+      const coachById = new Map(signalCoaches.map(c => [c.id, c]));
+      coachSignalMap = signals.reduce((acc, s) => {
+        // One signal per coach per post (unique index); the first coach wins the banner slot.
+        if (!acc[s.postId]) {
+          const coach = coachById.get(s.coachId);
+          acc[s.postId] = {
+            coachId: s.coachId,
+            coachDisplayName: coach ? (coach.username || [coach.firstName, coach.lastName].filter(Boolean).join(' ') || 'Your coach') : 'Your coach',
+            coachPhoto: coach ? coach.photo : null,
+            note: s.note
+          };
+        }
+        return acc;
+      }, {});
+    } catch (err) {
+      console.warn('Coach signal attach failed (non-fatal):', err.message);
+    }
+
     // Format posts with comment counts, reaction status
     const formattedPosts = posts.map(post => {
       const postObj = post.toJSON();
@@ -405,6 +442,11 @@ router.get('/feed', async (req, res) => {
       // Reaction breakdown
       postObj.reactionCounts = reactionCountsMap[post.id] || { thumbs_up: 0, heart: 0, swan: 0 };
       postObj.userReactions = userReactionsMap[post.id] || [];
+
+      // Coach Signal banner payload (present only when a coach signaled this post today)
+      if (coachSignalMap[post.id]) {
+        postObj.coachSignal = coachSignalMap[post.id];
+      }
 
       return attachWorkoutDataToPost(postObj);
     });

@@ -14,6 +14,9 @@ import Faction from './Faction.mjs';
 import FactionMembership from './FactionMembership.mjs';
 import Party from './Party.mjs';
 import PartyMember from './PartyMember.mjs';
+import CoachSignal from './CoachSignal.mjs';
+import SwanSpotlight from './SwanSpotlight.mjs';
+import SocialPromptOfTheDay from './SocialPromptOfTheDay.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Hashtag Associations
@@ -65,7 +68,10 @@ export {
   Faction,
   FactionMembership,
   Party,
-  PartyMember
+  PartyMember,
+  CoachSignal,
+  SwanSpotlight,
+  SocialPromptOfTheDay
 };
 
 // Export as default
@@ -85,5 +91,8 @@ export default {
   Faction,
   FactionMembership,
   Party,
-  PartyMember
+  PartyMember,
+  CoachSignal,
+  SwanSpotlight,
+  SocialPromptOfTheDay
 };

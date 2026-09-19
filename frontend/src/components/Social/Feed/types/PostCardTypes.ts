@@ -124,6 +124,14 @@ export interface Post {
   likesCount: number;
   commentsCount: number;
   isLiked: boolean;
+  // S1 Coach Signal: present only when a coach signaled this post today
+  // (see backend/routes/social/coachSignalRoutes.mjs; banner payload).
+  coachSignal?: {
+    coachId: number;
+    coachDisplayName: string;
+    coachPhoto?: string | null;
+    note?: string | null;
+  };
   reactionCounts?: { thumbs_up: number; heart: number; swan: number };
   userReactions?: string[];
   isRepost?: boolean;
