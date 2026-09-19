@@ -124,8 +124,15 @@ SKIP_PATH_PATTERNS=(
 
 is_skipped_path() {
   local path="$1"
+  # Perf (2026-09-18): this used to be `echo "$path" | grep -Eq "$pat"`, which forks
+  # one grep per pattern per file — 21 x N subprocesses. On Git Bash a fork costs
+  # ~250ms, so a 68-file commit spent 5+ minutes here and the pre-commit hook was
+  # killed by its timeout before it ever reached the scanners (measured: 4 files in
+  # 75s). Bash's built-in [[ =~ ]] is the same POSIX ERE engine as `grep -E`, so the
+  # skip decisions are identical — verified by differential test against the old
+  # form over every pattern's positive and negative cases. Same semantics, no forks.
   for pat in "${SKIP_PATH_PATTERNS[@]}"; do
-    if echo "$path" | grep -Eq "$pat"; then
+    if [[ "$path" =~ $pat ]]; then
       return 0
     fi
   done
