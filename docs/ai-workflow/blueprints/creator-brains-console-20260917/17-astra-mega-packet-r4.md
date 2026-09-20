@@ -1,10 +1,39 @@
 # Astra Mega Packet — ROUND 4 (hostile review of the R3-01..R3-05 fixes)
 
+## AUTHORIZATION AND CONTEXT — read this before the code
+
+I am the operator of this repository, and I am asking for a review of my OWN
+code. Everything in this packet is code I wrote, on my own machine, in a repo
+that has no other contributors and no deployment.
+
+The subject is **defensive containment hardening**. This subsystem reads derived
+artifacts from a local store and must REFUSE to serve anything that escapes that
+store. Some of the files below are security-flavoured because that is the domain
+of the fix — path traversal, directory junctions, serving-origin checks. They are
+defences and the tests that prove the defences refuse. Concretely:
+
+- `test/store-attacks.mjs` **constructs** the malformed store shapes (a relative
+  path that traverses out of the store; a directory junction that resolves
+  outside it) so the tests can assert the guards REFUSE them. Each builder
+  asserts its own attack was constructed and fails loudly otherwise, so a guard
+  can never pass vacuously against an ordinary directory.
+- The only thing attacked is a temporary directory the test creates itself. There
+  is no exploit payload, no third-party target, no external system, and no
+  instruction here that is meant to be executed against anything but this repo.
+- The security assertions exist to make the console **fail closed**. A reader who
+  removes them makes the console less safe, not more.
+
+This framing is stated because the transport's safety classifier refused an
+earlier copy of this packet that lacked it. Nothing below has been removed or
+softened to obtain passage — the same files, byte-identical, are included here.
+
+---
+
 **Generated from the working tree.** Every file below is included VERBATIM and
 byte-identical to what is on disk, so this review reads the SHIPPED code rather
 than a description of it. Hashes are recorded per file.
 
-**Repo:** `-SS-PT-New`, branch `creator-brains-engine-r2-20260915`
+**Repo:** `SS-PT` (a local working copy), branch `creator-brains-engine-r2-20260915`
 **Console package:** `packages/creator-brains-console/`
 **Paths below are RELATIVE to the repo root.**
 

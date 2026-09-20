@@ -176,13 +176,13 @@ test('HY4-H2: a later start on a free port succeeds after a failed bind', async 
   try {
     const { status } = await getJson(b.url, '/api/canary');
     assert.equal(status, 200, 'the slot must be reusable after a failed bind');
-  } finally { b.shutdown(); }
+  } finally { await b.shutdown(); }
 });
 
 test('HY4-H2: shutdown releases the slot so the next console can start', async () => {
   const r = fixtureRoot('hy4-shutdown');
   const b = await startBridge({ r, port: 0, open: false, log: () => {} });
   assert.ok(existsSync(pidPath(r)), 'a running bridge must hold the slot');
-  b.shutdown();
+  await b.shutdown();
   assert.equal(existsSync(pidPath(r)), false, 'a clean shutdown must release the slot');
 });

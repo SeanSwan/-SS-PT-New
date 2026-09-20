@@ -161,7 +161,7 @@ test('HY4-H6: routes the plan deferred are really absent from the bridge', async
     });
     assert.ok([400, 422].includes(bogus.status),
       `a bogus channel id must be refused, got ${bogus.status}`);
-  } finally { b.shutdown(); }
+  } finally { await b.shutdown(); }
 });
 
 /* ── H7 · the file-size rule ─────────────────────────────────────────────── */

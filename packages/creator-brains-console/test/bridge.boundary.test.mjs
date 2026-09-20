@@ -151,7 +151,7 @@ test('T-B9: a damaged registry.json produces a named envelope, not a stack trace
       st.body.creators.total, 0,
       'a damaged registry must not render as an empty catalog that looks real',
     );
-  } finally { b.shutdown(); }
+  } finally { await b.shutdown(); }
 });
 
 /* ── T-B24 · static traversal ────────────────────────────────────────────── */

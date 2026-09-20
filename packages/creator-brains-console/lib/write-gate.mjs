@@ -157,7 +157,11 @@ const SCHEME = 'http:';
  *
  * @param origin        the request's `Origin` header, if any
  * @param servingOrigin the origin the request was served by — derived from the
- *                      Host the Host gate already approved, `http://<Host>`
+ *                      Host the Host gate already approved, and canonicalized by
+ *                      `servingOriginFor` (R4-03). It must already be a
+ *                      serialized origin; the canonicalization happens in the
+ *                      caller so that ONE function owns it, rather than two
+ *                      modules each having their own idea of what an origin is.
  */
 export function originAllowed(origin, servingOrigin) {
   if (typeof origin !== 'string' || origin === '') return false;
@@ -180,6 +184,38 @@ export function originAllowed(origin, servingOrigin) {
   // bridge's port unless it happened to have bound 80. Comparing the normalised
   // `port` handles that without a special case.
   return claimed.hostname === serving.hostname && claimed.port === serving.port;
+}
+
+/**
+ * The origin a request was SERVED BY, canonicalized — or `null`.
+ *
+ * WHY THE HOST IS RE-SERIALIZED RATHER THAN INTERPOLATED (R4-03, Astra round 4).
+ * The call site used to build `http://${req.headers.host}` and hand it to
+ * `originAllowed`, which requires its serving origin to be byte-equal to its own
+ * serialization. That requirement is right for the CLAIMED Origin — it is what
+ * refuses `http://user@h:1/p?q#f` — but applied to the SERVING value it refused
+ * legitimate Host spellings that the Host gate had already approved:
+ * `LOCALHOST:8787` serializes to `localhost`, and `127.0.0.1:80` serializes to a
+ * bare `127.0.0.1` because 80 is the scheme default. Both were then reported as
+ * cross-origin writes, so a valid same-origin write failed on SPELLING alone.
+ *
+ * The asymmetry is the point and it is now explicit: the claimed value is
+ * attacker-controlled and must already BE a serialized origin; the serving value
+ * is derived from an approved header and only has to BE an origin.
+ *
+ * TOTAL BY CONSTRUCTION. Returns `null` for a missing or unparseable header, and
+ * `writeGateFailure` treats a non-string serving origin as a refusal rather than
+ * an allow — so the failure direction is closed, never open.
+ */
+export function servingOriginFor(hostHeader) {
+  if (typeof hostHeader !== 'string' || hostHeader === '') return null;
+  try {
+    // `new URL` normalizes the host case and drops a scheme-default port, which
+    // is exactly what makes an omitted port mean 80 without a special case.
+    return new URL(`http://${hostHeader}`).origin;
+  } catch {
+    return null;
+  }
 }
 
 /**

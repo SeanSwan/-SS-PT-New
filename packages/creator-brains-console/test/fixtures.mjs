@@ -164,12 +164,12 @@ export function seedPublishedBrain(
 export async function withFixture(label, fn) {
   const r = fixtureRoot(label);
   const b = await startBridge({ r, port: 0, open: false, log: () => {} });
-  const stop = () => new Promise((res) => {
-    b.shutdown();
-    if (!b.server.listening) return res();
-    b.server.once('close', res);
-    return res();
-  });
+  // `shutdown()` IS the whole teardown now (R4-02): it refuses new work, closes
+  // the listener, waits for in-flight dispatches, and only then releases the
+  // lease. The previous version raced a `server.once('close')` listener against
+  // an immediate `res()` — it always resolved on the first tick and never
+  // actually waited for anything.
+  const stop = () => b.shutdown();
   try {
     return await fn({ r, base: b.url, port: b.port });
   } finally {

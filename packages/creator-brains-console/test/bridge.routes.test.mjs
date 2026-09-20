@@ -70,7 +70,7 @@ test('T-B1: staleness is honest when no acquisition ever succeeded', async () =>
     const { body } = await getJson(b.url, '/api/status');
     assert.equal(body.lastGood, null, 'no last-success file must render as null, never a fabricated date');
     assert.equal(body.staleWarning, false, 'null staleness is not a warning — it is "never ran", reported as null');
-  } finally { b.shutdown(); }
+  } finally { await b.shutdown(); }
 });
 
 /* ── T-B2 · creators shape ───────────────────────────────────────────────── */
@@ -200,7 +200,7 @@ test('T-B11: a second bridge refuses instead of sharing the store', async () => 
       'a live pid file must refuse the second instance and name the holder',
     );
   } finally {
-    b.shutdown();
+    await b.shutdown();
   }
 });
 

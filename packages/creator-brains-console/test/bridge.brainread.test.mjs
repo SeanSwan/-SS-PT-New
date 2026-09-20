@@ -23,17 +23,24 @@
  *   pointer to move BETWEEN two resolutions, and that race cannot be constructed
  *   deterministically without injecting a clock or a filesystem hook. So instead
  *   of pretending to test the race, this asserts the property that makes the
- *   race impossible: exactly one `readPointer` call site, and no `loadHits`.
- *   It fails loudly if a second traversal is reintroduced. It does NOT prove the
- *   single read is atomic — nothing here can, and saying otherwise would be the
- *   same overclaim T-B25e made before it was corrected.
+ *   race impossible: ONE pointer resolution in the whole `lib/` directory, and no
+ *   `loadHits`. It fails loudly if a second traversal is reintroduced. It does
+ *   NOT prove the single read is atomic — nothing here can, and saying otherwise
+ *   would be the same overclaim T-B25e made before it was corrected.
+ *
+ *   ITS SCOPE WAS WIDENED BY R4-01. The pin used to assert one `readPointer` call
+ *   site inside `brain-read.mjs` ALONE, and the walk in `read-surface.mjs` then
+ *   acquired a second, laxer one — outside the pin's view, in a file the pin never
+ *   looked at. Round 4 measured the two disagreeing. A pin scoped to the file that
+ *   already passes cannot see the reader added beside it, so the scope is now the
+ *   whole directory. The pin did not catch R4-01; it was the wrong shape to.
  *
  * @module creator-brains-console/test/bridge.brainread
  */
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -145,15 +152,43 @@ test('R2-03a: markdown and claims come from the SAME pinned generation', async (
   });
 });
 
-test('R2-03b: the read path resolves the pointer EXACTLY ONCE (structural pin)', async () => {
+test('R2-03b: the console resolves a pointer in EXACTLY ONE module (structural pin)', async () => {
   // A PIN, NOT A BEHAVIOURAL PROOF — see the file header. The defect was a second
   // resolution; this asserts there is no second resolution to race with. It is
-  // mutation-sensitive: reintroducing `loadHits` or a second `readPointer` fails.
-  const src = readFileSync(join(LIB, 'brain-read.mjs'), 'utf8');
+  // mutation-sensitive: reintroducing `loadHits`, a second `readPointer`, or a
+  // third resolver fails.
+  //
+  // SCOPE IS ALL OF lib/ (R4-01). The pin used to read only `brain-read.mjs`,
+  // which is precisely how the walk in `read-surface.mjs` acquired a second and
+  // laxer reader that nothing here could see.
+  const modules = readdirSync(LIB).filter((f) => f.endsWith('.mjs'));
+  const sourceOf = (f) => readFileSync(join(LIB, f), 'utf8');
 
-  const callSites = src.match(/readPointer\s*\(/g) || [];
-  assert.equal(callSites.length, 1, `expected exactly one readPointer call, found ${callSites.length}`);
+  // 1. The engine's lax reader is gone. `readPointer` is `readJson(path, null)`,
+  //    which collapses ENOENT, EACCES and malformed JSON into one `null` — the
+  //    round-4 defect. Nothing in the console may call it again.
+  const laxCallers = modules.filter((f) => /readPointer\s*\(/.test(sourceOf(f)));
+  assert.deepEqual(laxCallers, [], `the engine's lax readPointer must not be called in lib/, found: ${laxCallers.join(', ')}`);
 
+  // 2. Exactly two modules resolve a pointer, and they are the two callers that
+  //    must agree: the drawer and the enumeration walk. Detected by IMPORT, not
+  //    by the call shape — `pointer.mjs` DEFINES the function, and a regex for
+  //    the call would count its own declaration as a third resolver.
+  const importers = (f) => /import\s*\{[^}]*\bresolvePointer\b[^}]*\}\s*from/.test(sourceOf(f));
+  const resolvers = modules.filter(importers).sort();
+  assert.deepEqual(
+    resolvers, ['brain-read.mjs', 'read-surface.mjs'],
+    `only the drawer and the walk may resolve a pointer, found: ${resolvers.join(', ')}`,
+  );
+
+  // 3. The one reader reads through the STRICT primitive, so ENOENT stays the
+  //    only thing that means absence.
+  assert.match(
+    sourceOf('pointer.mjs'), /readContainedText\(pointerPath/,
+    'pointer.mjs must read the pointer through the strict reader, not a bare readFileSync',
+  );
+
+  const src = sourceOf('brain-read.mjs');
   assert.ok(
     !/loadHits\s*\(/.test(src),
     'the reader must not call loadHits — that function re-resolves the pointer itself',

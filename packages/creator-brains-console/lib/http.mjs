@@ -222,7 +222,14 @@ export function hostAllowed(hostHeader, port) {
     // case where another loopback service on a different port is targeted.
     if (typeof port !== 'number') return true;
     const claimed = Number((hostHeader.match(/:(\d+)$/) || [])[1]);
-    return Number.isNaN(claimed) ? false : claimed === port;
+    // AN OMITTED PORT MEANS THE SCHEME DEFAULT, 80 (R4-03). `http://127.0.0.1/`
+    // is the origin `http://127.0.0.1:80`, so a Host of `127.0.0.1` must be
+    // compared against 80 rather than refused outright. `Number(undefined)` is
+    // NaN, which is why the default is applied explicitly instead of left to
+    // coercion. The rule only ever ADMITS when the bound port really is 80, so
+    // the direction of the change is a corrected comparison, not a relaxation:
+    // every other bound port still refuses a portless Host exactly as before.
+    return (Number.isNaN(claimed) ? 80 : claimed) === port;
   }
   return false;
 }

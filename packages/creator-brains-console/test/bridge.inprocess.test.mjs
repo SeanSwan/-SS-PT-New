@@ -51,7 +51,7 @@ test('H3: a second startBridge in one process is refused, not silently allowed',
       'two bridges on one store is the lost-update scenario and must be refused',
     );
   } finally {
-    a.shutdown();
+    await a.shutdown();
   }
 });
 
@@ -65,7 +65,7 @@ test('H3: the refusal names the live bridge, so the operator can find it', async
       (err) => err.message.includes(a.url),
     );
   } finally {
-    a.shutdown();
+    await a.shutdown();
   }
 });
 
@@ -74,7 +74,7 @@ test('H3: a clean shutdown frees the slot for a restart in the SAME process', as
   seedStore(r);
 
   const a = await startBridge({ r, port: 0, open: false, log: () => {} });
-  a.shutdown();
+  await a.shutdown();
   assert.equal(liveBridgeFor(r), null, 'shutdown must release the in-process slot');
 
   const b = await startBridge({ r, port: 0, open: false, log: () => {} });
@@ -82,7 +82,7 @@ test('H3: a clean shutdown frees the slot for a restart in the SAME process', as
     const { status } = await getJson(b.url, '/api/status');
     assert.equal(status, 200, 'a restart after a clean shutdown must work');
   } finally {
-    b.shutdown();
+    await b.shutdown();
   }
 });
 
@@ -105,7 +105,7 @@ test('H3: a FAILED start does not lock the process out of its own store', async 
     try {
       const { status } = await getJson(ok.url, '/api/status');
       assert.equal(status, 200, 'the store must be startable again after a failed bind');
-    } finally { ok.shutdown(); }
+    } finally { await ok.shutdown(); }
   } finally {
     try { await new Promise((res) => squatter.close(res)); } catch { /* already closed */ }
   }
@@ -129,7 +129,7 @@ test('H3: concurrent starts in one process cannot both win', async () => {
     assert.equal(losses.length, 1);
     assert.ok(losses[0].reason instanceof InstanceError);
   } finally {
-    for (const w of wins) w.value.shutdown();
+    for (const w of wins) await w.value.shutdown();
     resetBridgeRegistry();
   }
 });

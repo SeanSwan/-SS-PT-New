@@ -67,8 +67,9 @@ import {
   sendJson, sendError, WEB_DIST, hostAllowed, parseRequestUrl,
 } from './lib/http.mjs';
 import { claimInstance, releaseInstance, registerBridge, unregisterBridge } from './lib/instance.mjs';
-import { writeGateFailure } from './lib/write-gate.mjs';
-import { acquireHealthOwner, releaseHealthOwner } from './lib/health-lease.mjs';
+import { servingOriginFor, writeGateFailure } from './lib/write-gate.mjs';
+import { createAdmission } from './lib/admission.mjs';
+import { finishStart } from './lib/lifecycle.mjs';
 
 export { statusFor, hostAllowed } from './lib/http.mjs';
 export { WEB_DIST } from './lib/http.mjs';
@@ -92,8 +93,12 @@ export const HOST = '127.0.0.1';
  * The handler is three steps and no routing: the Host gate, the parse, the
  * envelope. Everything between the parse and the envelope is `dispatch`.
  */
-export function createBridge({ r = root(), log = () => {}, port = null } = {}) {
-  const bridge = createServer(async (req, res) => {
+export function createBridge({
+  r = root(), log = () => {}, port = null, admission = null,
+} = {}) {
+  // The handler body is named so the admission wrapper below can guarantee that
+  // EVERY exit path — including a thrown handler — gives its slot back.
+  const handleRequest = async (req, res) => {
     // Resolve the bound port per request rather than capturing it: the real port
     // is only known after `listen` (port 0 asks the OS to choose). Closing over
     // `bridge` is safe because the handler cannot run before listen.
@@ -123,14 +128,21 @@ export function createBridge({ r = root(), log = () => {}, port = null } = {}) {
     // type, a fixed custom header, and an Origin that IS this bridge's origin
     // when one is sent. Same 403 shape as the Host gate so the two read alike.
     //
-    // THE SERVING ORIGIN IS THE AUTHORITY THE CLIENT ACTUALLY REACHED (R3-04).
-    // `hostAllowed` has just approved `req.headers.host` against the exact bound
-    // port, so that header IS this bridge's origin FOR THIS REQUEST — and taking
-    // it from the request is what makes the rule exact rather than assumed. An
-    // earlier version built `http://${HOST}:${boundPort}` from the bind constant
-    // and then accepted either loopback spelling, which admitted a page served by
-    // a DIFFERENT origin at the same port. See lib/write-gate.mjs.
-    const writeFailure = writeGateFailure(req, `http://${req.headers.host}`);
+    // THE SERVING ORIGIN IS THE AUTHORITY THE CLIENT ACTUALLY REACHED (R3-04),
+    // CANONICALIZED (R4-03). `hostAllowed` has just approved `req.headers.host`
+    // against the exact bound port, so that header IS this bridge's origin FOR
+    // THIS REQUEST — and taking it from the request is what makes the rule exact
+    // rather than assumed. An earlier version built `http://${HOST}:${boundPort}`
+    // from the bind constant and then accepted either loopback spelling, which
+    // admitted a page served by a DIFFERENT origin at the same port. See
+    // lib/write-gate.mjs.
+    //
+    // It is SERIALIZED here rather than interpolated, because an approved Host is
+    // not necessarily a canonical origin: `LOCALHOST:8787` and `127.0.0.1:80` are
+    // both approved spellings whose serializations differ in case and in the
+    // presence of the scheme-default port. Interpolating them made the exact-
+    // equality rule refuse a valid same-origin write for how it was spelled.
+    const writeFailure = writeGateFailure(req, servingOriginFor(req.headers.host));
     if (writeFailure) return sendJson(res, 403, { error: writeFailure });
 
     try {
@@ -139,6 +151,30 @@ export function createBridge({ r = root(), log = () => {}, port = null } = {}) {
       return await dispatch(req, res, { r, url });
     } catch (err) {
       return sendError(res, err, log);
+    }
+  };
+
+  const bridge = createServer(async (req, res) => {
+    // ADMISSION FIRST (R4-02). A draining bridge must refuse NEW work before any
+    // handler can touch the store or the probe worker: `server.close()` stops new
+    // CONNECTIONS, but a keep-alive connection can still dispatch a request after
+    // it, and that is the request Astra measured constructing a worker at
+    // owners=0. Counting the work that got in before the drain is what lets
+    // shutdown hold its lease until the last dispatch is done.
+    if (admission && !admission.admit()) {
+      return sendJson(res, 503, {
+        error: {
+          code: 'SHUTTING_DOWN',
+          message: 'this bridge is shutting down and is not accepting new requests',
+        },
+      });
+    }
+    try {
+      return await handleRequest(req, res);
+    } finally {
+      // EVERY path, including a thrown handler. A slot leaked here is a shutdown
+      // that never drains — strictly worse than the defect being fixed.
+      if (admission) admission.done();
     }
   });
   return bridge;
@@ -171,7 +207,10 @@ export async function startBridge({
     // `port` is passed through so the Host check can require the exact bound port
     // once known. When port is 0 the OS chooses, and the check falls back to
     // "any loopback host", which is still a complete DNS-rebinding defence.
-    const server = createBridge({ r, log, port: port || null });
+    // One admission controller for this bridge's whole life (R4-02). Created
+    // here, before `listen`, so the handler and the drain share one counter.
+    const admission = createAdmission();
+    const server = createBridge({ r, log, port: port || null, admission });
 
     try {
       await new Promise((res, rej) => {
@@ -196,7 +235,9 @@ export async function startBridge({
       openBrowser(url).catch(() => log(`could not open a browser — open ${url}`));
     }
 
-    return finishStart({ r, handle, storeKey, server, url, port: actual, pid, log });
+    return finishStart({
+      r, handle, storeKey, server, url, port: actual, pid, log, admission,
+    });
   } catch (err) {
     // Any failure after the in-process claim must free it, or this process can
     // never start a bridge for this store again — a self-inflicted lockout.
@@ -205,44 +246,14 @@ export async function startBridge({
   }
 }
 
-/** Attach the live handle, its signal handlers and its shutdown to `handle`. */
-function finishStart({ r, handle, storeKey, server, url, port, pid }) {
-  // R3-03: this bridge now OWNS a lease on the shared probe worker and health
-  // cache for as long as it lives. Both are process-global, so only the LAST
-  // owner to release retires them — resetting on every shutdown would let one
-  // bridge tear the worker out from under another. Acquired HERE, on the success
-  // path only: `startBridge`'s failure path never reaches this function, so it
-  // has no lease to give back.
-  acquireHealthOwner();
-  let stopped = false;
-  /** Stop the bridge. Idempotent; safe to call from a library or a signal. */
-  const shutdown = () => {
-    if (stopped) return;
-    stopped = true;
-    process.removeListener('SIGINT', onSignal);
-    process.removeListener('SIGTERM', onSignal);
-    releaseInstance(r, { pid });
-    // Free the in-process slot. Leaving it behind would turn a clean shutdown
-    // into a permanent refusal for this process.
-    unregisterBridge(storeKey, handle);
-    try { server.close(); } catch { /* already closed */ }
-    // LAST, and only once the slot is free: a bridge that still owns the slot
-    // must still own the worker it may answer from.
-    releaseHealthOwner();
-  };
-  /** A real Ctrl-C should also END the process — but only that, not an embed. */
-  const onSignal = () => {
-    shutdown();
-    setTimeout(() => process.exit(0), 500).unref();
-  };
-  process.on('SIGINT', onSignal);
-  process.on('SIGTERM', onSignal);
+/*
+ * `finishStart` — the live handle, its signal handlers and its shutdown — MOVED
+ * to `lib/lifecycle.mjs` (R4-02). Adding the drain to it pushed this file past
+ * the repo's 300-line cap (rule 4), and the seam was already there: this file
+ * builds and binds a server; that module owns a server that is ALREADY LIVE.
+ * The cap was kept, not raised.
+ */
 
-  // MUTATE the already-registered object rather than replacing it: the registry
-  // holds this identity, and `shutdown`'s ownership comparison depends on it.
-  Object.assign(handle, { server, url, port, pid, shutdown, webDist: WEB_DIST });
-  return handle;
-}
 
 /** Open the OS default browser without a shell (no quoting hazards). */
 export function openBrowser(url) {

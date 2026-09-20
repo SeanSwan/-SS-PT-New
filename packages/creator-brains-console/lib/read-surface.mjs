@@ -5,7 +5,7 @@
  *          and answer the status route's publication count without reading a
  *          single unchecked pointer.
  * PART OF: Creator Brains Console (blueprint 05 §1, §3)
- * SLICE: S0H (R2-02, then R3-01 and R3-02)
+ * SLICE: S0H (R2-02, then R3-01/R3-02, then R4-01)
  * ============================================================================
  *
  * WHY A WALK AND NOT A REWRITE (R2-02). `/api/query` delegates to the engine's
@@ -35,16 +35,23 @@
  * halves must agree, and "skip what I cannot name" cannot be made to agree with
  * "traverse everything", because the engine is the one that traverses. The
  * engine's own test is the console's test: a pointer naming a generation is a
- * pointer the engine will join. So the enumeration uses the ENGINE'S `readPointer`
- * (a second reader would drift from `listPublished`, and drift silently), and an
- * entry that passes the engine's test but fails the console's alphabet refuses
- * the whole request with 409.
+ * pointer the engine will join. So the entry is resolved through the SAME
+ * function the drawer uses, and an entry that resolves but cannot be named
+ * refuses the whole request with 409.
  *
  * AN ENTRY THE ENGINE DROPS IS AN ENTRY THIS WALK MAY DROP. A stray file, or a
  * directory whose pointer is absent or names no generation, is not read by
  * `listPublished` at all — so refusing on it would make a harmless `.DS_Store`
  * kill every query. Those entries are skipped, and that is not the R3-01 skip:
  * the engine skips them too.
+ *
+ * THIS WALK NO LONGER HAS ITS OWN POINTER READER (R4-01). It used to call the
+ * engine's `readPointer` and keep anything with a truthy `generation`, while the
+ * drawer validated the generation and contained its directory — two statements
+ * of one rule, and the weaker one won wherever it was the only one that ran.
+ * Round 4 measured the disagreement: a traversal generation, a numeric
+ * generation, a malformed pointer and an unreadable pointer ALL counted as
+ * healthy, or as healthy emptiness. Both callers now use `pointer.mjs`.
  *
  * WHAT THIS DOES NOT COVER, stated rather than implied: a filesystem MUTATED
  * between this pass and the engine's read. That race is not detectable without
@@ -55,40 +62,29 @@
  * @module creator-brains-console/lib/read-surface
  */
 
-import { join } from 'node:path';
-import { readPointer } from '../../../scripts/creator-brains/lib/render.mjs';
-import { listDir } from '../../../scripts/creator-brains/lib/paths.mjs';
 import { ApiError, CODE } from './errors.mjs';
-import { brainsStore, containedPath } from './containment.mjs';
+import { brainsStore } from './containment.mjs';
+import { listNamespaces, resolvePointer } from './pointer.mjs';
 import { isNamespace, readPublishedBrain } from './brain-read.mjs';
 
 /**
- * Every pointer the ENGINE will read, with each pointer PATH contained first.
+ * Every pointer the ENGINE will read, resolved by the drawer's own resolver.
  *
  * Returns `[{ name, pointer }]` in the engine's own enumeration order. THROWS
  * `STORE_DAMAGED` when an entry the engine would traverse is one the console
  * cannot name — see the header for why that is a refusal and not a skip.
  */
 export function containedPointers(r) {
-  const { root, realRoot } = brainsStore(r);
+  const { root } = brainsStore(r);
   const out = [];
-  for (const entry of listDir(root)) {
-    // Every entry, not only well-formed namespaces: `listPublished` does not
-    // filter by name either, so anything it will open must be proven here. These
-    // two calls prove the POINTER PATH — that `brains/<entry>` and its
-    // `current.json` are not themselves links out of the store.
-    containedPath(root, realRoot, join(root, entry), `'${entry}'`, 'current.json');
-    containedPath(root, realRoot, join(root, entry, 'current.json'), `the pointer for '${entry}'`, 'current.json');
-
-    let pointer = null;
-    try {
-      pointer = readPointer(r, entry);
-    } catch {
-      pointer = null; // the engine's `readJson(…, null)` answers the same way
-    }
-    // The engine keeps a pointer only when it names a generation; an entry it
-    // drops is an entry it never reads, so this walk may drop it too.
-    if (!pointer || !pointer.generation) continue;
+  for (const entry of listNamespaces(root)) {
+    // `resolvePointer` is the SAME call the drawer makes, so the count and the
+    // drawer cannot disagree (R4-01). It proves the namespace and pointer paths,
+    // refuses a generation the engine cannot join or never writes, and contains
+    // the generation directory. An entry it reports absent is one the engine
+    // drops, and this walk may drop it too.
+    const resolved = resolvePointer(r, entry);
+    if (!resolved.present) continue;
 
     if (!isNamespace(entry)) {
       throw new ApiError(
@@ -98,7 +94,7 @@ export function containedPointers(r) {
         { file: 'current.json' },
       );
     }
-    out.push({ name: entry, pointer });
+    out.push({ name: entry, pointer: resolved.pointer });
   }
   return out;
 }

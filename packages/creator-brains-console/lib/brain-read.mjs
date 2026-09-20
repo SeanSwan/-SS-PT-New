@@ -50,13 +50,23 @@
  * @module creator-brains-console/lib/brain-read
  */
 
-import { join, resolve } from 'node:path';
-import { readPointer } from '../../../scripts/creator-brains/lib/render.mjs';
+import { join } from 'node:path';
 import { readJsonl } from '../../../scripts/creator-brains/lib/paths.mjs';
-import { ApiError, CODE } from './errors.mjs';
 import {
   brainsStore, containedPath, inside, readContainedText,
 } from './containment.mjs';
+import { resolvePointer } from './pointer.mjs';
+
+/*
+ * THE POINTER IS NO LONGER READ HERE (R4-01). This module and
+ * `read-surface.mjs` each read `current.json` their own way, and round 4
+ * measured them disagreeing: the enumeration accepted a generation this module
+ * refuses. Both now call `resolvePointer`, which is the single statement of
+ * "what is a published generation". `containedDir` and the generation alphabet
+ * moved there with it, and are re-exported so existing callers and tests keep
+ * one implementation rather than a copy.
+ */
+export { containedDir, GENERATION } from './pointer.mjs';
 
 /** The three MARKDOWN files a brain page exposes verbatim. */
 export const BRAIN_FILES = Object.freeze(['index.md', 'topics.md', 'timeline.md']);
@@ -85,31 +95,17 @@ export function isNamespace(name) {
   return typeof name === 'string' && NAMESPACE.test(name);
 }
 
-/**
- * The generation directory shape the engine writes.
+/*
+ * `GENERATION` — the two-shape generation rule (R2-09) — MOVED to
+ * `lib/pointer.mjs` (R4-01), so the enumeration and the drawer apply ONE regex
+ * rather than two copies of it, and is re-exported at the top of this file.
  *
- * R2-09: this was `/^gen-\d{4}$/`, which rejects `gen-10000` — and the engine
- * emits exactly that once a creator passes 9999 generations, because
- * `render.mjs` uses `padStart(4)`, a FLOOR and not a fixed width. A pattern that
- * refuses a name the writer can produce turns a legitimate brain into reported
- * store damage.
- *
- * The fix is a TWO-SHAPE rule, not a looser bound. `padStart(4)` means the
- * engine writes the CANONICAL decimal of N, left-padded only up to four:
- *
- *   N ≤ 9999   → exactly four digits, leading zeros included   gen-0001, gen-9999
- *   N ≥ 10000  → the plain decimal, five or more digits        gen-10000, gen-100000
- *
- * So a five-digit form may NOT start with `0` — `gen-00001` is the decimal 1
- * padded to five, which `padStart(4)` never produces. Writing `\d{4,}` here
- * accepted it, and `T-B25b2` caught that: it is the difference between "at least
- * four digits" and "canonical at four digits, canonical above".
- *
- * The engine's own four-digit ENUMERATION at `render.mjs` is a separate defect
- * and is NOT fixed here: the console may not modify engine files. Recorded
- * rather than patched.
+ * The rule is unchanged: `render.mjs` uses `padStart(4)`, a FLOOR and not a
+ * fixed width, so N ≤ 9999 is exactly four digits and N ≥ 10000 is the plain
+ * decimal — which is why a five-digit form may not start with `0`. The engine's
+ * own four-digit ENUMERATION at `render.mjs` remains a separate, unfixed engine
+ * defect: the console may not modify engine files. Recorded, not patched.
  */
-const GENERATION = /^gen-(?:\d{4}|[1-9]\d{4,})$/;
 
 /**
  * Required fields on a rule row — a row missing any of these is not a claim.
@@ -124,28 +120,13 @@ const REQUIRED_FIELDS = Object.freeze(['claim_id', 'creator_id', 'video_id', 't_
 /** Is `target` strictly inside `root`, after both have been normalised? */
 export { inside };
 
-/**
- * `brains/<slug>/<generation>`, proven to resolve inside the store.
- *
- * WHY BOTH CHECKS WHEN THE ALPHABET ALREADY FORBIDS TRAVERSAL. Because a check
- * that holds only while another check happens to hold is precisely the defect
- * class this module exists to remove. Containment is asserted directly, so
- * loosening `NAMESPACE` later cannot silently reopen the hole.
- *
- * AND WHY CONTAINMENT OF THE PATH IS NOT CONTAINMENT OF THE FILE. `readFileSync`
- * follows junctions and symlinks, so `brains/<slug>` — or the generation
- * directory itself — may be a link to anywhere while remaining lexically inside.
- * `realpathSync` resolves the whole chain, which is the only thing that can see
- * that. All three measured vectors above are refused by this function.
- *
- * Exported because the query path must use the SAME check, not a copy (R2-02).
- * The primitive it delegates to lives in `containment.mjs`, which R2-02 extended
- * to cover the namespace directory, the pointer file and every leaf as well.
+/*
+ * `containedDir(r, slug, generation)` — `brains/<slug>/<generation>`, proven to
+ * resolve inside the store — MOVED to `lib/pointer.mjs` (R4-01) and re-exported
+ * above. Both checks still run, for the reason stated there: a guard that holds
+ * only while another guard holds is the defect class this subsystem exists to
+ * remove, and containment of a PATH is not containment of a FILE.
  */
-export function containedDir(r, slug, generation) {
-  const { root, realRoot } = brainsStore(r);
-  return containedPath(root, realRoot, resolve(root, slug, generation), `'${slug}/${generation}'`, 'current.json');
-}
 
 /**
  * Read the claims for a generation that has ALREADY been validated.
@@ -200,41 +181,25 @@ export function readPublishedBrain(r, name) {
 
   const { root, realRoot } = brainsStore(r);
 
-  // THE POINTER IS CONTAINED BEFORE IT IS FOLLOWED (R2-02). It used to be read
-  // first and validated never, so `brains/<ns>/current.json` could itself be a
-  // link and the read followed it out of the store. `readPointer` computes this
-  // exact path (`join(brainsDir, ns, 'current.json')`), so proving the path here
-  // proves the path it will open.
-  containedPath(root, realRoot, join(root, name), `'${name}'`, 'current.json');
-  containedPath(root, realRoot, join(root, name, 'current.json'), `the pointer for '${name}'`, 'current.json');
+  // ONE POINTER, ONE GENERATION (R2-03) — AND NOW ONE READER (R4-01). The pointer
+  // is resolved by `resolvePointer`, the SAME function the enumeration preflight
+  // uses, so the drawer and the published count cannot disagree about what is
+  // published. That function contains the pointer path before following it
+  // (R2-02), distinguishes absence from a failed read, validates the generation's
+  // type and spelling, and proves the generation directory resolves inside the
+  // store. Everything it cannot resolve it either reports absent — the engine
+  // drops those too — or throws.
+  const resolved = resolvePointer(r, name);
+  // `absent` is "there is no publication here". `no-generation` is the different
+  // fact `T-B22c` requires this function to report as a page rather than a 404.
+  if (!resolved.present && resolved.reason === 'absent') return null;
 
-  let pointer;
-  try {
-    pointer = readPointer(r, name);
-  } catch {
-    pointer = null;
-  }
-  if (!pointer) return null;
+  const pointer = resolved.present ? resolved.pointer : null;
+  const generation = resolved.present ? resolved.generation : null;
 
-  const generation = typeof pointer.generation === 'string' && pointer.generation
-    ? pointer.generation
-    : null;
-
-  // An ABSENT generation is incomplete; an IMPOSSIBLE one is damage. Reporting an
-  // impossible generation as three empty documents is the S1-H15 shape again: a
-  // store fault dressed as a legitimate brain with nothing in it.
-  if (generation !== null && !GENERATION.test(generation)) {
-    throw new ApiError(
-      CODE.STORE_DAMAGED,
-      `the published pointer for '${name}' names generation '${String(generation).slice(0, 80)}', `
-        + 'which the engine never writes',
-      { file: 'current.json' },
-    );
-  }
-
-  // ONE directory, computed once, used for every read below. This is the R2-03
-  // fix: there is no second pointer resolution anywhere in this function.
-  const dir = generation ? containedDir(r, name, generation) : null;
+  // ONE directory, computed once by the resolver, used for every read below.
+  // This is the R2-03 fix: there is no second pointer resolution anywhere here.
+  const dir = resolved.present ? resolved.dir : null;
 
   const skipped = [];
   const docs = {};
@@ -258,7 +223,9 @@ export function readPublishedBrain(r, name) {
 
   return {
     generation,
-    title: pointer.title ?? name,
+    // A pointer that names no generation has no title to offer — the name is the
+    // honest fallback, and `pointer` is genuinely null on that path.
+    title: pointer && pointer.title ? pointer.title : name,
     docs,
     claims: dir ? readClaims(dir, skipped, root, realRoot) : [],
     skipped,
@@ -267,12 +234,14 @@ export function readPublishedBrain(r, name) {
 
 /*
  * ---------------------------------------------------------------------------
- * `assertReadSurfaceContained` — the whole-surface preflight — MOVED to
- * `lib/read-surface.mjs` (R3-01). The walk has to enumerate the store, and
- * enumerating means calling `readPointer`; `R2-03b` pins that call to EXACTLY ONE
- * site in THIS file, because "the read path resolves the pointer once" is the
- * R2-03 property. A second call site here would have broken that pin for the
- * right reason, so the enumeration lives beside the preflight it serves rather
- * than inside the single-generation reader.
+ * `assertReadSurfaceContained` — the whole-surface preflight — lives in
+ * `lib/read-surface.mjs` (R3-01), beside the enumeration it serves.
+ *
+ * IT NO LONGER CALLS `readPointer` EITHER (R4-01). Both this module and the walk
+ * used to read `current.json` their own way, and round 4 measured them
+ * disagreeing — the walk counted a traversal generation as healthy while this
+ * module refused it. There is now exactly ONE pointer read in the console, in
+ * `lib/pointer.mjs`, and `R2-03b` pins that fact across the whole `lib/`
+ * directory rather than in this file alone.
  * ---------------------------------------------------------------------------
  */

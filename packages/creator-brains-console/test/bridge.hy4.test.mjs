@@ -179,7 +179,7 @@ test('HY4-H4 (ATTACK): a write with a rebound Host header cannot mutate the stor
     const after = await getJson(b.url, '/api/creators');
     const row = after.body.find((c) => c.channelId === CH_ONE);
     assert.equal(row.enabled, true, 'the creator must still be enabled — the write never happened');
-  } finally { b.shutdown(); }
+  } finally { await b.shutdown(); }
 });
 
 test('HY4-H4: a rebound READ is refused too, not only writes', async () => {
@@ -191,7 +191,7 @@ test('HY4-H4: a rebound READ is refused too, not only writes', async () => {
   try {
     const res = await rawRequest(b.url, '/api/status', { host: 'evil.com' });
     assert.equal(res.status, 403, 'the creator catalog is not for cross-origin consumption either');
-  } finally { b.shutdown(); }
+  } finally { await b.shutdown(); }
 });
 
 test('HY4-H4: a legitimate loopback request still works after a refusal', async () => {
@@ -213,7 +213,7 @@ test('HY4-H4: a legitimate loopback request still works after a refusal', async 
     // into this bridge — the same attack class, and it must be refused.
     const wrongPort = await rawRequest(b.url, '/api/creators', { host: '127.0.0.1:9' });
     assert.equal(wrongPort.status, 403, 'a loopback Host naming a different port is another service');
-  } finally { b.shutdown(); }
+  } finally { await b.shutdown(); }
 });
 
 /* ── H5 · the LANE B invariant, asserted at the schema level ─────────────── */
@@ -229,7 +229,7 @@ test('HY4-H5 (INVARIANT): no response carries a transcript-text field', async ()
       const { body } = await getJson(b.url, path);
       assertNoTranscriptFields(body, path);
     }
-  } finally { b.shutdown(); }
+  } finally { await b.shutdown(); }
 });
 
 test('HY4-H5 (META): the detector fires on a real leak and spares real prose', () => {

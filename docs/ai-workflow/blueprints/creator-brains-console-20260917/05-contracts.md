@@ -174,13 +174,15 @@ The code is right and the doc was wrong, for a reason visible in §1: `StatusIns
 
 | Method+Path | Tier | Owner slice | Engine function | Planned response 2xx | Planned errors |
 |---|---|---|---|---|---|
-| `POST /api/run/daily` | T2 | **S4** (RunConsole) | spawn `run-daily.mjs --per-hour=N` | `202 {requestId, runId: null}` (progress via `GET /api/run`) | `400 VALIDATION` (non-positive int), `409 RUN_LOCKED {holder}` |
-| `POST /api/repair` | T2 | **S3** (OpsRail) | repair path of `COMMANDS` | `200 {repaired, built, emptied}` — a PROJECTED engine result | `409 RUN_LOCKED {holder}`, `409/422` |
+| `POST /api/run/daily` | T2 | **S4** (RunConsole) | spawn `run-daily.mjs --per-hour=N` | `202 {requestId: string, runId: string \| null}` (progress via `GET /api/run`) | `400 VALIDATION` (non-positive int), `409 RUN_LOCKED {holder}` |
+| `POST /api/repair` | T2 | **S3** (OpsRail) | repair path of `COMMANDS` | `200 {repaired: number, built: number, emptied: number}` — a PROJECTED engine result | `409 RUN_LOCKED {holder}`, `409/422` |
 | `POST /api/backup` | T2 | **S3** (OpsRail) — **BLOCKED (A1-08 / D4), do not build** | backup command | **withheld — no endpoint** | — |
 
 The corresponding tests (`T-B4`, `T-B5`, `T-B10`) land **with their slice**, not at S0 — this is the plan/code discrepancy HY4 found as H6 and is corrected here and in `08`. S0's exit evidence is `T-B1/B2/B3/T-B6/T-B7/T-B8/T-B9` plus the structure suite.
 
-**Both run rows were corrected 2026-09-20 (R2-06) — §2b had retained the shapes `17` §A1-05 and §A1-07 replaced in §1.** `POST /api/run/daily` answers `{requestId, runId: null}`, because acceptance is not completion (§1). `POST /api/repair` answers a **projected** engine result `{repaired, built, emptied}`; the engine's repair path returns an exit code, never `{requeued}`. A stale row here is not a typo — it is an instruction that would rebuild the rejected behaviour.
+**Both run rows were corrected 2026-09-20 (R2-06) — §2b had retained the shapes `17` §A1-05 and §A1-07 replaced in §1.** `POST /api/run/daily` answers `{requestId: string, runId: string | null}`, because acceptance is not completion (§1). `POST /api/repair` answers a **projected** engine result `{repaired: number, built: number, emptied: number}`; the engine's repair path returns an exit code, never `{requeued}`. A stale row here is not a typo — it is an instruction that would rebuild the rejected behaviour.
+
+**THESE ROWS DECLARE TYPES, NOT JUST NAMES (R4-04).** They previously read `{requestId, runId: null}` and `{repaired, built, emptied}` — names only. `T-B27m` compares the *names* a declaration lists, so a row and a type could agree on every name while disagreeing on every type, and the round-4 probe showed exactly that: changing `runId` to `number` in `types.ts` produced **zero** compiler diagnostics. A contract that under-specifies is not a weaker contract, it is an unchecked one. The declared types are now pinned twice over: `web/src/adapters/contract.assert.ts` fails to COMPILE if `types.ts`, `LocalEngineAdapter.ts` or `MockAdapter.ts` drifts from them, and `T-B27m2` fails if this document drifts from that file.
 
 **THE RUN-OPERATION EXCLUSION GATE COVERS BOTH ROWS (A1-06).** Repair invokes the same `runDaily` journal path, so gating `POST /api/run/daily` alone would leave the journal reachable through the other door. Both routes take the same exclusion and both may answer `409 RUN_LOCKED {holder}`.
 

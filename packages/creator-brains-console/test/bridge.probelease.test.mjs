@@ -52,6 +52,43 @@ const sleep = (ms) => new Promise((res) => { setTimeout(res, ms); });
 const beats = () => statSync(BEAT_FILE).size;
 
 /**
+ * Wait until the heartbeat STOPS ADVANCING, or `timeoutMs` passes (R4-02b).
+ *
+ * WHY NOT A FIXED SLEEP (Astra round 4). `terminate()` is asynchronous, so
+ * sampling once after a fixed delay asserts only "the worker had not beaten again
+ * *yet*" — a race whose verdict depends on how loaded the machine is, and one
+ * that passes for the wrong reason on a fast one. This waits for the observable
+ * to actually SETTLE and reports whether it did. A worker that never stops
+ * beating is the failure, and it is caught by the bound rather than by luck.
+ *
+ * `quietMs` is comfortably longer than the worker's 40 ms beat interval, so a
+ * live worker can never look quiet.
+ */
+async function waitForBeatsToSettle(timeoutMs = 3000, quietMs = 200) {
+  const started = Date.now();
+  let last = beats();
+  let quietSince = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    await sleep(25);
+    const now = beats();
+    if (now !== last) { last = now; quietSince = Date.now(); continue; }
+    if (Date.now() - quietSince >= quietMs) return { settled: true, beats: last };
+  }
+  return { settled: false, beats: last };
+}
+
+/** Wait until the heartbeat ADVANCES at least once, or `timeoutMs` passes. */
+async function waitForBeatsToAdvance(timeoutMs = 3000) {
+  const from = beats();
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    await sleep(25);
+    if (beats() > from) return true;
+  }
+  return false;
+}
+
+/**
  * Give back every lease a PREVIOUS test left behind.
  *
  * WHY THIS IS HERE, AND WHY IT IS NOT CHEATING. Without it, one failing test
@@ -94,17 +131,21 @@ test('R3-03a: a real bridge takes the lease, and shutdown gives it back', async 
     assert.equal(healthOwnerCount(), 1, 'a running bridge owns the shared probe');
     await startProbeThrough(b);
 
-    b.shutdown();
+    // SHUTDOWN IS AN ASYNC DRAIN (R4-02), so it must be AWAITED before the lease
+    // is asserted. Sampling immediately after requesting termination is the flaky
+    // assertion Astra round 4 flagged — it happens to pass while the release is
+    // synchronous and cannot see the drain it is meant to prove.
+    await b.shutdown();
     assert.equal(healthOwnerCount(), 0, 'shutdown gives the lease back');
 
     // RETIRED, not merely forgotten — the observable R2-04g established. Measured
     // inside the try, because the `finally` below terminates the worker and would
-    // make the assertion unreachable if it ran first.
-    const before = beats();
-    await sleep(300);
-    assert.equal(beats(), before, 'the last owner must terminate the worker, not leave it idle');
+    // make the assertion unreachable if it ran first. Observed by SETTLING, not by
+    // one sample after a fixed delay (R4-02b).
+    const retirement = await waitForBeatsToSettle();
+    assert.ok(retirement.settled, 'the last owner must terminate the worker, not leave it idle');
   } finally {
-    b.shutdown(); // idempotent — safe whether or not the line above ran
+    await b.shutdown(); // idempotent — safe whether or not the line above ran
     setProbeWorkerForTest(null);
   }
 });
@@ -120,21 +161,22 @@ test('R3-03b: two bridges share the probe, and only the LAST one retires it', as
 
     // A stops while B is still serving. Retiring the shared worker here would be
     // a shutdown that breaks a running service — which is why the lease exists.
-    a.shutdown();
+    // AWAITED: the release now happens at the end of a drain (R4-02).
+    await a.shutdown();
     assert.equal(healthOwnerCount(), 1, 'one owner remains');
-    const kept = beats();
-    await sleep(300);
-    assert.ok(beats() > kept, 'the worker must outlive the first bridge to stop');
+    assert.ok(
+      await waitForBeatsToAdvance(),
+      'the worker must outlive the first bridge to stop',
+    );
 
     // The last owner goes, and NOW it retires.
-    b.shutdown();
+    await b.shutdown();
     assert.equal(healthOwnerCount(), 0);
-    const before = beats();
-    await sleep(300);
-    assert.equal(beats(), before, 'the LAST owner retires the worker');
+    const retirement = await waitForBeatsToSettle();
+    assert.ok(retirement.settled, 'the LAST owner retires the worker');
   } finally {
-    a.shutdown();
-    b.shutdown();
+    await a.shutdown();
+    await b.shutdown();
     setProbeWorkerForTest(null);
   }
 });
