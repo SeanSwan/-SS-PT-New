@@ -1,0 +1,27 @@
+- No engine source modification, including generation rollover or journal locking, within console slices.
+- No private transcript presentation reader, route, download, export or model transmission.
+- No Backup endpoint until its boundary is separately decided.
+- No restore/rollback/authorize, arbitrary-command, filesystem-browser or throttle-clear endpoint.
+- No route before its owning slice.
+- No unsafe `loadHits()`/`queryBrains()` filesystem traversal from presentation routes.
+- No second pointer lookup during a pinned-generation read.
+- No treating permission errors as missing files.
+- No “containment verified” claim based solely on lexical paths or directory-only checks.
+- No registry writes in the resolver worker; no stale registry carried through resolution.
+- No assumption that an in-process slot protects against external engine runners.
+- No automatic mutation retries or completion inferred from exit code/lock disappearance.
+- No fabricated zero counts, fresh timestamps or successful health verdicts.
+- No uncontrolled HTML or unvalidated citation URLs.
+- No global history cache shared across store roots.
+- No orphan worker messages accepted after reset, shutdown or timeout.
+- No undocumented cross-origin development exception.
+- No MUI, Tailwind, Electron, Web Component wrapper or new global state library.
+- No off-palette decoration; Arctic Cyan is data-only.
+- No hover-only controls or required canvas-only workflow.
+- No three.js fetch on mobile, reduced motion or absent WebGL.
+- No historical result presented as a fresh test.
+- No broad staging, resets, cleanup, shared-lane takeover, main push or deployment.
+- No retrospective editing of historical review findings.
+- No user queries, transcript text, private paths, credentials or request bodies in logs.
+- No claim that application rollback undoes engine mutations.
+- No file exceeding 300 canonical lines; split by responsibility.
