@@ -31,6 +31,7 @@
  */
 
 import logger from '../../utils/logger.mjs';
+import { escapeHtml } from '../../utils/htmlEscape.mjs';
 import Session from '../../models/Session.mjs';
 import User from '../../models/User.mjs';
 import { Op } from 'sequelize';
@@ -2850,7 +2851,7 @@ class UnifiedSessionService {
           to: session.client.email,
           subject: 'Session Confirmed - Swan Studios',
           html: `<p>Your session on <strong>${new Date(session.sessionDate).toLocaleString()}</strong> has been confirmed.</p>
-                 <p>Location: ${session.location || 'Main Studio'}</p>
+                 <p>Location: ${escapeHtml(session.location || 'Main Studio')}</p>
                  <p>Please arrive 10 minutes early.</p>`
         });
         
@@ -2915,8 +2916,8 @@ class UnifiedSessionService {
         to: trainer.email,
         subject: 'New Session Assignment - Swan Studios',
         html: `<p>You have been assigned to a session on <strong>${new Date(session.sessionDate).toLocaleString()}</strong>.</p>
-               <p>Location: ${session.location || 'Main Studio'}</p>
-               <p>Client: ${session.client ? `${session.client.firstName} ${session.client.lastName}` : 'To be determined'}</p>
+               <p>Location: ${escapeHtml(session.location || 'Main Studio')}</p>
+               <p>Client: ${session.client ? `${escapeHtml(session.client.firstName)} ${escapeHtml(session.client.lastName)}` : 'To be determined'}</p>
                <p>Please check your schedule for details.</p>`
       });
       
@@ -2925,8 +2926,8 @@ class UnifiedSessionService {
         await sendEmailNotification({
           to: session.client.email,
           subject: 'Trainer Assigned - Swan Studios',
-          html: `<p><strong>${trainer.firstName} ${trainer.lastName}</strong> has been assigned as your trainer for the session on <strong>${new Date(session.sessionDate).toLocaleString()}</strong>.</p>
-                 <p>Location: ${session.location || 'Main Studio'}</p>`
+          html: `<p><strong>${escapeHtml(trainer.firstName)} ${escapeHtml(trainer.lastName)}</strong> has been assigned as your trainer for the session on <strong>${new Date(session.sessionDate).toLocaleString()}</strong>.</p>
+                 <p>Location: ${escapeHtml(session.location || 'Main Studio')}</p>`
         });
       }
     } catch (error) {
@@ -2949,7 +2950,7 @@ class UnifiedSessionService {
               to: trainer.email,
               subject: 'New Session Assignment - Swan Studios',
               html: `<p>You have been assigned to a new session on <strong>${new Date(session.sessionDate).toLocaleString()}</strong>.</p>
-                     <p>Location: ${session.location || 'Main Studio'}</p>
+                     <p>Location: ${escapeHtml(session.location || 'Main Studio')}</p>
                      <p>Please check your schedule for details.</p>`
             });
           }
@@ -2977,7 +2978,7 @@ class UnifiedSessionService {
           html: `<p>You have been assigned to <strong>${sessions.length}</strong> new recurring sessions.</p>
                  <p>First session: ${new Date(sessions[0].sessionDate).toLocaleString()}</p>
                  <p>Last session: ${new Date(sessions[sessions.length-1].sessionDate).toLocaleString()}</p>
-                 <p>Location: ${location || 'Main Studio'}</p>
+                 <p>Location: ${escapeHtml(location || 'Main Studio')}</p>
                  <p>Please check your schedule for details.</p>`
         });
       }

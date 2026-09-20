@@ -12,6 +12,55 @@ import sequelize from '../database.mjs';
 import logger from './logger.mjs';
 
 /**
+ * Migration problem ledger.
+ * -------------------------
+ * Every migration below is individually try/caught and deliberately does NOT
+ * abort startup (a missing optional index should not stop the server booting).
+ * The consequence was that `runStartupMigrations()` could only ever observe
+ * "nothing threw out of the outer block", so it returned success even when
+ * every single step inside had failed — and the call sites logged
+ * "✅ Startup migrations completed successfully" regardless.
+ *
+ * `migrationProblem()` keeps that non-aborting behaviour exactly as it was and
+ * only adds bookkeeping, so the caller can report what actually happened
+ * instead of asserting a success it never verified.
+ */
+let migrationProblems = [];
+
+function migrationProblem(message) {
+  migrationProblems.push(message);
+  logger.warn(message);
+}
+
+/** Test seam: reset the ledger between runs. */
+export function resetStartupMigrationProblems() {
+  migrationProblems = [];
+}
+
+/**
+ * Data-repair migrations are opt-in.
+ * ----------------------------------
+ * `migrateSeanSwanLastName` and `migrateCleanupTestUsers` are not schema
+ * migrations: they UPDATE rows addressed by hard-coded primary keys.
+ *
+ * That is unsafe to re-evaluate on every boot. `migrateCleanupTestUsers` in
+ * particular is a standing rule — "whoever holds IDs 3, 4, 33, 34, 55, 56 and
+ * is not already soft-deleted gets soft-deleted" — so it re-fires after any
+ * restore or un-delete that puts a real user back on one of those IDs, and
+ * `deletedAt` is a hard delete as far as the application is concerned.
+ *
+ * Both are one-time historical repairs that have already been applied. They now
+ * run only when an operator explicitly asks for them:
+ *
+ *   RUN_STARTUP_DATA_FIXES=1 npm start
+ *
+ * Read at call time rather than at import time so a test can flip it.
+ */
+export function dataFixesEnabled() {
+  return process.env.RUN_STARTUP_DATA_FIXES === '1';
+}
+
+/**
  * Migration 1: Ensure admin_settings has a 'category' column
  * - The table was created with only (id, settings, createdAt, updatedAt)
  * - We need a 'category' column to store which settings category each row belongs to
@@ -73,7 +122,7 @@ async function migrateAdminSettingsCategory() {
 
     logger.info('[Migration] admin_settings.category column added successfully');
   } catch (error) {
-    logger.warn(`[Migration] admin_settings category fix failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] admin_settings category fix failed (non-critical): ${error.message}`);
   }
 }
 
@@ -150,7 +199,7 @@ async function migrateMessagingTables() {
 
     logger.info('[Migration] Messaging tables created successfully');
   } catch (error) {
-    logger.warn(`[Migration] Messaging tables creation failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] Messaging tables creation failed (non-critical): ${error.message}`);
   }
 }
 
@@ -176,7 +225,7 @@ async function migrateStabilizationColumns() {
       await sequelize.query(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${definition};`);
       logger.info(`[Migration] ${table}.${column} added successfully`);
     } catch (error) {
-      logger.warn(`[Migration] ${table}.${column} add failed (non-critical): ${error.message}`);
+      migrationProblem(`[Migration] ${table}.${column} add failed (non-critical): ${error.message}`);
     }
   };
 
@@ -203,7 +252,7 @@ async function migrateStabilizationColumns() {
       WHERE "accountRetentionUntil" IS NOT NULL;
     `);
   } catch (error) {
-    logger.warn(`[Migration] account retention index creation failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] account retention index creation failed (non-critical): ${error.message}`);
   }
 
   // session_types table
@@ -233,7 +282,7 @@ async function migrateResetPasswordColumns() {
       await sequelize.query(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${definition};`);
       logger.info(`[Migration] ${table}.${column} added successfully`);
     } catch (error) {
-      logger.warn(`[Migration] ${table}.${column} add failed (non-critical): ${error.message}`);
+      migrationProblem(`[Migration] ${table}.${column} add failed (non-critical): ${error.message}`);
     }
   };
 
@@ -248,7 +297,7 @@ async function migrateResetPasswordColumns() {
        WHERE "resetPasswordToken" IS NOT NULL;`
     );
   } catch (error) {
-    logger.warn(`[Migration] reset password index creation failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] reset password index creation failed (non-critical): ${error.message}`);
   }
 }
 
@@ -269,7 +318,7 @@ async function migrateShoppingCartColumns() {
       await sequelize.query(`ALTER TABLE shopping_carts ADD COLUMN "${column}" ${definition};`);
       logger.info(`[Migration] shopping_carts.${column} added successfully`);
     } catch (error) {
-      logger.warn(`[Migration] shopping_carts.${column} add failed (non-critical): ${error.message}`);
+      migrationProblem(`[Migration] shopping_carts.${column} add failed (non-critical): ${error.message}`);
     }
   };
 
@@ -309,7 +358,7 @@ async function migrateShoppingCartColumns() {
         await sequelize.query(`ALTER TYPE enum_shopping_carts_status ADD VALUE IF NOT EXISTS 'cancelled';`);
       }
     } catch (enumError) {
-      logger.warn(`[Migration] shopping_carts status enum update skipped: ${enumError.message}`);
+      migrationProblem(`[Migration] shopping_carts status enum update skipped: ${enumError.message}`);
     }
 
     // Ensure shopping_carts.userId FK references canonical "Users"(id).
@@ -348,10 +397,10 @@ async function migrateShoppingCartColumns() {
         logger.info('[Migration] shopping_carts.userId FK now references "Users"(id)');
       }
     } catch (fkError) {
-      logger.warn(`[Migration] shopping_carts FK alignment skipped: ${fkError.message}`);
+      migrationProblem(`[Migration] shopping_carts FK alignment skipped: ${fkError.message}`);
     }
   } catch (error) {
-    logger.warn(`[Migration] shopping_carts schema fix failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] shopping_carts schema fix failed (non-critical): ${error.message}`);
   }
 }
 
@@ -414,7 +463,7 @@ async function migratePhase1bForeignKeys() {
       `);
       logger.info(`[Migration]   Created ${constraintName} -> "Users"(id)`);
     } catch (error) {
-      logger.warn(`[Migration] ${tableName}.${columnName} FK fix failed (non-critical): ${error.message}`);
+      migrationProblem(`[Migration] ${tableName}.${columnName} FK fix failed (non-critical): ${error.message}`);
     }
   };
 
@@ -456,13 +505,16 @@ async function migrateConversationParticipantsDeletedAt() {
     );
     logger.info('[Migration] conversation_participants.deleted_at added successfully');
   } catch (error) {
-    logger.warn(`[Migration] conversation_participants.deleted_at failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] conversation_participants.deleted_at failed (non-critical): ${error.message}`);
   }
 }
 
 /**
  * Migration 8: Fix Sean Swan's lastName (id=2) if empty
  * The admin account has lastName="" which displays as "Sean " in messages.
+ *
+ * GATED: ID-keyed UPDATE, not a schema migration. Runs only under
+ * RUN_STARTUP_DATA_FIXES=1 — see dataFixesEnabled().
  */
 async function migrateSeanSwanLastName() {
   try {
@@ -486,7 +538,7 @@ async function migrateSeanSwanLastName() {
     );
     logger.info('[Migration] Fixed Sean Swan lastName: "Sean Swan"');
   } catch (error) {
-    logger.warn(`[Migration] Sean Swan lastName fix failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] Sean Swan lastName fix failed (non-critical): ${error.message}`);
   }
 }
 
@@ -495,6 +547,12 @@ async function migrateSeanSwanLastName() {
  * Sets deletedAt on users that should be removed for a cleaner slate.
  * IDs: 3, 4, 33, 34, 55, 56
  * Keeps: 2 (Sean Swan), 5 (Jasmine Swan), 35 (Vickie Valdez), 57 (QABot Tester)
+ *
+ * GATED: this is a standing rule, not a one-shot. It re-fires whenever any row
+ * on those six IDs is not already soft-deleted, so a restore or an un-delete
+ * puts a real user back in scope on the next deploy — and `deletedAt` is how
+ * the application hides users throughout. Runs only under
+ * RUN_STARTUP_DATA_FIXES=1 — see dataFixesEnabled().
  */
 async function migrateCleanupTestUsers() {
   try {
@@ -517,7 +575,7 @@ async function migrateCleanupTestUsers() {
     );
     logger.info(`[Migration] Soft-deleted ${count} test/duplicate users (IDs: ${idsToDelete.join(', ')})`);
   } catch (error) {
-    logger.warn(`[Migration] Test user cleanup failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] Test user cleanup failed (non-critical): ${error.message}`);
   }
 }
 
@@ -539,7 +597,7 @@ async function migrateSessionRemindersSent() {
     `);
     logger.info('[Migration] Added remindersSent column to sessions table');
   } catch (error) {
-    logger.warn(`[Migration] remindersSent migration failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] remindersSent migration failed (non-critical): ${error.message}`);
   }
 }
 
@@ -601,7 +659,7 @@ async function migrateExercisesTable() {
     `);
     logger.info('[Migration] Created Exercises table');
   } catch (error) {
-    logger.warn(`[Migration] Exercises table migration failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] Exercises table migration failed (non-critical): ${error.message}`);
   }
 }
 
@@ -635,7 +693,7 @@ async function migrateAiConversationTargetUserId() {
     );
     logger.info('[Migration] ai_conversations.targetUserId added successfully');
   } catch (error) {
-    logger.warn(`[Migration] ai_conversations.targetUserId failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] ai_conversations.targetUserId failed (non-critical): ${error.message}`);
   }
 }
 
@@ -668,7 +726,7 @@ async function migrateSocialPostMediaType() {
     );
     logger.info('[Migration] SocialPosts.mediaType added successfully');
   } catch (error) {
-    logger.warn(`[Migration] SocialPosts.mediaType failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] SocialPosts.mediaType failed (non-critical): ${error.message}`);
   }
 }
 
@@ -700,7 +758,7 @@ async function migratePointTransactionIdempotencyKey() {
         $$;
       `);
     } catch (enumError) {
-      logger.warn(`[Migration] PointTransactions source enum update skipped: ${enumError.message}`);
+      migrationProblem(`[Migration] PointTransactions source enum update skipped: ${enumError.message}`);
     }
 
     const [cols] = await sequelize.query(
@@ -722,14 +780,22 @@ async function migratePointTransactionIdempotencyKey() {
       WHERE "idempotencyKey" IS NOT NULL;
     `);
   } catch (error) {
-    logger.warn(`[Migration] PointTransactions.idempotencyKey fix failed (non-critical): ${error.message}`);
+    migrationProblem(`[Migration] PointTransactions.idempotencyKey fix failed (non-critical): ${error.message}`);
   }
 }
 /**
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
+ *
+ * Returns a report instead of a bare boolean. The old `true` meant only
+ * "nothing escaped the outer block" — it said nothing about whether the schema
+ * was actually patched, because every step swallows its own failure. Callers
+ * that ignore the return value (both call sites in core/startup.mjs did) are
+ * unaffected; callers that want the truth now have it.
  */
 export async function runStartupMigrations() {
+  migrationProblems = [];
+  let dataFixesApplied = false;
   try {
     logger.info('[Migrations] Running startup migrations...');
 
@@ -740,19 +806,45 @@ export async function runStartupMigrations() {
     await migrateShoppingCartColumns();
     await migratePhase1bForeignKeys();
     await migrateConversationParticipantsDeletedAt();
-    await migrateSeanSwanLastName();
-    await migrateCleanupTestUsers();
+
+    // Data repairs, not schema migrations: ID-keyed UPDATEs, opt-in only.
+    if (dataFixesEnabled()) {
+      dataFixesApplied = true;
+      await migrateSeanSwanLastName();
+      await migrateCleanupTestUsers();
+    } else {
+      logger.info(
+        '[Migrations] Data-repair migrations skipped (ID-keyed UPDATEs). '
+        + 'Set RUN_STARTUP_DATA_FIXES=1 to run them deliberately.'
+      );
+    }
+
     await migrateSessionRemindersSent();
     await migrateExercisesTable();
     await migrateAiConversationTargetUserId();
     await migrateSocialPostMediaType();
     await migratePointTransactionIdempotencyKey();
 
-    logger.info('[Migrations] All startup migrations completed');
-    return true;
+    if (migrationProblems.length === 0) {
+      logger.info('[Migrations] All startup migrations completed');
+    } else {
+      logger.warn(
+        `[Migrations] Startup migrations completed with ${migrationProblems.length} problem(s) — schema may be incomplete. See the [Migration] warnings above.`
+      );
+    }
+
+    return {
+      ok: migrationProblems.length === 0,
+      problems: [...migrationProblems],
+      dataFixesApplied,
+    };
   } catch (error) {
     logger.error('[Migrations] Startup migrations failed:', error.message);
-    return false;
+    return {
+      ok: false,
+      problems: [...migrationProblems, error.message],
+      dataFixesApplied,
+    };
   }
 }
 

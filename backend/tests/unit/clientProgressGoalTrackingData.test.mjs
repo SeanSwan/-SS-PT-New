@@ -1,5 +1,27 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildGoalTrackingData } from '../../services/clientProgress/goalTrackingReadModel.mjs';
+
+/**
+ * These fixtures carry hard-coded calendar dates, and "overdue"/"on track" are
+ * computed against the real clock. Written when `now` sat between
+ * startDate (2026-01-01) and estimatedCompletionDate (2026-06-15); left alone,
+ * the goal silently became overdue as the calendar advanced and the test went
+ * red on its own with nobody touching it.
+ *
+ * Pinning `now` keeps the fixtures' intended relationships intact — moving the
+ * dates instead would also move `estimatedCompletionDate` relative to
+ * `deadline` and could flip `onTrackGoals` for unrelated reasons.
+ */
+const PINNED_NOW = new Date('2026-05-01T00:00:00.000Z');
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(PINNED_NOW);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('client progress goal tracking builder', () => {
   it('maps real Goal rows into trainer goal tracking data without seeded stories', () => {

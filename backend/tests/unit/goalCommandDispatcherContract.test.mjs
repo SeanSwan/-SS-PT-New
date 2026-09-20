@@ -4,7 +4,21 @@
  * Ensures Coach goal commands read and write real Goal rows for the selected
  * client while returning compact, non-free-text receipts.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/**
+ * The fixtures below carry a hard-coded `deadline` of 2026-07-01, and
+ * `overdueGoals` is computed against the real clock. This test therefore went
+ * red on its own as the calendar advanced past that date — no code change, no
+ * edit, just time passing. Pin `now` to a date inside the fixtures' intended
+ * window so the assertion means what it was written to mean.
+ */
+const PINNED_NOW = new Date('2026-05-01T00:00:00.000Z');
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(PINNED_NOW);
+});
 
 async function loadDispatcher({ goals = [], createdGoal = null, foundGoal = null } = {}) {
   vi.resetModules();
@@ -28,6 +42,7 @@ async function loadDispatcher({ goals = [], createdGoal = null, foundGoal = null
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.resetModules();
 });
