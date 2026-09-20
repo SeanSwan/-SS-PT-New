@@ -42,5 +42,9 @@ port.on('message', (msg) => {
     // is the failure mode that would turn a crash into an infinite "unknown".
     value = { ok: false, reason: `the probe threw: ${e.message}`, version: null };
   }
-  port.postMessage({ value, atMs: Date.now() });
+  // THE EPOCH COMES BACK (R2-04). The main thread uses it to tell a result it is
+  // still waiting for from one produced by a channel it has already retired —
+  // without the echo, a result that arrives after `resetProbeChannel()` would be
+  // adopted as a fresh reading for the next caller.
+  port.postMessage({ value, atMs: Date.now(), epoch: msg.epoch });
 });

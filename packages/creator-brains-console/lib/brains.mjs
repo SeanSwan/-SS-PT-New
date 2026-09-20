@@ -13,21 +13,29 @@
  * measurement history for every containment rule lives with the rule, and it is
  * deliberately not duplicated.
  *
- * ⚠️ KNOWN OPEN DEFECT — R2-02, Astra round 2. `queryConsole` still calls the
- * engine's `queryBrains`, which resolves pointers ITSELF and therefore never
- * passes through `containedDir`. Measured by the round-2 probe: a poisoned
- * generation path was followed and a hit returned from outside `brains/`. The
- * drawer is contained; the query route is not. The fix is to route the query
- * through the same reader, which is the S0H slice. It is recorded here rather
- * than left implicit because a reader of this file would otherwise reasonably
- * assume the boundary covers both entry points — which is exactly how A1-11 sat
- * unseen in the first place.
+ * THE READ SURFACE IS NOW CONTAINED AT BOTH ENTRY POINTS (R2-02, 2026-09-20).
+ * `queryConsole` calls `assertReadSurfaceContained` before it delegates, so every
+ * path the engine's own traversal will join has already been proven to resolve
+ * inside the store. The drawer goes through `readPublishedBrain`, which contains
+ * the namespace directory, the pointer file, the generation directory and every
+ * leaf. Read `brain-read.mjs` before changing anything here — the measurement
+ * history for every containment rule lives with the rule, and it is deliberately
+ * not duplicated.
+ *
+ * WHY THE QUERY ROUTE REFUSES (409) RATHER THAN SKIPPING THE POISONED CREATOR.
+ * `/api/query` returns `skipped`, so reporting damage as a field was available and
+ * was rejected. The engine owns the traversal; the console can only validate it
+ * before or after, never inside. Validating and then skipping would leave the
+ * engine reading the very path that failed validation, and owning the traversal
+ * in the console would mean owning the engine's scoring too — a second
+ * implementation of a contract, which is the drift hazard R2-01 was about. A
+ * store that cannot be vouched for is a stop-and-look event, not a partial answer.
  *
  * @module creator-brains-console/lib/brains
  */
 
 import { queryBrains } from '../../../scripts/creator-brains/lib/query.mjs';
-import { BRAIN_FILES, readPublishedBrain } from './brain-read.mjs';
+import { BRAIN_FILES, assertReadSurfaceContained, readPublishedBrain } from './brain-read.mjs';
 import { ApiError, CODE, validateQuery } from './errors.mjs';
 import { toQueryHit } from './hits.mjs';
 
@@ -36,13 +44,15 @@ import { toQueryHit } from './hits.mjs';
 export { BRAIN_FILES };
 
 /**
- * GET /api/query?q&creator — thin pass-through to the engine's own query.
+ * GET /api/query?q&creator — the engine's own query, behind a containment pass.
  *
- * ⚠️ NOT CONTAINED — see the R2-02 note in the header. Every other path into
- * LANE C goes through `readPublishedBrain`.
+ * The pass is what makes this route safe: the engine resolves pointers and joins
+ * generations itself, so validating nothing here is what let the round-2 probe
+ * read `outside/rules.jsonl` and return a hit (R2-02).
  */
 export function queryConsole(q, { r, creator = null } = {}) {
   const query = validateQuery(q);
+  assertReadSurfaceContained(r);
   let res;
   try {
     res = queryBrains(query, { r, creator: creator || null });

@@ -59,6 +59,7 @@
  */
 
 import { readCanary } from '../../../scripts/creator-brains/lib/store.mjs';
+import { cacheKey, clearCaches, getCached, putCached } from './health-cache.mjs';
 import { requestProbe, resetProbeChannel, takeProbe } from './health-probe.mjs';
 
 /**
@@ -71,18 +72,14 @@ import { requestProbe, resetProbeChannel, takeProbe } from './health-probe.mjs';
  */
 export const PROBE_TTL_MS = 60_000;
 
-/** Process-local cache. One bridge, one store, one probe. */
-let cache = null;
-
 /**
- * Test seam — the console's suite must not inherit a probe from another test.
- *
- * BOTH PIECES OF STATE (A1-10). The cache was the whole of it until the probe
- * moved off-thread; now "a probe is running" is state too, and leaving it out
- * would make this function's own promise — no inherited probe — quietly false.
+ * Test seam and reset: forget every root's reading AND close the probe channel.
+ * The cache is KEYED BY CANONICAL STORE ROOT (R2-04) — see `./health-cache.mjs`,
+ * which was extracted rather than grown here because this file sits against the
+ * repo's 300-line cap.
  */
 export function resetHealthCache() {
-  cache = null;
+  clearCaches();
   resetProbeChannel();
 }
 
@@ -117,12 +114,16 @@ export function resetHealthCache() {
 export function healthReading({
   ttlMs = PROBE_TTL_MS, now = Date.now(), r = null, probe = null,
 } = {}) {
+  // THE CACHE IS PER STORE ROOT (R2-04). The history fallback reads `r`'s canary,
+  // so an answer is only an answer FOR THAT ROOT.
+  const key = cacheKey(r);
+
   // COLLECT FIRST (A1-10). An off-thread result arrives asynchronously, so the
   // only moment it can enter the cache is at the top of a read. Doing this
   // BEFORE the cache check means a result that landed since the last read is
   // visible on this read, rather than after the TTL expires — otherwise a probe
   // finishing 100 ms after a cold read would stay invisible for a full minute.
-  if (!probe) collect(r, now);
+  if (!probe) collect(key, r, now);
 
   // `cache.probeAtMs` is the moment of the LAST PROBE — the property documented
   // above depends on never writing a read time into it.
@@ -132,7 +133,8 @@ export function healthReading({
   // purpose: after a failed probe we serve store history, whose age is however
   // old that record is, while still refusing to re-probe until the TTL passes.
   // Collapsing them was the defect — see the FAILURE-CACHING note below.
-  const cached = cache && (now - cache.probeAtMs) < ttlMs ? cache : null;
+  const held = getCached(key);
+  const cached = held && (now - held.probeAtMs) < ttlMs ? held : null;
   if (cached) return shape(cached, now, ttlMs);
 
   // THE PRODUCTION PROBE DOES NOT RUN HERE (A1-10). `selfCheck()` shells out via
@@ -149,79 +151,66 @@ export function healthReading({
   const history = !fresh.ok && r ? lastCanary(r) : null;
 
   // FAILURE-CACHING DEFECT (found 2026-09-18, hostile round 2). The first
-  // version wrote `cache = { atMs: now, value: fresh }` BEFORE consulting
-  // history, so a FAILED probe was cached as the answer for the whole TTL. The
-  // consequence: the history fallback fired on exactly ONE read — the one that
-  // happened to take the probe — and every later read in the window served the
-  // cached failure with `source:'probe'`, `stale:false` and `note:null`. The
-  // console therefore flipped from "ok, checked yesterday, here's why" to
-  // "MISSING, checked 10 seconds ago, fresh" — a false alarm presented as a
-  // fresh authoritative reading, which is the precise crying-wolf behaviour the
-  // fallback was written to prevent.
-  //
-  // The fix: cache the RESOLVED answer, not the raw probe. History and failure
-  // are both legitimate readings; what must be stable is which one we show for
-  // the duration of the window.
-  cache = history
-    ? {
+  // version cached the RAW PROBE before consulting history, so a failed probe
+  // was the answer for the whole TTL and the history fallback fired on exactly
+  // one read. The fix is to cache the RESOLVED answer — history and failure are
+  // both legitimate readings, and what must be stable is which one we show for
+  // the window. `compose` is that resolution, written once for both callers.
+  const entry = compose(fresh, history, now);
+  putCached(key, entry);
+  return shape(entry, now, ttlMs);
+}
+
+/**
+ * Resolve a probe result and the history fallback into ONE cache entry.
+ *
+ * ONE COPY, TWO CALLERS. The inline path and the off-thread path each used to
+ * carry their own copy of this decision, with a comment promising they agreed —
+ * and two copies of a rule is exactly how the copies drift. That is the hazard
+ * R2-01 found in a contract restated across three files, so the resolution is
+ * written once and both callers share it. `atMs` is when the probe actually RAN
+ * (the worker stamps it), falling back to the read time for an injected stub.
+ */
+function compose(fresh, history, now) {
+  if (history) {
+    return {
       probeAtMs: now,
       checkedAtMs: Date.parse(history.ts),
       value: history.check,
       source: 'history',
       note: 'live probe did not resolve yt-dlp — showing the last recorded canary result instead',
-    }
-    // A STARTED-BUT-UNFINISHED PROBE IS NOT A VERDICT. Reporting it as
-    // `source:'probe'` would present "we have not checked yet" as a live reading
-    // — the same class of lie as the failure-caching defect below, and the
-    // reason `unknown` is a first-class source rather than an absence.
-    : fresh.pending
-      ? {
-        probeAtMs: now,
-        checkedAtMs: null,
-        value: fresh,
-        source: 'unknown',
-        note: fresh.reason,
-      }
-      : {
-        probeAtMs: now,
-        checkedAtMs: now,
-        value: fresh,
-        source: 'probe',
-        note: fresh.ok ? null : 'live probe did not resolve yt-dlp',
-      };
-
-  return shape(cache, now, ttlMs);
+    };
+  }
+  // A STARTED-BUT-UNFINISHED PROBE IS NOT A VERDICT. Reporting it as
+  // `source:'probe'` would present "we have not checked yet" as a live reading —
+  // the same class of lie as the failure-caching defect, and the reason
+  // `unknown` is a first-class source rather than an absence.
+  if (fresh.pending) {
+    return {
+      probeAtMs: now, checkedAtMs: null, value: fresh, source: 'unknown', note: fresh.reason,
+    };
+  }
+  return {
+    probeAtMs: now,
+    checkedAtMs: fresh.atMs ?? now,
+    value: fresh,
+    source: 'probe',
+    note: fresh.ok ? null : 'live probe did not resolve yt-dlp',
+  };
 }
 
 /**
  * Install an off-thread result, if one has arrived since the last read.
  *
- * The composition is deliberately IDENTICAL to the inline path — history
- * fallback included — because the reading must not depend on which thread the
- * probe happened to run on. A divergence here would mean the console reports
- * differently depending on a scheduling detail, which is the kind of difference
- * nobody would ever think to test for.
+ * It resolves through `compose` for the reason stated there: the reading must
+ * not depend on which thread the probe happened to run on.
  */
-function collect(r, now) {
-  const done = takeProbe();
+function collect(key, r, now) {
+  const done = takeProbe(now);
   if (!done) return;
-  const value = done.value;
-  const history = !value.ok && r ? lastCanary(r) : null;
-  cache = history
-    ? {
-      probeAtMs: now,
-      checkedAtMs: Date.parse(history.ts),
-      value: history.check,
-      source: 'history',
-      note: 'live probe did not resolve yt-dlp — showing the last recorded canary result instead',
-    }
-    : {
-      probeAtMs: now,
-      checkedAtMs: done.atMs,
-      value,
-      source: 'probe',
-      note: value.ok ? null : 'live probe did not resolve yt-dlp',
-    };
+  const fresh = { ...done.value, atMs: done.atMs };
+  const history = !fresh.ok && r ? lastCanary(r) : null;
+  putCached(key, compose(fresh, history, now));
 }
 
 /**
@@ -233,6 +222,11 @@ function collect(r, now) {
  */
 function startOffThread(now) {
   const started = requestProbe();
+  // A WORKER THAT COULD NOT START IS A READING ON THIS READ (R2-04), not the
+  // next one. A `false` because a probe is genuinely in flight leaves `takeProbe`
+  // returning null, so the pending description below still wins.
+  const failed = started ? null : takeProbe(now);
+  if (failed) return { ...failed.value, atMs: failed.atMs };
   return {
     ok: false,
     version: null,

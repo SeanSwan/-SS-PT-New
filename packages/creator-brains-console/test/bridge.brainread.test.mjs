@@ -161,10 +161,18 @@ test('R2-03b: the read path resolves the pointer EXACTLY ONCE (structural pin)',
 
   // And the claim reader must take its directory from the caller rather than
   // deriving one, so there is no path by which it could name a different
-  // generation than the one that was validated.
+  // generation than the one that was validated. Asserted as a PREFIX, not as an
+  // exact parameter list: R2-02 added the containment root and its resolved real
+  // path to this call, and a pin that breaks on every added argument trains the
+  // next seat to loosen it. What must not change is that the directory is GIVEN
+  // to it — so the property is pinned and the arity is not.
+  assert.match(
+    src, /function readClaims\(dir, skipped/,
+    'readClaims must RECEIVE the already-validated directory, not resolve one',
+  );
   assert.ok(
-    /function readClaims\(dir, skipped\)/.test(src),
-    'readClaims must receive the already-validated directory, not resolve one',
+    !/readClaims\([^)]*readPointer/.test(src) && !/readClaims\([^)]*containedDir/.test(src),
+    'readClaims must not be handed a freshly resolved pointer or directory',
   );
 });
 

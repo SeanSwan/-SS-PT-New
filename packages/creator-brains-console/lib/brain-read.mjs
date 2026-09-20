@@ -50,11 +50,13 @@
  * @module creator-brains-console/lib/brain-read
  */
 
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { readPointer } from '../../../scripts/creator-brains/lib/render.mjs';
-import { paths, readJsonl } from '../../../scripts/creator-brains/lib/paths.mjs';
+import { listDir, paths, readJsonl } from '../../../scripts/creator-brains/lib/paths.mjs';
 import { ApiError, CODE } from './errors.mjs';
+import {
+  brainsStore, containedPath, inside, readContainedText,
+} from './containment.mjs';
 
 /** The three MARKDOWN files a brain page exposes verbatim. */
 export const BRAIN_FILES = Object.freeze(['index.md', 'topics.md', 'timeline.md']);
@@ -107,10 +109,7 @@ const GENERATION = /^gen-(?:\d{4}|[1-9]\d{4,})$/;
 const REQUIRED_FIELDS = Object.freeze(['claim_id', 'creator_id', 'video_id', 't_start_ms', 'key_phrase']);
 
 /** Is `target` strictly inside `root`, after both have been normalised? */
-function inside(root, target) {
-  const rel = relative(root, target);
-  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
-}
+export { inside };
 
 /**
  * `brains/<slug>/<generation>`, proven to resolve inside the store.
@@ -127,33 +126,12 @@ function inside(root, target) {
  * that. All three measured vectors above are refused by this function.
  *
  * Exported because the query path must use the SAME check, not a copy (R2-02).
+ * The primitive it delegates to lives in `containment.mjs`, which R2-02 extended
+ * to cover the namespace directory, the pointer file and every leaf as well.
  */
 export function containedDir(r, slug, generation) {
-  const root = resolve(paths(r).brainsDir);
-  const dir = resolve(root, slug, generation);
-  if (!inside(root, dir)) {
-    throw new ApiError(
-      CODE.STORE_DAMAGED,
-      `'${slug}/${generation}' does not resolve inside the brains store`,
-      { file: 'current.json' },
-    );
-  }
-
-  let realRoot = null;
-  let real = null;
-  try { realRoot = realpathSync(root); } catch { /* no store yet — nothing to escape */ }
-  try { real = realpathSync(dir); } catch { /* absent generation, reported per file below */ }
-
-  // An ABSENT generation directory is not a fault — it is reported file by file.
-  // Only one that EXISTS and escapes is a store fault.
-  if (real !== null && realRoot !== null && !inside(realRoot, real)) {
-    throw new ApiError(
-      CODE.STORE_DAMAGED,
-      `the published generation for '${slug}' resolves outside the brains store`,
-      { file: 'current.json' },
-    );
-  }
-  return dir;
+  const { root, realRoot } = brainsStore(r);
+  return containedPath(root, realRoot, resolve(root, slug, generation), `'${slug}/${generation}'`, 'current.json');
 }
 
 /**
@@ -162,22 +140,22 @@ export function containedDir(r, slug, generation) {
  * `readJsonl` drops an unparseable line at parse time, so the parsed count is
  * compared against the real line count and the difference is REPORTED — a
  * damaged generation must not read as "this creator never said that" (HR24).
+ *
+ * THE LEAF IS CONTAINED BEFORE IT IS READ (R2-02). Containing the DIRECTORY is
+ * not enough: `rules.jsonl` inside a contained generation can itself be a
+ * junction pointing out, and the probe read exactly that. And a read that FAILS
+ * is damage rather than absence (A2-R2-01) — `readContainedText` draws that line.
  */
-function readClaims(dir, skipped) {
+function readClaims(dir, skipped, root, realRoot) {
   const claims = [];
-  const rulesPath = join(dir, 'rules.jsonl');
-  if (!existsSync(rulesPath)) {
+  const rulesPath = containedPath(root, realRoot, join(dir, 'rules.jsonl'), 'the rules for this generation', 'rules.jsonl');
+  const text = readContainedText(rulesPath, 'rules.jsonl', 'rules.jsonl');
+  if (text === null) {
     skipped.push({ file: 'rules.jsonl', reason: 'missing from the published generation' });
     return claims;
   }
   const rows = readJsonl(rulesPath);
-  let lineCount = 0;
-  try {
-    lineCount = readFileSync(rulesPath, 'utf-8').split('\n').filter((l) => l.trim()).length;
-  } catch {
-    skipped.push({ file: 'rules.jsonl', reason: 'unreadable' });
-    return claims;
-  }
+  const lineCount = text.split('\n').filter((l) => l.trim()).length;
   if (lineCount !== rows.length) {
     skipped.push({ file: 'rules.jsonl', reason: `${lineCount - rows.length} unparseable line(s)` });
   }
@@ -206,6 +184,16 @@ export function readPublishedBrain(r, name) {
   // Refuse before the pointer read. `pointerPath` joins this string unsanitised,
   // so a name that cannot be a namespace must not reach it at all.
   if (typeof name !== 'string' || !NAMESPACE.test(name)) return null;
+
+  const { root, realRoot } = brainsStore(r);
+
+  // THE POINTER IS CONTAINED BEFORE IT IS FOLLOWED (R2-02). It used to be read
+  // first and validated never, so `brains/<ns>/current.json` could itself be a
+  // link and the read followed it out of the store. `readPointer` computes this
+  // exact path (`join(brainsDir, ns, 'current.json')`), so proving the path here
+  // proves the path it will open.
+  containedPath(root, realRoot, join(root, name), `'${name}'`, 'current.json');
+  containedPath(root, realRoot, join(root, name, 'current.json'), `the pointer for '${name}'`, 'current.json');
 
   let pointer;
   try {
@@ -243,19 +231,58 @@ export function readPublishedBrain(r, name) {
       docs[file] = '';
       continue;
     }
-    try {
-      docs[file] = readFileSync(join(dir, file), 'utf8');
-    } catch {
+    // EACH LEAF IS CONTAINED TOO (R2-02) — a contained directory can still hold
+    // a linked file — and a read that FAILS is damage, not absence (A2-R2-01).
+    const leaf = containedPath(root, realRoot, join(dir, file), `'${file}' for '${name}'`, file);
+    const text = readContainedText(leaf, file, file);
+    if (text === null) {
       skipped.push({ file, reason: 'missing from the published generation' });
       docs[file] = '';
+      continue;
     }
+    docs[file] = text;
   }
 
   return {
     generation,
     title: pointer.title ?? name,
     docs,
-    claims: dir ? readClaims(dir, skipped) : [],
+    claims: dir ? readClaims(dir, skipped, root, realRoot) : [],
     skipped,
   };
+}
+
+/**
+ * Prove that the engine's own traversal cannot leave the store (R2-02).
+ *
+ * WHY A WALK AND NOT A REWRITE. `/api/query` delegates to the engine's
+ * `queryBrains`, which enumerates every `current.json` under the brains
+ * directory ITSELF and joins each pointer's generation unchecked — that is the
+ * measured R2-02 leak. The console cannot fix that from the outside, and
+ * reimplementing the traversal would mean reimplementing the engine's scoring
+ * too, which is the duplicated-contract hazard R2-01 was about.
+ *
+ * So the console establishes the property the engine relies on, BEFORE the engine
+ * runs: every entry in `brains/`, every pointer, every generation and every leaf
+ * is proven to resolve inside the store. After this pass returns, every path
+ * `listPublished` will join is a path this module has already validated.
+ *
+ * WHAT THIS DOES NOT COVER, stated rather than implied: a filesystem that is
+ * MUTATED between this pass and the engine's read. That race is not detectable
+ * without platform-specific primitives, and Astra's own correction (A2-R2-06)
+ * says not to certify it. Cooperating atomic publication and pre-existing links
+ * are covered; a hostile concurrent mutation is not claimed.
+ *
+ * THROWS on any escape, so the route answers 409 rather than serving from a
+ * store it cannot vouch for.
+ */
+export function assertReadSurfaceContained(r) {
+  const { root, realRoot } = brainsStore(r);
+  for (const entry of listDir(root)) {
+    // Every entry, not only well-formed namespaces: `listPublished` does not
+    // filter by name either, so anything it will open must be proven here.
+    containedPath(root, realRoot, join(root, entry), `'${entry}'`, 'current.json');
+    containedPath(root, realRoot, join(root, entry, 'current.json'), `the pointer for '${entry}'`, 'current.json');
+    readPublishedBrain(r, entry);
+  }
 }

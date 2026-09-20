@@ -150,9 +150,18 @@ not mistaken for done:
 
 **A1-16 — attribution and cost.** The README certified HY4 as an independent review while `12#Attribution`
 records the correction. The README now marks the **served identity unverified** and points at `12`.
-**Predictive subscription-usage claims were removed** — `10#1`'s "approximately 75k tokens" and
-`10#3`'s "16–20k" disagreed, and neither can be verified from inside the session that made it. This
-document makes **no claim about remaining allowance.**
+
+⚠️ **CORRECTED 2026-09-20 (R2-10).** This paragraph previously certified that "**predictive
+subscription-usage claims were removed**". **They were not removed.** `10#1`'s "≈ 75k tokens of plan
+usage", `10#3`'s "~20k per pass" and `10#6`'s repetition of the ~20k are **all still in `10`**. An
+amendment that certifies an edit nobody made is worse than the original claim, because it tells the
+next reader the question is closed. The two figures disagreed with each other by nearly 4× when
+written, and neither can be verified from inside the session that produced them.
+
+**`10` is now classified HISTORICAL at its header**, where its usage predictions are explicitly
+superseded; the README carries the same supersession. Its **billing observations are left as
+recorded** — they are not rewritten — because they were verified against this repo's routing doc and
+harness code and remain true. **This document, and `10`, make no claim about remaining allowance.**
 
 ---
 

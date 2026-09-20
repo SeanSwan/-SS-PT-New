@@ -1,7 +1,28 @@
 # 10 — Astra consult: what it costs, and what it is worth
 
 - **Date:** 2026-09-17 · **Question answered:** *"give me an idea how many credits an astra review would take on this"*
-- **Status:** the cost model is [VERIFIED] against this repo's own routing doc and harness code; the token volumes are [ESTIMATE] with the arithmetic shown so you can check it.
+- **Status:** ⚠️ **HISTORICAL as of 2026-09-20 (R2-10).** This is a receipt of what was believed and measured on **2026-09-17**, not a current estimate — and not a statement of remaining allowance.
+- **The cost model is [VERIFIED] against this repo's own routing doc and harness code; the token volumes are [ESTIMATE] with the arithmetic shown so you can check it.**
+
+---
+
+> ### ⚠️ HISTORICAL — the usage PREDICTIONS below are SUPERSEDED (2026-09-20, R2-10)
+>
+> **The billing observations stand as recorded.** Astra really does ride the Codex 20x subscription at
+> **$0 metered**, and that was verified against this repo's routing doc and harness code on 2026-09-17.
+> Nothing in this banner rewrites them, and nothing here should be re-read as a forecast.
+>
+> **The per-pass token predictions are superseded and must not be quoted.** §1's "≈ 75k tokens of plan
+> usage" and §3's "~20k per pass" — which §6 repeats — **disagreed with each other by nearly 4× when
+> both were written**, and neither can be verified from inside the session that produced it: token
+> volume is not observable from a `codex exec --json` event stream, whose event set carries no usage
+> field. They are **left in place deliberately** — deleting them would erase the evidence that they
+> were made, which is the thing the next reader most needs to know. They are evidence, not inputs.
+>
+> **This document makes NO claim about remaining allowance**, and no reader may infer one from the
+> subscription being named. Usage is a rolling rate limit whose state is visible only to the seat.
+> `19-held-findings.md` §6 (A1-16) records the certification defect this banner corrects, and the
+> README carries the supersession.
 
 ---
 
