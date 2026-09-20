@@ -1,0 +1,39 @@
+{
+  "model": "openai/gpt-6-astra-pro",
+  "document": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/CONSULT-PACKET.md",
+  "generatedAt": "2026-09-19T08:38:17.938Z",
+  "promptSha256": "65272c98503fa6b1ba2452fd83d1f8a01d51e872811e6dce310201e2657cc193",
+  "promptChars": 19354,
+  "maxTokens": 100000,
+  "inputTokens": 57740,
+  "outputTokens": 41798,
+  "costUsd": 2.6673,
+  "wallSeconds": 377.9,
+  "chunks": 1,
+  "replyChars": 74541,
+  "finishReason": "stop",
+  "truncated": false,
+  "usage": {
+    "prompt_tokens": 57740,
+    "completion_tokens": 41798,
+    "total_tokens": 99538,
+    "cost": 2.634358,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 5068,
+      "cache_write_tokens": 5068,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 2.634358,
+      "upstream_inference_prompt_cost": 0.544458,
+      "upstream_inference_completions_cost": 2.0899
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 4518,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  }
+}
