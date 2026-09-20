@@ -574,8 +574,13 @@ export const setupRoutes = async (app) => {
         return res.redirect(302, signedUrl);
       }
 
-      // Fallback: try local uploads dir
-      const localPath = path.join(process.cwd(), 'uploads', category, filename);
+      // Fallback: try local uploads dir.
+      // E-11: shared resolver instead of process.cwd(). uploadPhoto writes
+      // under UPLOADS_ROOT and express.static mounts that same root, so any
+      // process launched from another directory used to 404 on files that
+      // were on disk the whole time.
+      const { resolveLocalUploadPath } = await import('../services/photoStorageService.mjs');
+      const localPath = resolveLocalUploadPath(`${category}/${filename}`);
       if (existsSync(localPath)) {
         return res.sendFile(localPath);
       }
@@ -785,8 +790,13 @@ export const setupRoutes = async (app) => {
         return res.redirect(302, signedUrl);
       }
 
-      // Fallback: try local uploads dir
-      const localPath = path.join(process.cwd(), 'uploads', category, filename);
+      // Fallback: try local uploads dir.
+      // E-11: shared resolver instead of process.cwd(). uploadPhoto writes
+      // under UPLOADS_ROOT and express.static mounts that same root, so any
+      // process launched from another directory used to 404 on files that
+      // were on disk the whole time.
+      const { resolveLocalUploadPath } = await import('../services/photoStorageService.mjs');
+      const localPath = resolveLocalUploadPath(`${category}/${filename}`);
       if (existsSync(localPath)) {
         return res.sendFile(localPath);
       }
