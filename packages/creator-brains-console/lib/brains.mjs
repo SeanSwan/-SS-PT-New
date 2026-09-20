@@ -58,12 +58,19 @@
 
 import { readFileSync, realpathSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
-import { queryBrains } from '../../../scripts/creator-brains/lib/query.mjs';
+import { loadHits, queryBrains } from '../../../scripts/creator-brains/lib/query.mjs';
 import { readPointer } from '../../../scripts/creator-brains/lib/render.mjs';
 import { paths } from '../../../scripts/creator-brains/lib/paths.mjs';
 import { ApiError, CODE, validateQuery } from './errors.mjs';
+import { toQueryHit } from './hits.mjs';
 
-/** The only three files a brain page is allowed to expose (LANE C). */
+/**
+ * The three MARKDOWN files a brain page exposes verbatim (LANE C).
+ *
+ * `rules.jsonl` is read from the same generation as CLAIMS — parsed, validated
+ * and projected, never served as a file body. It is deliberately absent from
+ * this list because nothing may hand it back raw; see `claims` in `brainDoc`.
+ */
 export const BRAIN_FILES = Object.freeze(['index.md', 'topics.md', 'timeline.md']);
 
 /**
@@ -238,6 +245,38 @@ export function brainDoc(slug, { r } = {}) {
     }
   };
 
+  // CLAIMS COME FROM THE SAME PINNED GENERATION AS THE MARKDOWN (A1-04). This
+  // route used to return `claims: []` while `03-wireframes.md` promised a claim
+  // drawer and `web/src/adapters/types.ts` declared `claims: QueryHit[]` — so the
+  // drawer was structurally always empty, a placeholder that renders as "this
+  // creator claimed nothing".
+  //
+  // Composed through the engine's own `loadHits`, not a second reader of
+  // `rules.jsonl`: that function owns the required-field list, the row
+  // validation and the skipped accounting, and a copy would drift from it.
+  const claims = [];
+  if (dir) {
+    const published = loadHits(r, { creator: name });
+    for (const row of published.hits) {
+      // `loadHits` resolves the generation from the pointer AGAIN. If the pointer
+      // moved between that read and the containment check above, this row would
+      // come from a directory nobody validated — so the generation is checked
+      // against the one we proved, rather than assumed equal.
+      if (row.generation !== generation) {
+        throw new ApiError(
+          CODE.STORE_DAMAGED,
+          `the published pointer for '${name}' changed generation while it was being read`,
+          { file: 'current.json' },
+        );
+      }
+      claims.push(toQueryHit(row));
+    }
+    // Folded into the same `{file, reason}` shape the three markdown files use,
+    // so a damaged or absent `rules.jsonl` is REPORTED in the one place a reader
+    // already looks, instead of becoming an empty drawer that looks like data.
+    for (const s of published.skipped) skipped.push({ file: 'rules.jsonl', reason: s.reason });
+  }
+
   return {
     slug: name,
     generation,
@@ -245,7 +284,7 @@ export function brainDoc(slug, { r } = {}) {
     index: readIfPresent('index.md'),
     topics: readIfPresent('topics.md'),
     timeline: readIfPresent('timeline.md'),
-    claims: [],
+    claims,
     skipped,
   };
 }

@@ -1,0 +1,8 @@
+# Vite writes a timestamped copy of the resolved config next to it on every
+# `vite build` / `vite dev` start. It is a build artifact, never source — but it
+# lands in the config's own directory, so it appears as an untracked file in
+# exactly the place a reviewer is looking for real changes.
+vite.config.ts.timestamp-*.mjs
+
+node_modules/
+dist/

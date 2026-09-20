@@ -56,12 +56,24 @@ export interface CreatorRow {
 }
 
 export interface QueryHit {
+  /**
+   * NOT ALWAYS THE ENGINE'S CLAIM ID (A1-03/A1-04). The brain drawer reads the
+   * raw `rules.jsonl` row and carries the engine's real `claim_id`. `/api/query`
+   * reaches this shape through the engine's `queryBrains`, which drops
+   * `claim_id`, so it falls back to the composite `${videoId}:${tStartMs}` —
+   * which COLLIDES for two claims in one video at the same millisecond. Do not
+   * key a list on this value across both routes; the divergence is pinned by
+   * `bridge.brains.test.mjs` and is an engine-side defect awaiting an owner.
+   */
   claimId: string;
   creatorId: string;
   creatorTitle: string;
   videoId: string;
   tStartMs: number;
   keyPhrase: string;
+  /** Served by both routes; declared here since A1-03. */
+  statement: string;
+  topic: string;
   watchUrl: string; // https://youtu.be/<id>?t=<s>
 }
 

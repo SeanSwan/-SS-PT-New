@@ -117,6 +117,11 @@ export const queryResult: QueryResult = {
       videoId: 'dQw4w9WgXcQ',
       tStartMs: 754000,
       keyPhrase: 'backpressure is a queueing decision, not a network one',
+      // Both routes serve these; `QueryHit` under-declared them until A1-03, and
+      // this fixture was written to the narrow type — which is how a contract
+      // gets fixed in the docs and left broken in the client.
+      statement: 'Backpressure is a queueing decision, not a network one.',
+      topic: 'systems design',
       watchUrl: 'https://youtu.be/dQw4w9WgXcQ?t=754',
     },
   ],

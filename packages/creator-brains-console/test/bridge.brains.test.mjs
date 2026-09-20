@@ -168,3 +168,97 @@ test('T-B22f: the query route searches LANE C only — transcript words are not 
     }
   });
 });
+
+/* ── A1-04 · the drawer serves CLAIMS, from the same pinned generation ───── */
+
+/*
+ * `brainDoc` returned `claims: []` unconditionally, while `03-wireframes.md`
+ * promised a claim drawer and `web/src/adapters/types.ts` declared
+ * `claims: QueryHit[]` with a fixture that populates it. So the client was ready,
+ * the contract was published, and the server was a stub — an empty drawer that
+ * renders as "this creator claimed nothing", which is the S1-H15 shape this route
+ * has already been burned by once. The fixture's `rules.jsonl` was already
+ * production-shaped and nonempty; nothing could see it because nothing read it.
+ */
+
+test('A1-04a: the drawer serves the published claims, not an empty array', async () => {
+  await withFixture('a104a', async ({ r, base }) => {
+    const { ns } = seedPublishedBrain(r);
+    const { status, body } = await getJson(base, `/api/brains/${ns}`);
+
+    assert.equal(status, 200);
+    assert.equal(body.claims.length, 1, 'the fixture publishes exactly one claim');
+    const claim = body.claims[0];
+    assert.equal(claim.creatorId, ns);
+    assert.equal(claim.videoId, VID_1);
+    assert.equal(claim.tStartMs, 1000);
+    assert.equal(claim.keyPhrase, 'fixture claims');
+    assert.equal(claim.watchUrl, `https://youtu.be/${VID_1}?t=1`,
+      'the deep link is the product: it must open the video at the second the claim was made');
+  });
+});
+
+test('A1-04b: the drawer and /api/query agree on every field except the one that cannot', async () => {
+  await withFixture('a104b', async ({ r, base }) => {
+    const { ns } = seedPublishedBrain(r);
+    const doc = await getJson(base, `/api/brains/${ns}`);
+    const q = await getJson(base, `/api/query?q=fixture&creator=${ns}`);
+
+    assert.equal(q.body.hits.length, 1);
+    const drawer = doc.body.claims[0];
+    const query = q.body.hits[0];
+
+    // ONE shape, TWO producers. Every field both routes can compute from the same
+    // row must be identical — that is where drift would be a silent bug rather
+    // than a known gap.
+    for (const key of ['creatorId', 'creatorTitle', 'videoId', 'tStartMs', 'keyPhrase', 'statement', 'topic', 'watchUrl']) {
+      assert.deepEqual(drawer[key], query[key], `the two routes disagree on '${key}'`);
+    }
+
+    // THE ONE DELIBERATE DIVERGENCE, ASSERTED RATHER THAN TOLERATED. The drawer
+    // reads the raw row and carries the engine's real `claim_id`; `/api/query`
+    // reaches this shape through `queryBrains`, which drops it, so it falls back
+    // to a composite that collides for two claims in one video at the same
+    // millisecond. Pinning it makes a future change to either route a failing
+    // test instead of a surprise — and it is written down rather than hidden.
+    assert.equal(drawer.claimId, 'fixture-claim-1', 'the drawer carries the engine claim id');
+    assert.equal(query.claimId, `${VID_1}:1000`, 'the query route can only composite it');
+  });
+});
+
+test('A1-04c: a mixed store serves each namespace its OWN generation', async () => {
+  await withFixture('a104c', async ({ r, base }) => {
+    const a = seedPublishedBrain(r, 'brain-alpha', { title: 'Alpha', generation: 'gen-0001' });
+    const b = seedPublishedBrain(r, 'brain-beta', { title: 'Beta', generation: 'gen-0007' });
+
+    const da = await getJson(base, `/api/brains/${a.ns}`);
+    const db = await getJson(base, `/api/brains/${b.ns}`);
+
+    assert.equal(da.body.generation, 'gen-0001');
+    assert.equal(db.body.generation, 'gen-0007');
+    assert.match(da.body.index, /Alpha/);
+    assert.match(db.body.index, /Beta/);
+    // The claims must come from the SAME generation as the markdown, never from
+    // whichever namespace the loader happened to reach.
+    assert.equal(da.body.claims[0].creatorId, 'brain-alpha');
+    assert.equal(db.body.claims[0].creatorId, 'brain-beta');
+  });
+});
+
+test('A1-04d: a generation with no rules.jsonl REPORTS it, not an unexplained empty drawer', async () => {
+  await withFixture('a104d', async ({ r, base }) => {
+    const { ns, genDir } = seedPublishedBrain(r);
+    rmSync(join(genDir, 'rules.jsonl'));
+
+    const { status, body } = await getJson(base, `/api/brains/${ns}`);
+
+    assert.equal(status, 200);
+    assert.deepEqual(body.claims, []);
+    // Empty AND explained. The three markdown files already report this way; the
+    // claims must not be the one silent absence on the payload.
+    assert.ok(
+      body.skipped.some((s) => s.file === 'rules.jsonl'),
+      `expected a rules.jsonl skip, got ${JSON.stringify(body.skipped)}`,
+    );
+  });
+});

@@ -6,8 +6,28 @@
 // web/src/adapters/types.ts
 export type Tier = 'T0' | 'T1' | 'T2' | 'T3' | 'T4';
 
+/**
+ * THE FULL PROVENANCE, NOT JUST THE VERDICT (A1-03).
+ *
+ * `source` is THREE-valued and `unknown` is a real value, not an absence. Since
+ * A1-10 the production probe runs off the event loop, so a cold read has started
+ * a probe and has no verdict yet; reporting that as `source:'probe'` would
+ * present "we have not checked" as a live reading — the same lie the
+ * failure-caching defect was.
+ *
+ * `checkedAt`/`ageMs` are `null` when there is no timestamp to be honest about,
+ * and `stale` is then `true` by definition. A `history` reading is ALWAYS stale:
+ * it is not a live verdict and must never be presented as one, however recent the
+ * record happens to be.
+ */
+export interface CanaryReading {
+  ok: boolean; version: string | null; reason: string;
+  checkedAt: string | null; ageMs: number | null;
+  source: 'probe' | 'history' | 'unknown'; stale: boolean; note: string | null;
+}
+
 export interface StatusInstrument {            // R2 — mirrors status-command sources
-  ytdlp: { ok: boolean; version: string | null; reason: string };
+  ytdlp: CanaryReading;                        // NOT the narrowed {ok,version,reason} (A1-03)
   creators: { total: number; enabled: number; damaged: null | { file: string; detail: string } };
   state: { damaged: null | { file: string; detail: string };
            videos: { total: number; fetched: number; coverage: number;
@@ -26,17 +46,46 @@ export interface StatusInstrument {            // R2 — mirrors status-command 
 
 export interface CreatorRow {
   channelId: string; title: string; enabled: boolean;
-  videos: number; fetched: number;             // from state.json, per renderCreators truth
+  /**
+   * MEASURED, OR `null` — NEVER A FABRICATED ZERO (A1-03, A1-12).
+   * From `state.json` via `readState` + filter, the same computation
+   * `renderCreators` does. `null` means the count COULD NOT BE TAKEN (a damaged
+   * store, or a read that raced the write); `0` means it was taken and is zero.
+   * Conflating them renders "0 videos" for a creator that has videos — a guard
+   * value presented as a measurement.
+   *
+   * `enabled` is the registry's truth. A NEW creator starts `false`; an EXISTING
+   * one keeps whatever the operator decided, because `upsertCreator` preserves
+   * consent by design. Re-adding is not a way to revoke consent (A1-12).
+   */
+  videos: number | null; fetched: number | null;
 }
 
 export interface QueryHit {
   claimId: string; creatorId: string; creatorTitle: string;
   videoId: string; tStartMs: number; keyPhrase: string;
+  statement: string; topic: string;            // served by both routes; declared since A1-03
   watchUrl: string;                            // https://youtu.be/<id>?t=<s>
 }
 export interface QueryResult { hits: QueryHit[]; skipped: Array<Record<string, unknown>>; }
 
-export interface BrainDoc { slug: string; title: string;
+/**
+ * `key` IS A CHANNEL ID, NOT A SLUG (A1-04).
+ *
+ * `lib/render.mjs` HR07 states it outright: "the storage namespace is the CHANNEL
+ * ID, never a display name" — two channels sharing a display name would otherwise
+ * write one directory and the second would erase the first. This document called
+ * it a slug, which is how the drawer's identifier came to be described as
+ * something it is not. `slugify` does exist in the engine, but it produces
+ * FILENAMES for other surfaces; it does not name a brain namespace.
+ *
+ * `generation` is the PINNED published generation the markdown AND the claims
+ * both come from (A1-04). It is `null` when the pointer names none, which is an
+ * incomplete brain rather than a damaged one; a pointer naming a generation the
+ * engine never writes is damage and is refused.
+ */
+export interface BrainDoc { key: string; title: string;
+  generation: string | null;
   index: string; topics: string; timeline: string;       // markdown from published generation
   claims: QueryHit[]; skipped: Array<Record<string, unknown>>; }
 
@@ -50,11 +99,26 @@ export interface ConsoleDataAdapter {
   addCreator(ref: string): Promise<CreatorRow>;                    // T2
   setCreatorEnabled(channelId: string, enabled: boolean): Promise<CreatorRow>;  // T2
   query(q: string, creator?: string): Promise<QueryResult>;        // T0
-  getBrain(slug: string): Promise<BrainDoc>;                       // T0
+  getBrain(channelId: string): Promise<BrainDoc>;                  // T0
   getRunState(): Promise<RunState>;                                // T0
-  startDailyRun(perHour: number): Promise<{ runId: string }>;      // T2
-  canary(): Promise<{ ok: boolean; version: string | null; reason: string }>;   // T0
-  repair(): Promise<{ requeued: number }>;                         // T2
+  /**
+   * ACCEPTANCE IS NOT COMPLETION (A1-05). `runId` is the ENGINE's run id and is
+   * `null` at acceptance: `run-daily.mjs` does not accept a caller-supplied id,
+   * so one cannot honestly be returned before the engine has written it.
+   * `requestId` is the CONSOLE's correlation id, returned immediately.
+   * Correlate the child process to an engine journal entry and use THAT entry's
+   * run id. Never treat process exit, or a lock disappearing, as success.
+   */
+  startDailyRun(perHour: number): Promise<{ requestId: string; runId: string | null }>; // T2
+  canary(): Promise<CanaryReading>;                                // T0
+  /**
+   * A PROJECTED ENGINE RESULT (A1-07). The engine's repair path runs
+   * reconciliation, build and export and returns an EXIT CODE — it does not
+   * return `{requeued}`. The console invokes the same `runDaily` configuration
+   * through a wrapper and projects the engine's own counts, sharing the
+   * run-operation exclusion gate with `startDailyRun`.
+   */
+  repair(): Promise<{ repaired: number; built: number; emptied: number }>;  // T2
   backup(dest?: string): Promise<{ dest: string; ok: boolean }>;   // T2
 }
 ```

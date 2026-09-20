@@ -74,7 +74,7 @@ Conventions: tests are written BEFORE implementation per slice (RED observed, th
 ## Commands (slice exit evidence runs these)
 
 ```powershell
-# bridge
+# bridge — the console's own test directory, enumerated
 node --test packages/creator-brains-console/test/*.test.mjs
 # web
 cd packages/creator-brains-console/web && npx vitest run && npx tsc --noEmit && npm run build
@@ -82,4 +82,28 @@ cd packages/creator-brains-console/web && npx vitest run && npx tsc --noEmit && 
 npx playwright test --config playwright.console.config.ts
 ```
 
+**THE NON-LIVE SET IS ENUMERATED, NOT INFERRED (A1-14).** `live.test.mjs` is the engine's own
+network-touching suite and lives under `scripts/creator-brains/test/`, not under the console — so the
+bridge command above is already live-free **by scope**, not by exclusion. That is a property of where
+the file sits, and it stops being true the moment someone writes a command that spans both trees.
+Therefore:
+
+- **Any command that globs `scripts/creator-brains/test/` MUST exclude `live.test.mjs` explicitly.**
+  A `*.test.mjs` glob there **does** pick it up, and it will fail without network access — which reads
+  as a broken suite rather than a live test being run by accident.
+- **The console bridge suite's real count is per-file.** `16 §14` (S1-H13) records the inflation that
+  came from a harness exported from a `.test.mjs`: importing a module that calls `test(...)`
+  re-registers that file's tests, and the suite once reported 97 for 85 real. **Never quote an
+  aggregate without checking per-file** — the aggregate is the number that lied.
+- **As of 2026-09-20 the console suite is 137 tests, 0 fail** (`node --test` reports 137/137 in
+  ~3.9 s). Any count quoted from this plan before 2026-09-19 is inflated.
+
 **Explicitly NOT tested in v1 (honest gaps):** real YouTube network behavior (engine's live tests own that); multi-operator/auth; SwanGuard-side embedding (S7 handoff spec only); OCR/visual regression of the three scene beyond layout determinism.
+
+**Also not covered, and named so it is not mistaken for done (A1-14).** `03-wireframes.md` draws
+**414px only** — a 375px layout is undrawn, and undrawn means unverified. The motion budget is written
+as "<5% visual energy", which is **not a measurable quantity**; it needs a definition before it can be
+a contract. And `07-traceability.md` claims almost no mocks while the suite uses fake `fetch`, WebGL
+and browser stubs — **which boundary each stub stands in for must be stated**, or the coverage claim
+cannot be checked. Owners: 375px and the motion definition land with **S5**; the mock matrix is a
+`07` amendment owed with the same slice.

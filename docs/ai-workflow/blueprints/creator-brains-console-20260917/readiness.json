@@ -46,7 +46,7 @@
       "evidence": [
         {
           "path": "05-contracts.md",
-          "sha256": "89247a744e4c72ed272ac7403c48b4b116ada636c4e4aea8e4e742bf750fea9b"
+          "sha256": "aa3b68657b5be82c8636f1be6030a6974e6a88a5d3c18e480a94f59639e510a7"
         }
       ]
     },
@@ -55,7 +55,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         }
       ]
     },
@@ -131,7 +131,7 @@
       "evidence": [
         {
           "path": "05-contracts.md",
-          "sha256": "89247a744e4c72ed272ac7403c48b4b116ada636c4e4aea8e4e742bf750fea9b"
+          "sha256": "aa3b68657b5be82c8636f1be6030a6974e6a88a5d3c18e480a94f59639e510a7"
         }
       ]
     },
@@ -140,7 +140,7 @@
       "evidence": [
         {
           "path": "05-contracts.md",
-          "sha256": "89247a744e4c72ed272ac7403c48b4b116ada636c4e4aea8e4e742bf750fea9b"
+          "sha256": "aa3b68657b5be82c8636f1be6030a6974e6a88a5d3c18e480a94f59639e510a7"
         }
       ]
     },
@@ -309,7 +309,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "08-slices-operations.md",
@@ -328,7 +328,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "08-slices-operations.md",
@@ -347,7 +347,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "08-slices-operations.md",
@@ -390,7 +390,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "08-slices-operations.md",
@@ -409,7 +409,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "08-slices-operations.md",
@@ -428,7 +428,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "08-slices-operations.md",
@@ -447,7 +447,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "08-slices-operations.md",
@@ -478,7 +478,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "08-slices-operations.md",
@@ -497,7 +497,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "14-decisions-20260918.md",
@@ -516,7 +516,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "14-decisions-20260918.md",
@@ -540,7 +540,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "14-decisions-20260918.md",
@@ -709,7 +709,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "08-slices-operations.md",
@@ -728,7 +728,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "12-hy4-review-round2.md",
@@ -747,7 +747,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "12-hy4-review-round2.md",
@@ -766,7 +766,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "13-hostile-round3.md",
@@ -785,7 +785,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -805,7 +805,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -824,7 +824,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -843,7 +843,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -862,7 +862,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -881,7 +881,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -900,7 +900,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -920,7 +920,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -939,7 +939,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -958,7 +958,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
+          "sha256": "9176cd6536839905b6d674532d4a29db8a23509ec1c827d894447862f35f26b7"
         },
         {
           "path": "16-s1-hostile-review.md",
