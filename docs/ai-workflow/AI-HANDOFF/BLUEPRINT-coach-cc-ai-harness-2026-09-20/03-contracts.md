@@ -1,9 +1,12 @@
 > **CALLER NOTE — not Astra's text.** Astra emitted this as a single 352-line document, which
 > violates the package's own ban ("No new file or touched module over 300 lines", `06-bans.md`).
 > Round-2 review R2-10 flagged that the pre-existing-file qualification does not exempt a *new*
-> artifact. The caller split it at the natural boundary — **this part (170 lines) covers contracts
-> against the EXISTING surface; `03b-contracts-proposed-artifacts.md` (180 lines) covers proposed
-> new artifacts.** No content was altered or dropped; the blank line at the split was removed.
+> artifact. The caller split it at the natural boundary — **this part covers contracts against the
+> EXISTING surface; `03b-contracts-proposed-artifacts.md` covers proposed new artifacts.** No content
+> was altered or dropped; the blank line at the split was removed.
+> **Line counts deliberately live only in `MANIFEST.md`**, which the splitter regenerates. An earlier
+> version of this note carried them and went stale the moment either half was edited — including when
+> this very note was edited. One place, regenerated, or it drifts.
 > Both parts remain **unreviewed by any seat** in their split form.
 
 **Contract status**

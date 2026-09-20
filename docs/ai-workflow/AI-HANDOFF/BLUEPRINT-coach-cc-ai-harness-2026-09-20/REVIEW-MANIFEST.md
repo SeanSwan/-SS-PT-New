@@ -12,6 +12,17 @@ or untracked relative to it. Hash each file instead, and re-check the hash befor
 nothing else. That the other 15 are byte-identical across two intervening commits from other lanes is the
 evidence that the reviewed surface was not concurrently edited.
 
+**Convention for this table:** `Lines` is **`wc -l`**. (`MANIFEST.md`'s document table uses
+`split('\n').length`, which is one higher for these files — two conventions in one package, now stated in
+both places rather than left to be discovered.) No file is near the 300-line cap under either convention.
+
+**Later movement, named so the hash mismatch is not a mystery (round 2, `0ce516a25`):** Astra's R2-04 showed
+the F-1 fix above was *itself false*, so the privacy docblock was rewritten again —
+`useCoachCommand.ts` **235 → 246** lines (`fcfbbbde6e303341…` → `623c6974de5daf9e…`). `useCoachAssistant.ts`
+also moved **243 → 244** (a docblock that routed `error` to a chat lane it never reaches); its hash above
+was already 244 and is unchanged. **The `useCoachCommand.ts` row in the table below is the round-1 state and
+will not match the current file** — that is expected and is the only stale row. The other 15 still match.
+
 | File | Lines | SHA-256 (first 16) | Changed since review? |
 |---|---|---|---|
 | `frontend/src/hooks/useCoachCommand.ts` | 235 | `fcfbbbde6e303341` | **yes — F-1 comment fix** |

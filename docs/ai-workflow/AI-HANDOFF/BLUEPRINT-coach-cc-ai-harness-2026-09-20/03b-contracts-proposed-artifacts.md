@@ -1,6 +1,6 @@
 > **CALLER NOTE — not Astra's text.** This is the second half of a single 352-line document Astra
-> emitted. The caller split it at the natural boundary: `03-contracts.md` (170 lines) covers
-> contracts against the EXISTING surface; **this part (180 lines) covers PROPOSED new artifacts** —
+> emitted. The caller split it at the natural boundary: `03-contracts.md` covers contracts against the
+> EXISTING surface; **this part covers PROPOSED new artifacts** —
 > the Sequelize model, migration/retention, provider boundary, additional implementation
 > interfaces, and environment/operations. No content was altered or dropped. Both parts remain
 > **unreviewed by any seat** in their split form.
