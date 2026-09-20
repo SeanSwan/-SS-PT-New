@@ -244,15 +244,26 @@ export function StatusBoard({ state }: StatusBoardProps): ReactElement {
           // S1-H3: status.mjs emits `documents: 0` when state.json is unreadable
           // (`stateDamaged ? 0 : listDocs(r).length`). That 0 is a guard, not a
           // count, so rendering it would claim "you have no documents" during a
-          // store fault. Split from publishedBrains — which stays REAL, because it
-          // reads the brains directory and does not depend on state.json.
+          // store fault. Split from publishedBrains — which does not depend on
+          // state.json at all, so it stays real here and carries its OWN refusal
+          // below when the brains store is what is damaged (R3-02).
           <Refusal file={stateDamaged.file} testid="refused-documents" />
         ) : (
           <Value>{status.documents}</Value>
         )}
 
         <Label>Published brains</Label>
-        <Value data-testid="published-brains">{status.publishedBrains}</Value>
+        {status.publishedBrains === null ? (
+          // R3-02: the count comes from the contained enumerator and is `null`
+          // when it refused. Withholding it is the honest answer — `0` would
+          // claim the store publishes nothing, which is a different fact.
+          <Refusal
+            file={status.publishedBrainsDamaged?.file ?? 'current.json'}
+            testid="refused-published-brains"
+          />
+        ) : (
+          <Value data-testid="published-brains">{status.publishedBrains}</Value>
+        )}
 
         <Label>Recent runs</Label>
         <Value>

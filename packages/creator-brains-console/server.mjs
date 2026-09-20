@@ -68,6 +68,7 @@ import {
 } from './lib/http.mjs';
 import { claimInstance, releaseInstance, registerBridge, unregisterBridge } from './lib/instance.mjs';
 import { writeGateFailure } from './lib/write-gate.mjs';
+import { acquireHealthOwner, releaseHealthOwner } from './lib/health-lease.mjs';
 
 export { statusFor, hostAllowed } from './lib/http.mjs';
 export { WEB_DIST } from './lib/http.mjs';
@@ -122,13 +123,14 @@ export function createBridge({ r = root(), log = () => {}, port = null } = {}) {
     // type, a fixed custom header, and an Origin that IS this bridge's origin
     // when one is sent. Same 403 shape as the Host gate so the two read alike.
     //
-    // The serving origin is derived from the SAME `boundPort` the Host gate uses,
-    // and for the same reason: `port` is null on the normal launch path, so the
-    // live server is the only source that knows the real port. Passing `port`
-    // here instead would degrade the Origin rule to "any loopback port" on
-    // exactly the launch path this console actually uses — the R2-05 defect, in
-    // the gate next door. See lib/write-gate.mjs.
-    const writeFailure = writeGateFailure(req, `http://${HOST}:${boundPort}`);
+    // THE SERVING ORIGIN IS THE AUTHORITY THE CLIENT ACTUALLY REACHED (R3-04).
+    // `hostAllowed` has just approved `req.headers.host` against the exact bound
+    // port, so that header IS this bridge's origin FOR THIS REQUEST — and taking
+    // it from the request is what makes the rule exact rather than assumed. An
+    // earlier version built `http://${HOST}:${boundPort}` from the bind constant
+    // and then accepted either loopback spelling, which admitted a page served by
+    // a DIFFERENT origin at the same port. See lib/write-gate.mjs.
+    const writeFailure = writeGateFailure(req, `http://${req.headers.host}`);
     if (writeFailure) return sendJson(res, 403, { error: writeFailure });
 
     try {
@@ -205,6 +207,13 @@ export async function startBridge({
 
 /** Attach the live handle, its signal handlers and its shutdown to `handle`. */
 function finishStart({ r, handle, storeKey, server, url, port, pid }) {
+  // R3-03: this bridge now OWNS a lease on the shared probe worker and health
+  // cache for as long as it lives. Both are process-global, so only the LAST
+  // owner to release retires them — resetting on every shutdown would let one
+  // bridge tear the worker out from under another. Acquired HERE, on the success
+  // path only: `startBridge`'s failure path never reaches this function, so it
+  // has no lease to give back.
+  acquireHealthOwner();
   let stopped = false;
   /** Stop the bridge. Idempotent; safe to call from a library or a signal. */
   const shutdown = () => {
@@ -217,6 +226,9 @@ function finishStart({ r, handle, storeKey, server, url, port, pid }) {
     // into a permanent refusal for this process.
     unregisterBridge(storeKey, handle);
     try { server.close(); } catch { /* already closed */ }
+    // LAST, and only once the slot is free: a bridge that still owns the slot
+    // must still own the worker it may answer from.
+    releaseHealthOwner();
   };
   /** A real Ctrl-C should also END the process — but only that, not an embed. */
   const onSignal = () => {

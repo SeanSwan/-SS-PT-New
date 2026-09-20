@@ -145,3 +145,71 @@ export function assertServed(route, fields, payload, label = '') {
     `${route}${label} does not serve every field its declaration requires — missing: ${missing.join(', ')}`,
   );
 }
+
+/* ── R3-05 · the DEFERRED methods, which have no live payload to compare ─── */
+
+/** The field names in a brace list: `requestId, runId: null` → sorted names. */
+function fieldNames(body) {
+  return body
+    .split(/[;,]/)
+    .map((part) => (part.split(':')[0] || '').trim())
+    .filter((name) => /^\w+$/.test(name))
+    .sort();
+}
+
+/**
+ * The return-object field names a method's `Promise<{…}>` declares.
+ *
+ * WHY A METHOD AND NOT AN INTERFACE (R3-05). `T-B27` compares interface FIELDS,
+ * which the live payload can confirm. The two deferred operations have no route
+ * yet, so there is nothing to observe — and that is exactly why they drifted: the
+ * R2-06 sweep amended `05 §2b` and left `types.ts`, `LocalEngineAdapter.ts` and
+ * `MockAdapter.ts` still declaring `{runId: string}` and `{requeued: number}`. A
+ * contract restated in four artifacts, corrected in one, is the R2-01 hazard.
+ *
+ * THROWS when the method declares no object return type, rather than returning an
+ * empty list. An empty list would compare equal to a document that declares nothing
+ * and pass while checking nothing — the failure mode both earlier field extractors
+ * had, and the reason `T-B27m0` exists.
+ */
+export function methodReturnFields(source, method) {
+  const text = stripComments(source);
+  const m = new RegExp(`\\b${method}\\s*\\([^)]*\\)\\s*:\\s*Promise<\\{([^}]*)\\}>`).exec(text);
+  assert.ok(m, `no Promise<{…}> return type was found for ${method}`);
+  return fieldNames(m[1]);
+}
+
+/**
+ * The route a deferred adapter stub names, read from the RAW source.
+ *
+ * NOT STRIPPED, because the route is stated in the comment INSIDE the stub:
+ * `// POST /api/run/daily is deferred to S4 (05-contracts.md §2b)`. Taking the join
+ * key from the artifact that has to be right is what keeps this check from needing
+ * a hand-written method→route table — a table that would be a fifth statement of
+ * the contract.
+ *
+ * IT ANCHORS ON THE DECLARATION, NOT ON THE NAME. The first version searched for
+ * the bare method name, and `LocalEngineAdapter`'s own header names `repair` before
+ * the method is declared — so the search started in the header and returned the
+ * NEXT route in the file, which was the daily run's. The check failed loudly rather
+ * than passing, which is how it was caught, but the anchor is what makes it right:
+ * a signature is `name(…) :`, and that is what is matched.
+ */
+export function deferredRoute(adapterSource, method) {
+  const decl = new RegExp(`\\b${method}\\s*\\([^)]*\\)\\s*:`).exec(adapterSource);
+  assert.ok(decl, `${method} is not declared in the adapter`);
+  const m = /(GET|POST|PUT|PATCH|DELETE)\s+(\/api\/[\w/:.-]+)/.exec(adapterSource.slice(decl.index));
+  assert.ok(m, `${method} does not name the route it defers to`);
+  return `${m[1]} ${m[2]}`;
+}
+
+/** The response shape `05-contracts.md` declares for one route's table row. */
+export function contractRowShape(route) {
+  const row = readFileSync(CONTRACTS_MD, 'utf8')
+    .split('\n')
+    .find((line) => line.startsWith(`| \`${route}\``));
+  assert.ok(row, `05-contracts.md declares no row for ${route}`);
+  const m = /\{([^}]*)\}/.exec(row);
+  assert.ok(m, `the row for ${route} declares no response shape`);
+  return fieldNames(m[1]);
+}

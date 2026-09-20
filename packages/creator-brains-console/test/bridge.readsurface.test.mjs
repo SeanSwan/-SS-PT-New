@@ -28,60 +28,14 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { tempRoot } from '../../../scripts/creator-brains/test/helpers.mjs';
 import { BRAIN_NS, getJson, getRaw, seedPublishedBrain, withFixture } from './fixtures.mjs';
+import { junction, outsideGeneration, repoint } from './store-attacks.mjs';
 
-/** A generation directory OUTSIDE the store, with content a leak would expose. */
-function outsideGeneration(label) {
-  const outside = tempRoot(`${label}-outside`);
-  const gen = join(outside, 'gen-0001');
-  mkdirSync(gen, { recursive: true });
-  writeFileSync(join(gen, 'index.md'), '# OUTSIDE\n\nthis file is not in the store', 'utf8');
-  writeFileSync(join(gen, 'topics.md'), '- outside topic', 'utf8');
-  writeFileSync(join(gen, 'timeline.md'), '- 00:00 outside', 'utf8');
-  writeFileSync(join(gen, 'rules.jsonl'), `${JSON.stringify({
-    claim_id: 'leaked-claim-1',
-    creator_id: 'outside',
-    video_id: 'v1111111111',
-    t_start_ms: 1000,
-    topic: 'leaked',
-    statement: 'a claim that lives outside the brains store',
-    key_phrase: 'leaked claim',
-    cites: [],
-    modality: 'asserts',
-    polarity: 'affirms',
-  })}\n`, 'utf8');
-  return outside;
-}
-
-/** Point an existing brain at a different generation. */
-function repoint(r, ns, generation) {
-  writeFileSync(
-    join(r, 'brains', ns, 'current.json'),
-    JSON.stringify({ schema_version: 1, creator_id: ns, label: ns, title: 'Hostile', generation }),
-    'utf8',
-  );
-}
-
-/**
- * Make a junction and PROVE it resolves outside the store before returning.
- *
- * The proof is the point: a test that fails to create its attack must fail
- * loudly, not pass quietly against an ordinary directory.
- */
-function junction(target, linkPath, storeRoot) {
-  symlinkSync(target, linkPath, 'junction');
-  const real = realpathSync(linkPath);
-  const realStore = realpathSync(storeRoot);
-  assert.ok(
-    !real.toLowerCase().startsWith(realStore.toLowerCase()),
-    `the junction at '${linkPath}' resolved to '${real}', which is INSIDE the store — the attack was not constructed`,
-  );
-  return real;
-}
+/* The three attack builders live in `store-attacks.mjs` — a harness module, not a
+ * test file, so importing it does not re-register anything (S1-H13). */
 
 /** Both entry points must refuse, and neither may serve the outside content. */
 async function assertBothRoutesRefuse(base, ns, query = 'q=leaked') {

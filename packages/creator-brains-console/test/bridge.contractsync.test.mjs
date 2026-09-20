@@ -34,7 +34,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
-  TYPES_TS, assertServed, contractsTsBlock, interfaceFields,
+  TYPES_TS, assertServed, contractsTsBlock, contractRowShape, deferredRoute,
+  interfaceFields, methodReturnFields,
 } from './contract-parse.mjs';
 import { BRAIN_NS, getJson, seedPublishedBrain, withFixture } from './fixtures.mjs';
 
@@ -200,3 +201,43 @@ test('T-B27f: the two declarations differ on a renamed field, and the check catc
     /deep-equal|deepStrictEqual/,
   );
 });
+
+/* ── R3-05 · the DEFERRED methods, which no live payload can confirm ─────── */
+
+const adapterSource = readFileSync(
+  new URL('../web/src/adapters/LocalEngineAdapter.ts', import.meta.url), 'utf8',
+);
+const typesSource = readFileSync(TYPES_TS, 'utf8');
+
+test('T-B27m0: the signature extractor can FAIL (the checker is checked)', () => {
+  // THE R2-01 LESSON, APPLIED TO THIS READER. Two earlier field extractors in this
+  // suite were wrong, and in both cases their assertions passed while comparing
+  // nothing — one matched no fields at all, the other read a single field per line
+  // and invented divergences. So this extractor is shown able to give a DIFFERENT
+  // answer for a different signature, and to REFUSE a signature it cannot read
+  // rather than return an empty list that compares equal to a document declaring
+  // nothing.
+  const rejected = 'async repair(): Promise<{ requeued: number }> { }';
+  assert.deepEqual(methodReturnFields(rejected, 'repair'), ['requeued'], 'the reader sees the real names');
+  assert.notDeepEqual(
+    methodReturnFields(rejected, 'repair'), contractRowShape('POST /api/repair'),
+    'the REJECTED shape must not match the document, or this comparison is vacuous',
+  );
+  assert.throws(
+    () => methodReturnFields('async repair(): Promise<void> { }', 'repair'),
+    /no Promise/,
+    'an unreadable signature must throw, not return an empty list',
+  );
+});
+
+for (const method of ['startDailyRun', 'repair']) {
+  test(`T-B27m/${method}: the deferred return type agrees with 05 §2b`, () => {
+    // The join key is derived from the adapter's OWN deferral comment, so there is
+    // no hand-written method→route table here to drift one round later.
+    const route = deferredRoute(adapterSource, method);
+    assert.deepEqual(
+      methodReturnFields(typesSource, method), contractRowShape(route),
+      `${method} declares a different shape from 05-contracts.md §2b's row for ${route}`,
+    );
+  });
+}

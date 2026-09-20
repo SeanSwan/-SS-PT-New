@@ -114,19 +114,23 @@ export class MockAdapter implements ConsoleDataAdapter {
     return this.resolve('getRunState', this.opts.runState ?? fx.runState);
   }
 
-  async startDailyRun(perHour: number): Promise<{ runId: string }> {
+  async startDailyRun(perHour: number): Promise<{ requestId: string; runId: string | null }> {
     if (!Number.isInteger(perHour) || perHour < 1) {
       throw new ConsoleApiError('VALIDATION', 'perHour must be an integer >= 1', { status: 400 });
     }
-    return this.resolve('startDailyRun', { runId: 'run-mock-0001' });
+    // R3-05: `runId` is null on acceptance, because acceptance is not completion
+    // (05 §2b). The mock must produce the shape the route will, or it teaches the
+    // UI a contract that no route honours.
+    return this.resolve('startDailyRun', { requestId: 'req-mock-0001', runId: null });
   }
 
   canary(): Promise<CanaryReading> {
     return this.resolve('canary', this.opts.canary ?? fx.canary);
   }
 
-  repair(): Promise<{ requeued: number }> {
-    return this.resolve('repair', { requeued: 3 });
+  repair(): Promise<{ repaired: number; built: number; emptied: number }> {
+    // R3-05: the projected engine result, not the rejected `{ requeued: 3 }`.
+    return this.resolve('repair', { repaired: 3, built: 1, emptied: 0 });
   }
 
   backup(dest?: string): Promise<{ dest: string; ok: boolean }> {

@@ -59,8 +59,8 @@
  */
 
 import { readCanary } from '../../../scripts/creator-brains/lib/store.mjs';
-import { cacheKey, clearCaches, getCached, putCached } from './health-cache.mjs';
-import { requestProbe, resetProbeChannel, takeProbe } from './health-probe.mjs';
+import { cacheKey, getCached, putCached } from './health-cache.mjs';
+import { requestProbe, takeProbe } from './health-probe.mjs';
 
 /**
  * How long a taken probe is served before another is allowed.
@@ -74,14 +74,19 @@ export const PROBE_TTL_MS = 60_000;
 
 /**
  * Test seam and reset: forget every root's reading AND close the probe channel.
- * The cache is KEYED BY CANONICAL STORE ROOT (R2-04) — see `./health-cache.mjs`,
- * which was extracted rather than grown here because this file sits against the
- * repo's 300-line cap.
+ *
+ * THE RULE MOVED TO `./health-lease.mjs` (R3-03) and is re-exported here under the
+ * name every caller already uses. There are now two ways to ask for it — directly,
+ * and implicitly by being the last bridge to let go of the shared worker — and the
+ * cache is KEYED BY CANONICAL STORE ROOT (R2-04, see `./health-cache.mjs`), so the
+ * pair of calls that constitutes a reset must exist once rather than twice.
  */
-export function resetHealthCache() {
-  clearCaches();
-  resetProbeChannel();
-}
+export {
+  acquireHealthOwner,
+  healthOwnerCount,
+  releaseHealthOwner,
+  resetHealthResources as resetHealthCache,
+} from './health-lease.mjs';
 
 /**
  * Take the engine's health reading, at most once per `ttlMs`.

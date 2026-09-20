@@ -68,15 +68,29 @@
  * is not this bridge: a hostile local page on :5173, a rebound page, and a
  * remote page are all refused, because none of them is served by this port.
  *
- * WHY `localhost` AND `127.0.0.1` ARE BOTH ACCEPTED AT THE SAME PORT. They
- * resolve to the same loopback socket on every platform this console runs on, so
- * a user who types `http://localhost:<port>` loads *our* page and the browser
- * sends that spelling as the Origin. Refusing it would break the app for a
- * spelling, which is the failure mode the old rule was invented to avoid — and
- * accepting it admits nothing, because no other process can serve that name on
- * the port the bridge holds. `[::1]` is deliberately NOT accepted: the bridge
- * binds `127.0.0.1` only (`server.mjs` constraint 2), so `[::1]:<port>` is a
- * different socket and therefore a different server.
+ * WHY `localhost` AND `127.0.0.1` ARE NOT INTERCHANGEABLE (R3-04, Astra round 3).
+ * The version above still accepted either spelling for either serving hostname,
+ * and that is a socket-alias allowlist rather than same-origin: by the URL
+ * specification they are DIFFERENT origins. The argument for the table — "both
+ * reach the same socket, so a user who typed one spelling must be admitted" —
+ * proves less than it claims. A page loaded through `localhost` posts back to
+ * `localhost` (`LocalEngineAdapter.ts:46` defaults `baseUrl` to
+ * `window.location.origin`), so its Host and its Origin AGREE and exact equality
+ * admits it with no table at all. The only case the table actually added was the
+ * CROSS-alias one: a page served by `127.0.0.1` writing with an Origin of
+ * `http://localhost:<port>`. That is a different origin, and nothing else here
+ * admits it.
+ *
+ * SO THE RIGHT-HAND SIDE IS DERIVED, NOT ASSUMED. `server.mjs` passes the Host it
+ * has ALREADY approved — with the port it actually bound — so the expected origin
+ * is the authority the client really reached, not a constant that happens to
+ * match. The Host gate and this gate now agree by construction instead of by a
+ * second table that can drift from the first.
+ *
+ * `[::1]` NEEDS NO SPECIAL CASE ANY MORE. It is not this bridge's hostname, so it
+ * fails the same equality test every other spelling fails. The note above about
+ * it being a different socket is still the reason it is not admitted — it simply
+ * no longer requires its own clause to say so.
  *
  * WHY A MISSING SERVING ORIGIN REFUSES RATHER THAN ALLOWS. The gate cannot
  * evaluate a rule whose right-hand side it does not have. Failing open there
@@ -119,32 +133,31 @@ export const REQUIRED_MEDIA_TYPE = 'application/json';
 const SCHEME = 'http:';
 
 /**
- * Loopback names that reach the SAME socket as the bridge.
- *
- * The key is the host the bridge actually serves as; the value is every spelling
- * that resolves to it. See the `[::1]` note in the header — it is absent on
- * purpose, because the bridge binds `127.0.0.1` only.
- */
-const SAME_SOCKET = Object.freeze({
-  '127.0.0.1': Object.freeze(['127.0.0.1', 'localhost']),
-  localhost: Object.freeze(['127.0.0.1', 'localhost']),
-});
-
-/**
  * Is this `Origin` the bridge's own origin?
  *
- * Two independent requirements, and both are needed: the host must be a spelling
- * of the socket the bridge holds, and the port must be the port it holds. The
- * port is the load-bearing half — a hostile local page on another port has a
- * loopback host and a different port, which is precisely the case the first
- * version admitted.
+ * EXACT EQUALITY, and three things are required for it. The scheme must be the
+ * one this bridge serves. The value must ALREADY BE a serialized origin. And the
+ * host and port must be the host and port the request was actually served by.
+ *
+ * WHY THE RAW STRING IS COMPARED TO ITS OWN SERIALIZATION (R3-04, Astra round 3).
+ * `new URL('http://user@h:1/p?q#f')` parses happily, and `.origin` silently drops
+ * the userinfo, the path, the query and the fragment — so a check on normalised
+ * fields alone ACCEPTS a value no browser sends and no specification calls an
+ * origin. Byte equality against the canonical serialization is what refuses it.
+ *
+ * WHY THERE IS NO ALIAS TABLE ANY MORE. The previous version accepted `localhost`
+ * and `127.0.0.1` interchangeably for either serving hostname. That is a
+ * socket-alias allowlist, not same-origin: they are distinct origins, and the
+ * table's real effect was to admit the CROSS-alias case — a page served by
+ * `127.0.0.1` writing with an Origin of `http://localhost:<port>`.
  *
  * TOTAL BY CONSTRUCTION. `new URL` throws on a malformed origin, and this runs
  * inside the request path, where an exception is a dead bridge — so every parse
  * is guarded and a malformed Origin is a refusal, never a throw.
  *
  * @param origin        the request's `Origin` header, if any
- * @param servingOrigin the bridge's own origin, `http://<host>:<boundPort>`
+ * @param servingOrigin the origin the request was served by — derived from the
+ *                      Host the Host gate already approved, `http://<Host>`
  */
 export function originAllowed(origin, servingOrigin) {
   if (typeof origin !== 'string' || origin === '') return false;
@@ -160,13 +173,13 @@ export function originAllowed(origin, servingOrigin) {
   }
 
   if (claimed.protocol !== SCHEME || serving.protocol !== SCHEME) return false;
-  // An origin with no explicit port is the scheme default (80), which is not the
-  // bridge's port unless it happens to have bound 80. Comparing the normalised
-  // `port` handles that without a special case.
-  if (claimed.port !== serving.port) return false;
+  if (origin !== claimed.origin) return false;
+  if (servingOrigin !== serving.origin) return false;
 
-  const spellings = SAME_SOCKET[serving.hostname];
-  return Array.isArray(spellings) && spellings.includes(claimed.hostname);
+  // An origin with no explicit port is the scheme default (80), which is not the
+  // bridge's port unless it happened to have bound 80. Comparing the normalised
+  // `port` handles that without a special case.
+  return claimed.hostname === serving.hostname && claimed.port === serving.port;
 }
 
 /**

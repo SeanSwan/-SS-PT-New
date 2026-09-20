@@ -3,7 +3,7 @@
   "phase": "plan",
   "ui": true,
   "blockers": [],
-  "nextSlice": "S0H HARDENING — the next slice. Console suite 171/171 REAL tests (~8.9 s); web 60/60; tsc 0 errors; build clean. The engine gate is GREEN: consistency-check reads 15/15 consistent, exit 0, with NO engine file touched — D7 moved the console OUT of the engine tree to packages/creator-brains-console/ (receipt 18-d7-relocation-receipt.md), which is what returned C1 to green. D7 is EXECUTED and S1-H14 is CLOSED; neither awaits Sean. Round 2 (17-astra-mega-reply-r2.md) returned verdict REVISE with ten findings R2-01..R2-10. The fixes for R2-01, R2-02, R2-03, R2-04, R2-05, R2-06, R2-09 and R2-10 are LANDED in this tree and mutation-verified — each guard was broken on purpose, the red tests recorded, and the red sets of paired mutants checked to DIFFER. S0H hardening names what those fixes built: one contained generation reader shared by the drawer and the query route (R2-02); the worker failure lifecycle with error/exit/watchdog/epoch handling and per-store-root history isolation (R2-04); exact serving-origin equality in the write gate (R2-05); and the R2-06 instruction sweep across 05/06/07/08/19/README. DELIBERATELY NOT FIXED, and still open: R2-07 (this field described the pre-relocation world; it is now current) and R2-08 (bridge.writegate.test.mjs reuses the test ID T-B22, already assigned in bridge.brains.test.mjs). A round-3 hostile pass is owed against a REBUILT artifact. IMPLEMENTED SOURCE IS NOT RUNTIME VERIFICATION — the counts above are suite results from this tree, not a certification of the product, and no browser, launcher or end-to-end pass has been re-run.",
+  "nextSlice": "S0H HARDENING — the next slice. Console suite 183/183 REAL tests; web 62/62; tsc 0 errors; build clean. The engine gate is GREEN: consistency-check reads 15/15 consistent, exit 0, with NO engine file touched — D7 moved the console OUT of the engine tree to packages/creator-brains-console/ (receipt 18-d7-relocation-receipt.md), which is what returned C1 to green. Round 2 (17-astra-mega-reply-r2.md) returned verdict REVISE with ten findings R2-01..R2-10; those fixes landed in 382427ae6 and 1ed4120a0. ROUND 3 (17-astra-mega-reply-r3.md) then reviewed that work against a REBUILT artifact and returned REVISE again, with FIVE residual findings — R2-02 was REOPENED and R2-04/R2-05/R2-06 were PARTIAL: R3-01 an invalid enumerated namespace was skipped by the preflight while the engine still traversed it; R3-02 /api/status read every pointer through the engine unchecked listPublished; R3-03 the probe reset had no production caller, so bridge shutdown never released the worker; R3-04 the write gate accepted either loopback spelling, which is a socket-alias allowlist and not same-origin; R3-05 the R2-06 sweep amended the DOCUMENTS and left types.ts, both adapters and two active paragraphs still stating the rejected shapes. ALL FIVE ARE NOW FIXED in this tree and mutation-verified (M1..M9, each with its red set recorded and paired mutants checked to DIFFER). What those fixes built: lib/read-surface.mjs — one contained enumerator whose set is the ENGINE's own (R3-01/R3-02); lib/health-lease.mjs — probe ownership leases wired to startBridge/shutdown, last owner retires (R3-03); exact serving-origin equality derived from the approved Host (R3-04); and the executable half of the contract sweep, including a new contract check on method RETURN TYPES (R3-05). DELIBERATELY NOT FIXED, and still open: R2-07 (this field described the pre-relocation world; it is now current) and R2-08 (bridge.writegate.test.mjs reuses the test ID T-B22, already assigned in bridge.brains.test.mjs — note round 3 observes the current write-gate file uses T-B26, so the packet's own claim about T-B22 is itself stale). A round-4 hostile pass is owed against a REBUILT artifact. IMPLEMENTED SOURCE IS NOT RUNTIME VERIFICATION — the counts above are suite results from this tree, not a certification of the product, and no browser, launcher or end-to-end pass has been re-run.",
   "sections": {
     "baseline": {
       "status": "COMPLETE",
@@ -46,7 +46,7 @@
       "evidence": [
         {
           "path": "05-contracts.md",
-          "sha256": "3579b803951608cb9d72ca822b401525f25be8284ce4770844e79fe6eeff5c97"
+          "sha256": "b99988d0f174eb844457dcda0ddeb2cc9683cc8f887674468be9218f29f82236"
         }
       ]
     },
@@ -73,7 +73,7 @@
       "evidence": [
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     },
@@ -131,7 +131,7 @@
       "evidence": [
         {
           "path": "05-contracts.md",
-          "sha256": "3579b803951608cb9d72ca822b401525f25be8284ce4770844e79fe6eeff5c97"
+          "sha256": "b99988d0f174eb844457dcda0ddeb2cc9683cc8f887674468be9218f29f82236"
         }
       ]
     },
@@ -140,7 +140,7 @@
       "evidence": [
         {
           "path": "05-contracts.md",
-          "sha256": "3579b803951608cb9d72ca822b401525f25be8284ce4770844e79fe6eeff5c97"
+          "sha256": "b99988d0f174eb844457dcda0ddeb2cc9683cc8f887674468be9218f29f82236"
         }
       ]
     },
@@ -149,7 +149,7 @@
       "evidence": [
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     }
@@ -313,7 +313,7 @@
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     },
@@ -332,7 +332,7 @@
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     },
@@ -351,7 +351,7 @@
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     },
@@ -394,7 +394,7 @@
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     },
@@ -413,7 +413,7 @@
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     },
@@ -432,7 +432,7 @@
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     },
@@ -451,7 +451,7 @@
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     },
@@ -482,7 +482,7 @@
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     },
@@ -713,7 +713,7 @@
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "95f130491a8cf067ca11e08dfbe0d70058c9c8f405f0971c1d719db6aecb4f75"
+          "sha256": "3060a54e9972d5ae04ba9a362d1480b9d85714513b31eb6a35c47265501a180e"
         }
       ]
     },

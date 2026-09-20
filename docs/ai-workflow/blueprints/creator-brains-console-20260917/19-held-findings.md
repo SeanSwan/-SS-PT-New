@@ -21,7 +21,7 @@ disposition.
 | A1-03 | Adapter contract lost implementation corrections | High | **CLOSED** | `05 §1` (rewritten), `web/src/adapters/types.ts`, `fixtures.ts` |
 | A1-04 | Drawer has no claims; identifier misdescribed | High | **CLOSED** | `lib/brains.mjs`, new `lib/hits.mjs`, `05 §1`, tests A1-04a–d |
 | A1-05 | Acceptance and completion lack correlation | High | **AMENDED** | `05 §1` `startDailyRun`; proof owed by S4 |
-| A1-06 | A console mutex cannot protect the shared journal | High | **GATED** | §4 — S4 cannot ship without the two-process test |
+| A1-06 | A console mutex cannot protect the shared journal | High | **GATED** | §4 — **S3 (repair) AND S4 (daily)** cannot ship without the two-process test |
 | A1-07 | Repair is not the documented operation | High | **AMENDED** | `05 §1` `repair()`; proof owed by S3 |
 | A1-13 | "Non-2xx means nothing changed" is too broad | High | **AMENDED** | §5 — the two failure classes are now distinct |
 | A1-14 | Tests and visual contracts leave material gaps | Medium | **PARTLY CLOSED** | `06` §3; 375px drawings owed by S5 |
@@ -66,9 +66,13 @@ creator claimed nothing", which is the **S1-H15 shape** this route has already b
 - Claims are read from the **same pinned generation as the markdown**, through the engine's own
   `loadHits` — not a second reader of `rules.jsonl`, which would drift from that function's
   required-field list and skipped accounting.
-- `loadHits` resolves the generation from the pointer *again*, so each returned row's generation is
-  checked against the one containment already proved. A pointer that moved between the two reads
-  cannot smuggle an unvalidated directory in.
+- The claims come from the **same pinned generation as the markdown** — ONE pointer read names one
+  generation directory, and every leaf is read from it. **Do not reintroduce a second resolution.**
+  An earlier version re-resolved the pointer for claims and compared generations only *inside the loop
+  over hits*, so an empty generation skipped the comparison entirely and served generation 1's markdown
+  beside generation 2's (empty) claims. `R2-03b` now pins the reader to **exactly one** `readPointer`
+  call site, and `R2-03`/`R2-03c` cover the behaviour; this paragraph previously *instructed* the
+  second resolution, which would rebuild the defect.
 - A generation with no `rules.jsonl` **reports it** in `skipped`, in the same `{file, reason}` shape
   the three markdown files use. Empty **and** explained.
 - `getBrain(channelId)` — not `slug`. `lib/render.mjs` HR07 is explicit: "the storage namespace is the
@@ -103,9 +107,12 @@ entry's run id. **Never treat process exit, or a lock disappearing, as success.*
 external runner (the CLI, or a second machine against a synced store). `09#H1` called the lock a
 sufficient backstop; it is not.
 
-> **S4 GATE.** S4 cannot ship until a **two-process journal-preservation test** passes: two runners
-> against one store, asserting the journal is never interleaved or truncated. If it fails, the defect
-> goes to the **engine owner**. No console patch to engine files — the boundary is additive-only.
+> **S3 + S4 GATE (widened 2026-09-20, R3-05).** **Neither S3 (repair) nor S4 (daily run)** can ship
+> until a **two-process journal-preservation test** passes: two runners against one store, asserting
+> the journal is never interleaved or truncated. This entry previously gated **S4 alone**, which left
+> the same journal reachable through S3's `POST /api/repair` — repair invokes the same `runDaily`
+> journal path, so gating one door and shipping the other is gating nothing. If the test fails, the
+> defect goes to the **engine owner**. No console patch to engine files — the boundary is additive-only.
 
 **A1-07 — repair is a projection, not a return value.** The engine's repair path
 (`run-commands.mjs:156–163`) runs reconciliation, build and export and returns an **exit code**. It

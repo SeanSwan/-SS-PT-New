@@ -52,7 +52,7 @@
 
 import { join, resolve } from 'node:path';
 import { readPointer } from '../../../scripts/creator-brains/lib/render.mjs';
-import { listDir, paths, readJsonl } from '../../../scripts/creator-brains/lib/paths.mjs';
+import { readJsonl } from '../../../scripts/creator-brains/lib/paths.mjs';
 import { ApiError, CODE } from './errors.mjs';
 import {
   brainsStore, containedPath, inside, readContainedText,
@@ -71,6 +71,19 @@ export const BRAIN_FILES = Object.freeze(['index.md', 'topics.md', 'timeline.md'
  * unrepresentable.
  */
 const NAMESPACE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+
+/**
+ * Is `name` a namespace this module can turn into a path?
+ *
+ * EXPORTED SO THE ENUMERATION GUARD APPLIES THIS SAME RULE AND NOT A COPY
+ * (R3-01). `lib/read-surface.mjs` must decide "the engine will traverse this
+ * entry, and the console cannot name it" using the identical alphabet — a second
+ * regex there would be a second statement of the rule, and the two would drift
+ * exactly as the R2-01 contract did.
+ */
+export function isNamespace(name) {
+  return typeof name === 'string' && NAMESPACE.test(name);
+}
 
 /**
  * The generation directory shape the engine writes.
@@ -183,7 +196,7 @@ function readClaims(dir, skipped, root, realRoot) {
 export function readPublishedBrain(r, name) {
   // Refuse before the pointer read. `pointerPath` joins this string unsanitised,
   // so a name that cannot be a namespace must not reach it at all.
-  if (typeof name !== 'string' || !NAMESPACE.test(name)) return null;
+  if (!isNamespace(name)) return null;
 
   const { root, realRoot } = brainsStore(r);
 
@@ -252,37 +265,14 @@ export function readPublishedBrain(r, name) {
   };
 }
 
-/**
- * Prove that the engine's own traversal cannot leave the store (R2-02).
- *
- * WHY A WALK AND NOT A REWRITE. `/api/query` delegates to the engine's
- * `queryBrains`, which enumerates every `current.json` under the brains
- * directory ITSELF and joins each pointer's generation unchecked — that is the
- * measured R2-02 leak. The console cannot fix that from the outside, and
- * reimplementing the traversal would mean reimplementing the engine's scoring
- * too, which is the duplicated-contract hazard R2-01 was about.
- *
- * So the console establishes the property the engine relies on, BEFORE the engine
- * runs: every entry in `brains/`, every pointer, every generation and every leaf
- * is proven to resolve inside the store. After this pass returns, every path
- * `listPublished` will join is a path this module has already validated.
- *
- * WHAT THIS DOES NOT COVER, stated rather than implied: a filesystem that is
- * MUTATED between this pass and the engine's read. That race is not detectable
- * without platform-specific primitives, and Astra's own correction (A2-R2-06)
- * says not to certify it. Cooperating atomic publication and pre-existing links
- * are covered; a hostile concurrent mutation is not claimed.
- *
- * THROWS on any escape, so the route answers 409 rather than serving from a
- * store it cannot vouch for.
+/*
+ * ---------------------------------------------------------------------------
+ * `assertReadSurfaceContained` — the whole-surface preflight — MOVED to
+ * `lib/read-surface.mjs` (R3-01). The walk has to enumerate the store, and
+ * enumerating means calling `readPointer`; `R2-03b` pins that call to EXACTLY ONE
+ * site in THIS file, because "the read path resolves the pointer once" is the
+ * R2-03 property. A second call site here would have broken that pin for the
+ * right reason, so the enumeration lives beside the preflight it serves rather
+ * than inside the single-generation reader.
+ * ---------------------------------------------------------------------------
  */
-export function assertReadSurfaceContained(r) {
-  const { root, realRoot } = brainsStore(r);
-  for (const entry of listDir(root)) {
-    // Every entry, not only well-formed namespaces: `listPublished` does not
-    // filter by name either, so anything it will open must be proven here.
-    containedPath(root, realRoot, join(root, entry), `'${entry}'`, 'current.json');
-    containedPath(root, realRoot, join(root, entry, 'current.json'), `the pointer for '${entry}'`, 'current.json');
-    readPublishedBrain(r, entry);
-  }
-}

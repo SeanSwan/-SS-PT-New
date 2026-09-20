@@ -22,6 +22,12 @@
  * history for every containment rule lives with the rule, and it is deliberately
  * not duplicated.
  *
+ * THE PREFLIGHT AND ITS ENUMERATION MOVED TO `lib/read-surface.mjs` (R3-01,
+ * 2026-09-20). Round 3 measured the preflight skipping an entry the engine still
+ * traversed, because the walk delegated to a reader that returns `null` for a
+ * name outside its alphabet. The enumeration and the naming rule now live
+ * together, where they can be made to agree; this file keeps the route shape.
+ *
  * WHY THE QUERY ROUTE REFUSES (409) RATHER THAN SKIPPING THE POISONED CREATOR.
  * `/api/query` returns `skipped`, so reporting damage as a field was available and
  * was rejected. The engine owns the traversal; the console can only validate it
@@ -35,7 +41,8 @@
  */
 
 import { queryBrains } from '../../../scripts/creator-brains/lib/query.mjs';
-import { BRAIN_FILES, assertReadSurfaceContained, readPublishedBrain } from './brain-read.mjs';
+import { BRAIN_FILES, readPublishedBrain } from './brain-read.mjs';
+import { assertReadSurfaceContained } from './read-surface.mjs';
 import { ApiError, CODE, validateQuery } from './errors.mjs';
 import { toQueryHit } from './hits.mjs';
 

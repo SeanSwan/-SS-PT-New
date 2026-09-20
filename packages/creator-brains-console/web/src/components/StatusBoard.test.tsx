@@ -127,6 +127,19 @@ describe('T-W3 StatusBoard', () => {
     expect(screen.queryByTestId('refused-documents')).not.toBeInTheDocument();
     expect(screen.getByTestId('published-brains')).toHaveTextContent(String(fx.healthyStatus.publishedBrains));
   });
+
+  it('refuses the published count when the BRAINS store is damaged (R3-02)', () => {
+    render(<StatusBoard state={ready(fx.damagedBrainsStatus)} />);
+
+    // R3-02: the count comes from the contained enumerator and is `null` when it
+    // refuses. Rendering `null` — or a fabricated 0 — would claim the store
+    // publishes nothing, which is a different fact from "the count is unknown".
+    expect(screen.getByTestId('refused-published-brains')).toHaveTextContent(/current\.json unreadable/);
+    expect(screen.queryByTestId('published-brains')).not.toBeInTheDocument();
+    // The unrelated instruments survive: that is why /api/status does not refuse
+    // the whole reading the way /api/query does.
+    expect(screen.queryByTestId('refused-documents')).not.toBeInTheDocument();
+  });
 });
 
 /*

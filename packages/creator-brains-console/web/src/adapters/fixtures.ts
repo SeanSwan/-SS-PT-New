@@ -47,6 +47,7 @@ export const healthyStatus: StatusInstrument = {
   lastGood: { at: '2026-09-18T04:12:00.000Z', staleDays: 0 },
   documents: 418,
   publishedBrains: 12,
+  publishedBrainsDamaged: null,
   recentRuns: [
     { runId: 'run-2026-09-18T04', ok: true, fetched: 7 },
     { runId: 'run-2026-09-17T04', ok: true, fetched: 11 },
@@ -97,6 +98,27 @@ export const damagedStateStatus: StatusInstrument = {
   },
   backlog: { lines: [] },
   documents: 0,
+};
+
+/**
+ * A published namespace or pointer escapes the brains store → the count is
+ * UNKNOWN, not zero (R3-02).
+ *
+ * FIDELITY. `countPublished` catches the containment refusal and reports it as a
+ * FIELD, because status is a composite instrument: one damaged brain must not
+ * cost the operator every unrelated reading. `documents` and the roster stay
+ * real, because they read other files — that is the measured shape, not a
+ * convenience. The count is `null`; rendering `0` would claim the store holds
+ * nothing published.
+ */
+export const damagedBrainsStatus: StatusInstrument = {
+  ...healthyStatus,
+  publishedBrains: null,
+  publishedBrainsDamaged: {
+    file: 'current.json',
+    detail: "'bad.name' is a published namespace the engine traverses but the console "
+      + 'cannot name, so its generation cannot be proven to stay in the store',
+  },
 };
 
 /** A census whose sweep errored — the counts are absent, not zero (S1-H2). */

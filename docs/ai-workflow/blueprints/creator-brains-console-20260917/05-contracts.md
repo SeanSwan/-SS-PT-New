@@ -40,7 +40,12 @@ export interface StatusInstrument {            // R2 — mirrors status-command 
   lock: { held: boolean; pid?: number; host?: string; alive?: boolean };
   lastRun: { status: string; runId: string | null } | null;
   lastGood: { at: string; staleDays: number } | null;
-  documents: number; publishedBrains: number;
+  documents: number;
+  // R3-02. Counted through the CONTAINED enumerator. `null` when it refused —
+  // a namespace or pointer escaped the brains store — never 0, which would read
+  // as "nothing is published". The reason is in `publishedBrainsDamaged`.
+  publishedBrains: number | null;
+  publishedBrainsDamaged: { file: string; detail: string } | null;
   recentRuns: Array<{ runId: string; ok: boolean; fetched: number }>;
 }
 

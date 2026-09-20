@@ -47,9 +47,9 @@ import { openBudget, budgetState } from '../../../scripts/creator-brains/lib/led
 import { backlogReport, formatBacklog } from '../../../scripts/creator-brains/lib/backlog.mjs';
 import { throttleState, formatThrottle } from '../../../scripts/creator-brains/lib/throttle.mjs';
 import { sweepState } from '../../../scripts/creator-brains/lib/checkpoints.mjs';
-import { listPublished } from '../../../scripts/creator-brains/lib/render.mjs';
 import { listCreatorsSafe } from '../../../scripts/creator-brains/lib/registry.mjs';
 import { healthReading } from './health.mjs';
+import { countPublished } from './read-surface.mjs';
 import { ApiError, CODE } from './errors.mjs';
 
 /** Staleness threshold — kept identical to status-command.mjs STALE_DAYS. */
@@ -88,6 +88,15 @@ export function statusInstrument(r, { probe, now } = {}) {
   const ok = readLastSuccess(r);
   const staleDays = ok ? Math.floor((Date.now() - Date.parse(ok.at)) / 86_400_000) : null;
   const throttle = throttleState(r);
+
+  // R3-02. The count comes from the CONTAINED enumerator, never from the engine's
+  // unchecked `listPublished` — which read every `current.json` at `render.mjs:67`
+  // with no containment, so an escaping namespace or pointer stayed reachable
+  // through this route. Damage is a FIELD here rather than a refusal (unlike
+  // /api/query) because status is a composite instrument: one damaged brain must
+  // not cost the operator every unrelated reading. A count that cannot be taken is
+  // `null`, never `0` — `0` would read as "nothing is published".
+  const published = countPublished(r);
 
   return {
     // Composed, TTL-cached health reading with its own provenance (lib/health.mjs).
@@ -146,7 +155,8 @@ export function statusInstrument(r, { probe, now } = {}) {
     // COUNT ONLY — `listDocs` reads document metadata to find a `videoId`; the
     // count is the permitted use of the private directory (R-invariant 1).
     documents: stateDamaged ? 0 : listDocs(r).length,
-    publishedBrains: listPublished(r).length,
+    publishedBrains: published.count,
+    publishedBrainsDamaged: published.damage,
     recentRuns: listRuns(r, { limit: 5 }).map((run) => ({
       runId: run.runId, ok: run.ok, fetched: run.counts?.fetched ?? 0,
     })),

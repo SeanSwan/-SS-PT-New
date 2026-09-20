@@ -122,7 +122,7 @@ export class LocalEngineAdapter implements ConsoleDataAdapter {
     return this.request<RunState>('/api/run');
   }
 
-  async startDailyRun(_perHour: number): Promise<{ runId: string }> {
+  async startDailyRun(_perHour: number): Promise<{ requestId: string; runId: string | null }> {
     // POST /api/run/daily is deferred to S4 (05-contracts.md §2b).
     throw new ConsoleApiError('NOT_FOUND', DEFERRED_TO_S3.replace('S3', 'S4'), { status: null });
   }
@@ -131,7 +131,7 @@ export class LocalEngineAdapter implements ConsoleDataAdapter {
     return this.request<CanaryReading>('/api/canary');
   }
 
-  async repair(): Promise<{ requeued: number }> {
+  async repair(): Promise<{ repaired: number; built: number; emptied: number }> {
     // POST /api/repair is deferred to S3 (05-contracts.md §2b).
     throw new ConsoleApiError('NOT_FOUND', DEFERRED_TO_S3, { status: null });
   }

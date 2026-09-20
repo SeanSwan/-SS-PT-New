@@ -75,7 +75,15 @@ export interface StatusInstrument {
   lastRun: { status: string; runId: string | null } | null;
   lastGood: { at: string; staleDays: number } | null;
   documents: number;
-  publishedBrains: number;
+  /**
+   * R3-02. The count comes from the CONTAINED enumerator, never from the engine's
+   * unchecked `listPublished`. `null` means the count could not be taken — a
+   * namespace or a pointer escaped the store — and is never `0`, which would be
+   * indistinguishable from "nothing is published". The reason is in
+   * `publishedBrainsDamaged`.
+   */
+  publishedBrains: number | null;
+  publishedBrainsDamaged: DamageReport | null;
   recentRuns: Array<{ runId: string; ok: boolean; fetched: number }>;
 }
 
@@ -189,8 +197,20 @@ export interface ConsoleDataAdapter {
   query(q: string, creator?: string): Promise<QueryResult>; // T0
   getBrain(slug: string): Promise<BrainDoc>; // T0
   getRunState(): Promise<RunState>; // T0
-  startDailyRun(perHour: number): Promise<{ runId: string }>; // T2
+  /**
+   * R3-05. `05 §2b`: acceptance is NOT completion, so the 202 carries a
+   * `requestId` and an explicitly NULL `runId` — progress is read from
+   * `getRunState()`. The previous `{ runId: string }` promised an id the route
+   * never had, and the document alone was amended while this interface, both
+   * adapters and the mock kept declaring the rejected shape.
+   */
+  startDailyRun(perHour: number): Promise<{ requestId: string; runId: string | null }>; // T2
   canary(): Promise<CanaryReading>; // T0
-  repair(): Promise<{ requeued: number }>; // T2
+  /**
+   * R3-05. `05 §2b`: the engine's repair path returns an EXIT CODE, so the
+   * console serves a PROJECTED result. `{ requeued: number }` was a field the
+   * engine never produced — the same defect, in the transfer interface.
+   */
+  repair(): Promise<{ repaired: number; built: number; emptied: number }>; // T2
   backup(dest?: string): Promise<{ dest: string; ok: boolean }>; // T2
 }

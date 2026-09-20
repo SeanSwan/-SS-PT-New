@@ -120,38 +120,59 @@ test('T-B26e: a loopback Origin on ANOTHER port is refused (R2-05)', async () =>
   });
 });
 
-test('T-B26e2: the bridge\'s OWN origin is accepted, under either loopback spelling', async () => {
+test('T-B26e2: the origin the request was SERVED BY is accepted, and nothing else', async () => {
   await withFixture('t-b22e2', async ({ base, port }) => {
     // The positive control for T-B26e: the rule must not be "refuse everything",
-    // which would pass the test above and break the app. `port` is the port the
-    // fixture bridge actually bound (0 => ephemeral), which is the only honest
-    // source for the serving origin — exactly as `server.mjs` derives it.
-    for (const host of ['127.0.0.1', 'localhost']) {
-      const res = await rawRequest(base, `/api/creators/${CH_TWO}`, {
-        method: 'PATCH', gate: false,
-        headers: satisfied({ origin: `http://${host}:${port}` }),
-        body: JSON.stringify({ enabled: true }),
-      });
-      assert.equal(res.status, 200, `http://${host}:${port} IS this bridge's origin`);
-    }
+    // which would pass the test above and break the app.
+    //
+    // R3-04 INVERTED THIS TEST'S SECOND HALF. It used to loop over BOTH loopback
+    // spellings and expect 200 from each — and that loop is what encoded the
+    // socket-alias allowlist. `localhost` and `127.0.0.1` are DIFFERENT origins.
+    // What is true, and what a browser actually does, is that a page writes back
+    // to the authority it was served by: `LocalEngineAdapter.ts:46` defaults
+    // `baseUrl` to `window.location.origin`, so Host and Origin agree.
+    const send = (host, origin) => rawRequest(base, `/api/creators/${CH_TWO}`, {
+      method: 'PATCH', gate: false, host,
+      headers: satisfied({ origin }),
+      body: JSON.stringify({ enabled: true }),
+    });
+
+    const own = await send(`127.0.0.1:${port}`, `http://127.0.0.1:${port}`);
+    assert.equal(own.status, 200, 'the origin this request was served by IS this bridge\'s origin');
+
+    // CROSS-ALIAS: same socket, same port, different origin — the case the alias
+    // table admitted and exact equality refuses.
+    const cross = await send(`localhost:${port}`, `http://127.0.0.1:${port}`);
+    assert.equal(cross.status, 403, 'a different spelling is a different origin');
+
+    // ...but the SAME spelling still writes, so the refusal above is about the
+    // MISMATCH and not about the word `localhost`.
+    const alias = await send(`localhost:${port}`, `http://localhost:${port}`);
+    assert.equal(alias.status, 200, 'a page served by localhost writes back to localhost');
   });
 });
 
-test('T-B26f: originAllowed requires the serving origin\'s host and port (R2-05)', () => {
+test('T-B26f: originAllowed requires EXACT equality with the serving origin (R2-05, R3-04)', () => {
   const serving = 'http://127.0.0.1:8787';
 
-  // Both spellings of the socket the bridge holds, at the port it holds.
-  for (const good of ['http://127.0.0.1:8787', 'http://localhost:8787', 'HTTP://LOCALHOST:8787']) {
-    assert.equal(originAllowed(good, serving), true, `${good} is this bridge's origin`);
-  }
+  // Exactly the origin the request was served by, and nothing else.
+  assert.equal(originAllowed('http://127.0.0.1:8787', serving), true, 'the serving origin is accepted');
 
   // The defect, one case per way to be a different origin.
   for (const bad of [
+    'http://localhost:8787',      // R3-04: same socket, DIFFERENT origin — no alias table
+    'HTTP://LOCALHOST:8787',      // not already a serialized origin (scheme/host case)
     'http://localhost:5173',      // R2-05 itself: loopback host, another port
     'http://127.0.0.1:8788',      // one port over
     'http://127.0.0.1',           // no port => :80, which is not 8787
     'http://[::1]:8787',          // a DIFFERENT socket — the bridge binds 127.0.0.1 only
     'https://127.0.0.1:8787',     // wrong scheme; the bridge serves no TLS
+    // R3-04: `new URL` parses all four of these and `.origin` drops the extra, so
+    // a normalised-field comparison accepts a value no browser ever sends.
+    'http://127.0.0.1:8787/path',
+    'http://user@127.0.0.1:8787',
+    'http://127.0.0.1:8787?q=1',
+    'http://127.0.0.1:8787#frag',
     'https://evil.example',
     'http://127.0.0.1.evil.example:8787',
     'http://localhost.evil.example:8787',

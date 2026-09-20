@@ -116,7 +116,9 @@ const STATUS_SHAPE: Shape = obj({
   lastRun: nullOr(obj({ status: str, runId: nullOr(str) })),
   lastGood: nullOr(obj({ at: str, staleDays: nullOr(num) })),
   documents: num,
-  publishedBrains: num,
+  // R3-02: null when the contained enumerator refused, never 0.
+  publishedBrains: nullOr(num),
+  publishedBrainsDamaged: damage,
   recentRuns: arr(runEntry),
 });
 

@@ -155,4 +155,20 @@ describe('T-W11 payload-shape robustness', () => {
 
     await expect(adapter.getStatus()).resolves.toMatchObject({ publishedBrains: 12 });
   });
+
+  it('an UNKNOWN published count passes the guard and is NOT defaulted (R3-02)', async () => {
+    // The contained enumerator answers `null` when it refuses, and names the
+    // damage beside it. The shape guard must accept that, and the client must pass
+    // it through UNCHANGED — defaulting it to 0 here would recreate the exact
+    // falsehood ("nothing is published") the route went to the trouble of avoiding.
+    const adapter = new LocalEngineAdapter({
+      baseUrl: 'http://127.0.0.1:9',
+      fetchImpl: jsonOk(fx.damagedBrainsStatus) as unknown as typeof fetch,
+    });
+
+    await expect(adapter.getStatus()).resolves.toMatchObject({
+      publishedBrains: null,
+      publishedBrainsDamaged: { file: 'current.json' },
+    });
+  });
 });
