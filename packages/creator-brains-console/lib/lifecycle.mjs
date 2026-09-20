@@ -165,13 +165,37 @@ export function finishStart({
     return drain;
   };
 
-  /** A real Ctrl-C should also END the process — but only that, not an embed. */
+  /**
+   * A signal asks THIS bridge to shut down. It does not end the process (R5-03).
+   *
+   * The previous handler had TWO independent exits and both were wrong:
+   *
+   *   Promise.resolve(shutdown()).then(() => process.exit(0));
+   *   setTimeout(() => process.exit(0), 2_000).unref();
+   *
+   * The timer fired `exit(0)` with work still admitted, which MANUFACTURES a
+   * successful stop over abandoned dispatches — the defect this drain exists to
+   * prevent, reached by a different door. And the handler is registered PER BRIDGE,
+   * so one signal runs every registered handler: in a two-bridge process the IDLE
+   * bridge's promise resolved immediately and killed the process while the BUSY
+   * bridge still owned an admitted dispatch. Removing the timer alone does not fix
+   * that row, which is why both exits are gone.
+   *
+   * A standalone process now exits NATURALLY once the listener, the worker and the
+   * drain have all retired — the only exit that proves nothing was abandoned. An
+   * embedded bridge must never terminate its host or a sibling bridge.
+   */
   const onSignal = () => {
-    // Await the drain so the process does not exit mid-request. The bounded
-    // fallback keeps Ctrl-C responsive if a drain ever wedges; `unref` means it
-    // cannot itself hold the process open.
-    Promise.resolve(shutdown()).then(() => process.exit(0));
-    setTimeout(() => process.exit(0), 2_000).unref();
+    shutdown().then(
+      () => { /* settled — the event loop empties and a standalone process exits */ },
+      (err) => {
+        // A drain that FAILS must not be reported as a clean stop.
+        process.exitCode = 1;
+        try {
+          process.stderr.write(`[bridge] shutdown failed: ${(err && err.message) || err}\n`);
+        } catch { /* stderr already gone */ }
+      },
+    );
   };
   process.on('SIGINT', onSignal);
   process.on('SIGTERM', onSignal);

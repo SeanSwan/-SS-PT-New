@@ -44,12 +44,16 @@
  *
  * 4. SINGLE INSTANCE via pid file (blueprint H2) — see lib/instance.mjs.
  *
- * 5. SIGNAL HANDLERS ARE REMOVED ON SHUTDOWN. The first version left them
- *    attached, so a process that started more than one bridge (a test suite, or
- *    the future embedding host) accumulated stale handlers that called
- *    `process.exit(0)` on the NEXT signal — killing the process mid-suite. The
- *    exit now lives in the signal handler, not in `shutdown`, so a library
- *    caller can stop the bridge without the module deciding to end the host.
+ * 5. SIGNAL HANDLERS ARE REMOVED ON SHUTDOWN, AND THEY NEVER END THE PROCESS (R5-03).
+ *    The first version left them attached, so a process that started more than one
+ *    bridge accumulated stale handlers that called `process.exit(0)` on the NEXT
+ *    signal — killing the process mid-suite. The second version moved the exit INTO
+ *    the handler, and Astra round 5 showed that was still wrong in two ways: a 2 s
+ *    timer fired `exit(0)` with work still admitted, and because the handler is
+ *    registered per bridge, an IDLE bridge's handler killed the process while a
+ *    BUSY one was mid-dispatch. The handler now only calls `shutdown()`. A
+ *    standalone process exits NATURALLY once its listener, worker and drain have
+ *    retired, and an embedded bridge never terminates its host or a sibling.
  *
  * USAGE
  *   node packages/creator-brains-console/server.mjs [--port N] [--no-open]

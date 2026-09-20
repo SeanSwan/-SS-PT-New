@@ -45,6 +45,28 @@ import { paths } from '../../../scripts/creator-brains/lib/paths.mjs';
 import { ApiError, CODE } from './errors.mjs';
 
 /**
+ * The real-path resolver, injectable for tests.
+ *
+ * WHY THIS SEAM EXISTS. R5-02's fix is "only ENOENT means absence". Its failure
+ * branch cannot be reached by real filesystem means on this host: a non-ENOENT
+ * `realpathSync` failure needs an ACL (EACCES), and the two constructible
+ * alternatives do not work — a path beneath a FILE reports **ENOENT** because the
+ * leaf does not exist, and a Windows directory junction LOOP resolves cleanly
+ * rather than raising ELOOP (both measured 2026-09-20). Astra reached the branch by
+ * substituting filesystem responses in memory, and recorded the reachability limit
+ * as [UNKNOWN]. Without a seam the fix would ship **unverified**, and an unverified
+ * guard is the defect class this module exists to remove.
+ *
+ * Mirrors the existing `setProbeWorkerForTest` pattern in `lib/health-probe.mjs`.
+ */
+let realpathImpl = realpathSync;
+
+/** Test seam. Pass nothing (or null) to restore the real resolver. */
+export function setRealpathForTest(fn) {
+  realpathImpl = typeof fn === 'function' ? fn : realpathSync;
+}
+
+/**
  * The brains store, with its real path resolved ONCE per call.
  *
  * `realRoot` is null when the store does not exist yet. That is not a fault —
@@ -54,9 +76,20 @@ export function brainsStore(r) {
   const root = resolve(paths(r).brainsDir);
   let realRoot = null;
   try {
-    realRoot = realpathSync(root);
-  } catch {
-    /* no store yet — nothing to escape */
+    realRoot = realpathImpl(root);
+  } catch (err) {
+    // AN ABSENT STORE IS NOT A FAULT (R5-02). But the previous catch swallowed EVERY
+    // error, so one EACCES on the root set `realRoot = null` for the WHOLE request
+    // and disabled real-path containment globally — leaving only the lexical
+    // `inside()`, which is the check `realpathSync` exists to supplement because it
+    // cannot see a junction. Only ENOENT means "no store yet".
+    if (err && err.code !== 'ENOENT') {
+      throw damaged(
+        `the brains store root could not be resolved`
+          + `${err && err.code ? ` (${err.code})` : ''}`,
+      );
+    }
+    /* ENOENT — no store yet, and there is nothing to escape from. */
   }
   return { root, realRoot };
 }
@@ -67,12 +100,21 @@ export function inside(root, target) {
   return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
 }
 
-/** The real path of `target`, or null when it does not exist / cannot be resolved. */
+/** The real path of `target`, or null ONLY when it genuinely does not exist (R5-02). */
 export function realpathOrNull(target) {
   try {
-    return realpathSync(target);
-  } catch {
-    return null;
+    return realpathImpl(target);
+  } catch (err) {
+    // ONLY ENOENT IS ABSENCE. Every other resolution failure used to become `null`
+    // here, and `containedPath` reads `null` as "cannot check" and SKIPS real-path
+    // containment entirely — a guard that switches itself off on an error it did not
+    // anticipate. Astra round 5 drove this with an injected EACCES and measured the
+    // read proceeding with no damage. EACCES/EPERM/ELOOP/ENOTDIR are faults.
+    if (err && err.code === 'ENOENT') return null;
+    throw damaged(
+      `'${target}' exists but its real path could not be resolved`
+        + `${err && err.code ? ` (${err.code})` : ''}`,
+    );
   }
 }
 

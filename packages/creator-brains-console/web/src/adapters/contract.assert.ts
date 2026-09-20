@@ -45,13 +45,37 @@ import type { LocalEngineAdapter } from './LocalEngineAdapter';
 import type { MockAdapter } from './MockAdapter';
 
 /**
- * Exactly equal — mutually assignable, and neither side wider than the other.
+ * Exactly equal — and this is the version that is ACTUALLY exact (R5-04).
  *
- * The tuple brackets are load-bearing: `[A] extends [B]` stops the conditional
- * from DISTRIBUTING over a union member, so `string | null` is compared as one
- * type instead of being tested member by member.
+ * The previous definition was mutual assignability:
+ *
+ *   type Exact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+ *
+ * and the header promised it refused extra properties. It did not. Assignability is
+ * COMPATIBILITY, not identity, so:
+ *
+ *   - an OPTIONAL extra field is mutually assignable — `{a}` and `{a; b?}` satisfy
+ *     each other, so `extra?: string` on an implementation passed;
+ *   - `any` is assignable to and from everything, so `runId: any` passed too.
+ *
+ * Both were measured against the real project before this change: `runId: any` and
+ * `extra?: string` each produced ZERO diagnostics, while a REQUIRED `extra: string`
+ * was caught. So the guard was blind to two of the three drift shapes a builder is
+ * most likely to produce.
+ *
+ * The generic-function form below compares the two types in an INVARIANT position.
+ * A `() => T extends A ? 1 : 2` is only assignable to `() => T extends B ? 1 : 2`
+ * when `A` and `B` are identical — optionality differences and `any` both break it,
+ * because neither can be papered over by one-directional assignability. The tuple
+ * brackets stay for the same reason as before: without them the conditional
+ * DISTRIBUTES over a union member, and `string | null` would be tested member by
+ * member, letting `null` alone satisfy the check.
  */
-type Exact<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+type Exact<A, B> = [A] extends [B]
+  ? ([B] extends [A]
+    ? (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
+    : false)
+  : false;
 
 /** A compile-time assertion. `false` here is TS2344, which fails the build. */
 type Assert<T extends true> = T;

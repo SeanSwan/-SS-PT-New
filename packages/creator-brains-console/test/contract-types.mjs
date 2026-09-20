@@ -80,7 +80,14 @@ export function typedFields(body) {
       if (at === -1) return null;
       const name = part.slice(0, at).trim();
       const type = normalizeType(part.slice(at + 1));
-      return /^\w+\??$/.test(name) && type ? { name: name.replace('?', ''), type } : null;
+      // OPTIONALITY IS PART OF THE SHAPE (R5-04). Stripping `?` made `runId` and
+      // `runId?` extract identically, so a document that widened a field to
+      // optional compared EQUAL to one that had not — the doc→literal link was
+      // blind to exactly the drift it exists to catch. `assertSameShape` compares
+      // with `deepEqual`, so carrying the flag is what makes the comparison see it.
+      return /^\w+\??$/.test(name) && type
+        ? { name: name.replace('?', ''), optional: name.endsWith('?'), type }
+        : null;
     })
     .filter(Boolean)
     .sort((a, b) => a.name.localeCompare(b.name));

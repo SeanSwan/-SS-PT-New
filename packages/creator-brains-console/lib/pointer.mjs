@@ -170,9 +170,24 @@ export function resolvePointer(r, ns) {
     throw damaged(`the published pointer for ${what} exists but is not valid JSON`);
   }
 
-  // 4. A pointer that names no generation is one the engine drops, so this walk
-  //    may drop it too — that is the R3-01 skip, and it is the engine's own test.
-  if (!pointer || typeof pointer !== 'object' || !pointer.generation) {
+  // 4. ONLY A MISSING PROPERTY, `null` OR '' MEANS AN INCOMPLETE POINTER (R5-01).
+  //
+  //    The previous test was `!pointer || typeof pointer !== 'object' || !pointer.generation`,
+  //    and it used a FALSY test as a PRESENCE test. `{"generation":0}` and
+  //    `{"generation":false}` were reported as an incomplete brain — a confident zero
+  //    over a damaged store, which is the exact class R4-01 existed to close. `!pointer`
+  //    also swallowed `null`, `false` and `42`, and `typeof x === 'object'` is true for
+  //    an ARRAY, so `[]` took this path too.
+  //
+  //    The adopted round-4 contract is explicit (P/17-astra-mega-reply-r4.md:538-542):
+  //    rule 3 — non-object JSON is STORE_DAMAGED; rule 4 — only a missing, `null` or
+  //    empty-string generation is incomplete; rule 5 — every other value must be a
+  //    string matching the canonical pattern, which step 5 below now enforces for `0`
+  //    and `false` because they can no longer reach the skip.
+  if (pointer === null || typeof pointer !== 'object' || Array.isArray(pointer)) {
+    throw damaged(`the published pointer for ${what} exists but is not a JSON object`);
+  }
+  if (pointer.generation === undefined || pointer.generation === null || pointer.generation === '') {
     return { present: false, reason: 'no-generation' };
   }
 
