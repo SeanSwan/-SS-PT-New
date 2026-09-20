@@ -493,3 +493,12 @@ SOUL.archive/**
 
 # Gate telemetry — per-machine operational data, not shared state (2026-08-23)
 .ai-workflow/gate-telemetry.jsonl
+
+# Mutation-harness scratch tree (2026-09-19).
+# `tests/mutation/guards.mutation.test.mjs` plants a throwaway copy of the source
+# under backend/.mutation-tmp and removes it in afterAll — but an interrupted run
+# (a timeout, or a fail-closed delete) leaves it behind, and this tree routinely has
+# 1000+ dirty paths, so it would be swept into the next `git add -A`. Same failure
+# class as the `.codex-tmp-*` entry above. The directory contains copies of tracked
+# source, never anything original.
+backend/.mutation-tmp/

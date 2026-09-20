@@ -510,6 +510,20 @@ async function migrateConversationParticipantsDeletedAt() {
 }
 
 /**
+ * Affected-row count from a Sequelize UPDATE, or `null` when the driver does not
+ * report one.
+ *
+ * `null` means "unavailable" and must never be silently read as 0 — a repair that
+ * changed nothing and a repair whose count was not reported are different facts,
+ * and collapsing them is how a report starts lying.
+ */
+function affectedRows(meta) {
+  if (Number.isFinite(meta?.affectedRows)) return meta.affectedRows;
+  if (Number.isFinite(meta?.rowCount)) return meta.rowCount;
+  return null;
+}
+
+/**
  * Migration 8: Fix Sean Swan's lastName (id=2) if empty
  * The admin account has lastName="" which displays as "Sean " in messages.
  *
@@ -525,20 +539,24 @@ async function migrateSeanSwanLastName() {
     );
     if (!row) {
       logger.info('[Migration] User id=2 not found, skipping Sean Swan lastName fix');
-      return;
+      // Nothing to do is a completed repair, not an unrun one: it must not read
+      // as a failure, or a healthy deploy would report dataFixesApplied: false.
+      return { status: 'succeeded', changedRows: 0 };
     }
     if (row.lastName && row.lastName.trim() !== '') {
       logger.info(`[Migration] Sean Swan lastName already set to "${row.lastName}" - no change needed`);
-      return;
+      return { status: 'succeeded', changedRows: 0 };
     }
 
     // Fix the empty lastName
-    await sequelize.query(
+    const [, meta] = await sequelize.query(
       `UPDATE "Users" SET "lastName" = 'Swan' WHERE id = 2;`
     );
     logger.info('[Migration] Fixed Sean Swan lastName: "Sean Swan"');
+    return { status: 'succeeded', changedRows: affectedRows(meta) ?? 1 };
   } catch (error) {
     migrationProblem(`[Migration] Sean Swan lastName fix failed (non-critical): ${error.message}`);
+    return { status: 'failed', changedRows: null };
   }
 }
 
@@ -566,16 +584,18 @@ async function migrateCleanupTestUsers() {
     const count = parseInt(already?.cnt || '0');
     if (count === 0) {
       logger.info('[Migration] Test user cleanup already done - no active users to delete');
-      return;
+      return { status: 'succeeded', changedRows: 0 };
     }
 
-    await sequelize.query(
+    const [, meta] = await sequelize.query(
       `UPDATE "Users" SET "deletedAt" = NOW()
        WHERE id IN (${idsToDelete.join(',')}) AND "deletedAt" IS NULL;`
     );
     logger.info(`[Migration] Soft-deleted ${count} test/duplicate users (IDs: ${idsToDelete.join(', ')})`);
+    return { status: 'succeeded', changedRows: affectedRows(meta) ?? count };
   } catch (error) {
     migrationProblem(`[Migration] Test user cleanup failed (non-critical): ${error.message}`);
+    return { status: 'failed', changedRows: null };
   }
 }
 
@@ -795,7 +815,17 @@ async function migratePointTransactionIdempotencyKey() {
  */
 export async function runStartupMigrations() {
   migrationProblems = [];
-  let dataFixesApplied = false;
+  // R2-07 (Astra round 2): `dataFixesApplied` used to be set TRUE the instant the
+  // gate opened — before either repair had run. It therefore meant "the flag was
+  // set", not "the fixes were applied", and a run in which BOTH repairs threw
+  // still returned `{ ok: false, dataFixesApplied: true }`. A field whose name
+  // and value disagree is worse than a missing field, because it is read as
+  // evidence. It now means what it says: both requested repairs completed.
+  let dataFixesAttempted = false;
+  const dataFixes = {
+    lastNameRepair: { status: 'skipped', changedRows: null },
+    testUserCleanup: { status: 'skipped', changedRows: null },
+  };
   try {
     logger.info('[Migrations] Running startup migrations...');
 
@@ -809,9 +839,9 @@ export async function runStartupMigrations() {
 
     // Data repairs, not schema migrations: ID-keyed UPDATEs, opt-in only.
     if (dataFixesEnabled()) {
-      dataFixesApplied = true;
-      await migrateSeanSwanLastName();
-      await migrateCleanupTestUsers();
+      dataFixesAttempted = true;
+      dataFixes.lastNameRepair = await migrateSeanSwanLastName();
+      dataFixes.testUserCleanup = await migrateCleanupTestUsers();
     } else {
       logger.info(
         '[Migrations] Data-repair migrations skipped (ID-keyed UPDATEs). '
@@ -836,14 +866,22 @@ export async function runStartupMigrations() {
     return {
       ok: migrationProblems.length === 0,
       problems: [...migrationProblems],
-      dataFixesApplied,
+      dataFixesAttempted,
+      dataFixesApplied:
+        dataFixesAttempted
+        && dataFixes.lastNameRepair.status === 'succeeded'
+        && dataFixes.testUserCleanup.status === 'succeeded',
+      dataFixes,
     };
   } catch (error) {
     logger.error('[Migrations] Startup migrations failed:', error.message);
     return {
       ok: false,
       problems: [...migrationProblems, error.message],
-      dataFixesApplied,
+      dataFixesAttempted,
+      // The block threw: whatever the repairs reported, this run did not complete.
+      dataFixesApplied: false,
+      dataFixes,
     };
   }
 }

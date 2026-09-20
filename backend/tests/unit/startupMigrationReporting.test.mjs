@@ -171,6 +171,32 @@ describe('data-repair migrations are opt-in', () => {
     expect(updates).toEqual([]);
   });
 
+  it('never reports a FAILED repair as applied (R2-07)', async () => {
+    // Astra round 2. `dataFixesApplied` was set true the moment the gate opened,
+    // before either repair ran, so a run where BOTH threw still reported
+    // dataFixesApplied: true. The name has to match the value: a caller reading
+    // this field must not be told a repair succeeded when it did not.
+    process.env[ENV_KEY] = '1';
+    queryMock.mockRejectedValue(new Error('repair failed'));
+
+    const report = await runStartupMigrations();
+
+    expect(report.dataFixesAttempted).toBe(true);
+    expect(report.dataFixesApplied).toBe(false);
+    expect(report.dataFixes.lastNameRepair.status).toBe('failed');
+    expect(report.dataFixes.testUserCleanup.status).toBe('failed');
+    expect(report.ok).toBe(false);
+  });
+
+  it('distinguishes an unrun repair from a completed one', async () => {
+    // Gate closed: attempted must be false and both repairs must read `skipped`,
+    // which is a different fact from "ran and changed nothing".
+    const report = await runStartupMigrations();
+    expect(report.dataFixesAttempted).toBe(false);
+    expect(report.dataFixes.lastNameRepair.status).toBe('skipped');
+    expect(report.dataFixes.testUserCleanup.status).toBe('skipped');
+  });
+
   it('calls both repairs only from inside the gate', () => {
     // A source ratchet: adding `await migrateCleanupTestUsers();` back onto the
     // main sequence is the regression this exists to catch.

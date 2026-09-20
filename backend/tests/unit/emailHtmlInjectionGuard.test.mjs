@@ -72,10 +72,22 @@ const read = (rel) => readFileSync(resolve(BACKEND, rel), 'utf8').replace(/\r\n/
  *   templates on a stack instead.
  *
  * KNOWN LIMITATION, stated rather than hidden: regex-literal detection uses the
- * usual look-behind heuristic (`/` after an operator, bracket or keyword). It can
- * still misread `a++ / b` as the start of a regex. That failure mode is a false
- * POSITIVE — extra text is scanned, never silently skipped — so it cannot hide a
- * defect the way the two regexes above did.
+ * usual look-behind heuristic (`/` after an operator, bracket or keyword), and it
+ * can still misread `a++ / b` as the start of a regex.
+ *
+ * The first version of this comment claimed that failure mode could only ever be
+ * a false POSITIVE — "extra text is scanned, never silently skipped". R2-02
+ * (Astra round 2) disproved that. `copyRegex()` emits as it goes, so once it had
+ * swallowed a template there was no way back: `n++ / 2; send({html: `<p>${x}</p>`})`
+ * yielded ZERO templates and the guard read green. The claim was simply wrong,
+ * and a wrong claim about a guard's failure DIRECTION is worse than no claim at
+ * all, because it is the reason nobody goes looking.
+ *
+ * `x++` and `x--` are now excluded explicitly — that slash is division — which
+ * closes the demonstrated case. This is NOT a general fix: the heuristic still
+ * guesses, and a `/` that begins neither a regex nor a division can still cause a
+ * span to be skipped. Closing that properly needs a real parser rather than
+ * lexical guessing, which is the deferred work recorded alongside this review.
  */
 /**
  * One scan per distinct file body. The ratchet asks the same file for its
@@ -121,6 +133,15 @@ function scanSource(code) {
     let k = i - 1;
     while (k >= 0 && /\s/.test(code[k])) k--;
     if (k < 0) return true;
+    // R2-02 (Astra round 2): `x++ / 2` and `x-- / 2` are DIVISION, not a regex.
+    // Without this the trailing `+` (or `-`) satisfied REGEX_PREV_CHARS below,
+    // `copyRegex()` then consumed the rest of the line, and a template sitting on
+    // that line was never extracted at all — a FALSE NEGATIVE, which the doc
+    // comment above used to claim this heuristic could not produce. Tested before
+    // the character class, because `+` and `-` are both members of it.
+    if ((code[k] === '+' && code[k - 1] === '+') || (code[k] === '-' && code[k - 1] === '-')) {
+      return false;
+    }
     const prev = code[k];
     if (REGEX_PREV_CHARS.has(prev)) return true;
     // Walk back over the word itself. `code.slice(0, k + 1).match(...)` costs
@@ -280,7 +301,14 @@ describe('§19 — the shared escaper behaves', () => {
 
   it('escapeHtmlSingleLine leaves no control characters and no whitespace runs', () => {
     const out = escapeHtmlSingleLine('a\u0000b\n\nc   d');
-    expect(out).not.toMatch(/[\u0000-\u001F\u007F]/);
+    // A code-point scan, not `/[\u0000-\u001F\u007F]/`: a control character in a
+    // regex literal trips ESLint's `no-control-regex`, which is an ERROR here, so the
+    // literal form fails `npm run lint:check` even though the control range is exactly
+    // what this assertion is about. The scan says the same thing without the false trip.
+    const control = [...out].filter(
+      (ch) => ch.codePointAt(0) < 0x20 || ch.codePointAt(0) === 0x7f,
+    );
+    expect(control, `control characters survived: ${JSON.stringify(control)}`).toEqual([]);
     expect(out).not.toMatch(/\s{2,}/);
     expect(out).toContain('a');
     expect(out).toContain('d');
@@ -427,7 +455,22 @@ describe('§19 — remaining HTML-email builders escape their payload', () => {
  * escaping when the callee is in it.
  */
 const ENCODER_NAMES = ['escapeHtml', 'escapeHtmlAttribute', 'escapeHtmlSingleLine', 'esc'];
-const SHARED_IMPORT_RE = /import\s+([^'"]*?)\s+from\s+['"][^'"]*htmlEscape\.mjs['"]/g;
+/**
+ * R2-04 (Astra round 2): anchored to the start of a line. The unanchored form
+ * matched an import SPELLED INSIDE A STRING — `const s = "import {encode} from
+ * './htmlEscape.mjs'"` — and so handed provenance to a locally-defined `encode`
+ * that escapes nothing. A real import statement is a top-level statement and
+ * begins a line; one quoted inside a string never does.
+ *
+ * KNOWN LIMITATION, stated rather than hidden: the specifier is not resolved
+ * against the importing file, so a DIFFERENT module that happens to be named
+ * `htmlEscape.mjs` still matches. The two canonical spellings in this tree are
+ * `'./htmlEscape.mjs'` (utils/ siblings) and `'../utils/htmlEscape.mjs'`, so a
+ * `utils/`-prefix test is not available. Resolving the path needs the importing
+ * file's location — that is the parser-based analysis in the deferred work.
+ */
+const SHARED_IMPORT_RE =
+  /^[ \t]*import\s+([^'"]*?)\s+from\s+['"][^'"]*htmlEscape\.mjs['"]/gm;
 
 function canonicalEncoders(code) {
   const names = new Set();
@@ -473,6 +516,40 @@ const DECL_ASSIGN_RE = /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=(?![=>])/g;
 const CALLEE_AT_RE = /^\s*([A-Za-z_$][\w$.]*)\s*\(/;   // flat class: see the note above
 
 /**
+ * Compound assignment to a simple name (`name += ...`).
+ *
+ * R2-04 (Astra round 2): ANY_ASSIGN_RE cannot see these — its `=(?![=>])`
+ * requires a bare `=`, and `name += x` puts a `+` first. So the F03 fix dropped
+ * the exemption on plain reassignment but not on `+=`, and a binding kept its
+ * escape proof after raw data had been appended to it. Always disqualified,
+ * regardless of the right-hand side: appending escaped text to a value that may
+ * already be raw does not make the result escaped.
+ */
+const COMPOUND_ASSIGN_RE = /(?:^|[,;({[]|\n)\s*([A-Za-z_$][\w$]*)\s*[-+*/%&|^]=(?!=)/g;
+
+/**
+ * A destructuring write that could rebind a name (`({ email } = client)`).
+ *
+ * Bounded to 200 characters between the braces so the lazy quantifier cannot
+ * backtrack across a whole file — the shape that made an earlier pattern in this
+ * file quadratic.
+ */
+const DESTRUCTURE_ASSIGN_RE = /[{[]([^{}[\]]{0,200})[}\]]\s*=(?!=)/g;
+
+/**
+ * Parameter lists of `function` declarations/expressions and arrow functions.
+ *
+ * R2-04 (Astra round 2): escape provenance is a set of NAMES, so a parameter
+ * named like an escaped binding inherited its exemption, and a raw parameter was
+ * read as escaped. Deliberately narrow: only lists introduced by the `function`
+ * keyword or by `=>` count. An ordinary CALL argument list (`escapeHtml(heading)`)
+ * is indistinguishable from a parameter list by regex, and treating arguments as
+ * parameters would revoke the exemption for correctly escaped values — a false
+ * positive, which is what would make this guard get switched off.
+ */
+const PARAM_LIST_RE = /\bfunction\s*[\w$]*\s*\(([^)]*)\)|\(([^)]*)\)\s*=>/g;
+
+/**
  * Identifiers this file can treat as already escaped.
  *
  * F03 — an identifier escaped ONCE is not escaped FOREVER. The previous version
@@ -497,6 +574,18 @@ function escapedIdentifiers(code, canonical) {
       // escaped text, so it loses its exemption. Skipping the non-call case is
       // what left mutation M10 green on the first attempt at this fix.
       if (!callee || !canonical.has(callee[1])) safe.delete(m[1]);
+    }
+  }
+  // R2-04 — compound writes always disqualify, whatever the right-hand side is.
+  for (const m of code.matchAll(COMPOUND_ASSIGN_RE)) safe.delete(m[1]);
+  // R2-04 — a destructuring write can rebind any name in the pattern.
+  for (const m of code.matchAll(DESTRUCTURE_ASSIGN_RE)) {
+    for (const name of m[1].match(/[A-Za-z_$][\w$]*/g) || []) safe.delete(name);
+  }
+  // R2-04 — a parameter is a DIFFERENT binding that merely shares the name.
+  for (const m of code.matchAll(PARAM_LIST_RE)) {
+    for (const name of (m[1] || m[2] || '').match(/[A-Za-z_$][\w$]*/g) || []) {
+      safe.delete(name);
     }
   }
   return safe;
@@ -537,11 +626,66 @@ function skipString(text, at) {
   return j;
 }
 
+/** Advance past a `//` or `/* *\/` comment starting at `at`. */
+function skipComment(text, at) {
+  if (text[at + 1] === '/') {
+    let j = at + 2;
+    while (j < text.length && text[j] !== '\n') j++;
+    return j;
+  }
+  let j = at + 2;
+  while (j < text.length && !(text[j] === '*' && text[j + 1] === '/')) j++;
+  return Math.min(j + 2, text.length);
+}
+
+/** Advance past a nested template literal starting at the backtick `at`. */
+function skipTemplate(text, at) {
+  let j = at + 1;
+  while (j < text.length) {
+    const c = text[j];
+    if (c === '\\') { j += 2; continue; }
+    if (c === '`') return j + 1;
+    if (c === '$' && text[j + 1] === '{') { j = skipBraced(text, j + 1) + 1; continue; }
+    j++;
+  }
+  return j;
+}
+
+/**
+ * Index of the `}` matching the `{` at `at`.
+ *
+ * Strings, comments and nested templates inside the expression are skipped, so
+ * none of their braces can close the interpolation early.
+ */
+function skipBraced(text, at) {
+  let depth = 0;
+  let j = at;
+  while (j < text.length) {
+    const c = text[j];
+    if (c === '\\') { j += 2; continue; }
+    if (c === "'" || c === '"') { j = skipString(text, j); continue; }
+    if (c === '`') { j = skipTemplate(text, j); continue; }
+    if (c === '/' && (text[j + 1] === '/' || text[j + 1] === '*')) { j = skipComment(text, j); continue; }
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) return j; }
+    j++;
+  }
+  return j;
+}
+
 /**
  * Top-level `${...}` expressions inside a template literal body.
  *
- * String-aware: a `}` inside `'...'` inside an interpolation cannot close the
- * expression early, which is what let mutation M11 hide its payload.
+ * String-aware INSIDE an interpolation: a `}` inside `'...'` cannot close the
+ * expression early, which is what let mutation M11 hide its payload. Comments
+ * and nested templates are skipped there for the same reason.
+ *
+ * R2-03 (Astra round 2): the BODY level used to apply the same string skipping,
+ * but quotes in template TEXT are ordinary characters, not delimiters. So
+ * `<a title="${client.email}">` and `<p>You're ${client.email}</p>` both
+ * returned ZERO interpolations — the guard read green on a raw interpolation in
+ * a quoted attribute, which is the commonest HTML shape there is. Quote
+ * handling now applies only where it means something: inside `${...}`.
  */
 function interpolations(templateText) {
   const out = [];
@@ -549,21 +693,10 @@ function interpolations(templateText) {
   while (i < templateText.length) {
     const ch = templateText[i];
     if (ch === '\\') { i += 2; continue; }
-    if (ch === "'" || ch === '"') { i = skipString(templateText, i); continue; }
     if (ch === '$' && templateText[i + 1] === '{') {
-      let depth = 1;
-      let j = i + 2;
-      while (j < templateText.length && depth > 0) {
-        const c = templateText[j];
-        if (c === '\\') { j += 2; continue; }
-        if (c === "'" || c === '"') { j = skipString(templateText, j); continue; }
-        if (c === '{') depth++;
-        else if (c === '}') depth--;
-        if (depth === 0) break;
-        j++;
-      }
-      out.push(templateText.slice(i + 2, j));
-      i = j + 1;
+      const end = skipBraced(templateText, i + 1);
+      out.push(templateText.slice(i + 2, end));
+      i = end + 1;
       continue;
     }
     i++;
@@ -693,7 +826,7 @@ describe('§19 — structural ratchet: no HTML template interpolates a sensitive
       for (const { text, line } of htmlTemplates(rel)) {
         for (const expr of interpolations(text)) {
           if (expr.includes('escapeHtml')) continue;   // escaped right here
-          if (expr.includes('(')) continue;        // computed — helper's job
+          if (isCallExpression(expr)) continue;        // computed — helper's job
           if (!mentionsLeaf(expr, LEAVES)) continue;
           const root = (expr.match(/[A-Za-z_$][\w$]*/) || [])[0];
           if (root && escaped.has(root)) continue;     // escaped at assignment

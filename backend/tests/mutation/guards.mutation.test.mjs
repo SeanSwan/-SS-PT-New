@@ -260,32 +260,74 @@ function runGuard() {
     report = null;
   }
 
+  return classifyReport(report, output);
+}
+
+/**
+ * Classify a Vitest JSON report into KILLED / SURVIVED / INVALID.
+ *
+ * Pure and process-free, so the counterexamples that motivated R2-05 can be
+ * tested directly against synthetic reports. The defect was in THIS decision, and
+ * a decision that can only be exercised by spawning vitest is a decision nobody
+ * ever tests.
+ *
+ * R2-05 (Astra round 2). The verdict used to be `numFailedTests > 0`, and the
+ * signature was matched against a blob containing EVERY assertion's name plus
+ * the process output. Three synthetic reports showed what that admits:
+ *
+ *   - `numTotalTests: 26, numFailedTests: 1` with an EMPTY assertion list
+ *     returned KILLED — a kill with no executed, failing assertion behind it;
+ *   - 26 pending assertions, none passed and none failed, returned SURVIVED —
+ *     a clean baseline that never ran;
+ *   - an unrelated failing assertion returned KILLED when the signature merely
+ *     appeared in some PASSED assertion's name.
+ *
+ * So: reconcile the assertion inventory against the totals, refuse any report
+ * with an assertion that neither passed nor failed, and match the signature ONLY
+ * against a failed assertion's own failure messages. stdout/stderr are
+ * diagnostics, never proof of which assertion failed.
+ */
+function classifyReport(report, output) {
+  const invalid = (reason) => ({ status: 'INVALID', reason, output, text: output, failureText: '' });
+
   if (!report || typeof report.numTotalTests !== 'number') {
-    return { status: 'INVALID', reason: 'no structured test report', output, text: output };
+    return invalid('no structured test report');
   }
   if (report.numTotalTests === 0) {
-    return { status: 'INVALID', reason: 'guard executed zero tests', output, text: output };
+    return invalid('guard executed zero tests');
   }
 
-  // The signature of a mutation lives in the guard's assertion messages — the
-  // offending file path and the offending expression. Those have to be read as
-  // STRINGS: JSON.stringify(report) escapes newlines and quotes, so a substring
-  // like `foo.mjs` survives but anything spanning a literal \n does not, and
-  // matching against the escaped blob silently fails every signature check.
-  const messages = (report.testResults || []).flatMap((suite) =>
-    (suite.assertionResults || []).flatMap((assertion) => [
-      assertion.fullName || '',
-      ...(assertion.failureMessages || []),
-    ]),
+  const assertions = (report.testResults || []).flatMap((suite) =>
+    (suite.assertionResults || []).map((assertion) => ({
+      name: assertion.fullName || assertion.title || '',
+      status: assertion.status,
+      messages: assertion.failureMessages || [],
+    })),
   );
-  const text = `${messages.join('\n')}\n${output}`;
 
-  const failed = report.numFailedTests || 0;
+  if (assertions.length === 0) return invalid('empty assertion inventory');
+  if (assertions.length !== report.numTotalTests) {
+    return invalid(
+      `assertion inventory (${assertions.length}) disagrees with numTotalTests (${report.numTotalTests})`,
+    );
+  }
+  const unfinished = assertions.filter((a) => a.status !== 'passed' && a.status !== 'failed');
+  if (unfinished.length > 0) {
+    return invalid(`${unfinished.length} assertion(s) neither passed nor failed`);
+  }
+
+  const failedList = assertions.filter((a) => a.status === 'failed');
+  // Read as STRINGS, not from JSON.stringify(report): that escapes newlines and
+  // quotes, so a substring spanning a literal \n would never match.
+  const failureText = failedList.flatMap((a) => a.messages).join('\n');
+  const text = `${assertions.map((a) => a.name).join('\n')}\n${output}`;
+
   return {
-    status: failed > 0 ? 'KILLED' : 'SURVIVED',
-    failed,
-    passed: report.numPassedTests || 0,
+    status: failedList.length > 0 ? 'KILLED' : 'SURVIVED',
+    failed: failedList.length,
+    passed: assertions.length - failedList.length,
     text,
+    failureText,
     output,
   };
 }
@@ -494,6 +536,91 @@ const MUTATIONS = [
     },
     signature: 'client.firstName',
   },
+  {
+    id: 'M14',
+    title: 'R2-03 — a QUOTED attribute hides its interpolation from the scanner',
+    note: 'Astra round 2. `interpolations()` skipped `"..."` inside the template BODY, where quotes are ordinary text rather than string delimiters — so a `${...}` sitting in any quoted HTML attribute was never inspected at all. `<a title="${client.email}">` yielded zero interpolations and the guard read green.',
+    file: 'services/attrProbe.mjs',
+    apply: () => {
+      writeTmp(
+        'services/attrProbe.mjs',
+        [
+          "import { sendEmail } from '../emailService.mjs';",
+          'export async function notify(client) {',
+          '  await sendEmail({',
+          '    to: client.email,',
+          "    subject: 'hi',",
+          '    html: `<a title="${client.email}">open</a>`,',
+          '  });',
+          '}',
+          '',
+        ].join('\n'),
+      );
+    },
+    signature: 'attrProbe.mjs',
+  },
+  {
+    id: 'M15',
+    title: 'R2-02 — POSTFIX DIVISION swallows the rest of the line and hides a template',
+    note: 'Astra round 2. `n++ / 2` leaves a `+` before the slash, which `atRegexStart()` reads as a regex position; `copyRegex()` then consumes to the next slash or newline, so the template on that line is never extracted. The guard documented this heuristic as false-POSITIVE-only ("extra text is scanned, never silently skipped"). This entry is the counterexample to that claim.',
+    file: 'services/divProbe.mjs',
+    apply: () => {
+      writeTmp(
+        'services/divProbe.mjs',
+        [
+          "import { sendEmail } from '../emailService.mjs';",
+          'export async function notify(client) {',
+          '  let n = 1;',
+          '  n++ / 2; sendEmail({ to: client.email, subject: "s", html: `<p>${client.email}</p>` });',
+          '}',
+          '',
+        ].join('\n'),
+      );
+    },
+    signature: 'divProbe.mjs',
+  },
+  {
+    id: 'M16',
+    title: 'R2-04 — a PARAMETER shadowing an escaped const inherits the exemption',
+    note: 'Astra round 2. Escape provenance is tracked as a set of NAMES, not as lexical bindings, so a module-scope `const email = encode(...)` exonerates an unrelated `email` parameter that holds raw data.',
+    file: 'services/shadowProbe.mjs',
+    apply: () => {
+      writeTmp(
+        'services/shadowProbe.mjs',
+        [
+          "import { escapeHtml as encode } from '../utils/htmlEscape.mjs';",
+          "import { sendEmail } from '../emailService.mjs';",
+          "const email = encode('');",
+          'export async function notify(email) {',
+          '  await sendEmail({ to: "a@b.c", subject: "s", html: `<p>${email}</p>` });',
+          '}',
+          '',
+        ].join('\n'),
+      );
+    },
+    signature: 'shadowProbe.mjs',
+  },
+  {
+    id: 'M17',
+    title: 'R2-04 — a COMPOUND WRITE re-exposes an escaped binding',
+    note: 'Astra round 2. The F03 fix dropped the exemption on plain `=` reassignment but not on `+=`, so the binding keeps its escape proof after raw data has been appended to it.',
+    file: 'services/compoundProbe.mjs',
+    apply: () => {
+      writeTmp(
+        'services/compoundProbe.mjs',
+        [
+          "import { escapeHtml as encode } from '../utils/htmlEscape.mjs';",
+          "let email = encode('');",
+          'export function build(client) {',
+          '  email += client.email;',
+          '  return `<p>${email}</p>`;',
+          '}',
+          '',
+        ].join('\n'),
+      );
+    },
+    signature: 'compoundProbe.mjs',
+  },
 ];
 
 describe('mutation harness — the email HTML-injection guard', () => {
@@ -539,7 +666,14 @@ describe('mutation harness — the email HTML-injection guard', () => {
     // that class: vitest still exits non-zero, but nothing was tested.
     const guardPath = join(TMP_ROOT, GUARD);
     const backup = readFileSync(guardPath, 'utf8');
-    rmSync(guardPath, { force: true });
+    // Same shim caveat as the per-mutation cleanup: an empty guard file is just
+    // as "broken" as a missing one (vitest finds the file and runs no tests), and
+    // writing is never refused.
+    try {
+      rmSync(guardPath, { force: true });
+    } catch {
+      writeFileSync(guardPath, '');
+    }
     try {
       const result = runGuard();
       expect(result.status, `expected INVALID, got ${result.status}.\n${result.output}`)
@@ -561,8 +695,8 @@ describe('mutation harness — the email HTML-injection guard', () => {
         expect(result.status, `${mutation.id} was NOT caught.\n${result.text}`).toBe('KILLED');
         if (mutation.signature) {
           expect(
-            result.text,
-            `${mutation.id} went red, but not for the expected reason (missing "${mutation.signature}")`,
+            result.failureText,
+            `${mutation.id} went red, but not for the expected reason — "${mutation.signature}" is absent from every FAILED assertion's own messages`,
           ).toContain(mutation.signature);
         }
       } finally {
@@ -573,7 +707,18 @@ describe('mutation harness — the email HTML-injection guard', () => {
           // A fixture has no real-tree original to copy back from.
           writeTmp(mutation.file, FIXTURES[mutation.file]);
         } else {
-          rmSync(join(TMP_ROOT, mutation.file), { force: true });
+          // A file this mutation created. `rmSync` is refused outright once the
+          // environment's safe-delete budget for the turn is spent — and a throw
+          // HERE marks the mutation failed for a reason that has nothing to do
+          // with the guard, which is how a green suite went red with ten
+          // failures that all passed on a re-run. Truncating reaches the same
+          // end (the guard sees an empty module, not a stray emitter) and is a
+          // write, so it is never refused.
+          try {
+            rmSync(join(TMP_ROOT, mutation.file), { force: true });
+          } catch {
+            writeTmp(mutation.file, '');
+          }
         }
       }
     }, 180_000);
@@ -587,5 +732,60 @@ describe('mutation harness — self-check', () => {
     expect(TMP_ROOT).not.toBe(BACKEND);
     expect(TMP_ROOT.startsWith(BACKEND)).toBe(true);
     expect(readReal('utils/notification.mjs')).toContain('escapeHtml(client.firstName)');
+  });
+
+  // R2-05 — the classifier's own counterexamples, as synthetic reports. These are
+  // the three verdicts Astra produced by extracting runGuard(), asserted here so
+  // the decision cannot silently regress.
+  const report = (assertions, totals = {}) => ({
+    numTotalTests: assertions.length,
+    numPassedTests: assertions.filter((a) => a.status === 'passed').length,
+    numFailedTests: assertions.filter((a) => a.status === 'failed').length,
+    testResults: [{ assertionResults: assertions }],
+    ...totals,
+  });
+  const passed = (name) => ({ fullName: name, status: 'passed', failureMessages: [] });
+  const failed = (name, messages) => ({ fullName: name, status: 'failed', failureMessages: messages });
+
+  it('refuses a kill with no executed, failing assertion behind it', () => {
+    // `numFailedTests: 1` over an EMPTY assertion list used to return KILLED.
+    const r = classifyReport({ numTotalTests: 26, numFailedTests: 1, testResults: [] }, '');
+    expect(r.status).toBe('INVALID');
+  });
+
+  it('refuses a baseline in which nothing actually ran', () => {
+    // 26 pending assertions — none passed, none failed — used to return SURVIVED.
+    const pending = Array.from({ length: 26 }, (_, i) => ({
+      fullName: `t${i}`,
+      status: 'pending',
+      failureMessages: [],
+    }));
+    expect(classifyReport(report(pending), '').status).toBe('INVALID');
+  });
+
+  it('does not accept a signature carried only by a PASSED assertion name', () => {
+    const r = classifyReport(
+      report([passed('the guard flags services/attrProbe.mjs'), failed('unrelated', ['boom'])]),
+      '',
+    );
+    expect(r.status).toBe('KILLED');
+    expect(r.failureText).not.toContain('attrProbe.mjs');
+  });
+
+  it('accepts a kill when the target diagnostic is in the failing assertion', () => {
+    const r = classifyReport(
+      report([passed('unrelated'), failed('the guard flags it', ['offender: services/attrProbe.mjs'])]),
+      '',
+    );
+    expect(r.status).toBe('KILLED');
+    expect(r.failureText).toContain('attrProbe.mjs');
+  });
+
+  it('reports a complete passing inventory as SURVIVED', () => {
+    expect(classifyReport(report([passed('a'), passed('b')]), '').status).toBe('SURVIVED');
+  });
+
+  it('refuses a report whose totals disagree with its assertion inventory', () => {
+    expect(classifyReport(report([passed('a')], { numTotalTests: 26 }), '').status).toBe('INVALID');
   });
 });
