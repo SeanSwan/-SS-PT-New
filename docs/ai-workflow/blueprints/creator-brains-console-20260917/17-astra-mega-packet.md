@@ -1,4 +1,4 @@
-# ASTRA MEGA BLUEPRINT CONSULT — CREATOR BRAINS CONSOLE
+# ASTRA MEGA BLUEPRINT CONSULT — CREATOR BRAINS CONSOLE — ROUND 2
 
 **Mega Blueprint**
 
@@ -6,46 +6,66 @@ You are Astra, the architecture authority for the SS-PT / SwanStudios chain, ope
 `fable-blueprint-forge` skill in Mega Blueprint mode. The keyword above is printed once; the full
 pipeline is armed.
 
-## What this packet is
+**This is ROUND 2, and it is a verification pass, not a fresh consult.** You reviewed this packet once
+already; your verdict was REVISE. The packet you are reading has been rebuilt from amended sources and
+now contains your own round-1 reply, the adjudication of record, the relocation receipt, and the
+amendment that dispositions every finding you raised. Read the delta documents first — they are placed
+at the head of this packet for that reason.
 
-The complete documentation packet for the **Creator Brains Console** — a zero-dependency Node.js
-console that drives an existing YouTube-transcript engine from Sean's Desktop. The console is
-strictly **additive** to the engine; that boundary is load-bearing.
+## What is different since round 1
 
-Repo: `Desktop/@Everything/quick-pt/SS-PT`, branch `creator-brains-engine-r2-20260915`.
-Slices **S0** (bridge, nine-route allowlist) and **S1** (Vite web scaffold, StatusBoard, adapters)
-are **SHIPPED**. S2–S7 are planned. Concept direction **CD3 "Vault Observatory"** is locked by Sean.
+1. **D7 was executed, by the owner.** You recommended overturning the console's location but expressly
+   reserved the move to Sean; he ruled, and the console now lives at
+   `packages/creator-brains-console/`. The relocation receipt (`18-d7-relocation-receipt.md`) carries
+   the per-file source manifest — including the untracked owned files — that your own A2-05 demanded.
+2. **Five findings were closed in code, each mutation-verified** (guard broken, named test observed
+   failing, guard restored): A1-09 (same-origin write gate), A1-10 (off-thread health probe),
+   A1-11 (pointer/junction containment), A1-12 (re-add consent + measured-or-null counts),
+   A1-15 (fatal UTF-8 decode).
+3. **The remaining doc-level findings were closed** — A1-03, A1-04, A1-05, A1-06, A1-07, A1-13, A1-14,
+   A1-16 — and `19-held-findings.md` records each disposition, each owner, and, in its final section,
+   **what that document does NOT establish**. Read that section before you treat any closure as proof.
 
 ## What is being asked of you
 
-1. **Adjudicate D1–D9** — the nine seed decisions in `02-blueprint.md` §5. The brief at the head of
-   this packet (`15-astra-brief.md`) states, for each: the question, the seed recommendation, the
-   evidence already recorded, and the concrete consequence of overturning it. Verdicts are
-   **ACCEPT / AMEND / OVERTURN**; every overturn must name the file it amends. Four of the nine are
-   already realised in shipped S0/S1 code, so an overturn there is a revert, not a plan amendment.
-2. **Hostile-review the existing blueprints (A1).** The packet documents are review targets, not
-   background reading. Attack contradictions between documents, diagrams that disagree with the real
-   contracts, slices whose acceptance criteria cannot be executed, decisions stated but never
-   enforced, and bans that contradict the plan. Every finding carries `file:line` or `doc#section`
+1. **Verify, do not re-report.** For each of your 16 round-1 findings, the amendment states what was
+   done and where. Test whether the claim survives contact with the artifact. A finding re-reported
+   without checking whether it was closed spends tokens to tell us what we already wrote down.
+2. **Attack the fix, not the original defect.** The recurring failure shape in this tree is *a guard
+   that is correct only under an assumption made somewhere else*. A write gate that the console's own
+   web adapter cannot satisfy is not a fix; a containment check that validates the path before
+   `realpath` is not a containment check. Look for that shape specifically, in the new code.
+3. **Fresh A1 hostile pass over the rebuilt packet.** Contradictions between documents, contracts that
+   disagree with shipped code, claims the tree no longer supports, slices whose acceptance criteria
+   cannot be executed, bans that contradict the plan. Every finding needs `file:line` or `doc#section`
    evidence plus a concrete fix.
-3. **Forge the updated package (PART B)** and then **hostile-review your own draft (A2, one pass)**.
-4. **Decision-density self-test (PART C).**
+4. **Forge the updated package (PART B)**, then **hostile-review your own draft (A2, one pass)**.
+5. **Decision-density self-test (PART C).**
 
-## Facts you must not re-derive wrongly
+## Facts you must not re-derive wrongly — CORRECTED SINCE ROUND 1
 
-- **The engine gate is RED in this working tree, and it is not the console's bug.** S1-H14:
-  `scripts/creator-brains/consistency-check.mjs:46-51` walks `scripts/creator-brains/**` for `*.mjs`
-  with no `node_modules` skip, so it collects 71 third-party files, the largest being
-  `console/web/node_modules/decimal.js/decimal.mjs` at 4914 lines. The engine suite is 181/183.
-  D7 is the decision that governs this.
+- **The engine gate is GREEN, and it is green because D7 was executed.** This contradicts what the
+  round-1 packet told you, and it is the single most important correction here. The relocation removed
+  the console's `node_modules` from the engine's `consistency-check.mjs` walk; the walk now collects
+  **85** `.mjs` files instead of 184, and the gate reports **15/15 consistent, exit 0**. No engine file
+  was modified to achieve this. **Any document in this packet that still claims the gate is red is
+  stale, and saying so is a legitimate finding** — the stale claim was in the round-1 remit itself.
+- **The console lives at `packages/creator-brains-console/`.** Paths of the form
+  `scripts/creator-brains/console/…` are historical. The packet's own historical receipts
+  (`11`, `12`, `14`, `16`, `17-astra-*`) retain the old paths **deliberately**: they are evidence of
+  what was true when they were written. Do not report those as defects; do report a *live* claim that
+  still points at the old location.
 - **The `server.mjs` 300-line cap question is CLOSED.** The bridge was split at the route-table seam
-  into `server.mjs` 244 + `routes.mjs` 131 + `api.mjs` 77 (`16` §19). Any document still listing the
-  cap call as pending is stale — and saying so is a legitimate A1 finding.
-- **`POST /api/creators` blocks the bridge's only thread** for 1577 ms with zero event-loop ticks
-  (S1-H12), because the engine's `ytdlp.mjs:184` is `execFileSync`. Unfixed; the honest fixes touch
-  the engine.
+  into `server.mjs` + `routes.mjs` + `api.mjs`. A document still listing the cap call as pending is
+  stale.
+- **`POST /api/creators` still blocks the bridge's only thread**, because the engine's `ytdlp.mjs` calls
+  `execFileSync`. Measured cold `/api/status`: ~1.7 s latency and ~1.7 s of event-loop stall. A1-10
+  moved the *probe* off-thread, which changes how often the bridge blocks, **not how long a blocking
+  call takes when it runs**. Do not read the off-thread probe as having fixed the blocking route.
 - **Never propose reading raw transcripts.** The store has three tiers; the raw-transcript tier is
   owner-private and MUST NOT be served by any surface. Derived artifacts only.
+- **The served model identity is unverifiable by construction** on this transport, and the receipt says
+  so. Do not claim a verified identity, and do not treat the absence as a defect in this packet.
 
 ## Boundaries
 
@@ -58,7 +78,7 @@ are **SHIPPED**. S2–S7 are planned. Concept direction **CD3 "Vault Observatory
 
 
 
-=== BEGIN DOCUMENT: 15-astra-brief.md — THE ADJUDICATION BRIEF (the remit — read this first) ===
+=== BEGIN DOCUMENT: 15-astra-brief.md — THE ADJUDICATION BRIEF (D1-D9, as posed in round 1) ===
 
 # 15 — Astra adjudication brief — Creator Brains Console (D1–D9)
 
@@ -361,6 +381,1565 @@ at flag-parse before reaching a provider (`09 §3`, `10 §1`).
 === END DOCUMENT: 15-astra-brief.md ===
 
 
+=== BEGIN DOCUMENT: 17-astra-adjudication.md — ROUND 1 VERDICT OF RECORD (D1-D9 verdicts + A1/A2 ledger) ===
+
+# 17 — Astra adjudication of D1–D9 (+ A1/A2 hostile passes) — Creator Brains Console
+
+- **Date:** 2026-09-20 · **Seat:** `gpt-6-astra` via the Codex subscription (`consult-astra-subscription.mjs`), **effort `high`**, Mega Blueprint mode armed
+- **Cost:** **$0 metered** — subscription transport. 666.5 s wall · 1,196,022 in / 20,637 out / 1,553 reasoning tokens
+- **Verdict:** **REVISE** — 16 A1 findings (10 high, 5 medium, 1 low) + 6 A2 self-review corrections
+- **Status of this document:** the **adjudication of record**. `15-astra-brief.md` posed the questions; this answers them. Neither supersedes the other — the brief is the input, this is the verdict.
+
+## Provenance (read this before quoting anything below)
+
+| Artifact | Path |
+|---|---|
+| Input packet (17 docs, 231,366 chars) | `17-astra-mega-packet.md` (SHA-256 `798b015c…d160`) |
+| Raw reply (1126 lines) | `17-astra-mega-reply.md` |
+| Receipt | `17-astra-mega-reply.meta.json` |
+| Split package (12 files) | `17-forged-package/` |
+| Archived hostile review | `Z:\HostileReviews\2026-09-20-004440-creator-brains-console-astra-mega-blueprint.md` |
+
+**⚠️ The served model is NOT verifiable, and the receipt says so.** `servedModel: null`,
+`identityVerified: false`. `codex exec --json` emits no model field on codex-cli 0.154.0 — measured
+event set is `thread.started`, `turn.started`, `item.completed`, `turn.completed`, and the substring
+`"model"` does not occur in the raw JSONL. The **requested** model (`gpt-6-astra`) and **requested**
+effort (`high`) are provable from the invocation; the **served** ones are not. Any later claim that
+"Astra reviewed this" rests on the invocation, not on a verified identity.
+
+**⚠️ Artifact redaction (2026-09-20, before the first commit).** Three sites in this artifact set were
+redacted: the operator's absolute home path (`C:/Users/<account>/…`) was rewritten to `~/…` in
+`00-consult-brief.md`, `17-astra-mega-reply.md`, and `17-forged-package/HOSTILE-REVIEW.md`. The
+`operator-identity` rule in `scripts/scan-secrets.sh` refuses to let that account name enter the repo,
+and all three files were **new**, so the name never reached git history. No other bytes changed — the
+raw reply is otherwise verbatim. Both files that quote the review were redacted identically, so the
+split package still matches its source.
+
+The review ran on a **read-only** checkout. **No suites, browser probes, migrations or provider calls
+were executed** — every test count in the packet remains historical evidence, un-re-verified.
+
+## 1. D1–D9 adjudication — the nine seed decisions are now CLOSED
+
+| # | Verdict | Binding result |
+|---|---|---|
+| D1 | **ACCEPT** | Raw `three`, one lazy chunk. The asserted r3f weight comparison is not established by this review and is unnecessary to the decision. |
+| D2 | **ACCEPT** | Zero-dep `node:http` bridge. Console-owned Node **workers are permitted**; npm dependencies remain web-only. |
+| D3 | **AMEND** | One polling coordinator: active **2 s**; active >10 min **5 s**; idle **5 s**; hidden **15 s**; immediate refresh on visibility return. |
+| D4 | **AMEND** | All ten menu actions stay in scope; restore/rollback/authorize stay excluded. **Backup stays visible but BLOCKED** by the privacy contradiction — not silently dropped from scope. |
+| D5 | **ACCEPT** | Closed Crystalline Swan tokens. **Gold for warning/staleness; red reserved for errors/destructive semantics.** |
+| D6 | **ACCEPT** | `.cmd` → bind loopback → open browser. No Electron. |
+| D7 | **AMEND — OWNER DECISION REQUIRED** | Astra **recommends OVERTURN** to `packages/creator-brains-console/`, but **expressly reserves the move to Sean**. Not executed. |
+| D8 | **ACCEPT** | React component + adapter prop. S7 transfers the UI, **not** an implicitly network-exposed loopback bridge. |
+| D9 | **AMEND** | Replace "`<5% visual energy`" with **numeric** motion limits. Keep static reduced-motion, one entry dolly, hidden/offscreen pause. |
+
+**Four of the nine seeds stand unchanged** (D1, D2, D5, D6, D8 — five, counting D8). **Zero verdicts
+required reverting shipped code**, which is the outcome `15-astra-brief.md` §2 was built to expose:
+the four seeds already realised in S0/S1 (D2, D4, D5, D7) were adjudicated ACCEPT, AMEND, ACCEPT,
+AMEND-owner — so no shipped artifact has to be undone.
+
+**The single most consequential verdict is D7.** `15-astra-brief.md` flagged it as the highest-value
+question in the brief, and the review agreed on the merits: keeping the console inside
+`scripts/creator-brains/` is what makes the engine's `C1` gate fail deterministically (A1-01 / S1-H14),
+and relocating to top-level `packages/` returns it to green **without touching an engine file**. The
+review also refused to execute it unilaterally, and added the constraint I would have missed: a
+relocation receipt must carry a **per-file source manifest including the untracked owned files** —
+Git alone would omit exactly the sources at issue (A2-05).
+
+## 2. Fix ledger — what was applied, and what is held
+
+| Fix | Findings | Applied? | Where |
+|---|---|---|---|
+| Close the stale 300-line cap decision | A1-02 | **yes** | `README.md` |
+| Carry the `14 §3` loading contract over the `02 §6` viewport claim | A1-02 | **yes** | `02-blueprint.md` §6 |
+| D3 polling cadence | D3 | **yes** | `02-blueprint.md` §5 |
+| D9 numeric motion limits | D9 | **yes** | `02-blueprint.md` §5, §6 |
+| D4 — Backup blocked, not removed | D4 | **yes** | `05-contracts.md` §2b |
+| D7 recorded as owner decision, not executed | D7, A1-01, A2-05 | **recorded** | this doc, §1 |
+| Corrected adapter types (null counts, brain generation, canary provenance) | A1-03 | **held** | needs a code/type pass, not a doc edit |
+| Drawer claims + channel-ID key | A1-04 | **held** | S2 implementation |
+| Run acceptance correlation (`runId: null`) | A1-05 | **held** | S4 implementation |
+| Journal lock vs external runners | A1-06 | **held** | gate S4 on a two-process test |
+| Repair returns `{repaired,built,emptied}` | A1-07 | **held** | S3 implementation |
+| Backup endpoint withheld | A1-08 | **held** | blocked by D4 |
+| Same-origin write gate (Origin + JSON media type + custom header) | A1-09 | **held** | S0/S2 — security-relevant, needs its own slice evidence |
+| Cold-cache probe to a worker | A1-10 | **held** | needs an engine-adjacent change |
+| Poisoned-pointer / junction containment probes | A1-11 | **held** | test work |
+| Re-add preserves consent | A1-12 | **held** | S2 implementation |
+| "Non-2xx" invariant narrowed to confirmed pre-write refusal | A1-13 | **held** | wording + S2 |
+| Non-live test enumeration, 375px, measurable motion, mock matrix | A1-14 | **held** | 06/03/07 test-and-wireframe pass |
+| Fatal UTF-8 decode | A1-15 | **held** | code change |
+| Attribution + cost-claim reconciliation | A1-16 | **held** | README/10/12 |
+
+**Honest summary: 5 of 16 findings are closed in this pass; 11 are held with named owners.** The held
+set is held for a real reason, not for convenience — each needs either a code change with its own test
+evidence, a slice that has not been built yet (S2/S3/S4), or Sean's decision (A1-08 → D4). Applying
+them as doc edits would produce documentation that describes behaviour the code does not have, which is
+the defect class A1-02 and A1-13 are *about*.
+
+## 3. What this review did NOT establish
+
+Runtime exploitability of A1-09/A1-11 · fresh suite outcomes · real GPU performance (S5) · launcher
+behaviour after relocation (waits on D7) · production-shaped browser completion · and the served model
+identity. **"Unopened" is not "clean".**
+
+## 4. Consequences for the slice plan
+
+- **S2–S4 are not blocked by this adjudication.** D1–D9 are now decided, which was the last open
+  gate; `08` §"Unresolved decisions" items 1 and 2 are both closed (CD3 on 2026-09-17, D-Astra here).
+- **S4 gains a new entry criterion** from A1-06: a two-process journal-preservation test, because a
+  console-held mutex cannot protect a journal that external CLI runs also write.
+- **S3 gains A1-07**: repair's contract is `{repaired, built, emptied}`, not `{requeued}`.
+- **S0/S2 gain A1-09** as a security-relevant gate: Host checking defends DNS rebinding, not CSRF.
+- **D7 remains the one decision that can change the repo's shape.** Until Sean rules, every
+  "engine unchanged" claim in this tree stays unverifiable, because `C1` is red for a reason the
+  packet's own rules created.
+
+=== END DOCUMENT: 17-astra-adjudication.md ===
+
+
+=== BEGIN DOCUMENT: 17-astra-mega-reply.md — ROUND 1 RAW REPLY (your own prior findings, incl. the A2 self-review) ===
+
+# Astra Reply — subscription transport — 2026-09-20T07:43:49.886Z
+
+**Provider:** openai-codex
+**Billing:** chatgpt-subscription
+**Authentication:** chatgpt_subscription
+**Transport:** codex-cli
+**Requested model:** gpt-6-astra
+**Served model:** NOT OBSERVABLE on codex-cli (see SERVED_MODEL_UNVERIFIABLE_NOTE)
+**Reasoning effort:** high
+**Tokens:** in=1196022 out=20637 reasoning=1553
+**Packet:** `docs/ai-workflow/blueprints/creator-brains-console-20260917/17-astra-mega-packet.md`
+**Wall:** 666.5s
+**Mega Blueprint:** ARMED (operator flag)
+
+> Marginal cost $0 — this leg rides the ChatGPT subscription, not OpenRouter.
+
+---
+Mega Blueprints. I’ll check the forge instructions and prior review archive, then return the adjudication and updated nine-document package. This session is read-only, so I can emit the artifacts here but cannot file the review in `Z:\HostileReviews`.
+
+I’m using `fable-blueprint-forge`, `non-vibe-coding`, and the archive protocol. The packet has conflicting contracts: creator counts became nullable without updating the main contract, run completion is tied to an unspecified journal field, and the README still lists the resolved line-cap decision as open. I’m checking the relevant engine interfaces before fixing those in the package.
+
+Two more gaps affect the remaining slices: `brainDoc()` always returns `claims: []`, and the engine publishes brains under channel IDs, despite the plan calling them slugs. Repair also returns an exit code after a pipeline run—not the promised `{requeued}` result. I’ll correct those contracts. I’ll recommend moving the console to `packages/creator-brains-console/`, while keeping that relocation pending Sean’s D7 decision.
+
+The updated plan has a possible additive fix for the add freeze: resolve the channel in a console-owned worker, then pass the result synchronously into the engine’s existing `addCreator` hook. That avoids moving registry writes into the worker.
+
+I’m also keeping backup blocked: the engine backup copies private transcripts, which conflicts with the packet’s absolute ban on exporting them through the console. That needs an explicit boundary decision.
+
+## PART A — HOSTILE REVIEW
+
+**Verdict: REVISE.** The package below corrects the planning defects; it does not certify the implementation or authorize engine changes.
+
+[VERIFIED] Inspected checkout: `creator-brains-engine-r2-20260915`, HEAD `6065985dd5b20045360f0fa0b97ff98edd4b6cae`, dirty shared tree. The console and packet directories are untracked. The on-disk input packet SHA-256 is `798b015cf2e8d483dcd42b118367be0b2b6281b5ed91d61b5779a4206a72d160`.
+
+[VERIFIED] Archive query returned one unrelated Aftertaste review whose scope expressly excludes the Creator Brains engine. Supplied historical console reviews were considered. No suites, browser probes, migrations, or provider calls were run in this pass. Historical test counts below remain historical evidence.
+
+**A1 — Existing-package findings**
+
+Evidence paths beginning `console/` resolve under `scripts/creator-brains/`. Numbered document references identify the supplied packet documents.
+
+| ID | Severity / confidence | Finding and evidence | Concrete correction |
+|---|---|---|---|
+| A1-01 | High [VERIFIED] | **The permitted installation layout breaks the additive gate.** `01-requirements.md#Business rules`, item 4 permits dependencies beneath the engine; `16-s1-hostile-review.md#S1-H14` records the engine walker collecting them. | Recommend D7 relocation outside the engine tree. Require Sean’s location decision, byte preservation, import/launcher repairs, and fresh engine results. Do not claim relocation fixes the independent HR14f failure. |
+| A1-02 | Medium [VERIFIED] | **Readiness and pending decisions contradict later receipts.** `README.md#Sean decisions pending` retains the 300-line decision; `16#19` closes it. `07-traceability.md` labels everything PLANNED; `14#4` records S1 implementation. `02#6` retains viewport-triggered loading despite `14#3`. | Replace present-tense status with the state ledger below; preserve historical receipts unchanged. Close the cap decision and CD3 choice. Carry the later loading contract forward. |
+| A1-03 | High [VERIFIED] | **The canonical adapter contract lost implementation corrections.** `05-contracts.md#1` declares numeric creator counts, omits brain generation, and narrows canary provenance. Actual `console/web/src/adapters/types.ts#CreatorRow` permits null counts; `console/lib/health.mjs#healthReading` permits unknown provenance and null timestamps. | Publish corrected types, validate every newly consumed response, and prohibit fabricated zero counts. |
+| A1-04 | High [VERIFIED] | **The drawer has no claims and its identifier is misdescribed.** `console/lib/brains.mjs:135` returns `claims: []`. `lib/render.mjs:13`, `:89`, and `:147–149` establish channel-ID namespaces. `03-wireframes.md#Brain drawer` promises claims; `05#1` calls the identifier a slug. | Use channel ID as the public brain key. Implement claims from the same pinned published generation as the markdown. Add a nonempty production-shaped fixture and mixed-generation test. |
+| A1-05 | High [VERIFIED] | **Run acceptance and completion lack executable correlation.** `05#2b` promises immediate `{runId}` from spawning `run-daily.mjs`; that script does not accept a caller-provided run ID. `04-flows.md#F1` checks journal `ok`, while `lib/store.mjs:254` writes `completed` or `failed`. | Return a console request ID with `runId:null` at acceptance. Correlate the child PID to an engine journal, then use the corresponding engine run record. Never interpret process exit or lock disappearance as success. |
+| A1-06 | High [VERIFIED] | **A console mutex cannot protect the shared journal from external runners.** `lib/run.mjs:107` writes the journal before attempting the engine lock at `:154`. `09#H1` calls the lock a sufficient backstop. | Gate S4 on a two-process journal-preservation test. If it fails, hand the defect to the engine owner; no console patch to engine files. |
+| A1-07 | High [VERIFIED] | **Repair is not the documented operation.** `run-commands.mjs:156–163` runs reconciliation, build, and export, then returns an exit code. It does not return `{requeued}`. `05#2b` and T-B10 assume otherwise. | Invoke the same `runDaily` configuration through a console wrapper and return a projected engine result with `repaired`, `built`, and `emptied`; share the run-operation exclusion gate. |
+| A1-08 | High [VERIFIED] | **Backup contradicts the strongest privacy invariant.** `01#Business rules`, item 1 bans exporting raw transcript JSON through any console surface. `backup-command.mjs:46–59` copies the durable set, including transcripts. Optional browser-supplied `dest` has no containment contract. | Keep Backup visible but blocked, with no endpoint, until Sean explicitly decides whether an engine-only private backup is an allowed exception. Never substitute a derived-only copy and call it a full backup. |
+| A1-09 | High [VERIFIED source; LIKELY browser exploit] | **Host validation does not specify cross-origin write protection.** `console/server.mjs:97–130` checks Host; `console/lib/http.mjs:151–162` parses bodies without an Origin or JSON media-type gate. The packet equates loopback plus Host checking with the complete trust boundary. | Require same-origin browser writes, JSON media type, and a fixed custom request header; retain no CORS permission. Test a foreign page sending a simple `text/plain` request to the loopback URL. |
+| A1-10 | Medium [VERIFIED] | **Caching reduces blocking frequency, not blocking duration.** `console/lib/health.mjs:122` still calls `probe()` synchronously. `13#3.5` declares the blocking class closed; `16#14` acknowledges cold-cache stalls. | Measure cold and expired-cache behavior separately from warm p95. Move the probe to a console-owned worker while retaining TTL, history, and provenance semantics. |
+| A1-11 | High [VERIFIED omission; HYPOTHESIS until tested] | **Containment evidence does not cover poisoned pointers or filesystem links.** `console/lib/brains.mjs:106–121` joins the pointer’s generation into a path; `lib/render.mjs:58–59` reads a pointer without validating its namespace. Supplied probes mostly use nonexistent hostile names. | Validate channel ID, generation component, canonical containment, and link policy before reading. Test an existing malicious pointer and a junction/symlink escape, with a positive published-brain control. |
+| A1-12 | Medium [VERIFIED] | **Re-adding is incorrectly documented as always disabled.** `lib/registry.mjs:91–94` expressly preserves existing consent; `console/lib/creators.mjs#addCreatorRow` returns zero counts regardless of existing state. | New creators start disabled; existing creators retain enabled state. Return measured or null counts. Test re-add of an enabled creator with fetched videos. |
+| A1-13 | High [VERIFIED] | **“Non-2xx means nothing changed” is too broad.** `16#S1-H9` correctly prohibits a post-write application refusal, but cannot prove no mutation after a lost response or unexpected failure. | Separate confirmed pre-write refusal from uncertain outcome. Never automatically retry a mutation after timeout/disconnect; reconcile with authoritative reads. |
+| A1-14 | Medium [VERIFIED] | **Tests and visual contracts leave material gaps.** `06#Commands` uses a glob that does not actually exclude `live.test.mjs`; `03` has 414px but no 375px drawing; `<5% visual energy` is not measurable; `07` claims almost no mocks despite fake fetch/WebGL/browser stubs. | Explicitly enumerate non-live tests. Supply 375px layouts, measurable motion limits, and a boundary-specific evidence matrix. |
+| A1-15 | Medium [VERIFIED] | **Malformed UTF-8 coverage overclaims its guarantee.** `console/lib/http.mjs:162` decodes with replacement characters before JSON parsing. `16#17` assumes replacement necessarily makes JSON invalid; replacement inside a quoted string need not do so. | Decode with fatal UTF-8 validation. Add invalid bytes inside a JSON string, not only outside JSON syntax. |
+| A1-16 | Low [VERIFIED] | **Attribution and cost claims disagree inside the packet.** `12#Attribution` corrects the alleged HY4 attribution; README still certifies HY4. `10#1` says approximately 75k tokens while `10#3` estimates 16–20k. | Preserve receipts, mark served identity unverified where appropriate, and remove predictive subscription-usage claims. This review makes no claim about remaining allowance. |
+
+**D1–D9 adjudication**
+
+| Decision | Verdict | Binding result |
+|---|---|---|
+| D1 | **ACCEPT** | Raw `three`, one lazy chunk. The asserted r3f weight comparison is not established by this review and is unnecessary to the decision. |
+| D2 | **ACCEPT** | Zero-dependency `node:http` bridge. Console-owned Node workers are permitted; npm dependencies remain web-only. |
+| D3 | **AMEND** | One polling coordinator: active 2 seconds, active beyond 10 minutes 5 seconds, idle 5 seconds, hidden 15 seconds; immediate refresh on visibility return. Amend `02#5`, `08#S4`, and polling contracts. |
+| D4 | **AMEND** | All ten menu actions remain product scope. Restore/rollback/authorize remain excluded. Backup remains blocked by the unresolved privacy contradiction, not silently removed from scope. Amend `01#R8`, `05#2b`, `08#S3`. |
+| D5 | **ACCEPT** | Closed Crystalline Swan tokens. Warning/staleness uses gold; red is reserved for errors/destructive semantics. |
+| D6 | **ACCEPT** | `.cmd` → bind loopback → open browser. No Electron. |
+| D7 | **AMEND — owner decision required** | Recommend **OVERTURN to `packages/creator-brains-console/`**, but do not execute the move without Sean’s decision expressly reserved in `15#3-D7`. Amend `02#2`, `05#1`, `08#S0–S6`, launcher, import roots, source walker, README pointer, and direct-entry detection. S0/S1 re-enter relocation verification. |
+| D8 | **ACCEPT** | React component plus adapter prop. S7 transfers UI, not an implicitly network-exposed loopback bridge. |
+| D9 | **AMEND** | Replace “<5% visual energy” with numeric motion limits below. Preserve static reduced-motion, one entry dolly, and hidden/offscreen pause. Amend `02#5–6`, motion contract, T-T2/T-E3. |
+
+**A2 — One review of the draft package**
+
+These draft defects were found and corrected in the emitted Part B.
+
+| ID | Draft defect | Correction reflected below |
+|---|---|---|
+| A2-01 | Moving the whole `addCreator` operation to a worker would extend the registry read/write race. | Worker resolves only. Parent calls engine `addCreator` afterward with a synchronous resolved-value hook, so the engine re-reads the registry at commit time. |
+| A2-02 | Reading drawer claims through a second `loadHits()` call could observe a newer pointer than the markdown. | Pin one pointer and generation; read all four allowlisted derived files from that generation. |
+| A2-03 | A request ID could be mistaken for an engine run ID after bridge restart. | Separate identifiers, make launch metadata ephemeral, and show uncertainty after restart unless engine evidence establishes identity. |
+| A2-04 | Proposed cancellation could imply rollback of an already dispatched write. | Cancel closes only an unsubmitted form. Submitted mutations continue; disconnect means uncertain outcome, never cancellation success. |
+| A2-05 | A relocation receipt based only on Git would omit these untracked sources. | Require a per-file source manifest and verified preserved copy, including untracked owned files. |
+| A2-06 | A cold health worker failure could be displayed as healthy history without saying the current probe failed. | Require provenance, age, and failure note together; cached history never establishes current health. |
+
+[UNKNOWN] Runtime exploitability, fresh suite outcomes, real GPU performance, launcher behavior after relocation, archive filing, and production-shaped browser completion remain unproven.
+
+**Filing limitation:** [VERIFIED] This session is read-only. The [archive skill](~/Desktop/@Everything/quick-pt/SS-PT/.claude/skills/hostile-review-archive/SKILL.md) requires: “Every hostile-review pass leaves exactly one file in `Z:\HostileReviews`.” This response is therefore **unfiled review output**, not an archive-complete review. No source document or historical review was overwritten.
+
+## PART B — FORGED PACKAGE
+
+### 00-README.md
+
+**Creator Brains Console — adjudicated revision, 2026-09-20**
+
+Owner: Sean. Architect: Astra. Status: **FORGED DRAFT; implementation advancement blocked by the gates below.**
+
+This revision supplies the updated governing documents for the existing packet. It supersedes contradictory planning statements, not historical observations. Installation into the canonical packet requires preserved source hashes, a supersession map, and archive filing.
+
+**Builder contract**
+
+Follow decided behavior exactly. Build one slice at a time. Return the scoped diff and actual acceptance evidence at each checkpoint. Missing evidence is NOT RUN or BLOCKED. Do not infer authorization for engine edits, relocation, transfer, paid review, production writes, or pushing.
+
+**Current state**
+
+| Surface | State |
+|---|---|
+| S0/S1 source | [VERIFIED] Present in the inspected untracked console directory. |
+| Bridge 105 tests / web 48 tests | [VERIFIED] Reported by supplied receipts; **not rerun here**. |
+| Engine 181/183 | [VERIFIED] Reported by `16#S1-H14`; current result **NOT RUN**. |
+| Server split | [VERIFIED] `server.mjs` and `routes.mjs` exist; cap decision closed. |
+| S2–S6 | Planned; no completion claim. |
+| S7 | Gated on Sean’s explicit transfer instruction. |
+| CD3 | Locked. |
+| D7 relocation | Recommended; owner decision pending. |
+| Backup | Blocked by transcript-export policy conflict. |
+
+**Path vocabulary**
+
+- `E = scripts/creator-brains`
+- `C = scripts/creator-brains/console` until D7 is decided.
+- If relocation is approved, `C = packages/creator-brains-console`.
+- `W = C/web`
+- Store root is explicit `r`, otherwise `CREATOR_BRAINS_ROOT`, otherwise the engine default. Relocation must not change that resolution.
+- `C`/`W` are documentation abbreviations, not new environment variables.
+
+**Requirements and traceability**
+
+| Requirement | Acceptance | Component / tests | Slice |
+|---|---|---|---|
+| R1 | Desktop launch renders in ≤15s; binds `127.0.0.1`, port 0 | launcher/server; T-E1, T-MOVE | S0R/S6 |
+| R2 | All existing status instruments remain visible and authoritative | StatusBoard; T-B1/W3/W10/W11 | S1R |
+| R3 | Damage names the file; unknown values never become zero | validators/refusals; T-B2/B17/B19, T-W3 | Every consumer |
+| R4 | New creator disabled; re-add preserves consent; explicit toggles persist | roster/resolver; T-B3/B19, T-ADD, T-W4 | S2 |
+| R5 | Cited hits, named searched terms, visible skipped rows | QueryConsole; T-B9/W5 | S3a |
+| R6 | One pinned published generation; real claims; no raw transcripts | BrainDrawer; T-B8/B22, T-BRAIN | S2 |
+| R7 | Validated budget; correlated launch; honest terminal result | RunConsole; T-B4/B5, T-RUN/W6 | S4 |
+| R8 | Canary and repair report actual results; backup withheld until resolved | OpsRail; T-OPS | S3 |
+| R9 | No dangerous command endpoint | route allowlist; T-B6/B13 | Every slice |
+| R10 | Registry-driven constellation, accessible equivalent, zero prohibited loading | scene; T-T1/T-T2/W7/E3 | S5 |
+| R11 | Closed tokens, all states, 44px targets, required contrast | all panels; T-W8/W9 | Every UI slice |
+| R12 | UI uses adapter only; consumed payloads validated | adapters; T-W1/W2, T-CONTRACT | Every slice |
+| R13 | Node-only bridge; loopback, write-origin, body and path boundaries | server/workers; T-B7/B18/B23/B24, T-SEC | S0R/S1R |
+| R14 | Eleven widths, including 375px, without lost controls or clipped content | layout; T-E2 | S6 |
+| R15 | Verified source snapshot before separately authorized transfer | snapshot; T-B12 | S7 |
+| R16 | Complete keyboard route, focus restoration, accessible enhancement | DOM controls; T-W9/W7 | S2–S6 |
+
+No runtime tests were executed for this revision. New named tests are implementation deliverables, not retroactive PASS claims.
+
+**Applicability**
+
+Requirements, architecture, wireframes, flows, sequences, state machines, contracts, privacy matrix, tests, traceability, rollback, and checkpoints apply. SQL migrations and Sequelize definitions are **N/A — no database tables are created or modified**. Diagram rendering and browser inspection are NOT RUN.
+
+### 01-architecture.md
+
+**Ownership**
+
+The bridge owns HTTP validation, process lifecycle, bounded workers, launch metadata, and response projection. Engine functions own engine mutations. Web components own presentation and ephemeral state. The engine store remains authoritative.
+
+Canonical mount evidence: `W/src/main.tsx:15–19` renders `<App/>`; `App.tsx#App` currently mounts StatusBoard. Future panels mount there. `C/server.mjs#createBridge` gates and dispatches to `C/routes.mjs#dispatch`; there is no Express or production-backend route in this product.
+
+**User and subsystem flows**
+
+```mermaid
+flowchart TD
+  Desktop["Desktop launcher"] --> Bind["Claim console instance; bind loopback"]
+  Bind --> Browser["Open browser after listen"]
+  Browser --> Shell["App: status, roster, query, run, operations"]
+  Shell --> Read["Adapter read"]
+  Read --> Gates["Host gate; URL validation"]
+  Gates --> Engine["Engine read functions"]
+  Engine --> Truth{"Readable?"}
+  Truth -->|Yes| Panels["Render measured data and provenance"]
+  Truth -->|Partial| Partial["Keep independent instruments; name damage"]
+  Truth -->|No| Refuse["Named refusal; Retry"]
+  Shell --> Form["Mutation form"]
+  Form --> Validate{"Valid and permitted?"}
+  Validate -->|No| Explain["Inline validation or blocked explanation"]
+  Validate -->|Cancel before submit| Shell
+  Validate -->|Yes| WriteGates["Host; Origin; JSON; custom header"]
+  WriteGates --> Work["Console worker or engine setter"]
+  Work -->|Confirmed result| Refresh["Re-read affected instruments"]
+  Work -->|Response lost| Unknown["Outcome unknown; reconcile; no automatic retry"]
+  Refuse --> Read
+  Refresh --> Panels
+  Panels --> Scene["Eligible idle enhancement"]
+  Scene --> Drawer["Same drawer as roster"]
+  Shell --> Stop["Close bridge"]
+  Stop --> Preserve["Store retained; CLI remains available"]
+```
+
+**API interactions**
+
+Every route has its own sequence below. Common refusal branches: Host →403; malformed input →400; unavailable route →404; store damage →409 where the route is not composite; engine pre-write refusal →422. Transport failure leaves mutation outcome uncertain.
+
+```mermaid
+sequenceDiagram
+  participant U as StatusBoard
+  participant B as Bridge
+  participant E as Engine
+  U->>B: GET /api/status
+  B->>E: Compose independent instruments
+  E-->>B: Values plus damage/provenance
+  B-->>U: 200 StatusInstrument
+```
+
+```mermaid
+sequenceDiagram
+  participant U as CreatorRoster
+  participant B as Bridge
+  participant E as Engine
+  U->>B: GET /api/creators
+  B->>E: listCreatorsSafe + readState
+  E-->>B: Catalog and counts or damage
+  B-->>U: 200 CreatorRow[] or 409
+```
+
+```mermaid
+sequenceDiagram
+  participant U as AddCreatorForm
+  participant B as Bridge
+  participant W as ResolverWorker
+  participant E as Engine
+  U->>B: POST /api/creators {ref}
+  B->>W: Validate ref; defaultResolveCreator(url)
+  W-->>B: Resolved channel or refusal
+  B->>E: addCreator with synchronous resolved-value hook
+  Note over E: Re-read registry now; preserve existing consent
+  E-->>B: Persisted creator
+  B-->>U: 201 CreatorRow with measured or null counts
+  U->>B: GET /api/creators
+```
+
+```mermaid
+sequenceDiagram
+  participant U as CreatorRoster
+  participant B as Bridge
+  participant E as Engine
+  U->>B: PATCH /api/creators/:channelId {enabled}
+  B->>E: setEnabled
+  E-->>B: Persisted creator
+  B-->>U: 200 CreatorRow
+  Note over U: Failed refresh does not undo confirmed write
+```
+
+```mermaid
+sequenceDiagram
+  participant U as QueryConsole
+  participant B as Bridge
+  participant E as Engine
+  U->>B: GET /api/query?q=...&creator=channelId
+  B->>E: queryBrains
+  E-->>B: Derived hits and skipped rows
+  B-->>U: 200 QueryResult
+```
+
+```mermaid
+sequenceDiagram
+  participant U as BrainDrawer
+  participant B as Bridge
+  participant P as PublishedGeneration
+  U->>B: GET /api/brains/:channelId
+  B->>P: Validate and pin current.json once
+  B->>P: Read index, topics, timeline, rules from pinned generation
+  P-->>B: Derived content plus missing/malformed reports
+  B-->>U: 200 BrainDoc or named refusal
+```
+
+```mermaid
+sequenceDiagram
+  participant U as RunConsole
+  participant B as Bridge
+  participant E as Engine
+  U->>B: GET /api/run
+  B->>E: Journal, lock, budget, throttle, run records
+  E-->>B: Authoritative observations
+  B-->>U: 200 RunState plus console launch metadata
+```
+
+```mermaid
+sequenceDiagram
+  participant U as StatusConsumer
+  participant B as Bridge
+  participant E as Engine
+  U->>B: GET /api/backlog
+  B->>E: backlogReport and formatBacklog
+  E-->>B: Projection or state damage
+  B-->>U: 200 lines or 409 STORE_DAMAGED
+```
+
+```mermaid
+sequenceDiagram
+  participant U as OpsRail
+  participant B as Bridge
+  participant W as HealthWorker
+  U->>B: GET /api/canary
+  alt TTL valid
+    B-->>U: Cached reading with age and source
+  else TTL expired
+    B->>W: One selfCheck refresh
+    W-->>B: Probe result
+    B-->>U: Resolved probe/history reading with provenance
+  end
+```
+
+```mermaid
+sequenceDiagram
+  participant U as RunConsole
+  participant B as Bridge
+  participant C as DailyChild
+  participant E as EngineStore
+  U->>B: POST /api/run/daily {perHour}
+  B->>B: Validate; claim operation slot; check lock
+  B->>C: Spawn fixed run-daily.mjs path
+  B-->>U: 202 {requestId,runId:null}
+  C->>E: Engine journal, lock and run
+  U->>B: GET /api/run
+  B->>E: Read journal and matching run record
+  B-->>U: Launch correlation and engine verdict
+```
+
+```mermaid
+sequenceDiagram
+  participant U as OpsRail
+  participant B as Bridge
+  participant W as RepairWorker
+  U->>B: POST /api/repair {}
+  B->>B: Shared operation-slot and lock checks
+  B->>W: runDaily only reconcile/build/export
+  W-->>B: Engine run record
+  B-->>U: 200 RepairResult or named refusal
+```
+
+```mermaid
+sequenceDiagram
+  participant U as OpsRail
+  participant B as Bridge
+  U->>U: Backup remains disabled; explain privacy gate
+  Note over U,B: No backup request is sent
+  U->>B: Direct POST /api/backup before authorized slice
+  B-->>U: 404 NOT_FOUND
+```
+
+**State machines**
+
+```mermaid
+stateDiagram-v2
+  [*] --> Loading
+  Loading --> Ready: validated read
+  Loading --> Refused: damage or invalid payload
+  Ready --> Stale: timeout or transport failure
+  Stale --> Ready: validated newer read
+  Stale --> Refused: confirmed damage
+  Refused --> Loading: Retry
+  Ready --> Fault: render exception
+  Fault --> Loading: explicit Reload
+```
+
+```mermaid
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Starting: accepted launch
+  Starting --> Running: child-correlated journal
+  Starting --> Unknown: exit without correlated evidence
+  Running --> Completed: matching terminal successful record
+  Running --> Failed: matching terminal failed record
+  Running --> Interrupted: child gone and no terminal result
+  Running --> Unknown: journal replaced or unreadable
+  Unknown --> Running: correlation re-established
+  Unknown --> Completed: matching terminal record found
+  Unknown --> Failed: matching terminal record found
+  Completed --> Idle: next explicit action
+  Failed --> Idle: explicit retry after reconciliation
+```
+
+**Data model**
+
+SQL ERD: **N/A — no relational schema or migration**. This diagram documents exact **transport fields**, not invented database columns:
+
+```mermaid
+erDiagram
+  CreatorRow {
+    string channelId PK
+    string title
+    boolean enabled
+    number_or_null videos
+    number_or_null fetched
+  }
+  BrainDoc {
+    string slug PK
+    string generation
+    string title
+    string index
+    string topics
+    string timeline
+  }
+  QueryHit {
+    string claimId PK
+    string creatorId FK
+    string creatorTitle
+    string videoId
+    number tStartMs
+    string keyPhrase
+    string watchUrl
+  }
+  CreatorRow ||--o| BrainDoc : "channelId equals slug"
+  BrainDoc ||--o{ QueryHit : "claims from pinned generation"
+```
+
+**Concurrency and recovery**
+
+- Resolve creator references in a worker; never perform registry writes there.
+- Maximum one add-resolution job; second request receives `409 OPERATION_BUSY`.
+- Daily and repair share one console operation slot. Engine lock remains required.
+- External CLI/scheduler concurrency is a real boundary. A preflight check is not an atomic lock.
+- S4 is blocked until the journal/lock race test passes or the engine owner supplies a reviewed correction.
+- Browser disconnect does not cancel committed work. No automatic mutation retry.
+- Stop/restart does not restore data. Application rollback preserves the store.
+
+### 02-wireframes.md
+
+**Exact presentation tokens**
+
+| Role | Required value |
+|---|---|
+| Page | `var(--bg-base, #030712)` |
+| Panel | `var(--carbon, #141419)` |
+| Drawer | `var(--graphite, #1A1A24)` |
+| Elevated panel | `var(--royal-depth, #003080)` |
+| Main text | `var(--frost-white, #E0ECF4)` |
+| Primary button | `var(--midnight-sapphire, #002060)` |
+| Focus/glow | `var(--wing-purple, #8B5CF6)` |
+| Success/enabled | `var(--ice-wing, #60C0F0)` |
+| Warning/stale | `var(--gilded-fern, #C6A84B)` |
+| Disabled-state marker | `var(--swan-lavender, #4070C0)` |
+| Error accent | `var(--danger, #E5484D)` |
+| Data graphics only | `var(--arctic-cyan, #50A0F0)` |
+
+Text remains Frost White; state color accompanies text, never replaces it. Do not use faint text for required content. Tokens do not substitute for measured contrast.
+
+**Desktop — 1440×900**
+
+```text
++------------------------------------------------------------------------+
+| Creator Brains Console                         Last checked: {time}      |
+| {global warning/refusal, only when applicable}                           |
++-----------------------------+------------------------------------------+
+| BRAINS                      | STATUS                                   |
+|                             | yt-dlp | Creators | Coverage | Budget     |
+| {static preview or scene}   | Backlog | Throttle | Census | Lock        |
+|                             | Last run | Last good | Documents          |
+| [View creators]             | Published brains | Recent runs            |
+|                             +------------------------------------------+
+|                             | CREATORS                    [Add creator] |
+|                             | {title}  Enabled  {fetched}/{videos}       |
+|                             | [Open brain] [Disable]                    |
+|                             +------------------------------------------+
+|                             | ASK THE BRAINS                            |
+|                             | Search terms [________________________]    |
+|                             | Creator [All creators v]          [Ask]  |
+|                             | {results / state frame}                   |
+|                             +------------------------------------------+
+|                             | RUN THE DAILY PASS                        |
+|                             | Operations per hour [20]       [Run pass]|
+|                             | {journal, budget, throttle, lock}         |
+|                             +------------------------------------------+
+|                             | OPERATIONS                               |
+|                             | [Check canary] [Repair] [Backup disabled] |
+|                             | Restore T4 / Rollback T4 / Authorize T3   |
+|                             | CLI only                                  |
++-----------------------------+------------------------------------------+
+```
+
+At widths ≥1280px, constellation/deck use 40%/60%; deck minimum 640px. At 768–1279px, the enhancement sits above the deck. At ≤767px, no three.js download; show the compact static representation.
+
+**Mobile — 375×812; same structure applies at 320px and 414px**
+
+```text
++-----------------------------------+
+| Creator Brains Console             |
+| Last checked: {time}               |
+| {warning/refusal}                  |
++-----------------------------------+
+| BRAINS                            |
+| [static preview, 96px high]        |
+| [View creators]                   |
++-----------------------------------+
+| STATUS                            |
+| {label}                           |
+| {value or named refusal}          |
+| ... all instruments, stacked      |
++-----------------------------------+
+| CREATORS              [Add creator]|
+| {title, wraps}                    |
+| Enabled | {fetched}/{videos}       |
+| [Open brain]          [Disable]    |
++-----------------------------------+
+| ASK THE BRAINS                    |
+| Search terms                      |
+| [_______________________________] |
+| Creator [All creators          v] |
+| [Ask]                             |
+| {results / state frame}           |
++-----------------------------------+
+| RUN THE DAILY PASS                |
+| Operations per hour               |
+| [20]                   [Run pass] |
+| {run state}                       |
++-----------------------------------+
+| OPERATIONS                        |
+| [Check canary] [Repair]            |
+| [Backup disabled]                 |
+| {blocked explanation}             |
+| Restore T4 — CLI only             |
+| Rollback T4 — CLI only            |
+| Authorize T3 — CLI only           |
++-----------------------------------+
+```
+
+No mobile-only action menu or hidden tab is introduced. All working surfaces remain reachable by scrolling.
+
+**Add form — desktop dialog / mobile full-width sheet**
+
+```text
+Desktop 560px                          Mobile 375px
++--------------------------------+    +-------------------------------+
+| Add creator              [Close]|    | Add creator            [Close]|
+| Handle, channel URL, or ID      |    | Handle, channel URL, or ID    |
+| [____________________________] |    | [___________________________] |
+| New creators start disabled.   |    | New creators start disabled.  |
+| {validation / progress}        |    | {validation / progress}       |
+| [Cancel]          [Add creator]|    | [Cancel]        [Add creator]|
++--------------------------------+    +-------------------------------+
+```
+
+During submission: “Resolving creator…”. Disable another submission. Close remains available, with “This request continues if you close this form.” No cancellation claim after dispatch.
+
+**Brain drawer — desktop 640px / mobile full-screen**
+
+```text
++---------------------------------------------------+
+| {creator title}                           [Close] |
+| {channelId}                                      |
+| Published generation: {generation}                |
+| [Index] [Topics] [Timeline] [Claims]               |
+| {state frame or derived document}                 |
+|                                                   |
+| Claims:                                           |
+| {keyPhrase}                                       |
+| {creatorTitle} · {timestamp}          [Watch video]|
+| {N} items could not be read                       |
+| [Show details]                                    |
++---------------------------------------------------+
+```
+
+Mobile tabs wrap into two rows; they do not horizontally clip. Markdown is displayed as escaped plain text with preserved line breaks in v1. No HTML, embedded media, remote images, or raw HTML rendering.
+
+**Query results**
+
+```text
++---------------------------------------------------+
+| Results for “{submitted terms}”                    |
+| {keyPhrase}                                       |
+| {creatorTitle} · {timestamp}          [Watch video]|
+| {N} items could not be searched                    |
+| [Show details]                                    |
++---------------------------------------------------+
+```
+
+Use submitted terms, not the current unsubmitted input. Watch links use `rel="noopener noreferrer"` and a validated YouTube URL.
+
+**Reusable state frames — drawn inside every panel on both widths**
+
+```text
+LOADING                 EMPTY
++-------------------+   +------------------------------------+
+| {loading copy}    |   | {panel-specific empty copy}        |
+| [static skeleton]|   | {permitted CTA}                    |
++-------------------+   +------------------------------------+
+
+PARTIAL / STALE                    ERROR / DENIED
++------------------------------+  +------------------------------------+
+| {last confirmed content}     |  | {file/reason or lock holder}       |
+| {partial/stale copy}         |  | {Retry or appropriate next action} |
+| [Show details]               |  |                                    |
++------------------------------+  +------------------------------------+
+
+SUCCESS / VALIDATION
++----------------------------------------------------------+
+| {authoritative content or inline validation below input}  |
+| {enabled action controls appropriate to this state}       |
++----------------------------------------------------------+
+```
+
+**Exact state copy**
+
+| Surface | Loading | Empty | Partial/stale/error |
+|---|---|---|---|
+| Status | “Reading engine status…” | “No creators yet — add your first creator.” | “Unable to read {file}.” / “Showing the last confirmed reading from {time}.” |
+| Roster | “Loading creators…” | “No creators yet — add one.” | “Counts unavailable.” / “Creator change confirmed. Roster refresh failed.” |
+| Drawer | “Loading published brain…” | “No published brain for this creator.” | “{N} items could not be read.” |
+| Query | “Searching published brains…” | “No matching claims for “{terms}”.” | “{N} items could not be searched.” |
+| Run | “Reading run state…” | “The daily pass has not run yet.” | “Run outcome unknown. Check engine records before retrying.” |
+| Canary | “Checking yt-dlp…” | “No recorded canary result.” | “Live probe failed. Showing a recorded result from {time}.” |
+| Repair | “Repair is running…” | “No repair has been requested.” | “Repair outcome unknown. Check engine records before retrying.” |
+| Backup | N/A: no request | N/A: blocked action | “Backup is unavailable until the private-backup boundary is approved.” |
+| Constellation | “Brain overview is loading…” | “No creators yet — add your first creator.” | “Interactive view unavailable. Use the creator list.” |
+
+Run states use “Starting…”, “Running”, “Completed”, “Failed”, “Interrupted”, and “Outcome unknown”. Lock refusal: “Another run owns this store: PID {pid}, host {host}.” Missing holder fields render “unknown”, not invented identifiers.
+
+Validation copy: “Enter a creator handle, channel URL, or channel ID.”; “Use 200 characters or fewer.”; “Enter search terms.”; “Use 300 characters or fewer.”; “Enter a positive whole number.”
+
+Success copy: “Creator added — disabled.” or “Creator already exists — settings preserved.”; “Creator is now enabled.” / “Creator is now disabled.” Never report enabled state from an optimistic toggle.
+
+Focus traps apply only to open dialogs. Escape closes and restores the initiating DOM control. Scene canvas is an enhancement; the roster provides the full keyboard path. All controls are ≥44×44px. Loading indicators stop under reduced motion.
+
+### 03-contracts.md
+
+**Compatibility**
+
+S1 payloads remain compatible except where the documented contract was already wrong. Planned additions land with their consumers. Extra object fields are tolerated; missing/retyped required fields are refused. A failed validator reports the field path.
+
+```ts
+type Damage = { file: string; detail: string };
+type Count = number | null;
+type Skipped = Record<string, unknown>;
+
+interface CanaryReading {
+  ok: boolean;
+  version: string | null;
+  reason: string;
+  checkedAt: string | null;
+  ageMs: number | null;
+  source: 'probe' | 'history' | 'unknown';
+  stale: boolean;
+  note: string | null;
+}
+interface LockReading {
+  held: boolean;
+  pid?: number;
+  host?: string;
+  alive?: boolean;
+  ambiguous?: boolean;
+}
+interface BudgetReading {
+  used: number; perHour: number; unit: string;
+  byKind: Record<string, number>;
+}
+interface ThrottleReading {
+  active: boolean; kind?: string; until?: string | null; text: string;
+}
+interface RecentRun { runId: string; ok: boolean; fetched: number }
+
+interface StatusInstrument {
+  ytdlp: CanaryReading;
+  creators: { total: number; enabled: number; damaged: Damage | null };
+  state: {
+    damaged: Damage | null;
+    videos: null | {
+      total: number; fetched: number; coverage: number;
+      counts: Record<string, number>;
+    };
+  };
+  budget: BudgetReading;
+  backlog: { lines: string[] };
+  throttle: ThrottleReading;
+  census: {
+    inFlight: Array<{ channelId: string; detail: string }>;
+    everSwept: number; discarded: boolean; error?: string;
+  };
+  lock: LockReading;
+  lastRun: { status: string; runId: string | null } | null;
+  lastGood: { at: string; staleDays: number } | null;
+  documents: number;
+  publishedBrains: number;
+  recentRuns: RecentRun[];
+}
+interface CreatorRow {
+  channelId: string; title: string; enabled: boolean;
+  videos: Count; fetched: Count;
+}
+interface QueryHit {
+  claimId: string; creatorId: string; creatorTitle: string;
+  videoId: string; tStartMs: number; keyPhrase: string; watchUrl: string;
+}
+interface QueryResult { hits: QueryHit[]; skipped: Skipped[] }
+interface BrainDoc {
+  slug: string; // compatibility field; value is channelId, not a display slug
+  generation: string;
+  title: string;
+  index: string; topics: string; timeline: string;
+  claims: QueryHit[]; skipped: Skipped[];
+}
+interface LaunchReceipt {
+  requestId: string;
+  runId: string | null;
+}
+interface RunState {
+  journal: { status: string; runId: string | null } | null;
+  lock: LockReading; throttle: ThrottleReading; budget: BudgetReading;
+  recentRuns: RecentRun[];
+  launch: null | {
+    requestId: string; pid: number | null; runId: string | null;
+    phase: 'starting' | 'running' | 'completed' | 'failed'
+      | 'interrupted' | 'unknown';
+  };
+}
+interface RepairResult {
+  runId: string; ok: boolean;
+  repaired: number; built: number; emptied: number;
+}
+interface RequestOptions { signal?: AbortSignal }
+```
+
+`ytdlp` provenance normalization lands in S1R; it is not a claim that today’s status DTO already exposes every field above. `launch` lands in S4.
+
+```ts
+interface ConsoleDataAdapter {
+  getStatus(o?: RequestOptions): Promise<StatusInstrument>;
+  listCreators(o?: RequestOptions): Promise<CreatorRow[]>;
+  addCreator(ref: string): Promise<CreatorRow>;
+  setCreatorEnabled(id: string, enabled: boolean): Promise<CreatorRow>;
+  query(q: string, creator?: string, o?: RequestOptions): Promise<QueryResult>;
+  getBrain(channelId: string, o?: RequestOptions): Promise<BrainDoc>;
+  getRunState(o?: RequestOptions): Promise<RunState>;
+  startDailyRun(perHour: number): Promise<LaunchReceipt>;
+  canary(o?: RequestOptions): Promise<CanaryReading>;
+  repair(): Promise<RepairResult>;
+  backup(dest?: string): Promise<{ dest: string; ok: boolean }>;
+}
+```
+
+`backup` remains a typed refusal in both adapters until its gate is resolved. The optional `dest` signature is retained for compatibility; it is not authority to implement arbitrary filesystem destinations.
+
+**HTTP contract and slice ownership**
+
+| Method / path | Request | Success | Owner |
+|---|---|---|---|
+| GET `/api/status` | None | 200 `StatusInstrument`; damage fields retained | Existing/S1R |
+| GET `/api/creators` | None | 200 `CreatorRow[]` | Existing/S2 |
+| POST `/api/creators` | `{"ref":"@handle"}` | 201 `CreatorRow` | Existing/S2 |
+| PATCH `/api/creators/:channelId` | `{"enabled":true}` | 200 `CreatorRow` | Existing/S2 |
+| GET `/api/query` | `q`, optional `creator=channelId` | 200 `QueryResult` | Existing/S3a |
+| GET `/api/brains/:channelId` | One encoded channel-ID segment | 200 `BrainDoc` | Existing/S2 |
+| GET `/api/run` | None | 200 `RunState` | Existing/S4 extension |
+| GET `/api/backlog` | None | 200 `{lines:string[]}`; extra fields tolerated | Existing |
+| GET `/api/canary` | None | 200 `CanaryReading` | Existing/S1R |
+| POST `/api/repair` | `{}` | 200 `RepairResult` | S3b only |
+| POST `/api/run/daily` | `{"perHour":20}` | 202 `{"requestId":"…","runId":null}` | S4 only |
+| POST `/api/backup` | None currently allowed | 404 | Blocked S3c |
+| Any restore/rollback/authorize route | Any | 404 | Never v1 |
+
+**Error envelope**
+
+```json
+{
+  "error": {
+    "code": "STORE_DAMAGED",
+    "message": "Unable to read state.json.",
+    "file": "state.json"
+  }
+}
+```
+
+| Status | Codes / meaning |
+|---|---|
+| 400 | `VALIDATION`: body, encoding, query, identifier, budget |
+| 403 | `FORBIDDEN_HOST`, `FORBIDDEN_ORIGIN`: request rejected before handler |
+| 404 | `NOT_FOUND`: absent route or absent published brain |
+| 409 | `STORE_DAMAGED`, `RUN_LOCKED`, `OPERATION_BUSY` |
+| 415 | `UNSUPPORTED_MEDIA_TYPE`: write is not JSON |
+| 422 | `REFUSED`: confirmed engine refusal before the intended mutation |
+| 500 | `INTERNAL`: generic message; mutation outcome may be uncertain |
+
+`RUN_LOCKED` additionally carries `holder:{pid?,host?,alive?,ambiguous?}`. No stack traces, credentials, raw store contents, or unfiltered absolute paths. Engine messages are retained only after privacy-safe projection. `TRANSPORT` and payload-validation failures are client errors, not invented HTTP responses.
+
+Oversized requests may reset the connection; that accepted transport limitation remains explicit.
+
+**Validation and trust**
+
+- Host must match a permitted loopback authority and the actual bound port.
+- Browser mutation Origin must equal the serving origin.
+- Every mutation requires `Content-Type: application/json` and `X-Creator-Console: 1`.
+- A native client may omit Origin but still needs the media type and custom header.
+- No CORS allowance; cross-origin OPTIONS does not unlock a write.
+- Body ≤65,536 bytes, fatal UTF-8 decode, non-null JSON object.
+- `ref`: trimmed nonempty string ≤200 characters.
+- `q`: trimmed nonempty string ≤300 characters.
+- `perHour`: JSON number, positive safe integer; strings/booleans rejected.
+- New channel IDs satisfy the engine’s canonical validator. Existing registry keys may remain listable; malformed legacy identifiers do not become filesystem paths.
+- Brain generation must be one safe filename component. Resolve real paths under the selected brain directory; refuse links escaping it. Do not follow a poisoned pointer into another directory.
+- Only `index.md`, `topics.md`, `timeline.md`, `rules.jsonl` may supply drawer content.
+- Raw transcript paths are never opened by console presentation handlers.
+- Escape displayed text. Validate watch URLs from video IDs and finite nonnegative timestamps.
+- Read responses use `Cache-Control: no-store`.
+
+**Worker contracts**
+
+```ts
+resolveCreatorInWorker(
+  ref: string,
+  options: { timeoutMs: 185000 }
+): Promise<{ channelId: string; title: string; url: string }>;
+
+refreshHealthInWorker(
+  options: { timeoutMs: 15000 }
+): Promise<{ ok: boolean; version: string | null; reason: string }>;
+
+readPublishedBrain(channelId: string, options: { r: string }): BrainDoc;
+launchDaily(perHour: number, options: { r: string }): Promise<LaunchReceipt>;
+runRepair(options: { r: string }): Promise<RepairResult>;
+```
+
+Resolver worker calls the existing exported `validateCreatorRef` and `defaultResolveCreator`. Parent then calls:
+
+```js
+await addCreator({
+  ref,
+  r,
+  deps: { resolveCreator: () => resolved }
+});
+```
+
+No worker changes registry/state files during resolution. This design is [LIKELY] feasible from inspected exports; tests must prove it before shipping.
+
+Health refresh is single-flight. Successful cached readings expire after 60 seconds. History fallback retains its original timestamp and a current-probe-failure note. Status reads may show an explicitly unknown/pending reading while refresh runs; never fabricate fresh health.
+
+**Run contract**
+
+Launch metadata is console process state, not another engine journal. Correlation requires matching child PID and a newly observed engine run ID. A terminal success requires the matching engine record with `ok:true`. Unknown journal statuses, overwritten journals, missing records, or uncorrelated child exit render uncertainty.
+
+Daily child invocation uses `process.execPath`, a fixed absolute `E/run-daily.mjs`, argument array `["--per-hour=N"]`, explicit store-root environment, and no shell. S4’s Windows process-survival test decides whether the required detached lifecycle works; no claimed detached behavior without that result.
+
+Repair uses the engine’s existing configuration:
+
+```js
+runDaily({ r, only: ['reconcile', 'build', 'export'] })
+```
+
+Its worker projects the returned record; it does not parse CLI stdout or invent a requeued count.
+
+**Migrations, configuration, rollback**
+
+No engine schema migration or new database environment variable. `CREATOR_BRAINS_ROOT` remains authoritative. No provider keys are required.
+
+Relocation changes code paths only. Preserve dependencies through the existing web lockfile; do not install dependencies under `E`. Remove the old active console location only after an approved, verified move. A residual `node_modules` tree under `E` still triggers the old problem.
+
+Rollback disables the console launcher and restores the preserved console sources if needed. It does **not** undo creator toggles, completed jobs, backups, or other engine mutations. Store restoration remains CLI-only.
+
+### 04-build-order.md
+
+All paths are relative to `C` unless prefixed `E` or the packet directory. Every source/test file must remain ≤300 canonical lines. Split at responsibilities before exceeding the limit.
+
+| Order / slice | Files | Purpose; imports/exports; budget |
+|---|---|---|
+| 1 / S0R | Existing packet, preservation manifest | Preserve owned tracked and untracked bytes; hash manifest; no source modification. |
+| 2 / S0R | `server.mjs`, `api.mjs`, `lib/*`, `test/*`, launcher | Conditional relocation. Repair relative engine imports and direct-entry detection; preserve public exports. ≤300 each. |
+| 3 / S0R | `test/bridge.relocation.test.mjs` | Spawn actual entry from unrelated cwd; verify store-root identity, static build location, instance exclusion. ≤220. |
+| 4 / S1R | `lib/request-policy.mjs`, `lib/http.mjs`, `server.mjs` | Central write policy, fatal UTF-8, safe envelopes. Export `validateWriteRequest`. ≤220 new module. |
+| 5 / S1R | `workers/health.mjs`, `lib/health-worker.mjs`, `lib/health.mjs` | Node worker probe, single-flight TTL/history; retain existing provenance behavior. ≤240 each. |
+| 6 / S1R | `web/src/adapters/{types,LocalEngineAdapter,MockAdapter,validate}.ts` | Corrected contracts, custom header, read cancellation; preserve adapter seam. ≤280 each. |
+| 7 / S1R | `web/src/hooks/useStatus.ts`, `components/StatusBoard.tsx` | Abort timed-out reads; label stale/history/unknown; retain error boundary. ≤280 each. |
+| 8 / S2 | `workers/resolve-creator.mjs`, `lib/resolve-creator.mjs`, `lib/creators.mjs` | Resolve off-thread; parent commit; measured/null counts; one pending add. ≤240 each. |
+| 9 / S2 | `lib/published-generation.mjs`, `lib/brains.mjs` | Pin/contain generation, read derived files, validate/project claims. ≤260 each. |
+| 10 / S2 | `web/src/components/{CreatorRoster,AddCreatorForm,BrainDrawer}.tsx` | Forms, authoritative refresh, tabs, focus. ≤260 each. |
+| 11 / S2 | `web/src/hooks/{useCreators,useBrain}.ts`, corresponding `.styles.ts` | Lifecycle and styles separated; adapter imports only. ≤220 each. |
+| 12 / S3a | `web/src/components/{QueryConsole,QueryResults,OpsRail}.tsx` | Query, canary, visible blocked backup. ≤250 each. |
+| 13 / S3b | `workers/repair.mjs`, `lib/{operation-slot,repair}.mjs`, `routes.mjs` | Shared operation slot; engine repair result; add repair route only now. ≤240 each. |
+| 14 / S4 | `lib/{daily-launch,run-observation}.mjs`, `routes.mjs` | Fixed child spawn; launch metadata and correlation; add daily route only now. ≤260 each. |
+| 15 / S4 | `web/src/{hooks/useRun,components/RunConsole}.tsx` | Use `.ts` for hook; poll state machine, no fake completion. ≤260 each. |
+| 16 / S5 | `web/src/three/{layoutBrains,lifecycle}.ts`, `BrainConstellation.tsx` | Pure layout; lazy renderer; disposal and motion limits. ≤260 each. |
+| 17 / S6 | `web/playwright.console.config.ts`, `web/e2e/*.spec.ts` | Isolated browser fixture server, viewport/accessibility/performance gates. ≤260 each. |
+| 18 / S7 | library-mode config, snapshot manifest, receiving adapter spec | Explicitly gated transfer; host dependencies externalized. ≤300 each. |
+
+**Existing patterns to preserve**
+
+Route registration remains literal so the existing allowlist extractor sees it:
+
+```js
+if (req.method === 'GET' && p === '/api/creators') {
+  return sendJson(res, 200, creatorRows(r));
+}
+```
+
+Host/write gates remain outside the route table; the error envelope wraps dispatch.
+
+UI retains its mounted inner boundary:
+
+```tsx
+<ErrorBoundary scope="The status board">
+  <StatusBoard state={status} />
+</ErrorBoundary>
+```
+
+Use styled-components and existing tokens. Extract style files; do not replace this stack.
+
+Test helpers belong in non-test modules such as `test/fixtures.mjs`. Never import a module that registers tests merely to obtain fixtures.
+
+### 05-slices.md
+
+| Slice | Entry and deliverable | Required exit |
+|---|---|---|
+| **S0R — preservation/location** | Preserve original packet and console. Resolve D7; relocate only if approved. | T-MOVE; exact file manifest; fresh engine command/result; CLI import smoke; no engine code diff. C1 or HR14f failure remains a blocker, not waived. |
+| **S1R — bridge/contract hardening** | Accepted location; existing nine-route surface. Correct write policy, health refresh, encoding, DTOs, read cancellation. | Existing bridge/web suites plus T-SEC/T-CONTRACT/T-HEALTH; built app fixture smoke; no new route. |
+| **S2 — roster/drawer** | S1R checkpoint. Resolve off-thread; commit in parent; real same-generation claims. | T-ADD/T-BRAIN/T-W4; existing T-B3/B19/B22; desktop and 375px keyboard walkthrough. |
+| **S3a — query/canary** | S2 checkpoint. Search and canary panels; backup remains visibly blocked. | T-W5/T-OPS-read; no new route. |
+| **S3b — repair** | Engine journal-concurrency gate passes; shared operation slot proven. | T-OPS-repair; actual engine record mapped to result; exactly one added repair route. |
+| **S3c — backup** | Sean resolves transcript-backup exception and destination policy in an amended contract. | **BLOCKED.** No route, no implementation, no fabricated acceptance test. |
+| **S4 — daily run** | S3a/S3b checkpoints; journal race gate; real child lifecycle fixture. | T-B4/B5/T-RUN/W6; matching terminal record; restart/unknown and Windows detachment evidence. |
+| **S5 — constellation** | S2 accessible roster; D1/D9 contracts accepted. | T-T1/T-T2/W7/E3, Sean’s visual follow-through; documented fallback if usability fails. |
+| **S6 — integrated release candidate** | S1R–S5 complete; S3c either completed under approved exception or explicit scope decision. | Eleven-width evidence; accessibility; performance; full combined review; archive filing. |
+| **S7 — transfer** | S6 plus Sean’s explicit go. | Tag and copied source manifest, matching hashes, receiver-side build and review. |
+
+At every row: **do not advance to the dependent slice until its checkpoint passes**. A partial slice may be reviewed but cannot inherit PASS from another slice.
+
+**Exact command groups**
+
+From repository root, after setting the approved console path:
+
+```powershell
+$consolePath = 'scripts/creator-brains/console'
+# Use 'packages/creator-brains-console' only after approved relocation.
+
+$bridgeTests = @(Get-ChildItem "$consolePath/test" -Filter '*.test.mjs' |
+  Sort-Object Name | ForEach-Object FullName)
+node --test @bridgeTests
+
+npm --prefix "$consolePath/web" test
+npm --prefix "$consolePath/web" run typecheck
+npm --prefix "$consolePath/web" run build
+
+$engineTests = @(Get-ChildItem 'scripts/creator-brains/test' -Filter '*.test.mjs' |
+  Where-Object Name -ne 'live.test.mjs' |
+  Sort-Object Name | ForEach-Object FullName)
+node --test @engineTests
+```
+
+No comment masquerades as a live-test exclusion.
+
+Browser command, from `C/web` after S6’s isolated configuration exists:
+
+```powershell
+npx --no-install playwright test --config playwright.console.config.ts
+```
+
+Record actual counts and exit codes. Do not assert the historical 105/48/183 counts will remain constant.
+
+### 06-bans.md
+
+- No engine source edits, except an explicitly approved README pointer adjustment.
+- No raw-transcript rendering, download, export endpoint, model transmission, or console-owned transcript reader.
+- No backup implementation until the policy contradiction is resolved.
+- No restore, rollback, authorize, throttle-clear, arbitrary command, filesystem-browser, or job-control route.
+- No route before its owning slice.
+- No shell-built command from user input; fixed executable/path and argument arrays only.
+- No writes from the resolver worker; no cached registry passed through a slow resolver.
+- No automatic mutation retries, optimistic consent changes, or success inferred from timeout/exit/lock absence.
+- No “zero” substituted for damaged or unavailable measurements.
+- No raw HTML rendering or unvalidated watch links.
+- No claim that lexical path containment proves junction/symlink containment.
+- No assumption that loopback Host validation provides cross-origin write protection.
+- No relaxing the 300-line cap or hiding dependencies from an engine check without resolving D7.
+- No MUI, Tailwind, new global state framework, Web Component wrapper, or Electron.
+- No off-palette decorative colors. Arctic Cyan is data-only.
+- No hover-only controls, targets below 44px, or canvas-only functionality.
+- No animation before the enhancement gate; no WebGL chunk on mobile, reduced motion, or absent WebGL.
+- No speculative “all tests pass” from old receipts, structural readiness, or source inspection.
+- No broad staging, reset, clean, deletion, main push, deploy, or shared-lane takeover.
+- No rewriting historical reviews into correctness. Supersede with reciprocal links.
+- No private data, credentials, absolute private store paths, or user query text in request logs.
+
+### 07-checkpoints.md
+
+**Evidence protocol**
+
+Each checkpoint records:
+
+1. Exact checkout, branch, commit, dirty owned paths, and source hashes.
+2. Requirement/test mapping and precise command.
+3. Expected RED failure where feasible, excluding import/setup failures.
+4. GREEN result after implementation; actual distinct test count.
+5. Real boundary proof, separate from mocks.
+6. Open findings, accepted limitations, rollback, and next allowed slice.
+7. Filed review ID, reviewer identity evidence, and supersession links.
+
+Reviewer order and spend remain governed by the existing task workflow. This requested Astra adjudication does not retroactively complete missing GLM/Flash receipts or authorize another provider call. A2 is the requested self-hardening pass, not a substitute for an independent implementation gate.
+
+**Readiness receipt for this revision**
+
+| Evidence | State |
+|---|---|
+| Input identity/hash | VERIFIED |
+| Existing console source/mount inspection | VERIFIED, bounded scope |
+| Original packet preservation | Original untouched; copied snapshot NOT RUN |
+| D1–D9 adjudication | Emitted; D7 owner decision outstanding |
+| A1/A2 | Emitted; archive filing BLOCKED |
+| New test files | Specified, NOT WRITTEN in read-only session |
+| Current bridge/web/engine test results | NOT RUN |
+| Mermaid rendering | NOT RUN |
+| Real browser, launcher, GPU | NOT RUN |
+| Engine journal concurrency | BLOCKED pending executable proof |
+| Backup boundary | BLOCKED pending Sean’s decision |
+| Implementation readiness | **NOT ESTABLISHED** |
+
+**Performance and operations**
+
+- Cold bridge bind ≤1.5 seconds; Desktop-to-render ≤15 seconds.
+- Warm file-backed reads p95 ≤50ms on a declared fixture size; report cold and expired-health-refresh latency separately.
+- Status JSON ≤256KiB.
+- Initial executable JS ≤500KiB gzip; lazy three chunk ≤900KiB gzip.
+- Health refresh never blocks the HTTP thread while its subprocess waits.
+- Scene DPR ≤2; target median frame time ≤16.7ms at 40 creators, measured on named hardware.
+- Log method, route template, status, duration, request ID, child lifecycle, and refusal code only.
+- Rotate console logs at 1MiB, retaining three files. Do not log bodies, query text, transcript text, or credentials.
+- Owner: Sean. Recovery: restart console, inspect authoritative records, then explicitly retry only when outcome is known.
+
+**Motion gates**
+
+Enhancement import requires: first validated status read, width ≥768px, visible/intersecting panel, no reduced-motion preference, successful WebGL capability probe, and a subsequent idle callback. Fallback timer: 1 second after that status read.
+
+Dolly: ≤2.5 seconds, once per page load, only if renderer is ready within 3 seconds of the first valid status read and the operator has not interacted. Otherwise skip.
+
+Idle drift: ≤0.25 degrees/second, no autonomous zoom, no pulsing text, no particle field unrelated to creators. Stop scheduling rAF within one frame of hidden/offscreen state. Reduced-motion changes at runtime dispose active motion and show static content.
+
+**Preservation and release**
+
+Before modifying the canonical packet, preserve all owned files with SHA-256s, including untracked source. Exclude dependency/build trees from source snapshots; preserve lockfiles. Never call that an off-machine backup without evidence.
+
+S7 creates a named tag and copied source tree with a manifest. Host library mode externalizes React, React DOM, and styled-components; receiving-repo dependency versions and network authorization remain receiver-owned gates.
+
+Post-task hygiene: this pass created no filesystem artifacts. The future package, test receipts, screenshots, and manifests belong under the existing packet’s evidence tree, not the repository root.
+
+### 09-tests.md
+
+All new cases below are **planned and NOT RUN**. Named files are required implementation deliverables. Existing historical tests remain required regressions.
+
+**Harness rules**
+
+Every integration fixture uses a newly created temporary `CREATOR_BRAINS_ROOT`, isolated port, fake external resolver/probe where network is irrelevant, and explicit teardown. No production backend or default store. No live YouTube traffic.
+
+Pure unit mocks prove logic only. At least one integration case per route uses the actual HTTP handler and real engine file formats. Raw HTTP/socket tests construct malformed targets and framing without client normalization.
+
+| Suite/file | Named cases and what they prove |
+|---|---|
+| `test/bridge.relocation.test.mjs` — **T-MOVE** | `entry launches from unrelated cwd`; `explicit store root unchanged`; `web dist resolves beside relocated console`; `old and new entry cannot claim same store`; `engine imports resolve without engine edits`. |
+| `test/bridge.write-policy.test.mjs` — **T-SEC** | `foreign Origin denied before mutation`; `text/plain JSON denied`; `missing custom header denied`; `same-origin JSON succeeds`; `native JSON request without Origin succeeds`; `OPTIONS never enables CORS`; hostile Host still wins before URL parsing. Assert registry bytes unchanged on every refusal. |
+| `test/bridge.utf8.test.mjs` — **T-SEC** | `invalid byte inside quoted ref rejected`; `valid non-ASCII input reaches semantic validator`; `65536-byte body accepted by reader`; `65537-byte body refused`; chunked/no-body cases and post-attack liveness retained. |
+| `test/health.worker.test.mjs` — **T-HEALTH** | `blocked probe leaves status responsive`; `one refresh per TTL`; `history retains original timestamp`; `failed refresh cannot appear live`; `worker timeout releases slot`; `two store roots do not share history`. |
+| `test/creators.worker.test.mjs` — **T-ADD** | `slow resolver permits concurrent status request`; `worker never writes registry`; `parent re-reads registry after resolution`; `new creator disabled`; `re-add preserves enabled state and counts`; `failed count read yields null`; `double add receives OPERATION_BUSY`; `worker failure leaves registry byte-identical`. |
+| `test/brain-generation.test.mjs` — **T-BRAIN** | `published channel ID returns three documents and nonempty claims`; `pointer switch during read never mixes generations`; `missing rules reported`; `malformed claim reported`; `poisoned generation refused`; `real junction/symlink escape refused`; `raw-only sentinel never returned`; healthy large derived markdown remains valid. |
+| `test/repair.test.mjs` — **T-OPS-repair** | `real repair record projects repaired built emptied`; `failed engine record retains ok false`; `daily and repair cannot overlap`; `repair refusal leaves state untouched`; no stdout scraping. |
+| `test/run-launch.test.mjs` — **T-RUN** | `202 contains requestId and null runId`; `spawn failure releases slot`; `double post starts one child`; `engine child PID correlates journal`; `unrelated journal not adopted`; `exit zero without matching record is unknown`; `failed record never completed`; `bridge restart preserves engine work and loses only declared ephemeral metadata`. |
+| `test/run-concurrency.test.mjs` — **T-RUN-GATE** | `losing external runner cannot replace active journal`; `repair versus daily shares truthful identity`; use two actual child processes and isolated engine store. Failure blocks S3b/S4 and routes to engine owner. |
+| `web/src/test/route-contracts.test.ts` — **T-CONTRACT** | Local and Mock adapter parity for healthy/damaged/refused payloads; every newly consumed route rejects malformed nested fields; valid controls remain accepted; nullable counts and unknown provenance accepted. |
+| `web/src/components/CreatorRoster.test.tsx` — **T-W4** | validation, disabled-on-add, preserved consent on re-add, no optimistic toggle, failed refresh after confirmed write, uncertain timeout copy. |
+| `web/src/components/BrainDrawer.test.tsx` — **T-BRAIN-UI** | all four tabs, generation label, claims links, missing-file notices, literal HTML displayed harmlessly, Escape and focus return. |
+| `web/src/components/QueryConsole.test.tsx` — **T-W5** | submitted-term zero-hit copy, creator ID filter, skipped rows, timestamp link, stale response cannot overwrite newer query. |
+| `web/src/components/OpsRail.test.tsx` — **T-OPS-read** | provenance visible, error returns to panel, repair result not called “requeued”, Backup sends no request, CLI hints remain non-executable. |
+| `web/src/components/RunConsole.test.tsx` — **T-W6** | rejects 0/negative/fraction/string/NaN/unsafe integer; holder display; exact state labels; unmount aborts reads; uncertain writes never auto-retry. |
+| `web/src/three/layoutBrains.test.ts` — **T-T1** | sort by channel ID; deterministic positions; real counts drive size/coverage; null counts render unknown; color plus textual equivalent. |
+| `web/src/three/lifecycle.test.ts` — **T-T2** | hidden/offscreen stop within one frame; runtime reduced-motion disposes; remount leaves one renderer; geometry/material/context/listeners released. |
+| `web/e2e/console-launch.spec.ts` — **T-E1** | real fixture bridge serves built app; actual `main.tsx` mount renders status and survives named payload fault; missing hashed asset cannot masquerade as working UI. |
+| `web/e2e/console-responsive.spec.ts` — **T-E2/W9** | eleven widths; no lost/clipped critical controls; 44px targets; keyboard tasks; focus restoration; axe plus measured contrast. |
+| `web/e2e/console-motion.spec.ts` — **T-E3/W7** | network asserts no three chunk before gate; zero fetch on reduced-motion/mobile/no WebGL; late dolly skipped; DPR cap; frame samples on declared hardware. |
+| `test/snapshot.test.mjs` — **T-B12** | S7 tag exists; copied source files exactly match manifest; changed/missing/unlisted source blocks transfer; original tree unchanged. |
+
+**Exact targeted commands**
+
+From repository root, using the approved `$consolePath` from `05-slices.md`:
+
+```powershell
+node --test "$consolePath/test/bridge.relocation.test.mjs"
+node --test "$consolePath/test/bridge.write-policy.test.mjs" "$consolePath/test/bridge.utf8.test.mjs"
+node --test "$consolePath/test/health.worker.test.mjs"
+node --test "$consolePath/test/creators.worker.test.mjs" "$consolePath/test/brain-generation.test.mjs"
+node --test "$consolePath/test/repair.test.mjs"
+node --test "$consolePath/test/run-launch.test.mjs" "$consolePath/test/run-concurrency.test.mjs"
+npm --prefix "$consolePath/web" test
+npm --prefix "$consolePath/web" run typecheck
+npm --prefix "$consolePath/web" run build
+```
+
+Missing test modules are setup gaps, **not valid RED evidence**. The builder must first write each test so it reaches the intended boundary, observe the intended behavioral failure, then implement.
+
+Viewport matrix: `320×812`, `375×812`, `414×896`, `768×1024`, `1024×768`, `1280×800`, `1440×900`, `1920×1080`, `2560×1440`, `3840×2160`, `3440×1440`.
+
+**Known evidence limits**
+
+- Fake resolver/probe tests do not establish YouTube availability.
+- Mock adapters do not prove bridge serialization.
+- Stubbed API browser tests do not prove engine integration.
+- Software WebGL does not certify Sean’s GPU.
+- A transcript detector is a supplementary alarm, not proof of path isolation.
+- No backup test may open private transcript fixtures through a console-owned reader.
+- S7 receiver behavior cannot be certified by this repository’s suite.
+
+## PART C — DECISION-DENSITY SELF-TEST
+
+| Remaining builder choice | Disposition |
+|---|---|
+| Where the console lives | **Owner decision:** recommend `packages/creator-brains-console`; no move until D7 resolved. |
+| Whether to modify engine walker/locking | **Decided:** forbidden in console slices; failing gates return to engine owner. |
+| How to avoid add blocking | **Decided:** worker resolves only; parent engine call commits against fresh registry. |
+| Add timeout, queue, retries | **Decided:** 185s resolver ceiling, one pending add, no queue or automatic retry. |
+| Existing creator consent/counts | **Decided:** preserve consent; measured counts or null. |
+| Brain identifier | **Decided:** channel ID; compatibility property remains named `slug`. |
+| Claims and generation consistency | **Decided:** four allowlisted files from one pinned generation. |
+| Markdown renderer | **Decided:** escaped plain text in v1. |
+| Error/transport semantics | **Decided:** confirmed refusal versus uncertain outcome; no fake rollback. |
+| Cross-origin writes | **Decided:** Origin, JSON, custom header, no CORS permission. |
+| Health freshness | **Decided:** worker refresh, 60s TTL, explicit history/unknown provenance. |
+| Run ID before engine starts | **Decided:** request ID plus null run ID; correlate later. |
+| External runner concurrency | **Gate:** real two-process test; no invented console-only guarantee. |
+| Repair meaning | **Decided:** reconcile/build/export and projected engine counts. |
+| Backup scope/destination | **Owner decision:** absolute transcript-export prohibition currently blocks implementation. |
+| Cancel behavior | **Decided:** cancel before submit only; closing after dispatch does not cancel work. |
+| Poll cadence/cancellation | **Decided:** 2s active, 5s prolonged/idle, 15s hidden; abort reads and discard late responses. |
+| Scene loading/motion | **Decided:** explicit eligibility gate, late-dolly deadline, numeric drift, DPR and teardown bounds. |
+| Layout/node geometry | **Bounded delegation:** deterministic channel-ID-sorted layout; no occluded required actions; size/coverage encode real counts; null remains unknown. |
+| Minor spacing and component extraction | **Bounded delegation:** existing spacing tokens, drawn hierarchy, ≤300 lines/file, viewport and focus gates. |
+| Three.js package version | **Bounded delegation:** pin the selected version in the web lockfile; prove bundle/browser budgets; no engine dependency installation. |
+| Review transport | **Decided:** preserve current task authority and receipts; no paid fallback or retry inferred from this package. |
+| Snapshot and transfer | **Decided:** include untracked owned source in hash manifest; S7 requires explicit go and receiver evidence. |
+| Unknown integration behavior discovered during implementation | **Bounded:** stop the affected slice, return a concrete failing case and contract amendment; do not improvise silently. |
+
+**Result:** material choices are decided, bounded, or explicitly blocked. The package is emitted; implementation readiness and archive completion remain unestablished because the required evidence and writes were not available in this read-only pass.
+
+=== END DOCUMENT: 17-astra-mega-reply.md ===
+
+
+=== BEGIN DOCUMENT: 18-d7-relocation-receipt.md — D7 RELOCATION RECEIPT (the move you reserved to the owner) ===
+
+# 18 — D7 relocation receipt: console → `packages/creator-brains-console/`
+
+- **Date:** 2026-09-20 · **Authority:** Sean, "OK LETS DO IT" (2026-09-20) — the D7 owner decision
+- **Verdict executed:** Astra's D7 **AMEND — OVERTURN**, which `15-astra-brief.md` §3-D7 and
+  `17-astra-adjudication.md` §1 both expressly reserved to Sean.
+- **Engine change required:** **none.** That is the whole point of choosing relocation (A1-01).
+
+## 1. The defect this closes
+
+`consistency-check.mjs` walks `scripts/creator-brains/**` for `.mjs` with **no `node_modules`
+skip** (lines 46–51) and asserts `maxLine <= 300` (line 90). With the console inside the engine
+tree, the walk descended into `console/web/node_modules` and measured a dependency:
+
+```
+before:  14/15 consistent   DISAGREE no engine file exceeds the Rule 4 cap   largest = 4914 lines
+after:   15/15 consistent   AGREE                                        engineMjs 184 -> 85
+```
+
+4914 lines was `decimal.js`. The console's **own** cap walk already skipped third-party
+(`NOT_OUR_SOURCE`), so the engine was the only surface measuring a dependency as if it were ours.
+
+## 2. Per-file source manifest (A2-05)
+
+Every relocated source, with its blob in `HEAD` (old path) and in the index (new path). A
+matching pair is proof the move itself altered nothing; a differing pair is a **deliberate**
+repair enumerated in §3. Read out of the object database — not asserted from intent.
+
+**52 files · 29 PRESERVED · 23 REPAIRED**
+
+| file | HEAD blob | index blob | verdict |
+|---|---|---|---|
+| `api.mjs` | `f415125d7569` | `23929cdaa03b` | REPAIRED |
+| `lib/brains.mjs` | `2ede706c2794` | `8ffd06bf20a9` | REPAIRED |
+| `lib/creators.mjs` | `c37ad8eb99a3` | `7d373d8365d7` | REPAIRED |
+| `lib/errors.mjs` | `d31b57cb8d60` | `e460cce77d12` | REPAIRED |
+| `lib/health.mjs` | `9f3c16a7bc6a` | `c937d9dad398` | REPAIRED |
+| `lib/http.mjs` | `f043d46550ed` | `93f2cb48741e` | REPAIRED |
+| `lib/instance.mjs` | `12ab9a723402` | `a33cd30968bd` | REPAIRED |
+| `lib/status.mjs` | `9f3eb47570c0` | `442a4da3cbc9` | REPAIRED |
+| `routes.mjs` | `f8650fdcc7b9` | `fedfce44b5ba` | REPAIRED |
+| `server.mjs` | `74f1004e8cd9` | `2769cb034414` | REPAIRED |
+| `test/bridge.body.test.mjs` | `2367a3e646c5` | `2367a3e646c5` | PRESERVED |
+| `test/bridge.boundary.test.mjs` | `276e0ac3f142` | `6e022c7ec882` | REPAIRED |
+| `test/bridge.brains.test.mjs` | `a23eda1e0eb9` | `a23eda1e0eb9` | PRESERVED |
+| `test/bridge.damage.test.mjs` | `fa02684e1dc3` | `fa02684e1dc3` | PRESERVED |
+| `test/bridge.hy4.process.test.mjs` | `3628589bdb4d` | `0680a6981166` | REPAIRED |
+| `test/bridge.hy4.structure.test.mjs` | `580bb476e402` | `cc462d2d48b3` | REPAIRED |
+| `test/bridge.hy4.test.mjs` | `4ce67a99e604` | `76324dd7d368` | REPAIRED |
+| `test/bridge.inprocess.test.mjs` | `5883bb16dc0f` | `83a3077f90ff` | REPAIRED |
+| `test/bridge.requesttarget.test.mjs` | `d38e4cb5cda9` | `8664799dfbcc` | REPAIRED |
+| `test/bridge.routes.test.mjs` | `d94d3eb371fb` | `133e94ec39b7` | REPAIRED |
+| `test/bridge.write.test.mjs` | `21c00eb6d71a` | `21c00eb6d71a` | PRESERVED |
+| `test/fixtures.mjs` | `5d918df7cb1f` | `bbd3810e884c` | REPAIRED |
+| `test/health.failcache.test.mjs` | `3b23c23c83a0` | `d48add07c1ee` | REPAIRED |
+| `test/health.history.test.mjs` | `65d327e2c2d8` | `34e78063ecb3` | REPAIRED |
+| `test/health.test.mjs` | `8dd0fe4ea1be` | `299fdc3fd230` | REPAIRED |
+| `test/leak-guard.falsenegative.test.mjs` | `95cf9ff224a0` | `68a725f94f90` | REPAIRED |
+| `test/leak-guard.mjs` | `12643f8d840b` | `1064fa3ac3f8` | REPAIRED |
+| `test/s1-exit-e2e.mjs` | `7d14b897f3c7` | `7d14b897f3c7` | PRESERVED |
+| `web/index.html` | `bf211a53cac9` | `bf211a53cac9` | PRESERVED |
+| `web/package-lock.json` | `abb8487fbaa4` | `abb8487fbaa4` | PRESERVED |
+| `web/package.json` | `fcc8fbab031a` | `fcc8fbab031a` | PRESERVED |
+| `web/src/adapters/errors.ts` | `4af0c69f0a16` | `4af0c69f0a16` | PRESERVED |
+| `web/src/adapters/fixtures.ts` | `469d0da1d8a5` | `469d0da1d8a5` | PRESERVED |
+| `web/src/adapters/index.ts` | `91d6f9a8576b` | `91d6f9a8576b` | PRESERVED |
+| `web/src/adapters/LocalEngineAdapter.ts` | `a0c2b4a3fcb0` | `a0c2b4a3fcb0` | PRESERVED |
+| `web/src/adapters/MockAdapter.ts` | `cdfe7a456ec5` | `cdfe7a456ec5` | PRESERVED |
+| `web/src/adapters/types.ts` | `fc936172b6bb` | `fc936172b6bb` | PRESERVED |
+| `web/src/adapters/validate.ts` | `cfe436ccf3c4` | `cfe436ccf3c4` | PRESERVED |
+| `web/src/App.tsx` | `aad046e0fbab` | `aad046e0fbab` | PRESERVED |
+| `web/src/components/ErrorBoundary.tsx` | `23715143a9af` | `23715143a9af` | PRESERVED |
+| `web/src/components/StatusBoard.test.tsx` | `def1b3d04863` | `def1b3d04863` | PRESERVED |
+| `web/src/components/StatusBoard.tsx` | `f07d2368a1d8` | `f07d2368a1d8` | PRESERVED |
+| `web/src/hooks/useStatus.test.ts` | `fdf7c9862508` | `fdf7c9862508` | PRESERVED |
+| `web/src/hooks/useStatus.ts` | `9376e8a42006` | `9376e8a42006` | PRESERVED |
+| `web/src/main.tsx` | `68ffde5486c5` | `68ffde5486c5` | PRESERVED |
+| `web/src/styles/tokens.css` | `c61867738bc8` | `c61867738bc8` | PRESERVED |
+| `web/src/test/adapter-contract.test.ts` | `d2d762bbd142` | `d2d762bbd142` | PRESERVED |
+| `web/src/test/no-engine-import.test.ts` | `f1ee7f10bfa9` | `f1ee7f10bfa9` | PRESERVED |
+| `web/src/test/payload-shape.test.tsx` | `7d8f6cc0ee06` | `7d8f6cc0ee06` | PRESERVED |
+| `web/src/test/setup.ts` | `bb02c60cd055` | `bb02c60cd055` | PRESERVED |
+| `web/tsconfig.json` | `44d51a0b5aa6` | `44d51a0b5aa6` | PRESERVED |
+| `web/vite.config.ts` | `ac5fa7adb1a8` | `ac5fa7adb1a8` | PRESERVED |
+
+### Not covered by Git (untracked, and why that is fine)
+
+- `web/node_modules` — gitignored build/install output. Moved by the directory rename, not tracked, so no blob exists to compare. Reinstallable from `package-lock.json` (`npm ci`).
+- `web/dist` — gitignored build/install output. Moved by the directory rename, not tracked, so no blob exists to compare. Reinstallable from `package-lock.json` (`npm ci`).
+
+## 3. Repairs applied to the REPAIRED set
+
+The move changes the console's depth from `scripts/creator-brains/console/` to
+`packages/creator-brains-console/` — the same two-level depth, but no longer adjacent to the
+engine. Every import that reached **into** the engine therefore gains one `../` level plus a
+`scripts/creator-brains/` prefix:
+
+| repair | count | where |
+|---|---|---|
+| engine-relative import specifiers repointed | 25 | 10 files (`lib/*.mjs`, `test/*.mjs`, `server.mjs`) |
+| stale path mentions in comments (`FILE:`, `USAGE`, `@module`) | 47 | 23 files |
+| direct-entry detection | 1 | `server.mjs` — `endsWith('creator-brains/console/server.mjs')` → `'packages/creator-brains-console/server.mjs'` |
+
+**Console-internal imports were deliberately NOT touched** — `'../server.mjs'`, `'../api.mjs'`,
+`'../lib/http.mjs'`, `'../lib/errors.mjs'`, `'../lib/health.mjs'`, `'../lib/status.mjs'`,
+`'../test/fixtures.mjs'`, and everything under `web/`. Repointing those would have broken the
+console to fix the engine. A rewriter assertion confirmed zero stale engine-relative specifiers
+remained afterwards.
+
+## 4. Verification (all re-run after the move)
+
+| gate | command | result |
+|---|---|---|
+| engine consistency | `node scripts/creator-brains/consistency-check.mjs` | **15/15**, exit 0 |
+| console bridge | `node --test packages/creator-brains-console/test/*.test.mjs` | **105/105**, 0 fail |
+| web unit | `npm test` (vitest) in `web/` | **48/48**, 5 files |
+| types | `npm run typecheck` | exit 0 |
+| build | `npm run build` | exit 0, 51 modules, `dist/` 184.68 kB |
+
+The console's own HY4-H7 cap walk resolves its root as `join(HERE, '..')`, so it followed the
+move without edit and still reaches the whole tree — the relocation did not silently narrow the
+surface it measures.
+
+## 5. What this receipt does NOT establish
+
+- **`HR14f` flakiness is independent of this move** (A1-01 said so; unchanged here).
+- No engine file was read, written or reformatted. The engine is untouched; the console simply
+  left its walk.
+- Launcher behaviour from the Desktop `.cmd` is **unproven** — no console `.cmd` exists yet
+  (D6 is a plan item). The direct-entry detection is repaired and unit-covered, not launcher-tested.
+- A fresh GPU/three.js pass (S5) is not covered.
+
+=== END DOCUMENT: 18-d7-relocation-receipt.md ===
+
+
+=== BEGIN DOCUMENT: 19-held-findings.md — AMENDMENT OF RECORD — the 11 held findings, disposition by disposition ===
+
+# 19 — Held findings: corrections and what is still owed
+
+**Status:** amendments applied 2026-09-20 · **amends:** `05`, `06`, `README` · **does not amend:**
+`11`, `12`, `14`, `16`, `17-astra-*` (historical receipts — see §6)
+
+---
+
+## 1. What this document is
+
+The Astra adjudication (`17-astra-adjudication.md`) returned **16 findings**: 5 fixed in that pass and
+**11 held** with named owners. This document is the record of the second pass, where **five of the
+eleven were closed** and the remaining six had their corrections written down.
+
+**A finding without a fix is not a finding.** So each entry below states the correction, where it
+landed, and — where the work is genuinely owned by a slice that does not exist yet — what the slice
+must prove. An entry that says "noted" and nothing else is a failure of this document, not a
+disposition.
+
+| # | Finding | Severity | Disposition | Where it landed |
+|---|---|---|---|---|
+| A1-03 | Adapter contract lost implementation corrections | High | **CLOSED** | `05 §1` (rewritten), `web/src/adapters/types.ts`, `fixtures.ts` |
+| A1-04 | Drawer has no claims; identifier misdescribed | High | **CLOSED** | `lib/brains.mjs`, new `lib/hits.mjs`, `05 §1`, tests A1-04a–d |
+| A1-05 | Acceptance and completion lack correlation | High | **AMENDED** | `05 §1` `startDailyRun`; proof owed by S4 |
+| A1-06 | A console mutex cannot protect the shared journal | High | **GATED** | §4 — S4 cannot ship without the two-process test |
+| A1-07 | Repair is not the documented operation | High | **AMENDED** | `05 §1` `repair()`; proof owed by S3 |
+| A1-13 | "Non-2xx means nothing changed" is too broad | High | **AMENDED** | §5 — the two failure classes are now distinct |
+| A1-14 | Tests and visual contracts leave material gaps | Medium | **PARTLY CLOSED** | `06` §3; 375px drawings owed by S5 |
+| A1-16 | Attribution and cost claims disagree inside the packet | Low | **CLOSED** | `README` §Evidence; §6 |
+
+---
+
+## 2. A1-03 — the contract now says what the code does
+
+`05 §1` declared **numeric** creator counts, **omitted** brain generation, and **narrowed** canary
+provenance to `{ok, version, reason}`. All three were narrower than the shipped implementation, which
+is the direction of error that makes a document worse than useless: a reader trusts it and stops
+looking.
+
+- `CanaryReading` is now a named type carrying `checkedAt`, `ageMs`, `source`, `stale`, `note`.
+  **`source` is three-valued and `unknown` is a real value, not an absence** — since A1-10 the
+  production probe runs off the event loop, so a cold read has started a probe and has no verdict
+  yet. Reporting that as `source:'probe'` would present "we have not checked" as a live reading.
+- `CreatorRow.videos`/`fetched` are `number | null`. `null` means the count **could not be taken**;
+  `0` means it was taken and is zero. The distinction is the whole point: a guard value presented as
+  a measurement renders "0 videos" for a creator that has videos.
+- `BrainDoc` carries `generation` — the pinned generation the markdown **and** the claims both come
+  from.
+- `QueryHit` declares `statement` and `topic`, which **both routes already served**. The type
+  under-declared them, and `web/src/adapters/fixtures.ts` had been written to the narrow type, so the
+  fixture was missing two fields the server returns. `tsc` caught it the moment the type was widened
+  — which is the argument for publishing corrected types rather than leaving them aspirational.
+
+**A1-03 also demanded "validate every newly consumed response".** `parseStatusInstrument` already
+does this for `/api/status` (S1-H18); the remaining routes are covered in `web/src/adapters/validate.ts`
+and the scope decision is recorded there.
+
+---
+
+## 3. A1-04 — the drawer serves claims, and the key is a channel ID
+
+`brainDoc` returned `claims: []` **unconditionally**, while `03-wireframes.md` promised a claim
+drawer and `types.ts` declared `claims: QueryHit[]` with a fixture that populated it. The client was
+ready, the contract was published, and the server was a stub — an empty drawer that renders as "this
+creator claimed nothing", which is the **S1-H15 shape** this route has already been burned by once.
+
+- Claims are read from the **same pinned generation as the markdown**, through the engine's own
+  `loadHits` — not a second reader of `rules.jsonl`, which would drift from that function's
+  required-field list and skipped accounting.
+- `loadHits` resolves the generation from the pointer *again*, so each returned row's generation is
+  checked against the one containment already proved. A pointer that moved between the two reads
+  cannot smuggle an unvalidated directory in.
+- A generation with no `rules.jsonl` **reports it** in `skipped`, in the same `{file, reason}` shape
+  the three markdown files use. Empty **and** explained.
+- `getBrain(channelId)` — not `slug`. `lib/render.mjs` HR07 is explicit: "the storage namespace is the
+  CHANNEL ID, never a display name." `slugify` exists in the engine but produces *filenames* for other
+  surfaces; it does not name a brain namespace.
+
+**One deliberate divergence, pinned rather than hidden.** The drawer reads the raw row and carries the
+engine's real `claim_id`; `/api/query` reaches the shape through `queryBrains`, which **drops**
+`claim_id`, so it falls back to `${videoId}:${tStartMs}` — an id that **collides** for two claims in
+one video at the same millisecond. Discarding a correct identifier so that two routes can be wrong
+together is worse than one route being visibly better, so the drawer keeps the real id and
+`bridge.brains.test.mjs` **A1-04b asserts both values explicitly**. Every other field is asserted
+identical, field for field.
+
+> **New observation, engine-owned.** `queryBrains` does not pass `claim_id` (or a creator title)
+> through, so `/api/query` cannot serve either. Fixing it is an engine change, which S0's
+> additive-only boundary forbids here. **Owner: engine.** No console patch should work around it
+> twice.
+
+---
+
+## 4. A1-05 / A1-06 / A1-07 — the run and repair contracts
+
+**A1-05 — acceptance is not completion.** `startDailyRun` now returns
+`{requestId: string, runId: string | null}`. The engine's `run-daily.mjs` does not accept a
+caller-supplied run id, so an honest `runId` cannot exist at acceptance. The console returns its own
+`requestId` immediately, correlates the child process to an engine journal entry, and uses **that**
+entry's run id. **Never treat process exit, or a lock disappearing, as success.**
+
+**A1-06 — a console mutex cannot protect the shared journal.** `lib/run.mjs:107` writes the journal
+*before* attempting the engine lock at `:154`, so the console's own exclusion does not cover an
+external runner (the CLI, or a second machine against a synced store). `09#H1` called the lock a
+sufficient backstop; it is not.
+
+> **S4 GATE.** S4 cannot ship until a **two-process journal-preservation test** passes: two runners
+> against one store, asserting the journal is never interleaved or truncated. If it fails, the defect
+> goes to the **engine owner**. No console patch to engine files — the boundary is additive-only.
+
+**A1-07 — repair is a projection, not a return value.** The engine's repair path
+(`run-commands.mjs:156–163`) runs reconciliation, build and export and returns an **exit code**. It
+does not return `{requeued}`, which `05#2b` and T-B10 assumed. The console now documents
+`repair(): Promise<{repaired, built, emptied}>` — a **projected** engine result, produced by invoking
+the same `runDaily` configuration through a wrapper and sharing the run-operation exclusion gate with
+`startDailyRun`.
+
+---
+
+## 5. A1-13 — two failure classes, not one
+
+`16#S1-H9` correctly prohibits a post-write application refusal: a committed mutation must never be
+reported as refused. But that rule **cannot** be extended to "non-2xx means nothing changed" in
+general, because two situations are not the same thing:
+
+| Class | Meaning | What the console may say | Retry |
+|---|---|---|---|
+| **Confirmed pre-write refusal** | The request was refused *before* any mutation was attempted — validation, unknown route, refused write gate, damaged store read *before* the write | "Nothing changed." | Safe to retry |
+| **Uncertain outcome** | The connection dropped, timed out, or the process died after dispatch | "The outcome is unknown." **Not** "nothing changed" | **Never automatic** — reconcile with an authoritative read first |
+
+The distinction is now part of the contract, and the rule that follows from it is absolute:
+**never automatically retry a mutation after a timeout or disconnect.** Reconcile with
+`GET /api/creators` and the engine's own journal, then decide. An automatic retry on an uncertain
+outcome is how one intended write becomes two.
+
+---
+
+## 6. A1-14 / A1-16 — the gaps this document does not close
+
+**A1-14 — three gaps, one of them closed.** `06 §3` now **enumerates** the non-live tests explicitly
+rather than relying on a glob that reads as if it excludes them. Still owed, and named so they are
+not mistaken for done:
+
+- **375px layouts.** `03-wireframes.md` draws 414px only. A console on a phone-width window is
+  undrawn, and undrawn means unverified.
+- **A measurable motion limit.** "<5% visual energy" is not a number anyone can check. It needs a
+  measurement definition before it can be a contract.
+- **A boundary-specific mock matrix.** `07` claims almost no mocks while the suite uses fake fetch,
+  WebGL and browser stubs. Which boundary each stub stands in for must be stated, or the coverage
+  claim is unfalsifiable.
+
+**A1-16 — attribution and cost.** The README certified HY4 as an independent review while `12#Attribution`
+records the correction. The README now marks the **served identity unverified** and points at `12`.
+**Predictive subscription-usage claims were removed** — `10#1`'s "approximately 75k tokens" and
+`10#3`'s "16–20k" disagreed, and neither can be verified from inside the session that made it. This
+document makes **no claim about remaining allowance.**
+
+---
+
+## 7. What this document does NOT establish
+
+1. **No new hostile pass.** Everything here is the *disposition* of a review; the round-2 pass against
+   the rebuilt packet is what re-tests it.
+2. **No claim that the held items are fixed.** Five are closed with tests; the rest carry a gate or a
+   named owner. `A1-06` in particular is a **gate on S4**, not a fix.
+3. **No engine change.** Every correction here is console-side or documentary. The one item that needs
+   the engine — `queryBrains` dropping `claim_id` — is recorded with the engine as owner.
+4. **Historical receipts are untouched.** `11`, `12`, `14`, `16`, `17-astra-*` keep their stale paths
+   and counts on purpose: they are evidence of what was true when they were written. Correcting them
+   would destroy the record that makes the current state legible.
+
+=== END DOCUMENT: 19-held-findings.md ===
+
+
 === BEGIN DOCUMENT: 02-blueprint.md — BLUEPRINT ===
 
 # 02 — Blueprint — Creator Brains Console
@@ -373,7 +1952,7 @@ at flag-parse before reaching a provider (`09 §3`, `10 §1`).
 ```
 ┌────────────────────────── Sean's Desktop ──────────────────────────┐
 │  Creator Brains Console.cmd                                        │
-│    └─ node scripts/creator-brains/console/server.mjs               │
+│    └─ node packages/creator-brains-console/server.mjs              │
 │         ├─ JSON API (loopback only)  ←→  engine lib/* (COMMANDS)   │
 │         │                                   └→ .ai-workflow/       │
 │         │                                       creator-brains/    │
@@ -386,14 +1965,16 @@ at flag-parse before reaching a provider (`09 §3`, `10 §1`).
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-**Ownership boundaries:** the engine (`scripts/creator-brains/*` except `console/`) is untouched — the console is purely additive. The bridge composes engine lib functions; it never opens store files itself. The web app knows only the `ConsoleDataAdapter` interface.
+**Ownership boundaries:** the engine (`scripts/creator-brains/*`) is untouched — the console is purely additive. **The console lives OUTSIDE the engine tree**, at `packages/creator-brains-console/` (D7 OVERTURNED 2026-09-20 — see `18`): it composes engine lib functions through relative imports, so it is a *consumer* of the engine, not a part of it. The bridge never opens store files itself. The web app knows only the `ConsoleDataAdapter` interface.
 
 ## 2. Components & responsibilities
 
+Paths below are relative to the console root, **`packages/creator-brains-console/`** (D7, 2026-09-20).
+
 | Component | Path | Responsibility | Owns |
 |---|---|---|---|
-| Bridge server | `console/server.mjs` | loopback bind (OS-chosen port), static serving of `web/dist`, JSON routing, process spawn for daily pass, JSON error envelope | nothing — delegates |
-| Bridge API | `console/api.mjs` | handlers: status/creators/query/brains/run/canary/repair/backup; input validation; damage-refusal mapping | validation rules |
+| Bridge server | `server.mjs` | loopback bind (OS-chosen port), static serving of `web/dist`, JSON routing, process spawn for daily pass, JSON error envelope | nothing — delegates |
+| Bridge API | `api.mjs` | handlers: status/creators/query/brains/run/canary/repair/backup; input validation; damage-refusal mapping | validation rules |
 | Console shell | `web/src/App.tsx` | layout (per picked concept direction), data polling store, route-less panels | polling cadence |
 | Adapters | `web/src/adapters/` | `ConsoleDataAdapter` interface; `LocalEngineAdapter` (fetch); `MockAdapter` (tests) | transport contract |
 | Panels | `web/src/components/` | StatusBoard, CreatorRoster, BrainDrawer, QueryConsole, RunConsole, OpsRail (canary/repair/backup) | presentation only |
@@ -448,30 +2029,30 @@ WHY IT COULD BE WRONG: heaviest build; two-panel density needs the wide-monitor 
 > **Consequences now locked:** S5 builds CD3's layout, not a generic one; the entry dolly is the ONLY narrative motion on the page (`motion.md` one-signature-moment rule); the ops deck is a first-class working surface, not a sidecar — which means the roster table and run dock must be fully keyboard-operable, because CD3 keeps the constellation as *beauty* while the deck carries the *work*. CD1 and CD2 are closed; CD2 survives only as the recorded fallback if CD3's constellation fails the S5 usability exit review.
 > **Unchanged by this pick:** S0–S4 are direction-independent and were already built/planned against the adapter contract — see 08 §"Unresolved decisions", item 1, now resolved.
 
-## 5. Seed decisions D1–D9 (recommendations; Astra adjudication pending)
+## 5. Seed decisions D1–D9 — **ADJUDICATED 2026-09-20** (verdicts in `17-astra-adjudication.md`)
 
 | # | Decision | Seed recommendation | Reason |
 |---|---|---|---|
 | D1 | raw `three` vs `@react-three/fiber` | **raw three.js** in one lazy chunk | SwanGuard has a bundle-budget gate; r3f+vendors adds ~2× weight for ergonomics we don't need in one scene; cleanup contract is explicit |
 | D2 | bridge shape | **node:http zero-dep server** | engine stays zero-dep; no Vite middleware to maintain in prod; one `.cmd` starts everything |
-| D3 | run progress | **poll journal/lock/budget every ~2 s while active** | the engine already persists run truth; polling is crash-safe, no SSE lifecycle to leak |
+| D3 | run progress | **AMENDED 2026-09-20** — one polling coordinator: active 2 s; active beyond 10 min 5 s; idle 5 s; hidden 15 s; immediate refresh on visibility return | the engine already persists run truth; polling is crash-safe, no SSE lifecycle to leak. Cadence amended by the Astra adjudication — see `17` §1 |
 | D4 | v1 command scope | all 10 menu actions **except** restore/rollback/authorize (CLI-only, tier-badged hints) | T3/T4 stay human-CLI-gated per bridge doctrine |
 | D5 | token mode | **Crystalline Swan base** (not Cyberforest) | Cyberforest is reserved for Hermes surfaces; SwanGuard embed target is not one; calm-zone rules still apply |
 | D6 | standalone shell | **.cmd → bridge on OS-chosen loopback port → default browser** | no Electron weight; matches supervised-launcher philosophy |
-| D7 | in-repo home | **scripts/creator-brains/console/** | travels with the engine it serves; one clone = whole product |
+| D7 | in-repo home | **OVERTURNED 2026-09-20 → `packages/creator-brains-console/`** (seed was `scripts/creator-brains/console/`) | the seed's "travels with the engine" argument lost to the engine's own `C1` gate: living inside the walk made the engine measure `console/web/node_modules` and fail deterministically on `decimal.js` (A1-01 / S1-H14). Relocation returns C1 to **15/15 green without touching an engine file** — the only remedy that does. Executed on Sean's decision; receipt + per-file manifest in `18` |
 | D8 | embed contract | **React component package + adapter prop** (Web Component wrapper only if SwanGuard needs framework isolation) | SwanGuard web is React 18 + styled-components — native fit |
-| D9 | constellation idle motion | sub-perceptual drift (<5% visual energy) + **fully static under reduced-motion**; pause off-viewport/hidden | motion.md §6 loop integrity; calm-zone compliance |
+| D9 | constellation idle motion | **AMENDED 2026-09-20** — numeric motion limits replace the unmeasurable "&lt;5% visual energy"; fully static under reduced-motion; pause off-viewport/hidden | motion.md §6 loop integrity; calm-zone compliance. "<5% visual energy" was not a measurable limit — see `17` §1 |
 
 ## 6. Performance budgets (measurable)
 
 - Bridge cold start ≤ 1.5 s; API p95 ≤ 50 ms (file-backed reads); status payload ≤ 256 KB.
-- Web initial bundle (excluding lazy three chunk) ≤ 500 KB gz; three chunk ≤ 900 KB gz; loaded only on viewport enter (or CD2: on mount of orb).
+- Web initial bundle (excluding lazy three chunk) ≤ 500 KB gz; three chunk ≤ 900 KB gz. **The load trigger below was superseded 2026-09-18 by `14 §3`: idle after the first successful status poll — NOT viewport enter.** Under CD3 the constellation occupies the left panel of the entry split view, so viewport-enter fired at first paint and the "lazy" label described an eager load (`14 §3`, A1-02). The chunk is **never fetched** under `prefers-reduced-motion` or absent WebGL.
 - 60 fps constellation on a mid GPU at DPR ≤ 2; particle/node count bounded by creator count (tens, not thousands).
 - rAF stops within one frame of `document.hidden` / off-viewport.
 
 ## 7. Rollback story
 
-The console is additive: deleting `scripts/creator-brains/console/` + the Desktop `.cmd` restores the prior world exactly. No engine file changes except the README quick-start pointer. The daily pass and all data remain CLI-operable at every point — the console is never load-bearing for data integrity.
+The console is additive: deleting `packages/creator-brains-console/` + the Desktop `.cmd` restores the prior world exactly. No engine file changes except the README quick-start pointer. The daily pass and all data remain CLI-operable at every point — the console is never load-bearing for data integrity.
 
 === END DOCUMENT: 02-blueprint.md ===
 
@@ -731,8 +2312,28 @@ flowchart TD
 // web/src/adapters/types.ts
 export type Tier = 'T0' | 'T1' | 'T2' | 'T3' | 'T4';
 
+/**
+ * THE FULL PROVENANCE, NOT JUST THE VERDICT (A1-03).
+ *
+ * `source` is THREE-valued and `unknown` is a real value, not an absence. Since
+ * A1-10 the production probe runs off the event loop, so a cold read has started
+ * a probe and has no verdict yet; reporting that as `source:'probe'` would
+ * present "we have not checked" as a live reading — the same lie the
+ * failure-caching defect was.
+ *
+ * `checkedAt`/`ageMs` are `null` when there is no timestamp to be honest about,
+ * and `stale` is then `true` by definition. A `history` reading is ALWAYS stale:
+ * it is not a live verdict and must never be presented as one, however recent the
+ * record happens to be.
+ */
+export interface CanaryReading {
+  ok: boolean; version: string | null; reason: string;
+  checkedAt: string | null; ageMs: number | null;
+  source: 'probe' | 'history' | 'unknown'; stale: boolean; note: string | null;
+}
+
 export interface StatusInstrument {            // R2 — mirrors status-command sources
-  ytdlp: { ok: boolean; version: string | null; reason: string };
+  ytdlp: CanaryReading;                        // NOT the narrowed {ok,version,reason} (A1-03)
   creators: { total: number; enabled: number; damaged: null | { file: string; detail: string } };
   state: { damaged: null | { file: string; detail: string };
            videos: { total: number; fetched: number; coverage: number;
@@ -751,17 +2352,46 @@ export interface StatusInstrument {            // R2 — mirrors status-command 
 
 export interface CreatorRow {
   channelId: string; title: string; enabled: boolean;
-  videos: number; fetched: number;             // from state.json, per renderCreators truth
+  /**
+   * MEASURED, OR `null` — NEVER A FABRICATED ZERO (A1-03, A1-12).
+   * From `state.json` via `readState` + filter, the same computation
+   * `renderCreators` does. `null` means the count COULD NOT BE TAKEN (a damaged
+   * store, or a read that raced the write); `0` means it was taken and is zero.
+   * Conflating them renders "0 videos" for a creator that has videos — a guard
+   * value presented as a measurement.
+   *
+   * `enabled` is the registry's truth. A NEW creator starts `false`; an EXISTING
+   * one keeps whatever the operator decided, because `upsertCreator` preserves
+   * consent by design. Re-adding is not a way to revoke consent (A1-12).
+   */
+  videos: number | null; fetched: number | null;
 }
 
 export interface QueryHit {
   claimId: string; creatorId: string; creatorTitle: string;
   videoId: string; tStartMs: number; keyPhrase: string;
+  statement: string; topic: string;            // served by both routes; declared since A1-03
   watchUrl: string;                            // https://youtu.be/<id>?t=<s>
 }
 export interface QueryResult { hits: QueryHit[]; skipped: Array<Record<string, unknown>>; }
 
-export interface BrainDoc { slug: string; title: string;
+/**
+ * `key` IS A CHANNEL ID, NOT A SLUG (A1-04).
+ *
+ * `lib/render.mjs` HR07 states it outright: "the storage namespace is the CHANNEL
+ * ID, never a display name" — two channels sharing a display name would otherwise
+ * write one directory and the second would erase the first. This document called
+ * it a slug, which is how the drawer's identifier came to be described as
+ * something it is not. `slugify` does exist in the engine, but it produces
+ * FILENAMES for other surfaces; it does not name a brain namespace.
+ *
+ * `generation` is the PINNED published generation the markdown AND the claims
+ * both come from (A1-04). It is `null` when the pointer names none, which is an
+ * incomplete brain rather than a damaged one; a pointer naming a generation the
+ * engine never writes is damage and is refused.
+ */
+export interface BrainDoc { key: string; title: string;
+  generation: string | null;
   index: string; topics: string; timeline: string;       // markdown from published generation
   claims: QueryHit[]; skipped: Array<Record<string, unknown>>; }
 
@@ -775,11 +2405,26 @@ export interface ConsoleDataAdapter {
   addCreator(ref: string): Promise<CreatorRow>;                    // T2
   setCreatorEnabled(channelId: string, enabled: boolean): Promise<CreatorRow>;  // T2
   query(q: string, creator?: string): Promise<QueryResult>;        // T0
-  getBrain(slug: string): Promise<BrainDoc>;                       // T0
+  getBrain(channelId: string): Promise<BrainDoc>;                  // T0
   getRunState(): Promise<RunState>;                                // T0
-  startDailyRun(perHour: number): Promise<{ runId: string }>;      // T2
-  canary(): Promise<{ ok: boolean; version: string | null; reason: string }>;   // T0
-  repair(): Promise<{ requeued: number }>;                         // T2
+  /**
+   * ACCEPTANCE IS NOT COMPLETION (A1-05). `runId` is the ENGINE's run id and is
+   * `null` at acceptance: `run-daily.mjs` does not accept a caller-supplied id,
+   * so one cannot honestly be returned before the engine has written it.
+   * `requestId` is the CONSOLE's correlation id, returned immediately.
+   * Correlate the child process to an engine journal entry and use THAT entry's
+   * run id. Never treat process exit, or a lock disappearing, as success.
+   */
+  startDailyRun(perHour: number): Promise<{ requestId: string; runId: string | null }>; // T2
+  canary(): Promise<CanaryReading>;                                // T0
+  /**
+   * A PROJECTED ENGINE RESULT (A1-07). The engine's repair path runs
+   * reconciliation, build and export and returns an EXIT CODE — it does not
+   * return `{requeued}`. The console invokes the same `runDaily` configuration
+   * through a wrapper and projects the engine's own counts, sharing the
+   * run-operation exclusion gate with `startDailyRun`.
+   */
+  repair(): Promise<{ repaired: number; built: number; emptied: number }>;  // T2
   backup(dest?: string): Promise<{ dest: string; ok: boolean }>;   // T2
 }
 ```
@@ -822,9 +2467,11 @@ The code is right and the doc was wrong, for a reason visible in §1: `StatusIns
 |---|---|---|---|---|---|
 | `POST /api/run/daily` | T2 | **S4** (RunConsole) | spawn `run-daily.mjs --per-hour=N` | `202 {runId}` (progress via `GET /api/run`) | `400 VALIDATION` (non-positive int), `409 RUN_LOCKED {holder}` |
 | `POST /api/repair` | T2 | **S3** (OpsRail) | repair path of `COMMANDS` | `200 {requeued}` | `409/422` |
-| `POST /api/backup` | T2 | **S3** (OpsRail) | backup command | `200 {dest,ok}` | `422 REFUSED` |
+| `POST /api/backup` | T2 | **S3** (OpsRail) — **BLOCKED (A1-08 / D4), do not build** | backup command | **withheld — no endpoint** | — |
 
 The corresponding tests (`T-B4`, `T-B5`, `T-B10`) land **with their slice**, not at S0 — this is the plan/code discrepancy HY4 found as H6 and is corrected here and in `08`. S0's exit evidence is `T-B1/B2/B3/T-B6/T-B7/T-B8/T-B9` plus the structure suite.
+
+**`POST /api/backup` is BLOCKED as of 2026-09-20 — A1-08, D4 AMEND (`17` §1).** `backup-command.mjs:46–59` copies the durable set **including raw transcripts**, which `01` §"Business rules" item 1 bans from every console surface; the optional browser-supplied `dest` has no containment contract either. Backup therefore stays **visible in the UI but blocked, with no endpoint**, until Sean decides whether an engine-only private backup is an allowed exception to the tier-B boundary. It is **not** dropped from product scope. Never substitute a derived-only copy and call it a full backup.
 
 **Error envelope (uniform):** `{ "error": { "code": "STORE_DAMAGED|RUN_LOCKED|VALIDATION|REFUSED|NOT_FOUND", "message": "<engine reason, verbatim>", "file?": "<damaged file name>" } }`
 
@@ -932,15 +2579,39 @@ Conventions: tests are written BEFORE implementation per slice (RED observed, th
 ## Commands (slice exit evidence runs these)
 
 ```powershell
-# bridge
-node --test scripts/creator-brains/console/test/
+# bridge — the console's own test directory, enumerated
+node --test packages/creator-brains-console/test/*.test.mjs
 # web
-cd scripts/creator-brains/console/web && npx vitest run && npx tsc --noEmit && npm run build
+cd packages/creator-brains-console/web && npx vitest run && npx tsc --noEmit && npm run build
 # e2e (stubbed api; never the real backend)
 npx playwright test --config playwright.console.config.ts
 ```
 
+**THE NON-LIVE SET IS ENUMERATED, NOT INFERRED (A1-14).** `live.test.mjs` is the engine's own
+network-touching suite and lives under `scripts/creator-brains/test/`, not under the console — so the
+bridge command above is already live-free **by scope**, not by exclusion. That is a property of where
+the file sits, and it stops being true the moment someone writes a command that spans both trees.
+Therefore:
+
+- **Any command that globs `scripts/creator-brains/test/` MUST exclude `live.test.mjs` explicitly.**
+  A `*.test.mjs` glob there **does** pick it up, and it will fail without network access — which reads
+  as a broken suite rather than a live test being run by accident.
+- **The console bridge suite's real count is per-file.** `16 §14` (S1-H13) records the inflation that
+  came from a harness exported from a `.test.mjs`: importing a module that calls `test(...)`
+  re-registers that file's tests, and the suite once reported 97 for 85 real. **Never quote an
+  aggregate without checking per-file** — the aggregate is the number that lied.
+- **As of 2026-09-20 the console suite is 137 tests, 0 fail** (`node --test` reports 137/137 in
+  ~3.9 s). Any count quoted from this plan before 2026-09-19 is inflated.
+
 **Explicitly NOT tested in v1 (honest gaps):** real YouTube network behavior (engine's live tests own that); multi-operator/auth; SwanGuard-side embedding (S7 handoff spec only); OCR/visual regression of the three scene beyond layout determinism.
+
+**Also not covered, and named so it is not mistaken for done (A1-14).** `03-wireframes.md` draws
+**414px only** — a 375px layout is undrawn, and undrawn means unverified. The motion budget is written
+as "<5% visual energy", which is **not a measurable quantity**; it needs a definition before it can be
+a contract. And `07-traceability.md` claims almost no mocks while the suite uses fake `fetch`, WebGL
+and browser stubs — **which boundary each stub stands in for must be stated**, or the coverage claim
+cannot be checked. Owners: 375px and the motion definition land with **S5**; the mock matrix is a
+`07` amendment owed with the same slice.
 
 === END DOCUMENT: 06-test-plan.md ===
 
@@ -1013,9 +2684,13 @@ Each slice: independently shippable, RED→GREEN tests before merge-worthy state
 
 ## Unresolved decisions that gate building (not implementation details)
 
-1. **D-CD (Sean):** pick CD1 / CD2 / CD3 (ideation gate). S5's shape depends on it; S0–S4 are direction-independent and may start after his go.
-2. **D-Astra:** Astra architecture adjudication (one call, seat blocked until 2026-09-19 ~22:12). Recommended: batch it after the seat resets, before S5 (the three.js slice) — S0–S4 carry no design risk the adjudication would overturn.
+1. **CLOSED 2026-09-17 — D-CD (Sean):** CD3 "Vault Observatory" picked. S5's shape is fixed; S0–S4 were direction-independent, as predicted.
+2. **CLOSED 2026-09-20 — D-Astra:** adjudicated (verdict REVISE, 16 findings, D1–D9 closed — `17`). D7 was its one owner decision and is **executed**: the console now lives at `packages/creator-brains-console/` (`18`), which also returned the engine's C1 gate to 15/15 green.
 3. **D-spend:** none — Astra rides the Codex subscription; no metered APIs in this plan.
+4. **STILL OPEN — A1-08 / D4 (Sean):** whether an engine-only private backup is an allowed exception to the tier-B boundary. Backup stays visible but blocked, with no endpoint, until he rules (`05` §2b).
+5. **STILL OPEN — S1-H12:** `POST /api/creators` freezes the bridge's only thread (1577 ms measured, 180 s ceiling) because the engine resolves through `execFileSync`. **Must be settled before S2 ships.** The honest fixes touch the engine, so it is Sean's call (`16` §14).
+
+**Relocation note (D7, 2026-09-20):** every console path in this document is now relative to `packages/creator-brains-console/`, not `scripts/creator-brains/console/`. The no-go boundary above is unchanged and now structurally stronger — the console sits outside the engine tree, so "no slice may modify engine files" is enforced by *where the code lives*, not only by discipline. `console/` in the Logs bullet is the runtime state directory under the store, which did not move.
 
 === END DOCUMENT: 08-slices-operations.md ===
 
@@ -2821,9 +4496,9 @@ That one needs an engine change and is Sean's call.
 
 # Creator Brains Console — Mega Blueprints planning packet
 
-- **Date:** 2026-09-17 · **Updated:** 2026-09-19 · **Status:** S0 + **S1 SHIPPED** (structural gate PASS; console suite **105/105 real tests**, S1 web **48/48** after the round-4 fix pass and the full round-5 five-pass sweep) · **Builder seat:** ZCode/GLM, then builder seat (Sable) · **Astra adjudication:** brief scheduled 2026-09-19 22:30
-- **What this is:** the canonical plan for replacing the Creator Brains terminal menu with a Swan-designed, three.js operator console — **standalone first** (Desktop `.cmd`, loopback bridge, browser), then **duplicated at its best state and transferred** into SwanGuard-Newsroom (`@family-first/web`, React 18 + styled-components) as a modular adapter-driven component. Purely additive: the engine (`scripts/creator-brains/`) is untouched.
-- ** Sean decisions pending:** (1) **"go" for S2** (roster + writes + BrainDrawer) — S1's exit criteria are met; (2) **the `server.mjs` cap call** — it sits at exactly 300, so S2's first route breaks rule 4 (16 §13); (3) the Astra D1–D9 adjudication itself (brief auto-written 2026-09-19 22:30); (4) **S1-H12 — `POST /api/creators` freezes the bridge's only thread** (measured 1577 ms, ceiling 180 s), unfixed because the honest fixes touch the engine (16 §14); (5) **S1-H14 — the engine gate is RED in this tree** because `consistency-check.mjs` walks `console/web/node_modules`, so the packet's own "npm deps live in `console/web/`" rule breaks the engine's C1 check (16 §14). **Closed 2026-09-18:** CD3 locked; C1 loading contract; S1 authorised and shipped; the 24 dangling skill symlinks repaired; the S1 hostile review round 4 (8 defects, all fixed). **Superseded 2026-09-19:** the "F4 baseline of record = 183/183" and the "console suite 97/97" figure — see (5) and **16 §14** (S1-H13: the 97 was 85 real tests counted 3×). See **14** and **16**.
+- **Date:** 2026-09-17 · **Updated:** 2026-09-20 · **Status:** S0 + **S1 SHIPPED** (structural gate PASS; console suite **105/105 real tests**, S1 web **48/48** after the round-4 fix pass and the full round-5 five-pass sweep) · **Builder seat:** ZCode/GLM, then builder seat (Sable) · **Astra adjudication: COMPLETE 2026-09-20** — verdict **REVISE**, 16 findings (10 high); D1–D9 closed, verdicts in **`17-astra-adjudication.md`** · **D7 EXECUTED 2026-09-20** — the console now lives at `packages/creator-brains-console/`, and the engine gate is **15/15 green** (see **`18`**)
+- **What this is:** the canonical plan for replacing the Creator Brains terminal menu with a Swan-designed, three.js operator console — **standalone first** (Desktop `.cmd`, loopback bridge, browser), then **duplicated at its best state and transferred** into SwanGuard-Newsroom (`@family-first/web`, React 18 + styled-components) as a modular adapter-driven component. Purely additive: the engine (`scripts/creator-brains/`) is untouched, and since 2026-09-20 the console sits **outside** it at `packages/creator-brains-console/`.
+- ** Sean decisions pending:** (1) **"go" for S2** (roster + writes + BrainDrawer) — S1's exit criteria are met; (2) **the `server.mjs` cap call** — **CLOSED 2026-09-19**: the bridge was split at the route-table seam into `server.mjs` 244 + `routes.mjs` 131 + `api.mjs` 77 (**16 §19**), so rule 4 no longer binds anywhere and S2 needs no cap decision; (3) **the Astra D1–D9 adjudication** — **CLOSED 2026-09-20**: adjudicated, verdict **REVISE**, 16 findings; **D7 was the only owner decision it produced, and it is now EXECUTED** — the console moved out of the engine tree to `packages/creator-brains-console/`, receipt in **`18`**; (4) **S1-H12 — `POST /api/creators` freezes the bridge's only thread** (measured 1577 ms, ceiling 180 s), unfixed because the honest fixes touch the engine (16 §14); (5) **S1-H14 — FIXED 2026-09-20 by D7.** The engine gate was RED because `consistency-check.mjs` walked `console/web/node_modules` and measured `decimal.js` as if it were ours (16 §14, A1-01). Relocating the console out of the engine tree returns the gate to **15/15 consistent** with **no engine file touched** — the walk now sees 85 real engine sources instead of 184. Receipt + per-file manifest: **`18`**. **Closed 2026-09-18:** CD3 locked; C1 loading contract; S1 authorised and shipped; the 24 dangling skill symlinks repaired; the S1 hostile review round 4 (8 defects, all fixed). **Closed 2026-09-20:** the Astra adjudication (D1–D9, `17`); the cap call above; the `02 §6` viewport-loading claim (superseded by `14 §3`, now marked in place). **Superseded 2026-09-19:** the "F4 baseline of record = 183/183" and the "console suite 97/97" figure — see (5) and **16 §14** (S1-H13: the 97 was 85 real tests counted 3×). See **14**, **16** and **17**.
 
 ## Read order
 
@@ -2839,12 +4514,16 @@ That one needs an engine change and is Sean's call.
 | `07-traceability.md` | R → AC → artifact → test → slice |
 | `08-slices-operations.md` | S0–S7 with entry/exit evidence, launcher ops, no-go boundaries |
 | `09-hostile-review.md` | self-hostile pass (H1–H10), decision log, Astra record, readiness verdict |
-| `11-hy4-review.md` | **independent HY4 hostile review** (verdict REVISE), findings + dispositions, remediation receipt, spend |
-| `12-hy4-review-round2.md` | round-2 deeper pass (H1 failure-caching, H2 leak-guard false negatives, F2/F3/F4, C1); F1 retracted as the builder's own error |
+| `11-hy4-review.md` | hostile review round 1 (verdict REVISE), findings + dispositions, remediation receipt, spend — ⚠️ **MISATTRIBUTED: almost certainly Hy3, not HY4** (see `12 §Attribution`); findings stand |
+| `12-hy4-review-round2.md` | round-2 deeper pass (H1 failure-caching, H2 leak-guard false negatives, F2/F3/F4, C1); F1 retracted as the builder's own error. **Performed by the builder seat, not HY4** |
 | `13-hostile-round3.md` | round-3 dry loop (H3 in-process double-bridge, H4 counter bug) + the CLEAN surfaces that closed the loop |
 | `14-decisions-20260918.md` | **the six decisions taken 2026-09-18** (symlink repair, F4 baseline, C1 contract, S1, Astra, S5) + H5 |
-| `15-astra-brief.md` | _(reserved — written by the 2026-09-19 22:30 automation; D1–D9 adjudication brief)_ |
+| `15-astra-brief.md` | the D1–D9 adjudication brief — the nine questions as posed to Astra (297 lines) |
 | `16-s1-hostile-review.md` | **round-4 hostile review of S1** (S1-H1…H8: the 500 landmine, three false-zero renders, the wedged poll loop, fixture infidelity, two guard tests that could not fail, and a **one-line request that killed the bridge process**) + mutation receipts |
+| `17-astra-adjudication.md` | **the adjudication of record** — Astra's D1–D9 verdicts, the 16 findings, the fix ledger, the artifact redaction |
+| `17-astra-mega-packet.md` · `17-astra-mega-reply.md` · `17-forged-package/` | the Mega Blueprint consult: input packet (17 docs), raw reply + receipt, split package (12 files) |
+| `18-d7-relocation-receipt.md` | **D7 EXECUTED** — console → `packages/creator-brains-console/`; per-file manifest, repairs, gate before/after |
+| `19-held-findings.md` | **the second pass** — 5 of the 11 held findings closed with tests, the rest gated with named owners, and what this document does NOT establish |
 | `readiness.json` | structural receipt — **gate PASS** (`check-readiness.mjs`, exit 0) |
 | `evidence/` | engine offline baseline + preservation manifest |
 
@@ -2853,8 +4532,8 @@ That one needs an engine change and is Sean's call.
 - **Engine baseline [VERIFIED]:** documented offline command, 15 files → **136 tests / 136 pass / 0 fail**, exit 0 (`evidence/baseline-offline.txt`, HEAD `8a9daeeba` era tree, uncommitted docs only). Observation: README cites 191 at commit time (Sep 15) — delta noted for the engine lane; not a console blocker.
 - **Astra consult [VERIFIED]:** one authorized attempt → `codex_exec_failed` before any provider call (harness passed `--ask-for-approval`, **removed in codex-cli 0.154.0**). Harness repaired + pinned by tests (**10/10 green**); follow-up probe reached the provider and hit the seat's usage limit ("try again Sep 19th, 10:12 PM"). No auto-retry (exactly-one). Detail: 09 §3.
 - **Readiness gate [VERIFIED]:** `node scripts/build-protocol/check-readiness.mjs <receipt> <packet>` → `structurallyReady: true`, exit 0. Reference integrity only.
-- **HY4 hostile review [VERIFIED]:** independent seat (`tencent/hy4-preview`) → **verdict REVISE, 7 findings**. All 7 closed + **1 additional defect found during remediation** (per-request blocking `selfCheck()`). Console suite **65/65 pass, 0 fail** (8.8 s). Cost **$0.0563** (one $0 transport failure + one billed call). Full detail: **11**.
-- **S0 bridge [VERIFIED — SHIPPED]:** `scripts/creator-brains/console/**` — nine-route allowlist, loopback-only bind, `hostAllowed` DNS-rebinding gate, `O_CREAT|O_EXCL` single-instance guard, 60 s TTL health cache. Additive only: `git status --porcelain scripts/creator-brains/` → just `?? .../console/`.
+- **HY4 hostile review [FINDINGS VERIFIED · ATTRIBUTION CORRECTED — A1-16]:** the **served identity is unverified and must not be restated as independent HY4 work.** Round 1 (`11`) is **misattributed**: its transport hard-blocked everything except `tencent/hy3`, so its findings were almost certainly produced by **Hy3 under HY4's name**. Round 2 (`12`) was performed by the **builder seat**, not HY4 — three paid HY4 attempts billed with **zero output**. **The findings stand; the attribution does not.** Verdict REVISE, 7 findings, all 7 closed + 1 additional defect found during remediation (per-request blocking `selfCheck()`). Console suite at the time: **65/65, 0 fail**. Cost **$0.0563**. Detail: **11**, **12 §Attribution**.
+- **S0 bridge [VERIFIED — SHIPPED · RELOCATED 2026-09-20]:** `packages/creator-brains-console/**` — nine-route allowlist, loopback-only bind, `hostAllowed` DNS-rebinding gate, `O_CREAT|O_EXCL` single-instance guard, 60 s TTL health cache. Moved out of the engine tree by **D7** (see `18`). Additive-only still holds and is now *structurally* true: `git status --porcelain scripts/creator-brains/` shows no console entry at all, because the console is no longer inside that path. Post-move: bridge **105/105**, web **48/48**, `tsc` 0, build clean.
 - **CD3 LOCKED (Sean, 2026-09-17):** concept direction = **CD3 "Vault Observatory"** — split view, three.js constellation left / operations deck right, one short entry dolly, skipped under `prefers-reduced-motion`. Gates S5 only; S0–S4 are direction-independent.
 - **S1 web scaffold [VERIFIED — SHIPPED 2026-09-18]:** `console/web/**` — Vite + React 18 + styled-components, `tokens.css` (design.md §4 verbatim), `ConsoleDataAdapter` + `Local`/`Mock`, shell + `StatusBoard`. **31 web tests pass / 0 fail · `tsc --noEmit` 0 errors · build 49 modules in 526 ms · initial bundle 180.35 kB → 60.21 kB gz** (budget 500 kB gz). S0 unregressed: **81/81**. Detail: **14 §4**.
 - **S1 hostile review round 4 [FIXED 2026-09-18]:** the slice was reviewed *after* shipping green, and found **8 defects** — 5 in code, 1 in fixtures, **2 in the tests themselves**. Three were P1-class: a corrupt `state.json` **500'd `/api/status`**, destroying the very damage-reporting path R3 exists to provide (S1-H1); the rule-4 cap test collected `.mjs` only, so **the entire `console/web/` tree was unmeasured** and the cap could not fail on any UI file (S1-H7); and **`GET // HTTP/1.1` killed the bridge process outright** — `new URL` throws on protocol-relative targets and the parse sat outside the handler's `try`, so the throw became a process exit with no response to the client (S1-H8). Also: a fabricated `0 in flight · 0 swept` census, `documents: 0` rendered as a real count, a poll loop a single hung request could wedge permanently, and fixtures describing payloads the bridge never returns. **All 8 fixed and mutation-verified** — each new guard was proved to bite by breaking the code it guards. Console **97/97** ⚠️ *(that figure was inflated — 85 real tests counted 3×, corrected by round 5; see below)*, web **39/39**, `tsc` 0, build **60.39 kB gz**, e2e **12/12**, rule 4 **41 sources walked / 0 over**, static containment **30/30 refused**. Detail: **16**.
@@ -2872,16 +4551,18 @@ That one needs an engine change and is Sean's call.
 
 ## Sean decisions pending
 
-1. **"go" for slice S2** — roster + writes (`addCreator` / `setEnabled`) + `BrainDrawer`. S1's exit evidence is green, so S2's entry criteria are met. **Two things must be settled before S2 ships, not before it starts:** the `server.mjs` cap (below) and **S1-H12** (below).
-2. **`server.mjs` is at exactly 300 lines — the rule-4 cap.** Compliant today, but **the first route S2 adds breaks it.** Either split `server.mjs` (router/registration split) or raise the repo-wide cap. Rule 4 is a CLAUDE.md rule, so this is Sean's call, not the builder's. Detail: **16 §13**. *(Round 5 sharpened this: the S1-H11 fix had to be shaped net-neutral in line count to avoid breaching the cap mid-fix — the cap is now costing real work, not just headroom.)*
-3. **Astra D1–D9 adjudication** — no longer a scheduling question: an automation fires **2026-09-19 22:30** to write `15-astra-brief.md` (preparation only, no spend; Astra rides the Codex subscription). What remains for Sean is the adjudication itself, which does not gate S2–S4.
+1. **"go" for slice S2** — roster + writes (`addCreator` / `setEnabled`) + `BrainDrawer`. S1's exit evidence is green. **Both blockers named here previously are now closed** — the `server.mjs` cap (item 2) and S1-H14 (item 5). The one that still must be settled **before S2 ships** is **S1-H12** (item 4).
+2. **CLOSED 2026-09-19 — the `server.mjs` cap call.** Split at the route-table seam into `server.mjs` 244 + `routes.mjs` 131 + `api.mjs` 77; the cap was **not** raised and rule 4 now binds nowhere (peak 283). No decision remains. Detail: **16 §19**.
+3. **CLOSED 2026-09-20 — the Astra D1–D9 adjudication.** Adjudicated, verdict REVISE (`17`). D7 was the only owner decision it produced, and it is now **executed** (`18`). No decision remains from this item.
 4. **NEW — S1-H12: `POST /api/creators` freezes the bridge's only thread.** The engine resolves a creator reference through `execFileSync` (`lib/ytdlp.mjs:184`), so one add blocks every other request — **measured 1577 ms for a failing lookup, ceiling 180 s**. `/api/status` pays the *same* blocking call but is TTL-cached precisely because `health.mjs` named the pattern a design defect; the write path got no such mitigation. **S2 must resolve this before shipping the add UI.** The honest fixes are (a) make the engine's resolver async — `addCreator` would need `await resolve(...)`, and `deps.resolveCreator` cannot be fixed from the console side because a returned Promise fails the `resolved.channelId` check — or (b) stop serving the add synchronously (202 + a job). **(a) touches the engine**, which SOUL.md forbids doing to make the console look better, so this is Sean's call. Detail: **16 §14**.
-5. **NEW — S1-H14: the engine gate is RED in this working tree, and the packet's own rule caused it.** `consistency-check.mjs` walks `scripts/creator-brains/**` for `*.mjs` with no `node_modules` skip, so it collects **71 third-party files** from `console/web/node_modules` and fails C1 deterministically (*largest = 4914 lines*, `decimal.js`). The console is inside the engine tree **because the packet says npm deps belong in `console/web/`** — the rule and the gate contradict each other. **Consequence: the F4 baseline of record (183/183) no longer holds** (this tree: 181 pass, C1 deterministic, `HR14f` flaky under load). Not caused by round 5 — `node_modules` is gitignored and dates to 2026-09-18 13:02. The console's *own* cap walk already learned to skip third-party code (H5, `NOT_OUR_SOURCE`); the engine's walk never did. Fix is one line, but it is an **engine** file, so it is Sean's call. Detail: **16 §14**.
+5. **CLOSED 2026-09-20 — S1-H14: the engine gate is GREEN again.** It was RED because `consistency-check.mjs` walks `scripts/creator-brains/**` with no `node_modules` skip, collecting third-party files from `console/web/node_modules` and failing C1 deterministically (*largest = 4914 lines*, `decimal.js`). The console is no longer inside that walk: **D7 moved it to `packages/creator-brains-console/`**, and the gate reads **15/15 consistent** with **no engine file touched** — the remedy the packet's own rules allowed. `HR14f` remains flaky under full-suite load and is **independent** of this move (A1-01 said so). Detail: **`18`**, and **16 §14** for the original defect.
+
+6. **NEW — A1-08 / D4: is an engine-only private backup an allowed exception to the tier-B boundary?** Backup stays **visible in the UI but blocked, with no endpoint**, because `backup-command.mjs:46–59` copies the durable set **including raw transcripts**, which `01` §"Business rules" item 1 bans from every console surface; the optional browser-supplied `dest` has no containment contract either. It is **not** dropped from scope. This is a privacy-boundary decision, not a build decision — see **`17`** §1 (D4) and **`05`** §2b.
 
 ## Uncommitted changes owned by this slice (rule 67 explicit paths)
 
 - `docs/ai-workflow/blueprints/creator-brains-console-20260917/**` (this packet)
-- `scripts/mcp/swan-council-subscription.mjs` + `.test.mjs` (flag-drift repair, 10/10)
+- `packages/creator-brains-console/**` (the console — relocated here from `scripts/creator-brains/console/` by D7, 2026-09-20; the old path no longer exists)
 - `.ai-workflow/coordination/zcode-glm--creator-brains-console-20260917.lane.md`, `review-queue.md` (append)
 
 === END DOCUMENT: README.md ===

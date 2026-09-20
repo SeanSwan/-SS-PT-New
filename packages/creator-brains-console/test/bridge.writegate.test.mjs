@@ -1,5 +1,5 @@
 /*
- * T-B22 — the SAME-ORIGIN WRITE GATE (A1-09, Astra adjudication 2026-09-20).
+ * T-B26 — the SAME-ORIGIN WRITE GATE (A1-09, Astra adjudication 2026-09-20).
  *
  * WHY THIS FILE EXISTS. The packet treated "binds loopback + checks Host" as the
  * complete trust boundary. It is not. `hostAllowed` stops DNS REBINDING — a page
@@ -12,12 +12,12 @@
  *   request", so no preflight is sent. The write lands.
  *
  * A1-09's own correction text asked for exactly one test: "Test a foreign page
- * sending a simple `text/plain` request to the loopback URL." That is T-B22a.
+ * sending a simple `text/plain` request to the loopback URL." That is T-B26a.
  *
  * THE GATE'S THIRD DEFECT, FOUND BY BUILDING THE CLIENT. The first draft of the
  * gate required the custom header, and the console's own web adapter did not
  * send it — so the fix would have refused every write the app makes. Six
- * existing tests failed on contact, which is what caught it. T-B22k exists so
+ * existing tests failed on contact, which is what caught it. T-B26k exists so
  * the two sides cannot drift apart silently again: the adapter lives under
  * `web/src`, which may not import this module (T-W2), so the header string is
  * duplicated and asserted equal here.
@@ -36,9 +36,9 @@ import { withFixture, rawRequest, CH_TWO } from './fixtures.mjs';
 /** The headers a legitimate write client sends. `gate:false` plus these is a valid write. */
 const satisfied = (extra = {}) => ({ 'content-type': REQUIRED_MEDIA_TYPE, [REQUIRED_HEADER]: '1', ...extra });
 
-/* ── T-B22a/b · the attack, and the header that de-simplifies it ─────────── */
+/* ── T-B26a/b · the attack, and the header that de-simplifies it ─────────── */
 
-test('T-B22a: a foreign page sending a simple text/plain POST is refused', async () => {
+test('T-B26a: a foreign page sending a simple text/plain POST is refused', async () => {
   await withFixture('t-b22a', async ({ base }) => {
     // Exactly the A1-09 attack: no custom header, a "simple" media type, so the
     // browser would have sent no preflight at all.
@@ -52,7 +52,7 @@ test('T-B22a: a foreign page sending a simple text/plain POST is refused', async
   });
 });
 
-test('T-B22b: a JSON write with no custom header is refused', async () => {
+test('T-B26b: a JSON write with no custom header is refused', async () => {
   await withFixture('t-b22b', async ({ base }) => {
     // Content-type alone is not enough — that is the "does not rest on one
     // property" requirement. A fetch() with a JSON body is trivially written by
@@ -67,7 +67,7 @@ test('T-B22b: a JSON write with no custom header is refused', async () => {
   });
 });
 
-test('T-B22b2: a non-JSON media type is refused even when the header is present', async () => {
+test('T-B26b2: a non-JSON media type is refused even when the header is present', async () => {
   await withFixture('t-b22b2', async ({ base }) => {
     const body = JSON.stringify({ enabled: true });
     const res = await rawRequest(base, `/api/creators/${CH_TWO}`, {
@@ -85,9 +85,9 @@ test('T-B22b2: a non-JSON media type is refused even when the header is present'
   });
 });
 
-/* ── T-B22c/e · the Origin rule ──────────────────────────────────────────── */
+/* ── T-B26c/e · the Origin rule ──────────────────────────────────────────── */
 
-test('T-B22c: a remote Origin is refused even with the header and media type satisfied', async () => {
+test('T-B26c: a remote Origin is refused even with the header and media type satisfied', async () => {
   await withFixture('t-b22c', async ({ base }) => {
     const res = await rawRequest(base, `/api/creators/${CH_TWO}`, {
       method: 'PATCH', gate: false,
@@ -99,7 +99,7 @@ test('T-B22c: a remote Origin is refused even with the header and media type sat
   });
 });
 
-test('T-B22e: a loopback Origin on another port is accepted (local dev server)', async () => {
+test('T-B26e: a loopback Origin on another port is accepted (local dev server)', async () => {
   await withFixture('t-b22e', async ({ base }) => {
     // Vite dev serves web/ on :5173 and is NOT the bridge. Refusing a loopback
     // origin because its port differs protects nothing — a hostile local process
@@ -113,7 +113,7 @@ test('T-B22e: a loopback Origin on another port is accepted (local dev server)',
   });
 });
 
-test('T-B22f: originAllowed accepts loopback on any port and nothing else', () => {
+test('T-B26f: originAllowed accepts loopback on any port and nothing else', () => {
   for (const good of ['http://127.0.0.1', 'http://127.0.0.1:8080', 'http://localhost:5173', 'http://[::1]:9', 'HTTP://LOCALHOST']) {
     assert.equal(originAllowed(good), true, `${good} is loopback`);
   }
@@ -122,9 +122,9 @@ test('T-B22f: originAllowed accepts loopback on any port and nothing else', () =
   }
 });
 
-/* ── T-B22g · the property that makes the preflight fail ─────────────────── */
+/* ── T-B26g · the property that makes the preflight fail ─────────────────── */
 
-test('T-B22g: no response ever carries access-control-allow-origin', async () => {
+test('T-B26g: no response ever carries access-control-allow-origin', async () => {
   await withFixture('t-b22g', async ({ base }) => {
     const responses = [
       await rawRequest(base, '/api/creators', { method: 'GET' }),
@@ -139,9 +139,9 @@ test('T-B22g: no response ever carries access-control-allow-origin', async () =>
   });
 });
 
-/* ── T-B22h/i/j · the gate must not refuse a legitimate client ───────────── */
+/* ── T-B26h/i/j · the gate must not refuse a legitimate client ───────────── */
 
-test('T-B22h: a bodyless DELETE passes on the header alone', async () => {
+test('T-B26h: a bodyless DELETE passes on the header alone', async () => {
   await withFixture('t-b22h', async ({ base }) => {
     // A bodyless DELETE has no natural media type. Requiring one would make the
     // gate unsatisfiable by a legitimate client — the exact defect class this
@@ -154,7 +154,7 @@ test('T-B22h: a bodyless DELETE passes on the header alone', async () => {
   });
 });
 
-test('T-B22i: reads are unaffected by the gate', async () => {
+test('T-B26i: reads are unaffected by the gate', async () => {
   await withFixture('t-b22i', async ({ base }) => {
     // A media-type rule on GET would break the address bar.
     const res = await rawRequest(base, '/api/creators', { method: 'GET', gate: false });
@@ -164,7 +164,7 @@ test('T-B22i: reads are unaffected by the gate', async () => {
   });
 });
 
-test('T-B22j: a satisfied gate still reaches the route — validation is unchanged', async () => {
+test('T-B26j: a satisfied gate still reaches the route — validation is unchanged', async () => {
   await withFixture('t-b22j', async ({ base }) => {
     const res = await rawRequest(base, '/api/creators/not-a-channel', {
       method: 'PATCH', body: JSON.stringify({ enabled: true }),
@@ -174,7 +174,7 @@ test('T-B22j: a satisfied gate still reaches the route — validation is unchang
   });
 });
 
-test('T-B22l: non-write methods are never gated (unit)', () => {
+test('T-B26l: non-write methods are never gated (unit)', () => {
   for (const method of ['GET', 'HEAD', 'OPTIONS', 'TRACE']) {
     assert.equal(writeGateFailure({ method, headers: {} }), null, `${method} is not a write`);
   }
@@ -183,9 +183,9 @@ test('T-B22l: non-write methods are never gated (unit)', () => {
   }
 });
 
-/* ── T-B22k · the client must satisfy its own bridge's gate ──────────────── */
+/* ── T-B26k · the client must satisfy its own bridge's gate ──────────────── */
 
-test('T-B22k: the web adapter sends the same header this gate requires', () => {
+test('T-B26k: the web adapter sends the same header this gate requires', () => {
   // The adapter may not import this module (T-W2 forbids web/src from escaping
   // itself), so the string is duplicated. That duplication is a silent-failure
   // seam: change one side and every write the console makes becomes a 403 with
@@ -197,7 +197,7 @@ test('T-B22k: the web adapter sends the same header this gate requires', () => {
     `web/src/adapters/LocalEngineAdapter.ts must send '${REQUIRED_HEADER}' on every request`);
 });
 
-test('T-B22k2: the browser-shaped write the adapter builds is accepted', async () => {
+test('T-B26k2: the browser-shaped write the adapter builds is accepted', async () => {
   await withFixture('t-b22k2', async ({ base, port }) => {
     // Node cannot reproduce a browser's forbidden-header handling, so the
     // browser shape is assembled from what the adapter actually sets: accept,
