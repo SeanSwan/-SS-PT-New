@@ -825,7 +825,10 @@ describe('§19 — structural ratchet: no HTML template interpolates a sensitive
       const escaped = escapedIdentifiers(masked, canonicalEncoders(masked));
       for (const { text, line } of htmlTemplates(rel)) {
         for (const expr of interpolations(text)) {
-          if (expr.includes('escapeHtml')) continue;   // escaped right here
+          // Escaped right here: an actual encoder CALL, not merely a substring
+          // that contains "escapeHtml" (e.g. `${client.escapeHtml}` is a property
+          // access, not escaping, and must not be exonerated by a substring test).
+          if (ENCODER_NAMES.some((n) => new RegExp(`\\b${n}\\s*\\(`).test(expr))) continue;
           if (isCallExpression(expr)) continue;        // computed — helper's job
           if (!mentionsLeaf(expr, LEAVES)) continue;
           const root = (expr.match(/[A-Za-z_$][\w$]*/) || [])[0];

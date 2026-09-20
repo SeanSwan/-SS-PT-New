@@ -79,8 +79,13 @@ export async function validateSpotlightImageUrl(rawUrl) {
     throw new SpotlightImageError('IMAGE_URL_NOT_ALLOWED', 'credentials in URL not allowed');
   }
 
-  // Resolve first, then reject. Defeats DNS rebinding and direct internal targeting:
-  // a name that resolves to 127.0.0.1 / 169.254.169.254 / 10.x is refused before any socket.
+  // Resolve first, then reject. A name that resolves to 127.0.0.1 / 169.254.169.254 / 10.x
+  // is refused before any socket is opened, which closes direct internal targeting.
+  //
+  // NOTE — this is a check-time validation only, NOT a complete DNS-rebinding defence:
+  // the fetch() below re-resolves the hostname, so a name that flips to a private address
+  // between this lookup and the fetch would still be reached (TOCTOU). That residual gap is
+  // accepted because every caller of this path is gated behind a valid HMAC signature.
   let addrs;
   try {
     addrs = await dns.lookup(incoming.hostname, { all: true });
