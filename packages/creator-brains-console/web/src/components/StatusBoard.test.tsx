@@ -128,3 +128,57 @@ describe('T-W3 StatusBoard', () => {
     expect(screen.getByTestId('published-brains')).toHaveTextContent(String(fx.healthyStatus.publishedBrains));
   });
 });
+
+/*
+ * ── R2-01 · health is rendered with its PROVENANCE ──────────────────────────
+ *
+ * The old rendering was one ternary on `ok`, so a stale success and a live one
+ * produced the SAME string, and "never checked" produced the same string as "the
+ * check failed". These three tests fail against that version — which is the only
+ * reason to write them. A test that passes both before and after a fix is not
+ * evidence of the fix.
+ */
+describe('R2-01 health provenance', () => {
+  it('a LIVE ok reading reads as ok and does not claim to be history', () => {
+    render(<StatusBoard state={ready(fx.healthyStatus)} />);
+
+    const line = screen.getByTestId('ytdlp-health');
+    expect(line).toHaveTextContent(/ok · 2025\.09\.17/);
+    expect(line).not.toHaveTextContent(/not a live one/);
+    expect(line).not.toHaveTextContent(/not yet checked/);
+  });
+
+  it('a HISTORY ok reading is labelled as not live, and carries its age', () => {
+    render(<StatusBoard state={ready(fx.staleHistoryStatus)} />);
+
+    // The value is good; the verdict is old. BOTH must reach the screen — this
+    // is the case the old ternary rendered as a bare "ok".
+    const line = screen.getByTestId('ytdlp-health');
+    expect(line).toHaveTextContent(/ok/);
+    expect(line).toHaveTextContent(/from the last recorded check, not a live one/);
+    expect(line).toHaveTextContent(/as of 2026-09-17T04:12:00\.000Z/);
+    expect(line).toHaveTextContent(/ago/);
+  });
+
+  it('an UNKNOWN reading says no verdict was taken — it does not say "not resolved"', () => {
+    render(<StatusBoard state={ready(fx.uncheckedStatus)} />);
+
+    // `ok:false` here means "we have not looked", not "it is broken". The old
+    // rendering said "not resolved — " with an empty reason, which reads as a
+    // failure and blames nothing.
+    const line = screen.getByTestId('ytdlp-health');
+    expect(line).toHaveTextContent(/not yet checked/);
+    expect(line).toHaveTextContent(/no verdict has been taken/);
+    expect(line).not.toHaveTextContent(/not resolved/);
+    expect(line).not.toHaveTextContent(/failed/);
+  });
+
+  it('a live FAILURE names the reason, and is distinguishable from unknown', () => {
+    render(<StatusBoard state={ready(fx.failedProbeStatus)} />);
+
+    const line = screen.getByTestId('ytdlp-health');
+    expect(line).toHaveTextContent(/failed/);
+    expect(line).toHaveTextContent(/unable to extract player/);
+    expect(line).not.toHaveTextContent(/not yet checked/);
+  });
+});

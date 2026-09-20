@@ -99,26 +99,74 @@ test('T-B26c: a remote Origin is refused even with the header and media type sat
   });
 });
 
-test('T-B26e: a loopback Origin on another port is accepted (local dev server)', async () => {
+test('T-B26e: a loopback Origin on ANOTHER port is refused (R2-05)', async () => {
   await withFixture('t-b22e', async ({ base }) => {
-    // Vite dev serves web/ on :5173 and is NOT the bridge. Refusing a loopback
-    // origin because its port differs protects nothing — a hostile local process
-    // can POST with no Origin at all — while breaking the obvious dev setup.
+    // THIS TEST USED TO ASSERT THE OPPOSITE, and the inversion is the finding.
+    // It accepted `http://localhost:5173` on the argument that refusing it would
+    // break the Vite dev server. That argument was wrong twice over: the write
+    // carries a custom header, so a cross-origin attempt triggers a preflight the
+    // bridge never approves (no CORS permission is ever granted), and
+    // `vite.config.ts` has no proxy — so a dev-server write never reaches the
+    // bridge anyway. The old rule therefore refused nobody legitimate while
+    // admitting every local origin, including a hostile local page. Astra round 2
+    // found it (R2-05); the probe that found it used this exact origin.
     const res = await rawRequest(base, `/api/creators/${CH_TWO}`, {
       method: 'PATCH', gate: false,
       headers: satisfied({ origin: 'http://localhost:5173' }),
       body: JSON.stringify({ enabled: true }),
     });
-    assert.equal(res.status, 200);
+    assert.equal(res.status, 403, 'another port is another origin, whatever the host resolves to');
+    assert.match(res.body.error.message, /cross-origin write/);
   });
 });
 
-test('T-B26f: originAllowed accepts loopback on any port and nothing else', () => {
-  for (const good of ['http://127.0.0.1', 'http://127.0.0.1:8080', 'http://localhost:5173', 'http://[::1]:9', 'HTTP://LOCALHOST']) {
-    assert.equal(originAllowed(good), true, `${good} is loopback`);
+test('T-B26e2: the bridge\'s OWN origin is accepted, under either loopback spelling', async () => {
+  await withFixture('t-b22e2', async ({ base, port }) => {
+    // The positive control for T-B26e: the rule must not be "refuse everything",
+    // which would pass the test above and break the app. `port` is the port the
+    // fixture bridge actually bound (0 => ephemeral), which is the only honest
+    // source for the serving origin — exactly as `server.mjs` derives it.
+    for (const host of ['127.0.0.1', 'localhost']) {
+      const res = await rawRequest(base, `/api/creators/${CH_TWO}`, {
+        method: 'PATCH', gate: false,
+        headers: satisfied({ origin: `http://${host}:${port}` }),
+        body: JSON.stringify({ enabled: true }),
+      });
+      assert.equal(res.status, 200, `http://${host}:${port} IS this bridge's origin`);
+    }
+  });
+});
+
+test('T-B26f: originAllowed requires the serving origin\'s host and port (R2-05)', () => {
+  const serving = 'http://127.0.0.1:8787';
+
+  // Both spellings of the socket the bridge holds, at the port it holds.
+  for (const good of ['http://127.0.0.1:8787', 'http://localhost:8787', 'HTTP://LOCALHOST:8787']) {
+    assert.equal(originAllowed(good, serving), true, `${good} is this bridge's origin`);
   }
-  for (const bad of ['https://evil.example', 'http://127.0.0.1.evil.example', 'http://localhost.evil.example', '', null, 'null', 'http://0.0.0.0:1']) {
-    assert.equal(originAllowed(bad), false, `${String(bad)} is not a loopback origin`);
+
+  // The defect, one case per way to be a different origin.
+  for (const bad of [
+    'http://localhost:5173',      // R2-05 itself: loopback host, another port
+    'http://127.0.0.1:8788',      // one port over
+    'http://127.0.0.1',           // no port => :80, which is not 8787
+    'http://[::1]:8787',          // a DIFFERENT socket — the bridge binds 127.0.0.1 only
+    'https://127.0.0.1:8787',     // wrong scheme; the bridge serves no TLS
+    'https://evil.example',
+    'http://127.0.0.1.evil.example:8787',
+    'http://localhost.evil.example:8787',
+    'http://0.0.0.0:8787',
+    '', null, 'null', 'not a url',
+  ]) {
+    assert.equal(originAllowed(bad, serving), false, `${String(bad)} is not this bridge's origin`);
+  }
+
+  // A caller that cannot supply the serving origin gets a refusal, not a pass.
+  for (const noServing of [undefined, null, '', 42]) {
+    assert.equal(
+      originAllowed('http://127.0.0.1:8787', noServing), false,
+      'a rule whose right-hand side is missing must fail closed',
+    );
   }
 });
 

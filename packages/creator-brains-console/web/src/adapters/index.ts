@@ -9,6 +9,8 @@ export type {
   ConsoleDataAdapter,
   CreatorRow,
   DamageReport,
+  HealthReading,
+  HealthSource,
   QueryHit,
   QueryResult,
   RunState,

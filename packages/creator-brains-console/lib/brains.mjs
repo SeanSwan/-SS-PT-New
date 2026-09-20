@@ -6,140 +6,41 @@
  * SLICE: S0
  * ============================================================================
  *
- * THE TRUST BOUNDARY LIVES IN THIS FILE, so it is worth stating precisely.
+ * THE CONTAINMENT RULES AND THE LANE B/C BOUNDARY MOVED TO `lib/brain-read.mjs`
+ * (R2-03, 2026-09-20). This file is now the ROUTE-SHAPED half: it maps a
+ * caller's request onto that reader and projects engine rows into the console's
+ * served shape. Read `brain-read.mjs` before changing anything here — the
+ * measurement history for every containment rule lives with the rule, and it is
+ * deliberately not duplicated.
  *
- * The engine's store has three lanes:
- *   LANE A  durable     registry.json / state.json — roster and video states
- *   LANE B  private     docs/<channelId>/<videoId>.json — RAW TRANSCRIPT TEXT
- *   LANE C  derived     brains/<slug>/ — published claims, topics, timeline
- *
- * LANE B is the creator's own spoken content, stored locally. Nothing in the
- * console may serve it. LANE C is the product: claims with timestamps and deep
- * links back into the creator's video.
- *
- * `queryConsole` reads LANE C indirectly, through the engine's `queryBrains`,
- * which loads published generation files. `brainDoc` reads LANE C directly, but
- * only the files named by the published pointer — the pointer IS the gate. The
- * engine's render pipeline (HR08) guarantees a brain page is built from
- * published claims, never from raw transcript, and this module inherits that
- * guarantee rather than re-establishing it.
- *
- * The one thing this file must never grow: a path parameter that lets a caller
- * name a file. `brainDoc` takes a SLUG, joins it under `brainsDir`, and reads
- * three fixed filenames.
- *
- * THAT LAST PARAGRAPH USED TO END "…so a slug cannot escape the directory
- * because the three names are literals." IT WAS FALSE, AND IT WAS THE REASON
- * A1-11 SAT HERE UNSEEN (2026-09-20). Three literals do not help: the slug and
- * the pointer's generation are BOTH joined into the path —
- *
- *   readPointer(r, name)              → join(brainsDir, name, 'current.json')
- *   join(brainsDir, name, generation) → the three reads
- *
- * — and neither was validated. MEASURED against the pre-fix code, with a
- * directory of the same three filenames placed beside the store:
- *
- *   a pointer naming generation `../../../outside/gen-0001`  → 200, served it
- *   `brains/<ns>/gen-0001` as a junction to that directory   → 200, served it
- *   `brains/<ns>` itself as a junction to it                 → 200, served it
- *   an encoded traversal in the SLUG (`..%2F..%2Foutside`)   → 404, no leak
- *
- * So the generation component and any filesystem LINK are live, and the slug
- * text is not — the router does not decode `%2F`, and `fetch`/`undici` strip a
- * raw `..` before the wire. The alphabet check below is still required, and not
- * because it fixes a live hole: the slug is safe TODAY only because another
- * module declines to decode, which is an assumption owned elsewhere and one
- * `decodeURIComponent` away from being false. That is the exact shape of guard
- * this review exists to find, so the slug is constrained here rather than left
- * resting on someone else's behaviour.
+ * ⚠️ KNOWN OPEN DEFECT — R2-02, Astra round 2. `queryConsole` still calls the
+ * engine's `queryBrains`, which resolves pointers ITSELF and therefore never
+ * passes through `containedDir`. Measured by the round-2 probe: a poisoned
+ * generation path was followed and a hit returned from outside `brains/`. The
+ * drawer is contained; the query route is not. The fix is to route the query
+ * through the same reader, which is the S0H slice. It is recorded here rather
+ * than left implicit because a reader of this file would otherwise reasonably
+ * assume the boundary covers both entry points — which is exactly how A1-11 sat
+ * unseen in the first place.
  *
  * @module creator-brains-console/lib/brains
  */
 
-import { readFileSync, realpathSync } from 'node:fs';
-import { isAbsolute, join, relative, resolve } from 'node:path';
-import { loadHits, queryBrains } from '../../../scripts/creator-brains/lib/query.mjs';
-import { readPointer } from '../../../scripts/creator-brains/lib/render.mjs';
-import { paths } from '../../../scripts/creator-brains/lib/paths.mjs';
+import { queryBrains } from '../../../scripts/creator-brains/lib/query.mjs';
+import { BRAIN_FILES, readPublishedBrain } from './brain-read.mjs';
 import { ApiError, CODE, validateQuery } from './errors.mjs';
 import { toQueryHit } from './hits.mjs';
 
-/**
- * The three MARKDOWN files a brain page exposes verbatim (LANE C).
- *
- * `rules.jsonl` is read from the same generation as CLAIMS — parsed, validated
- * and projected, never served as a file body. It is deliberately absent from
- * this list because nothing may hand it back raw; see `claims` in `brainDoc`.
- */
-export const BRAIN_FILES = Object.freeze(['index.md', 'topics.md', 'timeline.md']);
+// Re-exported because `api.mjs` reads the allowlist from here; the list itself
+// belongs with the reader that uses it.
+export { BRAIN_FILES };
 
 /**
- * A namespace that cannot be a path.
+ * GET /api/query?q&creator — thin pass-through to the engine's own query.
  *
- * The engine produces two shapes and only two: `slugify` yields `[a-z0-9-]`
- * (≤60 chars, no leading or trailing hyphen) and a YouTube channel id is
- * `UC[A-Za-z0-9_-]+`. This allowlist covers both and admits no `.`, no
- * separator, and no empty name — so `..`, `/`, `\` and a NUL byte are all
- * unrepresentable. `BRAIN_NS` in the fixtures ('fixture-brain') is the case
- * that keeps the rule honest about hyphens.
+ * ⚠️ NOT CONTAINED — see the R2-02 note in the header. Every other path into
+ * LANE C goes through `readPublishedBrain`.
  */
-const NAMESPACE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
-
-/** The generation directory shape the engine writes (`render.mjs` `nextGeneration`). */
-const GENERATION = /^gen-\d{4}$/;
-
-/** Is `target` strictly inside `root`, after both have been normalised? */
-function inside(root, target) {
-  const rel = relative(root, target);
-  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
-}
-
-/**
- * `brains/<slug>/<generation>`, proven to resolve inside the store.
- *
- * WHY BOTH CHECKS WHEN THE ALPHABET ALREADY FORBIDS TRAVERSAL. Because a check
- * that holds only while another check happens to hold is precisely the defect
- * class this review exists to find. Containment is asserted directly, so
- * loosening `NAMESPACE` later cannot silently reopen the hole.
- *
- * AND WHY CONTAINMENT OF THE PATH IS NOT CONTAINMENT OF THE FILE. `readFileSync`
- * follows junctions and symlinks, so `brains/<slug>` — or the generation
- * directory itself — may be a link to anywhere while remaining lexically inside.
- * `realpathSync` resolves the whole chain, which is the only thing that can see
- * that. MEASURED 2026-09-20 against the pre-fix code: a junction at either
- * `brains/<ns>/gen-0001` or at `brains/<ns>` served a directory outside the
- * store with 200 and the same three documents. A traversal in the pointer's
- * `generation` did the same. All three are refused now.
- */
-function containedDir(r, slug, generation) {
-  const root = resolve(paths(r).brainsDir);
-  const dir = resolve(root, slug, generation);
-  if (!inside(root, dir)) {
-    throw new ApiError(
-      CODE.STORE_DAMAGED,
-      `'${slug}/${generation}' does not resolve inside the brains store`,
-      { file: 'current.json' },
-    );
-  }
-
-  let realRoot = null;
-  let real = null;
-  try { realRoot = realpathSync(root); } catch { /* no store yet — nothing to escape */ }
-  try { real = realpathSync(dir); } catch { /* absent generation, reported per file below */ }
-
-  // An ABSENT generation directory is not a fault — it is reported file by file,
-  // exactly as before. Only one that EXISTS and escapes is a store fault.
-  if (real !== null && realRoot !== null && !inside(realRoot, real)) {
-    throw new ApiError(
-      CODE.STORE_DAMAGED,
-      `the published generation for '${slug}' resolves outside the brains store`,
-      { file: 'current.json' },
-    );
-  }
-  return dir;
-}
-
-/** GET /api/query?q&creator — thin pass-through to the engine's own query. */
 export function queryConsole(q, { r, creator = null } = {}) {
   const query = validateQuery(q);
   let res;
@@ -172,6 +73,18 @@ export function queryConsole(q, { r, creator = null } = {}) {
  * GET /api/brains/:slug — read ONLY the published generation named by the
  * pointer. A missing pointer is a 404, never an empty document that looks like
  * a brain with nothing in it.
+ *
+ * Everything below the 404 decision lives in `readPublishedBrain`, which reads
+ * the pointer ONCE and takes all four files from the directory that one read
+ * named. Two shapes are deliberately distinguished there:
+ *
+ *   no published brain        → `null` here → 404
+ *   damage (impossible
+ *   generation, escaping
+ *   link)                     → thrown there → 409 STORE_DAMAGED
+ *
+ * Collapsing those is how a corrupt store comes to look like an empty one — the
+ * S1-H15 shape, which this route has already produced once.
  */
 export function brainDoc(slug, { r } = {}) {
   if (typeof slug !== 'string' || !slug.trim()) {
@@ -179,112 +92,22 @@ export function brainDoc(slug, { r } = {}) {
   }
   const name = slug.trim();
 
-  // REFUSE BEFORE THE POINTER READ (A1-11). `pointerPath` joins this string
-  // unsanitised, so a name that cannot be a namespace must not reach it at all.
-  // 404 rather than 400: from a caller's side an unnameable slug and an absent
-  // brain are the same answer, and the containment probes already pin that.
-  if (!NAMESPACE.test(name)) {
+  const published = readPublishedBrain(r, name);
+  if (!published) {
     throw new ApiError(CODE.NOT_FOUND, `no published brain for '${name}'`, { slug: name });
   }
 
-  let pointer;
-  try {
-    pointer = readPointer(r, name);
-  } catch {
-    pointer = null;
-  }
-  if (!pointer) {
-    throw new ApiError(CODE.NOT_FOUND, `no published brain for '${name}'`, { slug: name });
-  }
-
-  // THE GENERATION IS PART OF THE PATH (S1-H15). The engine publishes into
-  // `brains/<slug>/<generation>/` and swaps `current.json` LAST (render.mjs
-  // `publishBrain`: `writeTextAtomic(join(genDir, f.name), f.text)` then
-  // `writeJsonAtomic(pointerPath(r, ns), pointer)`), so the three documents sit
-  // one level BELOW the pointer. This function used to join `brainsDir + slug`
-  // only and then read the three literal names — a directory that never holds
-  // them — so every published brain answered **200 with all three fields
-  // empty**. Correct slug, correct generation, correct title, no content: that
-  // is precisely the "empty document that looks like a brain with nothing in
-  // it" the contract above forbids, and it is indistinguishable from a brain
-  // that genuinely has no claims.
-  const generation = typeof pointer.generation === 'string' && pointer.generation
-    ? pointer.generation
-    : null;
-
-  // AN ABSENT GENERATION IS INCOMPLETE; AN IMPOSSIBLE ONE IS DAMAGE (A1-11). The
-  // engine writes `gen-NNNN` and nothing else, so a pointer naming anything else
-  // was not written by the engine — corrupt or forged. Reporting it as three
-  // empty documents is the S1-H15 shape again: a store fault dressed as a
-  // legitimate brain with nothing in it.
-  if (generation !== null && !GENERATION.test(generation)) {
-    throw new ApiError(
-      CODE.STORE_DAMAGED,
-      `the published pointer for '${name}' names generation '${generation.slice(0, 80)}', `
-        + 'which the engine never writes',
-      { file: 'current.json' },
-    );
-  }
-
-  const dir = generation ? containedDir(r, name, generation) : null;
-
-  // A file that is missing must be REPORTED, not silently rendered as empty —
-  // the same rule `loadHits` applies to a missing `rules.jsonl`. `skipped` was
-  // already part of this payload and was always `[]`.
-  const skipped = [];
-  const readIfPresent = (file) => {
-    if (!dir) {
-      skipped.push({ file, reason: 'the published pointer names no generation' });
-      return '';
-    }
-    try {
-      return readFileSync(join(dir, file), 'utf8');
-    } catch {
-      skipped.push({ file, reason: 'missing from the published generation' });
-      return '';
-    }
-  };
-
-  // CLAIMS COME FROM THE SAME PINNED GENERATION AS THE MARKDOWN (A1-04). This
-  // route used to return `claims: []` while `03-wireframes.md` promised a claim
-  // drawer and `web/src/adapters/types.ts` declared `claims: QueryHit[]` — so the
-  // drawer was structurally always empty, a placeholder that renders as "this
-  // creator claimed nothing".
-  //
-  // Composed through the engine's own `loadHits`, not a second reader of
-  // `rules.jsonl`: that function owns the required-field list, the row
-  // validation and the skipped accounting, and a copy would drift from it.
-  const claims = [];
-  if (dir) {
-    const published = loadHits(r, { creator: name });
-    for (const row of published.hits) {
-      // `loadHits` resolves the generation from the pointer AGAIN. If the pointer
-      // moved between that read and the containment check above, this row would
-      // come from a directory nobody validated — so the generation is checked
-      // against the one we proved, rather than assumed equal.
-      if (row.generation !== generation) {
-        throw new ApiError(
-          CODE.STORE_DAMAGED,
-          `the published pointer for '${name}' changed generation while it was being read`,
-          { file: 'current.json' },
-        );
-      }
-      claims.push(toQueryHit(row));
-    }
-    // Folded into the same `{file, reason}` shape the three markdown files use,
-    // so a damaged or absent `rules.jsonl` is REPORTED in the one place a reader
-    // already looks, instead of becoming an empty drawer that looks like data.
-    for (const s of published.skipped) skipped.push({ file: 'rules.jsonl', reason: s.reason });
-  }
-
+  // Claims come from the SAME pinned generation as the markdown (A1-04/R2-03),
+  // and the projection is shared with the query route (`lib/hits.mjs`) so the
+  // two cannot drift field for field.
   return {
     slug: name,
-    generation,
-    title: pointer.title ?? name,
-    index: readIfPresent('index.md'),
-    topics: readIfPresent('topics.md'),
-    timeline: readIfPresent('timeline.md'),
-    claims,
-    skipped,
+    generation: published.generation,
+    title: published.title,
+    index: published.docs['index.md'],
+    topics: published.docs['topics.md'],
+    timeline: published.docs['timeline.md'],
+    claims: published.claims.map(toQueryHit),
+    skipped: published.skipped,
   };
 }

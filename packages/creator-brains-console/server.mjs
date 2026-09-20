@@ -119,9 +119,16 @@ export function createBridge({ r = root(), log = () => {}, port = null } = {}) {
     // DNS rebinding; it does NOT stop a remote page that already knows the
     // loopback address from POSTing to it directly, because the browser supplies
     // the correct Host itself. Writes must therefore be non-simple: JSON media
-    // type, a fixed custom header, and a loopback Origin when one is sent. Same
-    // 403 shape as the Host gate so the two read alike. See lib/write-gate.mjs.
-    const writeFailure = writeGateFailure(req);
+    // type, a fixed custom header, and an Origin that IS this bridge's origin
+    // when one is sent. Same 403 shape as the Host gate so the two read alike.
+    //
+    // The serving origin is derived from the SAME `boundPort` the Host gate uses,
+    // and for the same reason: `port` is null on the normal launch path, so the
+    // live server is the only source that knows the real port. Passing `port`
+    // here instead would degrade the Origin rule to "any loopback port" on
+    // exactly the launch path this console actually uses — the R2-05 defect, in
+    // the gate next door. See lib/write-gate.mjs.
+    const writeFailure = writeGateFailure(req, `http://${HOST}:${boundPort}`);
     if (writeFailure) return sendJson(res, 403, { error: writeFailure });
 
     try {

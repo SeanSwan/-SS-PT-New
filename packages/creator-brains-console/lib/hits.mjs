@@ -36,10 +36,13 @@
  */
 
 /**
- * One raw engine rule row (as the engine's `loadHits` returns it) → a hit.
+ * One raw engine rule row → a hit.
  *
- * @param {object} row a `rules.jsonl` row: snake_case, required fields validated
- *                     by `loadHits` before it reaches here.
+ * @param {object} row a `rules.jsonl` row: snake_case, required fields already
+ *                     validated by `readClaims` in `lib/brain-read.mjs`. That is
+ *                     the console's own reader since R2-03 — this docstring used
+ *                     to name the engine's `loadHits`, which is no longer on
+ *                     this path.
  */
 export function toQueryHit(row) {
   const videoId = row.video_id;

@@ -16,7 +16,18 @@ import type {
 } from './types';
 
 export const healthyStatus: StatusInstrument = {
-  ytdlp: { ok: true, version: '2025.09.17', reason: '' },
+  // A LIVE reading: the probe ran, it was fresh, and it succeeded (R2-01 — the
+  // provenance is part of the payload, not decoration; the board branches on it).
+  ytdlp: {
+    ok: true,
+    version: '2025.09.17',
+    reason: '',
+    checkedAt: '2026-09-18T11:40:00.000Z',
+    ageMs: 420000,
+    source: 'probe',
+    stale: false,
+    note: null,
+  },
   creators: { total: 12, enabled: 9, damaged: null },
   state: {
     damaged: null,
@@ -129,7 +140,9 @@ export const queryResult: QueryResult = {
 };
 
 export const brainDoc: BrainDoc = {
+  // `slug` holds a CHANNEL ID, not a human label — see the note on `BrainDoc`.
   slug: 'systems-weekly',
+  generation: 'gen-0007',
   title: 'Systems Weekly',
   index: '# Systems Weekly\n\n62 videos, 60 fetched.',
   topics: '## Topics\n\n- queueing\n- backpressure',
@@ -159,4 +172,67 @@ export const canaryFromHistory: CanaryReading = {
   source: 'history',
   stale: true,
   note: 'live probe did not resolve yt-dlp — showing the last recorded canary result instead',
+};
+
+/*
+ * ── THE TWO HEALTH STATES THE OLD RENDERING COULD NOT EXPRESS (R2-01) ───────
+ *
+ * Both fixtures are REAL bridge shapes, taken from lib/health.mjs: a `history`
+ * reading and the `unknown` source. They exist because the previous rendering
+ * collapsed them into "ok" and "not resolved" respectively — so a test that
+ * asserted the old strings would have passed while the board lied. A fixture
+ * that cannot represent a state cannot test it.
+ */
+
+/**
+ * A past SUCCESS replayed from the daily pass. `ok: true` and `stale: true`
+ * together — which is the whole point: the value is good and the verdict is not
+ * live, and both facts have to survive to the screen.
+ */
+export const staleHistoryStatus: StatusInstrument = {
+  ...healthyStatus,
+  ytdlp: {
+    ok: true,
+    version: '2025.09.17',
+    reason: '',
+    checkedAt: '2026-09-17T04:12:00.000Z',
+    ageMs: 113_280_000,
+    source: 'history',
+    stale: true,
+    note: 'live probe did not resolve yt-dlp — showing the last recorded reading',
+  },
+};
+
+/**
+ * NO VERDICT HAS BEEN TAKEN: the probe has not run and there is no history
+ * entry. `ok` is false, and that false is NOT a failure — it is the absence of
+ * a check, which is why the board must not render it as one.
+ */
+export const uncheckedStatus: StatusInstrument = {
+  ...healthyStatus,
+  ytdlp: {
+    ok: false,
+    version: null,
+    reason: '',
+    checkedAt: null,
+    ageMs: null,
+    source: 'unknown',
+    stale: true,
+    note: null,
+  },
+};
+
+/** A live check that RAN AND FAILED — the only case where the reason belongs. */
+export const failedProbeStatus: StatusInstrument = {
+  ...healthyStatus,
+  ytdlp: {
+    ok: false,
+    version: null,
+    reason: 'yt-dlp exited 1: unable to extract player',
+    checkedAt: '2026-09-18T11:40:00.000Z',
+    ageMs: 420000,
+    source: 'probe',
+    stale: false,
+    note: null,
+  },
 };

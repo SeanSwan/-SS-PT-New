@@ -2,6 +2,16 @@
  * ConsoleDataAdapter — the modularity seam (05-contracts.md §1).
  * The UI imports ONLY this module. Transcribed verbatim from the contract;
  * do not "improve" shapes here without amending 05-contracts.md first.
+ *
+ * R2-01 (Astra round 2, 2026-09-20) FOUND THAT RULE BEING BROKEN IN THIS FILE.
+ * Three declarations had drifted from what the bridge actually serializes, so a
+ * future consumer would have been built on a contract the bridge does not honour:
+ * `ytdlp` omitted the health PROVENANCE, `BrainDoc` omitted `generation`, and
+ * `CanaryReading` could not express the `unknown` source. The contract
+ * (`05-contracts.md`) was amended in the same pass. **Every declared field is now
+ * asserted against a live payload by `bridge.contractsync.test.mjs`**, which
+ * reads this file as text and requires each declared key to exist on the route —
+ * so the next drift fails a test instead of shipping.
  */
 
 export type Tier = 'T0' | 'T1' | 'T2' | 'T3' | 'T4';
@@ -11,9 +21,37 @@ export interface DamageReport {
   detail: string;
 }
 
+/**
+ * Where a health verdict came from, and how old it is (lib/health.mjs:114).
+ *
+ * `unknown` IS A FIRST-CLASS SOURCE, not an absence. It means "no verdict has
+ * been taken" — the probe has not run and there is no history entry — and it is
+ * deliberately distinct from `probe` with `ok: false`, which means "a live check
+ * ran and failed". Collapsing the two is how "we have not looked" comes to be
+ * rendered as "it is broken" (R2-01).
+ */
+export type HealthSource = 'probe' | 'history' | 'unknown';
+
+/**
+ * The composed health reading, with its provenance (lib/health.mjs:283 `shape`).
+ *
+ * `stale` is true for any `history` reading BY DEFINITION — it is a record of a
+ * past verdict, however recent, and must never be presented as a live one.
+ */
+export interface HealthReading {
+  ok: boolean;
+  version: string | null;
+  reason: string;
+  checkedAt: string | null;
+  ageMs: number | null;
+  source: HealthSource;
+  stale: boolean;
+  note: string | null;
+}
+
 export interface StatusInstrument {
   // R2 — mirrors status-command sources
-  ytdlp: { ok: boolean; version: string | null; reason: string };
+  ytdlp: HealthReading;
   creators: { total: number; enabled: number; damaged: DamageReport | null };
   state: {
     damaged: DamageReport | null;
@@ -83,7 +121,26 @@ export interface QueryResult {
 }
 
 export interface BrainDoc {
+  /**
+   * THE COMPATIBILITY FIELD, AND IT HOLDS A CHANNEL ID (R2-01).
+   *
+   * The route is `/api/brains/:slug` and the response field is called `slug`,
+   * but the value is the creator's channel id — the engine namespaces a brain by
+   * channel (`lib/render.mjs` `brainDir(r, namespace)`), and `lib/brains.mjs`
+   * returns the request parameter unchanged. The name is retained because the
+   * route and the field are already published; **do not "correct" it to
+   * `channelId` without amending 05-contracts.md**, and do not treat it as a
+   * human-readable label. `title` is the label.
+   */
   slug: string;
+  /**
+   * The generation directory every field below was read from (R2-01). `null`
+   * when the published pointer names no generation — in which case the three
+   * documents are empty and `skipped` says why, rather than the route inventing
+   * a generation name. It is the answer to "which publication is this?", and
+   * without it a reader cannot tell a stale document from a fresh one.
+   */
+  generation: string | null;
   title: string;
   index: string;
   topics: string;
@@ -100,16 +157,28 @@ export interface RunState {
   recentRuns: StatusInstrument['recentRuns'];
 }
 
+/**
+ * `GET /api/canary` — the same health reading as `StatusInstrument.ytdlp`, as
+ * its own route (lib/status.mjs:173 `canaryState`).
+ *
+ * EVERY FIELD IS REQUIRED AND NULLABLE, which is the R2-01 correction. The old
+ * declaration made the provenance optional (`checkedAt?: string`) and typed
+ * `source` as `'probe' | 'history'`. The bridge emits all eight keys
+ * unconditionally, and `source` can also be `'unknown'`; so the old type both
+ * understated what is always present and could not represent what is actually
+ * sent. An optional marker on a field the bridge always sends invites a consumer
+ * to treat "absent" as a real state that cannot occur.
+ */
 export interface CanaryReading {
   ok: boolean;
   version: string | null;
   reason: string;
   // cached-probe provenance (05-contracts.md §2a)
-  checkedAt?: string;
-  ageMs?: number;
-  source?: 'probe' | 'history';
-  stale?: boolean;
-  note?: string | null;
+  checkedAt: string | null;
+  ageMs: number | null;
+  source: HealthSource;
+  stale: boolean;
+  note: string | null;
 }
 
 export interface ConsoleDataAdapter {

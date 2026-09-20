@@ -12,6 +12,7 @@
 import type { ReactElement } from 'react';
 import styled from 'styled-components';
 import type { StatusState } from '../hooks/useStatus';
+import { healthText } from './healthText';
 
 const Panel = styled.section`
   background: var(--carbon, #141419);
@@ -174,9 +175,7 @@ export function StatusBoard({ state }: StatusBoardProps): ReactElement {
 
       <Grid>
         <Label>yt-dlp</Label>
-        <Value>
-          {status.ytdlp.ok ? `ok · ${status.ytdlp.version ?? 'version unknown'}` : `not resolved — ${status.ytdlp.reason}`}
-        </Value>
+        <Value data-testid="ytdlp-health">{healthText(status.ytdlp)}</Value>
 
         <Label>Creators</Label>
         {creatorsDamaged ? (

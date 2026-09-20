@@ -40,6 +40,7 @@ type Shape =
   | { k: 'num' }
   | { k: 'str' }
   | { k: 'bool' }
+  | { k: 'oneOf'; allowed: readonly string[] }
   | { k: 'nullOr'; inner: Shape }
   | { k: 'opt'; inner: Shape };
 
@@ -50,6 +51,14 @@ const arr = (of: Shape): Shape => ({ k: 'arr', of });
 const obj = (fields: Record<string, Shape>): Shape => ({ k: 'obj', fields });
 const nullOr = (inner: Shape): Shape => ({ k: 'nullOr', inner });
 const opt = (inner: Shape): Shape => ({ k: 'opt', inner });
+
+/**
+ * A string drawn from a CLOSED SET — for a field whose values are enumerated,
+ * where any other string is a contract violation rather than a new value. A
+ * plain `str` would accept `'prob'` and let it reach a consumer that branches on
+ * the value, which is a silent wrong branch instead of a refusal.
+ */
+const oneOf = (allowed: readonly string[]): Shape => ({ k: 'oneOf', allowed });
 
 function isObj(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -71,13 +80,32 @@ const runEntry: Shape = obj({ runId: str, ok: bool, fetched: num });
  * here — demanding keys no component reads would only invent false refusals.
  *
  * `census.error` is the one field status.mjs emits conditionally
- * (status.mjs:139), so it is `opt` and typed only when present. `ytdlp.version`,
- * `throttle.until`, `lock.pid` and `lock.alive` are also conditional; they are
- * left undeclared, which the walker allows, because StatusBoard reads each
- * behind a `??` or a truthiness test and none of them can throw.
+ * (status.mjs:139), so it is `opt` and typed only when present. `throttle.until`
+ * and `lock.pid`/`lock.alive` are also conditional; they are left undeclared,
+ * which the walker allows, because StatusBoard reads each behind a `??` or a
+ * truthiness test and none of them can throw.
+ *
+ * `ytdlp`'s PROVENANCE IS REQUIRED AS OF R2-01. `healthText` branches on
+ * `source` and reads `checkedAt`/`ageMs`/`stale`, so these are no longer keys
+ * "no component reads" — the board cannot render an honest health line without
+ * them. `version`, `checkedAt`, `ageMs` and `note` are `nullOr` because
+ * health.mjs emits null for each; `source` is a string and is checked for
+ * membership of its closed set below, since a typo there would silently fall
+ * through to the live branch and present an unknown reading as a probe.
  */
+const health: Shape = obj({
+  ok: bool,
+  version: nullOr(str),
+  reason: str,
+  checkedAt: nullOr(str),
+  ageMs: nullOr(num),
+  source: oneOf(['probe', 'history', 'unknown']),
+  stale: bool,
+  note: nullOr(str),
+});
+
 const STATUS_SHAPE: Shape = obj({
-  ytdlp: obj({ ok: bool, reason: str }),
+  ytdlp: health,
   creators: obj({ total: num, enabled: num, damaged: damage }),
   state: obj({ damaged: damage, videos }),
   budget: obj({ used: num, perHour: num, unit: str }),
@@ -109,6 +137,11 @@ function collect(path: string, value: unknown, shape: Shape, bad: string[]): voi
       return;
     case 'bool':
       if (typeof value !== 'boolean') bad.push(`${path}: expected a boolean`);
+      return;
+    case 'oneOf':
+      if (typeof value !== 'string' || !shape.allowed.includes(value)) {
+        bad.push(`${path}: expected one of ${shape.allowed.map((a) => `'${a}'`).join(' | ')}`);
+      }
       return;
     case 'arr':
       if (!Array.isArray(value)) {

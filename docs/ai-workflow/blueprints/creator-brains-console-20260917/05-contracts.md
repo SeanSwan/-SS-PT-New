@@ -70,7 +70,7 @@ export interface QueryHit {
 export interface QueryResult { hits: QueryHit[]; skipped: Array<Record<string, unknown>>; }
 
 /**
- * `key` IS A CHANNEL ID, NOT A SLUG (A1-04).
+ * `slug` IS A CHANNEL ID, NOT A SLUG (A1-04, name reconciled in R2-01).
  *
  * `lib/render.mjs` HR07 states it outright: "the storage namespace is the CHANNEL
  * ID, never a display name" — two channels sharing a display name would otherwise
@@ -79,12 +79,22 @@ export interface QueryResult { hits: QueryHit[]; skipped: Array<Record<string, u
  * something it is not. `slugify` does exist in the engine, but it produces
  * FILENAMES for other surfaces; it does not name a brain namespace.
  *
+ * THE FIELD NAME IS `slug`, AND THAT IS A RECONCILIATION, NOT AN OVERSIGHT.
+ * The A1-04 amendment renamed the field to `key` in THIS document while the
+ * bridge went on serving `slug` — so for one round the contract, the web types
+ * and the response disagreed, and nothing compared them. Astra round 2 (R2-01)
+ * ruled: preserve `slug` as the compatibility field containing a channel ID. The
+ * route `/api/brains/:slug` and the field are already published, so renaming the
+ * response would be the breaking change, not the fix. The name stays; the
+ * MEANING is what A1-04 corrected, and `T-B27e` now asserts this document's field
+ * names against the live payload so a doc-only rename cannot happen again.
+ *
  * `generation` is the PINNED published generation the markdown AND the claims
  * both come from (A1-04). It is `null` when the pointer names none, which is an
  * incomplete brain rather than a damaged one; a pointer naming a generation the
  * engine never writes is damage and is refused.
  */
-export interface BrainDoc { key: string; title: string;
+export interface BrainDoc { slug: string; title: string;
   generation: string | null;
   index: string; topics: string; timeline: string;       // markdown from published generation
   claims: QueryHit[]; skipped: Array<Record<string, unknown>>; }
