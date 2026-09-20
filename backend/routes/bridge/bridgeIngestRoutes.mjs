@@ -13,6 +13,14 @@ import { fetchAndDecodeSpotlightImage } from '../../services/spotlightImageFetch
  *   flag check (503) -> signature + skew (401) -> schema validate (422)
  *   -> bannedTerms second gate (422) -> idempotent upsert -> R2 re-host -> audit log
  *
+ * SCOPE OF THAT CLAIM, corrected after hostile review F04 (2026-09-20). The list above is
+ * the order of the checks INSIDE the handler, not the middleware order. The route's own
+ * body parser runs FIRST, before the flag check, so a disabled receiver can still be made
+ * to answer a parser error (400/413) rather than the documented 503. That is a real gap
+ * against "a disabled receiver returns 503 and touches nothing"; closing it means moving
+ * the feature gate ahead of parsing, which is a change to the shipped route's behaviour
+ * and is therefore reported rather than made unilaterally (06-bans #1).
+ *
  * The R2 re-host NEVER fails the ingest: a broken image degrades to a text-only card.
  * A dropped Spotlight is worse than an imageless one.
  *
@@ -200,10 +208,51 @@ async function rehostImage(url, itemId) {
 }
 
 /**
+ * Raw-body capture for the bodyless reconciliation GET.
+ *
+ * FIXED 2026-09-19. This route previously had NO body parser, so `req.rawBody` was
+ * undefined and `verifyBridgeRequest` returned `500 RAW_BODY_UNAVAILABLE` to every
+ * caller that got past signature-shape and timestamp validation. The manifest was
+ * therefore unreachable for any correctly-shaped, in-window request, and nothing
+ * noticed because no test covered it. The reconciliation poll is what makes "silence
+ * distinguishable from a dropped delivery", so a permanently-500 endpoint here was a
+ * silently dead safety net.
+ *
+ * SCOPE OF THAT CLAIM, narrowed after hostile review F01 (2026-09-20). The original
+ * comment said "on every call — with ANY signature, valid or not". That was false:
+ * `parseSignatureHeader` and `isTimestampInWindow` both run BEFORE the raw-body guard,
+ * so a malformed or expired request already returned 401. The guard's blast radius was
+ * every request that survived those two checks.
+ *
+ * A GET carries no body, so the canonical payload is `${timestamp}.` and the correct
+ * representation is an empty Buffer. `express.raw` is still mounted so that a client
+ * which does send bytes is authenticated over the bytes it actually sent, rather than
+ * having them silently ignored.
+ *
+ * FAIL CLOSED ON AMBIGUOUS EMPTINESS (hostile review F01). Synthesizing an empty Buffer
+ * for *any* non-Buffer `req.body` cannot distinguish a genuinely bodyless GET from one
+ * whose bytes were consumed upstream — and the second case would be authenticated as if
+ * it were bodyless. When the request DECLARED a body and no bytes are available here, the
+ * bytes are unknowable, so `rawBody` is left unset and the guard returns 500 rather than
+ * authenticating a payload we never saw. A bodyless GET is unaffected.
+ */
+const spotlightRawCapture = express.raw({ type: () => true, limit: '256kb' });
+const captureRawBody = (req, _res, next) => {
+  if (Buffer.isBuffer(req.body)) {
+    req.rawBody = req.body;
+    return next();
+  }
+  const declaredBody = Number(req.headers['content-length'] ?? 0) > 0
+    || req.headers['transfer-encoding'] !== undefined;
+  req.rawBody = declaredBody ? undefined : Buffer.alloc(0);
+  next();
+};
+
+/**
  * GET /api/bridge/spotlight/manifest — signed reconciliation poll.
  * SwanGuard compares this against its outbox and re-sends anything missing.
  */
-router.get('/spotlight/manifest', async (req, res) => {
+router.get('/spotlight/manifest', spotlightRawCapture, captureRawBody, async (req, res) => {
   if (!isSpotlightEnabled()) {
     return res.status(503).json({ success: false, message: 'Spotlight ingest is disabled.' });
   }

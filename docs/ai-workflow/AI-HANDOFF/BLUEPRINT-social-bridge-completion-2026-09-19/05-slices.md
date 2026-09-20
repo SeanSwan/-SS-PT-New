@@ -53,7 +53,7 @@ Tests:
   Mutation-verified: cap 5→6 turns 1 red; `setUTCHours`→`setHours` turns 2 red.
   Complements the existing source-grep `tests/api/coachSignalRoutes.contract.test.mjs` (12) — this
   one drives the real router and asserts responses.
-- `backend/tests/bridgeSpotlightOrdering.contract.test.mjs` — **BUILT, 12 tests** (budget was 10):
+- `backend/tests/bridgeSpotlightOrdering.contract.test.mjs` — **BUILT, 16 tests** (budget was 10):
   late image on a superseded revision, concurrent-revision loser, tombstone resistance to a late
   replay, un-retraction on a higher revision, retraction preserving the image, manifest liveness
   query, manifest signature, manifest kill switch, parser-mount regression (fail-closed), and
