@@ -28,7 +28,7 @@
       "evidence": [
         {
           "path": "02-blueprint.md",
-          "sha256": "d6a4f84371e22c872eb59b048b167dae89ff7fbcc4857bbd5560412d5f8b7798"
+          "sha256": "35eabee8193ad2eb3e489d37afb87a868f44a3a1a3343b0c9d331d1a48a727dc"
         }
       ]
     },
@@ -55,7 +55,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         }
       ]
     },
@@ -73,7 +73,7 @@
       "evidence": [
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     },
@@ -149,7 +149,7 @@
       "evidence": [
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     }
@@ -303,17 +303,17 @@
       "requirements": [
         "R2"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "PASS",
       "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     },
@@ -322,17 +322,17 @@
       "requirements": [
         "R3"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "PASS",
       "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     },
@@ -341,17 +341,17 @@
       "requirements": [
         "R4"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "PASS",
       "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     },
@@ -360,7 +360,7 @@
       "requirements": [
         "R7"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -372,7 +372,7 @@
       "requirements": [
         "R7"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -384,17 +384,17 @@
       "requirements": [
         "R9"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "PASS",
       "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     },
@@ -403,17 +403,17 @@
       "requirements": [
         "R13"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "PASS",
       "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     },
@@ -422,17 +422,17 @@
       "requirements": [
         "R6"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "PASS",
       "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     },
@@ -441,17 +441,17 @@
       "requirements": [
         "R5"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "PASS",
       "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     },
@@ -460,7 +460,7 @@
       "requirements": [
         "R8"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -472,17 +472,17 @@
       "requirements": [
         "R13"
       ],
-      "command": "node --test scripts/creator-brains/console/test/",
+      "command": "node --test packages/creator-brains-console/test/",
       "status": "PASS",
       "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     },
@@ -491,13 +491,13 @@
       "requirements": [
         "R12"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "command": "cd packages/creator-brains-console/web && npx vitest run",
       "status": "PASS",
       "reason": "S1 landed: MockAdapter and LocalEngineAdapter both satisfy the shared contract suite and map every documented envelope identically via the shared mapBridgeError; the live adapter is driven by a fake fetch serving the bridge routes, so parity cannot drift",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "14-decisions-20260918.md",
@@ -510,13 +510,13 @@
       "requirements": [
         "R12"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "command": "cd packages/creator-brains-console/web && npx vitest run",
       "status": "PASS",
       "reason": "S1 landed, strengthened at round 4: no file under web/src imports the engine (the adapter is the only seam); production data access goes through the adapters barrel; EVERY production file — not tokens.css alone — is scanned for the banned palette (hex and rgb forms); the import patterns self-check against synthetic offenders so a dead regex fails the suite",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "14-decisions-20260918.md",
@@ -534,13 +534,13 @@
         "R2",
         "R3"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "command": "cd packages/creator-brains-console/web && npx vitest run",
       "status": "PASS",
       "reason": "S1 landed, strengthened at round 4: StatusBoard renders fixture instruments; all THREE damage refusals are pinned (creators, census, documents) plus the publishedBrains NON-refusal — a failed census sweep must not render \"0 in flight · 0 swept\", and documents:0 is withheld because it is a guard value, not a count",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "14-decisions-20260918.md",
@@ -557,7 +557,7 @@
       "requirements": [
         "R4"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "command": "cd packages/creator-brains-console/web && npx vitest run",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -569,7 +569,7 @@
       "requirements": [
         "R5"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "command": "cd packages/creator-brains-console/web && npx vitest run",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -581,7 +581,7 @@
       "requirements": [
         "R7"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "command": "cd packages/creator-brains-console/web && npx vitest run",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -594,7 +594,7 @@
         "R10",
         "R16"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "command": "cd packages/creator-brains-console/web && npx vitest run",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -606,7 +606,7 @@
       "requirements": [
         "R11"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "command": "cd packages/creator-brains-console/web && npx vitest run",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -619,7 +619,7 @@
         "R11",
         "R16"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "command": "cd packages/creator-brains-console/web && npx vitest run",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -631,7 +631,7 @@
       "requirements": [
         "R10"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run src/three",
+      "command": "cd packages/creator-brains-console/web && npx vitest run src/three",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -643,7 +643,7 @@
       "requirements": [
         "R10"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run src/three",
+      "command": "cd packages/creator-brains-console/web && npx vitest run src/three",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -691,7 +691,7 @@
       "requirements": [
         "R15"
       ],
-      "command": "node --test scripts/creator-brains/console/test/snapshot.test.mjs  (lands with S7; verifies copied-tree SHA-256s vs recorded manifest + tag existence)",
+      "command": "node --test packages/creator-brains-console/test/snapshot.test.mjs  (lands with S7; verifies copied-tree SHA-256s vs recorded manifest + tag existence)",
       "status": "NOT RUN",
       "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
       "evidence": [
@@ -703,17 +703,17 @@
       "requirements": [
         "R13"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "S0 added: Host-header (DNS-rebinding) gate + positive nine-route allowlist pin",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "08-slices-operations.md",
-          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+          "sha256": "70a3546441f9a3a3efed4e63684a953693e5ce6f6812a9068958e617ec719d9b"
         }
       ]
     },
@@ -722,13 +722,13 @@
       "requirements": [
         "R2"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "health cache: a failed probe must not evict the history fallback (round-2 H1)",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "12-hy4-review-round2.md",
@@ -741,13 +741,13 @@
       "requirements": [
         "R6"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "leak guard: no false negatives — transcript content under any key name is caught (round-2 H2)",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "12-hy4-review-round2.md",
@@ -760,13 +760,13 @@
       "requirements": [
         "R13"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "round-3 H3: a second startBridge in one process is refused; clean shutdown and failed start both still free the slot",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "13-hostile-round3.md",
@@ -779,13 +779,13 @@
       "requirements": [
         "R3"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "round-4 S1-H1: the two-shape damage rule — a corrupt state.json keeps /api/status at 200 with state.damaged set and every other reading intact, while /api/backlog refuses 409 naming the file; no damage mode leaks a stack trace or an internal error name",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -799,13 +799,13 @@
         "R2",
         "R3"
       ],
-      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "command": "cd packages/creator-brains-console/web && npx vitest run",
       "status": "PASS",
       "reason": "round-4 S1-H4: a request that never settles is abandoned by the watchdog (mapped to TRANSPORT, not a new code) so the poll latch always releases and the board recovers; a late answer from an already-timed-out request is discarded by the generation guard",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -818,13 +818,13 @@
       "requirements": [
         "R13"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "round-4 S1-H8: the request handler is total — every malformed request target (//, ///, //@, //:80, http://, https://) answers 400 VALIDATION and the bridge keeps serving; the Host gate still runs before the target is parsed; parseRequestUrl raises a typed ApiError(VALIDATION), never a raw TypeError. Sent over a raw socket, because fetch and node:http.request normalize malformed targets away",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -837,13 +837,13 @@
       "requirements": [
         "R4"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "round-5 pass 1, S1-H9: a non-2xx answer must mean nothing was written. With state.json damaged, PATCH /api/creators/:id answers 200 and the registry row IS persisted (enabledAt stamped); the row counts are null, never 0; repeated toggles each answer 200 and agree with disk; a 409 that does happen is a PRE-write refusal (registry byte-identical); with an intact store the counts are real numbers. Root cause fixed: the handler re-read the ROSTER through creatorRows, which refuses 409 on a damaged state.json, turning a committed write into a 409 after the fact",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -856,13 +856,13 @@
       "requirements": [
         "R4"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "round-5 pass 1, S1-H10: the body contract is \"a JSON object\". A literal null body -> 400 VALIDATION, not a 500, on both write routes; 42 / \"str\" / true / false / [1,2] / [] -> 400 the same way; an absent body still yields {} and keeps its own specific refusal. Enforced in readBody, the one function that owns it, rather than at each dereference site",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -875,13 +875,13 @@
       "requirements": [
         "R13"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "round-5 pass 1, S1-H11: no silent fallthrough outside /api either. POST/PATCH/PUT/DELETE/OPTIONS on /, /registry.json, /nope -> 404 NOT_FOUND instead of 200 + the status page, while GET and HEAD still serve it. Fixed net-neutral in line count because server.mjs sits at exactly 300",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -894,13 +894,13 @@
       "requirements": [
         "R6"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "round-5 pass 2, S1-H15/H16: the LANE C read path must serve a published brain. With a real published generation seeded, GET /api/brains/:slug -> 200 with index/topics/timeline NON-EMPTY and skipped [] (a); a document absent from the generation is reported in skipped, not silently empty (b); a pointer naming no generation reports all three (c). Containment both directions: :slug arrives UN-DECODED and ?creator= arrives DECODED, so every hostile form of each (%2e%2e%2f, ..%2F, %5C, %00, the LANE B channel id, a 500-char slug) refuses and never carries the LANE B canary or a registry byte (d,e); the query route searches LANE C only, so transcript-only words return zero hits (f). Root cause: brainDoc joined brains/<slug> while the engine publishes into brains/<slug>/<generation>/, so every published brain answered 200 with all three documents empty",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -920,7 +920,7 @@
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -933,13 +933,13 @@
       "requirements": [
         "R13"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "round-5 pass 4, S1-H19: the body ceiling, and the framing paths nothing had measured. A body AT the ceiling (64 KB) is READ — the boundary is `>` not `>=` (a); one byte over is refused with the documented envelope (b); a 4 MB body cannot take the bridge down — it is still serving 200 afterwards (c); a body that is not valid UTF-8 is a 400, not a 500 (d); a chunked body with no content-length is read normally (e); a POST with no body is a 400, never a 500 (f). The client's outcome for a body large enough that it is still writing when the limit trips is deliberately NOT pinned: it tracks the socket buffer (clean 400 at 512 KB, ECONNRESET at 1 MB and 4 MB), so asserting either would flake across machines. What is pinned is that the bridge refuses, stays within its memory bound, and keeps serving. Closing S1-H19 would require draining an arbitrary volume from a hostile client; that trade was measured and declined",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "16-s1-hostile-review.md",
@@ -952,13 +952,13 @@
       "requirements": [
         "R13"
       ],
-      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "command": "node --test packages/creator-brains-console/test/*.test.mjs",
       "status": "PASS",
       "reason": "round-5 pass 5, S1-H20/H21: the static-traversal test, and its ID. RENUMBERED from T-B12 — the plan (06-test-plan.md:26) and this file reserve T-B12 for S7's snapshot verification (R15), so two unrelated tests shared one ID and the traversal property was traced to no requirement at all (S1-H21). REWRITTEN because it could not fail, for two independent measured reasons: (1) it used `fetch`, which normalises `/../` away client-side, so it never sent a traversal at all — the same trap fixtures.mjs documents for forbidden headers; (2) its `!text.includes(CH_ONE)` assertion was satisfied by any 404, because an unresolved static path answers 200 + the bridge page (server.mjs:165) and the bridge page contains no channel id. It now sends a RAW request line and asserts the traversal target is byte-identical to its URL-normalised form — the invariant that actually protects the live server. Measured falsifiable: with all three static-defence layers broken (new URL normalisation, normalize(), containment) it is the ONLY test that fails, 5/6 in the boundary suite. Deliberately NOT claimed as single-mutation-observable: the three layers are mutually redundant, so removing any one leaves 105/105 green. The resolver-level property is pinned by HY4-H3, which DOES fail when both resolver guards are removed (104/105)",
       "evidence": [
         {
           "path": "06-test-plan.md",
-          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+          "sha256": "2f788088d866778b9912230dfd210e57ff8b18c2b20d4332a539f7138a6239fc"
         },
         {
           "path": "16-s1-hostile-review.md",

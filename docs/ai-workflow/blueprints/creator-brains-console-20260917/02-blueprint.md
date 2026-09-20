@@ -8,7 +8,7 @@
 ```
 ┌────────────────────────── Sean's Desktop ──────────────────────────┐
 │  Creator Brains Console.cmd                                        │
-│    └─ node scripts/creator-brains/console/server.mjs               │
+│    └─ node packages/creator-brains-console/server.mjs              │
 │         ├─ JSON API (loopback only)  ←→  engine lib/* (COMMANDS)   │
 │         │                                   └→ .ai-workflow/       │
 │         │                                       creator-brains/    │
@@ -21,14 +21,16 @@
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-**Ownership boundaries:** the engine (`scripts/creator-brains/*` except `console/`) is untouched — the console is purely additive. The bridge composes engine lib functions; it never opens store files itself. The web app knows only the `ConsoleDataAdapter` interface.
+**Ownership boundaries:** the engine (`scripts/creator-brains/*`) is untouched — the console is purely additive. **The console lives OUTSIDE the engine tree**, at `packages/creator-brains-console/` (D7 OVERTURNED 2026-09-20 — see `18`): it composes engine lib functions through relative imports, so it is a *consumer* of the engine, not a part of it. The bridge never opens store files itself. The web app knows only the `ConsoleDataAdapter` interface.
 
 ## 2. Components & responsibilities
 
+Paths below are relative to the console root, **`packages/creator-brains-console/`** (D7, 2026-09-20).
+
 | Component | Path | Responsibility | Owns |
 |---|---|---|---|
-| Bridge server | `console/server.mjs` | loopback bind (OS-chosen port), static serving of `web/dist`, JSON routing, process spawn for daily pass, JSON error envelope | nothing — delegates |
-| Bridge API | `console/api.mjs` | handlers: status/creators/query/brains/run/canary/repair/backup; input validation; damage-refusal mapping | validation rules |
+| Bridge server | `server.mjs` | loopback bind (OS-chosen port), static serving of `web/dist`, JSON routing, process spawn for daily pass, JSON error envelope | nothing — delegates |
+| Bridge API | `api.mjs` | handlers: status/creators/query/brains/run/canary/repair/backup; input validation; damage-refusal mapping | validation rules |
 | Console shell | `web/src/App.tsx` | layout (per picked concept direction), data polling store, route-less panels | polling cadence |
 | Adapters | `web/src/adapters/` | `ConsoleDataAdapter` interface; `LocalEngineAdapter` (fetch); `MockAdapter` (tests) | transport contract |
 | Panels | `web/src/components/` | StatusBoard, CreatorRoster, BrainDrawer, QueryConsole, RunConsole, OpsRail (canary/repair/backup) | presentation only |
@@ -93,7 +95,7 @@ WHY IT COULD BE WRONG: heaviest build; two-panel density needs the wide-monitor 
 | D4 | v1 command scope | all 10 menu actions **except** restore/rollback/authorize (CLI-only, tier-badged hints) | T3/T4 stay human-CLI-gated per bridge doctrine |
 | D5 | token mode | **Crystalline Swan base** (not Cyberforest) | Cyberforest is reserved for Hermes surfaces; SwanGuard embed target is not one; calm-zone rules still apply |
 | D6 | standalone shell | **.cmd → bridge on OS-chosen loopback port → default browser** | no Electron weight; matches supervised-launcher philosophy |
-| D7 | in-repo home | **scripts/creator-brains/console/** | travels with the engine it serves; one clone = whole product |
+| D7 | in-repo home | **OVERTURNED 2026-09-20 → `packages/creator-brains-console/`** (seed was `scripts/creator-brains/console/`) | the seed's "travels with the engine" argument lost to the engine's own `C1` gate: living inside the walk made the engine measure `console/web/node_modules` and fail deterministically on `decimal.js` (A1-01 / S1-H14). Relocation returns C1 to **15/15 green without touching an engine file** — the only remedy that does. Executed on Sean's decision; receipt + per-file manifest in `18` |
 | D8 | embed contract | **React component package + adapter prop** (Web Component wrapper only if SwanGuard needs framework isolation) | SwanGuard web is React 18 + styled-components — native fit |
 | D9 | constellation idle motion | **AMENDED 2026-09-20** — numeric motion limits replace the unmeasurable "&lt;5% visual energy"; fully static under reduced-motion; pause off-viewport/hidden | motion.md §6 loop integrity; calm-zone compliance. "<5% visual energy" was not a measurable limit — see `17` §1 |
 
@@ -106,4 +108,4 @@ WHY IT COULD BE WRONG: heaviest build; two-panel density needs the wide-monitor 
 
 ## 7. Rollback story
 
-The console is additive: deleting `scripts/creator-brains/console/` + the Desktop `.cmd` restores the prior world exactly. No engine file changes except the README quick-start pointer. The daily pass and all data remain CLI-operable at every point — the console is never load-bearing for data integrity.
+The console is additive: deleting `packages/creator-brains-console/` + the Desktop `.cmd` restores the prior world exactly. No engine file changes except the README quick-start pointer. The daily pass and all data remain CLI-operable at every point — the console is never load-bearing for data integrity.

@@ -75,9 +75,9 @@ Conventions: tests are written BEFORE implementation per slice (RED observed, th
 
 ```powershell
 # bridge
-node --test scripts/creator-brains/console/test/
+node --test packages/creator-brains-console/test/*.test.mjs
 # web
-cd scripts/creator-brains/console/web && npx vitest run && npx tsc --noEmit && npm run build
+cd packages/creator-brains-console/web && npx vitest run && npx tsc --noEmit && npm run build
 # e2e (stubbed api; never the real backend)
 npx playwright test --config playwright.console.config.ts
 ```

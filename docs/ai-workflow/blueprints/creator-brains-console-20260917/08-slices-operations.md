@@ -25,6 +25,10 @@ Each slice: independently shippable, RED→GREEN tests before merge-worthy state
 
 ## Unresolved decisions that gate building (not implementation details)
 
-1. **D-CD (Sean):** pick CD1 / CD2 / CD3 (ideation gate). S5's shape depends on it; S0–S4 are direction-independent and may start after his go.
-2. **D-Astra:** Astra architecture adjudication (one call, seat blocked until 2026-09-19 ~22:12). Recommended: batch it after the seat resets, before S5 (the three.js slice) — S0–S4 carry no design risk the adjudication would overturn.
+1. **CLOSED 2026-09-17 — D-CD (Sean):** CD3 "Vault Observatory" picked. S5's shape is fixed; S0–S4 were direction-independent, as predicted.
+2. **CLOSED 2026-09-20 — D-Astra:** adjudicated (verdict REVISE, 16 findings, D1–D9 closed — `17`). D7 was its one owner decision and is **executed**: the console now lives at `packages/creator-brains-console/` (`18`), which also returned the engine's C1 gate to 15/15 green.
 3. **D-spend:** none — Astra rides the Codex subscription; no metered APIs in this plan.
+4. **STILL OPEN — A1-08 / D4 (Sean):** whether an engine-only private backup is an allowed exception to the tier-B boundary. Backup stays visible but blocked, with no endpoint, until he rules (`05` §2b).
+5. **STILL OPEN — S1-H12:** `POST /api/creators` freezes the bridge's only thread (1577 ms measured, 180 s ceiling) because the engine resolves through `execFileSync`. **Must be settled before S2 ships.** The honest fixes touch the engine, so it is Sean's call (`16` §14).
+
+**Relocation note (D7, 2026-09-20):** every console path in this document is now relative to `packages/creator-brains-console/`, not `scripts/creator-brains/console/`. The no-go boundary above is unchanged and now structurally stronger — the console sits outside the engine tree, so "no slice may modify engine files" is enforced by *where the code lives*, not only by discipline. `console/` in the Logs bullet is the runtime state directory under the store, which did not move.
