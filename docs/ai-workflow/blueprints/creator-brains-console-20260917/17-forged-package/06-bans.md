@@ -1,0 +1,21 @@
+- No engine source edits, except an explicitly approved README pointer adjustment.
+- No raw-transcript rendering, download, export endpoint, model transmission, or console-owned transcript reader.
+- No backup implementation until the policy contradiction is resolved.
+- No restore, rollback, authorize, throttle-clear, arbitrary command, filesystem-browser, or job-control route.
+- No route before its owning slice.
+- No shell-built command from user input; fixed executable/path and argument arrays only.
+- No writes from the resolver worker; no cached registry passed through a slow resolver.
+- No automatic mutation retries, optimistic consent changes, or success inferred from timeout/exit/lock absence.
+- No “zero” substituted for damaged or unavailable measurements.
+- No raw HTML rendering or unvalidated watch links.
+- No claim that lexical path containment proves junction/symlink containment.
+- No assumption that loopback Host validation provides cross-origin write protection.
+- No relaxing the 300-line cap or hiding dependencies from an engine check without resolving D7.
+- No MUI, Tailwind, new global state framework, Web Component wrapper, or Electron.
+- No off-palette decorative colors. Arctic Cyan is data-only.
+- No hover-only controls, targets below 44px, or canvas-only functionality.
+- No animation before the enhancement gate; no WebGL chunk on mobile, reduced motion, or absent WebGL.
+- No speculative “all tests pass” from old receipts, structural readiness, or source inspection.
+- No broad staging, reset, clean, deletion, main push, deploy, or shared-lane takeover.
+- No rewriting historical reviews into correctness. Supersede with reciprocal links.
+- No private data, credentials, absolute private store paths, or user query text in request logs.

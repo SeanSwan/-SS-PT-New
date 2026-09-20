@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-09-17T17:27:11.264Z",
+  "purpose": "preservation proof — packet files hashed at planning time",
+  "files": [
+    {
+      "path": "00-consult-brief.md",
+      "sha256": "e73caf9a32e24f8ce230418ecb2b196aaa0e269c0ad8c63f8bf04a1da3c44059",
+      "bytes": 10984
+    },
+    {
+      "path": "01-requirements.md",
+      "sha256": "c8c020042279a4536b27f478e2140f545473b1bf7449f96a0ad1c7f2b9a5298d",
+      "bytes": 7825
+    },
+    {
+      "path": "02-blueprint.md",
+      "sha256": "abb1125f6c6acc5aa2778fcf6850aa6da474bf5d313b09c65cbdaa5014fb9a2b",
+      "bytes": 9951
+    },
+    {
+      "path": "03-wireframes.md",
+      "sha256": "ba8abae96f10dcb3bc6c7021ba1383411bdc80eff72d2d86aab8e7d93f62f68b",
+      "bytes": 7217
+    },
+    {
+      "path": "04-flows.md",
+      "sha256": "c0142e928d7be56b355b418e5a8ec1774ed9e2c2201ad03b274ce7dba24275d2",
+      "bytes": 3777
+    },
+    {
+      "path": "05-contracts.md",
+      "sha256": "73f1a91b922bace1466bb365535b5cf61c333378647a17c54a874dc7d4934523",
+      "bytes": 6931
+    },
+    {
+      "path": "06-test-plan.md",
+      "sha256": "528332072d18ad157615ac1565abd6f530fcf68103790875338697bb5975ae92",
+      "bytes": 6014
+    },
+    {
+      "path": "07-traceability.md",
+      "sha256": "1c470f1cc70cc019030d62cdac53ede26eb89d476c78e6e008bde8c74f9bb31c",
+      "bytes": 2785
+    },
+    {
+      "path": "08-slices-operations.md",
+      "sha256": "8468b4672740af99d075b182a2ace3a91926351acd0f1f2f1fa3a452b927b281",
+      "bytes": 4578
+    },
+    {
+      "path": "09-hostile-review.md",
+      "sha256": "d43317b63c36d585fc696bcc65f36fb4b2a3cbb6a5c984e061ce549ab1c54b64",
+      "bytes": 5686
+    },
+    {
+      "path": "evidence/baseline-offline.txt",
+      "sha256": "42504342e148cb74a35bcc02ca7228a0bc9cd756996e440e7a87fa882efd78b4",
+      "bytes": 11731
+    }
+  ]
+}

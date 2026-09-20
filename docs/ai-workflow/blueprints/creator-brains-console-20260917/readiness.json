@@ -1,0 +1,970 @@
+{
+  "schemaVersion": 1,
+  "phase": "plan",
+  "ui": true,
+  "blockers": [],
+  "nextSlice": "S1 SHIPPED 2026-09-18, hardened by round 4 (8 defects) and the full round-5 FIVE-PASS sweep (S1-H9..S1-H21: 16 §14-§18). Bridge suite 105/105 REAL tests in ~4.5 s (the old 97/97 was inflated 3x by a harness imported from a .test.mjs file — S1-H13), web 48/48, tsc 0, build clean, e2e 12/12. Pass 3 closed the UI payload-shape hole: a wrong-shaped 200 is refused by a validator at the adapter seam (typed ConsoleApiError naming the offending path) with an ErrorBoundary as the last resort, so a payload of an unexpected shape can no longer unmount the React root and blank the console (16 §16). Only /api/status is validated — each slice that adds a payload consumer must add its route's guard (07 coverage flag). Pass 4 confirmed both pid guards are correct and pinned the four unmeasured body-framing paths (T-B23); its one finding, S1-H19, is an ACCEPTED limitation: an oversized body is refused and the bridge is unharmed, but above the socket buffer the client sees ECONNRESET instead of the envelope, and closing that would mean draining arbitrary volumes from a hostile client (16 §17). Pass 5 audited the audits: 0 assertion-free tests, and a mutation sweep over the rounds 1-3 guards found three healthy and one vacuous test (S1-H20) plus an ID collision (S1-H21). The static-file path is defended by THREE mutually redundant layers, so no single-layer mutation is observable — HY4-H3 pins the resolver level, T-B24 the live-server half (16 §18). THE server.mjs CAP BLOCKER IS CLEARED (16 §19): split on the route-table seam into routes.mjs (131) and server.mjs (244), so the 300-line cap no longer binds anywhere (largest console source is now 283) and the cap was NOT raised. The Host gate, the error envelope and parseRequestUrl deliberately stayed in server.mjs so no route can bypass them; HY4-H6 now reads BOTH files and is mutation-verified to catch a route added to either. Next: S2 roster + writes + BrainDrawer. The ONLY remaining blocker is S1-H12, which is unresolved and blocks the add UI: POST /api/creators resolves through execFileSync (lib/ytdlp.mjs:184) and freezes the bridge loop (measured 1577 ms, ceiling 180 s) with no mitigation, unlike /api/status whose identical blocking call is TTL-cached (16 §14). Fixing it needs an engine change (addCreator must await resolve) — Sean's call. ENGINE GATE IS RED IN THIS TREE (S1-H14, escalated): consistency-check.mjs walks console/web/node_modules, so C1 fails deterministically (largest = 4914 lines); the F4 183/183 baseline no longer holds — 181 pass, C1 deterministic, HR14f flaky under full-suite load (6/6 in isolation). CD3 locked. C1 loading contract binds S5/T-E3. Astra D1-D9 ADJUDICATED 2026-09-20 (verdict REVISE; 16 findings, 10 high; D1-D9 closed - see 17-astra-adjudication.md); D7 (console location vs the engine C1 walk) is reserved to Sean.",
+  "sections": {
+    "baseline": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "evidence/baseline-offline.txt",
+          "sha256": "42504342e148cb74a35bcc02ca7228a0bc9cd756996e440e7a87fa882efd78b4"
+        }
+      ]
+    },
+    "requirements": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "01-requirements.md",
+          "sha256": "c8c020042279a4536b27f478e2140f545473b1bf7449f96a0ad1c7f2b9a5298d"
+        }
+      ]
+    },
+    "blueprint": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "02-blueprint.md",
+          "sha256": "d6a4f84371e22c872eb59b048b167dae89ff7fbcc4857bbd5560412d5f8b7798"
+        }
+      ]
+    },
+    "flowchart": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "04-flows.md",
+          "sha256": "c0142e928d7be56b355b418e5a8ec1774ed9e2c2201ad03b274ce7dba24275d2"
+        }
+      ]
+    },
+    "contracts": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "05-contracts.md",
+          "sha256": "89247a744e4c72ed272ac7403c48b4b116ada636c4e4aea8e4e742bf750fea9b"
+        }
+      ]
+    },
+    "tests": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        }
+      ]
+    },
+    "traceability": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "07-traceability.md",
+          "sha256": "3986a27d94ea21811116111fb06b9c4dbdce88cea368c39130a422e4e9753f38"
+        }
+      ]
+    },
+    "slices": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    },
+    "review": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "09-hostile-review.md",
+          "sha256": "d43317b63c36d585fc696bcc65f36fb4b2a3cbb6a5c984e061ce549ab1c54b64"
+        }
+      ]
+    },
+    "preservation": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "evidence/preservation-manifest.json",
+          "sha256": "fc2e117f13e6e27ae3f8a1a2f6b26cdaa4228c3e662d9a23074ef4205133937d"
+        }
+      ]
+    },
+    "wireframes": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "03-wireframes.md",
+          "sha256": "ba8abae96f10dcb3bc6c7021ba1383411bdc80eff72d2d86aab8e7d93f62f68b"
+        }
+      ]
+    },
+    "state": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "03-wireframes.md",
+          "sha256": "ba8abae96f10dcb3bc6c7021ba1383411bdc80eff72d2d86aab8e7d93f62f68b"
+        }
+      ]
+    },
+    "sequence": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "04-flows.md",
+          "sha256": "c0142e928d7be56b355b418e5a8ec1774ed9e2c2201ad03b274ce7dba24275d2"
+        }
+      ]
+    },
+    "erd": {
+      "status": "N/A",
+      "reason": "No new data model: the store schema is the engine s existing files (registry/state/ledger/brains); the console creates no tables or migrations."
+    },
+    "permissions": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "05-contracts.md",
+          "sha256": "89247a744e4c72ed272ac7403c48b4b116ada636c4e4aea8e4e742bf750fea9b"
+        }
+      ]
+    },
+    "privacy": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "05-contracts.md",
+          "sha256": "89247a744e4c72ed272ac7403c48b4b116ada636c4e4aea8e4e742bf750fea9b"
+        }
+      ]
+    },
+    "operations": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    }
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "acceptance": "Standalone .cmd launch: bridge loopback + browser console in <=15s",
+      "tests": [
+        "T-E1"
+      ]
+    },
+    {
+      "id": "R2",
+      "acceptance": "Status board instruments 1:1 with status-command sources; staleness warning >3d",
+      "tests": [
+        "T-B1",
+        "T-W3",
+        "T-B14",
+        "T-W10",
+        "T-W11"
+      ]
+    },
+    {
+      "id": "R3",
+      "acceptance": "Damaged store refuses by file name; never zeros/empty catalog",
+      "tests": [
+        "T-B2",
+        "T-W3",
+        "T-B17",
+        "T-W10",
+        "T-W11"
+      ]
+    },
+    {
+      "id": "R4",
+      "acceptance": "Roster add->DISABLED; enable/disable persists via setEnabled",
+      "tests": [
+        "T-B3",
+        "T-W4",
+        "T-B19",
+        "T-B20"
+      ]
+    },
+    {
+      "id": "R5",
+      "acceptance": "Query hits with keyPhrase+creator+watch deep link; honest zero-hit; skipped visible",
+      "tests": [
+        "T-B9",
+        "T-W5"
+      ]
+    },
+    {
+      "id": "R6",
+      "acceptance": "Brain drawer reads published generation only (current.json)",
+      "tests": [
+        "T-B8",
+        "T-B15",
+        "T-B22"
+      ]
+    },
+    {
+      "id": "R7",
+      "acceptance": "Daily run: validated ops/hour, lock truth, honest verdict, single-flight",
+      "tests": [
+        "T-B4",
+        "T-B5",
+        "T-W6"
+      ]
+    },
+    {
+      "id": "R8",
+      "acceptance": "Canary/repair/backup in-console (T2) with results",
+      "tests": [
+        "T-B10"
+      ]
+    },
+    {
+      "id": "R9",
+      "acceptance": "No restore/rollback/authorize route exists (404)",
+      "tests": [
+        "T-B6"
+      ]
+    },
+    {
+      "id": "R10",
+      "acceptance": "Constellation data-driven; reduced-motion static; WebGL fallback; rAF stops hidden",
+      "tests": [
+        "T-T1",
+        "T-T2",
+        "T-W7",
+        "T-E3"
+      ]
+    },
+    {
+      "id": "R11",
+      "acceptance": "Swan design law: tokens/44px/contrast/states/glow/tier badges",
+      "tests": [
+        "T-W8",
+        "T-W9"
+      ]
+    },
+    {
+      "id": "R12",
+      "acceptance": "Adapter-only coupling; Mock~=Local contract; no engine imports in web/src",
+      "tests": [
+        "T-W1",
+        "T-W2"
+      ]
+    },
+    {
+      "id": "R13",
+      "acceptance": "Bridge builtins+engine only; loopback-only bind",
+      "tests": [
+        "T-B7",
+        "T-B11",
+        "T-B13",
+        "T-B16",
+        "T-B18",
+        "T-B21",
+        "T-B23",
+        "T-B24"
+      ]
+    },
+    {
+      "id": "R14",
+      "acceptance": "Responsive matrix 320..3440 clean",
+      "tests": [
+        "T-E2"
+      ]
+    },
+    {
+      "id": "R15",
+      "acceptance": "Best-state snapshot (tag+copy+hashes) before SwanGuard transfer",
+      "tests": [
+        "T-B12"
+      ]
+    },
+    {
+      "id": "R16",
+      "acceptance": "Full keyboard operability; roster equals constellation; axe clean",
+      "tests": [
+        "T-W7",
+        "T-W9"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-B1",
+      "requirements": [
+        "R2"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "PASS",
+      "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    },
+    {
+      "id": "T-B2",
+      "requirements": [
+        "R3"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "PASS",
+      "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    },
+    {
+      "id": "T-B3",
+      "requirements": [
+        "R4"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "PASS",
+      "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    },
+    {
+      "id": "T-B4",
+      "requirements": [
+        "R7"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-B5",
+      "requirements": [
+        "R7"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-B6",
+      "requirements": [
+        "R9"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "PASS",
+      "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    },
+    {
+      "id": "T-B7",
+      "requirements": [
+        "R13"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "PASS",
+      "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    },
+    {
+      "id": "T-B8",
+      "requirements": [
+        "R6"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "PASS",
+      "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    },
+    {
+      "id": "T-B9",
+      "requirements": [
+        "R5"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "PASS",
+      "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    },
+    {
+      "id": "T-B10",
+      "requirements": [
+        "R8"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-B11",
+      "requirements": [
+        "R13"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/",
+      "status": "PASS",
+      "reason": "S0 realised; console suite green — 99 real bridge tests at round-5 pass 2. The round-4 figure of \"97/97\" was 85 real tests counted 3x (a harness exported from a .test.mjs file re-registered that file's tests); see 16-s1-hostile-review.md §14, S1-H13. Originally 70/70 in 12-hy4-review-round2.md",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    },
+    {
+      "id": "T-W1",
+      "requirements": [
+        "R12"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "status": "PASS",
+      "reason": "S1 landed: MockAdapter and LocalEngineAdapter both satisfy the shared contract suite and map every documented envelope identically via the shared mapBridgeError; the live adapter is driven by a fake fetch serving the bridge routes, so parity cannot drift",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "14-decisions-20260918.md",
+          "sha256": "518b9317808b2861765b5fb94417b13741b71abd6c32567549cd11f07d39b10e"
+        }
+      ]
+    },
+    {
+      "id": "T-W2",
+      "requirements": [
+        "R12"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "status": "PASS",
+      "reason": "S1 landed, strengthened at round 4: no file under web/src imports the engine (the adapter is the only seam); production data access goes through the adapters barrel; EVERY production file — not tokens.css alone — is scanned for the banned palette (hex and rgb forms); the import patterns self-check against synthetic offenders so a dead regex fails the suite",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "14-decisions-20260918.md",
+          "sha256": "518b9317808b2861765b5fb94417b13741b71abd6c32567549cd11f07d39b10e"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-W3",
+      "requirements": [
+        "R2",
+        "R3"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "status": "PASS",
+      "reason": "S1 landed, strengthened at round 4: StatusBoard renders fixture instruments; all THREE damage refusals are pinned (creators, census, documents) plus the publishedBrains NON-refusal — a failed census sweep must not render \"0 in flight · 0 swept\", and documents:0 is withheld because it is a guard value, not a count",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "14-decisions-20260918.md",
+          "sha256": "518b9317808b2861765b5fb94417b13741b71abd6c32567549cd11f07d39b10e"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-W4",
+      "requirements": [
+        "R4"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-W5",
+      "requirements": [
+        "R5"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-W6",
+      "requirements": [
+        "R7"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-W7",
+      "requirements": [
+        "R10",
+        "R16"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-W8",
+      "requirements": [
+        "R11"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-W9",
+      "requirements": [
+        "R11",
+        "R16"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-T1",
+      "requirements": [
+        "R10"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run src/three",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-T2",
+      "requirements": [
+        "R10"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run src/three",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-E1",
+      "requirements": [
+        "R1"
+      ],
+      "command": "npx playwright test --config playwright.console.config.ts",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-E2",
+      "requirements": [
+        "R14"
+      ],
+      "command": "npx playwright test --config playwright.console.config.ts",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-E3",
+      "requirements": [
+        "R10"
+      ],
+      "command": "npx playwright test --config playwright.console.config.ts",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-B12",
+      "requirements": [
+        "R15"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/snapshot.test.mjs  (lands with S7; verifies copied-tree SHA-256s vs recorded manifest + tag existence)",
+      "status": "NOT RUN",
+      "reason": "not yet built — owned by a later slice (see 06-test-plan.md and 08-slices-operations.md)",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-B13",
+      "requirements": [
+        "R13"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "S0 added: Host-header (DNS-rebinding) gate + positive nine-route allowlist pin",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "08-slices-operations.md",
+          "sha256": "a34a110b8e7983f21e5f5aba6520d36124d27ad46f7e2a8501a64b6fa618c4b9"
+        }
+      ]
+    },
+    {
+      "id": "T-B14",
+      "requirements": [
+        "R2"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "health cache: a failed probe must not evict the history fallback (round-2 H1)",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "12-hy4-review-round2.md",
+          "sha256": "9f0eace118ce3de413fb33cc90960a22359313a92ae49370b3af571759485e21"
+        }
+      ]
+    },
+    {
+      "id": "T-B15",
+      "requirements": [
+        "R6"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "leak guard: no false negatives — transcript content under any key name is caught (round-2 H2)",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "12-hy4-review-round2.md",
+          "sha256": "9f0eace118ce3de413fb33cc90960a22359313a92ae49370b3af571759485e21"
+        }
+      ]
+    },
+    {
+      "id": "T-B16",
+      "requirements": [
+        "R13"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "round-3 H3: a second startBridge in one process is refused; clean shutdown and failed start both still free the slot",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "13-hostile-round3.md",
+          "sha256": "f6f723a7b5049bcaed8f86314c160b0eab59c2239f3b3a5fb9e21c9dc0175daa"
+        }
+      ]
+    },
+    {
+      "id": "T-B17",
+      "requirements": [
+        "R3"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "round-4 S1-H1: the two-shape damage rule — a corrupt state.json keeps /api/status at 200 with state.damaged set and every other reading intact, while /api/backlog refuses 409 naming the file; no damage mode leaks a stack trace or an internal error name",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-W10",
+      "requirements": [
+        "R2",
+        "R3"
+      ],
+      "command": "cd scripts/creator-brains/console/web && npx vitest run",
+      "status": "PASS",
+      "reason": "round-4 S1-H4: a request that never settles is abandoned by the watchdog (mapped to TRANSPORT, not a new code) so the poll latch always releases and the board recovers; a late answer from an already-timed-out request is discarded by the generation guard",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-B18",
+      "requirements": [
+        "R13"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "round-4 S1-H8: the request handler is total — every malformed request target (//, ///, //@, //:80, http://, https://) answers 400 VALIDATION and the bridge keeps serving; the Host gate still runs before the target is parsed; parseRequestUrl raises a typed ApiError(VALIDATION), never a raw TypeError. Sent over a raw socket, because fetch and node:http.request normalize malformed targets away",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-B19",
+      "requirements": [
+        "R4"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "round-5 pass 1, S1-H9: a non-2xx answer must mean nothing was written. With state.json damaged, PATCH /api/creators/:id answers 200 and the registry row IS persisted (enabledAt stamped); the row counts are null, never 0; repeated toggles each answer 200 and agree with disk; a 409 that does happen is a PRE-write refusal (registry byte-identical); with an intact store the counts are real numbers. Root cause fixed: the handler re-read the ROSTER through creatorRows, which refuses 409 on a damaged state.json, turning a committed write into a 409 after the fact",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-B20",
+      "requirements": [
+        "R4"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "round-5 pass 1, S1-H10: the body contract is \"a JSON object\". A literal null body -> 400 VALIDATION, not a 500, on both write routes; 42 / \"str\" / true / false / [1,2] / [] -> 400 the same way; an absent body still yields {} and keeps its own specific refusal. Enforced in readBody, the one function that owns it, rather than at each dereference site",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-B21",
+      "requirements": [
+        "R13"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "round-5 pass 1, S1-H11: no silent fallthrough outside /api either. POST/PATCH/PUT/DELETE/OPTIONS on /, /registry.json, /nope -> 404 NOT_FOUND instead of 200 + the status page, while GET and HEAD still serve it. Fixed net-neutral in line count because server.mjs sits at exactly 300",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-B22",
+      "requirements": [
+        "R6"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "round-5 pass 2, S1-H15/H16: the LANE C read path must serve a published brain. With a real published generation seeded, GET /api/brains/:slug -> 200 with index/topics/timeline NON-EMPTY and skipped [] (a); a document absent from the generation is reported in skipped, not silently empty (b); a pointer naming no generation reports all three (c). Containment both directions: :slug arrives UN-DECODED and ?creator= arrives DECODED, so every hostile form of each (%2e%2e%2f, ..%2F, %5C, %00, the LANE B channel id, a 500-char slug) refuses and never carries the LANE B canary or a registry byte (d,e); the query route searches LANE C only, so transcript-only words return zero hits (f). Root cause: brainDoc joined brains/<slug> while the engine publishes into brains/<slug>/<generation>/, so every published brain answered 200 with all three documents empty",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-W11",
+      "requirements": [
+        "R2",
+        "R3"
+      ],
+      "command": "npx vitest run (console/web)",
+      "status": "PASS",
+      "reason": "round-5 pass 3, S1-H17/H18: a payload of the wrong shape must produce a NAMED failure, never a blank console. Layer 1 (adapter seam, adapters/validate.ts): the live adapter refuses a wrong-shaped 200 with a typed ConsoleApiError (d); names the offending path when a nested field is bent — body.backlog.lines: expected an array (e) — and when exactly one top-level key is missing (f). Layer 2 (components/ErrorBoundary.tsx, mounted in App and main.tsx): a wrong-shaped payload renders console-fault instead of unmounting the root, and the shell header SURVIVES — document.body.textContent still matches /Creator Brains Console/ (a); a missing nested key (b) and a non-array array field (c) are caught the same way; the boundary contains a throw from any child, not only StatusBoard (g). Controls: a healthy payload still renders the board through the mock (h) and survives the live validator (i), so neither layer can be satisfied by refusing everything. Root cause: LocalEngineAdapter.request ended with an unchecked `return body as T` and no error boundary existed anywhere, so a missing top-level key unmounted the React root and left a blank page",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-B23",
+      "requirements": [
+        "R13"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "round-5 pass 4, S1-H19: the body ceiling, and the framing paths nothing had measured. A body AT the ceiling (64 KB) is READ — the boundary is `>` not `>=` (a); one byte over is refused with the documented envelope (b); a 4 MB body cannot take the bridge down — it is still serving 200 afterwards (c); a body that is not valid UTF-8 is a 400, not a 500 (d); a chunked body with no content-length is read normally (e); a POST with no body is a 400, never a 500 (f). The client's outcome for a body large enough that it is still writing when the limit trips is deliberately NOT pinned: it tracks the socket buffer (clean 400 at 512 KB, ECONNRESET at 1 MB and 4 MB), so asserting either would flake across machines. What is pinned is that the bridge refuses, stays within its memory bound, and keeps serving. Closing S1-H19 would require draining an arbitrary volume from a hostile client; that trade was measured and declined",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    },
+    {
+      "id": "T-B24",
+      "requirements": [
+        "R13"
+      ],
+      "command": "node --test scripts/creator-brains/console/test/*.test.mjs",
+      "status": "PASS",
+      "reason": "round-5 pass 5, S1-H20/H21: the static-traversal test, and its ID. RENUMBERED from T-B12 — the plan (06-test-plan.md:26) and this file reserve T-B12 for S7's snapshot verification (R15), so two unrelated tests shared one ID and the traversal property was traced to no requirement at all (S1-H21). REWRITTEN because it could not fail, for two independent measured reasons: (1) it used `fetch`, which normalises `/../` away client-side, so it never sent a traversal at all — the same trap fixtures.mjs documents for forbidden headers; (2) its `!text.includes(CH_ONE)` assertion was satisfied by any 404, because an unresolved static path answers 200 + the bridge page (server.mjs:165) and the bridge page contains no channel id. It now sends a RAW request line and asserts the traversal target is byte-identical to its URL-normalised form — the invariant that actually protects the live server. Measured falsifiable: with all three static-defence layers broken (new URL normalisation, normalize(), containment) it is the ONLY test that fails, 5/6 in the boundary suite. Deliberately NOT claimed as single-mutation-observable: the three layers are mutually redundant, so removing any one leaves 105/105 green. The resolver-level property is pinned by HY4-H3, which DOES fail when both resolver guards are removed (104/105)",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "a974051855369999d164a8c5e8d13d3491e0a1aeb7d4f5b36262b64e19d66526"
+        },
+        {
+          "path": "16-s1-hostile-review.md",
+          "sha256": "e2db615831ec2e7bbb78785c46ab36c9a8b4b518af5ccab921670e92b7b0b027"
+        }
+      ]
+    }
+  ]
+}
