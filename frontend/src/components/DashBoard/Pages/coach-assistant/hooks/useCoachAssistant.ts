@@ -2,7 +2,8 @@
  * Orchestrates Swan Coach chat plus command-lane receipts, confirmations,
  * frontend events, transcript intake, and food-context messages.
  *   sendMessage → executeCommand (POST /api/ai-command/execute)
- *     ├─ fallback_to_chat | error  → chat lane (sendMessageWithConversation)
+ *     ├─ error                     → commandMessages (error receipt; chat lane NOT reached)
+ *     ├─ fallback_to_chat          → chat lane (sendMessageWithConversation)
  *     ├─ confirmation_required     → commandMessages (renders ConfirmationCard)
  *     ├─ executed                  → commandMessages (renders ExecutionResultCard)
  *     └─ debate_started            → commandMessages (info bubble)

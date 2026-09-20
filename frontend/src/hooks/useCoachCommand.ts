@@ -2,7 +2,7 @@
  * ============================================================================
  * FILE: useCoachCommand.ts
  * PURPOSE: Command lane hook — wraps /api/ai-command/* endpoints
- * OWNER: Claude Sonnet 4.6 | LAST MODIFIED: 2026-04-09
+ * OWNER: Claude Sonnet 4.6 | LAST MODIFIED: 2026-09-20
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Provides typed access to the command execution pipeline.
@@ -14,7 +14,39 @@
  *   confirmCommand → POST /api/ai-command/confirm → ConfirmResult
  *   cancelCommand  → POST /api/ai-command/cancel  → void
  *
- * PRIVACY: selectedClientId passed as an ID — no names sent to backend.
+ * PRIVACY: `selectedClientId` crosses the boundary as an ID only. The client also posts
+ * `message`, `previousContext` and `routeContext` as free text (`:117-121`).
+ *
+ * No PII middleware covers this route. Verified twice: at the route's own guard list
+ * (`aiCommandRoutes.mjs:119` — `protect, aiCommandLaneKillSwitch, aiCommandRateLimiter`
+ * only) and at its mount (`core/routes.mjs:642` — no parent PII middleware; every
+ * `app.use` there is a path-scoped route mount). `piiSanitizationMiddleware` is imported by
+ * `aiChatRoutes.mjs` (the chat lane), NOT by the command lane.
+ *
+ * The pipeline (`commandExecutor.mjs` PIPELINE_STEPS :516-520) runs `stepSanitize` →
+ * `stepPHIScan` → `stepClassify`, and `stepPHIScan` (:190-206) scans and strips
+ * **`ctx.sanitizedInput` ONLY — i.e. `message`**. It does NOT cover `previousContext`, which
+ * `aiCommandRoutes.mjs:166` passes through raw and `intentClassifier.mjs:123-125`
+ * interpolates into the provider prompt. **PHI placed in `previousContext` therefore reaches
+ * a provider unscanned.** Tracked as R2-01. The other two context fields are bounded:
+ * `routeContext` is normalized to a token allowlist server-side (`normalizeRouteContext`
+ * `:88-110`), and `selectedClientName` is hardcoded `null` (`:164`), so neither is a live
+ * text channel.
+ *
+ * Detection is PARTIAL and must not be read as a guarantee. `scanForPHI` collects only the
+ * FIRST match per pattern (`text.match` without `/g`), so a second distinct identifier is
+ * never enumerated and survives `stripPHI` — measured `"a 123-45-6789 b 987-65-4321 c"` →
+ * only the first is redacted. And a client name plus a symptom is not detected at all —
+ * measured `"log a workout for Jordan T., knee felt bad"` → `hasPHI: false`. The `scanForPHI`
+ * at `intentClassifier.mjs:175` is a re-check with the SAME detector on the chat-fallback
+ * path, not an independent gate.
+ *
+ * Audit storage IS redacted (`commandAudit.redactParams`, `commandAudit.mjs:41`).
+ *
+ * This note has now been wrong TWICE — first claiming no names are sent, then claiming PHI
+ * is removed from the assembled provider request. Do not restate this file's privacy posture
+ * without re-measuring it. Findings: R2-01, R2-02 in
+ * docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/.
  */
 
 import { useState, useCallback } from 'react';
