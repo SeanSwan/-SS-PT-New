@@ -12,6 +12,19 @@
  * the failure this hook exists to prevent — orientation believed, not happening.
  * The script path now resolves from THIS FILE's location, so cwd is irrelevant.
  *
+ * v3.0 — v2.1 fixed the SCRIPT PATH but not the CHILD'S WORKING DIRECTORY. The
+ * delegate inherited the caller's cwd, and `lane.mjs digest` needs git: from a
+ * non-repo cwd it fails outright, and from a subdirectory it is slow enough that
+ * the old 10 s cap could turn it into ETIMEDOUT. Measured 2026-09-20:
+ *   cd backend && node ../scripts/hooks/lane-session-start.mjs
+ *     -> "[lane] orientation check failed (ETIMEDOUT)"
+ *   cd /tmp && node <abs>/scripts/hooks/lane-session-start.mjs
+ *     -> "[lane] not a git repository — no ledger."
+ *   (direct) cd backend && node ../scripts/lane.mjs digest -> WORKS, but 6.5 s
+ * The delegate now runs with cwd PINNED to the repo root and a timeout with real
+ * headroom over the measured cost. Same lesson as v2.1, one layer deeper: fixing
+ * how you NAME a path does not fix where the process RUNS.
+ *
  * Delegates to lane.mjs so there is one implementation of ledger truth.
  * Fail-open on any error, but not fail-SILENT: a broken guard says so.
  */
@@ -21,15 +34,24 @@ import { dirname, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const LANE = resolve(HERE, '..', 'lane.mjs');
-const PRUNE = resolve(HERE, '..', 'coordination-prune.mjs');
+// <root>/scripts/hooks -> <root>. Pinning the delegate's cwd to the repo root is the
+// point of v3.0: `lane.mjs digest` shells out to git, so it must RUN in the repo, not
+// merely be FOUND there. Without this, a session starting in `backend/` or outside the
+// repo gets a failed orientation and no lane awareness at all.
+const ROOT = resolve(HERE, '..', '..');
+const LANE = resolve(ROOT, 'scripts', 'lane.mjs');
+const PRUNE = resolve(ROOT, 'scripts', 'coordination-prune.mjs');
+// Measured 6.5 s for `digest` on an idle machine (2026-09-20). Several agents share
+// this box, so 10 s was a coin-flip; 25 s clears the real cost with headroom.
+const DIGEST_TIMEOUT_MS = 25_000;
 
 try {
   if (!existsSync(LANE)) {
     console.log(`[lane] orientation unavailable — ${LANE} not found.`);
   } else {
     const out = execFileSync(process.execPath, [LANE, 'digest'], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 10_000,
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: ROOT, timeout: DIGEST_TIMEOUT_MS,
     }).trim();
     if (!out) console.log('[lane] digest produced no output — ledger may be empty or unreadable.');
     if (out) {
@@ -37,6 +59,11 @@ try {
       // Print the RESOLVED path. Advertising a relative command reintroduced, in the
       // hint, the exact cwd bug this hook was rewritten to fix.
       console.log(`[lane] claim before your first edit: node "${LANE}" claim --task "<one line>" --files "a,b"`);
+      // Orientation is not complete without the review queue. `digest` shows who holds
+      // what, but a review request addressed TO THIS SEAT is invisible in it — the
+      // 2026-09-20 seat note sat unread in review-queue.md for 40 minutes while both
+      // seats ran. Name it explicitly or it does not get read.
+      console.log('[lane] then read .ai-workflow/coordination/review-queue.md for requests addressed to you.');
     }
   }
   /* Trim the append logs while we are here. The script has existed since June and
@@ -44,7 +71,7 @@ try {
    * flagged it forever — a permanent unclearable warning is its own fatigue source.
    * Best-effort and silent on failure: retention is not worth failing orientation. */
   try {
-    if (existsSync(PRUNE)) execFileSync(process.execPath, [PRUNE], { stdio: 'ignore', timeout: 60_000 });
+    if (existsSync(PRUNE)) execFileSync(process.execPath, [PRUNE], { stdio: 'ignore', cwd: ROOT, timeout: 60_000 });
   } catch (e) {
     // Not silent. An empty catch here is the exact pattern this file's own error
     // path warns about: prune quietly stops working, doctor's unclearable warning

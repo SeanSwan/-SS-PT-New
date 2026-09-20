@@ -1,0 +1,46 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEBUDDY_PROJECT_DIR/scripts/hooks/lane-session-start.mjs\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEBUDDY_PROJECT_DIR/scripts/hooks/lane-session-start.mjs\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEBUDDY_PROJECT_DIR/scripts/hooks/lane-session-start.mjs\"",
+            "timeout": 15
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CODEBUDDY_PROJECT_DIR/scripts/hooks/lane-session-start.mjs\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

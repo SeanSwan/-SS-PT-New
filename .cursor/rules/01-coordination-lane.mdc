@@ -1,0 +1,53 @@
+---
+description: Shared working tree — read the coordination lane before your first edit
+alwaysApply: true
+---
+
+## Shared working tree — the coordination lane
+
+**This tree is shared, and not only with you.** Claude Code, Codex, OpenCode,
+WorkBuddy and GLM all edit these same files at the same time. A peer's
+half-finished edit that you overwrite is work that cannot be recovered from any
+transcript. The repo keeps a **Live Pair-Coding Coordination Ledger** at
+`.ai-workflow/coordination/` — gitignored, same-machine files, so every seat sees
+the others instantly with zero git churn.
+
+**Before your first edit, run:**
+
+```bash
+node scripts/lane.mjs digest
+```
+
+It prints three things: **you** (your own resolved lane file), **every seat
+holding a lock right now**, and the stale count. Then read
+`.ai-workflow/coordination/review-queue.md` for open review requests.
+
+**Do not enumerate lane files by name.** Seats are named per-session —
+`claude.lane.md`, `workbuddy.lane.md`, `vs-claude--main-<hash>.lane.md`, … — so a
+hardcoded list silently misses live seats. Measured miss, 2026-09-20: the
+documented list named `claude.lane.md` + `codex.lane.md`; the seat actually
+holding a lock on `backend/routes/bridge/bridgeIngestRoutes.mjs` was
+`workbuddy.lane.md`, a third name the list never mentioned. An agent following the
+docs verbatim would have read both named files, seen no conflict, and edited a
+locked file.
+
+**For the whole session:**
+
+- **Read-before-edit** — re-run the digest before editing any file. If your target
+  is under a seat's `🔒 EDITING NOW`, do not edit it. Pick another file, append a
+  request to `review-queue.md`, or ask Sean.
+- **Claim/release** — overwrite **your own** lane file (the path `digest` prints on
+  its `me:` line) with status, exact files under `🔒 EDITING NOW`, and an ISO
+  `Updated:` stamp when you start a slice; clear it when done. **Never write
+  another seat's lane file.**
+- **Commit safety** — never `git add -A` while another seat holds locks; stage
+  explicit paths.
+- **Staleness** — a lane stamped >30 min ago and still `in-progress` may be
+  abandoned. Flag it to Sean; never silently seize the files.
+
+**Enforcement honesty (measured 2026-09-20).** For Cursor, nothing here is a hook —
+this rule fires because an agent reads it. The deterministic layer exists but is
+wired per-harness: `scripts/hooks/lane-session-start.mjs` runs at session start
+from `.claude/settings.json` (Claude Code) and `.codebuddy/settings.json`
+(WorkBuddy). Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`,
+Rule 67 in `CLAUDE.md` / `AGENTS.md` / `CODEBUDDY.md`.
