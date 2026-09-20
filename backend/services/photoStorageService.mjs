@@ -15,8 +15,21 @@
 import { PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'node:url';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../utils/logger.mjs';
+
+// `__dirname` does NOT exist in ES module scope. It was referenced below without
+// being defined, which threw `ReferenceError: __dirname is not defined in ES
+// module scope` on EVERY import — so this module could not be loaded by plain
+// `node` at all, and the whole app failed to boot.
+//
+// It was invisible to the test suite because vitest transforms modules through
+// Vite, which supplies a `__dirname` shim; `node server.mjs` supplies nothing.
+// This is the same shape as the `uploadPhoto` defect above: a failure that only
+// appears in the real runtime. Every other file in this repo that uses
+// `__dirname` defines it exactly like this.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Lazy imports to avoid circular dependency issues
 let _getR2Client = null;
@@ -36,6 +49,75 @@ async function ensureR2Imports() {
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 
+// ── Local disk root (E-11, hostile review seat 3) ──────────────────────────
+// Every disk path in the upload/serve/delete chain is derived from THIS one
+// constant. The old code used process.cwd() in three places, but cwd is just
+// wherever node happened to be launched from, while express.static mounts
+// uploads from a __dirname-relative path. Start the process from anywhere else
+// and uploads land where the server can never serve them, while deletePhoto
+// silently no-ops on a path that does not exist.
+export const UPLOADS_ROOT = path.resolve(__dirname, '..', '..', 'uploads');
+export const DISK_URL_PREFIX = '/uploads';
+
+/**
+ * Resolve a "/uploads/category/filename" URL (or bare "category/filename")
+ * to an absolute on-disk path.
+ * @param {string} urlOrRelative
+ * @returns {string} absolute path, always inside UPLOADS_ROOT
+ */
+export function resolveLocalUploadPath(urlOrRelative) {
+  const relative = String(urlOrRelative || '')
+    .replace(/^\/+/, '')
+    .replace(/^uploads\//, '');
+  const resolved = path.resolve(UPLOADS_ROOT, relative);
+  // Path-traversal guard: never escape the uploads root.
+  if (resolved !== UPLOADS_ROOT && !resolved.startsWith(UPLOADS_ROOT + path.sep)) {
+    throw new Error(`Refusing to resolve upload path outside uploads root: ${urlOrRelative}`);
+  }
+  return resolved;
+}
+
+// ── Magic-byte sniffing (E-07, hostile review seat 3) ──────────────────────
+// `contentType` and `originalFilename` are BOTH client-controlled. A caller
+// can upload an HTML payload named "avatar.jpg" with Content-Type text/html,
+// and R2 will serve it back from our own public domain with that Content-Type
+// — stored XSS. Extension allowlists at the route layer do not stop it,
+// because the attacker simply names the file "avatar.jpg".
+//
+// The bytes are the only trustworthy statement of what a file actually is, so
+// the stored extension AND the stored Content-Type are both derived from the
+// sniff, never from the request.
+const HEIC_BRANDS = new Set(['heic', 'heix', 'hevc', 'heim', 'heis', 'hevm', 'hevs', 'mif1', 'msf1']);
+
+const FILE_SIGNATURES = [
+  // images
+  { ext: 'jpg', mime: 'image/jpeg', test: (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff },
+  { ext: 'png', mime: 'image/png', test: (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
+  { ext: 'gif', mime: 'image/gif', test: (b) => b.subarray(0, 3).toString('latin1') === 'GIF' && b[3] === 0x38 && (b[4] === 0x37 || b[4] === 0x39) && b[5] === 0x61 },
+  { ext: 'webp', mime: 'image/webp', test: (b) => b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'WEBP' },
+  { ext: 'heic', mime: 'image/heic', test: (b) => b.subarray(4, 8).toString('latin1') === 'ftyp' && HEIC_BRANDS.has(b.subarray(8, 12).toString('latin1')) },
+  // video containers (social posts upload video through this same helper)
+  { ext: 'mp4', mime: 'video/mp4', test: (b) => b.subarray(4, 8).toString('latin1') === 'ftyp' },
+  { ext: 'webm', mime: 'video/webm', test: (b) => b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3 },
+  { ext: 'avi', mime: 'video/x-msvideo', test: (b) => b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'AVI ' },
+  // documents (trainer COI / certification uploads — see ALLOWED_MIME in trainerOnboardingRoutes.mjs)
+  { ext: 'pdf', mime: 'application/pdf', test: (b) => b.subarray(0, 5).toString('latin1') === '%PDF-' },
+];
+
+/**
+ * Identify a buffer from its leading bytes.
+ * @param {Buffer} buffer
+ * @returns {{ext: string, mime: string}|null} null when the bytes match nothing we accept
+ */
+export function sniffFileType(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 12) return null;
+  for (const sig of FILE_SIGNATURES) {
+    // every test() reads at most the first 12 bytes, which the length guard covers
+    if (sig.test(buffer)) return { ext: sig.ext, mime: sig.mime };
+  }
+  return null;
+}
+
 /**
  * Upload a photo buffer to storage.
  *
@@ -50,7 +132,26 @@ const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 export async function uploadPhoto(buffer, { userId, category, originalFilename, contentType }) {
   await ensureR2Imports();
 
-  const ext = path.extname(originalFilename).toLowerCase().replace(/^\./, '') || 'jpg';
+  // E-07: trust the bytes, not the request. This is the single choke point for
+  // every upload caller (profile, banner, measurement, equipment, product,
+  // challenge, social photo/video, trainer credential).
+  const sniffed = sniffFileType(buffer);
+  if (!sniffed) {
+    logger.warn(
+      '[PhotoStorage] Rejected upload — bytes match no accepted type (declared=%s name=%s bytes=%d)',
+      contentType, originalFilename, buffer?.length ?? 0
+    );
+    throw new Error('Uploaded file is not a recognized image, video or PDF.');
+  }
+  if (contentType && contentType !== sniffed.mime) {
+    logger.warn(
+      '[PhotoStorage] Declared type %s disagrees with actual bytes (%s) — storing as %s',
+      contentType, sniffed.mime, sniffed.mime
+    );
+  }
+
+  const ext = sniffed.ext;
+  const safeContentType = sniffed.mime;
   const now = new Date();
   const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const objectKey = `photos/${category}/${userId}/${yearMonth}/${uuidv4()}.${ext}`;
@@ -63,7 +164,8 @@ export async function uploadPhoto(buffer, { userId, category, originalFilename, 
         Bucket: R2_BUCKET_NAME,
         Key: objectKey,
         Body: buffer,
-        ContentType: contentType || 'image/jpeg',
+        // E-07: never the client-declared type — the sniffed one.
+        ContentType: safeContentType,
       }));
 
       // Build the public URL
@@ -82,14 +184,15 @@ export async function uploadPhoto(buffer, { userId, category, originalFilename, 
   }
 
   // ── Local disk fallback ────────────────────────────────────────────────────
-  const localDir = path.join(process.cwd(), 'uploads', category);
+  // E-11: UPLOADS_ROOT, not process.cwd().
+  const localDir = path.join(UPLOADS_ROOT, category);
   await fs.mkdir(localDir, { recursive: true });
 
   const filename = `${Date.now()}-${uuidv4()}.${ext}`;
   const localPath = path.join(localDir, filename);
   await fs.writeFile(localPath, buffer);
 
-  const url = `/uploads/${category}/${filename}`;
+  const url = `${DISK_URL_PREFIX}/${category}/${filename}`;
   logger.info('[PhotoStorage] Saved to disk: %s (%d bytes)', url, buffer.length);
   return { url, storageKey: url, storage: 'local' };
 }
@@ -121,7 +224,9 @@ export async function deletePhoto(storageKey) {
   // Local disk paths (start with /uploads/)
   if (storageKey.startsWith('/uploads/') || storageKey.startsWith('uploads/')) {
     try {
-      const fullPath = path.join(process.cwd(), storageKey.replace(/^\//, ''));
+      // E-11: same resolver the write path and the serve proxy use, so a
+      // delete always lands on the file the upload actually wrote.
+      const fullPath = resolveLocalUploadPath(storageKey);
       await fs.access(fullPath);
       await fs.unlink(fullPath);
       logger.info('[PhotoStorage] Deleted from disk: %s', storageKey);

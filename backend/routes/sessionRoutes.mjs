@@ -6,6 +6,7 @@
 
 import express from "express";
 import { protect, adminOnly } from "../middleware/authMiddleware.mjs";
+import { escapeHtml } from "../utils/htmlEscape.mjs";
 import { getSession, getUser, getSessionType, getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
 import sequelize, { Op } from "../database.mjs";
 import moment from "moment";
@@ -32,6 +33,8 @@ import { createNotification } from '../controllers/notificationController.mjs';
 import logger from '../utils/logger.mjs';
 import { getClientPackagePricing, computeCancellationCharge, getCancellationPolicy } from '../utils/cancellationPricing.mjs';
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
+import { escapeCsvValue } from '../utils/csvEscape.mjs';
 
 const router = express.Router();
 
@@ -1790,8 +1793,8 @@ router.put("/reschedule/:sessionId", protect, async (req, res) => {
     }
     
     // Check if user is authorized to reschedule
-    const isOwner = session.userId === req.user.id;
-    const isAssignedTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
+    const isOwner = idEquals(session.userId, req.user.id);
+    const isAssignedTrainer = req.user.role === 'trainer' && idEquals(session.trainerId, req.user.id);
     if (!isOwner && !isAssignedTrainer && req.user.role !== 'admin') {
       return res.status(403).json({
         message: "You can only reschedule your own sessions."
@@ -1951,8 +1954,8 @@ router.get("/:sessionId/cancel-warning", protect, async (req, res) => {
 
     // Check authorization - user must be admin, trainer, or session owner
     const isAdmin = req.user.role === 'admin';
-    const isTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
-    const isOwner = session.userId === req.user.id;
+    const isTrainer = req.user.role === 'trainer' && idEquals(session.trainerId, req.user.id);
+    const isOwner = idEquals(session.userId, req.user.id);
 
     if (!isAdmin && !isTrainer && !isOwner) {
       return res.status(403).json({
@@ -2050,8 +2053,8 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
     }
 
     // Check authorization — owner, assigned trainer, or admin
-    const isSessionOwner = session.userId === req.user.id;
-    const isSessionTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
+    const isSessionOwner = idEquals(session.userId, req.user.id);
+    const isSessionTrainer = req.user.role === 'trainer' && idEquals(session.trainerId, req.user.id);
     if (!isSessionOwner && !isSessionTrainer && req.user.role !== 'admin') {
       return res.status(403).json({
         message: "You can only cancel your own sessions."
@@ -2077,7 +2080,12 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
     const shouldSuppressNotifications = req.user.role === 'admin' && suppressNotifications === true;
     const forceNotifyClient = isUrgentCancellation && !shouldSuppressNotifications;
     
-    if (user && user.id !== req.user.id) {
+    // 2026-09-18 hostile pass G-10 — was `user.id !== req.user.id`, which was
+    // always true: `user` is a User row (INTEGER id → JS number) while
+    // req.user.id is a STRING. The "don't notify the actor about their own
+    // action" guard never fired, so clients were emailed about cancellations
+    // they had just performed themselves. Same shape at :2114, :2309, :2337.
+    if (user && !idEquals(user.id, req.user.id)) {
       const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
         'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
       );
@@ -2110,7 +2118,7 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
     // Notify trainer if assigned
     if (session.trainerId) {
       const trainer = await User.findByPk(session.trainerId);
-      if (trainer && trainer.email && trainer.id !== req.user.id) {
+      if (trainer && trainer.email && !idEquals(trainer.id, req.user.id)) {
         const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
           'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }
         );
@@ -2207,8 +2215,8 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
 
     // Check authorization - admin, trainer, or session owner
     const isAdmin = req.user.role === 'admin';
-    const isTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
-    const isOwner = session.userId === req.user.id;
+    const isTrainer = req.user.role === 'trainer' && idEquals(session.trainerId, req.user.id);
+    const isOwner = idEquals(session.userId, req.user.id);
 
     if (!isAdmin && !isTrainer && !isOwner) {
       return res.status(403).json({
@@ -2305,7 +2313,7 @@ Your session credit has been restored to your account.`;
     const shouldSendNotifications = !silent;
 
     // Send client notification (unless silent mode)
-    if (shouldSendNotifications && notifyClient && session.client && session.client.email && session.client.id !== req.user.id) {
+    if (shouldSendNotifications && notifyClient && session.client && session.client.email && !idEquals(session.client.id, req.user.id)) {
       await sendEmailNotification({
         to: session.client.email,
         subject: chargeType !== 'none' ? 'Session Cancelled - Charge Applied' : 'Session Cancelled - SwanStudios',
@@ -2333,7 +2341,7 @@ Your session credit has been restored to your account.`;
     }
 
     // Send trainer notification (unless silent mode)
-    if (shouldSendNotifications && notifyTrainer && session.trainer && session.trainer.email && session.trainer.id !== req.user.id) {
+    if (shouldSendNotifications && notifyTrainer && session.trainer && session.trainer.email && !idEquals(session.trainer.id, req.user.id)) {
       const clientName = session.client ? `${session.client.firstName} ${session.client.lastName}` : 'Unknown Client';
       await sendEmailNotification({
         to: session.trainer.email,
@@ -2935,7 +2943,7 @@ router.delete("/block/:id", protect, async (req, res) => {
     }
 
     // Trainers can only remove their own blocked time
-    if (req.user.role === 'trainer' && session.trainerId !== req.user.id) {
+    if (req.user.role === 'trainer' && !idEquals(session.trainerId, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: "You can only remove blocked time you created"
@@ -2986,7 +2994,7 @@ router.put("/notes/:sessionId", protect, async (req, res) => {
     }
 
     // Trainers can only add notes to their own sessions
-    if (req.user.role === "trainer" && session.trainerId !== req.user.id) {
+    if (req.user.role === "trainer" && !idEquals(session.trainerId, req.user.id)) {
       return res.status(403).json({ message: "You can only add notes to sessions assigned to you" });
     }
 
@@ -3021,7 +3029,7 @@ router.put("/complete/:sessionId", protect, async (req, res) => {
     }
 
     // Trainers can only complete their own sessions
-    if (req.user.role === "trainer" && session.trainerId !== req.user.id) {
+    if (req.user.role === "trainer" && !idEquals(session.trainerId, req.user.id)) {
       return res.status(403).json({ message: "You can only complete sessions assigned to you" });
     }
 
@@ -3101,7 +3109,7 @@ router.patch("/:sessionId/attendance", protect, async (req, res) => {
     }
 
     // Trainers can only record attendance for their own sessions
-    if (req.user.role === 'trainer' && session.trainerId !== req.user.id) {
+    if (req.user.role === 'trainer' && !idEquals(session.trainerId, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'Trainers can only record attendance for their own sessions'
@@ -3181,7 +3189,7 @@ router.patch("/:sessionId/attendance", protect, async (req, res) => {
           subject: 'Missed Session Notification',
           text: `You were marked as a no-show for your session on ${sessionDateFormatted}.`,
           html: `<p>You were marked as a <strong>no-show</strong> for your session on <strong>${sessionDateFormatted}</strong>.</p>
-                 ${noShowReason ? `<p>Reason noted: ${noShowReason}</p>` : ''}
+                 ${noShowReason ? `<p>Reason noted: ${escapeHtml(noShowReason)}</p>` : ''}
                  <p>If you believe this is an error, please contact us.</p>`
         });
       }
@@ -4030,8 +4038,8 @@ router.put("/assign/:sessionId", protect, adminOnly, async (req, res) => {
             <ul>
               <li><strong>Date & Time:</strong> ${new Date(session.sessionDate).toLocaleString()}</li>
               <li><strong>Duration:</strong> ${session.duration} minutes</li>
-              <li><strong>Location:</strong> ${session.location || 'Main Studio'}</li>
-              ${session.client ? `<li><strong>Client:</strong> ${session.client.firstName} ${session.client.lastName}</li>` : ''}
+              <li><strong>Location:</strong> ${escapeHtml(session.location || 'Main Studio')}</li>
+              ${session.client ? `<li><strong>Client:</strong> ${escapeHtml(session.client.firstName)} ${escapeHtml(session.client.lastName)}</li>` : ''}
             </ul>
             <p>Please check your schedule for additional details.</p>
           `
@@ -4046,11 +4054,11 @@ router.put("/assign/:sessionId", protect, adminOnly, async (req, res) => {
           text: `${trainer.firstName} ${trainer.lastName} has been assigned to your session on ${new Date(session.sessionDate).toLocaleString()}`,
           html: `
             <h2>Trainer Assignment</h2>
-            <p><strong>${trainer.firstName} ${trainer.lastName}</strong> has been assigned to your session:</p>
+            <p><strong>${escapeHtml(trainer.firstName)} ${escapeHtml(trainer.lastName)}</strong> has been assigned to your session:</p>
             <ul>
               <li><strong>Date & Time:</strong> ${new Date(session.sessionDate).toLocaleString()}</li>
               <li><strong>Duration:</strong> ${session.duration} minutes</li>
-              <li><strong>Location:</strong> ${session.location || 'Main Studio'}</li>
+              <li><strong>Location:</strong> ${escapeHtml(session.location || 'Main Studio')}</li>
             </ul>
             <p>Your trainer will contact you with any additional information.</p>
           `
@@ -4155,7 +4163,7 @@ router.put("/confirm/:sessionId", protect, async (req, res) => {
     }
     
     // Additional check for trainers - they can only confirm sessions assigned to them
-    if (req.user.role === "trainer" && session.trainerId !== req.user.id) {
+    if (req.user.role === "trainer" && !idEquals(session.trainerId, req.user.id)) {
       return res.status(403).json({ 
         success: false,
         message: "You can only confirm sessions assigned to you" 
@@ -4197,10 +4205,10 @@ router.put("/confirm/:sessionId", protect, async (req, res) => {
               <ul>
                 <li><strong>Date & Time:</strong> ${new Date(session.sessionDate).toLocaleString()}</li>
                 <li><strong>Duration:</strong> ${session.duration} minutes</li>
-                <li><strong>Location:</strong> ${session.location || 'Main Studio'}</li>
-                ${session.trainer ? `<li><strong>Trainer:</strong> ${session.trainer.firstName} ${session.trainer.lastName}</li>` : ''}
+                <li><strong>Location:</strong> ${escapeHtml(session.location || 'Main Studio')}</li>
+                ${session.trainer ? `<li><strong>Trainer:</strong> ${escapeHtml(session.trainer.firstName)} ${escapeHtml(session.trainer.lastName)}</li>` : ''}
               </ul>
-              ${notes ? `<p><strong>Additional Notes:</strong> ${notes}</p>` : ''}
+              ${notes ? `<p><strong>Additional Notes:</strong> ${escapeHtml(notes)}</p>` : ''}
               <p><strong>Please arrive 10 minutes early for your session.</strong></p>
             `
           });
@@ -5034,17 +5042,17 @@ router.get("/export", protect, adminOnly, async (req, res) => {
         sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         session.duration || 60,
         session.status,
-        `"${clientName}"`,
+        clientName,
         session.client?.email || '',
         session.client?.phone || '',
-        `"${trainerName}"`,
+        trainerName,
         session.trainer?.email || '',
-        `"${session.location || ''}"`,
-        `"${(session.notes || '').replace(/"/g, '""')}"`,
-        `"${(session.cancellationReason || '').replace(/"/g, '""')}"`,
+        session.location || '',
+        session.notes || '',
+        session.cancellationReason || '',
         session.cancellationChargeType || '',
         session.cancellationChargeAmount || ''
-      ].join(',');
+      ].map(escapeCsvValue).join(',');
     });
 
     const csvContent = [csvHeaders, ...csvRows].join('\n');
@@ -5092,7 +5100,12 @@ router.post("/:sessionId/feedback", protect, async (req, res) => {
     }
 
     // Verify user is the client of this session or admin
-    if (session.userId !== userId && req.user.role !== 'admin') {
+    // 2026-09-18 hostile pass G-03 — was `session.userId !== userId`, which was
+    // always true: session.userId is an INTEGER column (a JS number) while
+    // userId is req.user.id (a STRING set by `protect` via toStringId). Every
+    // client was 403'd on POST /:sessionId/feedback, so no client could ever
+    // leave feedback on their own session.
+    if (!idEquals(session.userId, userId) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: "You can only leave feedback for your own sessions"
@@ -5387,7 +5400,7 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
           subject: "Session Booked by Admin",
           text: `A session has been booked for you for ${sessionDateFormatted}`,
           html: `<p>A session has been booked for you for <strong>${sessionDateFormatted}</strong>.</p>
-                 <p>Location: ${session.location || 'Main Studio'}</p>
+                 <p>Location: ${escapeHtml(session.location || 'Main Studio')}</p>
                  <p>Please arrive 10 minutes before your session.</p>`
         });
       }

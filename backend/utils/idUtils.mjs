@@ -36,16 +36,33 @@ export const toStringId = (id) => {
 };
 
 /**
- * Safe ID comparison for UUID or other ID types
+ * Safe ID comparison for UUID or other ID types.
+ *
+ * Contract: an absent identity is NEVER equal to anything, including another
+ * absent identity. This matters because the helper is used as an authorization
+ * guard (`if (!idEquals(resource.ownerId, req.user.id)) return 403;`), where
+ * answering `true` for two missing ids would mean "authorized".
+ *
+ * History (2026-09-18 hostile pass G-08): the previous body was
+ *   `if (!id1 || !id2) return id1 === id2;`
+ * which was internally inconsistent — `idEquals(null, null)` returned true
+ * while `idEquals(null, undefined)` returned false, because `null === undefined`
+ * is false. Every current call site passes `req.user.id` (a non-null string set
+ * by `protect` via `toStringId`), so the both-absent branch is unreachable today;
+ * it is made to fail closed here so it stays safe if that ever changes.
+ *
  * @param {any} id1 - First ID
  * @param {any} id2 - Second ID
- * @returns {boolean} True if IDs match
+ * @returns {boolean} True if both IDs are present and match as strings
  */
 export const idEquals = (id1, id2) => {
-  // Handle null/undefined cases
-  if (!id1 || !id2) return id1 === id2;
-  
-  // Convert both to strings for comparison
+  // Absent on either side → not equal (fail closed).
+  if (id1 === null || id1 === undefined || id2 === null || id2 === undefined) {
+    return false;
+  }
+
+  // Convert both to strings for comparison: `protect` stringifies req.user.id
+  // while Sequelize INTEGER foreign keys are JS numbers, so `42 !== '42'`.
   return String(id1) === String(id2);
 };
 
