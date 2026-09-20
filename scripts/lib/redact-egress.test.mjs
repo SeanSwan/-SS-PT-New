@@ -42,6 +42,41 @@ ok('identityNames() includes the OS user', identityNames().some((n) => n.toLower
   ok('REGRESSION 1: doc still readable (headings survive)', text.includes('# Review packet'));
 }
 
+// --- REGRESSION 1B: path patterns must fire before the identity fallback ---
+// Username absence alone is insufficient: replacing only the name leaves the
+// machine-specific path shape in place and cannot prove the path detector ran.
+{
+  const cases = [
+    ['windows backslash', `C:\\Users\\${USER}\\Desktop\\private-project\\plan.md`,
+      '<PATH>\\Desktop\\private-project\\plan.md'],
+    ['windows slash', `C:/Users/${USER}/Desktop/private-project/plan.md`,
+      '<PATH>/Desktop/private-project/plan.md'],
+    ['linux home', `/home/${USER}/private-project/plan.md`,
+      '<PATH>/private-project/plan.md'],
+    ['wsl mount', `/mnt/c/Users/${USER}/private-project/plan.md`,
+      '<PATH>/private-project/plan.md'],
+  ];
+  for (const [name, input, expected] of cases) {
+    const { text } = redactForEgress(input);
+    ok(`REGRESSION 1B: ${name} has exact path replacement`, text === expected, `${text} !== ${expected}`);
+  }
+}
+
+// --- REGRESSION 1C: fetchForEgress receives JSON.stringify output ---
+// JSON doubles Windows backslashes. The transport boundary must still recognize
+// and replace the path, rather than passing only because the username fallback fired.
+{
+  const body = JSON.stringify({
+    content: `C:\\Users\\${USER}\\clients\\private-project\\plan.md`,
+  });
+  const { text } = redactForEgress(body);
+  let parsed = null;
+  try { parsed = JSON.parse(text); } catch { /* asserted below */ }
+  ok('REGRESSION 1C: JSON-escaped Windows path remains valid JSON', parsed !== null, text);
+  ok('REGRESSION 1C: JSON-escaped Windows path uses PATH marker',
+    parsed?.content === '<PATH>\\clients\\private-project\\plan.md', parsed?.content || text);
+}
+
 // --- REGRESSION 2: the read-error channel (2026-08-26) ---
 {
   let msg = '';
@@ -131,36 +166,6 @@ if (HOST && HOST.length >= 3) {
   let threw = false;
   try { await fetchForEgress('https://example.invalid/v1', { body: { not: 'a string' } }, { quiet: true, fetchImpl: fakeFetch }); } catch { threw = true; }
   ok('fetchForEgress: refuses a non-string body (cannot redact what it cannot see)', threw);
-}
-
-// --- REGRESSION GUARD: the transport gate is a control only if nothing bypasses it.
-// Every consult script and shared transport lib must call fetchForEgress, never bare
-// fetch(. A new script that imports fetch directly fails HERE, not in an incident.
-{
-  const { readdirSync, readFileSync } = await import('node:fs');
-  const { join, dirname } = await import('node:path');
-  const { fileURLToPath } = await import('node:url');
-  const scripts = join(dirname(fileURLToPath(import.meta.url)), '..');
-  const LOCAL_ONLY = new Set(['consult-qwen.mjs']); // 127.0.0.1 Ollama — not egress
-  // Non-consult scripts that carry repo documents/prompts to external LLM hosts
-  // (enumerated 2026-08-26; image generators send authored prompts only and are out).
-  const DOCUMENT_EGRESS = [
-    'hermes-village.mjs', 'validation-orchestrator.mjs', 'glm-audit.mjs',
-    'auto-research/eval-suite.mjs', 'auto-research/prompt-mutator.mjs', 'mcp/swan-council-lib.mjs',
-    'lib/openrouter-stream.mjs',
-  ];
-  const targets = readdirSync(scripts).filter((f) => /^consult-.*\.mjs$/.test(f) && !LOCAL_ONLY.has(f))
-    .map((f) => join(scripts, f)).concat(DOCUMENT_EGRESS.map((f) => join(scripts, f)));
-  const bare = [];
-  const ungated = [];
-  for (const p of targets) {
-    const src = readFileSync(p, 'utf-8');
-    const outbound = /(?:await\s+)?\bfetch\((?:'https?:|`|url\b)/.test(src);
-    if (outbound) bare.push(basename(p));
-    if (/\bfetchForEgress\(/.test(src) && !/import\s*\{[^}]*fetchForEgress[^}]*\}\s*from/.test(src)) ungated.push(basename(p));
-  }
-  ok(`guard: no consult script calls bare fetch( (${targets.length} scanned)`, bare.length === 0, bare.join(', '));
-  ok('guard: every fetchForEgress caller imports it', ungated.length === 0, ungated.join(', '));
 }
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);

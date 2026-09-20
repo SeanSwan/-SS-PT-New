@@ -36,9 +36,19 @@ import { basename } from 'node:path';
 // is what actually enforces it.
 import { armTrainingTierEgress, assertTrainingTierArmed, isTrainingTierModel, trainingTierAllowlist }
   from './training-tier-gate.mjs';
+// Astra is NOT blocked on OpenRouter (the subscription does not serve
+// `gpt-6-astra-pro`), but it is double-gated: two independent confirmations,
+// surfaced as two sequential stops. Sean 2026-09-19. See the module header.
+// The names are imported (not only re-exported) because the default export
+// object below references them as local bindings — `export … from` alone
+// creates no binding in this module.
+import { assertAstraResellerDoubleArmed, astraResellerGateState, isAstraSubscriptionModel }
+  from './astra-reseller-gate.mjs';
 
 export { armTrainingTierEgress, assertTrainingTierArmed, isTrainingTierModel, trainingTierAllowlist }
   from './training-tier-gate.mjs';
+export { assertAstraResellerDoubleArmed, astraResellerGateState, isAstraSubscriptionModel }
+  from './astra-reseller-gate.mjs';
 
 /**
  * Canary samples are assembled from parts so this source file never contains a
@@ -253,6 +263,7 @@ export async function fetchForEgress(url, init = {}, { label = 'request', quiet 
     throw new Error('[redact-egress] fetchForEgress requires a string body (JSON.stringify it first); refusing to send an unredactable body.');
   }
   assertNotResoldSubscriptionSeat(url, init.body);
+  assertAstraResellerDoubleArmed(url, init.body);
   assertTrainingTierArmed(url, init.body);
   const body = redactOutbound(init.body, { label, quiet });
   return fetchImpl(url, { ...init, body });
@@ -263,4 +274,5 @@ export default {
   readForEgress, redactForEgress, redactOutbound, fetchForEgress,
   assertNotResoldSubscriptionSeat, selfTest, identityNames,
   armTrainingTierEgress, assertTrainingTierArmed, isTrainingTierModel, trainingTierAllowlist,
+  assertAstraResellerDoubleArmed, astraResellerGateState, isAstraSubscriptionModel,
 };
