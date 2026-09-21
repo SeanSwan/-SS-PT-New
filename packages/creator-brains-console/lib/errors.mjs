@@ -31,6 +31,12 @@ export const CODE = Object.freeze({
   VALIDATION: 'VALIDATION',
   REFUSED: 'REFUSED',
   NOT_FOUND: 'NOT_FOUND',
+  // S1-H12: the off-loop resolver could not run at all (worker failed to start,
+  // died, or timed out). DELIBERATELY NOT `REFUSED`: a 422 tells the operator the
+  // engine considered this ref and declined it, which would send them looking at
+  // their ref when the truth is that the resolver never got to look. 503 says
+  // "the machinery that answers this is unavailable", which is the actionable one.
+  RESOLVER_UNAVAILABLE: 'RESOLVER_UNAVAILABLE',
 });
 
 /** Documented input bounds — the single source both client and server read. */

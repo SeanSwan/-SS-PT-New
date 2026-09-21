@@ -34,6 +34,7 @@ import {
 } from '../../../scripts/creator-brains/lib/store.mjs';
 import { listCreatorsSafe, setEnabled, addCreator } from '../../../scripts/creator-brains/lib/registry.mjs';
 import { ApiError, CODE, validateRef, validateChannelId } from './errors.mjs';
+import { addCreatorOffLoop, shouldUseWorker } from './creator-add.mjs';
 
 /** GET /api/creators — the console's roster, counts included. */
 export function creatorRows(r) {
@@ -95,10 +96,46 @@ export function creatorRows(r) {
  * A1-12's correction — "test re-add of an enabled creator with fetched videos" —
  * was therefore unwritable. `deps` is the engine's own parameter, surfaced
  * unchanged; production callers omit it and get the real resolver.
+ *
+ * ── THE RESOLUTION NOW RUNS OFF THE EVENT LOOP (S1-H12) ─────────────────────
+ *
+ * Passing `deps` through was necessary but not sufficient: with NO `deps` — which
+ * is every production call — the engine runs `execFileSync` ON THIS THREAD and the
+ * bridge freezes for the whole lookup. Measured on the S1 build: `POST /api/creators`
+ * took 1577 ms with ZERO event-loop ticks, so nothing else was answered during it,
+ * and the S1 `useStatus` watchdog then reported `TRANSPORT` for a poll that was
+ * merely queued.
+ *
+ * So the two cases are deliberately split, and the split is the `deps` seam itself:
+ *
+ *   `deps` SUPPLIED  (tests)  -> call `addCreator` in-process. An injected resolver
+ *                                does not shell out, so there is nothing to block,
+ *                                and keeping it synchronous preserves the existing
+ *                                suite's behaviour exactly.
+ *   `deps` ABSENT    (production) -> run it on a worker via `addCreatorOffLoop`, so
+ *                                the event loop keeps turning. MEASURED after the
+ *                                fix: the same 2828 ms resolution, but 182 ticks
+ *                                against an idle rate predicting 181 — the loop is
+ *                                completely free.
+ *
+ * A worker failure REJECTS, and is translated into a 503 rather than a 422: "the
+ * resolver could not run" is a different fact from "the engine refused this ref",
+ * and only the second one is the engine's sentence to give the operator.
  */
 export async function addCreatorRow(ref, { r, deps = {} } = {}) {
   const value = validateRef(ref);
-  const res = await addCreator({ ref: value, r, deps });
+
+  let res;
+  if (shouldUseWorker(deps)) {
+    try {
+      res = await addCreatorOffLoop(value, r);
+    } catch (e) {
+      throw new ApiError(CODE.RESOLVER_UNAVAILABLE, e.message);
+    }
+  } else {
+    res = await addCreator({ ref: value, r, deps });
+  }
+
   if (!res.ok) throw new ApiError(CODE.REFUSED, res.reason);
   const c = res.creator;
 

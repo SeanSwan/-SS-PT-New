@@ -43,6 +43,7 @@ export function statusFor(code) {
     case CODE.STORE_DAMAGED:
     case CODE.RUN_LOCKED: return 409;
     case CODE.REFUSED: return 422;
+    case CODE.RESOLVER_UNAVAILABLE: return 503;
     case CODE.NOT_FOUND: return 404;
     default: return 500;
   }
