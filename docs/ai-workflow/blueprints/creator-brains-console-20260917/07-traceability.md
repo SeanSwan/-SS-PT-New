@@ -24,7 +24,21 @@ Legend: status = **PLANNED** (no code yet) · **SOURCE BUILT** (implemented and 
 **Coverage flags (honest):**
 - R10's "60 fps on mid GPU" is budget-verified only on Sean's hardware in S5 exit — CI can assert frame-time in software GL but not his GPU; marked accordingly at exit.
 - The SwanGuard embed (S7) is a handoff spec, not covered by SS-PT tests — the receiving repo owns its verification.
-- Mock-only boundaries: none for engine reads/writes (bridge tests run the real lib functions against a real temp store); the ONLY mock-required seam is browser WebGL in T-W7.
+- **Mock boundaries, per seam (corrected round 9c, Astra P3 #8).** The line here used to read
+  "Mock-only boundaries: none for engine reads/writes …; the ONLY mock-required seam is browser WebGL
+  in T-W7." That was false, and `06` says so in its own words at its §"hostile-review" note: the suite
+  uses a **fake `fetch`** (T-W1 exercises the live adapter against one serving the bridge's own routes),
+  a **WebGL stub** (T-W7's unavailable branch), **browser and DOM stubs** (`document.hidden`,
+  `IntersectionObserver`, rAF — T-T2), and a **stubbed `/api/**`** for the Playwright smokes. A claim
+  that there is one mock cannot be checked against a suite that has five. The boundary each stub stands
+  in for:
+  - **engine reads/writes — NO mock** (the real `lib` functions against a real temp store, and for
+    T-B18 a raw socket, because `fetch` and `node:http.request` both normalize malformed targets away);
+  - **`fetch` in T-W1 — the transport**, so error-mapping parity is not what is being stubbed;
+  - **`document.hidden`/`IntersectionObserver`/rAF in T-T2 — the browser**, since jsdom has no rAF loop;
+  - **WebGL in T-W7 — the GPU**, so the fallback path is reachable without a real context;
+  - **`/api/**` in the Playwright smokes — the backend**, so a smoke never boots the real bridge.
+  `07` claiming one seam while `06` documents five is the same drift this table exists to catch.
 - **R4 has NO test that can catch S1-H12 (event-loop starvation on `POST`).** The engine resolves a creator reference through `execFileSync` (`lib/ytdlp.mjs:184`), so one add freezes the bridge's only thread — measured 1577 ms for a failing lookup, ceiling 180 s — and no assertion in this plan observes latency. **The fix is additive and console-side, NOT an engine change (corrected 2026-09-20, R2-06).** The previous wording here claimed `addCreator` "must `await resolve(...)`", an engine change it said `deps.resolveCreator` could not supply. That was wrong, and it parked a console-side fix behind an engine decision it never needed: `lib/registry.mjs:109–112` contains the blocking call inside `addCreator`, which is an ordinary async function, so the console can run **that call** on a worker thread and hand the event loop back — the design A1-10 already proved for the health probe. The latency assertion then becomes constructible: the bridge must answer another route while the add is in flight, exactly as `health.offthread.test.mjs` A1-10b does for the probe. **S2 must resolve S1-H12 before it ships the add UI** (`16 §14`).
 - **T-W11's coverage of the `main.tsx` mount point is partial, and deliberately so.** The test file renders `<App/>` directly (as every test in this slice does), so the boundary mounted in `main.tsx` around `<App/>` is not itself exercised by a render. The **mechanism** is: T-W11g mounts the boundary around a child that throws on sight and requires the fault panel and the thrown message. So the second mount is defence in depth resting on a proven mechanism, not an unverified guard — recorded so the next seat can tell the two apart.
 - **Only `/api/status` is shape-validated at the adapter seam** (`adapters/validate.ts`, S1-H18). The other eight routes keep an unchecked `as T` cast, annotated in place, because no S1 component dereferences their payloads. **Each slice that adds a consumer must add its route's guard**; a route whose payload nothing reads is a contract nobody has tested yet.

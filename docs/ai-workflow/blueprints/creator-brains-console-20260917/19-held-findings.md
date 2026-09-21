@@ -177,7 +177,10 @@ harness code and remain true. **This document, and `10`, make no claim about rem
 1. **No new hostile pass.** Everything here is the *disposition* of a review; the round-2 pass against
    the rebuilt packet is what re-tests it.
 2. **No claim that the held items are fixed.** Five are closed with tests; the rest carry a gate or a
-   named owner. `A1-06` in particular is a **gate on S4**, not a fix.
+   named owner. `A1-06` in particular is a **gate on S3 AND S4** — widened from S4 alone on
+   2026-09-20 (§4 above, R3-05). This line said "a gate on S4" until round 9c, which contradicted §4
+   and is exactly the drift that makes a gate look narrower than it is: repair reaches the same
+   `runDaily` journal path as the daily run, so gating one door and shipping the other gates nothing.
 3. **No engine change.** Every correction here is console-side or documentary. The one item that needs
    the engine — `queryBrains` dropping `claim_id` — is recorded with the engine as owner.
 4. **Historical receipts are untouched.** `11`, `12`, `14`, `16`, `17-astra-*` keep their stale paths
