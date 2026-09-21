@@ -29,99 +29,22 @@
  * TAKEN. It cannot prove PostgreSQL honours it under real concurrency; that needs a live
  * database and is recorded as `[UNKNOWN]`, not asserted.
  */
-import express from 'express';
-import request from 'supertest';
-import { Op } from 'sequelize';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { describe, expect, it } from 'vitest';
+import {
+  body, installBridgeSpotlightHarness, ITEM, mocks, predicateOf,
+} from './helpers/bridgeSpotlightHarness.mjs';
+
+// The rig — the hoisted mock declarations, the `vi.mock` factories, the signed-request helpers
+// and the per-test env/reset — lives in `helpers/bridgeSpotlightHarness.mjs`, shared with the
+// manifest suite. It cannot be declared here and passed in: a `vi.mock` factory is hoisted above
+// this module's imports and would fail with `ReferenceError` on a suite-local binding.
 const {
   mockFindByPk, mockUpdate, mockCreate, mockFindAll, mockUploadPhoto, mockFetchDecode,
-} = vi.hoisted(() => ({
-  mockFindByPk: vi.fn(),
-  mockUpdate: vi.fn(),
-  mockCreate: vi.fn(),
-  mockFindAll: vi.fn(),
-  mockUploadPhoto: vi.fn(),
-  mockFetchDecode: vi.fn(),
-}));
+} = mocks;
 
-vi.mock('../models/social/SwanSpotlight.mjs', () => ({
-  default: { findByPk: mockFindByPk, update: mockUpdate, create: mockCreate, findAll: mockFindAll },
-}));
+const { app, send } = await installBridgeSpotlightHarness();
 
-// NOTE: the route imports `uploadPhoto` from photoStorageService.mjs. S3 mocks
-// r2StorageService.mjs, which does not export it — so its image assertions currently pass
-// because the REAL upload fails on missing credentials, not because the mock fired. These
-// are the specifiers the route actually resolves. (Since 2026-09-20 the call lives in
-// services/bridgeSpotlightImageRehost.mjs, which resolves the same two specifiers.)
-vi.mock('../services/photoStorageService.mjs', () => ({ uploadPhoto: mockUploadPhoto }));
-vi.mock('../services/spotlightImageFetch.mjs', () => ({
-  fetchAndDecodeSpotlightImage: mockFetchDecode,
-}));
-
-const SECRET = 'test-swan-bridge-secret-value-0123456789';
-const { signPayload } = await import('../services/swanBridgeSignature.mjs');
-const { default: bridgeRouter } = await import('../routes/bridge/bridgeIngestRoutes.mjs');
-
-const app = express();
-app.use('/api/bridge', bridgeRouter);
-
-/** The regression rig: a global JSON parser mounted BEFORE the bridge router. */
-const preParsedApp = express();
-preParsedApp.use(express.json());
-preParsedApp.use('/api/bridge', bridgeRouter);
-
-const ITEM = '11111111-2222-3333-4444-555555555555';
-
-const body = (overrides = {}) => ({
-  itemId: ITEM,
-  revision: 1,
-  retracted: false,
-  headline: 'A community garden doubled its harvest',
-  imageUrl: null,
-  ...overrides,
-});
-
-const send = (target, payload, opts = {}) => {
-  const raw = JSON.stringify(payload);
-  const timestamp = opts.timestamp ?? new Date().toISOString();
-  const signature = opts.signature ?? signPayload(timestamp, Buffer.from(raw), SECRET);
-  return request(target)
-    .post('/api/bridge/spotlight')
-    .set('Content-Type', 'application/json')
-    .set('X-Swan-Signature', signature)
-    .set('X-Swan-Timestamp', timestamp)
-    .send(raw);
-};
-
-const getManifest = (opts = {}) => {
-  const timestamp = new Date().toISOString();
-  const signature = signPayload(timestamp, Buffer.alloc(0), SECRET);
-  return request(app)
-    .get('/api/bridge/spotlight/manifest')
-    .set('X-Swan-Signature', signature)
-    .set('X-Swan-Timestamp', timestamp);
-};
-
-/** The predicate the database is asked to evaluate — the whole point of the D1 fix. */
-const predicateOf = (call) => call[1]?.where?.revision?.[Op.lt];
-
-beforeEach(() => {
-  process.env.SPOTLIGHT_ENABLED = 'true';
-  process.env.SWAN_BRIDGE_SECRET_V1 = SECRET;
-  mockFindByPk.mockReset().mockResolvedValue(null);
-  // Default: the conditional UPDATE matches nothing, so the create path runs.
-  mockUpdate.mockReset().mockResolvedValue([0]);
-  mockCreate.mockReset().mockResolvedValue({});
-  mockFindAll.mockReset().mockResolvedValue([]);
-  mockUploadPhoto.mockReset();
-  mockFetchDecode.mockReset();
-});
-
-afterEach(() => {
-  delete process.env.SPOTLIGHT_ENABLED;
-  delete process.env.SWAN_BRIDGE_SECRET_V1;
-});
 
 describe('spotlight ordering — a superseded revision changes nothing', () => {
   it('does not re-host an image that arrives on a superseded revision', async () => {
@@ -276,142 +199,5 @@ describe('spotlight ordering — validation and persistence agree (D3)', () => {
     expect(mockUpdate.mock.calls[0][0].retracted).toBe(false);
     // And because the single coercion says "not retracted", the image IS attempted.
     expect(mockFetchDecode).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('spotlight ordering — manifest', () => {
-  it('queries only live rows: not retracted, and not expired', async () => {
-    await getManifest();
-
-    const where = mockFindAll.mock.calls[0][0].where;
-    expect(where.retracted).toBe(false);
-    // The expiry clause is an Op.or, whose key is a Symbol — it vanishes under
-    // JSON.stringify, so assert the structure rather than a serialized form.
-    expect(Array.isArray(where[Op.or])).toBe(true);
-    expect(where[Op.or][0]).toEqual({ expiresAt: null });
-    expect(where[Op.or][1].expiresAt[Op.gt]).toBeInstanceOf(Date);
-  });
-
-  it('projects exactly itemId/revision/updatedAt — live-only filtering is the query, not a post-filter', async () => {
-    mockFindAll.mockResolvedValue([
-      { itemId: 'live-1', revision: 2, updatedAt: '2026-09-19T00:00:00.000Z' },
-    ]);
-
-    const res = await getManifest();
-
-    expect(res.status).toBe(200);
-    expect(res.body.items.map((i) => i.itemId)).toEqual(['live-1']);
-    // SCOPE NARROWED after hostile review F02 (2026-09-20). This case was named "never emits
-    // a retracted itemId even if the store returns one", but the fixture only ever supplied a
-    // LIVE row, so it never injected the counterexample its name advertised. What it actually
-    // proves is the line below: the projection is explicit, so a widened SELECT cannot leak a
-    // tombstone's copy. The live-only guarantee lives in the `where` clause asserted above —
-    // there is no route-side post-filter, so the query is the single point of enforcement.
-    expect(mockFindAll.mock.calls[0][0].attributes).toEqual(['itemId', 'revision', 'updatedAt']);
-  });
-
-  it('requires a valid signature on the read path too', async () => {
-    const res = await request(app)
-      .get('/api/bridge/spotlight/manifest')
-      .set('X-Swan-Signature', 'sha256=deadbeef')
-      .set('X-Swan-Timestamp', new Date().toISOString());
-
-    expect(res.status).toBe(401);
-    expect(mockFindAll).not.toHaveBeenCalled();
-  });
-
-  it('returns 503 when the kill switch is off', async () => {
-    process.env.SPOTLIGHT_ENABLED = 'false';
-    const res = await getManifest();
-    expect(res.status).toBe(503);
-    expect(mockFindAll).not.toHaveBeenCalled();
-  });
-});
-
-describe('disabled-ingest smoke — the exact verified error body (R1)', () => {
-  // R1 requires the disabled path to return the EXISTING verified body, not a newly invented
-  // one. Asserted as a whole object rather than a substring, and on BOTH routes, so the two
-  // cannot drift apart while each still "looks right" in isolation.
-  const VERIFIED_DISABLED_BODY = { success: false, message: 'Spotlight ingest is disabled.' };
-
-  it('POST /spotlight returns the verified 503 body and touches nothing', async () => {
-    process.env.SPOTLIGHT_ENABLED = 'false';
-    const res = await send(app, body({ imageUrl: 'https://swanguard.example/pic.png' }));
-
-    expect(res.status).toBe(503);
-    expect(res.body).toEqual(VERIFIED_DISABLED_BODY);
-    expect(mockCreate).not.toHaveBeenCalled();
-    expect(mockUpdate).not.toHaveBeenCalled();
-    expect(mockFindByPk).not.toHaveBeenCalled();
-    // The flag is checked BEFORE any network work — a disabled receiver must not fetch.
-    expect(mockFetchDecode).not.toHaveBeenCalled();
-  });
-
-  it('GET /spotlight/manifest returns the byte-identical 503 body', async () => {
-    process.env.SPOTLIGHT_ENABLED = 'false';
-    const res = await getManifest();
-
-    expect(res.status).toBe(503);
-    expect(res.body).toEqual(VERIFIED_DISABLED_BODY);
-    expect(mockFindAll).not.toHaveBeenCalled();
-  });
-
-  it('treats any value other than the exact string "true" as disabled', async () => {
-    // isSpotlightEnabled() is an exact comparison, so "1"/"TRUE"/"yes" must all be OFF.
-    // A truthy coercion here would silently enable a feature the operator did not enable.
-    for (const value of ['1', 'TRUE', 'yes', 'on']) {
-      process.env.SPOTLIGHT_ENABLED = value;
-      const res = await send(app, body());
-      expect(res.status).toBe(503);
-      expect(res.body).toEqual(VERIFIED_DISABLED_BODY);
-    }
-    expect(mockCreate).not.toHaveBeenCalled();
-  });
-});
-
-describe('spotlight ordering — the router owns its body parser', () => {
-  it('fails closed with RAW_BODY_UNAVAILABLE when a global JSON parser runs first', async () => {
-    // The mount-order regression this route's header comment warns about: /api/bridge must
-    // stay excluded from the global parser, or req.rawBody is empty and HMAC cannot be
-    // verified. It must fail CLOSED (500 + a code), never silently accept the request.
-    const res = await send(preParsedApp, body());
-
-    expect(res.status).toBe(500);
-    expect(res.body.code).toBe('RAW_BODY_UNAVAILABLE');
-    expect(mockCreate).not.toHaveBeenCalled();
-  });
-
-  it('fails closed on the GET when a declared body was consumed upstream', async () => {
-    // Hostile review F01: the rig above covered POST only. If an upstream parser consumes a
-    // DECLARED body, synthesizing an empty Buffer would authenticate a payload the guard never
-    // saw, so rawBody is left unset and the route refuses instead of accepting emptiness.
-    const timestamp = new Date().toISOString();
-    const res = await request(preParsedApp)
-      .get('/api/bridge/spotlight/manifest')
-      .set('Content-Type', 'application/json')
-      .set('X-Swan-Signature', signPayload(timestamp, Buffer.alloc(0), SECRET))
-      .set('X-Swan-Timestamp', timestamp)
-      .send('{"probe":true}');
-
-    expect(res.status).toBe(500);
-    expect(res.body.code).toBe('RAW_BODY_UNAVAILABLE');
-    expect(mockFindAll).not.toHaveBeenCalled();
-  });
-
-  it('captures the exact request bytes, so a whitespace-only change breaks the signature', async () => {
-    const raw = JSON.stringify(body());
-    const timestamp = new Date().toISOString();
-    const signature = signPayload(timestamp, Buffer.from(raw), SECRET);
-
-    // Same JSON value, different bytes. A parser that re-serializes would still pass.
-    const res = await request(app)
-      .post('/api/bridge/spotlight')
-      .set('Content-Type', 'application/json')
-      .set('X-Swan-Signature', signature)
-      .set('X-Swan-Timestamp', timestamp)
-      .send(`  ${raw}  `);
-
-    expect(res.status).toBe(401);
-    expect(mockCreate).not.toHaveBeenCalled();
   });
 });

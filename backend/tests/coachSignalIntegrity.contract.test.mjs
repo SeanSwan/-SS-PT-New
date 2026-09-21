@@ -22,82 +22,32 @@
  * UNIQUE("coachId","postId") already blocks duplicates for non-null values. The full
  * multi-target migration is deferred to the point a session target actually exists.
  * The last two tests below pin this so it cannot be "fixed" back.
+ *
+ * ── SPLIT 2026-09-20 for hostile review R5-08 ────────────────────────────────────
+ * This file was 312 lines against `06-bans.md` #50's 300-line budget. The ~100-line mock rig
+ * moved to `helpers/coachSignalHarness.mjs` (shared with `coachSignalQuota.contract.test.mjs`
+ * rather than duplicated, because a copy would drift), and the self-contained D2
+ * quota-serialization describe moved to `coachSignalQuota.contract.test.mjs` with its rationale.
+ * NO TEST WAS DROPPED: 21 tests here + 5 in the quota suite = the 21 the unsplit file carried,
+ * plus the 5 whose concern moved. The split is line-count-only, and the differential harness
+ * over the two files proves the assertion set is unchanged.
  */
-import express from 'express';
-import request from 'supertest';
 import { Op } from 'sequelize';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import {
+  MEMBER_AUTHOR, installCoachSignalHarness, mocks, post,
+} from './helpers/coachSignalHarness.mjs';
 
+// The rig — the `vi.mock` factories, the hoisted mock declarations, the mounted app and the
+// per-test reset — lives in the harness. It cannot be hoisted from here: a factory hoisted into
+// a helper cannot close over this module's locals, and re-exporting a hoisted binding fails with
+// `Cannot export hoisted variable.` All three arrangements were measured; see the harness header.
 const {
-  mockSignalFindOne, mockSignalCount, mockSignalCreate,
-  mockPostFindOne, mockAssignmentFindOne, mockUserFindByPk, mockCreateNotification,
-  mockTransaction, mockQuery,
-  session,
-} = vi.hoisted(() => ({
-  mockSignalFindOne: vi.fn(),
-  mockSignalCount: vi.fn(),
-  mockSignalCreate: vi.fn(),
-  mockPostFindOne: vi.fn(),
-  mockAssignmentFindOne: vi.fn(),
-  mockUserFindByPk: vi.fn(),
-  mockCreateNotification: vi.fn(),
-  // D2: quota admission now runs inside `CoachSignal.sequelize.transaction(...)` and takes a
-  // PostgreSQL advisory lock before counting. These two are the seam that lets a mocked model
-  // exercise that path at all — without them the route throws before reaching the count.
-  mockTransaction: vi.fn(),
-  mockQuery: vi.fn(),
-  // `id` is a STRING here on purpose: authMiddleware attaches `req.user.id` via toStringId
-  // while Sequelize INTEGER columns surface as numbers. The route must normalise both.
-  session: { user: { id: '7', role: 'trainer' } },
-}));
+  mockSignalFindOne, mockSignalCount, mockSignalCreate, mockCreateNotification,
+  mockAssignmentFindOne, mockPostFindOne, session,
+} = mocks;
 
-vi.mock('../middleware/authMiddleware.mjs', () => ({
-  protect: (req, _res, next) => { req.user = session.user; next(); },
-}));
-vi.mock('../models/social/CoachSignal.mjs', () => ({
-  default: {
-    findOne: mockSignalFindOne,
-    count: mockSignalCount,
-    create: mockSignalCreate,
-    sequelize: { transaction: mockTransaction, query: mockQuery },
-  },
-}));
-vi.mock('../models/social/SocialPost.mjs', () => ({ default: { findOne: mockPostFindOne } }));
-vi.mock('../models/ClientTrainerAssignment.mjs', () => ({ default: { findOne: mockAssignmentFindOne } }));
-vi.mock('../models/User.mjs', () => ({ default: { findByPk: mockUserFindByPk } }));
-vi.mock('../controllers/notificationController.mjs', () => ({ createNotification: mockCreateNotification }));
-
-const { default: coachSignalRoutes } = await import('../routes/social/coachSignalRoutes.mjs');
-
-const app = express();
-app.use(express.json());
-app.use('/api/social/coach-signals', coachSignalRoutes);
-
-const post = (payload = {}) => request(app).post('/api/social/coach-signals').send({ postId: 3, ...payload });
-
-const COACH = { id: '7', role: 'trainer' };
-const MEMBER_AUTHOR = 42;
-
-beforeEach(() => {
-  vi.useRealTimers();
-  session.user = { ...COACH };
-  mockPostFindOne.mockReset().mockResolvedValue({ id: 3, userId: MEMBER_AUTHOR });
-  mockAssignmentFindOne.mockReset().mockResolvedValue({ id: 1 });
-  mockSignalFindOne.mockReset().mockResolvedValue(null);
-  mockSignalCount.mockReset().mockResolvedValue(0);
-  mockSignalCreate.mockReset().mockResolvedValue({
-    id: 99, postId: 3, memberId: MEMBER_AUTHOR, note: null, createdAt: new Date(),
-  });
-  // Run the transaction body against a stub handle so the admission path actually executes.
-  mockTransaction.mockReset().mockImplementation(async (work) => work({ id: 'test-transaction' }));
-  mockQuery.mockReset().mockResolvedValue([[], 0]);
-  mockUserFindByPk.mockReset().mockResolvedValue({ id: 7, firstName: 'Ada', lastName: 'Coach', username: 'ada' });
-  mockCreateNotification.mockReset().mockResolvedValue(undefined);
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-});
+await installCoachSignalHarness();
 
 describe('coach signal — target checks', () => {
   it('refuses a non-coach role with 403', async () => {
@@ -202,71 +152,6 @@ describe('coach signal — quota', () => {
   });
 });
 
-describe('coach signal — quota admission is serialized and transactional (D2)', () => {
-  // WHAT THESE CAN AND CANNOT PROVE. Hostile review F05 found that `count` then `create`, as
-  // two unserialized statements, let two concurrent requests for DISTINCT posts both observe 4
-  // and both insert — six signals against a cap of five. The fix is a per-coach PostgreSQL
-  // advisory lock taken inside ONE transaction.
-  //
-  // These tests drive the real router and assert that the lock is TAKEN with the right key and
-  // that the count and the insert share ONE transaction. They CANNOT prove that PostgreSQL
-  // serializes two real sessions — that needs a live database and is recorded as `[UNKNOWN]`
-  // in the round-3 packet rather than asserted here. Naming the limit is the point: round 1's
-  // F02 caught a case whose name advertised a race it never injected.
-  const CAP = 5; // mirrors DAILY_SIGNAL_CAP in the route
-
-  it('takes a per-coach advisory lock before counting', async () => {
-    await post();
-
-    expect(mockQuery).toHaveBeenCalledTimes(1);
-    const [sql, options] = mockQuery.mock.calls[0];
-    expect(sql).toContain('pg_advisory_xact_lock');
-    // Scoped to the coach, so two different coaches never block each other.
-    expect(options.replacements.key).toBe('coach-signal-quota:7');
-  });
-
-  it('counts and inserts inside the SAME transaction, and hands it to both', async () => {
-    await post();
-
-    expect(mockTransaction).toHaveBeenCalledTimes(1);
-    const handle = { id: 'test-transaction' };
-    expect(mockSignalCount.mock.calls[0][0].transaction).toEqual(handle);
-    expect(mockSignalCreate.mock.calls[0][1].transaction).toEqual(handle);
-  });
-
-  it('takes the lock BEFORE the count, so the read cannot be stale', async () => {
-    const order = [];
-    mockQuery.mockImplementation(async () => { order.push('lock'); return [[], 0]; });
-    mockSignalCount.mockImplementation(async () => { order.push('count'); return 0; });
-    mockSignalCreate.mockImplementation(async () => {
-      order.push('insert');
-      return { id: 99, postId: 3, memberId: MEMBER_AUTHOR, note: null, createdAt: new Date() };
-    });
-
-    await post();
-
-    expect(order).toEqual(['lock', 'count', 'insert']);
-  });
-
-  it('does not insert when the lock-protected count is already at the cap', async () => {
-    mockSignalCount.mockResolvedValue(CAP);
-
-    const res = await post();
-
-    expect(res.status).toBe(429);
-    expect(mockSignalCreate).not.toHaveBeenCalled();
-  });
-
-  it('leaves no half-counted admission behind when the insert fails', async () => {
-    const race = Object.assign(new Error('duplicate key value'), { name: 'SequelizeUniqueConstraintError' });
-    mockSignalCreate.mockRejectedValue(race);
-
-    const res = await post();
-
-    expect(res.status).toBe(409);
-    expect(mockTransaction).toHaveBeenCalledTimes(1);
-  });
-});
 
 describe('coach signal — note handling', () => {
   it('rejects an over-length note with 422 rather than truncating it', async () => {
