@@ -253,6 +253,8 @@ test('DRY: every file this workstream touched is under Rule 4\'s 300-line cap', 
   // bit twice — only 2 of 34 test files exceed the cap and both were files being edited here.
   const files = [
     'scripts/lib/mega-blueprint-mandate.mjs',
+    'scripts/lib/mega-blueprint-scope.mjs',
+    'scripts/lib/mega-blueprint-bounded.test.mjs',
     'scripts/lib/mega-blueprint-mandate.test.mjs',
     'scripts/lib/mega-blueprint-splitter.test.mjs',
     'scripts/lib/mega-blueprint-coverage.test.mjs',

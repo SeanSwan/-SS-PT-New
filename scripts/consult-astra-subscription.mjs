@@ -100,13 +100,14 @@ function parseArgs(argv) {
   const raw = {};
   // null = auto-detect the Mega Blueprint keyword; true/false = operator forced it.
   let megaBlueprint = null;
-  let dryRun = false;
+  let dryRun = false; let bounded = false;
   for (let i = 0; i < argv.length; i += 1) {
     const name = argv[i];
     if (name === '--help' || name === '-h') return { help: true };
     if (name === '--mega-blueprint') { megaBlueprint = true; continue; }
     if (name === '--no-mega-blueprint') { megaBlueprint = false; continue; }
     if (name === '--dry-run') { dryRun = true; continue; }
+    if (name === '--bounded') { bounded = true; continue; } // scope, not rigour; see mega-blueprint-scope.mjs
     const value = argv[i + 1];
     if (!flags.has(name) || typeof value !== 'string' || value.startsWith('--') || name in raw) {
       throw new Error(`invalid argument: ${name}`);
@@ -124,7 +125,7 @@ function parseArgs(argv) {
     effort: resolveEffort(raw['--effort'] || process.env.SWAN_ASTRA_EFFORT || ''),
     timeoutMs: Number(raw['--timeout-ms'] ?? MAX_TIMEOUT_MS),
     megaBlueprint,
-    dryRun,
+    dryRun, bounded,
   };
   if (!options.document) throw new Error('--document is required');
   if (!Number.isInteger(options.timeoutMs) || options.timeoutMs < 1 || options.timeoutMs > MAX_TIMEOUT_MS) {
@@ -138,7 +139,7 @@ const usage = () => [
   'node scripts/consult-astra-subscription.mjs --document <packet.md> [--out <path>]',
   `  [--remit "<text>"] [--model ${DEFAULT_MODEL}] [--timeout-ms N]`,
   `  [--effort ${DEFAULT_ASTRA_EFFORT}]  reasoning depth; overrides the ambient CODEX_HOME config`,
-  '  [--mega-blueprint | --no-mega-blueprint] [--dry-run]',
+  '  [--mega-blueprint|--no-mega-blueprint] [--dry-run] [--bounded: packet only, 14x cheaper]',
   ...megaBlueprintUsage(),
   'The pro tier is NOT reachable here (ChatGPT accounts are refused it).',
   'For gpt-6-astra-pro use the OpenRouter path, which is double-gated.',
@@ -192,6 +193,7 @@ export async function main(argv = process.argv.slice(2)) {
   // receives.
   const arming = armMegaBlueprintPrompt({
     remit, document, packet: options.document, flag: options.megaBlueprint,
+    bounded: options.bounded,
   });
   const { armed, prompt } = arming;
 
@@ -201,6 +203,7 @@ export async function main(argv = process.argv.slice(2)) {
   if (arming.banner) {
     console.log(arming.banner);
     console.log(`[consult-astra] armed by: ${arming.armedBy.join(', ')}`);
+    console.log(`[consult-astra] scope: ${arming.bounded ? 'BOUNDED — packet only' : 'UNBOUNDED — full hunt (~9 min)'}`);
   }
 
   if (options.dryRun) {
@@ -210,7 +213,7 @@ export async function main(argv = process.argv.slice(2)) {
     const hasBothReviews = prompt.includes('A1 — REVIEW OF THE EXISTING BLUEPRINTS')
       && prompt.includes('A2 — REVIEW OF YOUR OWN PACKAGE');
     console.log('[consult-astra] --dry-run: no model call made.');
-    console.log(`[consult-astra] megaBlueprint=${armed}`);
+    console.log(`[consult-astra] megaBlueprint=${armed} bounded=${arming.bounded}`);
     console.log(`[consult-astra] prompt_chars=${prompt.length} document_chars=${document.length}`);
     console.log(`[consult-astra] contract_headings_present=${hasContract} both_hostile_reviews_present=${hasBothReviews}`);
     // Exit non-zero if the mode was armed but the mandate did not make it in —

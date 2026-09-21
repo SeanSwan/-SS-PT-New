@@ -49,6 +49,9 @@
  */
 
 /** The literal trigger. Case-insensitive; internal horizontal whitespace tolerated. */
+import { MEGA_BLUEPRINT_SCOPE_BOUND } from './mega-blueprint-scope.mjs';
+export { MEGA_BLUEPRINT_SCOPE_BOUND };
+
 export const MEGA_BLUEPRINT_KEYWORD = 'Mega Blueprint';
 
 /** Printed exactly once, before the action list. */
@@ -176,7 +179,7 @@ export function formatMegaBlueprintBanner(actions = []) {
  *
  * @param {{existingBlueprints?: string[], packet?: string}} opts
  */
-export function buildMegaBlueprintMandate({ existingBlueprints = [], packet = '' } = {}) {
+export function buildMegaBlueprintMandate({ existingBlueprints = [], packet = '', bounded = false } = {}) {
   const artifacts = REQUIRED_ARTIFACT_CLASSES
     .map((a, i) => `  ${i + 1}. ${a.key.toUpperCase().padEnd(12)} -> \`${a.doc}\` — ${a.demands}`)
     .join('\n');
@@ -185,6 +188,7 @@ export function buildMegaBlueprintMandate({ existingBlueprints = [], packet = ''
     ? existingBlueprints.map((b) => `  - \`${safeRef(b)}\``).join('\n')
     : '  - every blueprint, wireframe, diagram and test plan supplied in the packet';
 
+  const scopeBound = bounded ? MEGA_BLUEPRINT_SCOPE_BOUND : '';
   return `MEGA BLUEPRINT MODE — ARMED (mandatory; not optional, not partial)
 
 The operator printed the keyword "Mega Blueprint" once. That single keyword arms everything
@@ -246,7 +250,7 @@ Headings are only honoured at fence depth 0. Never place a required heading insi
 missing document and a wasted call.
 
 Do NOT restate this mandate or the packet back to the operator. Spend every token on
-decisions and findings.${packet ? `\n\nPacket: \`${safeRef(packet)}\`` : ''}`;
+decisions and findings.${scopeBound}${packet ? `\n\nPacket: \`${safeRef(packet)}\`` : ''}`;
 }
 
 /**
@@ -264,20 +268,22 @@ decisions and findings.${packet ? `\n\nPacket: \`${safeRef(packet)}\`` : ''}`;
  *
  * @returns {{armed: boolean, armedBy: string[], banner: string|null, mandate: string|null, prompt: string}}
  */
-export function armMegaBlueprintPrompt({ remit, document, packet = null, flag = null, tail = '' } = {}) {
+export function armMegaBlueprintPrompt({ remit, document, packet = null, flag = null, tail = '', bounded = false } = {}) {
   const detection = detectMegaBlueprint(remit, document);
   const armed = flag === null ? detection.armed : flag;
   const packetBlock = `${remit}\n\n=== BEGIN PACKET ===\n\n${document}\n\n=== END PACKET ===${tail}`;
 
   if (!armed) {
-    return { armed: false, armedBy: [], banner: null, mandate: null, prompt: packetBlock };
+    // An unarmed call carries no mandate, so it can carry no scope bound either.
+    return { armed: false, armedBy: [], banner: null, mandate: null, bounded: false, prompt: packetBlock };
   }
-  const mandate = buildMegaBlueprintMandate({ packet });
+  const mandate = buildMegaBlueprintMandate({ packet, bounded });
   return {
     armed: true,
     armedBy: flag === true ? ['operator flag'] : detection.foundIn,
     banner: formatMegaBlueprintBanner(MEGA_BLUEPRINT_ACTIONS),
     mandate,
+    bounded: Boolean(bounded),
     prompt: `${mandate}\n\n=== REMIT ===\n\n${packetBlock}`,
   };
 }
@@ -285,6 +291,6 @@ export function armMegaBlueprintPrompt({ remit, document, packet = null, flag = 
 export default {
   MEGA_BLUEPRINT_KEYWORD, MEGA_BLUEPRINT_BANNER, FORGE_DOCS,
   MEGA_BLUEPRINT_EXTRA_DOCS, MEGA_BLUEPRINT_REQUIRED_DOCS, REQUIRED_ARTIFACT_CLASSES,
-  MEGA_BLUEPRINT_ACTIONS, safeRef, detectMegaBlueprint, formatMegaBlueprintBanner,
+  MEGA_BLUEPRINT_ACTIONS, MEGA_BLUEPRINT_SCOPE_BOUND, safeRef, detectMegaBlueprint, formatMegaBlueprintBanner,
   buildMegaBlueprintMandate, armMegaBlueprintPrompt,
 };
