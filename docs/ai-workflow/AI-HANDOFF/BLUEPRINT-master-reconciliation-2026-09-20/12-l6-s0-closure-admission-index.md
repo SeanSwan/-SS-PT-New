@@ -3,9 +3,11 @@
 **Slice under admission:** L6 `S0 — SALVAGE` (`BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/05-slices.md:16`)
 **Build-queue position:** row 4 of `04-build-order.md` — *"L6 S0 closure only"*
 **Master slice:** M2 (`05-slices.md:20`)
-**Written:** 2026-09-21, against HEAD `df4329fa5`
-**Verdict:** **BLOCKED — one acceptance criterion cannot be satisfied as written, and the
-source-of-record is a decision the builder may not make.** Details in §4.
+**Written:** 2026-09-21, against HEAD `df4329fa5` (index added in `e195d6ede`)
+**Verdict:** **BLOCKED — A1 cannot be satisfied as written, and the source-of-record is a decision
+the builder may not make.** But the slice is in better shape than that sentence alone suggests:
+**A2, A4 and A6 PASS**, and A6 is one of the two criteria the lane itself calls load-bearing.
+Details in §3 and §4.
 
 > Per `00-README.md:20`: *"A conflict is recorded and blocks the affected slice. The builder may not
 > silently choose whichever document permits advancement."* This document records the conflict. It
@@ -81,8 +83,8 @@ Format per MR-06. **Observed** means measured this session; **NOT RUN** means ex
 | A3 | Every file byte-identical | `diff /tmp/S0-BEFORE.sha256 /tmp/S0-AFTER.sha256` | empty, exit 0 | manifests **not re-derived** this session. M0 proves 5/5 *preserved* copies agree | **⚠ PARTIAL** |
 | A4 | git can read the destination | `git status --short` (in dest) | runs; not "not a git repository" | `git rev-parse HEAD` resolves to `53f93854b` | **✓ PASS** (proxy) |
 | A5 | Scopes untracked but visible | `git status --short \| grep -c three-worlds` | `> 0` | not run | **NOT RUN** |
-| A6 | Engine guard still passes | `node --test scripts/swan-brain-console/engine-contract.test.mjs` | `# pass 12 / # fail 0` | test file **exists** in both candidates; **not executed** | **NOT RUN** |
-| A7 | Fleet + runtime suites pass | `node ./node_modules/vitest/vitest.mjs run src/pages/HomePage/three-worlds/__tests__/` (from `frontend/`) | `Tests 66 passed` | 4 test files in REGISTERED, **2** in ORPHANED; **not executed** | **NOT RUN** |
+| A6 | Engine guard still passes | `node --test scripts/swan-brain-console/engine-contract.test.mjs` | `# pass 12 / # fail 0` | **`# tests 12 / # pass 12 / # fail 0`** on the registered salvage worktree `53f93854b` | **✓ PASS** |
+| A7 | Fleet + runtime suites pass | `node ./node_modules/vitest/vitest.mjs run src/pages/HomePage/three-worlds/__tests__/` (from `frontend/`) | `Tests 66 passed` | **NEVER RAN** — `EPERM` opening `frontend/node_modules/vitest/vitest.mjs`, reproducible with the fs shim disabled | **⛔ BLOCKED** |
 | A8 | No `git add -A` used | inspect staged set | explicit paths only | not run | **NOT RUN** |
 
 **A6/A7 test-file availability** (the slice's own note: *"A6 and A7 are the ones that matter"*):
@@ -92,6 +94,38 @@ Format per MR-06. **Observed** means measured this session; **NOT RUN** means ex
   (4 files); ORPHANED holds `fleet`, `runtime` (**2** files). Test *count* ≠ file count, so A7's
   `66` is not contradicted by 4 files — but the **file-set divergence means A7's expected result
   depends on which tree is the source.**
+
+**A6 — measured.** Executed on the registered salvage worktree
+(`tmp/worktrees/brain-console-salvage-20260918`, HEAD `53f93854b`):
+
+```
+$ node --test scripts/swan-brain-console/engine-contract.test.mjs
+# tests 12 / # suites 2 / # pass 12 / # fail 0     (313.9 ms)
+```
+
+That is exactly the expected `# pass 12 / # fail 0`. **A6 passes.**
+
+**A7 — blocked, and the blocker is not the path.** The command dies before loading a single test:
+
+```
+Error: EPERM: operation not permitted, open
+  '…\brain-console-salvage-20260918\frontend\node_modules\vitest\vitest.mjs'
+```
+
+Two things this is **not**:
+
+- **Not the brokered-fs shim.** Re-run with `NODE_OPTIONS=` cleared, the trace no longer mentions
+  `node-brokered-fs-shim.cjs` and still returns `EPERM` on the same file. The shim is not the cause.
+- **Not a directory-permission problem.** Node's own trace names the **file** with `EPERM` from
+  `openSync` during ESM source load, and `lstat` on it reads `43 bytes` — it is *statable and
+  unreadable*, which is a per-file ACL, not a missing or locked-directory condition.
+
+The stub is 43 bytes — a generated `export * from '…'` re-export rather than a real bundle — so this
+is very likely a pnpm/npm dev-dependency artifact installed under an ACL that denies this session
+read access. **A7 therefore has never run, and its `Tests 66 passed` expectation remains unverified
+on both candidates.** That is a configuration blocker, not a product regression — the distinction
+`09-tests.md:252` draws. It needs either a re-install of `frontend/node_modules` under a readable
+ACL, or a run from a checkout where the dev dependencies were installed by the operator's own shell.
 
 ---
 
@@ -124,9 +158,17 @@ This is an M2 **STOP** condition in its own terms: *"unverified caller, schema, 
 
 ### 4.3 What is NOT blocked
 
-A2 is **verified PASS**. A4 is verified by proxy. The salvage worktree exists, is registered, and
-carries every scope path. The slice's *structural* fix has landed; what is missing is the
-**evidence closure** on a **chosen** source.
+A2 is **verified PASS**. A4 is verified by proxy. **A6 is verified PASS** (`# pass 12 / # fail 0`) —
+and A6 is one of the two criteria the slice itself flags as *"the ones that matter"*. The salvage
+worktree exists, is registered, and carries every scope path.
+
+**A7 is blocked for an unrelated reason** (a `frontend/node_modules` ACL, §3) — *not* by the source
+ambiguity. So of the two load-bearing criteria, **one passes and one is configuration-blocked**; the
+source-of-record question does **not** gate A6.
+
+What remains gated by the operator decision is the **evidence closure**: A1 cannot be re-based, A3
+cannot be re-derived, and A5/A8 address a staged set that does not yet exist because no source has
+been chosen to stage from.
 
 ---
 
@@ -140,7 +182,7 @@ No review was filed. **S0 remains `pending`** and this document does not change 
 > **Which tree is L6 S0's source of record — the orphaned `brain-console-20260913`, the registered
 > `brain-console-salvage-20260918`, or both as separately-admitted revisions?**
 
-Until that is answered, A1 cannot be re-based, A3 cannot be re-derived, and A6/A7 cannot be run
+Until that is answered, A1 cannot be re-based, A3 cannot be re-derived, and A5/A8 cannot be staged
 against a bound revision. Per the bounded-queue exception (`04-build-order.md:30-40`) a blocked lane
 does **not** automatically stop an independent later lane — but advancing requires recording the
 blocked lane, confirming no unmet hard dependency, and confirming no shared-file or contract

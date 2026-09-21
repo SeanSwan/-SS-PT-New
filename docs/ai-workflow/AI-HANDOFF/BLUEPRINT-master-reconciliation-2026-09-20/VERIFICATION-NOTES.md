@@ -272,7 +272,8 @@ Each was checked against the emitted documents, not against the review's own cla
 
 - **No test was executed for this adjudication.** The fault-injection matrices were run during the
   build, but the A1/A2 adjudication above is a *source and filesystem* verification, not a runtime
-  one. **See the round-2 record below for what the matrices actually report, measured.**
+  one. **See the round-2 record below for what the matrices actually report, measured.** — *Superseded
+  in part by PART D: the matrices have now been executed and are reported there with their results.*
 - **The L3 stranded suites may not be mergeable.** They were written against a base 581 commits
   behind HEAD, and both slice commits modify `associations.mjs` and `index.mjs`. Their **existence**
   is proven; their **applicability** is not. That requires a checkout and a run, which this document
@@ -502,3 +503,45 @@ matrix, and it is now measured rather than asserted.**
   complete, nor that a real lane's evidence would be honestly recorded.
 - `run-mt.mjs` deletes only disposable fixture copies; the real rescue tree is never mutated
   (`run-mt.mjs` docstring, MT-03 isolation note).
+
+## D.5 The suite itself, executed end-to-end (M1's own exit test)
+
+Until now the **preflight** cases had never been observed passing together on a bound revision. They
+have been. Run in the isolated fixture checkout (`fixture/checkout`, a clean tree at
+`0054a0c507f392956359be2ab2404f6b0947efd5`), `BLUEPRINT_RECEIPT` pointing at the fixture receipt:
+
+```
+$ node --test --test-name-pattern="^preflight:" scripts/blueprint-master-evidence.test.mjs
+ok 1 - preflight: registry
+ok 2 - preflight: source identity and complete manifest
+ok 3 - preflight: preservation
+# tests 3 / # pass 3 / # fail 0            (3.6 s)
+```
+
+Full suite, same fixture, no name filter:
+
+```
+$ node --test scripts/blueprint-master-evidence.test.mjs
+ok 1 - preflight: registry
+ok 2 - preflight: source identity and complete manifest
+ok 3 - preflight: preservation
+ok 4 - admission: required behavior evidence
+not ok 5 - admission: ordered filed reviews
+not ok 6 - admission: final authority and unresolved findings
+# tests 6 / # pass 4 / # fail 2            (1.1 s)
+```
+
+**The two failures are the correct reason, not a defect.** Both fail because the base fixture
+declares a required review seat (`gpt-6-astra`) but has **no filed review bound to it** —
+`Expected values to be strictly deep-equal: + [] - ['gpt-6-astra']`. That is exactly what the
+`fixture/cases/B` fixture supplies, and there MT-05 and MT-06 already demonstrated the assertion
+firing on contradictory input. So: the base fixture is a *pre-admission* state, and the two
+admission cases correctly reject it.
+
+**Why this is worth recording.** `preflight: registry` is M1's named exit test (`05-slices.md:16`)
+and `preflight: source identity` is the one that cannot pass on the shared checkout — it requires an
+empty `git status --porcelain -uall`, which the 1,236-path dirty shared tree can never satisfy. Both
+now have a **measured passing run on a bound revision**, which is what M1's exit condition asks for.
+
+**Limit.** This is evidence-tooling acceptance, not product acceptance. It does not show any lane's
+behavior tests pass — see `09-tests.md:258-263` for what each case does and does not prove.
