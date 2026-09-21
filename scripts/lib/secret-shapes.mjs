@@ -51,10 +51,23 @@ export const SECRET_SHAPES = [
   // path where a false negative leaves the machine and a false positive merely redacts.
   // Both directions measured in `redact-egress.test.mjs`; see the round-9 block.
   [/(?:(?<!\w)|(?<=\\[nrt]))sk-[A-Za-z0-9_-]{12,}/g, '<REDACTED-KEY>', c('sk-', 'CANARYCANARYCANARY123456')],
-  [/sk_(live|test)_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('sk_', 'live_', 'CANARY0123456789')],
-  [/rk_live_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('rk_', 'live_', 'CANARY0123456789')],
-  [/whsec_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('whsec', '_CANARY0123456789')],
-  [/xoxb-[A-Za-z0-9-]{8,}/g, '<REDACTED-KEY>', c('xoxb', '-CANARY-0123456789')],
+  // THE FOUR ROWS BELOW TARGET PREFIXED UNDERCORE/HYPHEN TOKENS, WHICH IS WHY THEY NEED
+  // THE SAME LEFT BOUNDARY AS `sk-` ABOVE (round 9b, Astra's neighbour audit). Measured
+  // without it: `ta[sk_live_]identifier` -> `ta<REDACTED-KEY>`, `di[sk_test_]reporting`
+  // -> `di<REDACTED-KEY>`, `wo[rk_live_]configuration` -> `wo<REDACTED-KEY>`. These are
+  // over-refusals nine and ten in this loop's count, and they sit in the rows ADJACENT
+  // to the one round 9 fixed — a fix aimed at a row is not a fix aimed at a class.
+  //
+  // `(?<!\w)` is the whole boundary here, unlike `sk-`: the token's first character is a
+  // word character (`s`, `r`, `w`, `x`), so any preceding word character means the token
+  // began mid-compound. The JSON-escape alternative is unnecessary for these rows — a
+  // serialised body puts `\n` before the whole token, and the preceding `n` is caught by
+  // the same word-character test — but it is kept for `sk-` where it was MEASURED to
+  // matter. See the neighbour block in `redact-egress.test.mjs`.
+  [/(?<!\w)sk_(live|test)_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('sk_', 'live_', 'CANARY0123456789')],
+  [/(?<!\w)rk_live_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('rk_', 'live_', 'CANARY0123456789')],
+  [/(?<!\w)whsec_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('whsec', '_CANARY0123456789')],
+  [/(?<!\w)xoxb-[A-Za-z0-9-]{8,}/g, '<REDACTED-KEY>', c('xoxb', '-CANARY-0123456789')],
   [/AIza[A-Za-z0-9_-]{20,}/g, '<REDACTED-KEY>', 'AIzaCANARYCANARYCANARY0123456789'],
   [/rnd_[A-Za-z0-9_-]{16,}/g, '<REDACTED-KEY>', 'rnd_CANARYCANARYCANARY0123'],
   [/gh[pousr]_[A-Za-z0-9]{20,}/g, '<REDACTED-KEY>', 'ghp_CANARYCANARYCANARY0123456789'],

@@ -218,6 +218,48 @@ if (HOST && HOST.length >= 3) {
   ok('fetchForEgress: no key reaches the socket after an escaped newline', sent && !sent.body.includes('sk-abcdef'), sent?.body);
 }
 
+// --- ROUND 9b: the SAME class in the adjacent rows (Astra's neighbour audit) ---
+//
+// The `sk-` row above is not the only prefixed token. `sk_(live|test)_`, `rk_live_`,
+// `whsec_` and `xoxb-` had no left boundary either, so they fired INSIDE ordinary
+// compounds — `ta[sk_live_]identifier` became `ta<REDACTED-KEY>`. Same over-refusal
+// class, same silent failure mode, two rows down from the one round 9 fixed.
+//
+// Both halves are pinned, because a boundary that fixed the prose by weakening the
+// match would be the worse bug: measured, it does not.
+{
+  const prose = [
+    ['task_live_identifier', 'the task_live_identifier field'],
+    ['task_test_identifier', 'the task_test_identifier field'],
+    ['disk_test_reporting', 'disk_test_reporting is enabled'],
+    ['work_live_configuration', 'work_live_configuration is set'],
+    ['risk_live_management', 'risk_live_management framework'],
+  ];
+  for (const [label, sentence] of prose) {
+    const { text } = redactForEgress(sentence);
+    ok(`neighbour rows do not fire inside '${label}'`, text === sentence, text);
+  }
+
+  // ...and every row still catches its own key, at the boundaries that matter.
+  const keys = [
+    ['sk_live', ['sk_', 'live_', 'abcdefgh12345678'].join('')],
+    ['sk_test', ['sk_', 'test_', 'abcdefgh12345678'].join('')],
+    ['rk_live', ['rk_', 'live_', 'abcdefgh12345678'].join('')],
+    ['whsec', ['whsec', '_abcdefgh12345678'].join('')],
+    ['xoxb', ['xoxb', '-1234567890-abcdefghijkl'].join('')],
+  ];
+  for (const [name, key] of keys) {
+    for (const [where, input] of [
+      ['after =', `k=${key}`],
+      ['at start', `${key} trailer`],
+      ['in JSON', JSON.stringify({ k: key })],
+    ]) {
+      const { text } = redactForEgress(input);
+      ok(`neighbour row still catches its key: ${name} ${where}`, text.includes('<REDACTED-KEY>'), text);
+    }
+  }
+}
+
 // --- reporting: hits are surfaced, not swallowed ---
 {
   const { hits } = redactForEgress('/home/' + USER + '/a and sk-zzzzzzzzzzzzzzzz');
