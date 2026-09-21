@@ -28,11 +28,19 @@
  * throws SpotlightImageError; the caller maps any failure to `imageUrl = null`. A
  * dropped Spotlight is worse than an imageless one (blueprint ban #4).
  */
-import { promises as dns } from 'node:dns';
 import sharp from 'sharp';
 import logger from '../utils/logger.mjs';
-import { isPrivateOrLocalAddress } from './applaudAudioFetcher.mjs';
 import { sniffFileType } from './photoStorageService.mjs';
+import {
+  SpotlightImageError,
+  DNS_LOOKUP_TIMEOUT_MS,
+  validateSpotlightImageUrl,
+} from './spotlightImageUrlPolicy.mjs';
+
+// RE-EXPORTED, so every existing importer keeps working after the extraction. The split was forced
+// by `06-bans.md` #50 ("no source file reaches 300 lines"), not by design: URL admission lives in
+// `spotlightImageUrlPolicy.mjs`, transport and decode live here.
+export { SpotlightImageError, DNS_LOOKUP_TIMEOUT_MS, validateSpotlightImageUrl };
 
 /** 5 MiB compressed input — the ceiling on what we will read off the wire. */
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -45,64 +53,6 @@ export const MAX_STORED_EDGE = 1600;
 
 /** Types `sniffFileType` may return that are acceptable as a Spotlight image. */
 const RASTER_EXT = new Set(['jpg', 'png', 'gif', 'webp', 'heic']);
-
-export class SpotlightImageError extends Error {
-  constructor(code, message) {
-    super(message || code);
-    this.name = 'SpotlightImageError';
-    this.code = code;
-  }
-}
-
-/**
- * Validate a curator-supplied image URL.
- * HTTPS only; no embedded credentials; every resolved address must be publicly routable.
- * @returns {Promise<URL>} the parsed URL
- * @throws {SpotlightImageError}
- */
-export async function validateSpotlightImageUrl(rawUrl) {
-  let incoming;
-  try {
-    incoming = new URL(String(rawUrl));
-  } catch {
-    throw new SpotlightImageError('IMAGE_URL_MALFORMED', 'not a parseable URL');
-  }
-
-  // HTTPS only. `http:` was previously accepted, which allowed plaintext internal probes.
-  if (incoming.protocol !== 'https:') {
-    throw new SpotlightImageError('IMAGE_URL_NOT_ALLOWED', `protocol must be https, got ${incoming.protocol}`);
-  }
-
-  // `https://allowed@evil.com` — the userinfo section is not part of the host, so a
-  // check that only inspects hostname would read this as evil.com with credentials.
-  if (incoming.username || incoming.password) {
-    throw new SpotlightImageError('IMAGE_URL_NOT_ALLOWED', 'credentials in URL not allowed');
-  }
-
-  // Resolve first, then reject. A name that resolves to 127.0.0.1 / 169.254.169.254 / 10.x
-  // is refused before any socket is opened, which closes direct internal targeting.
-  //
-  // NOTE — this is a check-time validation only, NOT a complete DNS-rebinding defence:
-  // the fetch() below re-resolves the hostname, so a name that flips to a private address
-  // between this lookup and the fetch would still be reached (TOCTOU). That residual gap is
-  // accepted because every caller of this path is gated behind a valid HMAC signature.
-  let addrs;
-  try {
-    addrs = await dns.lookup(incoming.hostname, { all: true });
-  } catch (err) {
-    throw new SpotlightImageError('IMAGE_URL_DNS_FAILED', `DNS lookup failed: ${err.message}`);
-  }
-  if (!Array.isArray(addrs) || addrs.length === 0) {
-    throw new SpotlightImageError('IMAGE_URL_DNS_FAILED', 'DNS lookup returned no addresses');
-  }
-  for (const { address } of addrs) {
-    if (isPrivateOrLocalAddress(address)) {
-      throw new SpotlightImageError('IMAGE_URL_NOT_ALLOWED', `host resolves to private/local address ${address}`);
-    }
-  }
-
-  return incoming;
-}
 
 /**
  * Fetch an image with `redirect: 'error'` and a streamed byte cap.
@@ -144,6 +94,10 @@ export async function fetchSpotlightImage(rawUrl, opts = {}) {
   }
 
   if (!response.ok) {
+    // RELEASE THE SOCKET. Returning here without draining or cancelling leaves the response body
+    // open until GC, so an upstream that answers 4xx/5xx with a large body holds one connection
+    // per request for an unbounded time (hostile review D8 / R2-03).
+    try { await response.body?.cancel('upstream not ok'); } catch { /* release is best-effort */ }
     return { ok: false, code: 'IMAGE_FETCH_FAILED', message: `upstream returned ${response.status}` };
   }
 
@@ -151,6 +105,9 @@ export async function fetchSpotlightImage(rawUrl, opts = {}) {
   // declared Content-Length is a claim, not a fact.
   const declared = Number(response.headers.get('content-length'));
   if (Number.isFinite(declared) && declared > maxBytes) {
+    // Same release as above: an over-cap declaration is a reason to stop reading, and stopping
+    // means cancelling the stream rather than walking away from an open one.
+    try { await response.body?.cancel('declared length over cap'); } catch { /* release is best-effort */ }
     return { ok: false, code: 'IMAGE_TOO_LARGE', message: `Content-Length ${declared} > cap ${maxBytes}` };
   }
 

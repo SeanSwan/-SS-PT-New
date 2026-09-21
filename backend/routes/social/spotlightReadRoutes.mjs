@@ -10,6 +10,9 @@ import logger from '../../utils/logger.mjs';
  * Editorial, not social: this endpoint returns headline/dek/attribution only. There is no
  * like, comment, or share-count field, and none may be added (blueprint ban #2).
  *
+ * `revision` is projected as of 2026-09-20 (hostile review D9 / R2-04) and is not an engagement
+ * metric — see the note on the attribute itself. Ban #2 is about social reaction counts.
+ *
  * Flag-gated: SPOTLIGHT_ENABLED=false returns an empty list rather than an error, so the
  * rail simply disappears and no client has to handle a failure state.
  */
@@ -41,7 +44,18 @@ router.get('/', protect, async (req, res) => {
         'sourceName',
         'sourceUrl',
         'curatorNote',
-        'publishedAt'
+        'publishedAt',
+        // `revision` ADDED 2026-09-20 (hostile review D9 / R2-04). R2's measurement request is
+        // "has this Spotlight changed since I last saw it", and the read path could not answer it:
+        // the projection omitted the one field that carries that fact, so a client could only
+        // compare content and guess. This is NOT a ban #2 violation — ban #2 forbids like /
+        // comment / share-count fields, and a monotonic version counter is not an engagement
+        // metric. It is a plain integer already stored on the row (`SwanSpotlight.mjs`), so this
+        // is additive to the response and changes no existing consumer.
+        //
+        // The client-side DTO that consumes it belongs to R2's own slice; this is the backend
+        // precondition, landed early so R2 is not blocked on it.
+        'revision'
       ],
       raw: true
     });
