@@ -427,3 +427,78 @@ evidence collection boundary; do not accept helper-only green results."*
 
 That is consistent with this lane's own recorded next-intent: a **non-redundant change-set consult**,
 not a re-run of the master review.
+
+---
+
+# PART D — the fault-injection matrix, MEASURED (2026-09-21)
+
+`09-tests.md:271-282` specifies seven fault-injection cases (MT-01…MT-07) and requires that
+*"import/setup failures do not satisfy MT-01–MT-06."* Until now the matrices were **asserted** to
+have been run; they had in fact **never completed** in this environment. They now have.
+
+## D.1 What was blocking them, and the lever
+
+Both runners died inside the **safe-delete shim**, in two sequential modes:
+
+| Mode | Symptom | Lever that clears it |
+|---|---|---|
+| 1 — bulk guard | `SAFE_DELETE_BULK_GUARD_ERROR failed to read state: EPERM … \BIGOTS~1\…\state.json` | unset `CODEBUDDY_SAFE_DELETE_BULK_STATE_DIR` + `CODEBUDDY_TOOL_CALL_ID` |
+| 2 — trash timeout | `[safe-delete] 操作失败: spawnSync …genie-trash… ETIMEDOUT` | `CODEBUDDY_SAFE_DELETE_ENABLED=0` |
+
+The guard is **gated on two environment variables** the agent harness injects
+(`node-safe-delete-shim.cjs:192-197` returns early without both). On Windows its state dir is passed
+as the **8.3 short path** `BIGOTS~1`, which the guard helper cannot open — so it fails *closed* and
+the caller's delete never runs. Mode 2 is a throughput failure: trashing thousands of small fixture
+files through a spawned native binary exceeds the shim's `spawnSync` timeout.
+
+**Correction to an earlier note.** A prior session recorded that `CODEBUDDY_SAFE_DELETE_ENABLED=0`
+*"does not disable the guard."* It **does** disable the shim (`:22` `!== '0'`, `:24` early `return`).
+Both statements describe two different switches. The earlier note is wrong as written.
+
+## D.2 Results — both halves, 4/4 each
+
+**Preflight half** (`run-mt.mjs`, lever = guard env pair; 21m 1s):
+
+| Case | Expectation | Fired | Verdict |
+|---|---|---|---|
+| MT-01 | nonzero, **source** mismatch | `00-README.md` sha256 mismatch, `git status` CLEAN so the byte check was reachable | **PASS** |
+| MT-02 | nonzero, canonical path mismatch | `+ 'BLUEPRINT-coach-ai-harness-20260920' - 'docs/…/BLUEPRINT-coach-cc-ai-harness-2026-09-20'` | **PASS** |
+| MT-03 | nonzero, **preservation** hash mismatch | `console-verify.mjs` `14255 → 7127` bytes in a disposable copy | **PASS** |
+| MT-07 | **zero exit** (control) | unmutated fixture, exit 0 | **PASS** |
+
+**Admission half** (`run-mt-admission.mjs`, lever = shim disabled; **19s**):
+
+| Case | Expectation | Fired | Verdict |
+|---|---|---|---|
+| CTRL | zero exit (valid fixture) | passed | **PASS** |
+| MT-04 | nonzero, missing required ID | `Missing required test: preflight: preservation` | **PASS** |
+| MT-05 | nonzero, ordering mismatch | seats read `['glm-5.3','gpt-6-astra']` vs expected order | **PASS** |
+| MT-06 | nonzero, revision mismatch | `admission.snapshotSha256 = ffff…` vs the real digest | **PASS** |
+
+**Each case failed for the reason it exists to test** — the assertion named in `09-tests.md:277-281`
+is the assertion that fired, not an import error. MT-01's precondition line records
+`git status after mutation: CLEAN (byte check reachable)`, which is the isolation the case needs.
+
+## D.3 This materially answers Astra's round-3 target
+
+Round 3 (`C.6`) named one target: *"Keep all hashes valid, then introduce contradictory
+test/review/admission evidence and duplicate preservation roots. Require rejection for the named
+contradiction while the unmutated control passes."*
+
+MT-04 (contradictory **test** evidence), MT-05 (contradictory **review** evidence), MT-06
+(contradictory **admission** evidence), with CTRL as the unmutated control — **that is the named
+matrix, and it is now measured rather than asserted.**
+
+## D.4 Honest limits
+
+- **One deviation, declared by the runner itself:** the admission half cannot write fixtures into
+  the live `Z:/HostileReviews` archive without polluting the index it exists to provide. It runs a
+  **copy** of the test with exactly **one** string changed (the archive root), asserts that exactly
+  one occurrence was replaced, and never writes to the shipped file. The deviation is recorded here
+  and in the receipt.
+- The `BIGOTS~1` root cause is **observed, not isolated** — no reading of the state dir succeeded by
+  any means. "8.3 short path is the cause" is the best-supported reading, not a proven one.
+- MT-01…MT-06 prove the **checks reject** the injected faults. They do not prove the checks are
+  complete, nor that a real lane's evidence would be honestly recorded.
+- `run-mt.mjs` deletes only disposable fixture copies; the real rescue tree is never mutated
+  (`run-mt.mjs` docstring, MT-03 isolation note).
