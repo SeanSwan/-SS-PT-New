@@ -32,10 +32,11 @@ A **Live Coordination Ledger (LCL)** of plain local files in `.ai-workflow/coord
 ## 3. Files (`.ai-workflow/coordination/`)
 
 **Do not enumerate lane files by name.** Lane files are named per **session**, not per agent:
-`<agent>--<worktree-slug>[-s<session-hash>].lane.md` — e.g. `claude.lane.md`,
-`opencode.lane.md`, `vs-claude--main-s39649e0d.lane.md`. Measured 2026-09-21: the ledger held
+`<agent>--<worktree-slug>[-s<session-hash>].lane.md`. Measured 2026-09-21: the ledger held
 **87 lane files across 5+ agent names**, so any hardcoded list is stale the moment a second
-session of the same agent opens. Discover them with the command, never with a list:
+session of the same agent opens. Concrete filenames anywhere in this document are illustrations
+of the naming scheme, never the way to find seats. Discover them with the command, never with a
+list:
 
 - `node scripts/lane.mjs digest` — the **capped** startup summary (fast, for orientation).
 - `node scripts/lane-at-root.mjs orientation` — the **complete, uncapped** view. This is the one
