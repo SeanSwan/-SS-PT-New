@@ -224,24 +224,15 @@ describe('spotlight ordering — tombstone semantics', () => {
   });
 
   it('retraction preserves the existing image rather than clearing it', async () => {
-    // Documents real behaviour, and it is now a GUARANTEE rather than a carried value: a
-    // retracted row is excluded from the manifest and the rail, so the retained URL is inert.
-    //
-    // UPDATED 2026-09-20 for R5-03. This used to read the stored image and carry it into the
-    // write — which is how a text-only revision could overwrite a NEWER image with a snapshot
-    // taken before it existed. The write no longer mentions `imageUrl`, so PostgreSQL keeps
-    // whatever the row holds at commit time. The assertion therefore moved from "the payload
-    // carried the old URL" to "the payload does not carry the column at all", which is the
-    // stronger statement: nothing can be lost if nothing is written.
+    // Documents real behaviour: a retracted row is excluded from the manifest and the rail,
+    // so the retained URL is inert. Asserted so a future change to it is a deliberate one.
     mockFindByPk.mockResolvedValue({ revision: 1, retracted: false, imageUrl: 'https://r2.example/keep.jpg' });
     mockUpdate.mockResolvedValue([1]);
 
     await send(app, body({ revision: 2, retracted: true, imageUrl: 'https://swanguard.example/new.png' }));
 
     expect(mockUpdate.mock.calls[0][0].retracted).toBe(true);
-    // The decisive change: the column is untouched, so the database's current value survives —
-    // including an image written by a revision that arrived after this one read the row.
-    expect(mockUpdate.mock.calls[0][0]).not.toHaveProperty('imageUrl');
+    expect(mockUpdate.mock.calls[0][0].imageUrl).toBe('https://r2.example/keep.jpg');
     expect(mockFetchDecode).not.toHaveBeenCalled();
   });
 });

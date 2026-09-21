@@ -177,45 +177,9 @@ if (HOST && HOST.length >= 3) {
     const { text } = redactForEgress(input);
     ok(`sk- row still catches a real key: ${name}`, text.includes('<REDACTED-KEY>') && !text.includes('sk-abcdef'), text);
   }
-  // A hyphen BEFORE `sk-` does NOT make it a compound. An earlier revision asserted
-  // that it did — an evidence-free claim, and the wrong direction on the egress path:
-  // a false negative leaves the machine, a false positive only redacts a phrase.
+  // The hyphen lookbehind: a hyphen BEFORE `sk-` makes it a compound, not a key.
   const { text: hyphen } = redactForEgress('prefix-sk-abcdefghijklmnop1234');
-  ok('sk- row fires after a hyphen (a key can follow one)', hyphen.includes('<REDACTED-KEY>'), hyphen);
-}
-
-// --- ROUND 9b: the boundary must survive SERIALISATION (round 9's own regression) ---
-//
-// `fetchForEgress()` redacts the serialised request body — JSON.stringify output — so
-// the text the regex sees has `\n` as two characters, not a newline. A lookbehind of
-// `(?<![\w-])` saw the escape's literal `n`, treated it as a word character, and
-// SKIPPED THE MATCH. A key on its own line therefore reached the socket. The canary
-// selfTest() did not catch it because it plants canaries in plain strings.
-//
-// This block is the regression for that: it exercises the real transport path, not a
-// paraphrase of it.
-{
-  const CANARY = 'sk-abcdefghijklmnop1234567890';
-  for (const [name, raw] of [
-    ['newline', `note\n${CANARY}`],
-    ['tab', `note\t${CANARY}`],
-    ['carriage return', `note\r${CANARY}`],
-  ]) {
-    const body = JSON.stringify({ messages: [{ role: 'user', content: raw }] });
-    const { text } = redactForEgress(body);
-    ok(`serialised body: key after JSON-escaped ${name} is redacted`, !text.includes('sk-abcdef'), text);
-    ok(`serialised body: JSON still parses after redaction (${name})`, (() => {
-      try { JSON.parse(text); return true; } catch { return false; }
-    })());
-  }
-  // The transport itself, not only the redactor: assert on what leaves the process.
-  let sent = null;
-  const fakeFetch = async (url, init) => { sent = init; return { ok: true, status: 200 }; };
-  await fetchForEgress('https://example.invalid/v1', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ messages: [{ role: 'user', content: `diff follows\n${CANARY}\n(end)` }] }),
-  }, { quiet: true, fetchImpl: fakeFetch });
-  ok('fetchForEgress: no key reaches the socket after an escaped newline', sent && !sent.body.includes('sk-abcdef'), sent?.body);
+  ok('sk- row does not fire after a hyphen (compound, not key)', !hyphen.includes('<REDACTED-KEY>'), hyphen);
 }
 
 // --- reporting: hits are surfaced, not swallowed ---

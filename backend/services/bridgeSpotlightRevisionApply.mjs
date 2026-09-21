@@ -50,53 +50,6 @@ import { Op } from 'sequelize';
 const MAX_APPLY_ATTEMPTS = 3;
 
 /**
- * Split the caller's values into the UPDATE payload and the INSERT payload.
- *
- * WHY (hostile review R5-03, MEDIUM). The caller used to preserve the stored image by carrying the
- * value it had read BEFORE the write into `values`, where the database then wrote it. That is not
- * preservation, it is a lost update: rev 1 holds image A; a text-only rev 3 reads A and pauses on
- * its re-host; rev 2 writes image B; rev 3's `revision < 3` predicate PASSES and rewrites A over B.
- * A value that must survive to commit time cannot be decided by a read taken before the write.
- *
- * So the caller signals "leave `imageUrl` alone" with an explicit sentinel, and the key is dropped
- * from the UPDATE, which makes the database keep whatever it holds at the moment the row is locked.
- *
- * THE TEST IS SENTINEL IDENTITY, NOT KEY PRESENCE. An earlier version of this function treated
- * "has an `imageUrl` key" as "wants the column omitted", which silently discarded the deliberate
- * `imageUrl: null` the caller sets for an image-carrying revision. Two different intentions —
- * "do not write the column" and "write it as NULL" — cannot be told apart by presence, so they are
- * told apart by value.
- *
- * It is dropped from the UPDATE ONLY. On INSERT there is no prior row to preserve, so the column
- * must always be present: omitting it leaves the attribute `undefined`, which discards the column
- * default and is how this was caught — an existing assertion that the INSERT payload for an
- * image-carrying revision carries `imageUrl: null`.
- *
- * @param {object} values the caller's normalized values, possibly carrying the sentinel
- * @returns {{forUpdate: object, forInsert: object}}
- */
-const splitImagePayload = (values) => {
-  if (!values || typeof values !== 'object') return { forUpdate: values, forInsert: values };
-
-  const hasImageKey = Object.prototype.hasOwnProperty.call(values, 'imageUrl');
-  const image = values.imageUrl;
-  const leaveItAlone = typeof image === 'symbol';
-
-  if (!hasImageKey) {
-    // Caller did not mention the column. The UPDATE leaves it alone; the INSERT must still
-    // supply it, and `null` is the honest representation of "no image given".
-    return { forUpdate: values, forInsert: { ...values, imageUrl: null } };
-  }
-  if (leaveItAlone) {
-    // eslint-disable-next-line no-unused-vars -- destructured only to omit the key
-    const { imageUrl, ...forUpdate } = values;
-    return { forUpdate, forInsert: { ...forUpdate, imageUrl: null } };
-  }
-  // An explicit value — including an explicit `null` — is written by BOTH statements.
-  return { forUpdate: values, forInsert: values };
-};
-
-/**
  * Apply `values` only if `revision` is strictly newer than the stored revision.
  *
  * @returns {Promise<{applied: boolean, created?: boolean, storedRevision?: number}>}
@@ -106,12 +59,7 @@ const splitImagePayload = (values) => {
  *   revision that was simply not persisted (see the bound below).
  */
 export const applyBridgeSpotlightRevision = async ({ SwanSpotlight, itemId, revision, values }) => {
-  // Computed ONCE, before the loop: whether `imageUrl` is written is a property of the request,
-  // not of the attempt. The UPDATE drops it so the database keeps the value it holds when the row
-  // is locked; the INSERT must carry it, because there is no prior row to preserve (R5-03).
-  const { forUpdate, forInsert } = splitImagePayload(values);
-
-  const conditionalUpdate = () => SwanSpotlight.update(forUpdate, {
+  const conditionalUpdate = () => SwanSpotlight.update(values, {
     where: { itemId, revision: { [Op.lt]: revision } }
   });
 
@@ -137,7 +85,7 @@ export const applyBridgeSpotlightRevision = async ({ SwanSpotlight, itemId, revi
     }
 
     try {
-      await SwanSpotlight.create({ ...forInsert, itemId, revision });
+      await SwanSpotlight.create({ ...values, itemId, revision });
       return { applied: true, created: true };
     } catch (error) {
       if (error?.name !== 'SequelizeUniqueConstraintError') throw error;

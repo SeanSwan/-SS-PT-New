@@ -405,8 +405,8 @@
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/scripts/hooks/lane-session-start.mjs\"",
-            "timeout": 60
+            "command": "node scripts/hooks/lane-session-start.mjs",
+            "timeout": 15
           },
           {
             "type": "command",

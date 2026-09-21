@@ -28,13 +28,30 @@
  * @module creator-brains-console/lib/http
  */
 
+import { readFileSync, existsSync } from 'node:fs';
+import { join, dirname, extname, resolve, normalize, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ApiError, CODE, LIMITS } from './errors.mjs';
 
-// The static-serving cluster (web root, MIME table, resolver, readers) moved to
-// `static-serve.mjs` when this file crossed the 300-line cap adding real-path
-// containment to `resolveStatic`. Re-exported so no import site changes. Its imports
-// went with it — the leftover `node:fs`/`node:path` names were import-only here.
-export { WEB_DIST, resolveStatic, contentTypeFor, readStatic } from './static-serve.mjs';
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+/** The web build's output dir. Absent until slice S1 — handled, not assumed. */
+export const WEB_DIST = join(HERE, '..', 'web', 'dist');
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.woff2': 'font/woff2',
+  '.ico': 'image/x-icon',
+  '.map': 'application/json; charset=utf-8',
+};
 
 /** Map an ApiError's code to HTTP status (blueprint 05 §2). */
 export function statusFor(code) {
@@ -238,4 +255,36 @@ export function parseRequestUrl(rawUrl, base = `http://127.0.0.1`) {
   } catch {
     throw new ApiError(CODE.VALIDATION, `unparseable request target: ${String(rawUrl).slice(0, 120)}`);
   }
+}
+
+/**
+ * Resolve a URL path to a file inside WEB_DIST, or null.
+ *
+ * Containment is checked on the RESOLVED absolute path, not on the raw string —
+ * string-prefix checks on the request URL are defeated by encodings and by
+ * Windows separator handling. Anything that escapes resolves to null, so the
+ * caller falls through to the status page rather than the filesystem.
+ */
+export function resolveStatic(urlPath, dist = WEB_DIST) {
+  let decoded;
+  try {
+    decoded = decodeURIComponent(urlPath.split('?')[0]);
+  } catch {
+    return null; // malformed percent-encoding
+  }
+  const clean = normalize(decoded).replace(/^([.][.][/\\])+/, '');
+  const base = resolve(dist);
+  const target = resolve(join(base, clean === '/' || clean === '\\' ? 'index.html' : clean));
+
+  if (target !== base && !target.startsWith(base + sep)) return null;
+  if (!existsSync(target)) return null;
+  return target;
+}
+
+export function contentTypeFor(file) {
+  return MIME[extname(file)] || 'application/octet-stream';
+}
+
+export function readStatic(file) {
+  return readFileSync(file);
 }

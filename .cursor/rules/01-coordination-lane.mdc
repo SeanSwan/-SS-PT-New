@@ -15,58 +15,39 @@ the others instantly with zero git churn.
 **Before your first edit, run:**
 
 ```bash
-node scripts/lane-at-root.mjs orientation
+node scripts/lane.mjs digest
 ```
 
-That is the complete, uncapped discovery command: it lists **every** lane and
-**every** parsed claim, and its exit code says whether the answer can be trusted
-as clearance — `0` complete, `2` valid but INCOMPLETE, `1` unproducible. If it is
-not `0`, a target you cannot see may be claimed; that is not the same as free.
-Then read `.ai-workflow/coordination/review-queue.md` for open review requests.
-
-`node scripts/lane.mjs digest` is the cheap **startup summary** — use it to
-orient. It is deliberately **capped**: lock paths per seat are capped at 5 and
-live lanes at 6, and its `me:` line prints `agent@slug`, **not a filepath**. An
-agent asking "is my file locked?" through `digest` can be shown a truncated list
-and wrongly conclude the file is free. **`digest` is not clearance.**
+It prints three things: **you** (your own resolved lane file), **every seat
+holding a lock right now**, and the stale count. Then read
+`.ai-workflow/coordination/review-queue.md` for open review requests.
 
 **Do not enumerate lane files by name.** Seats are named per-session —
-`<agent>--<worktree-slug>[-s<session-hash>].lane.md` — so a hardcoded list
-silently misses live seats. Measured miss, 2026-09-20: the documented list named
-two seats; the seat actually holding a lock on
-`backend/routes/bridge/bridgeIngestRoutes.mjs` was a third name the list never
-mentioned. An agent following the docs verbatim would have read both named files,
-seen no conflict, and edited a locked file. Concrete filenames here illustrate the
-scheme — they are not the way to find seats. Discover them with the command.
+`claude.lane.md`, `workbuddy.lane.md`, `vs-claude--main-<hash>.lane.md`, … — so a
+hardcoded list silently misses live seats. Measured miss, 2026-09-20: the
+documented list named `claude.lane.md` + `codex.lane.md`; the seat actually
+holding a lock on `backend/routes/bridge/bridgeIngestRoutes.mjs` was
+`workbuddy.lane.md`, a third name the list never mentioned. An agent following the
+docs verbatim would have read both named files, seen no conflict, and edited a
+locked file.
 
 **For the whole session:**
 
-- **Read-before-edit** — run `orientation` before editing any file. If your target
-  is under any seat's `🔒 EDITING NOW`, do not edit it. Pick another file, append a
+- **Read-before-edit** — re-run the digest before editing any file. If your target
+  is under a seat's `🔒 EDITING NOW`, do not edit it. Pick another file, append a
   request to `review-queue.md`, or ask Sean.
-- **Claim/release** — overwrite **your own** lane file. Its exact path comes from
-  `node scripts/lane.mjs whoami` or the `self.laneFile` field of complete
-  discovery — **never** reconstructed from a display name. Write status, the exact
-  files under `🔒 EDITING NOW`, and an ISO `Updated:` stamp when you start a slice;
-  clear it when done. **Never write another seat's lane file.**
+- **Claim/release** — overwrite **your own** lane file (the path `digest` prints on
+  its `me:` line) with status, exact files under `🔒 EDITING NOW`, and an ISO
+  `Updated:` stamp when you start a slice; clear it when done. **Never write
+  another seat's lane file.**
 - **Commit safety** — never `git add -A` while another seat holds locks; stage
   explicit paths.
-- **Staleness — a warning, never a release.** A lane stamped **>30 min** ago and
-  still `in-progress` has **suspect** claims: say so and flag it to Sean. Nothing
-  releases a stale claim, and **do not seize the files** — a stale claim is still a
-  claim. Only Sean knows whether that session died or is merely mid-think.
-
-> **This is cooperative collision avoidance, not mutual exclusion.** Claiming
-> broadcasts; it does not lock. `claim()` writes its own file and reads no other
-> lane, so two seats can both inspect an apparently clear target before either
-> claim becomes visible. Re-check discovery after claiming and before editing. The
-> race window is real and this protocol does not close it.
+- **Staleness** — a lane stamped >30 min ago and still `in-progress` may be
+  abandoned. Flag it to Sean; never silently seize the files.
 
 **Enforcement honesty (measured 2026-09-20).** For Cursor, nothing here is a hook —
 this rule fires because an agent reads it. The deterministic layer exists but is
 wired per-harness: `scripts/hooks/lane-session-start.mjs` runs at session start
 from `.claude/settings.json` (Claude Code) and `.codebuddy/settings.json`
-(WorkBuddy). **No harness hook has ever been observed firing on this machine**, so
-treat automatic orientation as unproven on every surface and run `orientation`
-yourself. Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`,
-Rule 67 in `CLAUDE.md` / `AGENTS.md` / `CODEBUDDY.md` / `GEMINI.md`.
+(WorkBuddy). Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`,
+Rule 67 in `CLAUDE.md` / `AGENTS.md` / `CODEBUDDY.md`.
