@@ -11,16 +11,34 @@
  * ORDER, how a tombstone resists a late replay, and what breaks if the bridge loses its
  * private body parser.
  *
+ * ── CHANGED 2026-09-20 for R1's D1 remediation (hostile review F06) ──────────────────
+ * The route used to read the row, compare `existing.revision >= revision`, await an image
+ * re-host, and then call an INSTANCE `existing.update(values)`. The guard ran before the
+ * await and the write was unconditional, so a delayed older revision could regress a newer
+ * one. It now calls the static
+ * `SwanSpotlight.update(values, { where: { itemId, revision: { [Op.lt]: revision } } })`,
+ * so the DATABASE evaluates the ordering predicate inside the write.
+ *
+ * Consequence for this file: `mockUpdate` replaces the per-test instance `update` spy and
+ * resolves to Sequelize's `[affectedCount]` — `[0]` means the predicate rejected the write.
+ * The assertions therefore check the WHERE clause, which is the mechanism, rather than
+ * checking that a spy was not called.
+ *
  * The model and both network-touching services are mocked. Nothing here reaches DNS, R2,
- * or a database.
+ * or a database — so this file can prove the predicate is CONSTRUCTED and the branch is
+ * TAKEN. It cannot prove PostgreSQL honours it under real concurrency; that needs a live
+ * database and is recorded as `[UNKNOWN]`, not asserted.
  */
 import express from 'express';
 import request from 'supertest';
 import { Op } from 'sequelize';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockFindByPk, mockCreate, mockFindAll, mockUploadPhoto, mockFetchDecode } = vi.hoisted(() => ({
+const {
+  mockFindByPk, mockUpdate, mockCreate, mockFindAll, mockUploadPhoto, mockFetchDecode,
+} = vi.hoisted(() => ({
   mockFindByPk: vi.fn(),
+  mockUpdate: vi.fn(),
   mockCreate: vi.fn(),
   mockFindAll: vi.fn(),
   mockUploadPhoto: vi.fn(),
@@ -28,13 +46,14 @@ const { mockFindByPk, mockCreate, mockFindAll, mockUploadPhoto, mockFetchDecode 
 }));
 
 vi.mock('../models/social/SwanSpotlight.mjs', () => ({
-  default: { findByPk: mockFindByPk, create: mockCreate, findAll: mockFindAll },
+  default: { findByPk: mockFindByPk, update: mockUpdate, create: mockCreate, findAll: mockFindAll },
 }));
 
 // NOTE: the route imports `uploadPhoto` from photoStorageService.mjs. S3 mocks
 // r2StorageService.mjs, which does not export it — so its image assertions currently pass
 // because the REAL upload fails on missing credentials, not because the mock fired. These
-// are the specifiers the route actually resolves.
+// are the specifiers the route actually resolves. (Since 2026-09-20 the call lives in
+// services/bridgeSpotlightImageRehost.mjs, which resolves the same two specifiers.)
 vi.mock('../services/photoStorageService.mjs', () => ({ uploadPhoto: mockUploadPhoto }));
 vi.mock('../services/spotlightImageFetch.mjs', () => ({
   fetchAndDecodeSpotlightImage: mockFetchDecode,
@@ -84,10 +103,15 @@ const getManifest = (opts = {}) => {
     .set('X-Swan-Timestamp', timestamp);
 };
 
+/** The predicate the database is asked to evaluate — the whole point of the D1 fix. */
+const predicateOf = (call) => call[1]?.where?.revision?.[Op.lt];
+
 beforeEach(() => {
   process.env.SPOTLIGHT_ENABLED = 'true';
   process.env.SWAN_BRIDGE_SECRET_V1 = SECRET;
   mockFindByPk.mockReset().mockResolvedValue(null);
+  // Default: the conditional UPDATE matches nothing, so the create path runs.
+  mockUpdate.mockReset().mockResolvedValue([0]);
   mockCreate.mockReset().mockResolvedValue({});
   mockFindAll.mockReset().mockResolvedValue([]);
   mockUploadPhoto.mockReset();
@@ -101,83 +125,148 @@ afterEach(() => {
 
 describe('spotlight ordering — a superseded revision changes nothing', () => {
   it('does not re-host an image that arrives on a superseded revision', async () => {
-    const update = vi.fn();
-    mockFindByPk.mockResolvedValue({ revision: 5, imageUrl: null, update });
+    // A row already at revision 5: the conditional UPDATE matches nothing and the re-read
+    // reports the revision that actually won.
+    mockFindByPk.mockResolvedValue({ revision: 5, imageUrl: null });
+    mockUpdate.mockResolvedValue([0]);
 
     const res = await send(app, body({ revision: 4, imageUrl: 'https://swanguard.example/late.png' }));
 
     expect(res.status).toBe(200);
     expect(res.body.noop).toBe(true);
-    // The decisive assertion: the early return happens BEFORE rehostImage(), so the
-    // network is never touched for an item that is already behind.
+    expect(res.body.revision).toBe(5);
+    // The decisive assertion, same intent and now stronger than the old instance-spy version:
+    // the write was CONDITIONED on `revision < 4`, and because it lost, no network work
+    // happened for an item that is already behind.
+    expect(predicateOf(mockUpdate.mock.calls[0])).toBe(4);
     expect(mockFetchDecode).not.toHaveBeenCalled();
     expect(mockUploadPhoto).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
-  });
-
-  it('leaves the stored image untouched when a superseded revision carries a different one', async () => {
-    const update = vi.fn();
-    mockFindByPk.mockResolvedValue({ revision: 9, imageUrl: 'https://r2.example/original.jpg', update });
-
-    await send(app, body({ revision: 8, imageUrl: 'https://swanguard.example/replacement.png' }));
-
-    expect(update).not.toHaveBeenCalled();
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
-  it('treats a stale lower revision as a no-op once the higher one has landed', async () => {
-    // SCOPE NARROWED after hostile review F02 (2026-09-20): this was named "...two racing
-    // revisions...", but it sends ONE request against a store that already holds the winner.
-    // That is sequential stale delivery, not a concurrent interleaving — the read-then-write
-    // window in the route is not exercised, and closing it needs a transaction or an atomic
-    // conditional apply. Reported as an open finding, not claimed here.
-    const update = vi.fn();
-    mockFindByPk.mockResolvedValue({ revision: 7, imageUrl: null, update });
+  it('leaves the stored image untouched when a superseded revision carries a different one', async () => {
+    mockFindByPk.mockResolvedValue({ revision: 9, imageUrl: 'https://r2.example/original.jpg' });
+    mockUpdate.mockResolvedValue([0]);
 
-    const res = await send(app, body({ revision: 6 }));
+    await send(app, body({ revision: 8, imageUrl: 'https://swanguard.example/replacement.png' }));
 
+    // Exactly one write was ISSUED, and it was the conditional one — never an unconditional
+    // overwrite of a newer row.
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(predicateOf(mockUpdate.mock.calls[0])).toBe(8);
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockFetchDecode).not.toHaveBeenCalled();
+  });
+
+  it('does not apply — or re-host for — a revision that loses the race AFTER the read', async () => {
+    // THIS is the interleaving round 1's F02 said the old suite never injected. The read says
+    // revision 1 is stored, so revision 2 looks perfectly acceptable and the OLD code would
+    // have written it. Between that read and the write a concurrent revision 5 lands. Because
+    // the predicate is evaluated inside the UPDATE, the stale write matches nothing.
+    mockFindByPk
+      .mockResolvedValueOnce({ revision: 1, imageUrl: null })  // the route's preserve-read
+      .mockResolvedValueOnce({ revision: 5 });                 // the re-read, after losing
+    mockUpdate.mockResolvedValue([0]);
+
+    const res = await send(app, body({ revision: 2, imageUrl: 'https://swanguard.example/race.png' }));
+
+    expect(res.status).toBe(200);
     expect(res.body.noop).toBe(true);
-    expect(res.body.revision).toBe(7);
-    expect(update).not.toHaveBeenCalled();
+    expect(res.body.revision).toBe(5);
+    expect(predicateOf(mockUpdate.mock.calls[0])).toBe(2);
+    expect(mockFetchDecode).not.toHaveBeenCalled();
+    expect(mockUploadPhoto).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('re-reads the revision after a lost primary-key race instead of assuming it lost', async () => {
+    // Two first-time deliveries of the same itemId: our INSERT hits the PK, so the helper
+    // retries the conditional UPDATE. Assuming "insert failed ⇒ superseded" would silently
+    // drop a legitimately newer revision, so the retry has to happen.
+    const race = Object.assign(new Error('duplicate key value'), { name: 'SequelizeUniqueConstraintError' });
+    mockFindByPk.mockResolvedValue(null);
+    mockUpdate.mockResolvedValueOnce([0]).mockResolvedValueOnce([1]);
+    mockCreate.mockRejectedValue(race);
+
+    const res = await send(app, body({ revision: 2 }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.noop).toBeUndefined();
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
   });
 });
 
 describe('spotlight ordering — tombstone semantics', () => {
   it('a late replay of an older, non-retracted revision cannot resurrect a retracted item', async () => {
-    const update = vi.fn();
     // Item is retracted at revision 3; an old revision-2 delivery (retracted:false) is replayed.
-    mockFindByPk.mockResolvedValue({ revision: 3, retracted: true, imageUrl: null, update });
+    mockFindByPk.mockResolvedValue({ revision: 3, retracted: true, imageUrl: null });
+    mockUpdate.mockResolvedValue([0]);
 
     const res = await send(app, body({ revision: 2, retracted: false }));
 
     expect(res.status).toBe(200);
     expect(res.body.noop).toBe(true);
-    expect(update).not.toHaveBeenCalled();
+    expect(res.body.revision).toBe(3);
+    expect(predicateOf(mockUpdate.mock.calls[0])).toBe(2);
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it('a higher revision after retraction is applied and clears the tombstone', async () => {
-    const update = vi.fn().mockResolvedValue(undefined);
-    mockFindByPk.mockResolvedValue({ revision: 3, retracted: true, imageUrl: 'https://r2.example/a.jpg', update });
+    mockFindByPk.mockResolvedValue({ revision: 3, retracted: true, imageUrl: 'https://r2.example/a.jpg' });
+    mockUpdate.mockResolvedValue([1]);
 
     const res = await send(app, body({ revision: 4, retracted: false }));
 
     expect(res.status).toBe(200);
     expect(res.body.retracted).toBe(false);
-    expect(update).toHaveBeenCalledTimes(1);
-    expect(update.mock.calls[0][0].retracted).toBe(false);
+    expect(mockUpdate.mock.calls[0][0].retracted).toBe(false);
+    expect(predicateOf(mockUpdate.mock.calls[0])).toBe(4);
   });
 
   it('retraction preserves the existing image rather than clearing it', async () => {
     // Documents real behaviour: a retracted row is excluded from the manifest and the rail,
     // so the retained URL is inert. Asserted so a future change to it is a deliberate one.
-    const update = vi.fn().mockResolvedValue(undefined);
-    mockFindByPk.mockResolvedValue({ revision: 1, retracted: false, imageUrl: 'https://r2.example/keep.jpg', update });
+    mockFindByPk.mockResolvedValue({ revision: 1, retracted: false, imageUrl: 'https://r2.example/keep.jpg' });
+    mockUpdate.mockResolvedValue([1]);
 
     await send(app, body({ revision: 2, retracted: true, imageUrl: 'https://swanguard.example/new.png' }));
 
-    expect(update.mock.calls[0][0].retracted).toBe(true);
-    expect(update.mock.calls[0][0].imageUrl).toBe('https://r2.example/keep.jpg');
+    expect(mockUpdate.mock.calls[0][0].retracted).toBe(true);
+    expect(mockUpdate.mock.calls[0][0].imageUrl).toBe('https://r2.example/keep.jpg');
     expect(mockFetchDecode).not.toHaveBeenCalled();
+  });
+});
+
+describe('spotlight ordering — validation and persistence agree (D3)', () => {
+  it('persists the NORMALIZED itemId, not the raw body value', async () => {
+    // The old handler destructured the RAW `req.body.itemId` and stored that, so a padded or
+    // over-long value was persisted unnormalized even though validation had bounded it.
+    mockUpdate.mockResolvedValue([1]);
+    await send(app, body({ itemId: `  ${ITEM}  ` }));
+
+    expect(mockUpdate.mock.calls[0][0].itemId).toBe(ITEM);
+  });
+
+  it('rejects a revision beyond the INTEGER column range with 422, not 500', async () => {
+    // The column is DataTypes.INTEGER (SwanSpotlight.mjs:23). An unbounded revision used to
+    // pass validation and then fail at the column as a 500.
+    const res = await send(app, body({ revision: 4294967296 }));
+
+    expect(res.status).toBe(422);
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it('coerces `retracted` ONCE, so the image branch and the stored column agree', async () => {
+    // `retracted: "false"` is not a boolean. The old code truthiness-tested it in the image
+    // branch (so "false" skipped the image) but strict-compared it for storage (so it stored
+    // false) — two different answers for the same input.
+    mockUpdate.mockResolvedValue([1]);
+    await send(app, body({ retracted: 'false', imageUrl: 'https://swanguard.example/pic.png' }));
+
+    expect(mockUpdate.mock.calls[0][0].retracted).toBe(false);
+    // And because the single coercion says "not retracted", the image IS attempted.
+    expect(mockFetchDecode).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -243,6 +332,7 @@ describe('disabled-ingest smoke — the exact verified error body (R1)', () => {
     expect(res.status).toBe(503);
     expect(res.body).toEqual(VERIFIED_DISABLED_BODY);
     expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockUpdate).not.toHaveBeenCalled();
     expect(mockFindByPk).not.toHaveBeenCalled();
     // The flag is checked BEFORE any network work — a disabled receiver must not fetch.
     expect(mockFetchDecode).not.toHaveBeenCalled();

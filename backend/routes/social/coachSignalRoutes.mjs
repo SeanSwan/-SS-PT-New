@@ -122,22 +122,42 @@ router.post('/', protect, async (req, res) => {
       return res.status(409).json({ success: false, message: 'You already signaled this post.' });
     }
 
-    const sentToday = await CoachSignal.count({
-      where: { coachId: req.user.id, createdAt: { [Op.gte]: startOfUtcDay() } },
+    // Quota admission is serialized PER COACH, with the count and the insert in ONE
+    // transaction (hostile review D2 / F05). Counting and then inserting as two statements let
+    // two concurrent requests for distinct posts both observe 4 and both insert — six signals
+    // against a cap of five. The lock is a PostgreSQL advisory lock taken INSIDE the
+    // transaction, so it is released on commit or rollback and holds across processes:
+    // `06-bans.md` #42 forbids an in-memory-only quota, which is why this is not a local mutex.
+    const sequelize = CoachSignal.sequelize;
+    const admission = await sequelize.transaction(async (transaction) => {
+      await sequelize.query('SELECT pg_advisory_xact_lock(hashtext(:key))', {
+        replacements: { key: `coach-signal-quota:${req.user.id}` },
+        transaction,
+      });
+
+      const sentToday = await CoachSignal.count({
+        where: { coachId: req.user.id, createdAt: { [Op.gte]: startOfUtcDay() } },
+        transaction,
+      });
+      if (sentToday >= DAILY_SIGNAL_CAP) return { capped: true };
+
+      const created = await CoachSignal.create({
+        coachId: req.user.id,
+        memberId: post.userId,
+        postId: parsedPostId,
+        note: trimmedNote || null,
+      }, { transaction });
+      return { capped: false, signal: created };
     });
-    if (sentToday >= DAILY_SIGNAL_CAP) {
+
+    if (admission.capped) {
       return res.status(429).json({
         success: false,
         message: `Daily signal limit reached (${DAILY_SIGNAL_CAP}). Signals stay precious.`,
       });
     }
 
-    const signal = await CoachSignal.create({
-      coachId: req.user.id,
-      memberId: post.userId,
-      postId: parsedPostId,
-      note: trimmedNote || null,
-    });
+    const signal = admission.signal;
 
     try {
       const coach = await User.findByPk(req.user.id, {

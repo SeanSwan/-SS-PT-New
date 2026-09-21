@@ -6,24 +6,51 @@
  * rule are all exercised end to end.
  *
  * The DB model and R2 are mocked — no network, no database.
+ *
+ * ── TWO CHANGES 2026-09-20, both required by R1's D1 remediation ─────────────────────
+ *
+ * 1. MOCK SHAPE. The route no longer reads the row and calls an INSTANCE `update()`. It calls
+ *    the static `SwanSpotlight.update(values, { where: { revision: { [Op.lt]: revision } } })`,
+ *    so `mockUpdate` replaces the per-test instance spy and resolves to Sequelize's
+ *    `[affectedCount]`.
+ *
+ * 2. MOCK SPECIFIER — this file was hostile review F10. It stubbed `r2StorageService.mjs` for
+ *    `uploadPhoto`, but the route imports that from `photoStorageService.mjs`; the old
+ *    `r2StorageService.mjs` does not export it. So `mockUploadPhoto` NEVER FIRED and the two
+ *    image assertions below passed only because the real upload failed on missing credentials.
+ *    They were passing for a reason unrelated to what they claimed to test. The specifier is
+ *    corrected here, which is what F10 asked for, so those two cases now exercise the mock.
  */
 import express from 'express';
 import request from 'supertest';
+import { Op } from 'sequelize';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockFindByPk, mockCreate, mockUploadPhoto } = vi.hoisted(() => ({
+const { mockFindByPk, mockUpdate, mockCreate, mockUploadPhoto, mockFetchDecode } = vi.hoisted(() => ({
   mockFindByPk: vi.fn(),
+  mockUpdate: vi.fn(),
   mockCreate: vi.fn(),
   mockUploadPhoto: vi.fn(),
+  mockFetchDecode: vi.fn(),
 }));
 
 vi.mock('../../models/social/SwanSpotlight.mjs', () => ({
-  default: { findByPk: mockFindByPk, create: mockCreate },
+  default: { findByPk: mockFindByPk, update: mockUpdate, create: mockCreate },
 }));
 
-vi.mock('../../services/r2StorageService.mjs', () => ({
+vi.mock('../../services/photoStorageService.mjs', () => ({
   uploadPhoto: mockUploadPhoto,
 }));
+
+// The fetch layer is mocked ONLY so one test can force a SUCCESSFUL decode — without that the
+// real fetch fails on DNS and `uploadPhoto` is never reached, which is how F10's assertions
+// managed to pass without exercising anything. The default implementation is the REAL one, so
+// every other case (notably the non-http protocol refusal) still exercises the shipped
+// validator rather than a stub that agrees with itself.
+vi.mock('../../services/spotlightImageFetch.mjs', () => ({
+  fetchAndDecodeSpotlightImage: mockFetchDecode,
+}));
+const actualFetch = await vi.importActual('../../services/spotlightImageFetch.mjs');
 
 const SECRET = 'test-swan-bridge-secret-value-0123456789';
 const { signPayload, buildCanonicalPayload } = await import('../../services/swanBridgeSignature.mjs');
@@ -58,12 +85,19 @@ const post = async (payload, opts = {}) => {
     .send(raw);
 };
 
+/** The predicate the database is asked to evaluate — the D1 fix, seen from here. */
+const predicateOf = (call) => call[1]?.where?.revision?.[Op.lt];
+
 beforeEach(() => {
   process.env.SPOTLIGHT_ENABLED = 'true';
   process.env.SWAN_BRIDGE_SECRET_V1 = SECRET;
   mockFindByPk.mockReset().mockResolvedValue(null);
+  // Default: the conditional UPDATE matches nothing, so the create path runs.
+  mockUpdate.mockReset().mockResolvedValue([0]);
   mockCreate.mockReset().mockResolvedValue({});
   mockUploadPhoto.mockReset();
+  // Default to the REAL decoder; only the upload-failure test below overrides it.
+  mockFetchDecode.mockReset().mockImplementation(actualFetch.fetchAndDecodeSpotlightImage);
 });
 
 afterEach(() => {
@@ -180,49 +214,69 @@ describe('bridge ingest — validation and the positivity gate', () => {
 
 describe('bridge ingest — idempotency', () => {
   it('treats a re-delivered revision as a no-op', async () => {
-    mockFindByPk.mockResolvedValue({ revision: 3, imageUrl: null, update: vi.fn() });
+    mockFindByPk.mockResolvedValue({ revision: 3, imageUrl: null });
+    mockUpdate.mockResolvedValue([0]);
     const res = await post(body({ revision: 3 }));
     expect(res.status).toBe(200);
     expect(res.body.noop).toBe(true);
     expect(mockCreate).not.toHaveBeenCalled();
+    // The predicate was `revision < 3` — an equal revision is rejected by the database.
+    expect(predicateOf(mockUpdate.mock.calls[0])).toBe(3);
   });
 
   it('treats an older revision as a no-op (out-of-order delivery)', async () => {
-    mockFindByPk.mockResolvedValue({ revision: 5, imageUrl: null, update: vi.fn() });
+    mockFindByPk.mockResolvedValue({ revision: 5, imageUrl: null });
+    mockUpdate.mockResolvedValue([0]);
     const res = await post(body({ revision: 2 }));
     expect(res.body.noop).toBe(true);
+    expect(predicateOf(mockUpdate.mock.calls[0])).toBe(2);
   });
 
   it('upserts when the revision is higher', async () => {
-    const update = vi.fn().mockResolvedValue(undefined);
-    mockFindByPk.mockResolvedValue({ revision: 1, imageUrl: null, update });
+    mockFindByPk.mockResolvedValue({ revision: 1, imageUrl: null });
+    mockUpdate.mockResolvedValue([1]);
     const res = await post(body({ revision: 4 }));
     expect(res.status).toBe(200);
-    expect(update).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it('marks a retraction instead of deleting the row', async () => {
-    const update = vi.fn().mockResolvedValue(undefined);
-    mockFindByPk.mockResolvedValue({ revision: 1, imageUrl: 'https://r2/x.png', update });
+    mockFindByPk.mockResolvedValue({ revision: 1, imageUrl: 'https://r2/x.png' });
+    mockUpdate.mockResolvedValue([1]);
     const res = await post(body({ revision: 2, retracted: true }));
     expect(res.status).toBe(200);
-    expect(update.mock.calls[0][0].retracted).toBe(true);
+    expect(mockUpdate.mock.calls[0][0].retracted).toBe(true);
   });
 });
 
 describe('bridge ingest — image re-host is never fatal', () => {
   it('stores the item with a null image when the re-host fails', async () => {
+    // F10: this now actually exercises the upload mock. It used to pass because the real upload
+    // failed on missing credentials against a module the route never imported.
+    // The DECODE is forced to succeed so the failure under test is the UPLOAD's, not the
+    // fetch's — otherwise DNS fails first and `uploadPhoto` is never reached at all.
+    mockFetchDecode.mockResolvedValue({
+      ok: true,
+      buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+      ext: 'png',
+      contentType: 'image/png',
+    });
     mockUploadPhoto.mockRejectedValue(new Error('R2 down'));
+
     const res = await post(body({ imageUrl: 'https://swanguard.example/pic.png' }));
+
     expect(res.status).toBe(200);
     expect(mockCreate).toHaveBeenCalledTimes(1);
     expect(mockCreate.mock.calls[0][0].imageUrl).toBeNull();
+    expect(mockUploadPhoto).toHaveBeenCalledTimes(1);
   });
 
   it('refuses to hot-link a non-http image URL', async () => {
     const res = await post(body({ imageUrl: 'javascript:alert(1)' }));
     expect(res.status).toBe(200);
     expect(mockCreate.mock.calls[0][0].imageUrl).toBeNull();
+    // Rejected before the uploader is ever reached — the fetch layer owns that check.
+    expect(mockUploadPhoto).not.toHaveBeenCalled();
   });
 });

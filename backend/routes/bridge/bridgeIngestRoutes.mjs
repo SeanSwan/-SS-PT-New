@@ -3,7 +3,8 @@ import { Op } from 'sequelize';
 import logger from '../../utils/logger.mjs';
 import { bannedTerms } from '../social/feedEnrichment.mjs';
 import { verifyBridgeRequest } from '../../services/swanBridgeSignature.mjs';
-import { fetchAndDecodeSpotlightImage } from '../../services/spotlightImageFetch.mjs';
+import { applyBridgeSpotlightRevision } from '../../services/bridgeSpotlightRevisionApply.mjs';
+import { rehostBridgeSpotlightImage } from '../../services/bridgeSpotlightImageRehost.mjs';
 
 /**
  * SwanGuard → SwanStudios Spotlight ingest.
@@ -56,6 +57,19 @@ export const findBannedTerm = (fields) => {
   return bannedTerms.find((term) => haystack.includes(term)) ?? null;
 };
 
+// `revision` is stored in an INTEGER column (SwanSpotlight.mjs:23). An out-of-range value
+// passed validation and then failed at the column, so the bound is part of the contract.
+export const SPOTLIGHT_MAX_REVISION = 2147483647;
+
+/**
+ * Validate AND normalize. It returns the exact values the handler must persist, so validation
+ * and persistence cannot disagree (hostile review D3 / F07).
+ *
+ * It used to return only `{ ok: true }`. Three consequences: `itemId` was bounded here but the
+ * handler stored the RAW `req.body.itemId`; `revision` had no upper bound; and `retracted` was
+ * truthiness-tested in the image branch but strict-compared for storage, so `retracted:"false"`
+ * stored `false` while skipping the image. Coercing once, here, removes all three.
+ */
 export const validateSpotlightPayload = (body) => {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return { ok: false, reason: 'Body must be a JSON object.' };
@@ -65,9 +79,12 @@ export const validateSpotlightPayload = (body) => {
   if (!Number.isInteger(body.revision) || body.revision < 1) {
     return { ok: false, reason: 'revision must be a positive integer.' };
   }
+  if (body.revision > SPOTLIGHT_MAX_REVISION) {
+    return { ok: false, reason: `revision must be at most ${SPOTLIGHT_MAX_REVISION}.` };
+  }
   const headline = str(body.headline, SPOTLIGHT_MAX_HEADLINE);
   if (!headline) return { ok: false, reason: 'headline is required.' };
-  return { ok: true };
+  return { ok: true, value: { itemId, revision: body.revision, headline, retracted: body.retracted === true } };
 };
 
 const toDate = (value) => {
@@ -96,8 +113,8 @@ router.post('/spotlight', spotlightJsonParser, async (req, res) => {
     return res.status(422).json({ success: false, message: validation.reason });
   }
 
-  const { itemId, revision, retracted = false } = req.body;
-  const headline = str(req.body.headline, SPOTLIGHT_MAX_HEADLINE);
+  // The VALIDATED, normalized values — never the raw body (D3).
+  const { itemId, revision, headline, retracted } = validation.value;
   const dek = str(req.body.dek, SPOTLIGHT_MAX_DEK);
   const curatorNote = str(req.body.curatorNote, SPOTLIGHT_MAX_CURATOR_NOTE);
 
@@ -110,32 +127,30 @@ router.post('/spotlight', spotlightJsonParser, async (req, res) => {
 
   try {
     const SwanSpotlight = (await import('../../models/social/SwanSpotlight.mjs')).default;
-    const existing = await SwanSpotlight.findByPk(itemId);
 
-    // Idempotency is (itemId, revision): same revision = no-op, higher revision = upsert.
-    if (existing && existing.revision >= revision) {
-      return res.status(200).json({ success: true, noop: true, itemId, revision: existing.revision });
-    }
-
-    // Image re-host is best-effort by design — never fail the ingest over a picture.
-    let imageUrl = existing?.imageUrl ?? null;
-    const incomingImage = str(req.body.imageUrl, 2048);
-    if (incomingImage && !retracted) {
-      imageUrl = await rehostImage(incomingImage, itemId) ?? null;
-    }
+    // Read ONLY to preserve the stored image across a text-only or retracted revision. This is
+    // NOT the ordering guard — applyBridgeSpotlightRevision makes the database evaluate
+    // `revision < incoming` inside the write itself (D1 / ban #19).
+    const stored = await SwanSpotlight.findByPk(itemId, { attributes: ['imageUrl'] });
 
     const source = req.body.sourceAttribution && typeof req.body.sourceAttribution === 'object'
       ? req.body.sourceAttribution
       : {};
     const gate = req.body.gate && typeof req.body.gate === 'object' ? req.body.gate : {};
 
+    // Image re-host is best-effort by design — never fail the ingest over a picture. A revision
+    // that is about to carry an image starts at null, so a re-host failure leaves null and the
+    // card renders text-only (ban #37); a retraction or text-only revision keeps what is there.
+    const incomingImage = str(req.body.imageUrl, 2048);
+    const willRehost = Boolean(incomingImage) && !retracted;
+
     const values = {
       itemId,
       revision,
-      retracted: retracted === true,
+      retracted,
       headline,
       dek,
-      imageUrl,
+      imageUrl: willRehost ? null : (stored?.imageUrl ?? null),
       sourceName: str(source.name, 80),
       sourceUrl: str(source.url, 2048),
       curatorNote,
@@ -145,67 +160,32 @@ router.post('/spotlight', spotlightJsonParser, async (req, res) => {
       gateHash: str(gate.checklistHash, 64)
     };
 
-    if (existing) {
-      await existing.update(values);
-    } else {
-      await SwanSpotlight.create(values);
+    const outcome = await applyBridgeSpotlightRevision({ SwanSpotlight, itemId, revision, values });
+    if (!outcome.applied) {
+      // A same-or-older revision: nothing was written, and no image was fetched for it.
+      return res.status(200).json({ success: true, noop: true, itemId, revision: outcome.storedRevision });
+    }
+
+    // Attach the image ONLY now that this revision is the accepted, current one. The WHERE
+    // clause re-checks the revision and the tombstone at attach time, so a newer revision or a
+    // concurrent retraction cannot be handed a stale picture.
+    if (willRehost) {
+      const rehosted = await rehostBridgeSpotlightImage(incomingImage, itemId);
+      if (rehosted) {
+        await SwanSpotlight.update({ imageUrl: rehosted }, { where: { itemId, revision, retracted: false } });
+      }
     }
 
     logger.info(`Spotlight ${retracted ? 'retracted' : 'stored'}: ${itemId}@${revision}`);
-    return res.status(200).json({ success: true, itemId, revision, retracted: values.retracted });
+    return res.status(200).json({ success: true, itemId, revision, retracted });
   } catch (error) {
     logger.error('Spotlight ingest failed:', error?.message);
     return res.status(500).json({ success: false, message: 'Server error during ingest.' });
   }
 });
 
-/**
- * Re-host a SwanGuard image into SwanStudios' own R2 bucket.
- * Returns null on any failure — the caller renders a text-only card (blueprint ban #4:
- * never hot-link SwanGuard's URL in a production render path).
- *
- * HARDENED 2026-09-19, and two real defects were fixed here rather than one.
- *
- * (a) SSRF. The old version checked the protocol of the URL it was HANDED and then
- *     called fetch with defaults — which follows redirects. A host returning
- *     `302 → http://169.254.169.254/...` therefore defeated the check completely,
- *     because the protocol was only ever inspected on the first hop. It also applied
- *     its size cap AFTER `arrayBuffer()` had buffered the entire body, so the cap
- *     bounded what was stored, not what was consumed. `fetchAndDecodeSpotlightImage`
- *     now owns validation, the no-redirect fetch, the streamed cap, and the decode.
- *
- * (b) A wrong import. `uploadPhoto` was destructured from `r2StorageService.mjs`,
- *     which does not export it — it lives in `photoStorageService.mjs`. Every call
- *     threw `TypeError: uploadPhoto is not a function`, and this function's own
- *     catch reported it as a non-fatal degradation and returned null. So image
- *     re-hosting has never once succeeded, and the design ("a broken image degrades
- *     to a text-only card") is precisely what made that invisible. Verified by
- *     runtime introspection: `r2StorageService.uploadPhoto === undefined`.
- */
-async function rehostImage(url, itemId) {
-  try {
-    const decoded = await fetchAndDecodeSpotlightImage(url);
-    if (!decoded.ok) {
-      logger.warn(`Spotlight image for ${itemId} not re-hosted (${decoded.code}): ${decoded.message}`);
-      return null;
-    }
-
-    // `uploadPhoto` is the single choke point for every upload caller and re-sniffs the
-    // bytes itself, deriving the stored extension and Content-Type from them rather than
-    // from anything this call declares.
-    const { uploadPhoto } = await import('../../services/photoStorageService.mjs');
-    const result = await uploadPhoto(decoded.buffer, {
-      userId: 0,
-      category: 'swan-spotlight',
-      originalFilename: `${itemId}.${decoded.ext}`,
-      contentType: decoded.contentType
-    });
-    return result?.url ?? null;
-  } catch (error) {
-    logger.warn(`Spotlight image re-host failed for ${itemId} (non-fatal): ${error?.message}`);
-    return null;
-  }
-}
+// Image re-host — its SSRF hardening, the wrong-import defect, and why it moved out of this
+// file — lives in services/bridgeSpotlightImageRehost.mjs. Read that header before changing it.
 
 /**
  * Raw-body capture for the bodyless reconciliation GET.

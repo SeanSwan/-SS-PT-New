@@ -31,6 +31,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   mockSignalFindOne, mockSignalCount, mockSignalCreate,
   mockPostFindOne, mockAssignmentFindOne, mockUserFindByPk, mockCreateNotification,
+  mockTransaction, mockQuery,
   session,
 } = vi.hoisted(() => ({
   mockSignalFindOne: vi.fn(),
@@ -40,6 +41,11 @@ const {
   mockAssignmentFindOne: vi.fn(),
   mockUserFindByPk: vi.fn(),
   mockCreateNotification: vi.fn(),
+  // D2: quota admission now runs inside `CoachSignal.sequelize.transaction(...)` and takes a
+  // PostgreSQL advisory lock before counting. These two are the seam that lets a mocked model
+  // exercise that path at all — without them the route throws before reaching the count.
+  mockTransaction: vi.fn(),
+  mockQuery: vi.fn(),
   // `id` is a STRING here on purpose: authMiddleware attaches `req.user.id` via toStringId
   // while Sequelize INTEGER columns surface as numbers. The route must normalise both.
   session: { user: { id: '7', role: 'trainer' } },
@@ -49,7 +55,12 @@ vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => { req.user = session.user; next(); },
 }));
 vi.mock('../models/social/CoachSignal.mjs', () => ({
-  default: { findOne: mockSignalFindOne, count: mockSignalCount, create: mockSignalCreate },
+  default: {
+    findOne: mockSignalFindOne,
+    count: mockSignalCount,
+    create: mockSignalCreate,
+    sequelize: { transaction: mockTransaction, query: mockQuery },
+  },
 }));
 vi.mock('../models/social/SocialPost.mjs', () => ({ default: { findOne: mockPostFindOne } }));
 vi.mock('../models/ClientTrainerAssignment.mjs', () => ({ default: { findOne: mockAssignmentFindOne } }));
@@ -77,6 +88,9 @@ beforeEach(() => {
   mockSignalCreate.mockReset().mockResolvedValue({
     id: 99, postId: 3, memberId: MEMBER_AUTHOR, note: null, createdAt: new Date(),
   });
+  // Run the transaction body against a stub handle so the admission path actually executes.
+  mockTransaction.mockReset().mockImplementation(async (work) => work({ id: 'test-transaction' }));
+  mockQuery.mockReset().mockResolvedValue([[], 0]);
   mockUserFindByPk.mockReset().mockResolvedValue({ id: 7, firstName: 'Ada', lastName: 'Coach', username: 'ada' });
   mockCreateNotification.mockReset().mockResolvedValue(undefined);
 });
@@ -185,6 +199,72 @@ describe('coach signal — quota', () => {
     await post();
     // Quota lives in the database, never in module-level state — two requests, two reads.
     expect(mockSignalCount).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('coach signal — quota admission is serialized and transactional (D2)', () => {
+  // WHAT THESE CAN AND CANNOT PROVE. Hostile review F05 found that `count` then `create`, as
+  // two unserialized statements, let two concurrent requests for DISTINCT posts both observe 4
+  // and both insert — six signals against a cap of five. The fix is a per-coach PostgreSQL
+  // advisory lock taken inside ONE transaction.
+  //
+  // These tests drive the real router and assert that the lock is TAKEN with the right key and
+  // that the count and the insert share ONE transaction. They CANNOT prove that PostgreSQL
+  // serializes two real sessions — that needs a live database and is recorded as `[UNKNOWN]`
+  // in the round-3 packet rather than asserted here. Naming the limit is the point: round 1's
+  // F02 caught a case whose name advertised a race it never injected.
+  const CAP = 5; // mirrors DAILY_SIGNAL_CAP in the route
+
+  it('takes a per-coach advisory lock before counting', async () => {
+    await post();
+
+    expect(mockQuery).toHaveBeenCalledTimes(1);
+    const [sql, options] = mockQuery.mock.calls[0];
+    expect(sql).toContain('pg_advisory_xact_lock');
+    // Scoped to the coach, so two different coaches never block each other.
+    expect(options.replacements.key).toBe('coach-signal-quota:7');
+  });
+
+  it('counts and inserts inside the SAME transaction, and hands it to both', async () => {
+    await post();
+
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
+    const handle = { id: 'test-transaction' };
+    expect(mockSignalCount.mock.calls[0][0].transaction).toEqual(handle);
+    expect(mockSignalCreate.mock.calls[0][1].transaction).toEqual(handle);
+  });
+
+  it('takes the lock BEFORE the count, so the read cannot be stale', async () => {
+    const order = [];
+    mockQuery.mockImplementation(async () => { order.push('lock'); return [[], 0]; });
+    mockSignalCount.mockImplementation(async () => { order.push('count'); return 0; });
+    mockSignalCreate.mockImplementation(async () => {
+      order.push('insert');
+      return { id: 99, postId: 3, memberId: MEMBER_AUTHOR, note: null, createdAt: new Date() };
+    });
+
+    await post();
+
+    expect(order).toEqual(['lock', 'count', 'insert']);
+  });
+
+  it('does not insert when the lock-protected count is already at the cap', async () => {
+    mockSignalCount.mockResolvedValue(CAP);
+
+    const res = await post();
+
+    expect(res.status).toBe(429);
+    expect(mockSignalCreate).not.toHaveBeenCalled();
+  });
+
+  it('leaves no half-counted admission behind when the insert fails', async () => {
+    const race = Object.assign(new Error('duplicate key value'), { name: 'SequelizeUniqueConstraintError' });
+    mockSignalCreate.mockRejectedValue(race);
+
+    const res = await post();
+
+    expect(res.status).toBe(409);
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
   });
 });
 
