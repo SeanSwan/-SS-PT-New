@@ -1,0 +1,10 @@
+# S0 baseline — re-measurement 2026-09-21 14:1x–14:3x PDT
+# base commit: 6e45e2392f2289f9c48e24d9c7f4dabe1f28c9a4
+# branch: creator-brains-engine-r2-20260915
+# built with: NODE_OPTIONS=--max-old-space-size=8192 vite build (D-2 corrected form)
+
+T0  e2e/theme-lens/mount.spec.ts       3 passed (exit 0)
+T4  e2e/theme-lens/persistence.spec.ts 6 passed (exit 0)
+T0+T4 combined                        9 passed, 16.6s (exit 0)
+B2  tsc -p tmp/tsconfig.themelens-lane-only.json  exit 0
+unit src/context/ThemeContext/        20 files, 161 tests, 0 failed (5.08s)
