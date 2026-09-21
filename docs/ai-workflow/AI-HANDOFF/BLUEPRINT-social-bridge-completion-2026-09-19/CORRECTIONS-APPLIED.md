@@ -15,11 +15,11 @@ listed here without evidence is a claim, not a correction.
 | # | Correction | Applied in | Verified by |
 |---|---|---|---|
 | 1 | `safe-migrate.mjs` mechanism | `04-build-order.md:24-39`, `CONSULT-PACKET.md:55` | source read (`:214`, `:215`, `:222`) |
-| 2 | S5 working root pinned | `00-README.md:14-19`, `04-build-order.md:3-22`, `05-slices.md:133`, `CONSULT-PACKET.md:55` | `git worktree list`, path existence test |
-| 3 | `postId` NOT NULL; drop `sessionId` DDL | `05-slices.md:35,55-57`, `04-build-order.md:115,133` | model + route read |
-| 4 | SSRF promoted to must-fix | `04-build-order.md:52-107`, `05-slices.md:45` | **implemented — see §4** |
+| 2 | S5 working root pinned | `00-README.md:44`, `04-build-order.md` §Working root, `05-slices.md:133` (pin re-set to `1bd08d4` 2026-09-20; `CONSULT-PACKET.md:55` is **historical** and keeps `d830bed`) | `git worktree list`, path existence test, `git ls-remote origin refs/heads/merge/newsroom-mainline-v3` |
+| 3 | ~~`postId` NOT NULL~~ — **SUPERSEDED 2026-09-19**, keep `postId` NULLABLE; drop `sessionId` DDL | `05-slices.md` §3 (`:88-111`), `04-build-order.md:115,133` | model + route read; migration `20260916-create-coach-signals.cjs` (`allowNull: true`) |
+| 4 | SSRF promoted to must-fix | `04-build-order.md` §`rehostImage()` (from `:66`), `05-slices.md:45` | **implemented — see §4** |
 | 5 | `SPOTLIGHT_ENABLED` stays default OFF | `05-slices.md:301` | packet + Astra's refutation |
-| 6 | Image-failure contract unchanged | `04-build-order.md:103-107`, `05-slices.md:51` | route read (`:115`, `:155-156`, `:177-180`) |
+| 6 | Image-failure contract unchanged | `04-build-order.md` §`rehostImage()` (required-controls list), `05-slices.md:51` | route read (`:115`, `:155-156`, `:177-180`) |
 | 7 | Primary-key convention | `01-architecture.md:119, 203-226` + diagram body | repo-wide convention count |
 
 ---
@@ -53,11 +53,18 @@ model and could "fix" a recursion that was never broken.
 | Root | Branch / HEAD | `apps/web/src/newsroom/` |
 |---|---|---|
 | `Desktop/@Everything/family-first-intelligence-command-center` | `main` @ `2666b49` | **does not exist** |
-| **`Desktop/@Everything/SwanGuard-Newsroom`** | **`merge/newsroom-mainline-v3` @ `d830bed`** | exists (`FeedLanes.tsx` 76, `StorySheet.tsx` 517) |
+| **`Desktop/@Everything/SwanGuard-Newsroom`** | **`merge/newsroom-mainline-v3` @ `1bd08d4`** (was `d830bed`, re-pinned 2026-09-20) | exists (`FeedLanes.tsx` 76, `StorySheet.tsx` 517) |
 
 **Decision: S5 is built in `Desktop/@Everything/SwanGuard-Newsroom` on `merge/newsroom-mainline-v3`.**
 Every pattern line count in this package is the **worktree's**: `featureDispatchOwnerOperator.ts` 96,
 `operatorGrantRoutes.ts` 251, `OwnerKillSwitchPanel.tsx` 193, `OperatorGrantConsole.tsx` 281.
+
+> **Pin re-set 2026-09-20.** The HEAD in the table above was `d830bed`; the branch is now at
+> `1bd08d4`, confirmed on the remote. Three **live** documents are re-pinned: this file, `00-README.md`
+> and `04-build-order.md`. The historical consult artifacts — `CONSULT-PACKET.md`,
+> `VERIFICATION-NOTES.md`, `R1-ASTRA-PACKET.md` and `R1-REVIEW-ROUND-2-PACKET.md` — **deliberately
+> retain `d830bed`**: they record what was sent to a reviewer at a point in time, and rewriting them
+> would falsify that record. A builder reading a packet for its pin should use `04-build-order.md`.
 
 **Also recorded:** `SwanGuard-Newsroom` is a **linked git worktree** — `.git` there is a *file*, not a
 directory. Its gitdir is `…/family-first-intelligence-command-center/.git/worktrees/SwanGuard-Newsroom`
@@ -120,8 +127,8 @@ SSRF** — HIGH, not CRITICAL.
 
 | Item | Path | Note |
 |---|---|---|
-| Hardened fetch/decode | `backend/services/spotlightImageFetch.mjs` (267 lines) | **NOT** the package's proposed `backend/services/bridge/bridgeSpotlightImage.mjs` |
-| Tests | `backend/tests/unit/spotlightImageFetch.test.mjs` (15) + `tests/unit/spotlightImageDecode.test.mjs` (13) + `tests/bridgeSpotlightImage.security.test.mjs` (8) | **36 tests**, not the 12 the package budgeted. Fixtures shared via `tests/helpers/spotlightImageFixtures.mjs` so the suites respect the 299-line limit |
+| Hardened fetch/decode | `backend/services/spotlightImageFetch.mjs` (**229 lines**) + `backend/services/spotlightImageUrlPolicy.mjs` (**126 lines**) | **NOT** the package's proposed `backend/services/bridge/bridgeSpotlightImage.mjs`. **Split 2026-09-20:** the D8/R2-03 DNS bound pushed the fetch module to 320 lines, over ban #50, so admission (URL policy) was separated from transport (fetch/decode). Both are re-exported from the fetch module, so no importer changed. |
+| Tests | `backend/tests/unit/spotlightImageFetch.test.mjs` (**22**) + `tests/unit/spotlightImageDecode.test.mjs` (13) + `tests/bridgeSpotlightImage.security.test.mjs` (8) + `tests/unit/bridgeSpotlightImageRehost.test.mjs` (**6, new**) + `tests/unit/spotlightReadRoutes.test.mjs` (**6, new**) | **55 tests across 5 suites** (was 36 across 3). Fixtures shared via `tests/helpers/spotlightImageFixtures.mjs` so the suites respect the 299-line limit. The two new suites are the first coverage the re-host storage path and the rail projection have ever had. |
 | Route rewired | `backend/routes/bridge/bridgeIngestRoutes.mjs` | `rehostImage()` now calls `fetchAndDecodeSpotlightImage` |
 | Commit | `fe388691f` — `fix(social): harden Spotlight image rehost against SSRF` | 5 files, 694 insertions |
 
@@ -133,8 +140,16 @@ code. It imports the same module and the same fixtures, so there is no second co
 
 Controls implemented, and the reason each is the right shape:
 
-- **`redirect: 'error'`** — the fix. No redirect is ever followed, so the validated URL is the
-  connected URL.
+- **`redirect: 'error'`** — the fix for **redirect re-entry**. No redirect is ever followed, so a
+  `302 → http://169.254.169.254/…` can no longer re-enter an unvalidated URL.
+  **Corrected 2026-09-20 (hostile review D4 / F08):** this bullet previously ended *"so the validated
+  URL is the connected URL."* That was an **overclaim and is withdrawn.** Redirect policy says nothing
+  about which resolved address is used for the connection: `spotlightImageFetch.mjs:91` resolves DNS
+  to validate and `:127` then calls `fetch`, which re-resolves independently. The module's own comment
+  already said this — *"a check-time validation only, NOT a complete DNS-rebinding defence"* — so the
+  code was honest and this document was not. **DNS rebinding is an open, accepted residual risk**
+  (accepted because the path is HMAC-gated, which authenticates the sender, **not** the remote image
+  server).
 - **HTTPS only** — the `http:` branch is gone.
 - **Credentials in the URL rejected** — `https://allowed@evil.com` would otherwise read as `evil.com`.
 - **DNS-resolved private-range rejection for IPv4 *and* IPv6**, failing closed when resolution fails,
@@ -316,13 +331,19 @@ no overlapping coverage and no second copy of any fixture:
 
 | Suite | Tests | Covers |
 |---|---:|---|
-| `tests/unit/spotlightImageFetch.test.mjs` | 15 | URL admission, redirect rejection, byte cap, Content-Length, non-2xx |
+| `tests/unit/spotlightImageFetch.test.mjs` | **22** | URL admission, redirect rejection, byte cap, Content-Length, non-2xx, **bounded DNS lookup (D8), body release on both early exits (D8)** |
 | `tests/unit/spotlightImageDecode.test.mjs` | 13 | sniff/polyglot/SVG/pdf, animation, alpha vs JPEG, EXIF strip, edge cap, entry point |
 | `tests/bridgeSpotlightImage.security.test.mjs` | 8 | the **full private-IPv4 and private-IPv6 range tables**, IPv4-mapped IPv6, empty DNS answer, timeout, bodyless response, that the cap aborts **mid-stream** (measured by read count, not by return code), and that no failure mode escapes as a throw |
 
 All three import fixtures from `tests/helpers/spotlightImageFixtures.mjs`. Mutation-tested: disabling
-the streamed cap fails 1 test; disabling private-address rejection fails 1; source restored to SHA-256
-`eae9b9d4a604f43e73b36245571450d1e2f89c71a5d9b365a7e644fbef3f135e`.
+the streamed cap fails 1 test; disabling private-address rejection fails 1.
+
+> **SHA-256 superseded 2026-09-20.** The hash recorded in this section was
+> `eae9b9d4a604f43e73b36245571450d1e2f89c71a5d9b365a7e644fbef3f135e`, and it is now **stale**: the
+> D8/R2-03 fix and the ban-#50 split changed both files. Current values (first 16 hex chars):
+> `spotlightImageFetch.mjs` = `d0121032b2e7057c` (229 lines) ·
+> `spotlightImageUrlPolicy.mjs` = `4478449963054860` (126 lines). The mutation run that restored them
+> byte-identically is recorded in **§11**.
 
 **Note for the R1 checkpoint:** the blueprint's proposed path was
 `backend/tests/bridgeSpotlightImage.security.test.mjs`; the repo-idiomatic home for the primary suites
@@ -351,13 +372,17 @@ Recorded rather than silently resolved:
    rows already hold `NULL`, and a green test asserts SET NULL. Operator ruling 2026-09-19. Recorded
    in `05-slices.md`, `06-bans.md` and `04-build-order.md`; pinned by
    `tests/coachSignalIntegrity.contract.test.mjs`. The `sessionId` half of the correction still stands.
-5. **`tests/api/swanBridgeIngest.test.mjs` mocks a module the route no longer imports.** It stubs
-   `services/r2StorageService.mjs` for `uploadPhoto`, but `rehostImage()` now imports `uploadPhoto`
-   from `services/photoStorageService.mjs`. Its two image assertions therefore pass because the
-   **real** upload fails on missing credentials, not because the injected failure fired — the same
-   "passes for the wrong reason" class as the Vite `__dirname` shim. **Reported, not fixed**, because
-   changing another suite's mocks is a separate reviewable change. The correct specifier is used in
-   the new `tests/bridgeSpotlightOrdering.contract.test.mjs`.
+5. ~~**`tests/api/swanBridgeIngest.test.mjs` mocks a module the route no longer imports.**~~
+   **FIXED 2026-09-20 (hostile review D6 / F10).** It stubbed `services/r2StorageService.mjs` for
+   `uploadPhoto`, but the route imports `uploadPhoto` from `services/photoStorageService.mjs`, so
+   `mockUploadPhoto` never fired. **The specifier is now corrected** to `photoStorageService.mjs`, the
+   fetch layer is mocked in one test so a *successful* decode is forced, and the suite asserts
+   `mockUploadPhoto` **was reached** (`toHaveBeenCalledTimes(1)`) rather than merely that the response
+   looked right. **Corrected mechanism:** the old assertions passed because the real decode fails on
+   **DNS first**, so `uploadPhoto` was never reached — *not* because the real upload failed on missing
+   credentials. (`photoStorageService.mjs:180-184` catches an R2 failure and falls back to disk; it
+   would not have failed.) The superseded sentence also lives in the R1 commit message and still owes
+   a correction there. `swanBridgeIngest` is 19/19 green.
 
 ---
 
@@ -367,19 +392,42 @@ Recorded rather than silently resolved:
 
 `GET /api/bridge/spotlight/manifest` is the signed reconciliation poll. It had **no body parser**,
 so `req.rawBody` was `undefined`, and `verifyBridgeRequest()` returns
-`500 RAW_BODY_UNAVAILABLE` when `rawBody` is not a Buffer. The endpoint therefore returned 500 for
-**every** request, with a valid signature or without one, and nothing detected it because no test
-covered the route.
+`500 RAW_BODY_UNAVAILABLE` when `rawBody` is not a Buffer. The endpoint therefore returned 500 to
+**every request that got past signature-shape and timestamp validation** — and nothing detected it
+because no test covered the route.
+
+**Corrected 2026-09-20 (hostile review F01).** This section previously said *"for **every** request,
+with a valid signature or without one."* That was **false**, and it is the overclaim F01 narrowed:
+`parseSignatureHeader` and `isTimestampInWindow` both run **before** the raw-body guard, so a
+malformed or expired request already returned 401. The guard's blast radius was every request that
+survived those two checks — which is still severe (the route was unreachable for any correctly-shaped
+caller), but it is not "every request".
 
 Why it matters: the manifest is what makes a dropped delivery distinguishable from silence. A
 permanently-500 endpoint here is a **silently dead safety net**, and S7's convergence acceptance
 ("drop a publish webhook and a later retraction webhook, run reconciliation") depends on it.
 
-**Fix.** The route now mounts `express.raw({ type: () => true })` and normalises
-`req.rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0)`. A GET carries no body, so the
-canonical payload is `${timestamp}.` — the scheme is unchanged; the bytes are merely represented
-instead of being absent. Mounting `express.raw` rather than hardcoding an empty Buffer means a client
-that *does* send bytes is authenticated over the bytes it actually sent.
+**Fix.** The route now mounts `express.raw({ type: () => true })` and normalises `req.rawBody`. A GET
+carries no body, so the canonical payload is `${timestamp}.` — the scheme is unchanged; the bytes are
+merely represented instead of being absent. Mounting `express.raw` rather than hardcoding an empty
+Buffer means a client that *does* send bytes is authenticated over the bytes it actually sent.
+
+**Updated 2026-09-20 — the normalisation is now FAIL-CLOSED, not unconditional.** This section
+originally described `req.rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0)`, which
+synthesised an empty Buffer for *any* non-Buffer body. That cannot distinguish a genuinely bodyless
+GET from one whose bytes were **consumed upstream** — and the second case would have been
+authenticated as if it were bodyless. The shipped `captureRawBody`
+(`bridgeIngestRoutes.mjs:220-229`) now reads:
+
+```js
+const declaredBody = Number(req.headers['content-length'] ?? 0) > 0
+  || req.headers['transfer-encoding'] !== undefined;
+req.rawBody = declaredBody ? undefined : Buffer.alloc(0);
+```
+
+When the request **declared** a body and no bytes are available, the bytes are unknowable, so
+`rawBody` is left unset and the guard returns 500 rather than authenticating a payload that was never
+seen. A bodyless GET is unaffected. Pinned by `tests/bridgeSpotlightOrdering.contract.test.mjs`.
 
 **Not a wire-contract change:** the endpoint had no working client, because it could not return 200.
 
@@ -390,4 +438,73 @@ unaffected.
 **Observation, deliberately not fixed:** a bodyless GET is signed over `${timestamp}.`, so it is
 replayable inside the ±300s skew window. Adding a nonce would change the documented wire format and
 belongs with S7's `bridgeRequestAuth.mjs` (domain-separated request auth), not here.
+
+---
+
+## 11 — Round-2 MEDIUMs closed, and the concurrency fixes PROVEN at the database (2026-09-20)
+
+Not corrections from Astra — the four open defects this package's own reviews left behind. Three were
+code, one was the missing evidence.
+
+### 11a. D7 / R2-02 — the re-host claimed R2 for a disk write [was MEDIUM, now FIXED]
+
+`uploadPhoto` catches an R2 failure and falls through to local disk
+(`photoStorageService.mjs:180-184`), returning `storage: 'local'` at `:197`. `rehostBridgeSpotlightImage`
+returned `result?.url ?? null`, **discarding the discriminator**, so a disk path was stored as a
+completed R2 re-host — the claim ban #4 exists to prevent, and the URL would 404 after a redeploy while
+the row still asserted success.
+
+**Fix:** only `storage === 'r2'` is accepted; anything else logs and returns `null` (ban #37 degradation,
+never a failed ingest). `bridgeSpotlightImageRehost.mjs`, now 81 lines.
+
+### 11b. D8 / R2-03 — the timeout did not bound DNS, and early exits did not release the body [FIXED]
+
+Two separate gaps. The DNS lookup ran **before** `AbortSignal.timeout` was created, so resolver time sat
+outside the budget it appeared to bound; and both early exits (non-OK status, declared length over cap)
+returned **without cancelling `response.body`**, leaving a socket per request.
+
+**Fix:** `lookupWithTimeout` races the lookup against a timer (cleared in `finally`), with its own
+`IMAGE_URL_DNS_TIMEOUT` code so a hanging resolver is distinguishable from an unresolvable name; both
+early exits now `await response.body?.cancel(…)`. The budget is injectable (`dnsTimeoutMs`) so the bound
+can be tested without waiting it out.
+
+**Forced consequence — ban #50.** The additions took `spotlightImageFetch.mjs` to **320 lines**, over
+*"no source file reaches 300 lines"*. Rather than trim the comments that carry the reasoning, the
+module was split along its natural seam: **URL admission** (`spotlightImageUrlPolicy.mjs`, 126 lines)
+vs **transport and decode** (`spotlightImageFetch.mjs`, 229 lines). Both exports are re-exported from
+the fetch module, so no importer changed and the two existing suites were not touched.
+
+### 11c. D9 / R2-04 — the rail projection could not answer "has this changed?" [FIXED]
+
+R2's measurement request needs `revision`; the projection omitted it, so a client could only compare
+content and guess. `revision` is now projected. **This is not a ban #2 violation** — ban #2 forbids
+like / comment / share-count fields, and a monotonic version counter is not an engagement metric. The
+client-side DTO that consumes it belongs to R2's own slice; this is the backend precondition.
+
+### 11d. D1/F06 and D2/F05 — PROVEN at the database, not merely read
+
+Round 4 filed both as `[UNKNOWN]` at the database level, because the contract suites **mock the model**:
+they prove the predicate is constructed and the branch taken, never that Postgres honours it. Closed
+against a throwaway cluster (PostgreSQL 17, port 55432, `--auth=trust`, no relation to production).
+
+Each mechanism was proven **with an A/B control**, because a guard that has never failed is not
+evidence:
+
+| Claim | Result | Control |
+|---|---|---|
+| `UPDATE … WHERE revision < ?` applies a newer revision | `rowCount=1` | — |
+| …and **refuses** a delayed older one | `rowCount=0`, stored revision stays `7` | **drop the `WHERE` → the row regresses to `3`**, so the predicate is load-bearing |
+| `pg_advisory_xact_lock` serializes count+insert | 2nd txn sees the 1st's row, caps, `rows=1` | **remove the lock → both read `0/0`, both insert, `rows=2 > cap 1`**, so the lock is load-bearing |
+
+### 11e. Evidence
+
+- **132 tests green across 10 suites**, including `esmNodeLoadable` (imports the modules under plain
+  `node`, not Vite's transform) and the two new suites that give the re-host storage path and the rail
+  projection their **first** coverage.
+- **5/5 mutations went RED, all files restored byte-identically** — D7 (3 tests), D8a (1, by timeout),
+  D8b ×2 (1 each), D9 (1). Current hashes: `spotlightImageFetch.mjs` `d0121032b2e7057c`,
+  `spotlightImageUrlPolicy.mjs` `4478449963054860`, `bridgeSpotlightImageRehost.mjs`
+  `00002698f9e8a97e`, `spotlightReadRoutes.mjs` `a6015fc4070656a3` (first 16 hex chars).
+- **Not committed.** The tree is shared and the commit path is structurally blocked (see the lane file
+  and the hand-off); this is recorded, not attempted.
 

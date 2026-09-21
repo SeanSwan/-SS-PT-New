@@ -12,7 +12,7 @@
 | # | File | Lines | Why |
 |---|---|---|---|
 | 1 | `CORRECTIONS-APPLIED.md` | 236 | **Start here.** What changed, where, and how each change was verified — the audit trail. |
-| 2 | `G0-SOURCE-EXCERPTS.md` | — | **Gate G0, closed.** The six source excerpts Astra could not see, quoted verbatim. **Authoritative wherever this package disagrees with it.** |
+| 2 | `G0-SOURCE-EXCERPTS.md` | — | **Gate G0 evidence, PARTIAL — the gate is NOT closed.** The six source excerpts Astra could not see, quoted verbatim. **Authoritative wherever this package disagrees with it.** Three artifacts remain unread and seven decisions remain `BLOCKED-G0`; see `00-README.md` for the evidence/release split. |
 | 3 | `VERIFICATION-NOTES.md` | — | Adjudicates Astra's ten findings: two packet defects, one finding refuted, one promoted to a live defect, seven corrections. |
 | 4 | `HOSTILE-REVIEW.md` | 103 | PART A — Astra's hostile review, verbatim (including its errors). |
 | 5 | `00-README.md` | 100 | Builder Contract, build order, how to use the package. |
@@ -34,10 +34,14 @@ losslessly into parts 1 and 2 (228 + 211), verified by re-concatenation.
 
 ---
 
-## Status: buildable; three deviations remain, all recorded
+## Status: buildable; four deviations remain, all recorded
 
-Gate G0 is **closed** (`G0-SOURCE-EXCERPTS.md`) and **corrections 1–7 are applied**
-(`CORRECTIONS-APPLIED.md`). The SSRF defect is not just planned but **fixed, wired and verified** —
+Gate G0 evidence is **supplied but the gate is NOT closed** (`G0-SOURCE-EXCERPTS.md` supplies six of
+nine artifacts) and **corrections 1–7 are applied except correction 3, which is superseded**
+(`CORRECTIONS-APPLIED.md`). **Corrected 2026-09-20 (hostile review D5 / F09):** this paragraph
+previously asserted *"Gate G0 is **closed**"*, which contradicted this same file's own deviation #1
+below and seven `Blocked G0` rows in `08-decision-density-self-test.md`. The SSRF defect is not just
+planned but **fixed, wired and verified** —
 `backend/services/spotlightImageFetch.mjs` + 36 passing tests across 3 suites, mutation-tested.
 Commit `fe388691f`.
 

@@ -16,12 +16,15 @@ import {
   validateSpotlightImageUrl,
   fetchSpotlightImage,
   MAX_IMAGE_BYTES,
+  DNS_LOOKUP_TIMEOUT_MS,
 } from '../../services/spotlightImageFetch.mjs';
 import {
   PUBLIC_IP,
   mockDns,
   mockDnsFail,
+  mockDnsHang,
   streamResponse,
+  cancellableStreamResponse,
 } from '../helpers/spotlightImageFixtures.mjs';
 
 afterEach(() => {
@@ -148,5 +151,71 @@ describe('fetchSpotlightImage', () => {
     const result = await fetchSpotlightImage('https://metadata.example/a.png', { fetchImpl });
     expect(result.ok).toBe(false);
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+// ─── D8 / R2-03 — the lookup budget and the body release ──────────────────
+// Both are hostile-review D8 findings. Each has a CONTROL beside it, because a bound that never
+// fires and a cancel that is never observed would both read as green while proving nothing.
+describe('fetchSpotlightImage — D8 bounds and releases', () => {
+  it('bounds a hanging DNS lookup instead of waiting it out', async () => {
+    mockDnsHang();
+    // A real 3 s wait would make this slow and flaky; the budget is injectable for exactly that
+    // reason. The property under test is that a bound EXISTS and fires, not its value.
+    await expect(validateSpotlightImageUrl('https://hang.example/a.png', { dnsTimeoutMs: 30 }))
+      .rejects.toMatchObject({ code: 'IMAGE_URL_DNS_TIMEOUT' });
+  });
+
+  it('CONTROL: a fast lookup is unaffected by the budget', async () => {
+    mockDns(PUBLIC_IP);
+    const url = await validateSpotlightImageUrl('https://fast.example/a.png', { dnsTimeoutMs: 30 });
+    expect(url.hostname).toBe('fast.example');
+  });
+
+  it('reports a hanging resolver distinctly from an unresolvable name', async () => {
+    mockDnsFail('ENOTFOUND');
+    await expect(validateSpotlightImageUrl('https://nope.example/a.png', { dnsTimeoutMs: 30 }))
+      .rejects.toMatchObject({ code: 'IMAGE_URL_DNS_FAILED' });
+  });
+
+  it('cancels the body when the upstream status is not ok', async () => {
+    mockDns(PUBLIC_IP);
+    const response = cancellableStreamResponse([Buffer.alloc(4096)], { status: 500 });
+    const result = await fetchSpotlightImage('https://example.com/a.png', {
+      fetchImpl: vi.fn().mockResolvedValue(response),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('IMAGE_FETCH_FAILED');
+    // the assertion that matters: the socket was RELEASED, not merely abandoned
+    expect(response.cancels.length).toBe(1);
+  });
+
+  it('cancels the body when the declared Content-Length exceeds the cap', async () => {
+    mockDns(PUBLIC_IP);
+    const response = cancellableStreamResponse([Buffer.alloc(16)], {
+      headers: { 'content-length': String(MAX_IMAGE_BYTES + 1) },
+    });
+    const result = await fetchSpotlightImage('https://example.com/a.png', {
+      fetchImpl: vi.fn().mockResolvedValue(response),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('IMAGE_TOO_LARGE');
+    expect(response.cancels.length).toBe(1);
+  });
+
+  it('CONTROL: a successful read cancels nothing', async () => {
+    mockDns(PUBLIC_IP);
+    const response = cancellableStreamResponse([Buffer.from([1, 2, 3])], {
+      headers: { 'content-type': 'image/png' },
+    });
+    const result = await fetchSpotlightImage('https://example.com/a.png', {
+      fetchImpl: vi.fn().mockResolvedValue(response),
+    });
+    expect(result.ok).toBe(true);
+    expect(response.cancels.length).toBe(0);
+  });
+
+  it('exposes a positive default lookup budget', () => {
+    expect(DNS_LOOKUP_TIMEOUT_MS).toBeGreaterThan(0);
   });
 });

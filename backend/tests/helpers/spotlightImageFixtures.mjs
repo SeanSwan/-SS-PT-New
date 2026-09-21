@@ -22,6 +22,28 @@ export const mockDns = (addresses) =>
 export const mockDnsFail = (message = 'ENOTFOUND') =>
   vi.spyOn(dnsModule.promises, 'lookup').mockRejectedValue(new Error(message));
 
+/** A DNS mock that NEVER settles — the hanging-resolver case the lookup budget must bound. */
+export const mockDnsHang = () =>
+  vi.spyOn(dnsModule.promises, 'lookup').mockImplementation(() => new Promise(() => {}));
+
+/**
+ * Like `streamResponse`, but records cancellation so a test can prove the body was RELEASED
+ * rather than merely abandoned. `ReadableStream.cancel()` invokes this underlying `cancel`,
+ * so `cancels` is evidence of the release, not of an intention to release.
+ */
+export function cancellableStreamResponse(chunks, { status = 200, headers = {} } = {}) {
+  const cancels = [];
+  let i = 0;
+  const body = new ReadableStream({
+    pull(controller) {
+      if (i < chunks.length) controller.enqueue(new Uint8Array(chunks[i++]));
+      else controller.close();
+    },
+    cancel(reason) { cancels.push(reason); },
+  });
+  return { ok: status >= 200 && status < 300, status, headers: new Headers(headers), body, cancels };
+}
+
 /** A real Response-shaped object whose body is a real stream, so the cap is exercised. */
 export function streamResponse(chunks, { status = 200, headers = {} } = {}) {
   let i = 0;

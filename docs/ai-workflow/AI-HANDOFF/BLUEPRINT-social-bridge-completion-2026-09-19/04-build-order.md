@@ -17,7 +17,11 @@ Two roots exist on this machine and they are **not** the same tree. Build in the
 | Root | Branch / HEAD | `apps/web/src/newsroom/` |
 |---|---|---|
 | `Desktop/@Everything/family-first-intelligence-command-center` | `main` @ `2666b49` | **does not exist** |
-| **`Desktop/@Everything/SwanGuard-Newsroom`** | **`merge/newsroom-mainline-v3` @ `d830bed`** | exists (`FeedLanes.tsx` 76, `StorySheet.tsx` 517) |
+| **`Desktop/@Everything/SwanGuard-Newsroom`** | **`merge/newsroom-mainline-v3` @ `1bd08d4`** | exists (`FeedLanes.tsx` 76, `StorySheet.tsx` 517) |
+
+> **Pin re-set 2026-09-20.** This row previously read `@ d830bed`. The branch has advanced 12 commits
+> and the remote `refs/heads/merge/newsroom-mainline-v3` is at `1bd08d4`, matching the worktree HEAD —
+> the push is confirmed complete. `d830bed` is retained here only as the superseded value.
 
 **S5 is built in `Desktop/@Everything/SwanGuard-Newsroom` on `merge/newsroom-mainline-v3`.**
 A builder who opens `main` will find no `FeedLanes.tsx`, no `apps/web/src/newsroom/` directory at
@@ -97,9 +101,16 @@ Missing, and each independently exploitable:
   resolved first, **every** returned address is checked (not just the first), and resolution failure
   fails **closed**.
 - **No credentials in the URL** ✅ — `https://allowed@evil.com` would otherwise read as `evil.com`.
-- **No redirect is followed** ✅ — `redirect: 'error'`. This is the decisive control: "validate every
-  redirect" is strictly weaker than following none, because the validated URL is then always the
-  connected URL, and the rebinding TOCTOU closes with it.
+- **No redirect is followed** ✅ — `redirect: 'error'`. This is the decisive control for the
+  **redirect** re-entry problem: "validate every redirect" is strictly weaker than following none.
+  **Corrected 2026-09-20 (hostile review D4 / F08):** this bullet previously continued *"…because the
+  validated URL is then always the connected URL, and the rebinding TOCTOU closes with it."* That
+  inference was **wrong** and is removed. `spotlightImageFetch.mjs` resolves DNS to validate
+  (`:91`), then calls `fetch` (`:127`), which **re-resolves independently** — so the validated
+  address is not necessarily the connected one. The module's own comment says so
+  (*"a check-time validation only, NOT a complete DNS-rebinding defence"*). A valid publisher HMAC
+  authenticates the **sender**, not the remote image server it names. **DNS rebinding remains an
+  open, accepted residual risk, not a closed one.**
 - **A streamed byte cap** ✅ — 5 MiB, enforced *while* reading; the reader is cancelled mid-stream. A
   declared `Content-Length` is treated as a claim, used only as an early exit.
 - **Reject SVG, polyglots, and animation** ✅ — by decoder inspection, not by content-type prefix. The
@@ -129,7 +140,7 @@ succeeding.** Adding a control must not turn an image failure into a 4xx/5xx on 
 | Existing file/surface | Authorized edit |
 |---|---|
 | `backend/core/middleware/index.mjs` | Preserve bridge raw-body exclusion; add only verified new mounts |
-| `backend/routes/bridge/bridgeIngestRoutes.mjs` | Extract shared application service without changing shipped HTTP contract. **The `rehostImage()` SSRF controls above are DONE** — the function now delegates to `spotlightImageFetch.mjs`. See `CORRECTIONS-APPLIED.md` §4 |
+| `backend/routes/bridge/bridgeIngestRoutes.mjs` | Extract shared application service without changing shipped HTTP contract. **The `rehostImage()` SSRF controls above are DONE** — the function now delegates to `spotlightImageFetch.mjs`. See `CORRECTIONS-APPLIED.md` §4. **Scoped 2026-09-20 (hostile review D4 / F08): "DONE" covers redirect rejection, the HTTPS-only rule, the streamed byte cap and SVG rejection. It does NOT cover DNS rebinding, which remains an open accepted residual risk.** |
 | `backend/routes/social/coachSignalRoutes.mjs` | Transactional quota and verified target handling; **no `sessionId`**. `postId` stays **nullable** — correction 3 superseded, see `05-slices.md` |
 | `frontend/src/components/Social/Spotlight/SpotlightRail.tsx` | Visibility/dismissal event adapter; no publisher details |
 | `apps/api/src/featureDispatchOwnerOperator.ts` | Prefix dispatch following verified owner pattern |

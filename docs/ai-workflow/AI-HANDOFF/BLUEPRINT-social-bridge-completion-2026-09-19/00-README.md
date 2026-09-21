@@ -2,7 +2,7 @@
 
 **Blueprint:** Social Bridge Completion — Studio Spotlight S5–S8
 **Package root:** `docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/`
-**Status:** ARCHITECTURE DECIDED · G0 CLOSED · CORRECTIONS 1–7 APPLIED · S5 BUILDABLE
+**Status:** ARCHITECTURE DECIDED · G0 **EVIDENCE SUPPLIED, NOT CLOSED** · CORRECTIONS 1–7 APPLIED (correction 3 superseded) · S5 BUILDABLE
 
 **Read in this order:** `CORRECTIONS-APPLIED.md` (what changed, and how each change was verified) →
 `G0-SOURCE-EXCERPTS.md` (source truth) → this file (contract and build order) → `05-slices.md`
@@ -17,16 +17,33 @@
 > Earlier drafts of this line named `BLUEPRINT-studio-spotlight-completion-2026-09-19/`. The package
 > directory on disk is `BLUEPRINT-social-bridge-completion-2026-09-19/`; that is the path above.
 
-**Status: ARCHITECTURE DECIDED; CORRECTIONS 1–7 APPLIED; G0 EXCERPTS SUPPLIED.**
+**Status: ARCHITECTURE DECIDED; CORRECTIONS 1–7 APPLIED; G0 EVIDENCE SUPPLIED — GATE NOT CLOSED.**
 
-Gate G0 is closed — `G0-SOURCE-EXCERPTS.md` supplies the six source excerpts that were missing.
-Corrections 1–7 from `VERIFICATION-NOTES.md` Part 4 are applied; the authoritative record of what
-changed and where is `CORRECTIONS-APPLIED.md`. The package is buildable.
+**Corrected 2026-09-20 (hostile review D5 / F09).** This section previously read *"Gate G0 is
+closed"*. That was **false**, and the contradiction was in this package's own files: `MANIFEST.md`
+admitted surviving `BLOCKED-G0` markers, `:71` below still demands that a G0 deliverable *"replaces
+every `BLOCKED-G0` entry"*, and `08-decision-density-self-test.md` lists **seven** rows marked
+*"Blocked G0"*. Six supplied excerpts are not the nine truth artifacts and not a zero-blocker
+criterion.
+
+**What is actually true, split so the two are not conflated:**
+
+| Gate | Question | State |
+|---|---|---|
+| **G0-evidence** | Have the source excerpts that were missing been supplied? | **PARTIAL.** `G0-SOURCE-EXCERPTS.md` supplies six; three artifacts remain unread and are listed in `04-build-order.md`'s integration-edit table. |
+| **G0-release** | May implementation proceed on every decision G0 was meant to license? | **NOT CLOSED.** Seven decisions remain `BLOCKED-G0`. |
+
+Corrections 1–7 from `VERIFICATION-NOTES.md` Part 4 are applied **except correction 3, which is
+superseded** (operator ruling 2026-09-19 — `postId` stays nullable; see `05-slices.md` §3). The
+authoritative record of what changed and where is `CORRECTIONS-APPLIED.md`. **S5 is buildable** —
+that is a separate claim from G0-release, and it is the one this package supports.
 
 #### Working root (Correction 2)
 
 Build S5 in **`Desktop/@Everything/SwanGuard-Newsroom`** on branch **`merge/newsroom-mainline-v3`**
-(HEAD `d830bed`) — **not** in `family-first-intelligence-command-center` on `main`, which has no
+(HEAD `1bd08d4`, re-pinned 2026-09-20; the earlier pin `d830bed` was 12 commits stale and the push
+that advanced it is confirmed complete on the remote) — **not** in
+`family-first-intelligence-command-center` on `main`, which has no
 `apps/web/src/newsroom/` directory at all. `SwanGuard-Newsroom` is a **linked git worktree**: `.git`
 there is a file, not a directory.
 
