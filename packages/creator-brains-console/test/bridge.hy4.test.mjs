@@ -81,6 +81,7 @@ import { startBridge, resolveStatic, hostAllowed } from '../server.mjs';
 import { tempRoot } from '../../../scripts/creator-brains/test/helpers.mjs';
 import { CH_ONE, CANARY_PHRASE, fixtureRoot, getJson, rawRequest } from './fixtures.mjs';
 import { assertNoTranscriptFields } from './leak-guard.mjs';
+import { escapes } from './path-containment.mjs';
 
 /* ── H3 · traversal, tested against a REAL webroot ───────────────────────── */
 
@@ -116,8 +117,19 @@ test('HY4-H3: static containment holds against a real document root', () => {
     const resolved = resolveStatic(path, dist);
     assert.notEqual(resolved, join(root, 'outside.txt'), `'${path}' escaped the root`);
     if (resolved !== null) {
+      // A COMPONENT-WISE CONTAINMENT TEST, NOT A PREFIX TEST (round 9). This read
+      // `resolved.startsWith(dist)`, which judges a SIBLING named `dist-evil` to be
+      // inside `dist` — R8-07's class, and the last member the round-9 sweep found in
+      // this package. The predicate is shared, not re-spelled, so the class has one
+      // named form rather than a copy per validator.
+      //
+      // THIS IS A PIN, AND IS LABELLED ONE. It cannot be mutation-proved: `resolveStatic`
+      // refuses such a sibling through its own separator-aware check, so this branch only
+      // ever runs for a path ALREADY inside `dist`, and reverting the line below is
+      // unobservable from here. What the predicate itself guarantees is pinned by
+      // R8-07a/R8-07b, which attack it directly.
       assert.ok(
-        resolved.startsWith(dist),
+        !escapes(dist, resolved),
         `'${path}' resolved outside the document root: ${resolved}`,
       );
     }

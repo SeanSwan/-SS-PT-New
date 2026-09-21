@@ -30,7 +30,8 @@ import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
-import { escapes, junction } from './store-attacks.mjs';
+import { escapes } from './path-containment.mjs';
+import { junction } from './store-attacks.mjs';
 import { tempRoot } from '../../../scripts/creator-brains/test/helpers.mjs';
 
 test('R8-07a: `escapes` is component-wise, in both directions', () => {

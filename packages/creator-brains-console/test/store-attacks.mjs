@@ -23,48 +23,18 @@
 
 import assert from 'node:assert/strict';
 import { mkdirSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
-import { isAbsolute, join, relative, sep } from 'node:path';
+import { join, relative } from 'node:path';
 
+import { escapes } from './path-containment.mjs';
 import { tempRoot } from '../../../scripts/creator-brains/test/helpers.mjs';
 
-/**
- * Does `target` lie OUTSIDE `root`, judged BY PATH COMPONENT (R8-07)?
- *
- * ── THE DEFECT THIS REPLACES, AND WHY IT SURVIVED A ROUND ────────────────────
- *
- * `junction()` proved its attack with `!real.toLowerCase().startsWith(realStore
- * .toLowerCase())` — the SAME string-prefix containment test R7-01 had removed from
- * `lib/containment.mjs` one round earlier. R7-01's fix was aimed at the guard; this
- * copy stood one file over, in the fixture validator, and round 8 found it there. That
- * is the sixth consecutive round in which "a fix aimed at a row is not a fix aimed at
- * a class" held, and it is why this predicate is now a named function with its own
- * tests rather than an expression inside an assertion.
- *
- * A prefix test is wrong in BOTH directions, and only the second one is quiet:
- *
- *   OVER-PERMISSIVE — `C:\store-evil` starts with `C:\store`, so a junction resolving
- *     to a SIBLING whose name merely begins with the store's name was judged INSIDE
- *     the store. The assertion then fires and reports "the attack was not
- *     constructed" against a junction that escaped perfectly well: a false alarm that
- *     reads as a broken fixture.
- *   OVER-REFUSING — a directory genuinely inside the store whose name begins with two
- *     dots (`..notes`) is not a parent component, and R7-01 recorded exactly this
- *     over-refusal as a defect. A guard that refuses legal input is a defect too.
- *
- * A parent component is exactly `..`, or `..` followed by a SEPARATOR. A longer name
- * that merely begins with two dots is an ordinary name and is inside. A `relative()`
- * result that is absolute means the two paths do not share a root at all, which is
- * also outside.
- *
- * IT IS DELIBERATELY NOT `lib/containment.mjs`'s `inside()`. Importing the production
- * guard would make this validator agree with the guard BY CONSTRUCTION, so a bug in
- * the guard would be invisible to the very test whose job is to notice it. The rule is
- * restated here from `node:path` primitives, independently.
- */
-export function escapes(root, target) {
-  const rel = relative(root, target);
-  return rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel);
-}
+/* `escapes()` — the component-wise containment predicate this harness proves its
+ * attacks with — MOVED TO `path-containment.mjs` (round 9). Its provenance, the R8-07
+ * defect it replaces, and why it is deliberately not production's `inside()`, are all
+ * recorded there. It moved because a second and unrelated validator needed the same
+ * predicate: a predicate about PATHS does not belong to a fixture about STORES, and
+ * importing this file to reach it would have coupled an HTTP-surface test to
+ * store-attack fixtures. One predicate, two importers. */
 
 /** A generation directory OUTSIDE the store, with content a leak would expose. */
 export function outsideGeneration(label) {
