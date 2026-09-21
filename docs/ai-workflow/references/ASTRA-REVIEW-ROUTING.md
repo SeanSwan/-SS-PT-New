@@ -98,7 +98,15 @@ files the review under Rule 86 and runs `reindex.mjs`. A review that is not file
 
 **Two packet lessons, both measured:**
 - **Inline any skill the remit names.** A dispatch refused because it could not find
-  `fable-blueprint-forge`; `.claude/skills/` is untracked, so a worktree never has it.
+  `fable-blueprint-forge`. **Corrected 2026-09-21:** this line used to continue "`.claude/skills/` is
+  untracked, so a worktree never has it", and **the second clause is false** — `git ls-files
+  .claude/skills` returns **70 tracked files**, and the path is not gitignored. The refusal was real;
+  the explanation was not. The mechanism that actually holds is narrower and worth stating precisely,
+  because the wrong version implies a whole directory is invisible to reviewers: a **specific skill is
+  missing from a given checkout**, because the skills tree is added to incrementally and a worktree
+  created before a skill landed does not have it. That is a property of *when the worktree was made*,
+  not of tracking. So the instruction below is unchanged — inline what the remit names — for a
+  different reason: you cannot assume the reviewer's checkout carries the skill you are relying on.
 - **Ban repository exploration in the packet.** One dispatch burned ~220,000 input tokens exploring
   a repo it did not need — a quarter of its input, for 741 output tokens and a refusal.
 
@@ -154,6 +162,18 @@ An unbounded Mega Blueprint call is a coin-flip on whether Astra answers at all.
 `node scripts/consult-astra-subscription.mjs ... --bounded`. Reserve the unbounded hunt for when you genuinely
 want her to find and upgrade the blueprints — that is what it is for, and it works, but budget
 ~9 minutes and expect timeouts.
+
+**And once `--bounded` is set, packet size BECOMES the lever — there is no contradiction.**
+`--bounded` removes the hunt, which is what dominated the unbounded cost. With exploration gone, what
+remains is the packet plus the artefacts it inlines, and that is the only term left to move.
+Measured across the packet sizes actually shipped in this repo (`wc -c` on
+`17-astra-mega-packet*.md`, rounds r1–r8): **340 KB → 247 KB → 435 KB → 565 KB → 599 KB → 619 KB
+→ 668 KB**. **The bounded runs kept completing, but the growth is
+one-directional and unbounded by design, so the operational rule is: **bound the scope first, then
+keep the packet as small as the remit allows** — and if a bounded run starts timing out, cutting the
+packet is the sanctioned move, not raising the timeout. Do not read the paragraph above as "packet
+size never matters"; it is "packet size is not the *first* lever", and the ordering is the whole
+point.
 
 **If a consult from this repo hangs, suspect the hunt scope first, then the packet.** Raising
 `--timeout-ms` is the operator's call, because 600 s is a standing cap.

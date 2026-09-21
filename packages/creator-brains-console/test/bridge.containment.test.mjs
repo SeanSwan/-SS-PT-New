@@ -25,7 +25,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 
 import { BRAIN_NS, getJson, getRaw, seedPublishedBrain, withFixture } from './fixtures.mjs';
@@ -37,13 +38,45 @@ const OUTSIDE = 'OUTSIDE-THE-BRAINS-STORE-MUST-NEVER-BE-SERVED';
  * A directory beside the store root, holding the three documents the route
  * reads. Sibling rather than child: a child would be inside `brainsDir` and
  * would prove nothing.
+ *
+ * UNIQUE AND SELF-CLEANING (round 9). This used to be
+ * `join(r, '..', `outside-${label}`, 'gen-0001')` — a CONSTANT name in the SYSTEM
+ * temp root. `withFixture` gave `r` a fresh `mkdtempSync` root and the exit reaper
+ * tracked it, but this directory is a SIBLING of `r`, so nothing ever reaped it and
+ * every run wrote to the same path.
+ *
+ * The consequence was the worst kind: three consecutive runs shared one directory, so a
+ * run could inherit another run's half-written state, and once it became unwritable the
+ * failure surfaced as `EPERM` inside `writeFileSync` — which reads as a broken fixture or
+ * a sandbox fault, not as this defect. Measured 2026-09-21: nine `outside-*` directories
+ * from a single run on 2026-09-20 01:23 were still on disk, and `T-B25b..e` failed with
+ * `EPERM ... \outside-t-b25b\gen-0001\index.md` while an ordinary temp write succeeded.
+ *
+ * `realpathSync` rather than the literal parent, so the returned path still names where
+ * the bytes really are when the system temp root is itself a link (Windows resolves
+ * `%TEMP%` through `AppData\Local`). The containment assertions compare REAL paths, so a
+ * lexical parent would be wrong for exactly the case this file exists to test.
  */
 function outsideBrain(r, label) {
-  const dir = join(r, '..', `outside-${label}`, 'gen-0001');
+  const owner = join(realpathSync(join(r, '..')), `outside-${label}-${randomUUID()}`);
+  const dir = join(owner, 'gen-0001');
   mkdirSync(dir, { recursive: true });
   for (const f of ['index.md', 'topics.md', 'timeline.md']) {
     writeFileSync(join(dir, f), `${OUTSIDE}\n`, 'utf8');
   }
+  // Reap `owner` — the directory this function CREATED, captured in a variable rather
+  // than re-derived. Re-deriving it as `join(dir, '..', '..')` was a real bug in the
+  // first draft of this fix: that walks up from `gen-0001` twice, which leaves the
+  // `outside-*` directory and lands on the TEMP ROOT ITSELF. Measured — a run with a
+  // private temp root deleted the root, and on a SHARED root the second run then failed
+  // all six tests because the root was gone. It would have deleted another session's
+  // temp files. Capturing the created path is exact; a relative walk is not.
+  //
+  // `r`'s own reaper cannot reach a sibling, so the creator owns the cleanup — and the
+  // label stays in the name so a leaked one is still identifiable by eye.
+  process.on('exit', () => {
+    try { rmSync(owner, { recursive: true, force: true }); } catch { /* best effort */ }
+  });
   return dir;
 }
 

@@ -62,7 +62,25 @@ const c = (...parts) => parts.join('');
  * they appear, key name irrelevant. Every row's sample is planted by selfTest().
  */
 const SECRET_SHAPES = [
-  [/sk-[A-Za-z0-9_-]{12,}/g, '<REDACTED-KEY>', c('sk-', 'CANARYCANARYCANARY123456')],
+  // THE `sk-` ROW NEEDS A LEFT BOUNDARY (round 9, over-refusal). Without one the
+  // alternative matched INSIDE ordinary English words, because `sk-` occurs as a
+  // word-junction in all of them:
+  //
+  //   ta[sk-]runner-identifier   ri[sk-]management-framework   di[sk-]usage-reporting
+  //
+  // Every one is 12+ word-characters after `sk-`, so the `{12,}` lower bound offered no
+  // protection at all — the bound counts the TAIL, and the tail of an English compound
+  // is long. A guard that refuses legal input is a defect in its own right (this loop
+  // has now found eight of them), and this one is worse than most: `redactForEgress` is
+  // the egress path, so a false positive SILENTLY ALTERS prose on its way to a vendor
+  // rather than raising an error anyone would see.
+  //
+  // `(?<![\w-])` forbids a preceding word-character OR HYPHEN. The hyphen matters: without
+  // it, `task-sk-abcdefghijklmnop1234` would fire, and a hyphen is exactly the character
+  // that makes a false positive read as a real key. A real key is preceded by
+  // start-of-string, whitespace, a quote, `=`, `(`, `:`, or a comma — none of which this
+  // lookbehind rejects. Verified both directions in `redact-egress.test.mjs`.
+  [/(?<![\w-])sk-[A-Za-z0-9_-]{12,}/g, '<REDACTED-KEY>', c('sk-', 'CANARYCANARYCANARY123456')],
   [/sk_(live|test)_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('sk_', 'live_', 'CANARY0123456789')],
   [/rk_live_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('rk_', 'live_', 'CANARY0123456789')],
   [/whsec_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('whsec', '_CANARY0123456789')],

@@ -136,6 +136,52 @@ if (HOST && HOST.length >= 3) {
   ok('ordinary prose / timestamps / SHAs / line refs untouched', text === prose, text);
 }
 
+// --- ROUND 9: the `sk-` row must not match INSIDE an English word ---
+//
+// The over-refusal was silent rather than loud: `redactForEgress` is the egress
+// path, so a false positive rewrites prose on its way to a vendor instead of
+// raising anything. All four below are real compounds whose spelling contains
+// `sk-` at a word junction, and every one has 12+ word-characters after it — the
+// `{12,}` bound counts the TAIL, so it offered no protection.
+{
+  const words = [
+    ['task-runner-identifier', 'ta'],
+    ['risk-management-framework', 'ri'],
+    ['disk-usage-reporting', 'di'],
+    ['task_run_identifier', 'ta'],
+    ['risk_assessment', 'ri'],
+    ['desk-organizer', 'de'],
+  ];
+  for (const [word, prefix] of words) {
+    const sentence = `the ${word} is documented in ${word}.md`;
+    const { text } = redactForEgress(sentence);
+    ok(`sk- row does not fire inside '${word}'`, text === sentence, text);
+  }
+}
+
+// --- ROUND 9: ...and it must STILL catch a real key, at every real boundary ---
+//
+// The complement of the block above. A boundary that fixed the false positives by
+// weakening the match would be a worse bug than the one it replaced, so the
+// contexts a key genuinely appears in are pinned explicitly.
+{
+  const contexts = [
+    ['env assignment', 'API_KEY=sk-abcdefghijklmnop1234567890'],
+    ['quoted', '"sk-abcdefghijklmnop1234"'],
+    ['parenthesised', 'see (sk-abcdefghijklmnop1234)'],
+    ['start of string', 'sk-abcdefghijklmnop1234 is the key'],
+    ['after a comma', 'keys: a, sk-abcdefghijklmnop1234'],
+    ['in JSON', '{"key":"sk-abcdefghijklmnop1234"}'],
+  ];
+  for (const [name, input] of contexts) {
+    const { text } = redactForEgress(input);
+    ok(`sk- row still catches a real key: ${name}`, text.includes('<REDACTED-KEY>') && !text.includes('sk-abcdef'), text);
+  }
+  // The hyphen lookbehind: a hyphen BEFORE `sk-` makes it a compound, not a key.
+  const { text: hyphen } = redactForEgress('prefix-sk-abcdefghijklmnop1234');
+  ok('sk- row does not fire after a hyphen (compound, not key)', !hyphen.includes('<REDACTED-KEY>'), hyphen);
+}
+
 // --- reporting: hits are surfaced, not swallowed ---
 {
   const { hits } = redactForEgress('/home/' + USER + '/a and sk-zzzzzzzzzzzzzzzz');
