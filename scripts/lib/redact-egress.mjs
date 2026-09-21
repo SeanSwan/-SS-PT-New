@@ -50,62 +50,11 @@ export { armTrainingTierEgress, assertTrainingTierArmed, isTrainingTierModel, tr
 export { assertAstraResellerDoubleArmed, astraResellerGateState, isAstraSubscriptionModel }
   from './astra-reseller-gate.mjs';
 
-/**
- * Canary samples are assembled from parts so this source file never contains a
- * literal key-shaped string: the pre-commit secret scanner (rightly) cannot tell
- * a canary from a leak, and an allowlist for this file would be a bigger hole.
- */
-const c = (...parts) => parts.join('');
-
-/**
- * Secret-shaped values: [regex, replacement, canary sample]. Redacted wherever
- * they appear, key name irrelevant. Every row's sample is planted by selfTest().
- */
-const SECRET_SHAPES = [
-  // THE `sk-` ROW NEEDS A LEFT BOUNDARY (round 9, over-refusal). Without one the
-  // alternative matched INSIDE ordinary English words, because `sk-` occurs as a
-  // word-junction in all of them:
-  //
-  //   ta[sk-]runner-identifier   ri[sk-]management-framework   di[sk-]usage-reporting
-  //
-  // Every one is 12+ word-characters after `sk-`, so the `{12,}` lower bound offered no
-  // protection at all — the bound counts the TAIL, and the tail of an English compound
-  // is long. A guard that refuses legal input is a defect in its own right (this loop
-  // has now found eight of them), and this one is worse than most: `redactForEgress` is
-  // the egress path, so a false positive SILENTLY ALTERS prose on its way to a vendor
-  // rather than raising an error anyone would see.
-  //
-  // `(?<![\w-])` forbids a preceding word-character OR HYPHEN. The hyphen matters: without
-  // it, `task-sk-abcdefghijklmnop1234` would fire, and a hyphen is exactly the character
-  // that makes a false positive read as a real key. A real key is preceded by
-  // start-of-string, whitespace, a quote, `=`, `(`, `:`, or a comma — none of which this
-  // lookbehind rejects. Verified both directions in `redact-egress.test.mjs`.
-  [/(?<![\w-])sk-[A-Za-z0-9_-]{12,}/g, '<REDACTED-KEY>', c('sk-', 'CANARYCANARYCANARY123456')],
-  [/sk_(live|test)_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('sk_', 'live_', 'CANARY0123456789')],
-  [/rk_live_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('rk_', 'live_', 'CANARY0123456789')],
-  [/whsec_[A-Za-z0-9]{8,}/g, '<REDACTED-KEY>', c('whsec', '_CANARY0123456789')],
-  [/xoxb-[A-Za-z0-9-]{8,}/g, '<REDACTED-KEY>', c('xoxb', '-CANARY-0123456789')],
-  [/AIza[A-Za-z0-9_-]{20,}/g, '<REDACTED-KEY>', 'AIzaCANARYCANARYCANARY0123456789'],
-  [/rnd_[A-Za-z0-9_-]{16,}/g, '<REDACTED-KEY>', 'rnd_CANARYCANARYCANARY0123'],
-  [/gh[pousr]_[A-Za-z0-9]{20,}/g, '<REDACTED-KEY>', 'ghp_CANARYCANARYCANARY0123456789'],
-  [/github_pat_[A-Za-z0-9_]{20,}/g, '<REDACTED-KEY>', 'github_pat_CANARYCANARYCANARY0123'],
-  [/SG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}/g, '<REDACTED-KEY>', 'SG.CANARYCANARYCANARY01.CANARYCANARYCANARY02'],
-  [/lin_api_[A-Za-z0-9]{20,}/g, '<REDACTED-KEY>', 'lin_api_CANARYCANARYCANARY0123'],
-  [/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g, '<REDACTED-JWT>', 'eyJCANARYCANARY.eyJCANARYCANARY.CANARY'],
-  [/Bearer\s+[A-Za-z0-9._~+/=-]{16,}/gi, 'Bearer <REDACTED-KEY>', 'Bearer CANARYCANARYCANARY0123'],
-  [/\b\d{8,}:[A-Za-z0-9_-]{30,}\b/g, '<REDACTED-BOT-TOKEN>', '12345678:CANARYCANARYCANARYCANARYCANARY01'],
-  [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, '<REDACTED-PEM>',
-    '-----BEGIN PRIVATE KEY-----\nCANARY\n-----END PRIVATE KEY-----'],
-  [/(?:postgres(?:ql)?|redis|rediss|mongodb(?:\+srv)?|mysql|amqps?):\/\/[^\s"'<>]+/gi, '<REDACTED-DB-URL>',
-    c('postgresql:', '//canary:canary@canary.invalid:5432/canary')],
-  [/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi, '<REDACTED-EMAIL>', 'canary@canary.invalid'],
-  [/\(?\b\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b/g, '<REDACTED-PHONE>', '(555) 000-0199'],
-  // Rule 47 numeric IDs (Telegram chat_id etc): keyed at 7+ digits, bare only
-  // at 10+ so all-digit 9-char commit SHAs and 20260826T… timestamps survive.
-  [/\b(chat_id|chat|user_id|from_id|owner_id|telegram_id|id)(\s*[=:]\s*)-?\d{7,}\b/gi, '$1$2<REDACTED-ID>', 'chat_id=1234567'],
-  [/(?<![\w.-])-?\d{10,}(?![\w.-])/g, '<REDACTED-ID>', '9876543210'],
-];
-
+// The secret-shape table lives in its own module as of round 9b: this file crossed
+// the 300-line cap (Rule 4) when the `sk-` row gained the boundary it needed. The
+// table is pure data; callers still import the egress control from HERE, so the
+// public surface is unchanged. See `secret-shapes.mjs` for the `sk-` boundary record.
+import { SECRET_SHAPES } from './secret-shapes.mjs';
 /** Names that are also ordinary words: redact with boundaries instead of corrupting prose. */
 const COMMON_WORD_NAMES = new Set([
   'admin', 'administrator', 'user', 'users', 'root', 'dev', 'developer', 'test', 'guest',
