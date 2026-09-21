@@ -1,46 +1,163 @@
-# AGENTS.md - Codex Operating Mirror for SwanStudios
+# CODEBUDDY.md - WorkBuddy Operating Mirror for SwanStudios
 
-This is Codex's project-instruction file for the SwanStudios repo. It intentionally mirrors `CLAUDE.md` so Codex follows the same project standards Sean established for Claude.
+This is the **WorkBuddy** surface's project-instruction file for the SwanStudios repo.
+It intentionally mirrors `CLAUDE.md` so WorkBuddy follows the same project standards
+Sean established for Claude.
 
-## Codex Adapter Notes
+## Why this file exists
 
-- Treat this file as the Codex equivalent of `CLAUDE.md`.
+Claude reads `CLAUDE.md`. Codex reads `AGENTS.md`. WorkBuddy reads **`CODEBUDDY.md`**.
+Until 2026-09-19 no `CODEBUDDY.md` existed, so WorkBuddy was silently falling back to
+`AGENTS.md` — it worked, but it was riding Codex's adapter and nobody had written down
+which file the WorkBuddy seat actually owns.
+
+## Memory precedence — read this before editing
+
+WorkBuddy's documented load order is:
+
+1. User memory `~/.codebuddy/CODEBUDDY.md`
+2. User rules `~/.codebuddy/rules/*.md`
+3. Project memory — **`CODEBUDDY.md` if present, otherwise `AGENTS.md`**
+4. Project rules `.codebuddy/rules/*.md`
+5. Project local memory `CODEBUDDY.local.md`
+
+**Consequence:** the moment this file exists it *displaces* `AGENTS.md` as the WorkBuddy
+seat's project memory. That is intended — this file carries the same body — but it means
+**any WorkBuddy-specific instruction must live here, not in `AGENTS.md`**, or WorkBuddy
+will stop seeing it. Source: `app.asar.unpacked/cli/dist/web-ui/docs/en/cli/memory.md`.
+
+## WorkBuddy Adapter Notes
+
+- Treat this file as the WorkBuddy equivalent of `CLAUDE.md`.
 - The detailed project rules below are copied from the current `CLAUDE.md` source of truth.
-- Wherever the mirrored text says "Claude must", "Claude MUST", or otherwise assigns an agent obligation to Claude, Codex must apply that obligation to itself unless the sentence is explicitly historical, names a file/path, or describes Claude's new hostile-review role.
-- Dual-summary rule for Codex: for any substantial user-facing summary, closeout, review result, architecture explanation, or "what changed" answer, provide `Plain-English Summary` first and `Technical Summary` second unless Sean explicitly asks for only one.
-- Review-chain roles (Rule 46 as amended 2026-06-10): whoever builds, Gemini reviews, Codex runs the hostile review as MANDATORY INPUT, and **Fable (claude-fable-5) is the Final Decider and commit gate** (fallback: next best Claude model). Codex's verdict is advisory to the Final Decider, never the gate itself. `docs/ai-workflow/AI-HANDOFF/CODEX-PRIMARY-BUILDER-HANDOFF-2026-05-05.md` describes the Codex-led build lane inside this chain.
-- Mirror maintenance: the body below the mirror marker is REGENERATED, never hand-edited — `node scripts/sync-agents-mirror.mjs` (add `--check` to verify without writing). Hand edits below the marker will be overwritten on the next sync.
+- Wherever the mirrored text says "Claude must", "Claude MUST", or otherwise assigns an agent
+  obligation to Claude, WorkBuddy must apply that obligation to itself unless the sentence is
+  explicitly historical, names a file/path, or describes Claude's specific hostile-review role.
+- Dual-summary rule (inherited from the Codex adapter, same human): for any substantial
+  user-facing summary, closeout, review result, architecture explanation, or "what changed"
+  answer, give `Plain-English Summary` first and `Technical Summary` second unless Sean
+  explicitly asks for only one.
+- Review-chain roles (Rule 46 as amended 2026-06-10): whoever builds, Gemini reviews, Codex runs
+  the hostile review as MANDATORY INPUT, and **Fable (claude-fable-5) is the Final Decider and
+  commit gate** (fallback: next best Claude model). Codex's verdict is advisory to the Final
+  Decider, never the gate itself. **Astra is a review/adjudication seat, never a builder seat** —
+  see the Astra section below.
+- Mirror maintenance: the body below the mirror marker is REGENERATED, never hand-edited —
+  `node scripts/sync-agents-mirror.mjs` (add `--check` to verify without writing). Hand edits
+  below the marker will be overwritten on the next sync.
 - Do not push to `main` without Sean's explicit approval. Render auto-deploys from `main`.
-- **OpenCode adapter note (added 2026-09-18):** this file is ALSO the rule source for the **OpenCode** seat, because OpenCode reads `AGENTS.md` in preference to `CLAUDE.md`. Apply the same substitution rule as above: wherever the text says "Codex" or "Claude", the OpenCode seat applies that obligation to itself, except where the sentence is explicitly historical, names a file/path, or describes that agent's specific review role. The OpenCode seat contract (startup order, lane registration, skill map, model lane, known gaps) lives at `.opencode/SEAT.md`. Two Codex-only adapter lines do NOT bind OpenCode: the `mirror maintenance` command immediately above, and the Codex dual-summary rule.
 
-# Codex Startup Instructions - SwanStudios Continuity Bridge
+## Astra routing — subscription first, OpenRouter double-gated (2026-09-19)
 
-Applies to this Codex surface when working in the SwanStudios repo.
+**Default route: Astra is reached through the ChatGPT subscription, not OpenRouter.**
 
-At session start, after loading normal Codex instructions and before exploring the task:
+Sean, 2026-09-19: *"if we're ever calling Astra, it's no longer going to be via OpenRouter.
+We are not paying no money to call Astra now because we have subscription."*
+
+…refined the same session, after the measurement below surfaced:
+
+> *"we do not need to block it but it needs to be double gated so we have to stop and confirm
+> once then stop confirm again"*
+
+So this is **not** a hard block — the pro tier stays reachable — but it cannot be reached by
+accident. The control sits at the egress chokepoint, not in prose; prose rules in this repo
+have been violated four times in one session after being written up.
+
+### The default transport (free)
+
+```bash
+node scripts/consult-astra-subscription.mjs --document <packet.md> [--out <path>]
+```
+
+Runs `codex exec` against the ChatGPT subscription. `codex login status` must report
+`Logged in using ChatGPT`. No `OPENROUTER_API_KEY` is read, and there is no metered fallback.
+
+### The OpenRouter path (double-gated, bills money)
+
+Enforced by `scripts/lib/astra-reseller-gate.mjs`, wired into `fetchForEgress` so every
+consult script inherits it. Two independent tokens, surfaced as two sequential stops:
+
+| Stage | Condition | Result |
+|---|---|---|
+| Gate 1 | `SWAN_ASTRA_RESELLER_ACK=1` | without it: **STOP 1 of 2** — names the free route |
+| Gate 2 | `SWAN_ASTRA_RESELLER_CONFIRM=1` | with gate 1 only: **STOP 2 of 2** — states the $10/M in, $50/M out bill |
+| — | both set | the call is sent |
+
+Only an exact `1` arms a gate. Two keys rather than one because a single acknowledgement
+flag becomes muscle memory — typed once and then carried in a shell for a week.
+
+### Measured 2026-09-19 — the two tiers do NOT behave alike
+
+| Model id | Via OpenRouter | Via Codex CLI on the ChatGPT subscription |
+|---|---|---|
+| `gpt-6-astra` | `openai/gpt-6-astra` — billed per token | **WORKS.** Probe returned `ASTRA-PROBE-OK`. End-to-end consult completed in 13.9s, $0. |
+| `gpt-6-astra-pro` | `openai/gpt-6-astra-pro` — billed per token | **REFUSED.** HTTP 400: *"The 'gpt-6-astra-pro' model is not supported when using Codex with a ChatGPT account."* |
+
+**This is why the gate is a gate and not a block:** blocking OpenRouter Astra would delete the
+pro tier rather than route it. Do not assume "Astra" and "Astra Pro" are interchangeable, and
+do not silently substitute one for the other. `consult-astra-subscription.mjs` refuses `-pro`
+up front rather than spending a round-trip to be told the same thing by the API.
+
+### Context cost, before you dispatch
+
+`codex exec` is an **agent**, not a bare completion — it loads this repo's instruction files
+and its skill index on every call. A one-line probe measured **34,596 input tokens for an
+11-token reply**; a real consult measured **35,113 in / 50 out**. The marginal cost is $0 on
+the subscription, but the context is real, and `codex exec` reports when it has had to shorten
+skill descriptions to fit its budget.
+
+### What this supersedes
+
+- `~/.codex/ASTRA.md` §2 states *"The Astra leg has no consult script."* That is now stale —
+  `scripts/consult-astra-subscription.mjs` is that script.
+- `~/.claude/ROUTING.md` lists Astra under "Not reachable". That table predates this route.
+  Those files are Sean-owned decision records — flag them for update, do not silently rewrite.
+- `consult-astra-pro.mjs` and `consult-astra-multihost.mjs` still target `openai/gpt-6-astra-pro`
+  via OpenRouter. They now stop at gate 1 until armed — that is intended, not a break.
+
+### Do not confuse this with the rejected gateway
+
+`~/.claude/ASTRA-GATEWAY.md` describes the third-party `model-gateway` plugin, which was
+**rejected 2026-09-15** and is **not installed** (verified 2026-09-19: no
+`~/.claude/model-gateway/`, no `ANTHROPIC_BASE_URL`). That decision is untouched by this
+route — the Codex CLI transport does not point `ANTHROPIC_BASE_URL` at a third-party proxy.
+
+## WorkBuddy Startup Instructions - SwanStudios Continuity Bridge
+
+Applies to this WorkBuddy surface when working in the SwanStudios repo.
+
+At session start, after loading normal instructions and before exploring the task:
 
 1. Read these continuity files if they exist:
    - `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md`
    - `.ai-workflow/continuity/rolling-last-done.md`
    - `docs/ai-workflow/AI-HANDOFF/CONTINUITY-GOOD-IDEAS.md`
 
-2. Run `bash scripts/continuity-promotions.sh --count` from the repo root. If the count is greater than 0, mention the backlog once in the session opening: `N pending promotion markers - review via scripts/continuity-promotions.sh`.
+2. Read `.workbuddy-ai/memory/MEMORY.md` (the WorkBuddy seat's own index) and
+   `.workbuddy-ai/memory/REFERENCE.md` for the subsystem you are entering. Daily logs are
+   `.workbuddy-ai/memory/YYYY-MM-DD.md`.
 
-3. Only append a continuity closeout when Sean explicitly says `log this and close` or `session closeout`. Never auto-append because the agent thinks the task is done.
+3. Run `bash scripts/continuity-promotions.sh --count` from the repo root. If the count is
+   greater than 0, mention the backlog once in the session opening:
+   `N pending promotion markers - review via scripts/continuity-promotions.sh`.
 
-4. For a `vs-codex` closeout, use `SWAN_AGENT_SURFACE=vs-codex` and run:
-   `node scripts/continuity-append.mjs --topic "..." --outcome "..." [--files "a,b,c"] [--notes "..."]`
+4. Only append a continuity closeout when Sean explicitly says `log this and close` or
+   `session closeout`. Never auto-append because the agent thinks the task is done.
 
-5. If `scripts/continuity-config.json` still contains `<TODO_FILL_BEFORE_USE...>` placeholders, the append script must fail closed. Do not bypass that failure; ask Sean for the missing Tailscale/Pi values.
-
-6. **Live Pair-Coding Coordination Ledger (Rule 67, 2026-06-13 — MANDATORY while any other agent runs in parallel).** Other agents share this working tree in real time. At session start run **`node scripts/lane.mjs digest`** — it prints **you** (your own resolved lane file), every seat holding a lock **right now**, and the stale count — then read `.ai-workflow/coordination/review-queue.md` (open hostile-review requests for you). **Never enumerate lane files by name:** seats are named per-session (`claude.lane.md`, `workbuddy.lane.md`, `vs-claude--main-<hash>.lane.md`, …), so a hardcoded list silently misses live seats. Proven miss, 2026-09-20: the old text named `claude.lane.md` + `codex.lane.md`; the seat actually holding a lock on `backend/routes/bridge/bridgeIngestRoutes.mjs` was `workbuddy.lane.md`, a third name the list never mentioned. Then, **for the whole session:**
-   - **Read-before-edit:** before editing ANY file, re-run `node scripts/lane.mjs digest`; if your target file is under any seat's **🔒 EDITING NOW**, do NOT edit it — pick another file, queue a review request, or ask Sean.
-   - **Claim/release:** overwrite **your own** lane file — the exact path `digest` prints on its `me:` line (status, 🔒 EDITING NOW exact files, ISO `Updated:` stamp) — when you start a slice; clear it when done. Never write another seat's lane file.
-   - **Commit safety:** no `git add -A` while Claude has any file locked; stage explicit paths. You coordinate commit timing on shared slices.
-   - **Mutual hostile review (Sean's #1 ask):** when you finish a substantial slice, append a review request to `review-queue.md`; when Claude requests a review of its work, pick it up and write back APPROVE/REVISE/REJECT + findings (rule 17 + rule 41 + the HANDOFF-PROTOCOL Business-Logic Audit).
-   - **Lanes:** Codex owns the storefront purchase path + Coach Command Center + Social; Claude owns admin product/catalog UI + money-path safety tests + cross-cutting infra; `adminPackageRoutes.mjs`, `CLAUDE.md`/`AGENTS.md`, and the coordination dir are SHARED — coordinate. Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
-
-Full spec: `docs/ai-workflow/AI-HANDOFF/CONTINUITY-BRIDGE-PHASE-B-DEBATE-2026-04-22.md`.
+5. **Live Pair-Coding Coordination Ledger (Rule 67 — MANDATORY while other agents run in
+   parallel).** This tree is shared in real time. At session start run
+   **`node scripts/lane.mjs digest`** — it prints **you** (your own resolved lane file),
+   every seat holding a lock **right now**, and the stale count — then read
+   `.ai-workflow/coordination/review-queue.md`. **Never enumerate lane files by name:**
+   seats are named per-session (`claude.lane.md`, `workbuddy.lane.md`,
+   `vs-claude--main-<hash>.lane.md`, …), so a hardcoded list silently misses live seats.
+   Proven miss, 2026-09-20: the old text named `claude.lane.md` + `codex.lane.md`; the seat
+   actually holding a lock on `backend/routes/bridge/bridgeIngestRoutes.mjs` was
+   `workbuddy.lane.md`, a third name the list never mentioned.
+   For the whole session: **read-before-edit** (re-run the digest; if your target is under
+   any seat's EDITING NOW, do not edit it), **claim/release** in your own lane file,
+   and **never `git add -A`** while another seat holds locks. Full spec:
+   `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
 
 --- project-doc mirror from CLAUDE.md ---
 

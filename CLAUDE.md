@@ -6,7 +6,7 @@ SwanStudios (SS-PT): Production personal training SaaS on Render (sswanstudios.c
 - **Theme:** Enchanted Apex: Crystalline Swan (dark-first, frozen enchanted forest + deep-ocean luxury vault)
 - **RETIRED:** Galaxy-Swan theme (`#0a0a1a`, `#00FFFF`, `#7851A9`) — do NOT use
 
-- **⚠ PARALLEL AI CODING (active 2026-06-13 → ~Fable-5 return):** You may NOT be the only agent in this tree. **Claude and Codex code this SAME working tree at the same time.** Before editing ANY file you MUST follow **Rule 67** — read the other agent's lane in `.ai-workflow/coordination/` first (read-before-edit), claim your files in your own lane, and never `git add -A` while the other has files locked. A fresh session re-enters cheaply by reading the two tiny lane files + `review-queue.md`. You are not alone — coordinate. Spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
+- **⚠ PARALLEL AI CODING (active 2026-06-13 → ~Fable-5 return):** You may NOT be the only agent in this tree. **Multiple agents — Claude, Codex, OpenCode, WorkBuddy, GLM — code this SAME working tree at the same time.** Before editing ANY file you MUST follow **Rule 67** — run **`node scripts/lane.mjs digest`** first (read-before-edit), claim your files in your own lane file, and never `git add -A` while another seat has files locked. A fresh session re-enters cheaply: that one command prints you plus every live lock. **Never enumerate lane files by name** — seats are per-session, so a fixed list silently misses live seats. You are not alone — coordinate. Spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
 
 - **Priority:** SwanStudios production work is the default priority. Side projects, internal experiments, and non-SwanStudios plans are out of scope unless Sean explicitly names them. Hermes (Sean's internal Pi+Telegram operator bridge) is in scope only when Sean explicitly connects it to SwanStudios operator/coding/continuity work or names it as the active task. Do not blur public in-app Swan Coach with Sean-only Hermes Operator Mode — see `docs/ai-workflow/references/HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md`.
 
@@ -87,6 +87,45 @@ Trivial polish tasks may bypass formal planning overhead using judgment, but sur
 ## Prompt Reconstruction + Hostile Review Protocol
 Before creating anything substantial (docs, specs, plans, code slices): reconstruct the goal, audit the prompt, identify weak assumptions, improve the prompt/plan, execute the improved version, prove completion with evidence. Give the why; say what NOT to do; act when enough information exists; say less where possible; never reveal or request private reasoning.
 Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW-PROTOCOL.md`.
+
+## Astra Routing + Mega Blueprint (added 2026-09-19)
+
+> ### SEAT AVAILABILITY — read this before telling Sean a model is unavailable
+>
+> - **Astra `gpt-6-astra` @ `xhigh` — AVAILABLE AND FREE.** Sean's ChatGPT/Codex subscription,
+>   **$0 additional spend.** Never treat it as gated. Exact invocation, the `--effort xhigh` trap,
+>   the banned metered routes, the Codex-desktop-task limits and the packet lessons:
+>   **`docs/ai-workflow/references/ASTRA-REVIEW-ROUTING.md`** (Sean's explicit instruction,
+>   2026-09-20). That doc governs; the older `ROUTING.md` paid route does not override it.
+> - **GLM 5.3 / 5.3-Flash — AVAILABLE on the Z.ai subscription** (GLM Coding Plan). Routes
+>   **DIRECT to Z.ai, NEVER OpenRouter** — enforced in code (`scripts/lib/redact-egress.mjs`
+>   refuses any `z-ai/*` model addressed to an OpenRouter host). Use
+>   `node scripts/consult-glm.mjs --document <path> --model glm-5.3 --max-tokens 8000`.
+>   Serialises behind a single call lock — **retry when held, never seize** (Rule 67 R5).
+>   Never set `SWAN_GROK_MODEL=z-ai/...`.
+> - **DeepSeek V4.1 Flash — the ONLY metered-API seat, `$5/month` HARD CAP.** Advisory and
+>   experimental only, **never authoritative**, never in a Rule 46 / Mega Blueprints review chain,
+>   not a fusion-tier seat, **no auto-retry**. There is **no in-repo `consult-deepseek.mjs`**.
+>   Its harness is dev-preview and **mutates shared Codex config — do not route it through the
+>   Codex seat.** Off-peak scheduling and the 50× cache-hit rule apply.
+> - **OpenRouter — episodic hostile-review escalation ONLY**, per-token, **Rule 16
+>   `--confirm-spend` on every run.** Never for Astra, never for GLM.
+>   `consult-panel.mjs --seats` is **unsupported** (it hard-codes 34,000 tokens per seat).
+>
+> **Canonical stack, costs, caps, task-routing diagram and the watchlist:
+> `docs/ai-workflow/references/PROVIDER-SUBSCRIPTION-ROUTING.md`.** The Astra doc above is the
+> operational detail for that one seat and does not supersede it.
+
+**The default Astra route is the ChatGPT subscription, not OpenRouter.** `gpt-6-astra` is served on the subscription through the Codex CLI transport at $0 (`scripts/consult-astra-subscription.mjs`). `gpt-6-astra-pro` is REFUSED on that transport (HTTP 400, "not supported when using Codex with a ChatGPT account"); the pro tier is reachable only through the OpenRouter path, which is double-gated on spend. Do not treat the two tiers as interchangeable.
+
+**Mega Blueprint is mandatory on every Astra call.** Print the keyword **Mega Blueprint** once - in `--remit` or anywhere in the packet - and the pipeline arms automatically. The banner prints once; then Astra must (1) emit UPDATED blueprints, wireframes, flowcharts, mermaid diagrams, tests and other docs, not descriptions of them, declaring `N/A - <reason>` only where the work genuinely has no surface; (2) hostile-review the EXISTING blueprints (A1) *and* its own draft (A2), one pass, for extra hardening; (3) emit a decision-density self-test. The reply is the PART A / PART B / PART C contract carrying nine `### NN-*.md` documents.
+
+```bash
+node scripts/consult-astra-subscription.mjs --document <packet.md> --remit "Mega Blueprint ..." --out <reply.md>
+node scripts/split-astra-blueprint.mjs --in <reply.md> --out-dir <dir> --mega-blueprint
+```
+
+`--mega-blueprint` forces it on, `--no-mega-blueprint` forces it off, `--dry-run` proves the mandate reached the prompt without spending a call. Exit codes are DISTINCT so a caller can act on them: `0` ok, `2` blocked (auth/transport), `3` incomplete (retry is meaningful), `4` usage, `5` contract (dry-run: mandate absent), `6` input (fix the path), `7` internal. **Do not retry a 4 or a 6.** Every hostile review a Mega Blueprint call produces is filed under Rule 86.
 
 ## MANDATORY Rules (Apply to ALL Tasks)
 1. **No Material-UI** — styled-components only with CSS custom properties + dark-theme fallbacks
@@ -531,7 +570,7 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
     **Why:** Sean's words 2026-06-11 — "I want every prompt I give to be the best that it could possibly be," with the AI telling SIMPLE apart from "an idea I'm trying to bring into reality," enhancing silently for least clicks / least tokens. Full procedure: `.claude/skills/prompt-watcher/SKILL.md`.
 
 67. **Live Pair-Coding Coordination (MANDATORY while Claude + Codex run in parallel)** — Established 2026-06-13 by Sean. Claude and Codex code the SAME working tree at the same time; without a live channel they collide (a commit once swept in 63 of the other agent's WIP files). The fix is a **Live Coordination Ledger** of gitignored, same-machine files at `.ai-workflow/coordination/` — both agents share Sean's filesystem, so they see each other instantly with zero git churn. (Gitignored on purpose: a committed "editing now" file would itself cause merge conflicts.) This is the real-time, 2-agent layer on top of the cross-session continuity bridge (`.ai-workflow/continuity/`) and the per-phase debate files; it does not replace them.
-    - **Session start:** read `claude.lane.md` + `codex.lane.md` + `review-queue.md`; run `node scripts/coordination-prune.mjs`.
+    - **Session start:** run `node scripts/lane.mjs digest` — it prints **you** (your own resolved lane file), every seat holding a lock **right now**, and the stale count. Then read `review-queue.md` for open review requests. **Do NOT look for a fixed filename.** Seats are named per-session — `claude.lane.md`, `workbuddy.lane.md`, `vs-claude--main-<hash>.lane.md`, … — so any hardcoded filename list silently misses live seats. Proven miss, 2026-09-20: an agent following this rule's old text (`claude.lane.md` + `codex.lane.md`) would have read both, seen no conflict, and edited `backend/routes/bridge/bridgeIngestRoutes.mjs` — which was locked by the `workbuddy` seat, a third name the list never mentioned. `digest` is the only discovery path that cannot rot.
     - **R1 read-before-edit:** before editing ANY file, read the other agent's lane; if your target is in their **🔒 EDITING NOW**, don't edit it — pick another, queue a review request, or ask Sean.
     - **R2/R3 claim/release:** overwrite your OWN `*.lane.md` (status, 🔒 EDITING NOW, timestamp) when you start a slice; clear it when done. Never write the other agent's lane file.
     - **R5 staleness:** a lane `Updated:` > 30 min old + still `in-progress` may be abandoned — flag to Sean, don't silently seize.
@@ -594,7 +633,31 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
 
     **The escape hatch is honesty, not silence:** if the work genuinely cannot be proven in-session (e.g. a live authenticated browser journey needs a backend that won't run here), the agent DISCLOSES the gap explicitly (what could not be proven, why, and what lower-tier evidence stands in — as done in the SwanGuard audit's "browser-journey LIMITATION" section) and does NOT claim done for the unproven part. Partial proof → partial, scoped claim only (Rule 28 Claim-to-Evidence Lock).
 
-    **Closeout enforcement:** this rule is enforced at the `closeout-evidence-lock` gate (Rule 41) — closeout must refuse to emit a completion claim that lacks proof + a clean hostile pass, and must print the proof + the dry-pass round count. **Why:** Sean has burned countless hours catching "done" claims that weren't. The fix is structural: proof and an adversarial dry-loop are the price of the word "done." No proof, no done.
+    **Closeout enforcement:** this rule is enforced at the `closeout-evidence-lock` gate (Rule 41) — closeout must refuse to emit a completion claim that lacks proof + a clean hostile pass, and must print the proof + the dry-pass round count. **This gate is amended by Rule 86: the hostile pass it demands must cite a filed `review_id`.** A pass with no filed review is not a pass. **Why:** Sean has burned countless hours catching "done" claims that weren't. The fix is structural: proof and an adversarial dry-loop are the price of the word "done." No proof, no done.
+
+86. **Hostile Review Archive — every hostile review is filed to `Z:\HostileReviews\` (MANDATORY, applies to EVERY agent — Claude, Codex, Astra, Hermes, subagents, workflows)** — Established 2026-09-19 by Sean. A hostile review that lives only in a chat transcript is not findable by the next agent, so the same defect gets re-found in new words and a stale `CLEAN` verdict gets read as current. Before this rule, reviews were written wherever the session happened to be working — `C:\tmp\`, `.ai-workflow/reviews/`, `docs/ai-workflow/reviews/`, root `review-roundN-packet.md`, Hermes memos — and a `*hostile*` search across this repo alone returns **hundreds of files**, none of which is *the* place to look. (The measured breakdown is in the archive `README.md` §7 — re-derive it there. Do not copy a count into this rule: it drifted twice inside one session.) The fix is a single archive with a fixed address and a fixed header.
+
+    **The core law:** every hostile-review pass — the one Rule 73 requires before any completion claim, any review Sean asks for by name, any review an agent runs on its own initiative, and any subagent/workflow review (the dispatching agent files it, since a subagent's verdict is a hypothesis until verified — Rule 30) — MUST leave exactly ONE file in `Z:\HostileReviews`. **A review that is not filed there did not happen.** Filing is part of the pass, not a follow-up: file at the end of the pass, before the completion claim.
+
+    **The address:** `Z:\HostileReviews` (WSL `/mnt/z/HostileReviews`). One root. It sits outside any git repo, so there is no `git log` safety net — which is exactly why the folder's own rules are append-only and never-delete.
+
+    **The filename is the lookup key (mandatory):** `<YYYY-MM-DD>-<HHMMSS>-<subject-slug>.md` — local date first, so a directory listing is already chronological, then the slug, so the subject is visible without opening the file. Lowercase `a-z0-9-` only, hyphens not spaces, ≤48 chars. The filename stem IS the `review_id`, and `reindex.mjs` fails if it does not match.
+
+    **The header is the lookup surface (mandatory):** YAML front-matter with a fixed key set — `review_id`, `date_local`, `date_utc`, `subject`, `reviewer_agent`, `reviewer_seat`, `round`, `repo`, `repo_path`, `branch`, `commit`, `scope`, `verdict`, `defects{critical,high,medium,low}`, `unproven`, `supersedes`, `superseded_by`, `tags`. Both timestamps, always. `verdict` is one of `CLEAN | DEFECTS-FOUND | PARTIAL | INCONCLUSIVE` — **`UNKNOWN` is not a verdict**; if you do not know, the verdict is `INCONCLUSIVE` and the review's §3 says why. `unproven` is the count of things the pass could NOT establish and it is NOT optional — **zero unproven on a non-trivial review is a smell**, and "unopened" is not "clean" (Rule 56). `commit` matters: a verdict against a dirty tree is only valid for that tree.
+
+    **Reviews are superseded, never corrected:** never edit a filed review into correctness — write a NEW file with `supersedes: <old-review_id>` and set `superseded_by` on the old one. Never append a second review to an existing file (it destroys the `review_id` join and makes the index a lie). **Never delete** (Rule 34). The record of what was believed at the time is the value; a quietly corrected review is a fabricated history. **The one edit that is required, not forbidden:** setting `superseded_by` on the old review is the backward half of the same link, not a correction — it changes no finding, no verdict and no count, and leaving it unset makes the older review still read as current. `new-review.mjs --supersedes` records the forward half; `relink.mjs` writes the backward half once the successor is published, and `reindex.mjs` reports a link that is not reciprocal.
+
+    **Look before you review:** before starting a pass, run `node Z:/HostileReviews/query.mjs --subject "<subject>"` — forward slashes deliberately: bash treats a backslash as an escape, so a Windows-style path in a shell example does not run in Git Bash, the shell this machine uses (Astra F15). Also `--repo`, `--commit`, `--unproven`, `--verdict CLEAN`. If a review exists, read it — your job is then to test whether its findings still hold and whether the code has changed since, not to re-derive it. Re-reporting a settled finding in new words is restatement, not review. The `--verdict CLEAN` list is the dangerous one: those are the verdicts most likely to be stale and most likely to be trusted.
+
+    **Guaranteed to fire, not "maybe":** (1) this rule in boot context; (2) the `hostile-review-archive` skill carries the write + query procedure; (3) folded into `closeout-evidence-lock` (Rule 41) so it recurs at every substantial close; (4) Rule 73's gate is amended so the hostile pass it demands must cite the filed `review_id` — a pass with no `review_id` is not a pass; (5) tooling makes the right thing the easy thing (`new-review.mjs` stamps the correct filename and front-matter; `reindex.mjs` fails loudly on a malformed header, so a review cannot be filed wrong and go unnoticed).
+
+    **Enforcement honesty (measured 2026-09-19):** layers 1–5 are **prose, skill, and tooling** — none is a hook. The closeout hook that actually runs is `scripts/hooks/hermes-closeout-gate.mjs` (wired in `.claude/settings.json`); it enforces review *debt* (rules 46/74/82) but has **no notion of a filed `review_id`**, and `.git/hooks/` is empty. So layer 3 fires only when the agent loads the `closeout-evidence-lock` skill. Wiring `review_id` into that existing hook is the next step, and it is **Sean-gated** because it would newly fail closeouts for every agent.
+
+    **Distinct from:** Rule 73 (the *gate* that requires a hostile pass — Rule 86 is the *artifact* that pass must leave); Rule 69 (the Hermes inbox is the *learning* channel — ephemeral memos, drained daily; the archive is the *durable verdict* and is never drained); Rule 48 (per-phase audit record — a phase may contain many reviews); Rule 61 (the slice-internal review *practice* — Rule 86 is where its output lives).
+
+    **Numbering — why this rule is 86 and not 74:** `origin/main`'s canonical sequence ends at Rule 85, and main's Rule 74 is Proof-Before-Done. This branch's own `scripts/review-debt.mjs` already cites 74 as Proof-Before-Done, so numbering this rule 74 would make "rule 74" mean two different things — the ambiguity `scripts/lib/rule-count.mjs` treats as a defect ("a rule cited by number is then ambiguous"). The gap between Rule 73 and this rule is therefore **expected, not a lost rule**: Rules 74–85 exist on `main` and are absent from this branch. **Do not renumber this rule down**, and do not "fix" the gap by renumbering.
+
+    **Protocol:** `Z:\HostileReviews\README.md` (the contract: header schema, query recipes, and the map of legacy pre-2026-09-19 locations) + `docs/ai-workflow/references/HOSTILE-REVIEW-ARCHIVE.md` (this repo's reference). **Why:** Sean 2026-09-19 — *"whenever we do a hostile review, that hostile review has to be saved in the hostile review folder, and it needs to be dated... the header needs to be very easy to be able to look up for other agents trying to find it. So that way if there were some issues or things change or whatever, or we had different ideas, we can always just have the agent just kind of just go look in this folder."*
 
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
@@ -753,7 +816,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - Don't reload reference docs already in context
 - Compact at 60% context capacity, not 95%
 - Start fresh (/clear) between unrelated tasks
-- **Fresh sessions are encouraged to save tokens** (long threads cost more per turn). With two agents (Rule 67), a fresh session re-enters CHEAPLY: read the tiny `.ai-workflow/coordination/*.lane.md` + `review-queue.md` + `rolling-last-done.md` — not the full debate/handoff history. Offer a continuity closeout (`"log this and close"`) before Sean restarts meaningful work so the new session is cheap + lossless.
+- **Fresh sessions are encouraged to save tokens** (long threads cost more per turn). With multiple seats (Rule 67), a fresh session re-enters CHEAPLY: run `node scripts/lane.mjs digest` (prints you + every live lock in one command) + `review-queue.md` + `rolling-last-done.md` — not the full debate/handoff history. Offer a continuity closeout (`"log this and close"`) before Sean restarts meaningful work so the new session is cheap + lossless.
 - Be surgical with file references — specify exact file/function, don't say "find the bug"
 - Batch multi-step instructions into single messages
 
@@ -782,7 +845,7 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
       The `SWAN_AGENT_SURFACE` env var (one of `vs-claude` / `vs-codex` / `tg-claude` / `tg-codex`) must be set by the launch environment; the script reads gitignored `scripts/continuity-config.local.json` when present, otherwise the tracked template, and hard-fails if placeholders remain in the loaded config.
     - **Closeouts are explicit-trigger-only.** Do not auto-append — the discipline is that Sean decides when a session is meaningful enough to log.
     - Full spec + review chain: `docs/ai-workflow/AI-HANDOFF/CONTINUITY-BRIDGE-PHASE-B-DEBATE-2026-04-22.md`. Directory README: `.ai-workflow/continuity/README.md`.
-11. **Live Pair-Coding Coordination Ledger (Rule 67, added 2026-06-13 — while Claude + Codex run in parallel):** at session start, also read `.ai-workflow/coordination/claude.lane.md` + `codex.lane.md` (what the other agent is editing right now) + `review-queue.md` (open review requests for me), then run `node scripts/coordination-prune.mjs`. Before editing ANY file, re-check the other agent's lane (read-before-edit). Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
+11. **Live Pair-Coding Coordination Ledger (Rule 67, added 2026-06-13 — MANDATORY while any other agent runs in parallel):** at session start run **`node scripts/lane.mjs digest`** — it prints you, every seat holding a lock right now, and the stale count — then read `.ai-workflow/coordination/review-queue.md` for open review requests. **Never enumerate lane files by name**; seats are per-session (`claude.lane.md`, `workbuddy.lane.md`, `vs-claude--main-<hash>.lane.md`, …) and a hardcoded list misses live seats (2026-09-20: it missed `workbuddy`, which held `bridgeIngestRoutes.mjs`). Before editing ANY file, re-check the digest (read-before-edit). Full spec: `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`.
 
 ## Reference Docs (Read ONLY when needed for current task)
 | Topic | File | When to Read |
@@ -842,11 +905,11 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 | Hermes Agentic OS | `docs/ai-workflow/hermes-agentic-os/index.md` | Any Hermes/operator/automation work - approval gates, receipts, kill switches, T0-T4 |
 | Design Brain | `docs/ai-workflow/design-brain/index.md` | Any UI/visual work, alongside SWAN-CINEMATIC-DESIGN-SYSTEM.md (which remains source of truth) |
 
-## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07, `.claude/skills/` documented count = 23)
+## Swan Visual Operating System (Phase 3 landed 2026-04-12; strategy + prompt-watcher added 2026-06-11; hermes-learning-packet added 2026-07-05; hermes-inbox added 2026-07-06; fable-mode added 2026-07-07, `.claude/skills/` hostile-review-archive added 2026-09-19, documented count = 24)
 
 The strict-model design architecture is fully enforced. `swan-design-router` is the only default-exposed design brain. All UI/visual work auto-routes through it (rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Net-new building and planning auto-routes through `grill-me` first (rule 64), then `chromie` for unproven bets (rule 65).
 
-### Default-exposed `.claude/skills/` = 23 entries
+### Default-exposed `.claude/skills/` = 24 entries
 
 **Strategy / adversarial / conversion / self-improvement / prompt-amplify (5) — rules 65-66:**
 | Skill | Role |
@@ -857,7 +920,7 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `skill-harvest` | Self-improvement loop: finds repeated requests, proposes new skills/ref-docs/rules (gap-filtered), names manual work to delegate. Proposes only. Complements `auto-research` (tuning). |
 | `prompt-watcher` | Per-prompt intent amplifier (rule 66). UserPromptSubmit hook classifies SIMPLE vs VISION; VISION prompts get silently gap-checked + enhanced, then acted on automatically (no confirm; reveal only if asked). Token-light: simple prompts cost nothing extra. |
 
-**Swan orchestration (9):**
+**Swan orchestration (10):**
 | Skill | Role |
 |---|---|
 | `grill-me` | Intent-extraction gate (rule 64). Relentlessly interviews Sean one question at a time, checkpointing every answer to `docs/ai-workflow/brainstorms/`. Runs FIRST for net-new components/features/redesigns/planning, before recursive planning and the orchestrator. |
@@ -867,6 +930,7 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `repo-hygiene-scan` | Standardized execution surface for rules 32-39. Produces the Phase 1 non-destructive inventory doc. Never moves, renames, or deletes files. |
 | `swan-design-router` | Only default-exposed design brain. Loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md. Enforces Dual-Button Glow, styled-components-first, anti-template discipline, 2-3 concept-direction ideation gate. |
 | `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock + dual-pass hostile review + post-task hygiene check + forbidden-language filter. Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from retired `requesting-code-review`. |
+| `hostile-review-archive` | Rule 86 write + query surface. Files every hostile review as one dated, headed artifact in `Z:\HostileReviews` (`new-review.mjs`), and looks there *before* a new pass (`query.mjs`) so settled findings are not re-derived and stale `CLEAN` verdicts are not trusted. Supersede-never-correct; never delete. |
 | `hermes-learning-packet` | Fable→Hermes learning loop (rule 68). At close of substantial/Fable-tier work, emits a privacy-safe, durable, compounding learning packet Hermes ingests so it self-upgrades without Sean re-typing. Source gate is fail-closed to Fable-tier only (sub-Fable → quarantine). Delivers over the proven Pi SSH/cat transport. |
 | `hermes-inbox` | Any-agent → Hermes working channel (rule 69). Work done OUTSIDE Hermes (terminal Claude/Codex, local Qwen, scripts) drops a short IDs-only memo in `.ai-workflow/hermes-inbox/pending/`; Hermes reads at session start, absorbs, then memos archive to `consumed/` (Rule 34). Ephemeral + any-agent — distinct from the Fable-tier-only durable learning-packet and the Sean-triggered continuity bridge. Fires via rule 69 + closeout-evidence-lock fold + a SessionStart hook. |
 
