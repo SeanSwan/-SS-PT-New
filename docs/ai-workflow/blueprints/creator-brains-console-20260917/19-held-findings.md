@@ -114,6 +114,57 @@ sufficient backstop; it is not.
 > journal path, so gating one door and shipping the other is gating nothing. If the test fails, the
 > defect goes to the **engine owner**. No console patch to engine files — the boundary is additive-only.
 
+> ### ⚠️ THE GATE WAS BUILT 2026-09-21 AND IT **FAILS**. THE DEFECT IS ENGINE-OWNED.
+>
+> `scripts/creator-brains/test/journal-preservation.test.mjs` (5 cases; real child processes, because
+> the claim is that an EXTERNAL runner is uncovered and a same-process test would beg the question).
+> **Two cases are RED and must stay red until the engine is fixed.** They are not a flaky test and not
+> an unfinished console: they are the measurement this gate was widened to obtain.
+>
+> **What the defect actually is — measured, and NOT what the entry above predicted.** The journal is
+> *not* torn and *not* byte-interleaved: `writeJsonAtomic` (`lib/paths.mjs:136`) writes a pid-unique
+> temp file and renames, so a reader never sees a half-written journal. An assertion that "the file
+> still parses" therefore passes while the damage happens. The journal is a **single slot** — one
+> whole-file overwrite — opened **before** the lock, so the two lost-update failures are:
+>
+> 1. **Truncation by open.** Two runners each `writeRunJournal` at `:107`; the second replaces the
+>    first outright. One run's entry is simply gone.
+> 2. **Truncation by refusal.** `finalizeRunJournal` (`store.mjs:249`) **reads the current journal and
+>    overwrites it** with its own concluding record. So a run **REFUSED by the lock still concludes**
+>    and stamps `status: failed` over whatever was there — including the entry of the run holding the
+>    lock. Reproduced end to end against the shipped engine, output verbatim:
+>
+>    ```
+>    [1] while the run is in flight, the console says:
+>        lastRun = {"status":"running","runId":"SCHEDULED-OK"}
+>    [2] after a REFUSED repair, the console says:
+>        lastRun = {"status":"failed","runId":"REFUSED-REPAIR"}
+>    ```
+>
+>    The reader driven there is the **console's own** `runState` (`status.mjs:151,173`), so the
+>    consequence is operator-visible, not internal: **the console reports a failed last run, naming a
+>    run that was refused, while the run actually holding the store is succeeding.** `05 §2b` already
+>    says a `409 RUN_LOCKED` is "a refusal of the run, NOT proof the store is untouched"; this is the
+>    same defect one layer in, and it is the reason the console checks `lockStatus` before entering
+>    `runDaily` (see `lib/repair.mjs`). That console-side ordering closes the door *for this client* —
+>    it cannot close it for the CLI, a scheduled task, or a second machine on a synced store. **That is
+>    precisely the residual A1-06 names, and it can only be fixed in the engine.**
+>
+> **What a fix must do (engine owner's call; recorded so it is not rediscovered):** a refused run must
+> not write the journal at all, *and* a finalize must not clobber an entry belonging to another run id.
+> The single slot appears **intentional** — HR16's rationale is "an INTERRUPTED run is visible as an
+> open journal rather than as silence", i.e. a current-status heartbeat, not an audit log (`runs/` and
+> the ledger carry history). So the likely shape is a **guarded** slot rather than a multi-slot file:
+> refuse the write when the journal belongs to a *different, live* run id. **This document does not
+> prescribe the fix** — it records the measurement and names the owner.
+>
+> **Slice status, stated plainly rather than optimistically.** S3's other exit criteria are green
+> (T-B9/**B10**, T-W5; zero-hit + skipped honesty; `409 RUN_LOCKED {holder}`). The gate case that binds
+> S3 to this journal is now **written and red**, which is a strictly better state than an untested
+> claim: the defect is named, reproduced, and routed. **S3 and S4 do not ship until the engine fix
+> lands and these two cases go green.** Shipping either door now would ship the exact truncation this
+> gate exists to catch.
+
 **A1-07 — repair is a projection, not a return value.** The engine's repair path
 (`run-commands.mjs:156–163`) runs reconciliation, build and export and returns an **exit code**. It
 does not return `{requeued}`, which `05#2b` and T-B10 assumed. The console now documents
@@ -181,8 +232,12 @@ harness code and remain true. **This document, and `10`, make no claim about rem
    2026-09-20 (§4 above, R3-05). This line said "a gate on S4" until round 9c, which contradicted §4
    and is exactly the drift that makes a gate look narrower than it is: repair reaches the same
    `runDaily` journal path as the daily run, so gating one door and shipping the other gates nothing.
-3. **No engine change.** Every correction here is console-side or documentary. The one item that needs
-   the engine — `queryBrains` dropping `claim_id` — is recorded with the engine as owner.
+   **As of 2026-09-21 the gate's test EXISTS and FAILS** (§4): the journal loses an entry under a
+   concurrent runner, and a *refused* run overwrites the journal of the run holding the store. That is
+   an **engine** defect with the engine as owner, and **S3 and S4 do not ship until it is fixed**.
+3. **No engine change.** Every correction here is console-side or documentary. Two items need the
+   engine and are recorded with the engine as owner: `queryBrains` dropping `claim_id`, and the
+   **journal truncation** in §4 (found by this gate on 2026-09-21, not by reading).
 4. **Historical receipts are untouched.** `11`, `12`, `14`, `16`, `17-astra-*` keep their stale paths
    and counts on purpose: they are evidence of what was true when they were written. Correcting them
    would destroy the record that makes the current state legible.

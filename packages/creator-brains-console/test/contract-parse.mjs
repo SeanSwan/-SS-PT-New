@@ -156,6 +156,50 @@ export function deferredRoute(adapterSource, method) {
 }
 
 /**
+ * The route an IMPLEMENTED adapter method actually calls, read from the body.
+ *
+ * WHY THIS IS A SECOND READER AND NOT A WIDENED FIRST ONE (S3).
+ * `deferredRoute` asks "which route does this stub name in its throw comment?".
+ * That question stopped applying to `repair` the moment S3 shipped the route: the
+ * declaration now CALLS `/api/repair`, so searching forward from the declaration
+ * for a `POST /api/…` literal finds whatever comes next in the file — today,
+ * nothing, and tomorrow, some unrelated route. A reader that answers a question
+ * about a stub for a method that is no longer a stub is not a lenient reader; it
+ * is a wrong one, and widening it to "find any route-ish string" would let a
+ * method agree with the contract while calling a different endpoint entirely.
+ *
+ * So the implemented reader matches the ACTUAL CALL SHAPE this adapter uses:
+ * `this.request<T>('/api/…', { method: 'POST' })`. It requires a path AND the
+ * method, and REFUSES rather than guessing when either is absent — an extractor
+ * that returns an empty answer is how a comparison of two nothings passes.
+ *
+ * The method is read from the call, not assumed from the accessor name: `repair`
+ * is a POST, but a future implemented method may be a GET, and the join key into
+ * `05-contracts.md` is the route.
+ */
+export function implementedRoute(adapterSource, method) {
+  const stripped = stripComments(adapterSource);
+  const decl = new RegExp(`\\b${method}\\s*\\([^)]*\\)\\s*:`).exec(stripped);
+  assert.ok(decl, `${method} is not declared in the adapter`);
+  const body = stripped.slice(decl.index);
+  // `this.request<…>('/api/…', { method: 'POST' })` — the shape this adapter uses.
+  const m = /\.request<[^>]*>\(\s*[`'"]([^`'"]+)[`'"]\s*,\s*\{([^}]*)\}/.exec(body);
+  assert.ok(m, `${method} declares an implemented route but its call could not be read — refusing rather than comparing nothing`);
+  const verb = /method\s*:\s*['"](\w+)['"]/.exec(m[2]);
+  assert.ok(verb, `${method} calls ${m[1]} without naming an HTTP method`);
+  return `${verb[1].toUpperCase()} ${m[1]}`;
+}
+
+/** Is this adapter method a deferral stub, or an implemented call? Read from the
+ *  source, so the answer cannot be a hand-maintained list that drifts. */
+export function isDeferred(adapterSource, method) {
+  const decl = new RegExp(`\\b${method}\\s*\\([^)]*\\)\\s*:`).exec(adapterSource);
+  assert.ok(decl, `${method} is not declared in the adapter`);
+  const body = adapterSource.slice(decl.index, decl.index + 400);
+  return /throw new ConsoleApiError\(\s*['"]NOT_FOUND['"]/.test(body);
+}
+
+/**
  * The response shape `05-contracts.md` declares for one route's table row, as names.
  *
  * ── R7-03's CLASS, COMPLETED (found while fixing R7-04) ────────────────────────

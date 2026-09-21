@@ -1,10 +1,19 @@
 /*
  * LocalEngineAdapter — ConsoleDataAdapter over the bridge HTTP API.
  *
- * Talks ONLY to the nine routes that actually exist at S0 (05-contracts.md §2a).
- * `repair` and `backup` are contract members whose routes are DEFERRED to S3
- * (§2b); they throw a typed error instead of silently succeeding, so a caller
- * can never mistake "not implemented" for "done".
+ * Talks ONLY to the routes that actually exist. At S0 that was the nine read
+ * routes of `05-contracts.md` §2a. Since then the write routes have landed slice
+ * by slice: S3 added `POST /api/repair`, so `repair` is now a real call.
+ *
+ * The remaining non-calls are TWO DIFFERENT THINGS and are kept apart on purpose:
+ *   - `startDailyRun` — a slice not yet built (S4). Deferred.
+ *   - `backup` — a route the contract WITHHOLDS (A1-08 / D4 still open). Not an
+ *     unbuilt slice, and it must not be described as one: a reader who files it
+ *     under "S4 work" would route it to the wrong owner, and the boundary it
+ *     defends (the engine copy includes raw transcripts, which `01` bans from
+ *     every served surface) is a ruling, not a backlog item.
+ * Both throw a typed error instead of silently succeeding, so a caller can never
+ * mistake "not implemented" for "done".
  */
 
 import { ConsoleApiError, mapBridgeError, mapTransportError } from './errors';
@@ -26,8 +35,15 @@ export interface LocalEngineAdapterOptions {
   fetchImpl?: typeof fetch;
 }
 
-const DEFERRED_TO_S3 =
-  'route not implemented until S3 — see 05-contracts.md §2b; the bridge has no such route yet';
+/**
+ * The one route still awaiting its slice (S4). This began as a shared
+ * `DEFERRED_TO_S3` string that callers patched with `.replace('S3','S4')` — a
+ * construction whose only merit was brevity, and which silently produced a
+ * sentence about S3 whenever the patch was forgotten. S3 has now landed
+ * `repair`, so exactly one caller remains and it names its own slice.
+ */
+const DEFERRED_TO_S4 =
+  'route not implemented until S4 — see 05-contracts.md §2b; the bridge has no such route yet';
 
 /**
  * The bridge's write gate requires this header on every mutating request
@@ -124,20 +140,52 @@ export class LocalEngineAdapter implements ConsoleDataAdapter {
 
   async startDailyRun(_perHour: number): Promise<{ requestId: string; runId: string | null }> {
     // POST /api/run/daily is deferred to S4 (05-contracts.md §2b).
-    throw new ConsoleApiError('NOT_FOUND', DEFERRED_TO_S3.replace('S3', 'S4'), { status: null });
+    throw new ConsoleApiError('NOT_FOUND', DEFERRED_TO_S4, { status: null });
   }
 
   canary(): Promise<CanaryReading> {
     return this.request<CanaryReading>('/api/canary');
   }
 
-  async repair(): Promise<{ repaired: number; built: number; emptied: number }> {
-    // POST /api/repair is deferred to S3 (05-contracts.md §2b).
-    throw new ConsoleApiError('NOT_FOUND', DEFERRED_TO_S3, { status: null });
+  /**
+   * S3: the repair route now exists (`POST /api/repair`), so this no longer
+   * throws a placeholder. It is a POST with no body — the operation takes no
+   * parameters, and the exclusion gate is the bridge's business, not the
+   * client's. A `409 RUN_LOCKED` refusal arrives as a ConsoleApiError carrying
+   * the engine's own sentence, holder included.
+   */
+  repair(): Promise<{ repaired: number; built: number; emptied: number }> {
+    return this.request<{ repaired: number; built: number; emptied: number }>(
+      '/api/repair', { method: 'POST' },
+    );
   }
 
+  /**
+   * STILL BLOCKED, AND DELIBERATELY SO (A1-08 / D4, `05 §2b`). This is not a
+   * slice that has not landed — it is a route the contract WITHHOLDS, because
+   * the engine's backup copies raw transcripts and `01` bans those from every
+   * console surface.
+   *
+   * The throw is kept rather than deleted. If the UI ever calls this without the
+   * button being disabled, the failure is a named `NOT_FOUND` with this sentence
+   * rather than a 404 from the bridge that reads like a routing bug. The button
+   * in `OpsRail` is disabled and says the same thing to the operator.
+   *
+   * IT REJECTS RATHER THAN THROWS SYNCHRONOUSLY. The signature is
+   * `Promise<{dest,ok}>`, so a synchronous throw is a method that does not honour
+   * its own return type: `adapter.backup().catch(…)` — the shape every caller
+   * here uses — misses it entirely, and the exception escapes as an
+   * unhandled error at the call site. `async` makes the rejection arrive where
+   * the type says it will. This was caught by a test that had always passed,
+   * because until S3 all three deferred members threw synchronously and the
+   * harness never had to distinguish.
+   */
   async backup(_dest?: string): Promise<{ dest: string; ok: boolean }> {
-    // POST /api/backup is deferred to S3 (05-contracts.md §2b).
-    throw new ConsoleApiError('NOT_FOUND', DEFERRED_TO_S3, { status: null });
+    throw new ConsoleApiError(
+      'NOT_FOUND',
+      'backup is withheld by the console contract (A1-08 / D4) — the engine copy includes raw '
+      + 'transcripts; there is no endpoint. Not an unbuilt slice.',
+      { status: null },
+    );
   }
 }

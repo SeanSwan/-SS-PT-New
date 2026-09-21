@@ -34,8 +34,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
-  TYPES_TS, assertServed, contractsTsBlock, contractRowShape, deferredRoute,
-  interfaceFields, methodReturnFields,
+  TYPES_TS, assertServed, contractsTsBlock, contractRowShape, deferredRoute, implementedRoute,
+  interfaceFields, isDeferred, methodReturnFields,
 } from './contract-parse.mjs';
 import { BRAIN_NS, getJson, seedPublishedBrain, withFixture } from './fixtures.mjs';
 
@@ -260,12 +260,41 @@ test('T-B27m0: the signature extractor can FAIL (the checker is checked)', () =>
 
 for (const method of ['startDailyRun', 'repair']) {
   test(`T-B27m/${method}: the deferred return type agrees with 05 §2b`, () => {
-    // The join key is derived from the adapter's OWN deferral comment, so there is
-    // no hand-written method→route table here to drift one round later.
-    const route = deferredRoute(adapterSource, method);
+    // WHICH QUESTION TO ASK IS READ FROM THE ADAPTER, NOT HARD-CODED (S3).
+    // A first version always called `deferredRoute`, which was right while both
+    // methods were stubs. S3 implemented `repair`, so its deferral comment went
+    // away and the reader looked forward from the declaration for a route that is
+    // no longer written as a comment — and failed on a method that agrees with the
+    // contract perfectly. The failure was correct about the drift and wrong about
+    // the cause: the test's PREMISE was stale, so it asked a stub question of a
+    // non-stub and would have gone on asking it forever.
+    //
+    // `isDeferred` reads the answer off the source, so when S4 implements
+    // `startDailyRun` the same switch happens with no edit here.
+    const route = isDeferred(adapterSource, method)
+      ? deferredRoute(adapterSource, method)
+      : implementedRoute(adapterSource, method);
     assert.deepEqual(
       methodReturnFields(typesSource, method), contractRowShape(route),
       `${method} declares a different shape from 05-contracts.md §2b's row for ${route}`,
     );
   });
 }
+
+test('T-B27m0b: the deferral switch can FAIL, and both readers refuse rather than guess', () => {
+  // The switch above decides which reader runs, so it is itself a checker and is
+  // checked here. A switch stuck on `true` would send an implemented method to the
+  // stub reader and reproduce exactly the stale-premise failure this round fixed.
+  assert.equal(isDeferred(adapterSource, 'startDailyRun'), true, 'S4 is unbuilt, so the daily run is still a stub');
+  assert.equal(isDeferred(adapterSource, 'repair'), false, 'S3 shipped it, so repair is implemented');
+  assert.equal(isDeferred(adapterSource, 'backup'), true,
+    'backup is WITHHELD (A1-08 / D4), and a withheld route is a stub — collapsing it into "implemented" would make this reader disagree with the contract on purpose');
+
+  // And each reader refuses on input it cannot read, rather than returning an
+  // empty answer that compares equal to a document declaring nothing.
+  assert.throws(() => implementedRoute('x(): Promise<void> { }', 'x'), /could not be read/,
+    'an unreadable implemented call must throw');
+  assert.throws(() => implementedRoute("x(): Promise<void> { return this.request<{ a: number }>('/api/y', {}); }", 'x'),
+    /without naming an HTTP method/,
+    'a call with no verb must throw — the verb is half the join key');
+});
