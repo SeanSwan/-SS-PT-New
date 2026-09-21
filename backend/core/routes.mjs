@@ -17,6 +17,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync } from 'fs';
 
+// The R2 namespace allowlist for the photo-serve proxy. Extracted so the boundary is testable
+// without building the whole app (hostile review R5-05).
+import { isServablePhotoCategory } from './photoServeCategories.mjs';
+
 // ===================== CORE ROUTES =====================
 import authRoutes from '../routes/authRoutes.mjs';
 import profileRoutes from '../routes/profileRoutes.mjs';
@@ -547,7 +551,7 @@ export const setupRoutes = async (app) => {
       const { category, userId, yearMonth, filename } = req.params;
       const objectKey = `photos/${category}/${userId}/${yearMonth}/${filename}`;
 
-      if (!['profiles', 'banners', 'banner-collage', 'measurements', 'social', 'social-photos', 'social-videos', 'products'].includes(category) ||
+      if (!isServablePhotoCategory(category) ||
           !/^\d+$/.test(userId) ||
           !/^\d{4}-\d{2}$/.test(yearMonth) ||
           !/^[\w-]+\.\w+$/.test(filename)) {
