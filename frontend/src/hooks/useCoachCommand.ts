@@ -15,23 +15,38 @@
  *   cancelCommand  → POST /api/ai-command/cancel  → void
  *
  * PRIVACY: `selectedClientId` crosses the boundary as an ID only. The client also posts
- * `message`, `previousContext` and `routeContext` as free text (`:117-121`).
+ * `message` and `previousContext` as **free text** (`:117-121`). It posts `routeContext` too;
+ * the server constrains that one's *shape*, not its content — do not read the three as one
+ * class; see below.
  *
  * No PII middleware covers this route. Verified twice: at the route's own guard list
  * (`aiCommandRoutes.mjs:119` — `protect, aiCommandLaneKillSwitch, aiCommandRateLimiter`
- * only) and at its mount (`core/routes.mjs:642` — no parent PII middleware; every
- * `app.use` there is a path-scoped route mount). `piiSanitizationMiddleware` is imported by
- * `aiChatRoutes.mjs` (the chat lane), NOT by the command lane.
+ * only) and at its mount (`core/routes.mjs:642` — no parent PII middleware). The chat lane is
+ * better protected, and only partly: `aiChatRoutes.mjs:72` imports `strictPiiMiddleware` from
+ * `middleware/piiSanitizationMiddleware.mjs` — that is the MODULE name; the module exports
+ * `piiSanitization`, `strictPiiMiddleware`, `permissivePiiMiddleware` and `sanitizeText`, and
+ * there is no middleware called `piiSanitizationMiddleware` — and applies it to ONE route,
+ * `POST /conversations/:id/messages` (`:466`), not across the lane.
  *
  * The pipeline (`commandExecutor.mjs` PIPELINE_STEPS :516-520) runs `stepSanitize` →
- * `stepPHIScan` → `stepClassify`, and `stepPHIScan` (:190-206) scans and strips
- * **`ctx.sanitizedInput` ONLY — i.e. `message`**. It does NOT cover `previousContext`, which
- * `aiCommandRoutes.mjs:166` passes through raw and `intentClassifier.mjs:123-125`
- * interpolates into the provider prompt. **PHI placed in `previousContext` therefore reaches
- * a provider unscanned.** Tracked as R2-01. The other two context fields are bounded:
- * `routeContext` is normalized to a token allowlist server-side (`normalizeRouteContext`
- * `:88-110`), and `selectedClientName` is hardcoded `null` (`:164`), so neither is a live
- * text channel.
+ * `stepPHIScan` → `stepClassify`, and `stepPHIScan` (:190-206; the `scanForPHI` call is
+ * `:192`) scans and strips **`ctx.sanitizedInput` ONLY — i.e. `message`**. Two further
+ * channels reach the provider unscanned:
+ *
+ *   1. `previousContext` — passed through raw (`aiCommandRoutes.mjs:166`) and interpolated
+ *      verbatim into the prompt (`intentClassifier.mjs:122`). Tracked as R2-01.
+ *   2. `routeContext` — normalized (`normalizeRouteContext` `:88-112`) to three token keys
+ *      plus typed fields, then re-emitted into the prompt by `buildRouteContextLine`
+ *      (`intentClassifier.mjs:28-51`, appended at `:116`) and sent as the `user` content at
+ *      `:133`. Normalization constrains *shape*, not content: `ROUTE_CONTEXT_TOKEN_PATTERN`
+ *      (`/^[a-z0-9_-]{1,80}$/i`) admits **`123-45-6789`** and a bare single-token name
+ *      (`Jordan` passes; `Jordan T.` does not) — measured, not inferred. `stepPHIScan` does
+ *      not inspect route context. A second channel for R2-01, found in round 3.
+ *
+ * `selectedClientName` is hardcoded `null` on this route (`:164`) and is absent from the
+ * `:121` destructuring, and `executeCommandPipeline` has exactly one production caller
+ * (`aiCommandRoutes.mjs:163`), so it is inactive in production. The classifier still accepts a
+ * non-null value (`intentClassifier.mjs:118-120`) — do not rely on that staying `null`.
  *
  * Detection is PARTIAL and must not be read as a guarantee. `scanForPHI` collects only the
  * FIRST match per pattern (`text.match` without `/g`), so a second distinct identifier is
@@ -43,9 +58,11 @@
  *
  * Audit storage IS redacted (`commandAudit.redactParams`, `commandAudit.mjs:41`).
  *
- * This note has now been wrong TWICE — first claiming no names are sent, then claiming PHI
- * is removed from the assembled provider request. Do not restate this file's privacy posture
- * without re-measuring it. Findings: R2-01, R2-02 in
+ * INVARIANT — do not restate this file's privacy posture without re-measuring it: this route
+ * carries no PII middleware, `stepPHIScan` covers `message` only, and every other context
+ * channel reaches the provider unscanned. This note has been wrong three times, always by
+ * inheriting the scope of the last read rather than the scope of the code. Reviews R2-01,
+ * R2-02 and R3-01 in
  * docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/.
  */
 

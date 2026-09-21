@@ -25,6 +25,20 @@
  * headroom over the measured cost. Same lesson as v2.1, one layer deeper: fixing
  * how you NAME a path does not fix where the process RUNS.
  *
+ * v3.1 — the TIMEOUTS were decorative. `.codebuddy/settings.json` shipped
+ * `"timeout": 15`, and WorkBuddy's hook `timeout` is in SECONDS (default 60),
+ * enforced per invocation. This file's own budget is 25 s for the digest child
+ * plus 60 s for prune — so the platform would kill the hook at 15 s, BELOW the
+ * child's own 25 s floor, and the inner timeout could never fire at all. An
+ * outer limit shorter than the inner one makes the inner one a comment. Raised
+ * to the platform default (60 s) in v3.1. Astra hostile review F06, 2026-09-20.
+ *
+ * The general lesson, and it is the third layer of the same bug: naming a path,
+ * then running in the right directory, then — being ALLOWED TO RUN LONG ENOUGH.
+ * Each layer looked fixed while the next one silently defeated it. Note also
+ * that no harness hook has been OBSERVED firing on this machine; "configured"
+ * and "executed" are different evidence states and only the first is in hand.
+ *
  * Delegates to lane.mjs so there is one implementation of ledger truth.
  * Fail-open on any error, but not fail-SILENT: a broken guard says so.
  */
@@ -41,6 +55,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..', '..');
 const LANE = resolve(ROOT, 'scripts', 'lane.mjs');
 const PRUNE = resolve(ROOT, 'scripts', 'coordination-prune.mjs');
+const REVIEW_QUEUE = resolve(ROOT, '.ai-workflow', 'coordination', 'review-queue.md');
 // Measured 6.5 s for `digest` on an idle machine (2026-09-20). Several agents share
 // this box, so 10 s was a coin-flip; 25 s clears the real cost with headroom.
 const DIGEST_TIMEOUT_MS = 25_000;
@@ -63,15 +78,22 @@ try {
       // what, but a review request addressed TO THIS SEAT is invisible in it — the
       // 2026-09-20 seat note sat unread in review-queue.md for 40 minutes while both
       // seats ran. Name it explicitly or it does not get read.
-      console.log('[lane] then read .ai-workflow/coordination/review-queue.md for requests addressed to you.');
+      console.log(`[lane] then read ${REVIEW_QUEUE} for requests addressed to you.`);
     }
   }
   /* Trim the append logs while we are here. The script has existed since June and
    * nothing ever invoked it, so activity.log.md grew unbounded and doctor would have
    * flagged it forever — a permanent unclearable warning is its own fatigue source.
-   * Best-effort and silent on failure: retention is not worth failing orientation. */
+   * Best-effort and silent on failure: retention is not worth failing orientation.
+   *
+   * 20 s, not 60 s, since v3.1. The outer platform limit is 60 s, so a 60 s prune
+   * child meant the worst case (25 + 60) exceeded the budget that actually binds —
+   * the inner timeouts could not fire before the platform killed the hook. 25 + 20
+   * fits inside 60 with room for process startup. PROVISIONAL: Astra F05 and the
+   * forged package's R06 both say a read-only orientation hook should not prune at
+   * all; when S1 removes this call, this number goes with it. */
   try {
-    if (existsSync(PRUNE)) execFileSync(process.execPath, [PRUNE], { stdio: 'ignore', cwd: ROOT, timeout: 60_000 });
+    if (existsSync(PRUNE)) execFileSync(process.execPath, [PRUNE], { stdio: 'ignore', cwd: ROOT, timeout: 20_000 });
   } catch (e) {
     // Not silent. An empty catch here is the exact pattern this file's own error
     // path warns about: prune quietly stops working, doctor's unclearable warning
