@@ -1,3 +1,50 @@
+# GEMINI.md - Gemini CLI Operating Mirror for SwanStudios
+
+This is the **Gemini CLI** surface's project-instruction file for the SwanStudios
+repo. It intentionally mirrors `CLAUDE.md` so the Gemini seat follows the same
+project standards Sean established for Claude.
+
+## Why this file exists
+
+Every coding harness in this tree reads its own instruction file:
+
+| Harness | Project instruction file |
+|---|---|
+| Claude Code | `CLAUDE.md` |
+| Codex | `AGENTS.md` |
+| OpenCode | `AGENTS.md` (read in preference to `CLAUDE.md`) + `.opencode/SEAT.md` |
+| WorkBuddy | `CODEBUDDY.md` (read in preference to `AGENTS.md`) |
+| Cursor | `.cursor/rules/*.mdc` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+| **Gemini CLI** | **`GEMINI.md`** ← this file |
+
+`GEMINI.md` did not exist until 2026-09-20, so a Gemini CLI session in this repo
+loaded **no project rules at all** — it would not have known about Rule 67, the
+coordination ledger, the hostile-review archive, or any other project standard.
+
+## Gemini Adapter Notes
+
+- Treat this file as the Gemini equivalent of `CLAUDE.md`.
+- **Substitution rule:** wherever the mirrored text below says "Claude must",
+  "Claude MUST", or otherwise assigns an obligation to Claude or Codex, Gemini
+  applies that obligation to itself — unless the sentence is explicitly
+  historical, names a file/path, or describes that agent's specific review role.
+- **Mirror maintenance:** the body below the mirror marker is REGENERATED, never
+  hand-edited — `node scripts/sync-agents-mirror.mjs` (add `--check` to verify
+  without writing). Hand edits below the marker will be overwritten on the next
+  sync. `GEMINI.md` is registered in that script's `MIRRORS` list alongside
+  `AGENTS.md` and `CODEBUDDY.md`.
+- Do not push to `main` without Sean's explicit approval. Render auto-deploys from
+  `main`.
+- **Known gap — no session-start hook.** Claude Code and WorkBuddy get
+  deterministic orientation from `scripts/hooks/lane-session-start.mjs` via their
+  settings files. Gemini CLI has no wired session-start hook in this repo, so
+  **Rule 67's orientation step is on you to run**: `node scripts/lane.mjs digest`
+  before your first edit. Same for the Hermes closeout (Rule 69) and the
+  hostile-review archive (Rule 86).
+
+--- project-doc mirror from CLAUDE.md ---
+
 # CLAUDE.md - SwanStudios Project Intelligence
 
 ## Identity

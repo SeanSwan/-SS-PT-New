@@ -74,76 +74,15 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 
-import { startBridge, resolveStatic, hostAllowed } from '../server.mjs';
-import { tempRoot } from '../../../scripts/creator-brains/test/helpers.mjs';
+import { startBridge, hostAllowed } from '../server.mjs';
 import { CH_ONE, CANARY_PHRASE, fixtureRoot, getJson, rawRequest } from './fixtures.mjs';
 import { assertNoTranscriptFields } from './leak-guard.mjs';
-import { escapes } from './path-containment.mjs';
 
-/* ── H3 · traversal, tested against a REAL webroot ───────────────────────── */
+// The H3 static-resolution tests (which need `resolveStatic`, `escapes`, `tempRoot`,
+// `join`, and the fs helpers) moved to `bridge.hy4.static.test.mjs` when this file
+// crossed the 300-line cap. The imports went with them rather than lingering unused.
 
-test('HY4-H3: static containment holds against a real document root', () => {
-  // The root cause of the vacuous original: `WEB_DIST` is absent until the UI
-  // slice lands, so a live-server traversal test could only ever observe the
-  // fallback status page. This version calls the resolver DIRECTLY against a
-  // real root containing a real file inside it and a real file outside it, so
-  // the containment check actually executes.
-  const root = tempRoot('hy4-webroot');
-  const dist = join(root, 'dist');
-  mkdirSync(dist, { recursive: true });
-  writeFileSync(join(dist, 'inside.txt'), 'INSIDE-OK', 'utf8');
-  writeFileSync(join(root, 'outside.txt'), 'OUTSIDE-SECRET', 'utf8');
-
-  // The positive half. Without it, a "containment" fix that refused everything
-  // would satisfy every assertion below and break the static server.
-  const legal = resolveStatic('/inside.txt', dist);
-  assert.ok(legal, 'a legal file inside the root must resolve');
-  assert.equal(legal, join(dist, 'inside.txt'));
-
-  // Every traversal shape must fail, and crucially must NOT reach the outside
-  // file — that is the actual security property, not "returns null".
-  for (const path of [
-    '/../outside.txt',
-    '/..%2Foutside.txt',
-    '/%2e%2e/outside.txt',
-    '/../../outside.txt',
-    '/....//outside.txt',
-    '/..%5Coutside.txt',
-    '/%2e%2e%2foutside.txt',
-  ]) {
-    const resolved = resolveStatic(path, dist);
-    assert.notEqual(resolved, join(root, 'outside.txt'), `'${path}' escaped the root`);
-    if (resolved !== null) {
-      // A COMPONENT-WISE CONTAINMENT TEST, NOT A PREFIX TEST (round 9). This read
-      // `resolved.startsWith(dist)`, which judges a SIBLING named `dist-evil` to be
-      // inside `dist` — R8-07's class, and the last member the round-9 sweep found in
-      // this package. The predicate is shared, not re-spelled, so the class has one
-      // named form rather than a copy per validator.
-      //
-      // THIS IS A PIN, AND IS LABELLED ONE. It cannot be mutation-proved: `resolveStatic`
-      // refuses such a sibling through its own separator-aware check, so this branch only
-      // ever runs for a path ALREADY inside `dist`, and reverting the line below is
-      // unobservable from here. What the predicate itself guarantees is pinned by
-      // R8-07a/R8-07b, which attack it directly.
-      assert.ok(
-        !escapes(dist, resolved),
-        `'${path}' resolved outside the document root: ${resolved}`,
-      );
-    }
-  }
-});
-
-test('HY4-H3: a malformed percent-encoding is refused, not thrown', () => {
-  // `decodeURIComponent` throws on a truncated escape sequence. An uncaught
-  // throw here would be a 500 on a URL any crawler can produce.
-  const root = tempRoot('hy4-badpct');
-  mkdirSync(root, { recursive: true });
-  assert.equal(resolveStatic('/%E0%A4%A', root), null);
-  assert.equal(resolveStatic('/%zz', root), null);
-});
 
 /* ── H4 · DNS rebinding ─────────────────────────────────────────────────── */
 
