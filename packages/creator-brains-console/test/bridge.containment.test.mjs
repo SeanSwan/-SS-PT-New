@@ -35,6 +35,27 @@ import { BRAIN_NS, getJson, getRaw, seedPublishedBrain, withFixture } from './fi
 const OUTSIDE = 'OUTSIDE-THE-BRAINS-STORE-MUST-NEVER-BE-SERVED';
 
 /**
+ * Allocations owned by THIS module, reaped by a single exit handler.
+ *
+ * ONE LISTENER, NOT ONE PER ALLOCATION (round 9b, Astra finding 5). The previous
+ * version called `process.on('exit', ...)` inside `outsideBrain`, so every allocation
+ * added a listener and a closure that stayed for the life of the process — and
+ * `MaxListenersExceededWarning` is how that surfaces at scale. A registry plus one
+ * handler keeps the cost flat and makes the cleanup set inspectable.
+ *
+ * REGISTRATION PRECEDES POPULATION. Registering after the three writes (as before)
+ * meant a `writeFileSync` failure left the allocated directory with NO handler —
+ * the one moment the cleanup is most needed. A failed population now cleans up
+ * synchronously, so a throw cannot leak.
+ */
+const OWNED_OUTSIDE_DIRS = new Set();
+process.on('exit', () => {
+  for (const p of OWNED_OUTSIDE_DIRS) {
+    try { rmSync(p, { recursive: true, force: true }); } catch { /* best effort */ }
+  }
+});
+
+/**
  * A directory beside the store root, holding the three documents the route
  * reads. Sibling rather than child: a child would be inside `brainsDir` and
  * would prove nothing.
@@ -60,24 +81,30 @@ const OUTSIDE = 'OUTSIDE-THE-BRAINS-STORE-MUST-NEVER-BE-SERVED';
 function outsideBrain(r, label) {
   const owner = join(realpathSync(join(r, '..')), `outside-${label}-${randomUUID()}`);
   const dir = join(owner, 'gen-0001');
-  mkdirSync(dir, { recursive: true });
-  for (const f of ['index.md', 'topics.md', 'timeline.md']) {
-    writeFileSync(join(dir, f), `${OUTSIDE}\n`, 'utf8');
-  }
-  // Reap `owner` — the directory this function CREATED, captured in a variable rather
-  // than re-derived. Re-deriving it as `join(dir, '..', '..')` was a real bug in the
-  // first draft of this fix: that walks up from `gen-0001` twice, which leaves the
-  // `outside-*` directory and lands on the TEMP ROOT ITSELF. Measured — a run with a
-  // private temp root deleted the root, and on a SHARED root the second run then failed
-  // all six tests because the root was gone. It would have deleted another session's
-  // temp files. Capturing the created path is exact; a relative walk is not.
-  //
-  // `r`'s own reaper cannot reach a sibling, so the creator owns the cleanup — and the
-  // label stays in the name so a leaked one is still identifiable by eye.
-  process.on('exit', () => {
+  // Register BEFORE the directory exists: `rmSync` with `force` tolerates an absent
+  // path, so registering first costs nothing and closes the window where a mkdir
+  // failure would leak.
+  OWNED_OUTSIDE_DIRS.add(owner);
+  try {
+    mkdirSync(dir, { recursive: true });
+    for (const f of ['index.md', 'topics.md', 'timeline.md']) {
+      writeFileSync(join(dir, f), `${OUTSIDE}\n`, 'utf8');
+    }
+  } catch (err) {
+    // Synchronous cleanup on the failure path — the handler above would otherwise
+    // only fire at process exit, leaving a half-built directory on disk if the
+    // suite is killed or the process aborts.
     try { rmSync(owner, { recursive: true, force: true }); } catch { /* best effort */ }
-  });
+    OWNED_OUTSIDE_DIRS.delete(owner);
+    throw err;
+  }
   return dir;
+}
+
+/** The basename of an allocation, so attack vectors can name the REAL directory. */
+function outsideBasename(dir) {
+  // dir is `<owner>/gen-0001`; the owner basename is what a hostile slug would traverse to.
+  return dir.split(/[/\\]/).slice(-2, -1)[0];
 }
 
 /* ── T-B25a · the positive control ───────────────────────────────────────── */
@@ -180,6 +207,13 @@ test('T-B25e: an unnameable slug never reaches the pointer read', async () => {
     // guard (the same lesson T-B22d records). The encoded forms DO reach the
     // handler as literal text, which is what the handler must contain.
     //
+    // THE VECTORS NAME THE REAL DIRECTORY (round 9b, Astra finding 5). They used to
+    // spell `outside-t-b25e`, a CONSTANT, while `outsideBrain` had begun allocating
+    // `outside-t-b25e-<uuid>`. So the vectors pointed at a directory that does not
+    // exist, and the test could not have detected a slug that actually reached the
+    // fixture — it was inert by construction, on top of being a PIN. The basename is
+    // now derived from the allocation, so the traversal target is real.
+    //
     // THIS TEST IS A PIN, NOT A REGRESSION PROOF — and saying so is the point.
     // MEASURED against the pre-fix code (mutation, 2026-09-20): every one of
     // these already answered 404 and leaked nothing, because the router does not
@@ -188,10 +222,11 @@ test('T-B25e: an unnameable slug never reaches the pointer read', async () => {
     // owned elsewhere, one `decodeURIComponent` away from being false. This test
     // makes the console's own rule explicit so that day is a failing test rather
     // than a silent reopening. The live vectors are T-B25b/c/d.
+    const owner = outsideBasename(outside);
     const hostile = [
-      '..%2F..%2Foutside-t-b25e',
-      '%2e%2e%2f%2e%2e%2foutside-t-b25e',
-      '..%5C..%5Coutside-t-b25e',
+      `..%2F..%2F${owner}`,
+      `%2e%2e%2f%2e%2e%2f${owner}`,
+      `..%5C..%5C${owner}`,
       'ns%00x',
       'a%2Fb',
       'a%5Cb',
