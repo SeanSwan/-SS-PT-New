@@ -22,12 +22,20 @@
  *   node scripts/lane.mjs digest  [--json]   # DELTA orientation, capped — for SessionStart
  *   node scripts/lane.mjs doctor  [--json]   # hygiene: orphan ledgers, rot (report only)
  *   node scripts/lane.mjs whoami
+ *   node scripts/lane.mjs orientation [--json]  # COMPLETE discovery — uncapped, read-only
  *
  * Exit codes: 0 ok · 2 not a git repo · 3 write failed · 4 unknown subcommand.
+ *   `orientation` also exits 2 when it produced a VALID but INCOMPLETE response
+ *   (unreadable/malformed lane, ambiguous claim, invalid timestamp, unresolved
+ *   identity). Exit 2 is therefore overloaded: "no ledger at all" and "a ledger I
+ *   cannot vouch for". Both mean the same thing to a reader — do not treat this
+ *   as clearance — and the contract fixes the number, so it is documented rather
+ *   than changed. `digest` is untouched and still capped; that is deliberate.
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync, appendFileSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { FRESH_MIN, sh, normPath, samePath, ledgerDir, identity, safeRef, readLanes, parseLane, siblingLanes } from './lib/lane-core.mjs';
+import { buildDiscovery, renderDiscovery } from './lib/lane-discovery.mjs';
 
 const ARGV = process.argv.slice(2);
 const CMD = ARGV[0] ?? 'digest';
@@ -341,7 +349,24 @@ function snapshot() {
   console.log('[lane] it is gitignored by default — \`git add -f\` it if you want it committed.');
 }
 
-const COMMANDS = { claim, release, digest, doctor, snapshot, whoami: () => console.log(`${ME.agent}@${ME.slug} → ${LANE_PATH}`) };
+/* ── COMPLETE discovery — additive. `digest` above is the capped STARTUP
+ * summary and stays exactly as it was; this is the UNCAPPED answer to "what does
+ * the ledger actually contain", for the moment an agent is deciding whether a
+ * file is safe to edit. Every lane and every parsed claim appears, and the exit
+ * code says whether the answer can be trusted as clearance. Read-only: it
+ * writes nothing, claims nothing and prunes nothing (Rule 34). */
+function orientation() {
+  const { discovery, exitCode } = buildDiscovery({ cwd: process.cwd(), ledger: LEDGER });
+  if (!discovery) {
+    console.error('[lane] discovery could not be produced.');
+    process.exit(1);
+  }
+  if (JSON_MODE) console.log(JSON.stringify(discovery, null, 2));
+  else console.log(renderDiscovery(discovery));
+  process.exit(exitCode);
+}
+
+const COMMANDS = { claim, release, digest, doctor, snapshot, orientation, whoami: () => console.log(`${ME.agent}@${ME.slug} → ${LANE_PATH}`) };
 if (!COMMANDS[CMD]) {
   // A typo used to fall through to `digest` and exit 0 — the agent believed it had
   // published a claim nobody could see. Silent failure on the primary write path.
