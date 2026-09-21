@@ -16,8 +16,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync, symlinkSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, writeFileSync, symlinkSync, rmSync } from 'node:fs';
+import { join, resolve, sep, basename } from 'node:path';
 
 import { resolveStatic } from '../server.mjs';
 import { tempRoot } from '../../../scripts/creator-brains/test/helpers.mjs';
@@ -132,4 +132,54 @@ test('HY4-H3 (LINK): a junction inside dist cannot smuggle a read out of the roo
   // And through the real route the caller takes, nothing is served.
   assert.equal(resolveStatic('/linked/../inside.txt', dist), join(dist, 'inside.txt'),
     'a path that normalises back inside is still served');
+});
+
+test('HY4-H3 (ROOT BASE): a filesystem root as the document root still serves its children', () => {
+  // MEASURED DEFECT, round 9c (Astra P3 #6, "additional edge"). The lexical test was
+  // `target.startsWith(base + sep)`. When `base` IS a filesystem root that expression
+  // spells a DOUBLED separator, and no ordinary child starts with it, so EVERY descendant
+  // was refused. The component check replaced it.
+  //
+  // ── WHY THIS CASE SELECTS ITS BASE INSTEAD OF USING `resolve(sep)` ──────────
+  //
+  // The first version called `resolve(sep)` — `C:\` — and wrote a probe file there. That
+  // write raises EPERM without elevation, the `catch` returned early, and the case then
+  // asserted ONLY its precondition: it passed on the pre-fix form too, so it verified
+  // nothing. Measured by mutating the resolver back to `base + sep` and watching this
+  // case stay green. An unexecuted assertion is not a passing assertion, and a `catch`
+  // that returns quietly is how it hides.
+  //
+  // So the base is CHOSEN at runtime from the mounted drives, and if no writable root is
+  // found the case FAILS. A skip would restore exactly the silence this case exists to
+  // remove; the honest report for an unavailable precondition is a failure that says so.
+  const base = 'CDEFGHIJKLMNOPQRSTUVWXYZ'.split('')
+    .map((d) => `${d}:${sep}`)
+    .find((root) => {
+      try {
+        const probe = join(root, `hy4-rootprobe-${process.pid}.tmp`);
+        writeFileSync(probe, 'x');
+        rmSync(probe, { force: true });
+        return true;
+      } catch { return false; }
+    });
+  assert.ok(base, 'no writable filesystem root is available, so this case cannot run');
+
+  // THE PRECONDITION, and it is the whole defect in one line: a root base dangles a
+  // separator, so a string test refuses every child of it.
+  const child = join(base, `hy4-rootbase-${process.pid}.txt`);
+  assert.ok(!child.startsWith(base + sep),
+    'precondition: a root base dangles a separator, so a string test refuses the child');
+
+  try {
+    writeFileSync(child, 'ROOT-BASE-OK', 'utf8');
+    // THE ASSERTION THE PREVIOUS VERSION NEVER REACHED.
+    assert.equal(resolveStatic(`/${basename(child)}`, base), child,
+      'a child of a root document root must resolve');
+    // And containment still refuses a sibling of nothing: an escaping path stays refused,
+    // so the fix is not "accept everything under a root base".
+    assert.equal(resolveStatic('/../outside.txt', base), null,
+      'a root base must still refuse an escaping path');
+  } finally {
+    rmSync(child, { force: true });
+  }
 });

@@ -28,10 +28,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, resolve, sep, relative } from 'node:path';
 
 import { escapes } from './path-containment.mjs';
 import { junction } from './store-attacks.mjs';
+import { inside } from '../lib/containment.mjs';
 import { tempRoot } from '../../../scripts/creator-brains/test/helpers.mjs';
 
 test('R8-07a: `escapes` is component-wise, in both directions', () => {
@@ -52,6 +53,59 @@ test('R8-07a: `escapes` is component-wise, in both directions', () => {
   // That branch is Windows-only: on POSIX every absolute path shares `/`.
   if (process.platform === 'win32') {
     assert.equal(escapes(root, 'D:\\store'), true, 'a different drive is never inside');
+  }
+});
+
+test('R9-C3: the coincidence is EVERY empty-relative pair, not only identical strings', () => {
+  // Astra round 9, P3 #6, MEASURED. The note on `escapes` said "THE ONE INPUT WHERE THIS
+  // IS NOT SIMPLY `!inside()`" and named `target === root`. That is a case far narrower
+  // than the behaviour: the exception is every pair whose `relative()` is `''`, and only
+  // ONE of the four below is string equality. The other three are different strings
+  // naming the same normalized path, which is exactly the distinction the note obscured —
+  // and the reason a reader checking it against `inside()` one spelling at a time would
+  // find an apparent disagreement the arithmetic says cannot exist.
+  const root = resolve('store');
+  const aliasDot = root + sep + '.';
+  const aliasDotDot = root + sep + '.' + sep + '.';
+  const aliasSub = root + sep + 'sub' + sep + '..';
+  const sameSpot = [
+    ['identical strings', root],
+    ["root + sep + '.'", aliasDot],
+    ["root + sep + '.' + sep + '.'", aliasDotDot],
+    // BUILT BY CONCATENATION, NOT BY `join` OR `resolve` — both NORMALISE, so
+    // `join(root, 'sub', '..')` and `resolve(root, 'sub', '..')` return the root's OWN
+    // string and are not aliases at all. Measured, after this case failed twice on its
+    // own precondition: the subject is "different strings naming the same path", and only
+    // the un-normalised spelling is a different string.
+    ['root + sep + \'sub\' + sep + \'..\'', aliasSub],
+  ];
+  for (const [label, alias] of sameSpot) {
+    assert.equal(relative(root, alias), '', `precondition: '${label}' names the root itself`);
+    assert.equal(escapes(root, alias), false, `'${label}': the root is not outside the root`);
+    assert.equal(inside(root, alias), false, `'${label}': the root is not strictly inside`);
+  }
+  // THREE OF THE FOUR ARE NOT STRING EQUALITY, which is the whole point of the case.
+  //
+  // THIS IS DERIVED FROM `sameSpot`, NOT FROM THE VARIABLE NAMES, and the difference was
+  // measured: the first version looped over `[aliasDot, aliasDotDot, aliasSub]` by name,
+  // so DELETING a row from `sameSpot` left it fully green — the table above and the
+  // assertion below were two independent statements of the same fact, and only one of
+  // them was load-bearing. The `alias` is now read back out of the table, and `aliases` is
+  // asserted to be exactly three so a dropped row fails on its own count.
+  const aliases = sameSpot.slice(1).map(([, alias]) => alias);
+  assert.equal(aliases.length, 3, 'the case pins THREE non-identical spellings');
+  for (const alias of aliases) {
+    assert.notEqual(alias, root, 'this alias must be a DIFFERENT STRING from the root');
+  }
+  assert.equal(new Set(aliases).size, 3,
+    'the three aliases are distinct from each other, not one spelling counted thrice');
+
+  // AND EVERYWHERE ELSE THEY ARE EXACT NEGATIONS — the claim the note makes, now checked
+  // on the inputs a reader would actually reach for, not asserted in prose.
+  for (const target of [join(root, 'child'), join(root, '..notes'), `${root}-sibling`,
+    resolve(root, '..'), resolve(root, '..', 'other')]) {
+    assert.equal(inside(root, target), !escapes(root, target),
+      `${target} must satisfy inside() === !escapes()`);
   }
 });
 

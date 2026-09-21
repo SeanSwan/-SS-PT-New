@@ -12,7 +12,7 @@
  */
 
 import { readFileSync, existsSync, realpathSync } from 'node:fs';
-import { join, dirname, extname, resolve, normalize, sep } from 'node:path';
+import { join, dirname, extname, resolve, normalize, relative, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -63,7 +63,22 @@ export function resolveStatic(urlPath, dist = WEB_DIST) {
   const base = resolve(dist);
   const target = resolve(join(base, clean === '/' || clean === '\\' ? 'index.html' : clean));
 
-  if (target !== base && !target.startsWith(base + sep)) return null;
+  // ── THE BASE MAY ITSELF BE A FILESYSTEM ROOT, WHERE `base + sep` DANGLES ────
+  //
+  // The string test used to be `target !== base && !target.startsWith(base + sep)`. On
+  // POSIX a root base is `/`, so `base + sep` is `//` and NOTHING under it starts with
+  // that — every ordinary descendant was refused (round 9c, Astra P3 #6; measured). The
+  // comparison is now on the COMPONENTS `relative()` returns, which says the same thing
+  // without ever spelling a trailing separator.
+  //
+  // A `relative()` result that is `''` is the root itself; `..` or `..<sep>` is a parent;
+  // an ABSOLUTE result means the two share no root at all (different Windows drives).
+  // Containment is "not the root, and no leading `..` component, and not absolute" — the
+  // R7-01 rule, restated here rather than imported, so this stays independent of the test
+  // oracle in `test/path-containment.mjs` that exists to catch this function's regressions.
+  const relativeTarget = relative(base, target);
+  const leavesBase = relativeTarget === '..' || relativeTarget.startsWith(`..${sep}`);
+  if (relativeTarget === '' || leavesBase || isAbsolute(relativeTarget)) return null;
   if (!existsSync(target)) return null;
 
   // The lexical test above cannot see a link. Resolve both sides and re-check.
@@ -78,7 +93,12 @@ export function resolveStatic(urlPath, dist = WEB_DIST) {
   } catch {
     return null;
   }
-  if (realTarget !== realBase && !realTarget.startsWith(realBase + sep)) return null;
+  // The SAME COMPONENT TEST on the resolved paths, for the same reason: a resolved root
+  // base would dangle a trailing separator too, and this is the check the junction defect
+  // needed, so it must not carry a second copy of the spelling bug.
+  const relReal = relative(realBase, realTarget);
+  if (relReal === '' || relReal === '..' || relReal.startsWith(`..${sep}`)
+      || isAbsolute(relReal)) return null;
   return target;
 }
 

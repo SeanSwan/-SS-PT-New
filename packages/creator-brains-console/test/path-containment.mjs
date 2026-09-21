@@ -52,13 +52,22 @@
  * the guard would be invisible to the very tests whose job is to notice it. The rule is
  * restated here from `node:path` primitives, independently.
  *
- * THE ONE INPUT WHERE THIS IS NOT SIMPLY `!inside()`. For every target except the root
- * itself this returns the exact negation of production's `inside()`. At `target === root`
- * `relative()` yields `''`, and BOTH answer `false` — `inside()` because it is strictly
- * inside, this one because `''` is neither `..` nor absolute. So the two are negations
- * everywhere except the self-case, where they coincide on `false`. That is stated rather
- * than unified: making them one function would restore exactly the by-construction
- * agreement this file exists to avoid.
+ * THE ONE CLASS OF INPUT WHERE THIS IS NOT SIMPLY `!inside()`. For every target whose
+ * relative path against the root is non-empty, this returns the exact negation of
+ * production's `inside()`. Where `relative()` yields `''` the two COINCIDE on `false` —
+ * `inside()` because it is strictly inside, this one because `''` is neither `..` nor
+ * absolute.
+ *
+ * IT IS EVERY EMPTY-RELATIVE PAIR, NOT ONLY `target === root` (round 9c, Astra P3 #6).
+ * The first version of this note said "the one input where", which names a case far
+ * narrower than the behaviour. MEASURED, four distinct spellings all produce `''` and
+ * all take the exception: `root` itself, `root + sep + '.'`, `root + sep + '.' + sep + '.'`,
+ * and `join(root, 'sub', '..')`. Only the first is string equality; the other three are
+ * different strings naming the same normalized path, which is exactly the distinction the
+ * note obscured. `T-B26c` pins all four.
+ *
+ * That is stated rather than unified: making them one function would restore exactly the
+ * by-construction agreement this file exists to avoid.
  *
  * @module creator-brains-console/test/path-containment
  */
