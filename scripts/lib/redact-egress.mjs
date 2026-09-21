@@ -94,22 +94,41 @@ function identityPatterns() {
   return out;
 }
 
-function applyAll(text, patterns) {
-  let out = text;
-  const hits = [];
-  for (const [re, repl] of patterns) {
-    const m = out.match(re);
-    if (m && m.length) hits.push({ replacement: repl, count: m.length });
-    out = out.replace(re, repl);
-  }
-  return { out, hits };
-}
+// APPLYING THE ROWS MOVED OUT, AND THE MOVE IS THE FIX (round 9d, Astra A2).
+// This file previously owned `applyAll()`, which replaced each row's matches IN TABLE ORDER —
+// so row N+1 matched against a string row N had already edited. A row could not see that its
+// match sat inside another row's, because the enclosing match's text was already gone.
+// Measured cost: a 40-character bot token containing `sk-` was reported as redacted while 30
+// of its characters stayed in the clear. No pattern change repairs that; the ORDER was the bug.
+// `redact-apply.mjs` now computes every span against UNCHANGED input and resolves overlaps by
+// original position (enclosing match wins). The seam is the call boundary, not the table.
+import { applyAll } from './redact-apply.mjs';
 
 /**
- * Prove the instrument is live: plant one sample of every known shape plus
- * the runtime identity, and verify each was caught. Throws rather than
- * returning a reassuring boolean — a caller can ignore a boolean; it cannot
- * ignore a throw. This certifies the instrument, NOT coverage.
+ * Prove the instrument is live AND COMPLETE: plant one sample of every known shape plus
+ * the runtime identity, and verify each was caught WHOLE. Throws rather than returning a
+ * reassuring boolean — a caller can ignore a boolean; it cannot ignore a throw. This
+ * certifies the instrument, NOT coverage.
+ *
+ * WHY "WHOLE" IS THE LOAD-BEARING WORD (round 9d, Astra A5/A6). This function used to probe
+ * each sample with `sample.slice(0, 12)` and require that 12-character prefix to be gone. That
+ * probe has two blind spots, both measured:
+ *
+ *   1. IT CANNOT SEE A DELETION. Deleting a row deletes the sample it plants, so an
+ *      unfired row contributes nothing to the canary and the canary still returns true.
+ *      Reproduced: `SECRET_SHAPES.splice(13,1); selfTest()` -> `true`.
+ *   2. IT CANNOT SEE A PARTIAL REDACTION, WHICH IS THE FAILURE MODE THIS FILE EXISTS FOR.
+ *      The probe IS a prefix of the plaintext, so the moment a row redacts its first 12
+ *      characters — and leaves the other 40 in the clear — the probe vanishes and the canary
+ *      reports success. Reproduced: `'<REDACTED-KEY>' + sample.slice(12)` passes.
+ *
+ * The repair for (2) is to probe with something that is NOT a prefix of the plaintext: the
+ * TAIL of each sample, which only disappears if the match covered the whole value. For (1),
+ * the repair is not here at all — the canary cannot audit the table's own inventory, because
+ * the table IS the inventory. That belongs to `secret-families.mjs` and its coverage test,
+ * which is a second, independent statement of what must be recognised. The two are complementary
+ * and both are required: this proves each EXISTING row fires completely; that proves the rows
+ * that should exist still do.
  */
 export function selfTest() {
   const names = identityNames();
@@ -127,8 +146,16 @@ export function selfTest() {
   const leaked = [];
   for (const n of names) if (out.toLowerCase().includes(n.toLowerCase())) leaked.push(`identity:${n.length}ch`);
   for (const [, repl, sample] of SECRET_SHAPES) {
-    const probe = sample.split('\n')[0].slice(0, 12);
-    if (out.includes(probe)) leaked.push(`shape:${repl}`);
+    // TAIL, not prefix: a 12-char prefix of the sample IS a 12-char prefix of the plaintext,
+    // so a row that redacts only its head makes the probe disappear — see (2) above. The tail
+    // is chosen to outrun the penultimate 12 characters of the value, which is the part a
+    // partially-redacting row leaves behind.
+    const tail = sample.split('\n')[0].slice(-12);
+    // A sample shorter than the probe window cannot supply an independent probe. Every current
+    // row is longer than this; the guard turns a future violation into a named failure rather
+    // than a silently vacuous check.
+    if (tail.length < 12) leaked.push(`shape:${repl}(sample too short to probe)`);
+    else if (out.includes(tail)) leaked.push(`shape:${repl}`);
   }
   if (leaked.length) {
     throw new Error(

@@ -15,11 +15,50 @@
  */
 
 /**
+ * THE SHORT JSON CONTROL ESCAPES, as they appear in a SERIALISED body.
+ *
+ * `fetchForEgress()` redacts the request body AFTER `JSON.stringify()`, so a newline in the
+ * prompt reaches the regex as the two characters `\` and `n`. A value that follows one begins
+ * with a literal `n`, `r`, `t`, `b` or `f` — all of which are WORD characters, so a bare
+ * `(?<!\w)` boundary rejects them and the token is missed.
+ *
+ * This started as `[nrt]`, which is what happened to be measured. Astra's round-9d review asked
+ * for consistency, and the answer is that the class is the JSON spec's, not the three cases a
+ * test happened to cover: the five short escapes above are exactly the ones `JSON.stringify`
+ * emits that produce a trailing word character. (`\f` form-feed, `\b` backspace, `\t` tab,
+ * `\r` carriage return, `\n` newline.) `\"`, `\\` and `\/` need no branch — they leave a `"`,
+ * `\` or `/` before the token, none of which is a word character.
+ *
+ * WHY IT IS A CONSTANT AND NOT SPELLED OUT IN EACH ROW. Three rows carry the same lookbehind,
+ * and the round-9b note in this file records what happens when a boundary is written once and
+ * copied: the copies drift. One definition means a fifth escape is added once, not four times,
+ * and the row that forgets it is visible as a row that does not use this constant.
+ */
+export const JSON_ESCAPE_BEFORE = '(?<=\\\\[nrtbf])';
+
+/**
  * Canary samples are assembled from parts so no source file contains a literal
  * key-shaped string: the pre-commit secret scanner (rightly) cannot tell a canary from
  * a leak, and an allowlist for this file would be a bigger hole.
  */
 export const c = (...parts) => parts.join('');
+
+/**
+ * The LEFT BOUNDARY a row must carry when its token can follow a JSON escape, composed once.
+ *
+ * `(?<!\w)` rejects a token glued to a preceding word character; the escape branch accepts one
+ * that follows a SERIALISED control character, where the character before the token is the
+ * LETTER of an escape (`\n` is backslash + `n`, and that `n` is a word character). Both are
+ * needed: the first for prose, the second for the transport.
+ *
+ * THIS IS WHAT THE ROWS USE. An earlier revision exported `JSON_ESCAPE_BEFORE` and left every row
+ * spelling the class out inline — so the constant had no consumer at all, and the comment
+ * claiming the rows "share" it was false. A mutation proved it: narrowing the constant changed
+ * nothing and the suite stayed green. That is dead code carrying a false claim, which is worse
+ * than dead code alone. Stating the boundary as a FUNCTION means a row cannot inline the class
+ * by accident: calling the helper is the only way to get it, so the definition has one home.
+ */
+export const BEFORE_SECRET = `(?:(?<!\\w)|${JSON_ESCAPE_BEFORE})`;
 
 /**
  * Secret-shaped values: [regex, replacement, canary sample]. Redacted wherever
@@ -50,7 +89,7 @@ export const SECRET_SHAPES = [
   // exemption means `x-task-<key>` is caught, which is the safe direction on an egress
   // path where a false negative leaves the machine and a false positive merely redacts.
   // Both directions measured in `redact-egress.test.mjs`; see the round-9 block.
-  [/(?:(?<!\w)|(?<=\\[nrt]))sk-[A-Za-z0-9_-]{12,}/g, '<REDACTED-KEY>', c('sk-', 'CANARYCANARYCANARY123456')],
+  [new RegExp(`${BEFORE_SECRET}sk-[A-Za-z0-9_-]{12,}`, 'g'), '<REDACTED-KEY>', c('sk-', 'CANARYCANARYCANARY123456')],
   // THE FOUR ROWS BELOW TARGET PREFIXED UNDERCORE/HYPHEN TOKENS, WHICH IS WHY THEY NEED
   // THE SAME LEFT BOUNDARY AS `sk-` ABOVE (round 9b, Astra's neighbour audit). Measured
   // without it: `ta[sk_live_]identifier` -> `ta<REDACTED-KEY>`, `di[sk_test_]reporting`
@@ -92,15 +131,43 @@ export const SECRET_SHAPES = [
   //            reachable only from a contrived string. Measured: `metaAIza…` needed a
   //            fabricated prefix. Not worth a boundary that could only weaken it.
   //   `rnd_` — `brnd_`/`grnd_` are not words. Same disposition.
-  //   `SG.`  — already safe without a boundary: the token's own prefix ENDS in a dot,
-  //            which cannot be part of a word, so there is no word it can hide inside.
-  //            Measured: `massSG.…` does NOT fire. No change needed.
-  [/(?<!\w)gh[pousr]_[A-Za-z0-9]{20,}/g, '<REDACTED-KEY>', 'ghp_CANARYCANARYCANARY0123456789'],
-  [/github_pat_[A-Za-z0-9_]{20,}/g, '<REDACTED-KEY>', 'github_pat_CANARYCANARYCANARY0123'],
-  [/SG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}/g, '<REDACTED-KEY>', 'SG.CANARYCANARYCANARY01.CANARYCANARYCANARY02'],
-  [/(?<!\w)lin_api_[A-Za-z0-9]{20,}/g, '<REDACTED-KEY>', 'lin_api_CANARYCANARYCANARY0123'],
-  [/(?<!\w)eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g, '<REDACTED-JWT>', 'eyJCANARYCANARY.eyJCANARYCANARY.CANARY'],
-  [/Bearer\s+[A-Za-z0-9._~+/=-]{16,}/gi, 'Bearer <REDACTED-KEY>', 'Bearer CANARYCANARYCANARY0123'],
+  //   `SG.`  — NOT FIXED, but for a reason an earlier revision of this comment got WRONG.
+  //
+  //            The old text claimed "the token's own prefix ENDS in a dot, which cannot be part
+  //            of a word, so there is no word it can hide inside. Measured: `massSG.…` does NOT
+  //            fire." That measurement was wrong, and round 9d (Astra A7) reproduced it:
+  //
+  //              `mass` + `SG.<16>.<16>`  ->  `mass<REDACTED-KEY>`
+  //
+  //            It fires, and it consumes the `mass`. The reasoning failed because a dot is not a
+  //            boundary — it is a MEMBER of the row's own alphabet only where the alphabet says
+  //            so, and `SG\.[A-Za-z0-9_-]{16,}` begins at `S`. The dot cannot stop `mass` from
+  //            being swallowed, because the regex starts matching at `S` and `mass` is left
+  //            OUTSIDE the match while still being part of the same word. `(?<!\w)` would fix
+  //            it; it is not added because no measured word collides (`massSG.` needed a
+  //            fabricated prefix, exactly like `AIza` above) and a boundary here would be a
+  //            change made for symmetry rather than for evidence. The claim is corrected; the
+  //            disposition is unchanged, and both are now in the record.
+  [new RegExp(`${BEFORE_SECRET}gh[pousr]_[A-Za-z0-9]{20,}`, 'g'), '<REDACTED-KEY>', c('ghp', '_CANARYCANARYCANARY0123456789')],
+  [/github_pat_[A-Za-z0-9_]{20,}/g, '<REDACTED-KEY>', c('github_pat', '_CANARYCANARYCANARY0123')],
+  [/SG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}/g, '<REDACTED-KEY>', c('SG.', 'CANARYCANARYCANARY01.CANARYCANARYCANARY02')],
+  [new RegExp(`${BEFORE_SECRET}lin_api_[A-Za-z0-9]{20,}`, 'g'), '<REDACTED-KEY>', c('lin_api', '_CANARYCANARYCANARY0123')],
+  [new RegExp(`${BEFORE_SECRET}eyJ[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{10,}\\.[A-Za-z0-9_-]{5,}`, 'g'), '<REDACTED-JWT>', c('eyJ', 'CANARYCANARY.eyJCANARYCANARY.CANARY')],
+  // THE SEPARATOR BETWEEN `Bearer` AND ITS TOKEN MUST SURVIVE SERIALISATION (round 9d, Astra A1).
+  //
+  // `\s+` matches whitespace. In a SERIALISED body there is no whitespace there — a newline
+  // arrives as the two characters `\` `n`, and `\s` matches neither. So the raw form
+  // `Authorization: Bearer <tok>` was caught while the same value inside a JSON body was not,
+  // even though `fetchForEgress()` redacts that body and nothing else:
+  //
+  //   'Bearer <32 A>'                         -> hit
+  //   JSON.stringify({prompt:'Bearer\\n<32 A>'}) -> MISS, returned unchanged
+  //
+  // The separator now accepts a JSON escape in place of the whitespace, which is the same
+  // repair `sk-` and the bot token carry on their LEFT edge — stated here in the middle, where
+  // this row's separator actually sits. `\s*` is kept in front so the escaped and unescaped
+  // spellings both match without a second alternative for the surrounding text.
+  [/Bearer(?:\s|\\[nrtbf])+[A-Za-z0-9._~+/=-]{16,}/gi, 'Bearer <REDACTED-KEY>', 'Bearer CANARYCANARYCANARY0123'],
   // THE TRAILING BOUNDARY IS THE DECLARED ALPHABET, NOT `\b` (round 9d, Astra P3 #9).
   //
   // `\b` cannot sit between two NON-word characters, and the row declares `-` as a
@@ -125,7 +192,7 @@ export const SECRET_SHAPES = [
   // Both sides are now stated as alphabets. The left side keeps `\b`'s effect via a
   // negative lookbehind (a numeric run glued to a word character is not a standalone
   // id), and keeps the JSON-escape alternative for a serialised body's `\n`.
-  [/(?:(?<!\w)|(?<=\\[nrt]))\d{8,}:[A-Za-z0-9_-]{30,}(?![A-Za-z0-9_-])/g, '<REDACTED-BOT-TOKEN>',
+  [new RegExp(`${BEFORE_SECRET}\\d{8,}:[A-Za-z0-9_-]{30,}(?![A-Za-z0-9_-])`, 'g'), '<REDACTED-BOT-TOKEN>',
     '12345678:CANARYCANARYCANARYCANARYCANARY01'],
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g, '<REDACTED-PEM>',
     '-----BEGIN PRIVATE KEY-----\nCANARY\n-----END PRIVATE KEY-----'],
@@ -136,17 +203,69 @@ export const SECRET_SHAPES = [
   // Rule 47 numeric IDs (Telegram chat_id etc): keyed at 7+ digits, bare only
   // at 10+ so all-digit 9-char commit SHAs and 20260826T… timestamps survive.
   //
-  // THE SEPARATOR ABSORBS A JSON CLOSING QUOTE (round 9d, Astra P3 #10). The keyed
-  // form was written `(\s*[=:]\s*)`, which requires the separator to be the character
-  // IMMEDIATELY after the name. In JSON the key arrives as `"chat_id":` — a closing
-  // quote sits between the name and the colon — so the row could not see it, and a
-  // 7-9 digit id under a quoted key was NOT REDACTED AT ALL. Measured before the fix:
+  // THE SEPARATOR ABSORBS A JSON CLOSING QUOTE (round 9d, Astra P3 #10). The keyed form was
+  // written `(\s*[=:]\s*)`, which requires the separator to be the character IMMEDIATELY after
+  // the name. In JSON the key arrives as `"chat_id":` — a closing quote sits between the name
+  // and the colon — so the row could not see it, and a 7-9 digit id under a quoted key was NOT
+  // REDACTED AT ALL. Measured before the fix:
   //   `{"chat_id":1234567}`     -> unchanged, 0 hits
   //   `{"chat_id":123456789}`   -> unchanged, 0 hits   (the bare row's floor is 10)
   //   `{"chat_id":1234567890}`  -> redacted, by the BARE row, not this one
-  // So the keyed policy silently did not apply to the spelling that a JSON body —
-  // the form this redactor actually processes on the serialised transport — most
-  // commonly uses. The separator now tolerates one `'` or `"` before the `=`/`:`.
-  [/\b(chat_id|chat|user_id|from_id|owner_id|telegram_id|id)['"]?(\s*[=:]\s*)-?\d{7,}\b/gi, '$1$2<REDACTED-ID>', 'chat_id=1234567'],
-  [/(?<![\w.-])-?\d{10,}(?![\w.-])/g, '<REDACTED-ID>', '9876543210'],
+  // So the keyed policy silently did not apply to the spelling that a JSON body — the form this
+  // redactor actually processes on the serialised transport — most commonly uses.
+  //
+  // ROUND 9d PART 2 (Astra A3/A4): THE QUOTE MUST BE CAPTURED AND THE VALUE MAY BE A STRING.
+  // The first repair absorbed the closing quote with a NON-capturing `['"]?`, which consumed it.
+  // Measured consequence:
+  //   `{"chat_id":1234567}`  ->  `{"chat_id:<REDACTED-ID>}`   <- UNTERMINATED STRING, not JSON
+  // A redactor that emits an unparseable body has broken the request it was protecting: the
+  // whole point of redacting the serialised transport is that the caller's JSON survives it.
+  // Two further forms were missed outright — a JSON STRING value (`"chat_id":"1234567"`) and a
+  // JSON body embedded inside a prompt string, where every quote is backslash-escaped.
+  //
+  // So the row now: captures the quote into `$2` so it is re-emitted, captures the separator
+  // into `$3`, and accepts the id as a bare run OR as a quoted string (quotes kept in `$4`).
+  //
+  // A BARE VALUE MUST BECOME A STRING PLACEHOLDER, NOT A BARE ONE — but ONLY WHEN IT WAS BARE.
+  // Emitting `<REDACTED-ID>` where a JSON NUMBER stood produces `"chat_id":<REDACTED-ID>`, which
+  // is not JSON (`Unexpected token '<'`). Wrapping unconditionally is worse: a value that was
+  // ALREADY a quoted string arrives with its quotes captured, so wrapping doubles them into
+  // `"<REDACTED-ID>""` — also not JSON. Both were measured:
+  //   bare   `{"chat_id":1234567}`    -> `{"chat_id":<REDACTED-ID>}`      BAD
+  //   quoted `{"chat_id":"1234567"}`  -> `{"chat_id":"<REDACTED-ID>""}`  BAD
+  //
+  // The clean resolution is TWO ROWS, because the two cases need different whole matches. A
+  // conditional replacement (`${q:+}`) was tried first and rejected: it needs a named group to
+  // test, the group's content is consumed by the match, and the resulting expression was harder
+  // to read than the pair of rows it replaced. Two shapes, two rows — the same discipline the
+  // escaped-key case below uses.
+  //
+  // ROW 1: the QUOTED value. Its quotes are part of the match, so the placeholder goes INSIDE
+  // them and the quoting survives byte-for-byte.
+  [/\b(chat_id|chat|user_id|from_id|owner_id|telegram_id|id)(["']?)(\s*[=:]\s*)(["'])(-?\d{7,})\4/gi,
+    '$1$2$3$4<REDACTED-ID>$4', 'chat_id="1234567"'],
+  // ROW 2: the BARE value, which is a JSON number or a plain assignment. The placeholder is
+  // emitted as a STRING so a JSON body still parses; a plain `chat_id=1234567` is not JSON to
+  // begin with, and there the quoted form is harmless.
+  [/\b(chat_id|chat|user_id|from_id|owner_id|telegram_id|id)(['"]?)(\s*[=:]\s*)(-?\d{7,})(?!\d)/gi,
+    '$1$2$3"<REDACTED-ID>"', 'chat_id=1234567'],
+  // THE SAME KEY, WITH EVERY QUOTE BACKSLASH-ESCAPED — a JSON body inside a prompt string.
+  // `JSON.stringify({prompt: JSON.stringify({chat_id: 1234567})})` puts `\"chat_id\":` in the
+  // document: the key's opening quote is a `\` `"` pair, then the colon, then the value. The
+  // rows above cannot see it — their separator group starts at a raw `"` and this document has
+  // an escaped one. Measured before this row existed: the id reached the socket under a
+  // spelled-out key, which is the failure mode a keyed policy exists to prevent.
+  //
+  // The literal `\` characters are written as `\\\\` in a regex LITERAL, which is the four
+  // backslashes visible in the source below: two for the string escape, two for the regex
+  // escape, matching ONE literal backslash each. The escaped-quote pairs therefore read as
+  // `\\"` and the value's own escaped quotes are re-emitted around the placeholder.
+  //
+  // The bare-vs-quoted split from the rows above is preserved here for the same reason: the
+  // body has to stay parseable after it is un-escaped by whoever reads the prompt.
+  [/\b(chat_id|chat|user_id|from_id|owner_id|telegram_id|id)\\":(\s*)\\"(-?\d{7,})\\"/gi,
+    '$1\\": $2\\"<REDACTED-ID>\\"', 'chat_id\\":\\"1234567\\"'],
+  [/\b(chat_id|chat|user_id|from_id|owner_id|telegram_id|id)\\":(\s*)(-?\d{7,})(?!\d)/gi,
+    '$1\\": $2\\"<REDACTED-ID>\\"', 'chat_id\\":1234567'],
+  [/(?<![\w.-])-?\d{10,}(?![\w.-])/g, '<REDACTED-ID>', '98765432109876543210'],
 ];

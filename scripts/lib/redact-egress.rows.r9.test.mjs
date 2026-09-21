@@ -22,8 +22,17 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { redactForEgress } from './redact-egress.mjs';
+import { redactForEgress, selfTest } from './redact-egress.mjs';
+import { resolveSpans } from './redact-apply.mjs';
 import { SECRET_SHAPES } from './secret-shapes.mjs';
+import { SECRET_FAMILIES, uncoveredFamilies, duplicatePatterns } from './secret-families.mjs';
+// The serialisation and word-fidelity cases moved to their own file when this one passed the
+// 300-line cap (Rule 4). They are RUN from here so a single command still exercises the whole
+// round, and so the reporter's total is one number rather than two that a caller must add up.
+import { run as runRoundtrip } from './redact-egress.roundtrip.test.mjs';
+// E8/E9 moved out for the same reason, at the seam between "cases about the INSTRUMENT" (there)
+// and "cases about the ROWS" (here). This file fell from 402 to 188 lines on that extraction.
+import { runE8E9 } from './redact-egress.coverage.r9.test.mjs';
 
 let pass = 0; let fail = 0;
 const ok = (name, cond, detail) => {
@@ -128,107 +137,57 @@ const here = dirname(fileURLToPath(import.meta.url));
   ok('R9-E5 control: a 14-digit timestamp is NOT treated as an id', !tsOut.includes('<REDACTED-ID>'), tsOut);
 }
 
-// --- R9-E6: disabling each recognizer fails its assigned control ---
+
+// --- R9-E10: OVERLAP RESOLUTION on ORIGINAL spans (Astra A2) ---
 //
-// Reads the real table, drops one row at a time, and requires the corresponding
-// sample to STOP being redacted. A row whose sample is still caught with that row
-// removed is being certified by some OTHER row, and its per-row claim is unfounded.
-//
-// This is the harness that would have caught round 9's `wholeObjectShape` defect in
-// the sibling parser work: an assertion that passes for a reason other than the
-// mechanism it names is not evidence for that mechanism.
+// The redactor used to apply each row in TABLE ORDER, so row N+1 matched against text row N had
+// already edited. A row could not see that its match sat inside another row's, because the
+// enclosing text was already gone. Measured consequence: a 40-character bot token containing
+// `sk-` was reported as redacted while 30 of its characters stayed in the clear — the failure
+// mode where a placeholder suggests the value was handled. No pattern change repairs it; the
+// ORDER was the bug. `resolveSpans()` now decides overlaps on original positions.
 {
-  const src = readFileSync(join(here, 'secret-shapes.mjs'), 'utf8');
-  ok('R9-E6: the table source is readable', src.length > 0);
+  const span = (start, end) => ({ start, end, repl: '', label: '', row: 0 });
 
-  // Rebuild the pipeline with one row's pattern neutered. We cannot re-import the
-  // redactor minus a row, so we exercise the row DIRECTLY: the row's own regex must
-  // match its own sample. That is the per-row primitive the audit asks for, and it
-  // needs no global state.
-  SECRET_SHAPES.forEach(([re, , sample], i) => {
-    const fresh = new RegExp(re.source, re.flags.replace('g', ''));
-    ok(
-      `R9-E6[${i}]: row ${i} matches its own sample when run alone`,
-      fresh.test(sample),
-      `pattern=${re.source}\n      sample=${JSON.stringify(sample)}`,
-    );
-  });
+  ok('R9-E10: disjoint spans are both kept',
+    resolveSpans([span(0, 3), span(6, 9)]).length === 2);
 
-  // ...and the specific rows this round touched, pinned to the exact spelling.
-  const bySample = new Map(SECRET_SHAPES.map(([re]) => [re.source, re]));
-  const botRe = [...bySample.values()].find((re) => re.source.includes('REDACTED-BOT-TOKEN') || re.source.includes('\\d{8,}:'));
-  ok('R9-E6: the bot-token row is present in the table', botRe !== undefined);
-  if (botRe !== undefined) {
-    ok('R9-E6: the bot-token row uses an alphabet boundary, not \\b',
-      !/\\b\/?$/.test(botRe.source) && botRe.source.includes('(?![A-Za-z0-9_-])'),
-      botRe.source);
-  }
+  ok('R9-E10: identical spans resolve to ONE (earlier row wins, deterministic)',
+    resolveSpans([span(2, 8), span(2, 8)]).length === 1);
+
+  const contained = resolveSpans([span(0, 20), span(4, 9)]);
+  ok('R9-E10: a CONTAINED span is dropped — the enclosing match wins',
+    contained.length === 1 && contained[0].start === 0 && contained[0].end === 20,
+    JSON.stringify(contained));
+
+  const partial = resolveSpans([span(0, 10), span(6, 18)]);
+  ok('R9-E10: a PARTIAL overlap redacts their UNION (never half of each)',
+    partial.length === 1 && partial[0].start === 0 && partial[0].end === 18,
+    JSON.stringify(partial));
+
+  // The real case, end to end: the token CONTAINS the key.
+  const A32 = 'A'.repeat(32);
+  const hostile = ['12345678:', 'sk-', A32.slice(2)].join('');
+  const { text, hits } = redactForEgress(hostile);
+  ok('R9-E10: a bot token CONTAINING sk- redacts whole, not partially',
+    text === '<REDACTED-BOT-TOKEN>' && hits.length === 1,
+    `${JSON.stringify(hostile)} -> ${JSON.stringify(text)} hits=${JSON.stringify(hits)}`);
+  // The placeholder is `<REDACTED-BOT-TOKEN>`, which itself contains an `A` — so testing
+  // `!text.includes('A')` would assert the wrong thing and fail on a CORRECT redaction. The
+  // property that matters is that none of the token's PAYLOAD survives, so the check is on a
+  // run of the payload character, which no placeholder contains.
+  ok('R9-E10: ...and no run of the token\'s payload survives',
+    text === '<REDACTED-BOT-TOKEN>' && !/A{3,}/.test(text),
+    text);
 }
 
-// --- R9-E7: the rows that matched INSIDE a word now bound their left edge ---
-//
-// Astra's neighbour audit asked for the remaining 19 rows to be tested independently.
-// Four of them matched inside ordinary compounds. What separates a defect from a
-// conservatism is whether the false positive costs a REAL word, so each candidate was
-// measured on prose before anything was changed:
-//
-//   ghp_   inside `highs_`         -> `hi<REDACTED-KEY>`   (high + s_)
-//   ghp_   inside `weighp_`        -> `wei<REDACTED-KEY>`  (weigh + p_)
-//   eyJ    inside `theyJhbGci`     -> `th<REDACTED-JWT>`   (they + JhbGci)
-//   lin_api_ inside `displin_api_` -> `disp<REDACTED-KEY>`
-//
-// Two rows LOOK like the same defect and are deliberately NOT changed, because no
-// English word produces the collision: `AIza` and `rnd_`. They are pinned here as
-// EXPECTED over-redactions so a future reader does not "complete" the fix and spend
-// a boundary weakening the row for a case nobody writes.
-//
-// MUTANT THAT RE-GREENS THIS: drop `(?<!\w)` from any of the four rows.
-{
-  // The four that were fixed: prose in a compound must survive untouched.
-  const compounds = [
-    ['ghs_ in highs_', 'highs_CANARYCANARYCANARY0123456789', 'high'],
-    ['ghp_ in weighp_', 'weighp_CANARYCANARYCANARY0123456789', 'weigh'],
-    ['eyJ in theyJhbGci', 'theyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcde', 'they'],
-    ['lin_api_ in displin_api_', 'displin_api_CANARYCANARYCANARY0123', 'displin'],
-  ];
-  for (const [label, text, word] of compounds) {
-    const { text: out, hits } = redactForEgress(text);
-    ok(`R9-E7: ${label} is left alone`, hits.length === 0 && out === text, `-> ${JSON.stringify(out)}`);
-    ok(`R9-E7: ${label} keeps '${word}' intact`, out.startsWith(word), out);
-  }
-
-  // ...and each still catches its own token at a real boundary. A boundary that fixed
-  // the prose by refusing the token would be the worse bug, so BOTH directions are
-  // pinned — the same discipline the round-9b neighbour block uses.
-  const real = [
-    ['ghp_', 'ghp_CANARYCANARYCANARY0123456789'],
-    ['gho_', 'gho_CANARYCANARYCANARY0123456789'],
-    ['ghs_', 'ghs_CANARYCANARYCANARY0123456789'],
-    ['lin_api_', 'lin_api_CANARYCANARYCANARY0123'],
-    ['eyJ (JWT)', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.abcde'],
-  ];
-  for (const [name, token] of real) {
-    for (const [where, input] of [
-      ['at start', `${token} trailer`],
-      ['after =', `k=${token}`],
-      ['in JSON', JSON.stringify({ k: token })],
-    ]) {
-      const { text } = redactForEgress(input);
-      ok(`R9-E7: ${name} still caught ${where}`, /<REDACTED-(KEY|JWT)>/.test(text), text);
-    }
-  }
-
-  // The two rows deliberately left unbounded. If someone adds a boundary here, this
-  // case flips and the change has to be argued rather than slipped in.
-  const accepted = [
-    ['AIza', 'metaAIzaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
-    ['rnd_', 'the brnd_CANARYCANARYCANARY0123 field'],
-  ];
-  for (const [name, input] of accepted) {
-    const { text } = redactForEgress(input);
-    ok(`R9-E7: ${name} over-redaction is accepted (no word collides)`, text !== input, text);
-  }
-}
+// The sibling's cases run into THIS reporter, so a single RUN command still exercises the whole
+// round and the RESULT line at the bottom — not the sibling's — is the authoritative total. The
+// siblings never print their own total or exit; they receive `ok` and report through it.
+runE8E9({
+  ok, SECRET_SHAPES, SECRET_FAMILIES, uncoveredFamilies, duplicatePatterns, selfTest, redactForEgress,
+});
+await runRoundtrip({ ok });
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
