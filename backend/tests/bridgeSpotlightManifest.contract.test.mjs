@@ -15,9 +15,10 @@
  * different failure modes, so they are different files.
  *
  * ── NO TEST WAS DROPPED ─────────────────────────────────────────────────────────
- * 16 tests here + 22 in the parent = the 38 the unsplit file carried. The split is line-count
- * only: every `it()` moved verbatim, and the differential harness over both files shows the
- * assertion set is unchanged. The rig is shared via `helpers/bridgeSpotlightHarness.mjs`.
+ * 10 tests here + 10 in the parent = the 20 the unsplit `bridgeSpotlightOrdering` file carried.
+ * Every `it()` body moved verbatim — verified by diffing the full blocks against the pre-split
+ * blob at HEAD after line-ending normalisation, not merely the titles. The rig is shared via
+ * `helpers/bridgeSpotlightHarness.mjs`.
  *
  * The model and both network-touching services are mocked. Nothing here reaches DNS, R2, or a
  * database — so this file can prove a route is MOUNTED and a branch is TAKEN. It cannot prove

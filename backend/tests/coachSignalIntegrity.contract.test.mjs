@@ -28,12 +28,18 @@
  * moved to `helpers/coachSignalHarness.mjs` (shared with `coachSignalQuota.contract.test.mjs`
  * rather than duplicated, because a copy would drift), and the self-contained D2
  * quota-serialization describe moved to `coachSignalQuota.contract.test.mjs` with its rationale.
- * NO TEST WAS DROPPED: 21 tests here + 5 in the quota suite = the 21 the unsplit file carried,
- * plus the 5 whose concern moved. The split is line-count-only, and the differential harness
- * over the two files proves the assertion set is unchanged.
+ * NO TEST WAS DROPPED: 16 tests here + 5 in the quota suite = the 21 the unsplit file carried.
+ * Every `it()` body moved verbatim — verified by diffing the full blocks against the pre-split
+ * blob at HEAD after line-ending normalisation, not merely the titles (Astra round 6 confirmed
+ * this independently: 41 bodies match, all 112 `expect(...)` call sites preserved).
  */
 import { Op } from 'sequelize';
-import { describe, expect, it } from 'vitest';
+// `vi` is imported here because two tests below drive the clock across a DST boundary
+// (`vi.useFakeTimers` / `vi.setSystemTime`). It cannot be re-exported from the harness:
+// a hoisted binding cannot be re-exported (`Cannot export hoisted variable.`) — see the
+// harness header. R5-08's split dropped this import from both halves; without it the
+// DST tests fail with `ReferenceError: vi is not defined`, which is how it was caught.
+import { describe, expect, it, vi } from 'vitest';
 import {
   MEMBER_AUTHOR, installCoachSignalHarness, mocks, post,
 } from './helpers/coachSignalHarness.mjs';

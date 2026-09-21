@@ -191,6 +191,30 @@ describe('R5-04 — image attachment is best-effort and cannot fail a committed 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.revision).toBe(2);
+
+    // Astra round 6: the response assertions above hold even if the attach is DELETED, because a
+    // rejection nobody awaits is simply never consumed. Verified by mutant — with line 168 of
+    // routes/bridge/bridgeIngestRoutes.mjs removed, this file was 9/9 green. So assert the
+    // attempt itself: two writes, and the second one carries the re-hosted URL.
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
+    const [payload, options] = mockUpdate.mock.calls[1];
+    expect(payload).toEqual({ imageUrl: 'https://r2.example/rehosted.png' });
+    expect(options.where).toEqual({ itemId: ITEM, revision: 2, retracted: false });
+  });
+
+  it('attaches the re-hosted image on the success path — the control for the mutant above', async () => {
+    // Without this, the suite could pass while never attaching anything: every other R5-04 case
+    // asserts a 200, and a 200 is also what a deleted attach produces.
+    withRehostReady();
+    mockUploadPhoto.mockResolvedValue({ url: 'https://r2.example/rehosted.png', storage: 'r2' });
+
+    const res = await post(body({ revision: 2, imageUrl: INCOMING }));
+
+    expect(res.status).toBe(200);
+    expect(mockFetchDecode).toHaveBeenCalledTimes(1);
+    expect(mockUploadPhoto).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
+    expect(mockUpdate.mock.calls[1][0]).toEqual({ imageUrl: 'https://r2.example/rehosted.png' });
   });
 
   it('answers 200 when the rehost itself rejects outright', async () => {
@@ -216,6 +240,8 @@ describe('R5-04 — image attachment is best-effort and cannot fail a committed 
     // invite a retry of a revision the bridge would then treat as a no-op.
     expect(res.body).toMatchObject({ success: true, itemId: ITEM, revision: 2 });
     expect(res.body.message).toBeUndefined();
+    // And the attach was genuinely attempted before it failed — see the round-6 note above.
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
   });
 
   it('still fails loudly when the APPLY itself throws — best-effort covers the image only', async () => {
