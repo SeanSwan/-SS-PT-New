@@ -69,33 +69,68 @@ export function normalizeType(type) {
  *
  * Sorted because field ORDER is not part of an object type — `{a, b}` and `{b, a}`
  * are the same type — and comparing in document order would report a divergence
- * for a reordering that changes nothing. A member with no `: type` (a shorthand
- * or a malformed fragment) is DROPPED rather than guessed at; callers assert the
- * resulting count, so a reader that silently drops everything fails loudly.
+ * for a reordering that changes nothing.
+ *
+ * IT REFUSES WHAT IT CANNOT READ (R6-03). The previous version mapped an unrecognised
+ * member to `null` and filtered it away, so `readonly extra?: string`, `"extra"?: string`
+ * and `[key: string]: unknown` each extracted to EXACTLY the same fields as a
+ * declaration without them — the doc→literal link then reported AGREEMENT about a
+ * document it had not read. A parser that ignores syntax it does not support makes
+ * ignorance read as agreement, so every unsupported nonempty member is now a hard
+ * failure naming the fragment. Supporting more TypeScript means extending this grammar
+ * deliberately; it must never be silently absorbed.
  */
 export function typedFields(body) {
-  return splitTopLevel(body)
-    .map((part) => {
-      const at = part.indexOf(':');
-      if (at === -1) return null;
-      const name = part.slice(0, at).trim();
-      const type = normalizeType(part.slice(at + 1));
-      // OPTIONALITY IS PART OF THE SHAPE (R5-04). Stripping `?` made `runId` and
-      // `runId?` extract identically, so a document that widened a field to
-      // optional compared EQUAL to one that had not — the doc→literal link was
-      // blind to exactly the drift it exists to catch. `assertSameShape` compares
-      // with `deepEqual`, so carrying the flag is what makes the comparison see it.
-      return /^\w+\??$/.test(name) && type
-        ? { name: name.replace('?', ''), optional: name.endsWith('?'), type }
-        : null;
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const parts = splitTopLevel(body);
+  const seen = new Set();
+  const out = [];
+  for (let i = 0; i < parts.length; i++) {
+    const raw = parts[i].trim();
+    // A TRAILING delimiter is spelling (`{a: string,}`). An INTERIOR empty member is a
+    // malformed fragment and is refused — it is precisely the shape that used to vanish
+    // into `.filter(Boolean)`.
+    if (raw === '') {
+      if (i === parts.length - 1) continue;
+      throw unsupported(parts[i], 'it is an empty member between two delimiters');
+    }
+    const at = raw.indexOf(':');
+    if (at === -1) throw unsupported(raw, 'it declares no `: type`');
+    const name = raw.slice(0, at).trim();
+    const type = normalizeType(raw.slice(at + 1));
+    if (!/^\w+\??$/.test(name)) throw unsupported(raw, `\`${name}\` is not a plain field name`);
+    if (!type) throw unsupported(raw, 'it declares an empty type');
+    // OPTIONALITY IS PART OF THE SHAPE (R5-04). Stripping `?` made `runId` and
+    // `runId?` extract identically, so a document that widened a field to
+    // optional compared EQUAL to one that had not — the doc→literal link was
+    // blind to exactly the drift it exists to catch. `assertSameShape` compares
+    // with `deepEqual`, so carrying the flag is what makes the comparison see it.
+    const bare = name.replace('?', '');
+    if (seen.has(bare)) throw unsupported(raw, `\`${bare}\` is declared twice`);
+    seen.add(bare);
+    out.push({ name: bare, optional: name.endsWith('?'), type });
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** The response shape `05-contracts.md` declares for a route, WITH its types. */
-export function contractRowTypedFields(route) {
-  const row = readFileSync(CONTRACTS_MD, 'utf8')
+/** The refusal for a member this grammar does not support (R6-03). */
+function unsupported(fragment, why) {
+  return new Error(
+    `unsupported contract member \`${String(fragment).trim()}\`: ${why}. Extend this `
+      + 'parser\'s grammar deliberately rather than letting the member be ignored — a '
+      + 'member this reader drops is a member it cannot compare.',
+  );
+}
+
+/**
+ * The response shape `05-contracts.md` declares for a route, WITH its types.
+ *
+ * `source` is injectable so a regression can drive THIS reader over an in-memory
+ * mutated document (R6-03). Testing the tokenizer alone cannot catch a bypass that
+ * lives in the row extraction, and Astra's finding was exactly that: the added members
+ * were accepted by the real table reader, not merely by `typedFields()`.
+ */
+export function contractRowTypedFields(route, source = readFileSync(CONTRACTS_MD, 'utf8')) {
+  const row = source
     .split('\n')
     .find((line) => line.startsWith(`| \`${route}\``));
   assert.ok(row, `05-contracts.md declares no row for ${route}`);

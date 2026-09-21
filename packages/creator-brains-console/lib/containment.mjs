@@ -83,10 +83,18 @@ export function brainsStore(r) {
     // and disabled real-path containment globally — leaving only the lexical
     // `inside()`, which is the check `realpathSync` exists to supplement because it
     // cannot see a junction. Only ENOENT means "no store yet".
-    if (err && err.code !== 'ENOENT') {
+    //
+    // THE TEST IS AN OPTIONAL CHAIN, NOT `err &&` (R6-02). `err && err.code !== 'ENOENT'`
+    // is a FALSY test used as a PRESENCE test — the shape R5-01 removed from
+    // `pointer.mjs`, reintroduced here one function over. A non-`Error` throw
+    // (`undefined`, `null`, `false`, `0`, `''`) made the guard read as "the store does
+    // not exist", which is a confident absence over a fault. `err?.code` is `undefined`
+    // for a falsy throw, so it refuses instead.
+    if (err?.code !== 'ENOENT') {
       throw damaged(
         `the brains store root could not be resolved`
-          + `${err && err.code ? ` (${err.code})` : ''}`,
+          + `${err?.code ? ` (${err.code})` : ''}`,
+        'brains',
       );
     }
     /* ENOENT — no store yet, and there is nothing to escape from. */
@@ -100,8 +108,15 @@ export function inside(root, target) {
   return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
 }
 
-/** The real path of `target`, or null ONLY when it genuinely does not exist (R5-02). */
-export function realpathOrNull(target) {
+/**
+ * The real path of `target`, or null ONLY when it genuinely does not exist (R5-02).
+ *
+ * `file` is the caller's filename, THREADED THROUGH rather than invented (R6-02): the
+ * refusal must blame the file the caller was working on. A direct call has no caller
+ * context, so the default names the store — which is at least true, and is why this is
+ * a defaulted parameter rather than an omitted one.
+ */
+export function realpathOrNull(target, file = 'brains') {
   try {
     return realpathImpl(target);
   } catch (err) {
@@ -110,10 +125,17 @@ export function realpathOrNull(target) {
     // containment entirely — a guard that switches itself off on an error it did not
     // anticipate. Astra round 5 drove this with an injected EACCES and measured the
     // read proceeding with no damage. EACCES/EPERM/ELOOP/ENOTDIR are faults.
-    if (err && err.code === 'ENOENT') return null;
+    //
+    // THE TEST IS AN OPTIONAL CHAIN (R6-02). `err && err.code === 'ENOENT'` happens to
+    // refuse a falsy throw too, but by inversion rather than by intent — the same
+    // expression shape is WRONG one function up in `brainsStore`, where the sense is
+    // reversed. Write the absence test the same way in both places so neither has to
+    // be reasoned about separately.
+    if (err?.code === 'ENOENT') return null;
     throw damaged(
       `'${target}' exists but its real path could not be resolved`
-        + `${err && err.code ? ` (${err.code})` : ''}`,
+        + `${err?.code ? ` (${err.code})` : ''}`,
+      file,
     );
   }
 }
@@ -131,6 +153,12 @@ function damaged(message, file) {
  * resolved, and the caller is left to distinguish absence from damage on the read
  * — which `readContainedText` below does, and does differently on purpose.
  *
+ * THE ONE COMBINATION THAT IS NOT ABSENCE. A target that RESOLVED while the root did
+ * not is refused, because that is not two absences agreeing — it is a target the store
+ * cannot account for (R6-02). Every refusal here names a file: `brains` when the store
+ * root is the subject, otherwise the caller's own filename, which is why `file` is a
+ * required parameter rather than an optional one.
+ *
  * @param root     the lexical store root
  * @param realRoot its resolved real path, or null when the store is absent
  * @param target   the absolute path to prove
@@ -141,8 +169,16 @@ export function containedPath(root, realRoot, target, what, file) {
   if (!inside(root, target)) {
     throw damaged(`${what} does not resolve inside the brains store`, file);
   }
-  const real = realpathOrNull(target);
-  if (real !== null && realRoot !== null && !inside(realRoot, real)) {
+  const real = realpathOrNull(target, file);
+  // A TARGET THAT RESOLVED CANNOT BE AUTHORIZED AGAINST A ROOT THAT DID NOT (R6-02).
+  // `brainsStore` returns `realRoot: null` only when the root is absent, and the old
+  // condition required BOTH non-null — so the one combination where skipping means the
+  // check never ran for a target that DOES exist was the one combination it skipped.
+  // The both-absent case is still not a fault: `real === null` short-circuits first.
+  if (real !== null && realRoot === null) {
+    throw damaged(`${what} resolves but the brains store root did not`, 'brains');
+  }
+  if (real !== null && !inside(realRoot, real)) {
     throw damaged(`${what} resolves outside the brains store`, file);
   }
   return target;

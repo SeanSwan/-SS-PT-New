@@ -7,7 +7,7 @@
           {
             "type": "command",
             "command": "node \"$CODEBUDDY_PROJECT_DIR/scripts/hooks/lane-session-start.mjs\"",
-            "timeout": 60
+            "timeout": 15
           }
         ]
       },
@@ -17,7 +17,7 @@
           {
             "type": "command",
             "command": "node \"$CODEBUDDY_PROJECT_DIR/scripts/hooks/lane-session-start.mjs\"",
-            "timeout": 60
+            "timeout": 15
           }
         ]
       },
@@ -27,7 +27,7 @@
           {
             "type": "command",
             "command": "node \"$CODEBUDDY_PROJECT_DIR/scripts/hooks/lane-session-start.mjs\"",
-            "timeout": 60
+            "timeout": 15
           }
         ]
       },
@@ -37,7 +37,7 @@
           {
             "type": "command",
             "command": "node \"$CODEBUDDY_PROJECT_DIR/scripts/hooks/lane-session-start.mjs\"",
-            "timeout": 60
+            "timeout": 15
           }
         ]
       }

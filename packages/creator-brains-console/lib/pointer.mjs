@@ -149,17 +149,26 @@ export function resolvePointer(r, ns) {
   const { root, realRoot } = brainsStore(r);
   const what = `'${ns}'`;
 
-  // 1. The namespace directory and the pointer file must not be links out. This
-  //    runs FIRST: `statSync` follows links, so containment has to be settled
-  //    before anything is asked about the entry's kind.
+  // 1. The NAMESPACE must not be a link out, and this runs FIRST: `statSync` follows
+  //    links, so containment has to be settled before anything is asked about the
+  //    entry's kind.
   containedPath(root, realRoot, join(root, ns), what, 'current.json');
-  const pointerPath = containedPath(root, realRoot, join(root, ns, 'current.json'), `the pointer for ${what}`, 'current.json');
 
   // 2. An ordinary FILE where a namespace directory belongs is dropped by the
   //    engine (its `readJson` swallows ENOTDIR), so it is not a publication.
+  //
+  //    THIS MUST PRECEDE THE CHILD RESOLUTION (R6-01). `realpathOrNull` refuses every
+  //    non-ENOENT resolution failure, and a child beneath an ordinary file reports
+  //    ENOTDIR on POSIX — so resolving `file/current.json` first turned a harmless
+  //    namespace file into STORE_DAMAGED. The defect was invisible on Windows, where
+  //    the leaf does not exist and the error is ENOENT: that is exactly why the order
+  //    is stated here rather than inferred from a green test on one platform.
   if (entryKind(join(root, ns), what) !== 'dir') return { present: false, reason: 'absent' };
 
-  // 3. Read it strictly. ENOENT is absence; every other failure is damage.
+  // 3. Only now is there a pointer path to contain. Containment still precedes the read.
+  const pointerPath = containedPath(root, realRoot, join(root, ns, 'current.json'), `the pointer for ${what}`, 'current.json');
+
+  // 4. Read it strictly. ENOENT is absence; every other failure is damage.
   const text = readContainedText(pointerPath, `the published pointer for ${what}`, 'current.json');
   if (text === null) return { present: false, reason: 'absent' };
 
@@ -170,7 +179,7 @@ export function resolvePointer(r, ns) {
     throw damaged(`the published pointer for ${what} exists but is not valid JSON`);
   }
 
-  // 4. ONLY A MISSING PROPERTY, `null` OR '' MEANS AN INCOMPLETE POINTER (R5-01).
+  // 5. ONLY A MISSING PROPERTY, `null` OR '' MEANS AN INCOMPLETE POINTER (R5-01).
   //
   //    The previous test was `!pointer || typeof pointer !== 'object' || !pointer.generation`,
   //    and it used a FALSY test as a PRESENCE test. `{"generation":0}` and
