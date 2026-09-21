@@ -157,10 +157,48 @@ export function interfaceFields(source, name) {
       expectField = depth === 0 && nest === 0;
       continue;
     }
-    if (ch === '\n' && depth === 0 && nest === 0 && !expectField
-        && readMember(body, i + 1) !== null) {
-      expectField = true;
-      continue;
+    if (ch === '\n' && depth === 0 && nest === 0 && !expectField) {
+      // ── R9-07: A NEWLINE THAT STARTS AN UNREADABLE MEMBER LINE IS A REFUSAL ──
+      //
+      // The probe below re-arms member parsing only when a READABLE member follows, so
+      // a continued type is left alone — that part was right. But `foo(): void` on its
+      // own line fails the probe too, so it was neither collected NOR refused: the line
+      // was read as the CONTINUATION of `a: string` and the method silently vanished.
+      // `[a]` is exactly what a declaration without the method extracts to, which is
+      // ignorance read as agreement (R7-04), one boundary over.
+      //
+      // BOTH KINDS OF LINE ARE INDENTED, so indentation cannot separate them — an
+      // earlier form of this guard used it anyway and refused the legal continuation
+      // `a: string |` + `null` that R8-04a pins. THE DISCRIMINATOR IS WHERE THE PREVIOUS
+      // LINE ENDS. A continuation continues a type that is still OPEN, so the line before
+      // it ends in an operator that cannot end a type. An unreadable member line follows
+      // a CLOSED member, and then a line that cannot start a member is a declaration this
+      // reader is about to drop. Measured both ways: `|` and `&` continue and are
+      // accepted, `foo(): void` and `[k: string]: unknown` are refused, and the shipped
+      // one-, two- and three-field controls are unchanged.
+      const before = body.slice(0, i).replace(/[ 	]+$/, '');
+      const OPEN_ENDED = /[|&,<(=:?]$|=>$/;
+      if (!OPEN_ENDED.test(before)) {
+        const rest = body.slice(i + 1);
+        const lead = /^[ 	]*/.exec(rest)[0].length;
+        const token = rest[lead];
+        // `}` is excluded because the interface's own closer is a non-space: without
+        // that, every declaration whose last member is followed by a newline was
+        // refused, quoting `}` as the unreadable member (measured, one to three fields).
+        if (token !== undefined && !/\s/.test(token) && token !== '}'
+            && readMember(rest, 0) === null) {
+          throw unsupported(
+            rest.slice(lead, lead + 40),
+            'it follows a CLOSED member and starts a line this reader cannot parse as a '
+              + 'field name, so it cannot compare it — a method, an index signature or '
+              + 'another unsupported declaration',
+          );
+        }
+      }
+      if (readMember(body, i + 1) !== null) {
+        expectField = true;
+        continue;
+      }
     }
   }
   assert.ok(closed, `interface ${name} is not terminated — no closing brace was found`);

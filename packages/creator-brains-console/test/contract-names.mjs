@@ -46,80 +46,41 @@
  * @module creator-brains-console/test/contract-names
  */
 
-/** The quote characters that open a literal in the artifacts this suite reads. */
-const QUOTES = new Set(["'", '"', '`']);
+import assert from 'node:assert/strict';
 
-/** The refusal for a member this grammar does not support. */
-export function unsupported(fragment, why) {
-  return new Error(
-    `unsupported contract member \`${String(fragment).trim()}\`: ${why}. Extend this `
-      + 'parser\'s grammar deliberately rather than letting the member be ignored — a '
-      + 'member this reader drops is a member it cannot compare.',
-  );
-}
-
-/**
- * Remove comments, WITHOUT touching the inside of a string literal (R7-04).
+/*
+ * THE LITERAL SCANNERS MOVED TO `contract-literals.mjs` (R9-06/R9-07, rule 4).
  *
- * The previous form was two `replace` calls, the second of them a global regex meaning
- * "strip from `//` to the end of the line, ANYWHERE". That is right for a comment and
- * wrong for a literal: `url: 'https://…'` lost everything from the `//` onward, so the
- * member's type was truncated to `'https:` and the reader then compared a string that is
- * not in the file. A `//` inside a literal is not a comment marker, and only a walk that
- * tracks literal state can tell the two apart.
+ * `stripComments`, `splitTopLevel` and `wholeObjectShape` all answer one question —
+ * WHERE DOES A STRING LITERAL START AND END IN THIS TEXT — and since R9-06 all three
+ * model escape state the same way. That is a different concern from this module's name
+ * grammar, and it is the concern the round-9 fixes actually changed. Extracting it takes
+ * both files under the cap, which moving `wholeObjectShape` alone did NOT: that took this
+ * file to 366 and merely relocated the violation.
  *
- * A COMMENT IS REPLACED BY A NEWLINE, not by nothing, so the line structure the callers
- * depend on survives (`interfaceFields` counts nothing by line, but the r6 fixtures and
- * every diagnostic quote the document as written).
+ * Re-exported, so no caller changes.
  *
- * RESIDUAL, named rather than hidden: a REGEX literal containing `//` (e.g. `/a\/\//`)
- * is still stripped. Deciding whether a `/` opens a regex or is division needs the
- * preceding token — the same ambiguity the TypeScript scanner resolves with parser
- * state, which this reader does not have. No regex literal appears in either artifact
- * this suite reads; if one appears, the member it sits in fails a comparison rather
- * than silently passing one.
+ * IMPORTED AS WELL AS RE-EXPORTED, and that is not redundancy: a re-export binds the
+ * name for IMPORTERS of this module but not in this module's own scope, so
+ * `memberNames` below — which calls `splitTopLevel` — would compile and then fail at
+ * call time. Measured: 16 tests red with `splitTopLevel is not defined` before this
+ * import was added.
  */
-export function stripComments(text) {
-  let out = '';
-  let quote = null;
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (quote !== null) {
-      out += ch;
-      if (ch === '\\') {
-        out += text[i + 1] ?? '';
-        i += 1;
-        continue;
-      }
-      if (ch === quote) quote = null;
-      continue;
-    }
-    if (QUOTES.has(ch)) {
-      quote = ch;
-      out += ch;
-      continue;
-    }
-    if (ch === '/' && text[i + 1] === '/') {
-      while (i < text.length && text[i] !== '\n') i += 1;
-      out += '\n';
-      continue;
-    }
-    if (ch === '/' && text[i + 1] === '*') {
-      const end = text.indexOf('*/', i + 2);
-      i = end === -1 ? text.length : end + 1;
-      // A COMMENT IS REPLACED BY A SPACE, not by nothing (R8-05). Deleting it outright
-      // JOINS the tokens on either side: `readonly/* note */slug: string` came out as
-      // `readonlyslug: string`, so an edit that only removed a comment silently RENAMED
-      // a field — and the reader then compared a name that is not in the file. The `//`
-      // branch above emits a newline for the same reason: a comment is trivia, and
-      // trivia must not change what the surrounding tokens ARE.
-      out += ' ';
-      continue;
-    }
-    out += ch;
-  }
-  return out;
-}
+import { splitTopLevel, unsupported } from './contract-literals.mjs';
+
+export { stripComments, splitTopLevel, wholeObjectShape } from './contract-literals.mjs';
+
+/*
+ * `unsupported` MOVED TO `contract-literals.mjs` AND IS RE-EXPORTED HERE (rule 4, R9-06).
+ *
+ * It is the REFUSAL shape, not the name grammar: `splitTopLevel` throws it on a mismatched
+ * delimiter and on an unclosed one, and `wholeObjectShape` fails through `assert` rather
+ * than through it. A function that two modules throw must live where both can reach it
+ * without a cycle, and `contract-names` already imports from `contract-literals`, so
+ * putting it here and importing it there would have been circular. Every existing
+ * `from './contract-names.mjs'` import of `unsupported` keeps working.
+ */
+export { unsupported } from './contract-literals.mjs';
 
 /**
  * One member name at offset `i`, or `null` when there is none.
@@ -161,57 +122,6 @@ export function readMember(text, i) {
  * Quoted literals are tracked too, for the same reason one step further out: `'a,b'` is
  * one type, not two members.
  */
-/** The delimiter pairs a type may open. Tracked as a STACK, not a counter (R8-04). */
-const PAIRS = { '<': '>', '{': '}', '[': ']', '(': ')' };
-const CLOSERS = new Set(Object.values(PAIRS));
-
-export function splitTopLevel(body) {
-  const parts = [];
-  const open = [];
-  let quote = null;
-  let escaped = false;
-  let current = '';
-  for (const ch of body) {
-    if (quote !== null) {
-      current += ch;
-      // AN ESCAPED QUOTE DOES NOT CLOSE THE LITERAL (R8-03). Without this, `'it\'s'`
-      // ended the literal at the escaped quote, so everything after it — including the
-      // `;` that separates the NEXT member — was read as string content and the
-      // remaining members vanished. `stripComments` has modelled this since R7-04; the
-      // three scanners beside it had not.
-      if (escaped) { escaped = false; continue; }
-      if (ch === '\\') { escaped = true; continue; }
-      if (ch === quote) quote = null;
-      continue;
-    }
-    if (QUOTES.has(ch)) { quote = ch; current += ch; continue; }
-    if (Object.hasOwn(PAIRS, ch)) { open.push(PAIRS[ch]); current += ch; continue; }
-    if (open.length > 0 && CLOSERS.has(ch)) {
-      // A STACK, NOT A DEPTH COUNTER. `Array<(string]>` is balanced by count and
-      // malformed by kind, so a counter accepted it (R8-04). A closer that does not
-      // match the innermost opener is refused. A closer met with an EMPTY stack is
-      // left alone on purpose: that is `>` in `(a: string) => void`, which is an
-      // operator here and not a delimiter.
-      if (ch !== open[open.length - 1]) {
-        throw unsupported(body.slice(0, 80),
-          `it closes \`${ch}\` while \`${open[open.length - 1]}\` is still open`);
-      }
-      open.pop();
-      current += ch;
-      continue;
-    }
-    if ((ch === ',' || ch === ';') && open.length === 0) { parts.push(current); current = ''; continue; }
-    current += ch;
-  }
-  // AN UNCLOSED DELIMITER IS REFUSED, not silently accepted (R8-04). `a: Array<string`
-  // used to be read as one well-formed member whose type merely spelled oddly, so a
-  // truncated declaration compared EQUAL to a complete one.
-  if (open.length > 0) {
-    throw unsupported(body.slice(0, 80), `it leaves \`${open.join('')}\` unclosed`);
-  }
-  parts.push(current);
-  return parts;
-}
 
 /**
  * The member names a brace-list BODY declares, sorted — refusing what it cannot read.
@@ -257,3 +167,16 @@ export function memberNames(body) {
   }
   return out.sort();
 }
+
+/**
+ * The complete `{…}` this text declares, refusing a SECOND SHAPE or a COMPOSITION.
+ *
+ * MOVED HERE FROM `contract-table.mjs` (R9-06/R9-07, rule 4) — it is a literal-aware
+ * brace scanner, which is this module's grammar, not the table reader's structure.
+ * The two scanners beside it (`splitTopLevel`, `stripComments`) have tracked escaped
+ * quotes since R7-04 and R8-03; this one did not, which is the R9-06 defect: for
+ * `{a: 'it\'s'; b: number}` the escaped quote CLOSED the literal, the next quote
+ * opened another, and the closing brace was swallowed — so a legal two-field shape
+ * was refused as unclosed. The three scanners now model escape state in the same way,
+ * which is the only reason the class can be said to be closed rather than fixed once.
+ */

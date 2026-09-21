@@ -31,6 +31,33 @@
 
 import assert from 'node:assert/strict';
 
+/*
+ * THE TYPE SCANNER MOVED TO `contract-names.mjs` (R9-06/R9-07, rule 4).
+ *
+ * The R9-06 and R9-07 fixes — escape-aware literals in this scanner, and a fence state
+ * that records LENGTH and INDENTATION rather than a single character — took this file to
+ * 316 lines against rule 4's hard 300-line cap. The cap is a cap, not a budget: the fix
+ * is to extract at the seam, never to golf the comments until the reasoning that
+ * justifies the code is gone.
+ *
+ * THE SEAM IS THE ONE THIS HEADER ALREADY NAMED: "this file reads TABLE STRUCTURE, that
+ * file reads TYPE TEXT. Nothing here knows what a type is." `wholeObjectShape` is the
+ * one function here that knows what a type is — it walks a brace-list expression
+ * tracking string literals, which is the concern `contract-names.mjs` already owns for
+ * `splitTopLevel` and `stripComments`. It lives there now, beside them.
+ *
+ * IT IS IMPORTED AS WELL AS RE-EXPORTED, and that is not redundancy. A re-export makes
+ * the name available to importers of THIS module but does NOT bind it in this module's
+ * own scope, so `responseShapeFor` below — which calls it — would have compiled and then
+ * failed at call time with `wholeObjectShape is not defined`. Measured, before the
+ * import was added: 18 tests red with exactly that ReferenceError. Re-exporting it
+ * separately keeps every existing `from './contract-table.mjs'` import working, so no
+ * caller changes.
+ */
+import { wholeObjectShape } from './contract-names.mjs';
+
+export { wholeObjectShape } from './contract-names.mjs';
+
 /**
  * Split a markdown table row into cells on UNESCAPED pipes.
  *
@@ -82,96 +109,6 @@ export function headerFor(lines, i) {
   return null;
 }
 
-/**
- * The complete `{…}` this text declares, refusing a SECOND SHAPE or a COMPOSITION.
- *
- * BALANCED, so a nested object survives — `Array<{ d: string }>` is supported syntax
- * and must keep working.
- *
- * THE TAIL IS PART OF THE CHECK, but the check is aimed at a NAMED DEFECT CLASS rather
- * than at deviation in general. `{a} & {b}` adds requirements, `{a} | {b}` admits
- * alternatives, and a second `{…}` is a second shape: in all three cases returning the
- * first brace pair would compare a FRAGMENT while claiming to compare the declaration.
- *
- * THE FIRST VERSION REFUSED *ANY* NON-EMPTY TAIL, and that was an OVER-REFUSAL — the
- * sibling of R7-01, in the same round, which is worth recording. §2a and §2b both
- * annotate a response in the same cell as the shape (`StatusInstrument` — **200 even
- * when damaged**; `{…}` (progress via `GET /api/run`)), so "no tail at all" would have
- * refused a document written the way this document is written. Today those annotations
- * sit OUTSIDE the code span this function is handed, so the strict form happened to
- * pass — it was correct by authoring convention, not by construction. A refusal that
- * fires on legal input is a defect: it makes a correct document unreadable and invites
- * someone to edit the document to satisfy the reader.
- *
- * ── R8-01: THE HEAD IS EXAMINED TOO, AND AN ARRAY SUFFIX IS REFUSED ──────────
- *
- * THE HEAD WAS NOT CHECKED AT ALL. `text.indexOf('{')` found the first brace and
- * everything before it was DISCARDED, so `Array<{a: string}>` returned `{a: string}` —
- * the ELEMENT of an array, compared while claiming to be the response shape. The same
- * held for `Partial<{…}>`, `Readonly<{…}>` and `Foo & {…}`: a wrapper or a composition
- * whose right-hand object was read as the whole declaration. `Array<{…}>` was
- * documented here as "supported syntax that must keep working", and that note was
- * itself the over-permissive assumption — what is preserved is the BALANCED scan, so a
- * nested object is not truncated; what is refused is claiming a fragment is the whole
- * shape. The other side of the comparison cannot express an array return
- * (`methodReturnTypedFields` requires `Promise<{…}>`), so refusing here agrees with it
- * rather than inventing a new strictness.
- *
- * A leading `[]` in the tail joins the refusal for the same reason: `{a: string}[]` is
- * an ARRAY of that object, and reading the element's members as the response shape is
- * the identical fragment-compared-as-whole defect. Only the literal `[]` is refused, so
- * a prose annotation that happens to open with a bracket (`{…} [see note]`) is still
- * read as prose.
- *
- * RESIDUALS, named rather than hidden. A tail is NOT examined for:
- *   - a conditional type (`{a} extends B ? C : D`), which is not a shape this document
- *     uses and which no rule here can distinguish from prose.
- *   - a function type (`{a} => void`), likewise indistinguishable from prose without a
- *     type grammar, and likewise unexpressible on the other side of the comparison.
- *   - prose containing a brace, which is refused — it is indistinguishable from a second
- *     shape, and refusing is the safe direction.
- */
-export function wholeObjectShape(text, what) {
-  const start = text.indexOf('{');
-  assert.notEqual(start, -1, `${what} declares no \`{…}\` response shape`);
-  // THE HEAD MUST BE EMPTY (R8-01). Anything before the `{` means the object is a
-  // COMPONENT of a larger type — `Array<`, `Partial<`, `Foo & ` — and returning it
-  // would compare a fragment while claiming to compare the declaration. This is the
-  // mirror of the tail check below, and the first version had the tail and not the head.
-  const head = text.slice(0, start).trim();
-  assert.equal(
-    head, '',
-    `${what} declares \`${head}\` before its \`{…}\`. This reader compares a WHOLE `
-      + 'response shape, so a wrapper or a composition is refused rather than read as '
-      + 'its right-hand object — that would report agreement about a declaration that '
-      + 'was never read.',
-  );
-  let depth = 0;
-  let quote = null;
-  for (let i = start; i < text.length; i++) {
-    const ch = text[i];
-    if (quote !== null) {
-      if (ch === quote) quote = null;
-      continue;
-    }
-    if (ch === "'" || ch === '"' || ch === '`') { quote = ch; continue; }
-    if (ch === '{') { depth += 1; continue; }
-    if (ch !== '}') continue;
-    depth -= 1;
-    if (depth > 0) continue;
-    const tail = text.slice(i + 1).trim();
-    assert.ok(
-      !/[{}]/.test(tail) && !/^[&|]/.test(tail) && !/^\[\]/.test(tail),
-      `${what} declares \`{…}\` followed by \`${tail}\`. This reader compares a WHOLE `
-        + 'response shape, so an intersection, a union, an array suffix or a second '
-        + 'object is refused rather than silently dropped — dropping it would report '
-        + 'agreement about a declaration that was never read.',
-    );
-    return text.slice(start, i + 1);
-  }
-  assert.fail(`${what} declares an unclosed \`{\` — the shape is not a shape`);
-}
-
 /** The trimmed content of the FIRST code span in a cell, or null when it has none. */
 function cellCode(cell) {
   const m = /`([^`]*)`/.exec(cell);
@@ -199,6 +136,15 @@ function cellCode(cell) {
  *      the form this document uses constantly to show a shape — was counted as a
  *      declaration of the route it names. A route with one real row and one fenced
  *      example reported TWO rows and was refused.
+ *
+ * THE FENCE STATE IS A LENGTH AND AN INDENTATION, NOT A SINGLE CHARACTER (R9-06).
+ * It used to record only the marker character, so a four-backtick opener followed by a
+ * three-backtick line TOGGLED the fence closed on that inner marker — and then the
+ * shorter marker on the next line toggled it OPEN again, exposing the very example row
+ * the fence was hiding. Measured before the fix: the row was returned. CommonMark closes
+ * a fence only on a run of the SAME character AT LEAST AS LONG as the opener; an indented
+ * closer is literal content, not a closer (the indentation would split the run in the
+ * opener too, so the opener's run length is measured after its indent either way).
  *   3. IT MATCHED ANYWHERE ON THE LINE, not in the method+path column. A row whose
  *      engine column happened to carry the route text counted as a declaration of it.
  *
@@ -212,12 +158,24 @@ export function rowIndexes(lines, route) {
   let fence = null;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const marker = /^\s*(`{3,}|~{3,})/.exec(line);
-    if (marker !== null) {
-      const ch = marker[1][0];
-      // A fence closes only on its OWN marker character; a ``` inside a ~~~ block is
-      // content. Closing on either would end the block early and re-expose its rows.
-      fence = fence === null ? ch : (fence === ch ? null : fence);
+    const opening = /^( *)(`{3,}|~{3,})/.exec(line);
+    if (opening !== null) {
+      const indent = opening[1].length;
+      const ch = opening[2][0];
+      const len = opening[2].length;
+      if (fence === null) {
+        fence = { ch, len, indent };
+      } else if (
+        ch === fence.ch && indent === fence.indent && len >= fence.len
+        && line.slice(indent + len).trim() === ''
+      ) {
+        // A CLOSER, and only then. A fence closes on a run of the SAME character at
+        // least as long as its opener, at the same indentation, with nothing but
+        // whitespace after it. A shorter run, a longer run, a longer line and an
+        // indented run are all CONTENT — which is why a four-backtick block can hold a
+        // three-backtick example without the example's own marker ending the block.
+        fence = null;
+      }
       continue;
     }
     if (fence !== null) continue;
