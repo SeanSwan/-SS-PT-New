@@ -1,0 +1,889 @@
+{
+  "schemaVersion": 1,
+  "masterPackagePath": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-master-reconciliation-2026-09-20",
+  "lanes": [
+    {
+      "id": "L1",
+      "canonicalPackagePath": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19",
+      "aliases": [],
+      "authorities": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/01-architecture.md",
+          "scope": "lane architecture — screens, flows, mermaid diagrams",
+          "precedence": 1
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/05-slices.md",
+          "scope": "lane build plan and acceptance criteria",
+          "precedence": 2
+        }
+      ],
+      "documents": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/00-README.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/01-architecture.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/02-wireframes.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/03-contracts.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/04-build-order.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/05-slices.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/06-bans.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/07-checkpoints.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/08-decision-density-self-test.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/09-tests.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/A0-INTAKE-RECEIPT.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/ASTRA-REPLY.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/CONSULT-PACKET.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/HOSTILE-REVIEW.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/MANIFEST.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/VERIFICATION-NOTES.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        }
+      ],
+      "aliasEvidence": []
+    },
+    {
+      "id": "L2",
+      "canonicalPackagePath": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20",
+      "aliases": [
+        "BLUEPRINT-coach-ai-harness-20260920"
+      ],
+      "authorities": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/01-architecture.md",
+          "scope": "lane architecture",
+          "precedence": 1
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/05-slices.md",
+          "scope": "lane build plan and acceptance criteria",
+          "precedence": 2
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/ADJUDICATION-R2.md",
+          "scope": "latest adjudicated decisions (round 2)",
+          "precedence": 3
+        }
+      ],
+      "documents": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/00-README.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/01-architecture.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/02-wireframes.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/03-contracts.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/03b-contracts-proposed-artifacts.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/04-build-order.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/05-slices.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/06-bans.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/07-checkpoints.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/08-decision-density-self-test.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/09-tests.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/ADJUDICATION-R2.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/ADJUDICATION.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/HOSTILE-REVIEW.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/MANIFEST.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/REMEDIATION.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-coach-cc-ai-harness-2026-09-20/REVIEW-MANIFEST.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        }
+      ],
+      "aliasEvidence": [
+        "referenced in this lane's own 00-README.md"
+      ]
+    },
+    {
+      "id": "L3",
+      "canonicalPackagePath": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14",
+      "aliases": [],
+      "authorities": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/01-architecture.md",
+          "scope": "lane architecture",
+          "precedence": 1
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/05-slices.md",
+          "scope": "lane build plan and acceptance criteria",
+          "precedence": 2
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/PACKAGE-ALL.md",
+          "scope": "consolidated package text",
+          "precedence": 3
+        }
+      ],
+      "documents": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/00-README.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/01-architecture.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/02-wireframes.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/03-contracts.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/04-build-order.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/05-slices.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/06-bans.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/07-checkpoints.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cortex-phase1-knowledge-spine-2026-07-14/PACKAGE-ALL.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        }
+      ],
+      "aliasEvidence": []
+    },
+    {
+      "id": "L4",
+      "canonicalPackagePath": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19",
+      "aliases": [
+        "BLUEPRINT-studio-spotlight-completion-2026-09-19"
+      ],
+      "authorities": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/01-architecture.md",
+          "scope": "lane architecture",
+          "precedence": 1
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/05-slices.md",
+          "scope": "lane build plan and acceptance criteria",
+          "precedence": 2
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/G0-SOURCE-EXCERPTS.md",
+          "scope": "source excerpts — authoritative wherever this package disagrees with it (00-README)",
+          "precedence": 3
+        }
+      ],
+      "documents": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/00-README.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/01-architecture.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/02-wireframes.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/03-contracts.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/03b-contracts-s6-s8-and-interfaces.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/04-build-order.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/05-slices.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/06-bans.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/07-checkpoints.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/08-decision-density-self-test.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/ASTRA-PRO-REPLY.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/ASTRA-PRO-REPLY.partial.md",
+          "status": "HISTORICAL",
+          "supersededBy": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/ASTRA-PRO-REPLY.md",
+          "permittedUse": "Superseded stub — provenance only. The full reply supersedes it."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/CONSULT-PACKET.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/CORRECTIONS-APPLIED.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/G0-SOURCE-EXCERPTS.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/HOSTILE-REVIEW.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/MANIFEST.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/R1-ASTRA-PACKET.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/R1-ASTRA-REPLY.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/R1-CHECKPOINT-SUBMISSION.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19/VERIFICATION-NOTES.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        }
+      ],
+      "aliasEvidence": [
+        "referenced in this lane's own 00-README.md and ASTRA-PRO-REPLY.md"
+      ]
+    },
+    {
+      "id": "L5",
+      "canonicalPackagePath": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16",
+      "aliases": [],
+      "authorities": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16/01-architecture.md",
+          "scope": "lane architecture",
+          "precedence": 1
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16/05-slices.md",
+          "scope": "lane build plan and acceptance criteria",
+          "precedence": 2
+        }
+      ],
+      "documents": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16/00-README.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16/01-architecture.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16/02-wireframes.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16/03-contracts.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16/04-build-order.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16/05-slices.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16/06-bans.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-speed-to-lead-email-2026-07-16/07-checkpoints.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        }
+      ],
+      "aliasEvidence": []
+    },
+    {
+      "id": "L6",
+      "canonicalPackagePath": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18",
+      "aliases": [],
+      "authorities": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/MEGA-BLUEPRINT.md",
+          "scope": "internal decision authority for this lane (00-README: \"Decision authority\")",
+          "precedence": 1
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/01-architecture.md",
+          "scope": "lane architecture",
+          "precedence": 2
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/05-slices.md",
+          "scope": "lane build plan and acceptance criteria",
+          "precedence": 3
+        }
+      ],
+      "documents": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/00-README.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/01-architecture.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/02-wireframes.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/03-contracts.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/04-build-order.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/05-slices.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/06-bans.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/07-checkpoints.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/09-tests.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/ASTRA-ROUND-2-REPLY.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/ASTRA-ROUND-2-REQUEST.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/DECISIONS-D14-D21.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/MEGA-BLUEPRINT.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/S4-RESULTS.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/S5-RESULTS.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/SWAN-BRAIN-CONSOLE-BLUEPRINT-2026-08-26.md",
+          "status": "REJECTED",
+          "supersededBy": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-brain-console-v3-merge-2026-09-18/MEGA-BLUEPRINT.md",
+          "permittedUse": "Historical reference only. Its PATTERNS (tab/source/seat registries) are reused with attribution, but it must not be consumed as architecture for this lane."
+        }
+      ],
+      "aliasEvidence": []
+    },
+    {
+      "id": "L7",
+      "canonicalPackagePath": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13",
+      "aliases": [],
+      "authorities": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13/01-architecture.md",
+          "scope": "lane architecture",
+          "precedence": 1
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13/05-slices.md",
+          "scope": "lane build plan and acceptance criteria",
+          "precedence": 2
+        }
+      ],
+      "documents": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13/00-README.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13/01-architecture.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13/02-wireframes.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13/03-contracts.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13/04-build-order.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13/05-slices.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13/06-bans.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-native-mobile-2026-07-13/07-checkpoints.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        }
+      ],
+      "aliasEvidence": []
+    },
+    {
+      "id": "L8",
+      "canonicalPackagePath": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20",
+      "aliases": [],
+      "authorities": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/01-architecture.md",
+          "scope": "lane architecture",
+          "precedence": 1
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/05-slices.md",
+          "scope": "lane build plan and acceptance criteria",
+          "precedence": 2
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/DECISION-RECORD.md",
+          "scope": "recorded lane decisions",
+          "precedence": 3
+        }
+      ],
+      "documents": [
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/00-README.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/01-architecture.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/02-wireframes.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/03-contracts.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/04-build-order.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/05-slices.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/06-bans.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/07-checkpoints.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/08-decision-density-self-test.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/09-tests.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/A0-INTAKE-RECEIPT.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/ASTRA-REPLY-R5.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/ASTRA-REPLY-R6.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/CONSULT-PACKET-ADDENDUM.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/CONSULT-PACKET-R5.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/CONSULT-PACKET.md",
+          "status": "HISTORICAL",
+          "supersededBy": null,
+          "permittedUse": "Provenance only — records how the package was produced. Not consumed as architecture."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/DECISION-RECORD.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/HOSTILE-REVIEW.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/MANIFEST.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-theme-lens-2026-09-20/THEME-LENS-SCOPE-CLARIFICATION.md",
+          "status": "ACTIVE",
+          "supersededBy": null,
+          "permittedUse": "Consumed as part of this lane's current package."
+        }
+      ],
+      "aliasEvidence": []
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+ea9c986716039b201e817445f08b417e9954cc1898d1777bee9c40850463a122 *MASTER-PACKET.md
+dispatched_utc: 2026-09-20T09:59:46Z
+repo: C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT
+branch: creator-brains-engine-r2-20260915
+commit: 382427ae6
+dirty_files: 1235
+transport: codex-cli / chatgpt-subscription (included; $0 marginal)
+model_requested: gpt-6-astra
+effort: xhigh
+mega_blueprint: armed by operator flag (also present in document)
+timeout_ms: 1800000
+scope: master reconciliation across all 8 live lanes
