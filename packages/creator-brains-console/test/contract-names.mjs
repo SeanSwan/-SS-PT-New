@@ -107,6 +107,13 @@ export function stripComments(text) {
     if (ch === '/' && text[i + 1] === '*') {
       const end = text.indexOf('*/', i + 2);
       i = end === -1 ? text.length : end + 1;
+      // A COMMENT IS REPLACED BY A SPACE, not by nothing (R8-05). Deleting it outright
+      // JOINS the tokens on either side: `readonly/* note */slug: string` came out as
+      // `readonlyslug: string`, so an edit that only removed a comment silently RENAMED
+      // a field — and the reader then compared a name that is not in the file. The `//`
+      // branch above emits a newline for the same reason: a comment is trivia, and
+      // trivia must not change what the surrounding tokens ARE.
+      out += ' ';
       continue;
     }
     out += ch;
@@ -154,22 +161,53 @@ export function readMember(text, i) {
  * Quoted literals are tracked too, for the same reason one step further out: `'a,b'` is
  * one type, not two members.
  */
+/** The delimiter pairs a type may open. Tracked as a STACK, not a counter (R8-04). */
+const PAIRS = { '<': '>', '{': '}', '[': ']', '(': ')' };
+const CLOSERS = new Set(Object.values(PAIRS));
+
 export function splitTopLevel(body) {
   const parts = [];
-  let depth = 0;
+  const open = [];
   let quote = null;
+  let escaped = false;
   let current = '';
   for (const ch of body) {
     if (quote !== null) {
       current += ch;
+      // AN ESCAPED QUOTE DOES NOT CLOSE THE LITERAL (R8-03). Without this, `'it\'s'`
+      // ended the literal at the escaped quote, so everything after it — including the
+      // `;` that separates the NEXT member — was read as string content and the
+      // remaining members vanished. `stripComments` has modelled this since R7-04; the
+      // three scanners beside it had not.
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
       if (ch === quote) quote = null;
       continue;
     }
     if (QUOTES.has(ch)) { quote = ch; current += ch; continue; }
-    if (ch === '<' || ch === '{' || ch === '[' || ch === '(') depth += 1;
-    else if (ch === '>' || ch === '}' || ch === ']' || ch === ')') depth -= 1;
-    if ((ch === ',' || ch === ';') && depth === 0) { parts.push(current); current = ''; continue; }
+    if (Object.hasOwn(PAIRS, ch)) { open.push(PAIRS[ch]); current += ch; continue; }
+    if (open.length > 0 && CLOSERS.has(ch)) {
+      // A STACK, NOT A DEPTH COUNTER. `Array<(string]>` is balanced by count and
+      // malformed by kind, so a counter accepted it (R8-04). A closer that does not
+      // match the innermost opener is refused. A closer met with an EMPTY stack is
+      // left alone on purpose: that is `>` in `(a: string) => void`, which is an
+      // operator here and not a delimiter.
+      if (ch !== open[open.length - 1]) {
+        throw unsupported(body.slice(0, 80),
+          `it closes \`${ch}\` while \`${open[open.length - 1]}\` is still open`);
+      }
+      open.pop();
+      current += ch;
+      continue;
+    }
+    if ((ch === ',' || ch === ';') && open.length === 0) { parts.push(current); current = ''; continue; }
     current += ch;
+  }
+  // AN UNCLOSED DELIMITER IS REFUSED, not silently accepted (R8-04). `a: Array<string`
+  // used to be read as one well-formed member whose type merely spelled oddly, so a
+  // truncated declaration compared EQUAL to a complete one.
+  if (open.length > 0) {
+    throw unsupported(body.slice(0, 80), `it leaves \`${open.join('')}\` unclosed`);
   }
   parts.push(current);
   return parts;
@@ -189,8 +227,9 @@ export function splitTopLevel(body) {
  * blind to a field being widened to optional — the exact drift R5-04 exists to catch.
  *
  * A trailing delimiter is spelling (`{a,}`); an interior empty member is malformed and is
- * refused. The member name must END AT THE FIRST `:` — checked against `readMember`'s own
- * consumption rather than by a second regex, so the grammar has one definition.
+ * refused. THE BOUNDARY IS `readMember`'s AND ONLY `readMember`'s (R8-05) — the first
+ * version cross-checked it against `raw.indexOf(':')`, which is a second source of a fact
+ * the grammar already knows and which is simply wrong when a quoted name contains a colon.
  */
 export function memberNames(body) {
   const parts = splitTopLevel(body);
@@ -201,11 +240,18 @@ export function memberNames(body) {
       if (i === parts.length - 1) continue;
       throw unsupported(parts[i], 'it is an empty member between two delimiters');
     }
-    const at = raw.indexOf(':');
-    if (at === -1) throw unsupported(raw, 'it declares no `: type`');
+    // THE BOUNDARY COMES FROM `readMember`, WHICH IS THE GRAMMAR (R8-05). This used to
+    // derive the separator with `raw.indexOf(':')` and then cross-check it against
+    // `readMember`'s own consumption. `indexOf` is a SECOND, dumber source of a fact the
+    // grammar already knows, and it is wrong for every legal name that CONTAINS a colon:
+    // for `'a:b': string` it landed on the colon inside the quotes, disagreed with
+    // `readMember`, and the reader THREW on valid TypeScript. An over-refusal inside the
+    // very grammar R7-04 built to be complete. The refusals this check was protecting
+    // are all preserved, because `readMember` is anchored and simply does not match
+    // `[key: string]: unknown` or `foo(): void` — it returns null and we refuse below.
     const m = readMember(raw, 0);
-    if (!m || m.length !== at + 1) {
-      throw unsupported(raw, `\`${raw.slice(0, at).trim()}\` is not a field name this reader understands`);
+    if (!m) {
+      throw unsupported(raw, 'it is not a field name this reader understands');
     }
     out.push(m.optional ? `${m.name}?` : m.name);
   }

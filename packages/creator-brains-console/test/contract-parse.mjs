@@ -24,7 +24,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-import { memberNames, readMember, stripComments, unsupported } from './contract-names.mjs';
+import { memberNames, stripComments } from './contract-names.mjs';
+import { interfaceFields } from './contract-scan.mjs';
 import { responseShapeFor } from './contract-table.mjs';
 
 /** The web contract as the client declares it. */
@@ -47,114 +48,21 @@ export const CONTRACTS_MD = fileURLToPath(
  */
 export { stripComments };
 
-/**
- * The characters that end a member rather than beginning one.
+/*
+ * THE DECLARATION SCANNER MOVED TO `contract-scan.mjs` (R8-04, rule 4).
  *
- * `;` is here because an empty member is legal in TypeScript (`interface X { ; a: string }`)
- * and because a doubled delimiter is spelling, not a member. Refusing on these would make
- * the reader refuse every interface at its own closing brace.
+ * R8-04's fixes — bracket nesting, comma and newline member boundaries, a
+ * termination check and escape-aware literals — took this file to 313 lines
+ * against rule 4's hard 300-line cap. The cap is a cap, not a budget: the fix is
+ * to extract at the seam, never to golf the comments until the reasoning that
+ * justifies the code is gone. Scanning ONE brace body is a different concern from
+ * reading artifacts — this module owns the paths, the fenced-block extraction and
+ * the payload comparison — so the scanner is the seam.
+ *
+ * Re-exported, so no caller changes: `bridge.contractsync.test.mjs` and
+ * `contract-parse.r7.test.mjs` both import `interfaceFields` from here.
  */
-const STRUCTURAL = new Set(['{', '}', ';']);
-
-/**
- * Top-level fields of one `export interface Name { … }`, as `{ name, optional }`.
- *
- * WHY A CHARACTER SCANNER AND NOT A LINE MATCH. `types.ts` writes one field per
- * line, but 05-contracts.md packs several onto one (`ok: boolean; version: string
- * | null; reason: string;`), and a line-based version of this function saw only
- * the FIRST field on each line.
- *
- * Depth is counted RELATIVE TO THE BODY: the scan starts just after the
- * interface's opening brace, so a field sits at depth 0 and a nested object's
- * contents sit at depth 1 or deeper. A field may begin at the start of the body or
- * after a `;` at depth 0. The interface's own closing brace drives the depth to
- * -1, which is the terminator.
- *
- * TWO EARLIER VERSIONS WERE WRONG, and both were caught by the tests here rather
- * than downstream — which is the only reason this reader can be trusted: the first
- * counted from the `interface` keyword, so it matched nothing and every comparison
- * passed while comparing nothing; the second read one field per line, so it
- * invented divergences. `T-B27a`/`T-B27d` keep both failure modes caught.
- *
- * ── R7-04: IT NOW REFUSES WHAT IT CANNOT READ, AND IT TRACKS LITERALS ─────────
- *
- * THREE CHANGES, all from one finding, and the first is the finding itself:
- *
- *   1. THE NAME GRAMMAR IS `readMember`'s, NOT `(\w+)(\??)`. The old regex matched a
- *      bare identifier only, and the fallthrough was `if (!/\s/.test(ch)) expectField
- *      = false` — it SKIPPED the member and carried on. So `readonly slug: string`,
- *      `'quoted': string`, `$x: string` and `0: string` each vanished, and a
- *      declaration carrying one extracted to exactly the fields of a declaration
- *      without it. That is ignorance read as agreement: the comparison built on this
- *      reader reported a match for a document it had not read. An unparseable member
- *      is now a hard failure naming the fragment.
- *   2. THE SCANNER TRACKS STRING LITERALS, so a `;` or a brace INSIDE a literal is not
- *      structural. `a: 'x;y'; b: number` used to end the first member at the `;` inside
- *      the literal and then refuse `y'` as a field name. The same class as the
- *      `stripComments` fix, one layer up.
- *   3. MEMBERS ARE MATCHED BEFORE QUOTES ARE OPENED, so a QUOTED NAME is read by
- *      `readMember` rather than being mistaken for the start of a literal.
- */
-export function interfaceFields(source, name) {
-  const text = stripComments(source);
-  const marker = `export interface ${name} {`;
-  const start = text.indexOf(marker);
-  assert.notEqual(start, -1, `no declaration of interface ${name} was found`);
-
-  const fields = [];
-  let depth = 0;
-  let expectField = true;
-  let quote = null;
-  const body = text.slice(start + marker.length);
-
-  for (let i = 0; i < body.length; i += 1) {
-    const ch = body[i];
-    // The STRUCTURAL guard is not decoration. Without it this branch consumes the
-    // interface's own closing brace — `readMember` returns null for `}`, the branch
-    // `continue`s instead of falling through, and the brace is skipped on every
-    // iteration. The scan then runs past the interface into the NEXT declaration and
-    // refuses there, which is how this was found.
-    if (depth === 0 && expectField && !STRUCTURAL.has(ch)) {
-      const m = readMember(body, i);
-      if (m !== null) {
-        fields.push({ name: m.name, optional: m.optional });
-        i += m.length - 1;
-        expectField = false;
-        continue;
-      }
-      // Not a member and not whitespace: a member this reader cannot understand, and
-      // skipping it is the R7-04 defect.
-      if (!/\s/.test(ch)) {
-        throw unsupported(
-          body.slice(i, i + 40),
-          'this reader cannot parse it as a field name, so it cannot compare it',
-        );
-      }
-      continue;
-    }
-    if (quote !== null) {
-      if (ch === quote) quote = null;
-      continue;
-    }
-    if (ch === "'" || ch === '"' || ch === '`') { quote = ch; continue; }
-    if (ch === '{') {
-      depth += 1;
-      expectField = false;
-      continue;
-    }
-    if (ch === '}') {
-      depth -= 1;
-      if (depth < 0) break; // the interface's own closing brace
-      expectField = false;
-      continue;
-    }
-    if (ch === ';') {
-      expectField = depth === 0;
-      continue;
-    }
-  }
-  return fields;
-}
+export { interfaceFields };
 
 /**
  * The single fenced `ts` block of 05-contracts.md — the contract of record.

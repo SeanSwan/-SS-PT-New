@@ -51,7 +51,13 @@ test('R7-04a: a `//` inside a string literal is not a comment', () => {
   // The old stripper ran `//[^\n]*` ANYWHERE, so this line lost its type from `//` on.
   assert.equal(stripComments("url: 'https://x/y';"), "url: 'https://x/y';");
   assert.equal(stripComments('a: string; // gone').trim(), 'a: string;');
-  assert.equal(stripComments('/* gone */ a: string'), ' a: string');
+  // A BLOCK COMMENT IS REPLACED BY A SPACE, NOT DELETED (R8-05). This assertion used to
+  // read `' a: string'` — one space, which is the comment DELETED and the source's own
+  // space left behind. That encoded the defect: deleting a comment JOINS the tokens on
+  // either side, so `readonly/* note */slug` came out as `readonlyslug`. The property
+  // is asserted rather than the whitespace, because the whitespace is an artifact.
+  assert.equal(stripComments('/* gone */a: string'), ' a: string');
+  assert.equal(stripComments('readonly/* gone */slug: string'), 'readonly slug: string');
   // An ESCAPED quote must not close the literal early, or the `//` after it is read as a
   // comment again.
   assert.equal(stripComments("s: 'it\\'s//x';"), "s: 'it\\'s//x';");
@@ -140,10 +146,16 @@ function table(shape, route = 'POST /api/x') {
 }
 
 test('R7-03d: a composition after the shape is refused, a PROSE annotation is not', () => {
-  for (const shape of ['{a: string} & {b: number}', '{a: string} | null', '{a: string} | {b: number}']) {
+  // The ARRAY SUFFIX joined this list in R8-01: `{a: string}[]` is an array OF that
+  // object, so reading the element's members as the response shape is the same
+  // fragment-compared-as-whole defect the other three spell differently. It used to be
+  // a documented residual, which is another way of saying it was unexamined.
+  for (const shape of [
+    '{a: string} & {b: number}', '{a: string} | null', '{a: string} | {b: number}', '{a: string}[]',
+  ]) {
     assert.throws(
       () => responseShapeFor('POST /api/x', table(shape)),
-      /intersection, a union or a second object/,
+      /an intersection, a union, an array suffix or a second object/,
       `${shape} must be refused — reading only the first object compares a fragment`,
     );
   }

@@ -23,9 +23,48 @@
 
 import assert from 'node:assert/strict';
 import { mkdirSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { isAbsolute, join, relative, sep } from 'node:path';
 
 import { tempRoot } from '../../../scripts/creator-brains/test/helpers.mjs';
+
+/**
+ * Does `target` lie OUTSIDE `root`, judged BY PATH COMPONENT (R8-07)?
+ *
+ * ── THE DEFECT THIS REPLACES, AND WHY IT SURVIVED A ROUND ────────────────────
+ *
+ * `junction()` proved its attack with `!real.toLowerCase().startsWith(realStore
+ * .toLowerCase())` — the SAME string-prefix containment test R7-01 had removed from
+ * `lib/containment.mjs` one round earlier. R7-01's fix was aimed at the guard; this
+ * copy stood one file over, in the fixture validator, and round 8 found it there. That
+ * is the sixth consecutive round in which "a fix aimed at a row is not a fix aimed at
+ * a class" held, and it is why this predicate is now a named function with its own
+ * tests rather than an expression inside an assertion.
+ *
+ * A prefix test is wrong in BOTH directions, and only the second one is quiet:
+ *
+ *   OVER-PERMISSIVE — `C:\store-evil` starts with `C:\store`, so a junction resolving
+ *     to a SIBLING whose name merely begins with the store's name was judged INSIDE
+ *     the store. The assertion then fires and reports "the attack was not
+ *     constructed" against a junction that escaped perfectly well: a false alarm that
+ *     reads as a broken fixture.
+ *   OVER-REFUSING — a directory genuinely inside the store whose name begins with two
+ *     dots (`..notes`) is not a parent component, and R7-01 recorded exactly this
+ *     over-refusal as a defect. A guard that refuses legal input is a defect too.
+ *
+ * A parent component is exactly `..`, or `..` followed by a SEPARATOR. A longer name
+ * that merely begins with two dots is an ordinary name and is inside. A `relative()`
+ * result that is absolute means the two paths do not share a root at all, which is
+ * also outside.
+ *
+ * IT IS DELIBERATELY NOT `lib/containment.mjs`'s `inside()`. Importing the production
+ * guard would make this validator agree with the guard BY CONSTRUCTION, so a bug in
+ * the guard would be invisible to the very test whose job is to notice it. The rule is
+ * restated here from `node:path` primitives, independently.
+ */
+export function escapes(root, target) {
+  const rel = relative(root, target);
+  return rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel);
+}
 
 /** A generation directory OUTSIDE the store, with content a leak would expose. */
 export function outsideGeneration(label) {
@@ -72,7 +111,7 @@ export function repointOutside(r, ns, label) {
   const from = join(r, 'brains', ns);
   const traversal = relative(from, join(outside, 'gen-0001'));
   assert.ok(
-    traversal.startsWith('..'),
+    escapes(from, join(outside, 'gen-0001')),
     `the traversal '${traversal}' does not leave the store — the attack was not constructed`,
   );
   repoint(r, ns, traversal);
@@ -93,13 +132,17 @@ export function repoint(r, ns, generation) {
  *
  * The proof is the point: a test that fails to create its attack must fail
  * loudly, not pass quietly against an ordinary directory.
+ *
+ * THE PROOF IS `escapes()`, NOT A PREFIX TEST (R8-07). See its header — the prefix
+ * form judged a sibling named `store-evil` to be inside the store, which turned a
+ * correctly-constructed attack into a false "the attack was not constructed".
  */
 export function junction(target, linkPath, storeRoot) {
   symlinkSync(target, linkPath, 'junction');
   const real = realpathSync(linkPath);
   const realStore = realpathSync(storeRoot);
   assert.ok(
-    !real.toLowerCase().startsWith(realStore.toLowerCase()),
+    escapes(realStore, real),
     `the junction at '${linkPath}' resolved to '${real}', which is INSIDE the store — the attack was not constructed`,
   );
   return real;

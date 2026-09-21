@@ -39,7 +39,25 @@ import {
 } from './contract-parse.mjs';
 import { BRAIN_NS, getJson, seedPublishedBrain, withFixture } from './fixtures.mjs';
 
-const names = (src, n) => interfaceFields(src, n).map((f) => f.name).sort();
+/**
+ * The declared fields of interface `n`, as `name?` strings so OPTIONALITY SURVIVES.
+ *
+ * `.map((f) => f.name)` was the whole of this projection, and it threw away the one
+ * bit `interfaceFields` is careful to keep (R8-06). `interfaceFields` returns
+ * `{name, optional}`; projecting to the name alone made `{a: string; b?: number}` and
+ * `{a: string; b: number}` compare EQUAL, so the doc-vs-types assertion in `T-B27e`
+ * could not see a field being widened to optional in one artifact only.
+ *
+ * That is the R5-04 hole one artifact over, and it is the same defect `memberNames()`
+ * was rebuilt to avoid: its header records that a name list which cannot express
+ * optionality is blind to exactly this drift. The `?` is spelled the way `memberNames`
+ * spells it so the two projections remain comparable — `T-B27m0` compares
+ * `methodReturnFields` (which is `memberNames`) against `contractRowShape` (also
+ * `memberNames`), and those already carry the marker.
+ */
+const names = (src, n) => interfaceFields(src, n)
+  .map((f) => (f.optional ? `${f.name}?` : f.name))
+  .sort();
 
 /* ── the extractor itself must be trustworthy before anything rests on it ─── */
 
@@ -199,6 +217,16 @@ test('T-B27f: the two declarations differ on a renamed field, and the check catc
       names('export interface X { slug: string; b: number; }', 'X'),
     ),
     /deep-equal|deepStrictEqual/,
+  );
+  // ...AND THE PROJECTION IS OPTIONALITY-AWARE (R8-06). The helper was
+  // `.map((f) => f.name)`, which discarded the `?`, so widening a field to optional in
+  // ONE artifact was invisible to T-B27e above — the R5-04 hole one artifact over. This
+  // assertion is what makes the fix load-bearing: restore the old projection and it goes
+  // green again while appearing to test the same thing.
+  assert.notDeepEqual(
+    names('export interface X { a: string; b: number; }', 'X'),
+    names('export interface X { a: string; b?: number; }', 'X'),
+    'a field widened to optional in one artifact must be a divergence, not agreement',
   );
 });
 

@@ -103,18 +103,49 @@ export function headerFor(lines, i) {
  * fires on legal input is a defect: it makes a correct document unreadable and invites
  * someone to edit the document to satisfy the reader.
  *
+ * ── R8-01: THE HEAD IS EXAMINED TOO, AND AN ARRAY SUFFIX IS REFUSED ──────────
+ *
+ * THE HEAD WAS NOT CHECKED AT ALL. `text.indexOf('{')` found the first brace and
+ * everything before it was DISCARDED, so `Array<{a: string}>` returned `{a: string}` —
+ * the ELEMENT of an array, compared while claiming to be the response shape. The same
+ * held for `Partial<{…}>`, `Readonly<{…}>` and `Foo & {…}`: a wrapper or a composition
+ * whose right-hand object was read as the whole declaration. `Array<{…}>` was
+ * documented here as "supported syntax that must keep working", and that note was
+ * itself the over-permissive assumption — what is preserved is the BALANCED scan, so a
+ * nested object is not truncated; what is refused is claiming a fragment is the whole
+ * shape. The other side of the comparison cannot express an array return
+ * (`methodReturnTypedFields` requires `Promise<{…}>`), so refusing here agrees with it
+ * rather than inventing a new strictness.
+ *
+ * A leading `[]` in the tail joins the refusal for the same reason: `{a: string}[]` is
+ * an ARRAY of that object, and reading the element's members as the response shape is
+ * the identical fragment-compared-as-whole defect. Only the literal `[]` is refused, so
+ * a prose annotation that happens to open with a bracket (`{…} [see note]`) is still
+ * read as prose.
+ *
  * RESIDUALS, named rather than hidden. A tail is NOT examined for:
- *   - `[]`, so `{a: string}[]` is read as the element's members. The other side of the
- *     comparison cannot express an array return (`methodReturnTypedFields` requires
- *     `Promise<{…}>`), so it refuses rather than agreeing.
  *   - a conditional type (`{a} extends B ? C : D`), which is not a shape this document
  *     uses and which no rule here can distinguish from prose.
+ *   - a function type (`{a} => void`), likewise indistinguishable from prose without a
+ *     type grammar, and likewise unexpressible on the other side of the comparison.
  *   - prose containing a brace, which is refused — it is indistinguishable from a second
  *     shape, and refusing is the safe direction.
  */
 export function wholeObjectShape(text, what) {
   const start = text.indexOf('{');
   assert.notEqual(start, -1, `${what} declares no \`{…}\` response shape`);
+  // THE HEAD MUST BE EMPTY (R8-01). Anything before the `{` means the object is a
+  // COMPONENT of a larger type — `Array<`, `Partial<`, `Foo & ` — and returning it
+  // would compare a fragment while claiming to compare the declaration. This is the
+  // mirror of the tail check below, and the first version had the tail and not the head.
+  const head = text.slice(0, start).trim();
+  assert.equal(
+    head, '',
+    `${what} declares \`${head}\` before its \`{…}\`. This reader compares a WHOLE `
+      + 'response shape, so a wrapper or a composition is refused rather than read as '
+      + 'its right-hand object — that would report agreement about a declaration that '
+      + 'was never read.',
+  );
   let depth = 0;
   let quote = null;
   for (let i = start; i < text.length; i++) {
@@ -130,23 +161,69 @@ export function wholeObjectShape(text, what) {
     if (depth > 0) continue;
     const tail = text.slice(i + 1).trim();
     assert.ok(
-      !/[{}]/.test(tail) && !/^[&|]/.test(tail),
+      !/[{}]/.test(tail) && !/^[&|]/.test(tail) && !/^\[\]/.test(tail),
       `${what} declares \`{…}\` followed by \`${tail}\`. This reader compares a WHOLE `
-        + 'response shape, so an intersection, a union or a second object is refused '
-        + 'rather than silently dropped — dropping it would report agreement about a '
-        + 'declaration that was never read.',
+        + 'response shape, so an intersection, a union, an array suffix or a second '
+        + 'object is refused rather than silently dropped — dropping it would report '
+        + 'agreement about a declaration that was never read.',
     );
     return text.slice(start, i + 1);
   }
   assert.fail(`${what} declares an unclosed \`{\` — the shape is not a shape`);
 }
 
-/** Every line index in `source` that is a table row for `route`. */
+/** The trimmed content of the FIRST code span in a cell, or null when it has none. */
+function cellCode(cell) {
+  const m = /`([^`]*)`/.exec(cell);
+  return m === null ? null : m[1].trim();
+}
+
+/**
+ * Every line index in `source` that is a table row declaring `route` in its FIRST cell.
+ *
+ * ── R8-02: ROW DISCOVERY COUNTED FORMATTING, AND COULD NOT SEE A FENCE ────────
+ *
+ * The previous form was a literal prefix test over every line:
+ *
+ *   if (lines[i].startsWith(`| \`${route}\``)) out.push(i);
+ *
+ * Three failures, and the first is a false NEGATIVE that hides a duplicate:
+ *
+ *   1. THE SPACE AFTER THE LEADING PIPE WAS PART OF THE MATCH. A row written
+ *      `|`GET /api/x`|…` — legal markdown, and what a formatter may well emit — was not
+ *      found at all. A route declared twice, once with the space and once without,
+ *      yielded ONE row, so the "exactly one row" guard in `responseShapeFor` passed
+ *      while a second declaration sat unread. Counting formatting is not counting
+ *      declarations.
+ *   2. NO FENCE AWARENESS. Every line was a candidate, so a fenced EXAMPLE of a table —
+ *      the form this document uses constantly to show a shape — was counted as a
+ *      declaration of the route it names. A route with one real row and one fenced
+ *      example reported TWO rows and was refused.
+ *   3. IT MATCHED ANYWHERE ON THE LINE, not in the method+path column. A row whose
+ *      engine column happened to carry the route text counted as a declaration of it.
+ *
+ * So the row is identified by CELL now: the line is split with `tableCells` (which
+ * applies the document's `\|` escaping), and the FIRST cell must hold exactly the route
+ * inside a code span. Whitespace is formatting and is ignored; the route itself is
+ * compared EXACTLY, so one route is never a prefix of another.
+ */
 export function rowIndexes(lines, route) {
-  const prefix = `| \`${route}\``;
   const out = [];
+  let fence = null;
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith(prefix)) out.push(i);
+    const line = lines[i];
+    const marker = /^\s*(`{3,}|~{3,})/.exec(line);
+    if (marker !== null) {
+      const ch = marker[1][0];
+      // A fence closes only on its OWN marker character; a ``` inside a ~~~ block is
+      // content. Closing on either would end the block early and re-expose its rows.
+      fence = fence === null ? ch : (fence === ch ? null : fence);
+      continue;
+    }
+    if (fence !== null) continue;
+    if (!line.startsWith('|')) continue;
+    // `tableCells` yields an empty leading cell for the run before the first `|`.
+    if (cellCode(tableCells(line)[1] ?? '') === route) out.push(i);
   }
   return out;
 }
@@ -187,9 +264,29 @@ export function responseShapeFor(route, source) {
   assert.notEqual(column, -1, `the table above ${route} declares no response column`);
   const cell = tableCells(lines[rows[0]])[column];
   assert.ok(cell !== undefined, `the row for ${route} has no response column`);
-  const span = /`([^`]*)`/.exec(cell);
-  assert.ok(span, `the row for ${route} declares no code span in its response column`);
+  // ── R8-01 · EXACTLY ONE CODE SPAN MAY HOLD THE SHAPE ───────────────────────
+  // The first version took the FIRST code span and never looked at the rest. A cell
+  // written `` `{a: string}` or `{b: number}` `` therefore compared the first
+  // alternative and reported agreement about the second — a fragment compared while
+  // claiming to be the declaration. So EVERY span is examined, and exactly one may
+  // hold a `{…}`.
+  //
+  // "A SPAN THAT HOLDS A BRACE" RATHER THAN "ONE SPAN AT ALL", because this document
+  // annotates a response in the same cell and the annotation may itself be code: §2b's
+  // run row reads `` `202 {…}` (progress via `GET /api/run`) ``. Refusing any second
+  // span outright would refuse a document written the way this one is written — the
+  // over-refusal R7-03 already paid for once.
+  const spans = [...cell.matchAll(/`([^`]*)`/g)].map((m) => m[1]);
+  assert.ok(spans.length > 0, `the row for ${route} declares no code span in its response column`);
+  const shapes = spans.filter((s) => /[{}]/.test(s));
+  assert.equal(
+    shapes.length, 1,
+    `the row for ${route} declares ${shapes.length} code spans holding a \`{…}\` shape. `
+      + 'This reader compares ONE response shape, so a second shape-like span is '
+      + 'refused rather than skipped — skipping it would report agreement about a '
+      + 'declaration that was never read.',
+  );
   // The leading status code is the column's convention (`202 {…}`), not part of the type.
-  const shape = wholeObjectShape(span[1].replace(/^\s*\d{3}\s*/, ''), `the row for ${route}`);
+  const shape = wholeObjectShape(shapes[0].replace(/^\s*\d{3}\s*/, ''), `the row for ${route}`);
   return shape.slice(1, -1);
 }

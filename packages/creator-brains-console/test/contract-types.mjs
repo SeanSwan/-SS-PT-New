@@ -66,6 +66,7 @@ export const CONTRACT_ASSERT_TS = fileURLToPath(
 export function normalizeType(type) {
   let out = '';
   let quote = null;
+  let escaped = false;
   let pending = false;
   const emit = (ch) => {
     if (pending && out !== '' && !out.endsWith(' ')) out += ' ';
@@ -74,11 +75,20 @@ export function normalizeType(type) {
   };
   for (const ch of type) {
     if (quote !== null) {
+      // AN ESCAPED QUOTE DOES NOT END THE LITERAL (R8-03). Without this branch the walk
+      // closed the literal at the escaped quote in `'it\'s'`, so the rest of the literal
+      // was normalised as TYPE TEXT: `'it\'s  two'` and `'it\'s two'` collapsed to the
+      // same string and two DIFFERENT literal types compared equal. That is R7-05's own
+      // rule — whitespace is spelling only outside literals — defeated by an escape the
+      // walk did not model. Every character is still emitted verbatim: this branch must
+      // never rewrite the contents of a literal.
       out += ch;
+      if (escaped) { escaped = false; continue; }
+      if (ch === '\\') { escaped = true; continue; }
       if (ch === quote) quote = null;
       continue;
     }
-    if (ch === "'" || ch === '"' || ch === '`') { emit(ch); quote = ch; continue; }
+    if (ch === "'" || ch === '"' || ch === '`') { emit(ch); quote = ch; escaped = false; continue; }
     if (/\s/.test(ch)) { pending = true; continue; }
     if (ch === '|' || ch === '&') {
       out = out.replace(/\s+$/, '');
