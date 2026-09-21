@@ -33,6 +33,10 @@ const router = express.Router();
 export const SPOTLIGHT_MAX_HEADLINE = 80;
 export const SPOTLIGHT_MAX_DEK = 200;
 export const SPOTLIGHT_MAX_CURATOR_NOTE = 140;
+// `itemId` is the natural PRIMARY KEY (`SwanSpotlight.itemId STRING(36)`, G0-SOURCE-EXCERPTS.md:109)
+// and the contract bounds it at 36 (`:54`). It is an IDENTITY, not display text: an over-long value
+// is out of contract and must be REJECTED, never shortened to fit.
+export const SPOTLIGHT_MAX_ITEM_ID = 36;
 
 export const isSpotlightEnabled = (env = process.env) => env.SPOTLIGHT_ENABLED === 'true';
 
@@ -44,11 +48,36 @@ export const spotlightJsonParser = express.json({
   },
 });
 
+/**
+ * DISPLAY-TEXT normaliser: trims, and TRUNCATES to `max`.
+ *
+ * Truncation is correct for prose and WRONG for an identifier. The two were conflated once
+ * (hostile review R5-02) and the result was two distinct itemIds — differing only past the 36th
+ * character — collapsing onto a single primary key. Use `identity()` for anything that names a row.
+ */
 const str = (value, max) => {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
   return trimmed.slice(0, max);
+};
+
+/**
+ * IDENTITY normaliser: trims, and REJECTS anything that does not fit rather than shortening it.
+ *
+ * Returns `{ok:false, reason}` for a missing or over-long value so the caller can answer 422
+ * BEFORE the value reaches the model. Whitespace normalisation is preserved (the established
+ * contract); the bound is the column's, not a new format — an over-long id is out of contract,
+ * not a UUID that needs converting, and no format is imposed here beyond the documented length.
+ */
+const identity = (value, max, label) => {
+  if (typeof value !== 'string') return { ok: false, reason: `${label} is required.` };
+  const trimmed = value.trim();
+  if (!trimmed) return { ok: false, reason: `${label} is required.` };
+  if (trimmed.length > max) {
+    return { ok: false, reason: `${label} must be at most ${max} characters.` };
+  }
+  return { ok: true, value: trimmed };
 };
 
 /** Screen the human-readable copy against the shared positivity list. */
@@ -74,8 +103,11 @@ export const validateSpotlightPayload = (body) => {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return { ok: false, reason: 'Body must be a JSON object.' };
   }
-  const itemId = str(body.itemId, 36);
-  if (!itemId) return { ok: false, reason: 'itemId is required.' };
+  // Identity first, and bounded — never truncated (hostile review R5-02). `str()` would have
+  // shortened an over-long id to 36 characters, silently aliasing two distinct items onto one row.
+  const id = identity(body.itemId, SPOTLIGHT_MAX_ITEM_ID, 'itemId');
+  if (!id.ok) return id;
+  const itemId = id.value;
   if (!Number.isInteger(body.revision) || body.revision < 1) {
     return { ok: false, reason: 'revision must be a positive integer.' };
   }
