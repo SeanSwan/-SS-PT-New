@@ -91,7 +91,16 @@ export function listNamespaces(root) {
   } catch (err) {
     if (err && err.code === 'ENOENT') return [];
     const code = (err && err.code) || 'unknown error';
-    throw damaged(`the brains store could not be enumerated (${code})`);
+    // THE STORE IS THE SUBJECT, SO THE STORE IS THE FILENAME (R7-02). This call passed
+    // one argument, so it took `damaged`'s default `file: 'current.json'` and a failure
+    // to LIST the store was reported against a pointer file that has nothing to do with
+    // it. R6-02 fixed exactly this for the store root RESOLUTION in `containment.mjs`
+    // and left the root ENUMERATION here — the neighbouring row of the same class.
+    // `countPublished` carries the name through in `extra.file`, so it is user-visible.
+    throw damaged(
+      `the brains store could not be enumerated (${code})`,
+      'brains',
+    );
   }
 }
 

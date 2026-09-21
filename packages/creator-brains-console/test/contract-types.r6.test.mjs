@@ -83,9 +83,22 @@ test('R6-03i: a TRAILING delimiter is spelling, not a malformed fragment', () =>
 
 /* ── the regression Astra asked for: through the real table reader ─────────── */
 
-/** One contract-table row declaring `shape`, in the document's own escaping. */
+/**
+ * A contract-table FRAGMENT declaring `shape`, in the document's own escaping.
+ *
+ * THE HEADER IS PART OF THE FIXTURE SINCE R7-03. The reader now selects the response
+ * column BY HEADER rather than by searching the row for braces, because §2b's errors
+ * column carries `{holder}` — so a row with no header is not a table and is refused.
+ * The errors cell below deliberately carries `{holder}` for the same reason: it makes
+ * this fixture exercise the column selection rather than merely accompany it.
+ *
+ * The ASSERTIONS in this file are unchanged by that: the base row still parses to the
+ * two declared names, and the widened row is still refused by name.
+ */
 function row(shape) {
-  return `| \`POST /api/run/daily\` | T2 | S4 | spawn | \`202 ${shape}\` | — |\n`;
+  return '| Method+Path | Tier | Owner slice | Engine function | Planned response 2xx | Planned errors |\n'
+    + '|---|---|---|---|---|---|\n'
+    + `| \`POST /api/run/daily\` | T2 | S4 | spawn | \`202 ${shape}\` | \`409 RUN_LOCKED {holder}\` |\n`;
 }
 
 test('R6-03j: the TABLE READER refuses a widened row, not only the tokenizer', () => {

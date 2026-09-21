@@ -24,6 +24,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
+import { memberNames, readMember, stripComments, unsupported } from './contract-names.mjs';
+import { responseShapeFor } from './contract-table.mjs';
+
 /** The web contract as the client declares it. */
 export const TYPES_TS = fileURLToPath(new URL('../web/src/adapters/types.ts', import.meta.url));
 
@@ -35,18 +38,23 @@ export const CONTRACTS_MD = fileURLToPath(
 /**
  * Strip comments so they cannot be read as fields.
  *
- * `//` is stripped ANYWHERE on a line, not just at its start. Both artifacts
- * annotate declarations inline — `export interface StatusInstrument {   // R2 —
- * mirrors status-command sources` — and an anchored-only rule left that comment in
- * the body, where the scanner consumed it as a token and then treated the next
- * real field as already-seen. The symptom was two fields of `StatusInstrument`
- * reported as missing from a document that declares them: a FALSE divergence,
- * which is worse than a missed one because it invites someone to "fix" a correct
- * document.
+ * THE IMPLEMENTATION MOVED TO `contract-names.mjs` (R7-04) and is re-exported here so
+ * every existing import keeps working. It is a WALK now, not two `replace` calls: the
+ * old second call stripped from `//` to the end of the line ANYWHERE, which is correct
+ * for a comment and wrong inside a string literal — `url: 'https://…'` lost its type
+ * from the `//` onward. The module header records the residual (a regex literal
+ * containing `//` is still stripped) rather than hiding it.
  */
-export function stripComments(text) {
-  return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
-}
+export { stripComments };
+
+/**
+ * The characters that end a member rather than beginning one.
+ *
+ * `;` is here because an empty member is legal in TypeScript (`interface X { ; a: string }`)
+ * and because a doubled delimiter is spelling, not a member. Refusing on these would make
+ * the reader refuse every interface at its own closing brace.
+ */
+const STRUCTURAL = new Set(['{', '}', ';']);
 
 /**
  * Top-level fields of one `export interface Name { … }`, as `{ name, optional }`.
@@ -67,6 +75,25 @@ export function stripComments(text) {
  * counted from the `interface` keyword, so it matched nothing and every comparison
  * passed while comparing nothing; the second read one field per line, so it
  * invented divergences. `T-B27a`/`T-B27d` keep both failure modes caught.
+ *
+ * ── R7-04: IT NOW REFUSES WHAT IT CANNOT READ, AND IT TRACKS LITERALS ─────────
+ *
+ * THREE CHANGES, all from one finding, and the first is the finding itself:
+ *
+ *   1. THE NAME GRAMMAR IS `readMember`'s, NOT `(\w+)(\??)`. The old regex matched a
+ *      bare identifier only, and the fallthrough was `if (!/\s/.test(ch)) expectField
+ *      = false` — it SKIPPED the member and carried on. So `readonly slug: string`,
+ *      `'quoted': string`, `$x: string` and `0: string` each vanished, and a
+ *      declaration carrying one extracted to exactly the fields of a declaration
+ *      without it. That is ignorance read as agreement: the comparison built on this
+ *      reader reported a match for a document it had not read. An unparseable member
+ *      is now a hard failure naming the fragment.
+ *   2. THE SCANNER TRACKS STRING LITERALS, so a `;` or a brace INSIDE a literal is not
+ *      structural. `a: 'x;y'; b: number` used to end the first member at the `;` inside
+ *      the literal and then refuse `y'` as a field name. The same class as the
+ *      `stripComments` fix, one layer up.
+ *   3. MEMBERS ARE MATCHED BEFORE QUOTES ARE OPENED, so a QUOTED NAME is read by
+ *      `readMember` rather than being mistaken for the start of a literal.
  */
 export function interfaceFields(source, name) {
   const text = stripComments(source);
@@ -77,10 +104,39 @@ export function interfaceFields(source, name) {
   const fields = [];
   let depth = 0;
   let expectField = true;
+  let quote = null;
   const body = text.slice(start + marker.length);
 
   for (let i = 0; i < body.length; i += 1) {
     const ch = body[i];
+    // The STRUCTURAL guard is not decoration. Without it this branch consumes the
+    // interface's own closing brace — `readMember` returns null for `}`, the branch
+    // `continue`s instead of falling through, and the brace is skipped on every
+    // iteration. The scan then runs past the interface into the NEXT declaration and
+    // refuses there, which is how this was found.
+    if (depth === 0 && expectField && !STRUCTURAL.has(ch)) {
+      const m = readMember(body, i);
+      if (m !== null) {
+        fields.push({ name: m.name, optional: m.optional });
+        i += m.length - 1;
+        expectField = false;
+        continue;
+      }
+      // Not a member and not whitespace: a member this reader cannot understand, and
+      // skipping it is the R7-04 defect.
+      if (!/\s/.test(ch)) {
+        throw unsupported(
+          body.slice(i, i + 40),
+          'this reader cannot parse it as a field name, so it cannot compare it',
+        );
+      }
+      continue;
+    }
+    if (quote !== null) {
+      if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === "'" || ch === '"' || ch === '`') { quote = ch; continue; }
     if (ch === '{') {
       depth += 1;
       expectField = false;
@@ -95,16 +151,6 @@ export function interfaceFields(source, name) {
     if (ch === ';') {
       expectField = depth === 0;
       continue;
-    }
-    if (depth === 0 && expectField) {
-      const m = /^(\w+)(\??)\s*:/.exec(body.slice(i));
-      if (m) {
-        fields.push({ name: m[1], optional: m[2] === '?' });
-        i += m[0].length - 1;
-        expectField = false;
-        continue;
-      }
-      if (!/\s/.test(ch)) expectField = false;
     }
   }
   return fields;
@@ -148,15 +194,6 @@ export function assertServed(route, fields, payload, label = '') {
 
 /* ── R3-05 · the DEFERRED methods, which have no live payload to compare ─── */
 
-/** The field names in a brace list: `requestId, runId: null` → sorted names. */
-function fieldNames(body) {
-  return body
-    .split(/[;,]/)
-    .map((part) => (part.split(':')[0] || '').trim())
-    .filter((name) => /^\w+$/.test(name))
-    .sort();
-}
-
 /**
  * The return-object field names a method's `Promise<{…}>` declares.
  *
@@ -171,12 +208,19 @@ function fieldNames(body) {
  * empty list. An empty list would compare equal to a document that declares nothing
  * and pass while checking nothing — the failure mode both earlier field extractors
  * had, and the reason `T-B27m0` exists.
+ *
+ * THE NAME READER IS NOW `memberNames` (R7-04). It used to be a private `fieldNames`
+ * ending in `.filter((name) => /^\w+$/.test(name))`, which DROPPED any name it could not
+ * parse — including `x?`, because it stripped optionality before testing. So an optional
+ * field and a required one produced the same list, which is the R5-04 hole one artifact
+ * over, and `readonly x` disappeared entirely. `memberNames` refuses instead of dropping
+ * and keeps the `?`.
  */
 export function methodReturnFields(source, method) {
   const text = stripComments(source);
   const m = new RegExp(`\\b${method}\\s*\\([^)]*\\)\\s*:\\s*Promise<\\{([^}]*)\\}>`).exec(text);
   assert.ok(m, `no Promise<{…}> return type was found for ${method}`);
-  return fieldNames(m[1]);
+  return memberNames(m[1]);
 }
 
 /**
@@ -203,13 +247,33 @@ export function deferredRoute(adapterSource, method) {
   return `${m[1]} ${m[2]}`;
 }
 
-/** The response shape `05-contracts.md` declares for one route's table row. */
-export function contractRowShape(route) {
-  const row = readFileSync(CONTRACTS_MD, 'utf8')
-    .split('\n')
-    .find((line) => line.startsWith(`| \`${route}\``));
-  assert.ok(row, `05-contracts.md declares no row for ${route}`);
-  const m = /\{([^}]*)\}/.exec(row);
-  assert.ok(m, `the row for ${route} declares no response shape`);
-  return fieldNames(m[1]);
+/**
+ * The response shape `05-contracts.md` declares for one route's table row, as names.
+ *
+ * ── R7-03's CLASS, COMPLETED (found while fixing R7-04) ────────────────────────
+ *
+ * This function carried R7-03's defect VERBATIM, and it is worth being blunt about how
+ * it was found: R7-03 was filed against `contract-types.mjs`'s `contractRowTypedFields`,
+ * the fix moved the extraction into `contract-table.mjs` — and left this sibling reading
+ * the table the old way, one file over, with `.find()` for the first row and
+ * `/\{([^}]*)\}/` for the first brace pair ANYWHERE in the row. The three failures are
+ * the same three `contract-table.mjs` documents. **A fix aimed at a row is not a fix
+ * aimed at a class**, and this is the fifth consecutive round in which that held.
+ *
+ * It is REACHABLE, not merely latent: `T-B27m0` and `T-B27m` call it on the live
+ * document, so the first row to carry a brace in its engine-function column — or the
+ * first route to be declared twice — would have been read as agreement about a
+ * declaration this reader never saw.
+ *
+ * Both readers now go through `responseShapeFor`, so the extraction has ONE definition.
+ * The name projection stays separate from `contractRowTypedFields` because the two
+ * answer different questions: `T-B27m` compares NAMES against `methodReturnFields`,
+ * `T-B27m2b` compares names AND types against the compiler literals.
+ *
+ * `source` IS INJECTABLE, for the same reason `contractRowTypedFields` takes one (R6-03):
+ * a regression that could only call this on the real document would pass while a bypass
+ * lived in the extraction, which is exactly the shape of the defect being fixed here.
+ */
+export function contractRowShape(route, source = readFileSync(CONTRACTS_MD, 'utf8')) {
+  return memberNames(responseShapeFor(route, source));
 }

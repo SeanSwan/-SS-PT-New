@@ -29,6 +29,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import { CONTRACTS_MD } from './contract-parse.mjs';
+import { responseShapeFor } from './contract-table.mjs';
+import { splitTopLevel, unsupported } from './contract-names.mjs';
 
 /** The compiler-enforced copy of the deferred contract (R4-04). */
 export const CONTRACT_ASSERT_TS = fileURLToPath(
@@ -36,32 +38,57 @@ export const CONTRACT_ASSERT_TS = fileURLToPath(
 );
 
 /**
- * Split a brace-list body on TOP-LEVEL `,` or `;`.
+ * Whitespace is spelling, not meaning — OUTSIDE STRING LITERALS (R7-05).
  *
- * DEPTH-AWARE, because a type may contain the delimiters it is split on:
- * `Record<string, number>` carries a comma at angle-depth 1 and
- * `Array<{ a: number }>` carries one inside braces. A plain `split(',')` cuts
- * those in half and then INVENTS fields — a false divergence, which is worse than
- * a missed one because it invites someone to "correct" a document that was right.
- * `contract-parse.mjs` records the same lesson from the other direction.
+ * The previous form collapsed every whitespace run to one space. That is right between
+ * tokens and WRONG inside a literal: `'two  spaces'` and `'two spaces'` are different
+ * string literal TYPES, and the old rule made them compare EQUAL, so a real difference
+ * was invisible to the doc→literal link. It was also blind around union separators, so
+ * `string|null` and `string | null` — one type written twice — compared UNEQUAL and a
+ * legitimate edit to the contracts row was reported as drift.
+ *
+ * SO THE WALK DOES TWO THINGS AND NO MORE: it collapses whitespace only OUTSIDE literals,
+ * and it emits a separator as ` | ` / ` & ` — one space either side — so both spellings
+ * normalise to the SAME text.
+ *
+ * IT IS A WALK AND NOT A `replace` ON PURPOSE. The obvious fix — normalise the spacing
+ * around every pipe — would also rewrite pipes INSIDE string literals, which is the same
+ * class of error in the opposite direction. Literal state has to be tracked, and only a
+ * walk tracks it.
+ *
+ * THE CANONICAL FORM IS `string | null`, WITH THE SPACES. The first R7-05 version emitted
+ * `string|null` and was internally consistent — both spellings still agreed with each
+ * other — but it silently changed the spelling every shipped test and every document
+ * pins (`R5-04a`, `T-B27m2b`), which is a change to the contract dressed as a
+ * normalisation. Normalising toward the form the project already writes is the fix;
+ * normalising away from it is a rewrite.
  */
-function splitTopLevel(body) {
-  const parts = [];
-  let depth = 0;
-  let current = '';
-  for (const ch of body) {
-    if (ch === '<' || ch === '{' || ch === '[' || ch === '(') depth += 1;
-    else if (ch === '>' || ch === '}' || ch === ']' || ch === ')') depth -= 1;
-    if ((ch === ',' || ch === ';') && depth === 0) { parts.push(current); current = ''; continue; }
-    current += ch;
-  }
-  parts.push(current);
-  return parts;
-}
-
-/** Whitespace is spelling, not meaning. Compare the meaning. */
 export function normalizeType(type) {
-  return type.replace(/\s+/g, ' ').replace(/[;,]\s*$/, '').trim();
+  let out = '';
+  let quote = null;
+  let pending = false;
+  const emit = (ch) => {
+    if (pending && out !== '' && !out.endsWith(' ')) out += ' ';
+    out += ch;
+    pending = false;
+  };
+  for (const ch of type) {
+    if (quote !== null) {
+      out += ch;
+      if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === "'" || ch === '"' || ch === '`') { emit(ch); quote = ch; continue; }
+    if (/\s/.test(ch)) { pending = true; continue; }
+    if (ch === '|' || ch === '&') {
+      out = out.replace(/\s+$/, '');
+      out += (out === '' ? '' : ' ') + ch + ' ';
+      pending = false;
+      continue;
+    }
+    emit(ch);
+  }
+  return out.replace(/[;,]\s*$/, '').trim();
 }
 
 /**
@@ -112,32 +139,22 @@ export function typedFields(body) {
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** The refusal for a member this grammar does not support (R6-03). */
-function unsupported(fragment, why) {
-  return new Error(
-    `unsupported contract member \`${String(fragment).trim()}\`: ${why}. Extend this `
-      + 'parser\'s grammar deliberately rather than letting the member be ignored — a '
-      + 'member this reader drops is a member it cannot compare.',
-  );
-}
-
 /**
  * The response shape `05-contracts.md` declares for a route, WITH its types.
  *
- * `source` is injectable so a regression can drive THIS reader over an in-memory
- * mutated document (R6-03). Testing the tokenizer alone cannot catch a bypass that
- * lives in the row extraction, and Astra's finding was exactly that: the added members
- * were accepted by the real table reader, not merely by `typedFields()`.
+ * THE EXTRACTION LIVES IN `contract-table.mjs` (R7-03). This function used to select the
+ * row and the shape itself, with `.find()` and `/\{([^}]*)\}/` — first row, first brace
+ * pair, stopping at the first `}` — so it could hand the tokenizer a FRAGMENT of the
+ * declaration, or a cell that was not the response column at all (§2b's errors column
+ * carries `{holder}`). Strictness here cannot see what the extraction dropped, and
+ * splitting on the seam also keeps this file inside the 300-line cap (rule 4).
+ *
+ * `source` is injectable so a regression can drive the REAL reader over an in-memory
+ * mutated document (R6-03). Testing the tokenizer alone cannot catch a bypass that lives
+ * in the extraction, which is exactly what R6-03's finding was.
  */
 export function contractRowTypedFields(route, source = readFileSync(CONTRACTS_MD, 'utf8')) {
-  const row = source
-    .split('\n')
-    .find((line) => line.startsWith(`| \`${route}\``));
-  assert.ok(row, `05-contracts.md declares no row for ${route}`);
-  // The row's shape is inside a code span; `\|` is how a table escapes a pipe.
-  const m = /\{([^}]*)\}/.exec(row.replace(/\\\|/g, '|'));
-  assert.ok(m, `the row for ${route} declares no response shape`);
-  const fields = typedFields(m[1]);
+  const fields = typedFields(responseShapeFor(route, source));
   assert.notEqual(fields.length, 0, `the row for ${route} declares no typed fields`);
   return fields;
 }

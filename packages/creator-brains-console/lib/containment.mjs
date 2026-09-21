@@ -39,7 +39,7 @@
  */
 
 import { readFileSync, realpathSync } from 'node:fs';
-import { isAbsolute, relative, resolve } from 'node:path';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 
 import { paths } from '../../../scripts/creator-brains/lib/paths.mjs';
 import { ApiError, CODE } from './errors.mjs';
@@ -102,10 +102,28 @@ export function brainsStore(r) {
   return { root, realRoot };
 }
 
-/** Is `target` strictly inside `root`, after both have been normalised? */
+/**
+ * Is `target` strictly inside `root`, after both have been normalised?
+ *
+ * THE ESCAPE TEST IS BY PATH COMPONENT, NOT BY PREFIX (R7-01). The previous form was
+ * `!rel.startsWith('..')`, which rejects every name that merely BEGINS with two dots —
+ * `..notes`, `..cache`, `..tmp` — none of which is a parent-directory component. The
+ * consequence was not theoretical: `resolvePointer` runs namespace containment BEFORE
+ * the ordinary-file skip, so an ordinary file named `..notes` sitting in the store
+ * made the whole read refuse with `STORE_DAMAGED`. `listNamespaces` is an unfiltered
+ * `readdirSync`, so such a name IS enumerated and DOES reach this check.
+ *
+ * A parent component is exactly `..`, or `..` followed by a separator. Both are
+ * refused; a longer name that starts with two dots is an ordinary name and is allowed
+ * — provided it also passes the real-path check, which is the one that can see a
+ * junction regardless of spelling.
+ */
 export function inside(root, target) {
   const rel = relative(root, target);
-  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
+  return rel !== ''
+    && rel !== '..'
+    && !rel.startsWith(`..${sep}`)
+    && !isAbsolute(rel);
 }
 
 /**
