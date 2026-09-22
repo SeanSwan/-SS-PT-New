@@ -98,6 +98,47 @@ only checks links that were declared, so an undeclared one is invisible to it. `
 non-zero if any header is malformed, so a bad header fails at filing time instead of
 becoming an invisible gap.
 
+**A malformed header that nobody re-indexes becomes an invisible review.** `reindex.mjs`
+EXCLUDES an unparseable file and prints one `EXCLUDED` line into a long report — so a review
+can sit on disk, look filed, and be **unreachable by every `query.mjs` filter**. That is the
+"a review nobody can find is not a review" failure this archive exists to prevent, and it has
+happened for real (a hand-written header using `filed:`/`reviewer:`/`commit_under_review:` and
+a prose `verdict`, stranded and unfindable for a day).
+
+```bash
+node Z:/HostileReviews/audit.mjs            # every file on disk NOT in the index, and why
+node Z:/HostileReviews/audit.mjs --strict   # exit 1 if any review is stranded
+```
+
+Read-only. Run it **after any hand-edit of a filed review**, and whenever a review you expect
+back does not come back from `query.mjs`. Repair a stranded review by fixing its **front-matter
+only** — never its findings; preserve the values you replaced in `header_repaired_note:`
+(archive `README.md` §8.5).
+
+**Absent-from-index is not the same as malformed.** `audit.mjs` reports four distinct kinds,
+and the difference changes what you do:
+
+| kind | means | fix |
+|---|---|---|
+| `DRAFT` | `status: draft` — excluded **by design** | nothing; it is not published yet |
+| `MALFORMED` | a required key is missing or `review_id` does not match the filename | repair the **front-matter only** |
+| `UNINDEXED` | the header satisfies the contract, but the file is not in `index.jsonl` | run `reindex.mjs`; **do not edit the review** |
+| `NO-FRONT-MATTER` | file does not begin with `---` | it is probably not a review at all |
+
+`UNINDEXED` is the one that fools people: a valid review plus a **stale index** looks exactly
+like a bad header if a tool only asks "is this file in the index?" and assumes the reason.
+Note that in the machine-readable output, `stranded` contains **errors only** — drafts are
+reported separately under `drafts_list`. A consumer keying on `stranded` must not treat a
+correctly-excluded draft as a defect.
+
+**Known sharp edge: `reindex.mjs --check` exits 1 while printing "up to date".** If any file is
+EXCLUDED (including a legitimately-skipped draft), `--check` exits non-zero even though the
+index itself needs no update. `query.mjs` calls it via `execFileSync` and warns on any non-zero
+exit, so that staleness warning is **permanently on** in the presence of any excluded file —
+exactly the "a warning that is permanently on is tuned out" failure this archive warns about.
+Treat a `--check` exit code and a `--check` *message* as two different signals; read the stdout,
+not just `$?`. (Named as defect D6 in `2026-09-22-130942-rule-86-audit-mjs-the-discovery-surface.md`.)
+
 ## The header contract (the lookup surface)
 
 YAML front-matter, fixed key set — full definitions in the archive `README.md` §3:

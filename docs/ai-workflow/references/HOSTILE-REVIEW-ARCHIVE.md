@@ -156,6 +156,24 @@ and whether the code has changed since** — not to re-derive it from scratch. N
 The `--verdict CLEAN` list is the dangerous one: those are the verdicts most likely to be
 stale and most likely to be trusted.
 
+**And check that you are not looking at an empty shelf because the shelf is broken.** A review
+filed with a header `reindex.mjs` cannot parse is **EXCLUDED** — it sits on disk, looks filed,
+and is unreachable by *every* `query.mjs` filter. No query will ever return it, which is the
+"a review nobody can find is not a review" failure this archive exists to prevent. It happened:
+a review hand-written with `filed:`/`reviewer:`/`commit_under_review:` and a prose `verdict`
+was stranded and unfindable for a day.
+
+```bash
+node Z:/HostileReviews/audit.mjs            # every file on disk NOT in the index, and why
+node Z:/HostileReviews/audit.mjs --strict   # exit 1 if a published review is stranded
+```
+
+Read-only. It separates a **draft** (excluded by design — not a defect) from a **malformed**
+review (excluded as an error — the Rule 86 failure). Run it **after any hand-edit of a filed
+review**, and whenever a review you expect does not come back from `query.mjs`. Repair a
+stranded review by fixing its **front-matter only** — never its findings; preserve the values
+you replaced in `header_repaired_note:` (archive `README.md` §8.5).
+
 ## 7. Guaranteed to fire, not "maybe"
 
 Mirroring Rule 69's structure, five layers so this does not depend on an agent remembering:
@@ -169,7 +187,9 @@ Mirroring Rule 69's structure, five layers so this does not depend on an agent r
    `review_id`. A pass with no `review_id` is not a pass.
 5. **Tooling makes the right thing the easy thing** — `new-review.mjs` stamps the correct
    filename and front-matter and `--supersedes` sets both halves of a supersede link in one
-   step, and `reindex.mjs` fails loudly on a malformed header and on a non-reciprocal link.
+   step, and `reindex.mjs` fails loudly on a malformed header and on a non-reciprocal link,
+   and `audit.mjs` reports any file left out of the index, distinguishing a draft from a
+   malformed review.
    **What it cannot do:** detect a supersede link that *should* exist and is declared nowhere.
    `reindex.mjs` checks the links it is given, so a review that silently replaces an earlier
    one without saying so is invisible to it and the older verdict keeps reading as current.
