@@ -1,0 +1,42 @@
+════════════════════════════════════════════════════════════════════════
+ ALL GATES  —  HEAD fb82c21a1cb341840995d491246255591634c2f9
+════════════════════════════════════════════════════════════════════════
+  gate01 videoProviderRegistry                 ok    (n=63) [vitest]
+  gate02 videoComplianceControls               ok    (n=64) [vitest]
+  gate03 media-api.test                        ok    (n=48) [node --test]
+  gate04 demo-http-flow                        ok    (n=44) [all-passed]
+  gate05 hostile-http-probe                    ok    (n=24) [all-passed]
+  gate05 hostile-round2-probe                  ok    (n=26) [probe]
+  gate06 hostile-round3-probe                  ok    (n=23) [probe]
+  gate07 hostile-round4-probe                  ok    (n=27) [probe]
+  gate08 hostile-round5-probe                  ok    (n=24) [probe]
+  gate09 hostile-round6-probe                  ok    (n=71) [probe]
+  gate10 hostile-round7-probe                  ok    (n=51) [probe]
+  gate11 hostile-round8-probe                  ok    (n=42) [probe]
+  gate12 hostile-round9-probe                  ok    (n=49) [probe]
+  gate13 hostile-round10-probe                 ok    (n=27) [probe]
+  gate14 hostile-round11-probe                 ok    (n=39) [probe]
+  gate15 hostile-round12-probe                 ok    (n=35) [probe]
+  gate16 hostile-round13-probe                 ok    (n=30) [probe]
+  gate17 hostile-round14-probe                 ok    (n=52) [probe]
+  gate18 hostile-round15-probe                 ok    (n=40) [probe]
+  gate19 hostile-round16-probe                 ok    (n=29) [probe]
+  gate20 hostile-round17-probe                 ok    (n=29) [probe]
+  gate21 hostile-round18-probe                 ok    (n=67) [probe]
+  gate22 hostile-round19-probe                 ok    (n=24) [probe]
+  gate23 hostile-round20-probe                 ok    (n=32) [probe]
+  gate24 hostile-round21-probe                 ok    (n=41) [probe]
+  gate25 hostile-round22-probe                 ok    (n=31) [probe]
+  gate26 hostile-round23-probe                 ok    (n=51) [probe]
+  gate27 hostile-round24-probe                 ok    (n=13) [probe]
+  gate28 hostile-round25-probe                 FAIL  (n=22 failed=1 rc=1)
+  gate29 hostile-round26-probe                 ok    (n=45) [probe]
+  gate30 hostile-round27-probe                 ok    (n=26) [probe]
+  gate31 control-round12-checks                ok    (n=16) [control]
+  gate32 smoke-adapters                        ok    (n=15) [all-passed]
+────────────────────────────────────────────────────────────────────────
+ GATES RUN: 33     FAILED: 1
+ DERIVED ASSERTION TOTAL: 1220
+ FAILED GATES:
+   - gate28 hostile-round25-probe
+════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,40 @@
+EXECUTION MANIFEST — media-api readiness suite
+generated: 2026-09-22T18:40:05Z   (DERIVED — never hand-edit this file)
+HEAD:      b2f91946bb12d18edfa144eaa4fb8c3221557eae
+gates:     33    failed: 0    assertions: 1231
+
+ORD  ID              GATE
+---  --------------  ----
+0    gate00          videoProviderRegistry
+1    gate01          videoComplianceControls
+2    gate02          media-api.test
+3    gate03          demo-http-flow
+4    gate04          hostile-http-probe
+5    gate05          hostile-round2-probe
+6    gate06          hostile-round3-probe
+7    gate07          hostile-round4-probe
+8    gate08          hostile-round5-probe
+9    gate09          hostile-round6-probe
+10   gate10          hostile-round7-probe
+11   gate11          hostile-round8-probe
+12   gate12          hostile-round9-probe
+13   gate13          hostile-round10-probe
+14   gate14          hostile-round11-probe
+15   gate15          hostile-round12-probe
+16   gate16          hostile-round13-probe
+17   gate17          hostile-round14-probe
+18   gate18          hostile-round15-probe
+19   gate19          hostile-round16-probe
+20   gate20          hostile-round17-probe
+21   gate21          hostile-round18-probe
+22   gate22          hostile-round19-probe
+23   gate23          hostile-round20-probe
+24   gate24          hostile-round21-probe
+25   gate25          hostile-round22-probe
+26   gate26          hostile-round23-probe
+27   gate27          hostile-round24-probe
+28   gate28          hostile-round25-probe
+29   gate29          hostile-round26-probe
+30   gate30          hostile-round27-probe
+31   gate31          control-round12-checks
+32   gate32          smoke-adapters

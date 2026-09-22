@@ -1,0 +1,61 @@
+REPOSITORY INTEGRITY REPORT — ss-media-api worktree
+captured: 2026-09-22T04:19:42Z
+
+HEAD: fb82c21a1cb341840995d491246255591634c2f9
+branch: feat/media-api-2026-09-18
+common git dir: C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/.git
+worktree git dir: C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/.git/worktrees/ss-media-api
+
+-- fsck (git fsck --no-progress) --
+missing trees:    37
+missing commits:  4
+missing blobs:    218
+broken links:     44
+dangling commits: 380
+orphaned next-index locks: 9
+
+-- HEAD top-level entries whose SUBTREE OBJECT IS MISSING --
+  .clinerules
+  .env.example
+  .fallowrc.json
+  .gitattributes
+  .gitignore
+  .mcp.json
+  .secretignore
+  ACTIVE-INDEX.md
+  AGENTS.md
+  CLAUDE.md
+  README.md
+  THIRD_PARTY_NOTICES.md
+  docker-compose.qa.yml
+  media-api
+  package-lock.json
+  package.json
+  render.env.example
+  render.yaml
+  skills-lock.json
+  (count: 19)
+
+-- the two failing checks --
+E1. derivation impossible:
+      git diff <base> -> fatal: unable to read tree (2dd1923f584c57dbb0ca1eeed58b44d7912abe7f)
+      base 2b3e7a62a resolves as a COMMIT but is NOT an ancestor of HEAD
+      prior diagnostic falsely said 'git or the base is unavailable' — now quotes git verbatim
+E3. vacuous pass repaired: it compared undefined===undefined and reported PASS.
+      It now fails honestly, because the change set cannot be derived.
+
+-- what is SAFE --
+index:          INTACT (42 media-api/ entries cached)
+staged blobs:   ALL PRESENT (verified individually with git cat-file -t)
+worktree files: ALL INTACT (sha256 below)
+
+-- lane deliverable hashes --
+  b9a8b2cd4d2f635b33ca40c5  media-api/hostile-round25-probe.mjs
+  dffffc9ba6cb4f14b03e51ab  media-api/hostile-round23-probe.mjs
+  4cb03fc503724105edfeb561  media-api/hostile-round27-probe.mjs
+  ee82c37f3742166360cea4ed  shared/providers/video/costEstimate.mjs
+  689a7c279b18c71c885d5772  shared/providers/video/specShape.mjs
+  ac9de6538ee7261f04ab2c61  media-api/run-all-gates.sh
+
+-- rescue copy --
+  C:/tmp/media-api-lane-rescue/  (10 files, verified byte-identical)

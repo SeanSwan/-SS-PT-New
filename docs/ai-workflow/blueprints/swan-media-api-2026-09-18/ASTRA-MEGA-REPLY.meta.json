@@ -1,0 +1,18 @@
+{
+  "model": "gpt-6-astra",
+  "servedModel": null,
+  "provider": "openai-codex",
+  "billing": "chatgpt-subscription",
+  "authMode": "chatgpt_subscription",
+  "transport": "codex-cli",
+  "document": "C:/tmp/ss-media-api/docs/ai-workflow/blueprints/swan-media-api-2026-09-18/ASTRA-MEGA-PACKET.md",
+  "inputTokens": 977581,
+  "outputTokens": 16607,
+  "wallSeconds": 542.6,
+  "generatedAt": "2026-09-19T23:20:12.750Z",
+  "megaBlueprint": true,
+  "megaBlueprintArmedBy": [
+    "remit",
+    "document"
+  ]
+}
