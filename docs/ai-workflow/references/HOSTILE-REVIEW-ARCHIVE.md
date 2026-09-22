@@ -174,6 +174,13 @@ review**, and whenever a review you expect does not come back from `query.mjs`. 
 stranded review by fixing its **front-matter only** — never its findings; preserve the values
 you replaced in `header_repaired_note:` (archive `README.md` §8.5).
 
+`audit.mjs` answers *"what is missing from the index?"*; `reindex.mjs --check` answers *"is
+the index current?"* — and the two are not the same question. `--check` exits `0` (current,
+nothing excluded), `1` (**drift** — the index is stale, answers may be wrong), or `3` (current,
+but files are excluded — answers are right about what they can see). The split exists because
+a single non-zero code for both conditions left `query.mjs`'s staleness warning permanently on
+whenever any file was excluded, which is how a warning gets tuned out.
+
 ## 7. Guaranteed to fire, not "maybe"
 
 Mirroring Rule 69's structure, five layers so this does not depend on an agent remembering:

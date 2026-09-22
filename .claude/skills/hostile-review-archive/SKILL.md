@@ -131,13 +131,16 @@ Note that in the machine-readable output, `stranded` contains **errors only** �
 reported separately under `drafts_list`. A consumer keying on `stranded` must not treat a
 correctly-excluded draft as a defect.
 
-**Known sharp edge: `reindex.mjs --check` exits 1 while printing "up to date".** If any file is
-EXCLUDED (including a legitimately-skipped draft), `--check` exits non-zero even though the
-index itself needs no update. `query.mjs` calls it via `execFileSync` and warns on any non-zero
-exit, so that staleness warning is **permanently on** in the presence of any excluded file —
-exactly the "a warning that is permanently on is tuned out" failure this archive warns about.
-Treat a `--check` exit code and a `--check` *message* as two different signals; read the stdout,
-not just `$?`. (Named as defect D6 in `2026-09-22-130942-rule-86-audit-mjs-the-discovery-surface.md`.)
+**`reindex.mjs --check` distinguishes drift from exclusion.** It exits `0` (current,
+nothing excluded), `1` (**drift** — the index does not match the files), or `3` (current,
+but one or more files are EXCLUDED). Read the code; do not just test for non-zero.
+Before this split, both conditions returned `1`, and because `query.mjs` runs `--check`
+via `execFileSync` and warned on any non-zero exit, the staleness warning was on for
+**every query** whenever any file was permanently excluded — exactly the "a warning that
+is permanently on is tuned out" failure this archive warns about. A `1` means an answer
+may be wrong; a `3` means an answer is right about the files it can see, but some files
+are outside the index entirely (`audit.mjs` lists them). Names: defect **D6** in
+`2026-09-22-130942-rule-86-audit-mjs-the-discovery-surface.md`.
 
 ## The header contract (the lookup surface)
 
