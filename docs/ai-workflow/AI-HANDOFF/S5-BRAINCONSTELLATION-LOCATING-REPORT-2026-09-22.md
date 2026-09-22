@@ -1,3 +1,37 @@
+> ## ⚠️ SUPERSEDED — THIS REPORT CONTAINS A FALSE FINDING. READ §0 BELOW FIRST.
+>
+> **Status:** superseded 2026-09-22 by the actual repair
+> (`S5-BRAINCONSTELLATION-RULE4-REPAIR-2026-09-22.md`, commit `2dbafb8d7`) and by
+> the hostile review filed at
+> `Z:\HostileReviews\2026-09-22-123537-s5-brainconstellation-rule-4-split-mutation.md`
+> (Astra F9).
+>
+> **What is wrong:** §1 of this report claims *"`BrainConstellation` does not exist
+> in this repository"* and that a full-tree grep returned zero files. **That claim is
+> false.** The component exists at
+> `packages/creator-brains-console/web/src/components/BrainConstellation.tsx`, and at
+> the time of writing it stood at **380 lines** — an undisclosed violation of ban 14
+> (Rule 4, ≤300 lines). It was found, split to 292 lines, and committed the same day.
+>
+> **How the false conclusion was produced — the transferable lesson:** the grep was
+> run with a restricted root set and `--include` filters
+> (`docs/ backend/ frontend/src/ packages/`) which did **not** descend into
+> `packages/creator-brains-console/`. A *filtered* search returning nothing was
+> reported as a *repository fact* ("the artifact does not exist") rather than as a
+> *search limitation* ("my search did not cover the whole tree"). Those are different
+> claims and only the second was supported.
+>
+> **Why this file is kept rather than deleted:** Astra F9 held that retraction is
+> adequate only when the historical correction "remains discoverable". Deleting it
+> would destroy the record that the locating method was unsound — which is the part
+> worth carrying forward. §2 of this report (the two-slices ambiguity) was and remains
+> **correct and useful**; only §1 is retracted.
+>
+> **Cited by:** `Z:\HostileReviews\2026-09-22-123537-s5-brainconstellation-rule-4-split-mutation.md`,
+> finding F9.
+
+---
+
 # S5 BrainConstellation — locating report, 2026-09-22
 
 **Seat:** WorkBuddy agent session
