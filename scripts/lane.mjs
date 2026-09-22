@@ -34,8 +34,8 @@
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync, appendFileSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { FRESH_MIN, sh, normPath, samePath, ledgerDir, identity, safeRef, readLanes, parseLane, siblingLanes } from './lib/lane-core.mjs';
-import { buildDiscovery, renderDiscovery } from './lib/lane-discovery.mjs';
+import { FRESH_MIN, sh, normPath, samePath, ledgerDir, identity, safeRef, readLanes, parseLane, siblingLanes, lockMatches } from './lib/lane-core.mjs';
+import { buildDiscovery, renderDiscovery, STALE_AFTER_MINUTES } from './lib/lane-discovery.mjs';
 
 const ARGV = process.argv.slice(2);
 const CMD = ARGV[0] ?? 'digest';
@@ -107,6 +107,42 @@ function claim() {
   const task = flag('task', '(unstated)');
   const files = flag('files').split(',').map((s) => s.trim()).filter(Boolean);
   const d = deliveryState();
+
+  /* CONFLICT CHECK — advisory, and it must stay advisory.
+   *
+   * Astra F11: the protocol's prose implied mutual exclusion, but claim() read no
+   * other lane, so two seats could both inspect an apparently clear target and
+   * both claim it. The honest fix is NOT to make claim() a lock service — the
+   * module's own doctrine is that locks are ADVISORY BROADCAST, exclusion has
+   * never prevented a collision, and the blueprint forbids adding an atomic lock
+   * within this discovery-only scope. It is to make the collision VISIBLE at the
+   * moment it is created, instead of leaving the second seat to discover it later.
+   *
+   * Reads the same lanes through the same readLanes/lockMatches the staged guard
+   * uses, so there is no second notion of what a lock is. Reports and proceeds:
+   * the claim still lands, because refusing it would break every caller that
+   * claims a file another seat has merely (and legitimately) also touched.
+   *
+   * A stale peer lock is reported AS stale, not omitted — R5 says a stale claim
+   * is still a claim, and this mirrors that rule rather than reinterpreting it.
+   * The 30-minute advisory threshold comes from lane-discovery (the same constant
+   * complete discovery reports), not a second hardcoded number. */
+  let conflicts = [];
+  try {
+    const others = readLanes(LEDGER, ME.laneName).filter((l) => !l.self && l.locks.length);
+    for (const other of others) {
+      for (const target of files) {
+        const hit = other.locks.find((lock) => lockMatches(target, lock));
+        if (hit) conflicts.push({ file: other.file, target, lock: hit, ageMin: other.ageMin, idle: other.idle });
+      }
+    }
+  } catch {
+    // A failed read must not block a claim. Say so rather than silently skipping
+    // the check — a guard that cannot report its own failure reports on itself.
+    console.error('[lane] warning: the conflict check could not read the other lanes; no collision check was performed.');
+    conflicts = null;
+  }
+
   atomicWrite(LANE_PATH, `# ${ME.agent} — Live Lane (session: ${ME.slug})
 Updated: ${new Date().toISOString()}
 Status: in-progress
@@ -124,6 +160,23 @@ Notes for other agents: ${flag('notes', '—')}
 `);
   logActivity(`${new Date().toISOString()} CLAIM ${ME.agent}@${ME.slug} :: ${task} :: ${files.length} file(s)`);
   console.log(`[lane] claimed → ${ME.laneName}\n[lane] ledger: ${LEDGER}\n[lane] delivery: ${d.state}`);
+
+  if (conflicts === null) return;
+  if (!conflicts.length) {
+    if (files.length) console.log(`[lane] conflict check: no other seat's lock matches these ${files.length} file(s).`);
+    return;
+  }
+
+  /* Loud, and deliberately not fatal. Exit code stays 0: the claim DID land, and
+   * callers (hooks, scripts) treat non-zero as "the ledger is broken". */
+  console.error(`[lane] ⚠ COLLISION: ${conflicts.length} of your ${files.length} file(s) are ALSO claimed by another seat right now.`);
+  console.error('[lane]   Locks are advisory, so your claim was recorded either way — but re-check before you edit.');
+  for (const c of conflicts) {
+    const age = c.ageMin > STALE_AFTER_MINUTES ? `STALE ${c.ageMin}m — still a claim (R5, never auto-released)` : `${c.ageMin}m ago`;
+    console.error(`[lane]   ${c.target}`);
+    console.error(`[lane]     ← ${c.file} claims "${c.lock}"  (${age})`);
+  }
+  console.error('[lane]   Full view: node scripts/lane-at-root.mjs orientation');
 }
 
 function release() {
