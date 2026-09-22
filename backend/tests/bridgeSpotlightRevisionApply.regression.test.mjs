@@ -145,3 +145,112 @@ describe('R5-01 — the pre-existing paths must not regress', () => {
     ).rejects.toThrow('connection terminated');
   });
 });
+
+/**
+ * MOCK SOUNDNESS — can the mocks make this helper claim a DB-unreachable success?
+ *
+ * Added 2026-09-21 after the R6-01 lesson (a suite that stayed green when the feature was
+ * deleted). The `[UNKNOWN]` on live-PostgreSQL serialization cannot be closed without a
+ * database, but the weaker question CAN be answered here: does the mock surface admit a
+ * `applied:true` that PostgreSQL could not have produced?
+ *
+ * The answer these tests pin down is NO, and the reason is structural rather than lucky —
+ * `findByPk` is consulted ONLY on the miss branch, and the `applied > 0` exit never consults
+ * it at all. Shape A is the control: given a store that is internally inconsistent (the
+ * predicate should have matched but the write reports zero), the helper FAILS CLOSED.
+ *
+ * These cases are what the /c/tmp probe measured, moved into the suite so they are not lost.
+ * They do NOT close R5-03/R5-04; see REVISION-APPLY-MOCK-SOUNDNESS-PROBE-2026-09-21.md §6.
+ */
+describe('mock soundness — no DB-unreachable success is reachable', () => {
+  it('fails closed on an inconsistent store instead of reporting a success', async () => {
+    // update never matches, yet the stored row stays OLDER than ours — a shape a real
+    // PostgreSQL cannot hold (`WHERE revision < 2` would have matched a stored 1). The helper
+    // must not paper over the contradiction by acknowledging our revision.
+    const SwanSpotlight = {
+      update: vi.fn().mockResolvedValue([0]),
+      findByPk: vi.fn().mockResolvedValue({ revision: 1 }),
+      create: vi.fn(),
+    };
+
+    await expect(
+      applyBridgeSpotlightRevision({ SwanSpotlight, itemId, revision: 2, values: values(2) })
+    ).rejects.toThrow(/could not resolve[\s\S]*stored revision: 1/);
+  });
+
+  it('consults the re-read ONLY on the miss branch, so a stale fixed read cannot decide a hit', async () => {
+    // `findByPk` is pinned to an older revision for the whole call. The success must still be
+    // driven by the SECOND update returning [1], with findByPk read exactly once.
+    const SwanSpotlight = {
+      update: vi.fn().mockResolvedValueOnce([0]).mockResolvedValueOnce([1]),
+      findByPk: vi.fn().mockResolvedValue({ revision: 1 }),
+      create: vi.fn(),
+    };
+
+    const result = await applyBridgeSpotlightRevision({
+      SwanSpotlight, itemId, revision: 2, values: values(2),
+    });
+
+    expect(result).toEqual({ applied: true, created: false });
+    expect(SwanSpotlight.update).toHaveBeenCalledTimes(2);
+    // The structural claim: the winning write is not corroborated by a re-read at all.
+    expect(SwanSpotlight.findByPk).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports the newer winner when the conditional write misses and a NEWER row is stored', async () => {
+    // A newer revision landed between our read and our write, so the predicate matched
+    // nothing and the re-read reports the revision that won. `create` is deliberately NOT
+    // reached: the helper short-circuits on `current.revision >= revision` (line 135) because
+    // a row exists and it already supersedes ours. Asserting `create` was called would be
+    // asserting a path the helper correctly avoids.
+    const SwanSpotlight = {
+      update: vi.fn().mockResolvedValue([0]),
+      findByPk: vi.fn().mockResolvedValue({ revision: 5 }),
+      create: vi.fn(),
+    };
+
+    const result = await applyBridgeSpotlightRevision({
+      SwanSpotlight, itemId, revision: 2, values: values(2),
+    });
+
+    expect(result).toEqual({ applied: false, storedRevision: 5 });
+    expect(SwanSpotlight.update).toHaveBeenCalledTimes(1);
+    expect(SwanSpotlight.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('R5-03 — the sentinel survives the whole call, not just the splitter', () => {
+  it('omits `imageUrl` from the UPDATE payload when the caller passes a sentinel', async () => {
+    const SENTINEL = Symbol('preserve');
+    const SwanSpotlight = {
+      update: vi.fn().mockResolvedValue([1]),
+      findByPk: vi.fn().mockResolvedValue({ revision: 1 }),
+      create: vi.fn(),
+    };
+
+    await applyBridgeSpotlightRevision({
+      SwanSpotlight, itemId, revision: 2, values: { ...values(2), imageUrl: SENTINEL },
+    });
+
+    const payload = SwanSpotlight.update.mock.calls[0][0];
+    expect(payload).not.toHaveProperty('imageUrl');
+    // And the sentinel itself must never be written as a value.
+    expect(Object.values(payload)).not.toContain(SENTINEL);
+  });
+
+  it('DOES write an explicit `imageUrl: null` — the distinction is by value, not presence', async () => {
+    const SwanSpotlight = {
+      update: vi.fn().mockResolvedValue([1]),
+      findByPk: vi.fn().mockResolvedValue({ revision: 1 }),
+      create: vi.fn(),
+    };
+
+    await applyBridgeSpotlightRevision({
+      SwanSpotlight, itemId, revision: 2, values: { ...values(2), imageUrl: null },
+    });
+
+    const payload = SwanSpotlight.update.mock.calls[0][0];
+    expect(payload).toHaveProperty('imageUrl');
+    expect(payload.imageUrl).toBeNull();
+  });
+});

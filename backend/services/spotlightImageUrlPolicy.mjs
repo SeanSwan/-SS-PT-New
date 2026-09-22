@@ -18,8 +18,17 @@
  *
  * The private-range table is IMPORTED, never re-implemented — two copies of that table is the
  * failure mode, not the fix.
+ *
+ * THE PREFIX PIN (2026-09-21). The first version of this module resolved, validated, and then
+ * THREW THE ADDRESSES AWAY — so the later `fetch()` re-resolved the same name independently and a
+ * name that flipped between the two lookups reached a private address anyway (DNS-rebinding TOCTOU).
+ * `resolveAndValidate` now RETURNS the validated addresses, and `createPinnedDispatcher` turns them
+ * into an `undici.Agent` whose `connect.lookup` answers from that fixed set. The socket can only go
+ * where the check looked. See the pin note further down for the honest residual.
  */
 import { promises as dns } from 'node:dns';
+import net from 'node:net';
+import { Agent } from 'undici';
 import { isPrivateOrLocalAddress } from './applaudAudioFetcher.mjs';
 
 export class SpotlightImageError extends Error {
@@ -45,6 +54,21 @@ export const DNS_LOOKUP_TIMEOUT_MS = 3_000;
  * `dns.lookup` accepts no AbortSignal, so the lookup is bounded by racing it against a timer.
  * The timer is cleared in `finally`, so a fast lookup leaves no pending handle behind — and a
  * timer that outlived its race would keep the process alive for no reason.
+ *
+ * WHAT THE BOUND DOES AND DOES NOT DO (hostile review round 8, C10 item 3; re-measured round 9).
+ * It bounds the CALLER'S WAIT. It does NOT stop the resolver. `dns.promises.lookup(hostname,
+ * options)` takes no signal and returns a bare Promise — verified on this host: the signature is
+ * `function lookup(hostname, options)`, and it mentions no `AbortSignal`. `Promise.race` therefore
+ * releases this function while the underlying libuv threadpool lookup is still outstanding, and a
+ * lookup that never answers can hold a threadpool slot (default size 4) past this call's return.
+ *
+ * HONEST LIMIT ON THAT CLAIM. The source-level fact is decided above. The RUNTIME consequence —
+ * that a hung lookup measurably starves the pool — was NOT reproduced here: every probe name on
+ * this host resolved or failed within ~58ms, so no lookup could be kept pending long enough to
+ * measure. The claim is CONFIRMED as a source fact and UNPROVEN as a measured impact, and is
+ * recorded that way rather than inflated. No cancellation is implemented, because none can be
+ * added additively: `dns.resolve*` is a different operation (no `/etc/hosts`, no OS resolver) and
+ * the callback form would change the shape callers depend on.
  */
 const lookupWithTimeout = async (hostname, ms) => {
   let timer;
@@ -75,7 +99,25 @@ const lookupWithTimeout = async (hostname, ms) => {
  * @returns {Promise<URL>} the parsed URL
  * @throws {SpotlightImageError}
  */
-export async function validateSpotlightImageUrl(rawUrl, { dnsTimeoutMs = DNS_LOOKUP_TIMEOUT_MS } = {}) {
+export async function validateSpotlightImageUrl(rawUrl, opts) {
+  const { url } = await resolveAndValidate(rawUrl, opts);
+  return url;
+}
+
+/**
+ * The full admission result: the parsed URL AND the addresses it was admitted on.
+ *
+ * This exists as a separate export because the two facts travel together — a caller that validates
+ * but does not pin has only a check, not a control. `validateSpotlightImageUrl` is kept as the
+ * URL-only front door so the twelve existing call sites and the re-export in
+ * `spotlightImageFetch.mjs` are untouched; the fetch path calls THIS one.
+ *
+ * @param {string} rawUrl
+ * @param {{ dnsTimeoutMs?: number }} [opts]
+ * @returns {Promise<{ url: URL, addrs: Array<{ address: string, family: number }> }>}
+ * @throws {SpotlightImageError}
+ */
+export async function resolveAndValidate(rawUrl, { dnsTimeoutMs = DNS_LOOKUP_TIMEOUT_MS } = {}) {
   let incoming;
   try {
     incoming = new URL(String(rawUrl));
@@ -94,16 +136,32 @@ export async function validateSpotlightImageUrl(rawUrl, { dnsTimeoutMs = DNS_LOO
     throw new SpotlightImageError('IMAGE_URL_NOT_ALLOWED', 'credentials in URL not allowed');
   }
 
+  // An IP-literal host (`https://10.0.0.1/`) has no name to resolve, and `dns.lookup` on a literal
+  // returns the literal — so it is validated here directly and pinned as itself. Without this the
+  // literal case would take the lookup path and depend on resolver behaviour for a value that was
+  // never a name.
+  //
+  // STRIP THE BRACKETS FIRST (hostile review round 8, D4). `URL.hostname` KEEPS the brackets on an
+  // IPv6 authority — `new URL('https://[::1]/').hostname === '[::1]'` — and `net.isIP('[::1]')` is
+  // **0**, so every IPv6 literal used to fall past this branch and take the DNS path. That was not
+  // harmless: `dns.lookup` normalises the address, and the classifier below only recognised the
+  // DOTTED IPv4-mapped form, so `https://[::ffff:0:127.0.0.1]/` — a loopback literal — was
+  // ADMITTED and pinned as `::ffff:0:7f00:1`. The classifier's fail-closed inversion closes that
+  // too; this stripping is the second half, so a literal is classified AS a literal rather than
+  // depending on how a resolver happens to normalise it.
+  const hostname = incoming.hostname.startsWith('[') && incoming.hostname.endsWith(']')
+    ? incoming.hostname.slice(1, -1)
+    : incoming.hostname;
+  const literalFamily = net.isIP(hostname);
+  if (literalFamily) {
+    if (isPrivateOrLocalAddress(hostname)) {
+      throw new SpotlightImageError('IMAGE_URL_NOT_ALLOWED', `host is a private/local address ${hostname}`);
+    }
+    return { url: incoming, addrs: [{ address: hostname, family: literalFamily }] };
+  }
+
   // Resolve first, then reject. A name that resolves to 127.0.0.1 / 169.254.169.254 / 10.x
   // is refused before any socket is opened, which closes direct internal targeting.
-  //
-  // NOTE — this is a check-time validation only, NOT a complete DNS-rebinding defence:
-  // the fetch() below re-resolves the hostname, so a name that flips to a private address
-  // between this lookup and the fetch would still be reached (TOCTOU). That residual gap is
-  // accepted because every caller of this path is gated behind a valid HMAC signature — and the
-  // HMAC authenticates the SENDER, not the remote image server it names. Documented as an open
-  // residual risk in `04-build-order.md#rehostImage` rather than claimed as closed
-  // (hostile review D4 / F08).
   let addrs;
   try {
     addrs = await lookupWithTimeout(incoming.hostname, dnsTimeoutMs);
@@ -122,5 +180,63 @@ export async function validateSpotlightImageUrl(rawUrl, { dnsTimeoutMs = DNS_LOO
     }
   }
 
-  return incoming;
+  return { url: incoming, addrs };
+}
+
+/**
+ * The `connect.lookup` hook that answers from a fixed address set, exported so its contract can
+ * be tested directly rather than by reaching into `undici`'s internals.
+ *
+ * The signature is `net`'s: `lookup(hostname, options, callback)`. Two answer shapes exist
+ * because `net` calls it both ways — `{ all: true }` expects an array of `{address, family}`,
+ * otherwise a bare address plus a separate family argument. Answering only one shape would make
+ * the pin work for one caller and silently fall through for the other.
+ *
+ * `hostname` is deliberately ignored. The whole point is that the name carries no authority at
+ * this layer — the decision was made upstream, and this hook has no second opinion to offer.
+ *
+ * @param {Array<{ address: string, family: number }>} addrs
+ * @returns {(hostname: string, options: object, callback: Function) => void}
+ */
+export function createPinnedLookup(addrs) {
+  const pinned = addrs.map(({ address, family }) => ({ address, family }));
+  return (_hostname, options, callback) => {
+    if (options?.all) return callback(null, pinned);
+    const first = pinned[0];
+    return callback(null, first.address, first.family);
+  };
+}
+
+/**
+ * Turn a validated address set into a dispatcher that can ONLY connect to that set.
+ *
+ * WHY. Validating and then calling a plain `fetch()` leaves a TOCTOU window: `fetch` resolves the
+ * hostname again, independently, so a name that was public at check time can answer with a private
+ * address at connect time. Pinning the answer inside `connect.lookup` closes the window at the
+ * layer that actually opens the socket — the connection is handed the addresses the check approved
+ * and has no second opinion available to it.
+ *
+ * THE HONEST RESIDUAL. This pins the CONNECT for the host we validated. It does not, by itself,
+ * cover a `Location:` redirect to a different host — that is handled one layer up by
+ * `redirect: 'error'` in `spotlightImageFetch.mjs`, which refuses to follow any redirect at all.
+ * The two controls are complementary: this one makes the first hop honest, that one prevents a
+ * second hop from existing. Neither is a defence for a caller that ignores it.
+ *
+ * The agent is a live socket pool, so the CALLER MUST `close()` it. `close()` is on the returned
+ * object (it is a real `Agent`), and closing drains idle sockets and lets the event loop exit.
+ *
+ * @param {Array<{ address: string, family: number }>} addrs validated addresses
+ * @returns {Agent} a dispatcher pinned to `addrs`
+ */
+export function createPinnedDispatcher(addrs) {
+  if (!Array.isArray(addrs) || addrs.length === 0) {
+    // Fail closed. A dispatcher with no addresses would fall through to the system resolver, which
+    // is precisely the behaviour this function exists to prevent.
+    throw new SpotlightImageError('IMAGE_URL_DNS_FAILED', 'cannot pin an empty address set');
+  }
+
+  // `connect.lookup` is the same hook `net`/`tls` expose: it is asked to resolve the hostname
+  // immediately before the socket is opened, and its answer is used verbatim. Answering from the
+  // validated set means no resolver is consulted on this connection at all.
+  return new Agent({ connect: { lookup: createPinnedLookup(addrs) } });
 }

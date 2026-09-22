@@ -142,3 +142,61 @@ describe('SpotlightRail — editorial bans (never social)', () => {
     expect(STYLE_CODE).toMatch(/MuteButton[\s\S]*?min-height: 44px;/);
   });
 });
+
+/**
+ * The source link is publisher-supplied: it arrives through the HMAC-signed bridge and is
+ * stored by `bridgeIngestRoutes.mjs` as `sourceUrl: str(source.url, 2048)` — trimmed and
+ * truncated, never scheme-checked. React 18 renders a `javascript:` href unchanged
+ * (verified against react-dom 18.3.1), so without a guard this is stored XSS in a
+ * component that IS mounted (ClientDashboardHome.railSections -> ClientRightRail).
+ *
+ * These are behavioural: they render the component and read the DOM.
+ */
+describe('SpotlightRail — source link scheme', () => {
+  it('renders the source NAME but no anchor when the publisher URL is javascript:', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        success: true,
+        enabled: true,
+        spotlights: [item({ sourceUrl: 'javascript:alert(document.cookie)' })],
+      },
+    });
+    const { container } = render(<SpotlightRail />);
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+
+    // Attribution survives; only the click is lost.
+    expect(await screen.findByText('Local Greens')).toBeInTheDocument();
+    // ASSERT ON THE DOM ANCHOR, NOT ON role=link. dom-accessibility-api does not expose
+    // `<a href="javascript:...">` as a link, so `queryByRole('link')` returns null EVEN
+    // WITH THE DEFECT PRESENT — a vacuous assertion. Caught by mutation: reverting
+    // `href={safeSourceUrl}` to `href={item.sourceUrl}` left the role-based version GREEN
+    // while only the source-text guard went red. `querySelector('a')` sees the element.
+    expect(container.querySelector('a')).toBeNull();
+  });
+
+  it('renders the source NAME but no anchor for a data: URL', async () => {
+    mockGet.mockResolvedValue({
+      data: {
+        success: true,
+        enabled: true,
+        spotlights: [item({ sourceUrl: 'data:text/html,<script>alert(1)</script>' })],
+      },
+    });
+    const { container } = render(<SpotlightRail />);
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+
+    expect(await screen.findByText('Local Greens')).toBeInTheDocument();
+    expect(container.querySelector('a')).toBeNull();
+  });
+
+  it('still renders a real anchor for a legitimate https source (no over-refusal)', async () => {
+    mockGet.mockResolvedValue({ data: { success: true, enabled: true, spotlights: [item()] } });
+    const { container } = render(<SpotlightRail />);
+    await waitFor(() => expect(mockGet).toHaveBeenCalled());
+
+    const link = await screen.findByRole('link');
+    expect(link).toHaveAttribute('href', 'https://example.org/story');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(container.querySelectorAll('a')).toHaveLength(1);
+  });
+});

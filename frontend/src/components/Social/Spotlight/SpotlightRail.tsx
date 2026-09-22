@@ -17,6 +17,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Sparkles, X } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { sanitizeLinkHref } from '../../../utils/linkUrl';
 import {
   CuratedBy,
   DismissButton,
@@ -127,7 +128,14 @@ const SpotlightRail: React.FC = () => {
         </MuteButton>
       </RailHeader>
 
-      {visible.map((item) => (
+      {visible.map((item) => {
+        // The source link is publisher-supplied and arrives through the HMAC-signed bridge
+        // stored unvalidated (`bridgeIngestRoutes.mjs` `sourceUrl: str(source.url, 2048)`).
+        // React 18 renders a `javascript:` href unchanged, so the scheme is allowlisted
+        // here, at the sink. A refused URL degrades to the plain <span> below — the source
+        // NAME still renders, so the reader loses a click, not the attribution.
+        const safeSourceUrl = sanitizeLinkHref(item.sourceUrl);
+        return (
         <SpotlightCard key={item.itemId} data-testid="spotlight-card">
           <DismissButton
             type="button"
@@ -144,8 +152,8 @@ const SpotlightRail: React.FC = () => {
 
           <SpotlightFoot>
             {item.sourceName ? (
-              item.sourceUrl ? (
-                <SourceChip href={item.sourceUrl} target="_blank" rel="noopener noreferrer">
+              safeSourceUrl ? (
+                <SourceChip href={safeSourceUrl} target="_blank" rel="noopener noreferrer">
                   {item.sourceName}
                 </SourceChip>
               ) : (
@@ -155,7 +163,8 @@ const SpotlightRail: React.FC = () => {
             <CuratedBy>Curated by Swan</CuratedBy>
           </SpotlightFoot>
         </SpotlightCard>
-      ))}
+        );
+      })}
 
       {visible.some((item) => item.curatorNote) ? (
         <RailStatus>{visible.find((item) => item.curatorNote)?.curatorNote}</RailStatus>
