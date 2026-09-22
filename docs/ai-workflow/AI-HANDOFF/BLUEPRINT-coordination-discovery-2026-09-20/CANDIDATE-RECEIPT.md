@@ -84,41 +84,129 @@ minutes later moved 2 lanes from fresh to stale. Compare like with like.
 
 ---
 
-## S3 — Documentation and harness coverage · **HALT**
+## S3 — Documentation and harness coverage · **PASS** (was HALT; unblocked and completed 2026-09-21)
+
+> **This section was HALT and is now PASS.** The original HALT text is retained below
+> verbatim, because the reason it halted is the evidence that the unblock is real
+> rather than convenient. What changed is the ownership gate, measured — not the
+> standard.
 
 | Field | Value |
 |---|---|
-| Base commit | `df4329fa5` at the time of measurement; the partial commit landed on `839e62832` |
-| Candidate commit | **`273c6e90d`** — `docs(coordination): S3 (partial) — correct the Rule 67 spec against shipped behaviour`, 1 file, **+84 / −8**. **Partial by design**: the documentation target only. |
-| Files changed | `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md` (shippable, no peer changes in it). `scripts/coordination-docs.test.mjs` written and **deliberately left uncommitted**. |
+| Base commit | `c1f91616d` (the tree moved three peer commits past `839e62832` while this slice was blocked) |
+| Candidate commit | **`82705e113`** — `docs(coordination): S3 — close the instruction-surface gap against shipped behaviour`, **11 files, +1712 / −53** |
+| Files changed | `.ai-workflow/coordination/README.md` (F02 rewrite), `CLAUDE.md` (canonical Rule 67), `AGENTS.md`/`CODEBUDDY.md`/`GEMINI.md` (regenerated mirrors), `.cursor/rules/01-coordination-lane.mdc`, `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`, `scripts/coordination-docs.test.mjs` (committed at last), `.opencode/SEAT.md`, `.opencode/agent/swan.md`, `.claude/settings.json` (F06 recurrence — see below) |
 | Requirement IDs | R07, R08 |
-| Commands and exit codes | `node --test scripts/coordination-docs.test.mjs` → **2 pass / 4 fail, exit 1**. `node scripts/sync-agents-mirror.mjs --check` → **exit 1** (`GEMINI.md` body drifts from `CLAUDE.md`). |
-| Fixture/integration boundary | Reads real documents from the repo root. No fixture. |
-| Observed failures | Cases 1–4 fail; every failure is caused by a harness instruction surface owned by another seat. Case 1: at HEAD five of seven surfaces did not exist. Case 2: `CLAUDE.md`/`AGENTS.md` required `digest` only. Cases 3–4: `.ai-workflow/coordination/README.md` still hard-codes a fixed seat list and says a claim "may be abandoned". |
-| Mutation-test results | n/a — the suite cannot reach a green baseline, so no mutation claim is available. |
-| Harness/version/event evidence | **None.** All seven rows of the evidence matrix are UNVERIFIED. |
-| Unverified items | Everything the slice would have verified. |
+| Commands and exit codes | `node --test scripts/coordination-docs.test.mjs` → **6/6 pass, exit 0** (was 2/6). `node scripts/sync-agents-mirror.mjs --check` → **exit 0** (was exit 1). Six suites together → **61/61, exit 0**. |
+| Fixture/integration boundary | Reads real documents from the repo root. No fixture — the acceptance is about the shipped text. |
+| Observed failures | **None outstanding.** The four previously-failing cases now pass, and two of the four failures were detector defects rather than document defects (below). |
+| Mutation-test results | n/a — this slice's acceptance is document content, not behaviour. The behavioural suites carry their own mutation evidence. |
+| Harness/version/event evidence | **Still none in the observed state.** Seven rows, now in a real artifact with four separate evidence states — see F08 below. |
+| Unverified items | Whether any harness hook fires. Unchanged, and now recorded as the headline fact rather than a footnote. |
 | Reviewer | sable (self) — not independent |
+| Verdict | **PASS** |
+| Archive review_id | `2026-09-20-211825-coordination-discovery-s1-s2-self-hostile` (F-S3-01), now closed |
+| Next permitted slice | S4 re-verification |
+
+**Why the HALT was correct, and why it is now lifted.** S0's stop clause is *"no editing of shared
+canonical instruction files without current ownership evidence."* At the original measurement the
+instruction-surface layer held another seat's uncommitted work. Re-measured 2026-09-21: all seven
+surfaces exist, `CLAUDE.md`/`AGENTS.md`/`CODEBUDDY.md` are clean in git, and the seat that created
+`GEMINI.md` and `.opencode/` has **released its claim** — `opencode.lane.md` reads
+`Status: idle — seat registered, no slice claimed`, `EDITING NOW: None`, last updated 2026-09-18. No
+lane in the ledger claims any of these paths. The gate the HALT was protecting is open, so the slice
+proceeded. It was not forced open.
+
+**Two of the four blocker cases were DETECTOR defects, and both failed on the remedy.** Naming them
+matters, because each one invited a wrong fix:
+
+- **Cursor.** The surface list named `.cursor/rules/00-makeer-blueprints.mdc`, which is the Mega
+  Blueprints *build* contract. Cursor carries two `alwaysApply: true` rules and only
+  `01-coordination-lane.mdc` speaks for coordination. The old entry's only way to go green was to
+  paste coordination text into an unrelated rule.
+- **Fixed-list detection.** The detector fired on illustrations of the naming *scheme*. The remedy is
+  to label those names as illustrations — which is what the suite's own header had always asked for.
+
+Neither was weakened to pass. The first was corrected to the file that actually carries the rule; the
+second now skips lines that state the prohibition or illustrate the scheme, and the documents were
+corrected to be unambiguous about which is which.
+
+---
+
+## F06 — a live recurrence, in the SAME defect class S0 declared closed
+
+S0 changed `"timeout": 15` → `60` in **`.codebuddy/settings.json`** and recorded F06 as closed. It is
+not closed by that: **`.claude/settings.json` still shipped `"timeout": 15`** for the same
+SessionStart hook, against the same 25-second child floor. On the Claude surface the platform would
+still kill the hook *below* the child's own timeout, so the inner limit could never fire — the exact
+defect, on a second surface, missed because the fix stopped at the file the packet had excerpted.
+
+Fixed in `82705e113`: `timeout` 15 → 60, and the command made absolute via `$CLAUDE_PROJECT_DIR`
+rather than a cwd-relative path (the same class as F04). Verified as a two-line diff; the remaining
+~400 lines of the settings file are byte-identical, and the JSON parses.
+
+**Carried lesson:** "fixed" for a defect that exists per-surface is only true per-surface. S0's
+receipt said the timeout was fixed without saying *where*, and the gap survived two more slices. The
+same question is now asked explicitly of every harness row in the F08 artifact.
+
+---
+
+## Astra findings F01–F11 — final disposition
+
+| # | Finding | Disposition | Where |
+|---|---|---|---|
+| F01 | `digest` truncates locks/lanes; `me:` is not a path | **CLOSED** | S2 `839e62832` — uncapped `orientation` |
+| F02 | Authoritative specs teach the obsolete protocol | **CLOSED** | S3 partial `273c6e90d` + S3 `82705e113` |
+| F03 | Any non-empty stdout = success | **CLOSED** | S1 `865c90e44` — explicit classification |
+| F04 | Recovery commands reintroduce the cwd defect | **CLOSED** | S1 — root-pinned wrapper |
+| F05 | Read-only orientation runs pruning | **CLOSED** | S1 — pruning removed from the hook |
+| F06 | Timeout hierarchy inconsistent | **CLOSED ON BOTH SURFACES** | S0 `da2dbeff6` (WorkBuddy) + `82705e113` (Claude) |
+| F07 | Regression test's guarantees overstated | **CLOSED** | `6487043ec` — new `scripts/lane-orientation.test.mjs`, 12 cases forcing every named failure class |
+| F08 | Configuration promoted to execution evidence | **CLOSED (as a corrected artifact)** | `6487043ec` — `docs/ai-workflow/references/HARNESS-COVERAGE-EVIDENCE.md`, four evidence states, zero observed |
+| F09 | Delivery incomplete on untracked instruction files | **CLOSED** | S3 `82705e113` — surfaces committed, mirror check exit 0 |
+| F10 | Title confuses execution with successful orientation | **CLOSED** | S1 — reworded throughout |
+| F11 | Implied mutual exclusion | **CLOSED** | `6487043ec` — `claim()` conflict check + `scripts/lane-claim-conflict.test.mjs`, 6 cases |
+
+Residual, and deliberately not closed: **F08's execution state.** Everything about *what the
+documents say* is now correct and tested. Whether any harness hook actually fires remains unobserved,
+and the artifact says so in its first paragraph rather than implying otherwise.
+
+### Landing and verification of the F-item commit
+
+| Field | Value |
+|---|---|
+| Commit | **`6487043ec`** — `test(coordination): Astra F07/F08/F11 — the failure classes, the evidence states, and the claim conflict check` |
+| Parent | `6b039b6de` |
+| Files | 4 — `scripts/lane.mjs`, `scripts/lane-orientation.test.mjs`, `scripts/lane-claim-conflict.test.mjs`, `docs/ai-workflow/references/HARNESS-COVERAGE-EVIDENCE.md` |
+| Diffstat | **4 files changed, 470 insertions(+), 2 deletions(-)** |
+| Gate chain | Secret scan **CLEAN** (4 files) → lane-staged guard **satisfied** → windows-ascii gate → rulebook guard. **No `--no-verify`.** |
+| Suite at this commit | six suites, **61/61 pass, exit 0** |
+| Mirror check | `node scripts/sync-agents-mirror.mjs --check` → **exit 0** |
+| Shared index | armed by the temp-index write-back (hazard 8), then repaired: all four paths `HEAD == IDX == WT`, **0 staged** |
+
+**Why the first attempt was blocked, stated honestly.** It was blocked by the lane-staged guard
+reporting two paths this seat had never staged (`.secretignore` and a peer's admission-halt doc),
+while the commit script's own `git diff --cached` and the secret scanner both reported exactly
+four. The guard was **not** faulted in this: run directly under a fresh scratch index it printed
+`[lane-staged] 4 staged file(s), all within your lane claim.` The blocked attempt used an index
+reused from an earlier run while a peer held `.git/index.lock` and was cycling
+`next-index-*.lock` files. Rebuilding the index from `HEAD` in the same chain as the commit
+succeeded, and both the scanner and the guard agreed on four. The mechanism behind the
+contaminated read is **not proven** and is recorded as such in
+`.ai-workflow/coordination/review-queue.md`, along with the two distinct block classes and the
+practical rule (build-in-chain, assert the count, never reuse an index).
+
+---
+
+## Original S3 HALT record (retained — this is the evidence the unblock is real)
+
+| Field | Original value |
+|---|---|
+| Base commit | `df4329fa5` at the time of measurement; the partial commit landed on `839e62832` |
+| Candidate commit | **`273c6e90d`** — `docs(coordination): S3 (partial) — correct the Rule 67 spec against shipped behaviour`, 1 file, **+84 / −8**. Partial by design: the documentation target only. |
+| Files changed | `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md` (shippable, no peer changes in it). `scripts/coordination-docs.test.mjs` written and deliberately left uncommitted. |
+| Commands and exit codes | `node --test scripts/coordination-docs.test.mjs` → **2 pass / 4 fail, exit 1**. `node scripts/sync-agents-mirror.mjs --check` → **exit 1** (`GEMINI.md` body drifts from `CLAUDE.md`). |
 | Verdict | **HALT** — a necessary ownership boundary is unavailable. |
-| Archive review_id | `2026-09-20-211825-coordination-discovery-s1-s2-self-hostile` (F-S3-01) |
-| Next permitted slice | S3, once the instruction-surface owners land their files. |
-
-**Why HALT and not a weaker PASS.** The blueprint's S0 stop clause is *"no editing of shared
-canonical instruction files without current ownership evidence"*, and its documentation-delivery
-step says to work in an isolated checkout and *preserve shared dirty files throughout*, with the
-escape clause *"if required canonical source or generator behavior is unavailable, retain the
-documentation slice as pending."* At the time of measurement `GEMINI.md`, `.opencode/SEAT.md` and
-`.ai-workflow/coordination/README.md` carried another seat's uncommitted changes. Doing S3 by force
-would have meant either committing that seat's work under this seat's name or shipping a suite
-that is red on its own candidate commit. Neither is acceptable, so the slice is retained.
-
-**Partial S3 that IS shippable** (`AI-PAIR-CODING-PROTOCOL.md`, the "Full spec" both `CLAUDE.md`
-and `AGENTS.md` point at, and the one S3 target with no peer changes): four of its claims were
-invalidated by S1/S2 and are corrected — a fixed two-seat list, `> 30 min` against the code's
-`FRESH_MIN = 120`, a startup `coordination-prune.mjs` step (S1 removed pruning; a SessionStart hook
-must not write), and no complete-discovery step at all. It now carries the per-session naming rule,
-R1 complete-discovery-before-edit with `digest`'s cap stated, R5 as a warning that never releases, a
-corrected §5, and a new §10 harness-coverage matrix with all seven rows UNVERIFIED.
 
 ---
 
