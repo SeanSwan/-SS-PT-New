@@ -1,0 +1,213 @@
+{
+  "generatedAt": "2026-09-21T17:05:00Z",
+  "purpose": "C0 preservation receipt. Astra R5-06/R5-07/R5-12 require the existing numbered package to be preserved before Astra's forged replacement is integrated.",
+  "base": {
+    "head": "53005a6da965f5ca9e9c8d5ead86c6e19e081095",
+    "branch": "codex/swan-coach-astra-owned-20260906",
+    "isAncestorOfMain": false,
+    "workedAt": "C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/tmp/worktrees/swan-coach-astra-owned-20260906",
+    "subject": "rescue(coach): recover the S83 worktree delta that git could not see"
+  },
+  "method": {
+    "snapshotPath": "evidence/preserved-r4-package/",
+    "extractedFrom": "git cat-file blob <base>:<path>",
+    "whyNotGitArchive": "core.autocrlf=true in this repository. `git archive | tar -x` writes CRLF through the working-tree path while the committed blob is LF, so an archive-based snapshot hashes differently from the blob and would have failed its own verification. Preservation checks must read blobs, never working-tree files.",
+    "verified": "29/29 preserved artifacts byte-identical to base blobs",
+    "verifier": "scripts/coach-completion-tools/c0-verify-snapshot.mjs"
+  },
+  "artifactCount": 29,
+  "numberedDocuments": 10,
+  "dirtyBaseline": "evidence/dirty-baseline.json (24 paths as found at preservation time)",
+  "status": "PRESERVED",
+  "note": "This receipt proves the bytes are preserved. It does not by itself authorize replacing them; that is the integration step, and the replacement must be recorded as a supersession rather than an edit. R7-04: this receipt now ENUMERATES its artefacts (29) and records digests that a gate verifies against disk. R7-04: this receipt now ENUMERATES its artefacts (29) and records digests that a gate verifies against disk.",
+  "artifacts": [
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/.packet-review3-check.tmp.md",
+      "rawByteLength": 191242,
+      "sha256": "c15bd9f7f9519006264b82103d3939aa87464fb23dfbf9ebf8d9a5be6d736af1",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/00-README.md",
+      "rawByteLength": 5701,
+      "sha256": "3c8bb67ab359452d4cf61f30b487f3e47d863f8a4edc05d21a9334d3e3885946",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/01-architecture.md",
+      "rawByteLength": 12644,
+      "sha256": "ed407cce8a9dea67e6556823b855e054bce8181e345abaf9d230c7b419378870",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/02-wireframes.md",
+      "rawByteLength": 14389,
+      "sha256": "f217da3578c90ff52e63db634eb920b76663778915e623ea65e017a6205ae49a",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/03-contracts.md",
+      "rawByteLength": 13093,
+      "sha256": "4b0e9e6918121ab327e54a42d472f74b7a61ecc2e51baa0b9f26f4fb932e3c81",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/04-build-order.md",
+      "rawByteLength": 7681,
+      "sha256": "526b928c98a4032dd8ebee980be7d4845924e78a6f39cafc7424becfb61f873f",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/05-slices.md",
+      "rawByteLength": 7655,
+      "sha256": "ce84b09ab947ea6806ed3b40a09585bbebde9ec4614ae919d752bfbd88a2912d",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/06-bans.md",
+      "rawByteLength": 3917,
+      "sha256": "adaf3ab073ebcf1c5d44546f32c10d3f817ba071fd9a22e7c6ffbac0f9a793e1",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/07-checkpoints.md",
+      "rawByteLength": 3610,
+      "sha256": "86e66365642a0da03d24bc142c6451c3e2df0f9982474dbd0014a4fa63a48c47",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/08-decision-density-self-test.md",
+      "rawByteLength": 5289,
+      "sha256": "f32838fa3224d032329ee0bc052df7262c994f7f263c43ba504a2f6b59b8c8bc",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/09-tests.md",
+      "rawByteLength": 12059,
+      "sha256": "c6e61f0b305b60d41db44074174a932983687e8b7067287fea883f929e5e4e20",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY-REVIEW-2.md",
+      "rawByteLength": 39691,
+      "sha256": "a5dbfd04e64bca02d9d3c943c3000589bb00f8fd41fffe47124716b0797af9f8",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY-REVIEW-2.meta.json",
+      "rawByteLength": 968,
+      "sha256": "8487eba82ce4c13cb95ce6cb91b1adf9c8b2b41b5bae9e014cb3c66d5f38d66c",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY-REVIEW-3.md",
+      "rawByteLength": 48190,
+      "sha256": "63db8fba2b72582cae7a781abb8a6fe3a06f0f99a9a0ef281bfc8d53fd9f2b65",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY-REVIEW-3.meta.json",
+      "rawByteLength": 970,
+      "sha256": "4cdce1b5d6d98ca33733c80f5e4140b08ea7f23e423b74f9e9535f38bb3a22ef",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY.md",
+      "rawByteLength": 100385,
+      "sha256": "8395b703c43e38f0440700e303217f38fbe50adab6d8492822e42f127b403dc6",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY.meta.json",
+      "rawByteLength": 614,
+      "sha256": "fef73422da149512635743fb9723d42c3c51d89a354d3dc1e61680aeb525fa18",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET-PREAMBLE.md",
+      "rawByteLength": 18310,
+      "sha256": "2b1fc5945e838cdce3ec383ef5d71b51de1f4ad6911c0aba52e896474efbc8ae",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET-REVIEW-2-PREAMBLE.md",
+      "rawByteLength": 19826,
+      "sha256": "99ef594ba424e78a5669c07a34b138aa84b343d84ce474da55fd364d8d9e88c8",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET-REVIEW-2.md",
+      "rawByteLength": 119511,
+      "sha256": "acc7d9eb9b6584fcb0fa63edb4f3967824414887a639a86d7960a2ed1ad46924",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET-REVIEW-3-PREAMBLE.md",
+      "rawByteLength": 26799,
+      "sha256": "ef2fb4d273d62f4772f886b2bce9f79933555ce0b6c5896fc5891187d24e8570",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET-REVIEW-3.md",
+      "rawByteLength": 191505,
+      "sha256": "25dbd6ecff7417fb885852dc5c5771fdb31e54c9e10e0f93c511a8fad27729e9",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET.md",
+      "rawByteLength": 286829,
+      "sha256": "540d4b97b44563b8b22bbcd68651f7ff03d29880ce7b49f8b29d9dc4ce295b29",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/HOSTILE-REVIEW.md",
+      "rawByteLength": 13451,
+      "sha256": "f66e3e8148490095352e094a9e3721628fdfa4ed8149317ad66f31d832ab6ee0",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/MANIFEST.md",
+      "rawByteLength": 7174,
+      "sha256": "45da0d06ae2f927133630df5c11069e20fd79028e23a0415acab5e9d7d4a29ad",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/RUNNER-HARDENING-NOTES.md",
+      "rawByteLength": 9927,
+      "sha256": "edfcd2d2fd289d8b50f9b8361125c1ca1e90781938c39af174f76a832c5aa6ea",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/VERIFICATION-NOTES-REVIEW-2.md",
+      "rawByteLength": 37526,
+      "sha256": "a54e1ae3e98152a16accce1d7e0658f46239be97d17f21d5aa4b5ffa0ef87512",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/VERIFICATION-NOTES-REVIEW-3.md",
+      "rawByteLength": 27869,
+      "sha256": "f6bc450fb635b5225cc4bbe6ae181d0fff87828ec320c4b493bedb1fc6c36f74",
+      "blobSha": null
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/VERIFICATION-NOTES.md",
+      "rawByteLength": 20256,
+      "sha256": "c793837ff97b8cbfa29efe0c5cf4fd839389cc96f1434576ad7aa1ae850383cc",
+      "blobSha": null
+    }
+  ],
+  "verification": {
+    "method": "sha256 of each snapshot file on disk, compared against the digest recorded in this receipt (working-tree bytes; core.autocrlf=true in this repository, which is why the original snapshot was extracted from blobs rather than via `git archive | tar -x`)",
+    "scope": "snapshot files exist, are regular files, and hash to the digests recorded here",
+    "outOfScope": "byte-identity against the base commit blobs CANNOT be performed: the base row is unreadable",
+    "filesChecked": 29,
+    "filesHashed": 29,
+    "emptyFiles": 0,
+    "baseBlobsReadable": false,
+    "baseProbeError": "ls-tree of the base row FAILED (see r7-12: the base commit's subtree is not in the object store)"
+  },
+  "claimSuperseded": {
+    "was": "29/29 preserved artifacts byte-identical to base blobs",
+    "why": "the string asserted a comparison against base blobs that can no longer be performed (r7-12); it is retained as history and replaced by the measurable `verification` block"
+  }
+}

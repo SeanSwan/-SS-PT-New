@@ -1,0 +1,79 @@
+{
+  "generatedAt": "2026-09-22T04:47:30Z",
+  "purpose": "G0-DB receipt v2 — supersedes g0-db-receipt.json per Astra Review 6 R6-07. The v1 receipt (a) equated an IN-CONTAINER loopback probe with a host-namespace match, (b) recorded the port-bind failure as if it were a universal cause, and (c) left lifecycle authority ambiguous. All three are corrected here. The v1 file is retained unmodified as history; this receipt is the one source-bindings binds.",
+  "supersedes": "g0-db-receipt.json",
+  "baseHead": "53005a6da965f5ca9e9c8d5ead86c6e19e081095",
+
+  "cluster": {
+    "container": "swan-coach-owned-20260921-host",
+    "image": "postgres:17-alpine",
+    "state": "running",
+    "createdBy": "vs-claude session (2026-09-21 21:45 PDT / 2026-09-22T04:45Z)",
+    "ownership": "GENUINELY OWNED — created this session; not the shared dev cluster.",
+    "whyNotTheSharedCluster": "Same ruling as v1: 127.0.0.1:5433 (swan-dev-pg) holds prior Coach databases (coach_baseline_gen, coach_emptydb_20260916) and is a shared development resource. Not used.",
+    "loopbackContract": "Published as 127.0.0.1:55533->5432/tcp. The listener is host-loopback ONLY (no 0.0.0.0 publication), which is the package's loopback-only trust-listener rule (R6-07: 'do not broaden database access merely to make this sandbox work').",
+    "portSelection": "55433 was attempted first and refused by Windows (excluded port range 55406-55505, netsh excludedportrange). 55533 is outside every listed exclusion. The v1 receipt's four failed ports (55440-55443) sat inside or adjacent to the same reservations."
+  },
+
+  "verifiedIdentity": {
+    "observedVia": "node pg Client from the worktree backend directory — the RUNNER'S NAMESPACE (host process), not docker exec. This is the R6-07 correction: a container-loopback probe and a host match are different network namespaces.",
+    "probe": "SELECT current_database(), current_user, inet_server_addr(), inet_server_port(); SHOW server_encoding; SHOW data_directory;",
+    "currentDatabase": "coach_test_20260906",
+    "currentUser": "coach_test_admin",
+    "clientNamespace": "host, connected to 127.0.0.1:55533",
+    "serverSideAddress": "172.17.0.4:5432 (the server's own view — container-internal; recorded rather than hidden)",
+    "serverEncoding": "UTF8",
+    "dataDirectory": "/var/lib/postgresql/data",
+    "serverVersion": "PostgreSQL 17.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+    "authMethod": "trust (POSTGRES_HOST_AUTH_METHOD=trust, empty password)",
+    "matchesHarnessExpectation": {
+      "role": "coach_test_admin — MATCHES backend/tests/helpers/coachTestDatabase.mjs",
+      "database": "coach_test_20260906 — MATCHES",
+      "password": "empty — MATCHES",
+      "host": "127.0.0.1 — MATCHES",
+      "port": "55533 via SWAN_COACH_TEST_PORT — MATCHES (host-published)"
+    },
+    "statement": "Identity observed from the same namespace the runner executes in, over the published loopback port. The host->container reachability that BLOCKED v1 no longer blocks."
+  },
+
+  "r607Corrections": {
+    "namespaceConflation": "v1 line 'observedVia: docker exec … (IN-CONTAINER)' called container-loopback a host match. Corrected: the binding observation for C0 admission is the host-namespace probe above.",
+    "universalCause": "v1 recorded 'this session's sandbox forbids binding NEW host ports' as the cause. Adjudication per Astra: the UNIVERSAL cause is UNKNOWN; the measured fact is session-specific (this later session bound 55533 successfully). v1's failed endpoints remain recorded history; the classification 'every possible host port is unusable' is withdrawn.",
+    "runnerTeardownOverstatement": "run-contract.json#entryPoints.applicationSuite.why overstated teardown. Fact: backend/run-coach-postgres.mjs releases the LEASE; it contains no cluster-stop operation and never claims to stop PostgreSQL. Cluster startup/shutdown belong to the surrounding operator window (below).",
+    "receiptLifecycleOnStop": "v1 claimed stopping the container would invalidate its identity receipt. Corrected: a receipt records an observation; the lifecycle below records the subsequent stop. Observations do not expire when the observed process does."
+  },
+
+  "lifecycle": {
+    "owner": "the agent session (vs-claude) within the operator window Sean authorized by directing this workstream to be finished; Astra R6-07 ruling: 'Must the existing container remain running? No. Preserve the observation and record authorized lifecycle shutdown.'",
+    "events": [
+      {
+        "at": "2026-09-22T04:45:00Z",
+        "action": "created swan-coach-owned-20260921-host (postgres:17-alpine, trust auth, loopback 127.0.0.1:55533->5432)",
+        "by": "vs-claude session"
+      },
+      {
+        "at": "2026-09-22T04:46:17Z",
+        "action": "stopped swan-coach-owned-20260921 (the v1 cluster: correct identity, NO published host port, unreachable from the runner namespace; docker exit 0)",
+        "by": "vs-claude session",
+        "authorization": "Astra Review 6 R6-07 lifecycle ruling; identity observation preserved in g0-db-receipt.json (retained)."
+      },
+      {
+        "at": "2026-09-22T04:47:00Z",
+        "action": "verified identity of swan-coach-owned-20260921-host from the runner namespace (this receipt's verifiedIdentity)",
+        "by": "vs-claude session"
+      }
+    ],
+    "shutdownPlan": "When the guarded run completes (C0 PASS or a bounded-repair STOP), the operator window stops swan-coach-owned-20260921-host with docker stop and records the timestamp here. The runner itself never stops the cluster."
+  },
+
+  "migrations": {
+    "status": "NOT RUN",
+    "reason": "C2 slice. Nothing here claims it ran. The reachable target removes the v1 blocker; execution order is C0 admission first."
+  },
+
+  "classification": {
+    "before": "v1: PARTIALLY CLOSED — identity observed in-container; execution BLOCKED by session-specific port binding.",
+    "after": "CLOSED FOR C0 — owned cluster provisioned, loopback-published, identity verified FROM THE RUNNER NAMESPACE, lifecycle owned and recorded. C1 execution may proceed under the runner's own lease/marker guards.",
+    "residual": "Production installed-history claims (C2 upgrade equivalence) still require a separately authorized sanitized production receipt; nothing here touches production."
+  }
+}

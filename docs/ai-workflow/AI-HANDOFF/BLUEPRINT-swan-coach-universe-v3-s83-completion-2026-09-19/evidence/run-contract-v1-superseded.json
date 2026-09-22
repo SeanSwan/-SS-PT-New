@@ -1,0 +1,184 @@
+{
+  "generatedAt": "2026-09-21T17:20:00Z",
+  "purpose": "C0 run contract: the exact commands, environments, ownership and allowed paths the uninterrupted window executes.",
+  "baseHead": "53005a6da965f5ca9e9c8d5ead86c6e19e081095",
+  "root": "C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/tmp/worktrees/swan-coach-astra-owned-20260906",
+  "entryPoints": {
+    "applicationSuite": {
+      "path": "backend/run-coach-postgres.mjs",
+      "authority": "ADOPTED as the application-suite entry (R5-06).",
+      "why": "It is the only path that carries the guarded authority: marker acquisition, database lease, owned-cluster teardown, per-child deadline and abandonment handling, and the verdict/exit-code contract. Direct Vitest execution bypasses all of it.",
+      "invocations": [
+        {
+          "cwd": "backend",
+          "command": "node run-coach-postgres.mjs --file coachMemoryPersistence"
+        },
+        {
+          "cwd": "backend",
+          "command": "node run-coach-postgres.mjs --file coachConsentPersistence"
+        },
+        {
+          "cwd": "backend",
+          "command": "node run-coach-postgres.mjs --file coachReadAuthorization"
+        },
+        {
+          "cwd": "backend",
+          "command": "node run-coach-postgres.mjs"
+        }
+      ],
+      "note": "Each line is a separate gated command. Stop on nonzero status; do not continue through failure."
+    },
+    "nativeUnit": {
+      "cwd": "backend",
+      "command": "node --test tests/unit/coachRunnerVerdict.test.mjs tests/unit/coachRunnerLifecycle.test.mjs",
+      "note": "test:node is an explicit file list; new native files are NOT auto-discovered and must be wired exactly once in backend/package.json row 19."
+    },
+    "vitestUnit": {
+      "cwd": "frontend",
+      "command": "node ./node_modules/vitest/vitest.mjs run <files> --maxWorkers=1 --retry=0"
+    },
+    "browser": {
+      "cwd": "frontend",
+      "command": "node ./node_modules/@playwright/test/cli.js test --config playwright.coach-completion.config.ts",
+      "note": "The launcher rejects an absent or unowned BASE_URL rather than selecting a fallback server."
+    },
+    "typecheck": {
+      "cwd": "frontend",
+      "command": "node --max-old-space-size=12288 ./node_modules/typescript/bin/tsc --noEmit --pretty false -p tsconfig.json",
+      "retainedCaveat": "The heap setting declares an intent, not available memory. Record actual completion or the exact blocker."
+    },
+    "build": {
+      "cwd": "frontend",
+      "command": "node ./node_modules/vite/bin/vite.js build"
+    }
+  },
+  "retiredEntryPoints": {
+    "run-owned-postgres-matrix": {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/run-owned-postgres-matrix.mjs",
+      "status": "EVIDENCE ONLY — not execution authority (R5-06).",
+      "why": "It is the historical matrix runner. Its recorded 10-suite/125-test result does not execute the new application suites, and it does not carry the marker/lease/verdict contract that C1 makes load-bearing."
+    },
+    "config/config.cjs": {
+      "path": "backend/config/config.cjs",
+      "status": "RETIRED for harness use (R5-06).",
+      "why": "Line 1 is require('dotenv').config({ path: '../.env' }). A harness resolved through it inherits the application environment, so it cannot establish an independent test identity and its --env development invocation pointed at the application database.",
+      "boundary": "This is a retirement for test/migration execution only. The application's own runtime config is untouched."
+    },
+    "vitest.coach-completion.config.mjs": {
+      "status": "NOT CREATED.",
+      "why": "04-build-order row 7 proposed a separate completion config. Row 14 of the forged order keeps the existing backend/vitest.coach-postgres.config.mjs and states 'no alternate completion config'. The existing guarded config is the single config (R5-06)."
+    }
+  },
+  "migrationConfig": {
+    "path": "backend/tests/helpers/coachMigrationCompletion.config.cjs",
+    "status": "TO BE CREATED in C2 (build-order row 20). Required now as an ALLOWED PATH, not required now as a file.",
+    "requirements": [
+      "No dotenv import of any kind — R4-04 and R5-06 both bind this.",
+      "Missing port is a failure, not a default.",
+      "Invalid port is a failure, not a coercion.",
+      "No application-environment fallback path.",
+      "Fixed loopback identity for the admitted synthetic cluster only."
+    ],
+    "note": "A future implementation deliverable. Its absence does not block C0 admission (R5-07)."
+  },
+  "environment": {
+    "identityClaim": "UNVERIFIED in this session.",
+    "reason": "No owned PostgreSQL cluster was provisioned during C0 preservation work, so connection identity could not be observed. G0-DB remains present-but-insufficient until an owned-cluster provisioning/teardown receipt and the actual connection identity exist.",
+    "historicalPortNote": "Port 55440 appears in historical records. It is NOT current ownership and must not be reused on that basis.",
+    "workspaceOwnership": {
+      "branch": "codex/swan-coach-astra-owned-20260906",
+      "head": "53005a6da965f5ca9e9c8d5ead86c6e19e081095",
+      "isAncestorOfMain": false,
+      "dirtyPaths": 24,
+      "note": "The dirty-source manifest, not base HEAD, identifies the reviewed candidate."
+    }
+  },
+  "preservationRules": {
+    "lineEndings": "core.autocrlf=true in this repository. Any preservation or staleness check that hashes a working-tree file will disagree with the committed blob. Hash blobs (git cat-file blob), never files.",
+    "neverEditIntoCorrectness": "Preserved documents are superseded, not corrected in place."
+  },
+  "allowedPaths": {
+    "note": "Recorded as the full planned scope from the forged build order. Rows 1-6 are C0; a CHECKPOINTED row is required before that specific file is created.",
+    "c0": [
+      "PKG/00-README.md",
+      "PKG/01-architecture.md",
+      "PKG/02-wireframes.md",
+      "PKG/03-contracts.md",
+      "PKG/04-build-order.md",
+      "PKG/05-slices.md",
+      "PKG/06-bans.md",
+      "PKG/07-checkpoints.md",
+      "PKG/08-decision-density-self-test.md",
+      "PKG/09-tests.md",
+      "PKG/evidence/source-bindings.json",
+      "PKG/evidence/run-contract.json",
+      "PKG/evidence/preservation.json",
+      "PKG/evidence/dirty-baseline.json",
+      "PKG/evidence/admission.json",
+      "PKG/evidence/inputs/G0-*.md",
+      "scripts/coach-completion-checkpoint.mjs",
+      "scripts/coach-completion-checkpoint.test.mjs"
+    ],
+    "laterSlices": {
+      "C1": [
+        "backend/run-coach-postgres.mjs",
+        "backend/tests/helpers/coachRunnerVerdict.mjs",
+        "backend/tests/helpers/coachRunnerLifecycle.mjs",
+        "backend/tests/unit/coachRunnerVerdict.test.mjs",
+        "backend/tests/unit/coachRunnerLifecycle.test.mjs",
+        "backend/tests/helpers/coachTestDatabase.mjs",
+        "backend/tests/helpers/coachTestDatabaseLoader.mjs",
+        "backend/vitest.coach-postgres.config.mjs",
+        "backend/tests/integration/coachMemoryPersistence.postgres.test.mjs",
+        "backend/tests/integration/coachConsentPersistence.postgres.test.mjs",
+        "backend/tests/integration/coachReadAuthorization.postgres.test.mjs",
+        "backend/tests/helpers/coachConsentPersistenceFixtures.mjs",
+        "backend/package.json"
+      ],
+      "C2": [
+        "backend/tests/helpers/coachMigrationCompletion.config.cjs",
+        "backend/tests/unit/coachMigrationCompletionConfig.test.mjs",
+        "backend/tests/helpers/coachMigrationCompletionFixtures.mjs",
+        "backend/tests/integration/coachMigrationCompletion.postgres.test.mjs",
+        "backend/tests/unit/migrationFkTypeCompat.test.mjs",
+        "backend/migrations/20260325000001-create-pain-entry-corrective-exercises.cjs",
+        "<one C0-bound forward migration, path CHECKPOINTED in C2 first>"
+      ],
+      "C3": [
+        "FE/hooks/useCoachCreatedThreadAdoption.test.tsx",
+        "FE/CoachCommandCenterPage.createdThreadCompletion.test.tsx",
+        "FE/hooks/useCoachSelectionNavigationBlocker.test.tsx",
+        "FE/hooks/useCoachCommandCenterSelection.ts",
+        "FE/CoachCommandCenter.controller.ts",
+        "FE/hooks/useCoachCreatedThreadAdoption.ts",
+        "FE/hooks/useCoachSelectionNavigationBlocker.ts",
+        "FE/hooks/useCoachSelectionSettledAction.ts"
+      ],
+      "C4": [
+        "frontend/playwright.coach-completion.config.ts",
+        "frontend/e2e/coach-memory-consent-completion.real.spec.ts",
+        "frontend/e2e/coach-created-thread-completion.spec.ts",
+        "frontend/e2e/coach-memory-consent-remediation.spec.ts",
+        "frontend/e2e/workout-logger-rest-adjust.spec.ts",
+        "frontend/e2e/coach-command-center-mobile.spec.ts",
+        "frontend/src/components/DashBoard/UniversalDashboardLayout.styles.ts",
+        "FE/CoachCommandCenter.bridgeMobileDockStyles.ts"
+      ],
+      "C5": [
+        "PKG/evidence/module-line-audit.json",
+        "PKG/evidence/verification-receipt.json",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/77-open-findings-register.md",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/README.md"
+      ],
+      "C6": [
+        "PKG/07-checkpoints.md"
+      ]
+    }
+  },
+  "scopeRule": "Environment preparation commands and any new browser backend fixture/launcher files must be allocated exactly in C0 before admission. No unnamed runtime harness is implicitly authorized by the build-order table. A failing test does not widen production service scope - record behavioral RED, allocate exact paths and interfaces, then apply a bounded amendment.",
+  "superseded": {
+    "at": "2026-09-22T05:21:23.031Z",
+    "by": "run-contract.json (v2)",
+    "reason": "R6-08: stale C0 allowedPaths, teardown overstatement, blobs-only hashing rule"
+  }
+}

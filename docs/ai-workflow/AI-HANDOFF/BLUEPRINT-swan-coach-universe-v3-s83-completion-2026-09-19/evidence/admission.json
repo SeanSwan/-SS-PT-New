@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-09-22T05:53:16.880Z",
+  "slice": "C0-PREPARATION-AND-RUNNER-SAFETY",
+  "status": "PASS",
+  "task": "swan-coach-universe-v3-g02-robustness",
+  "controller": {
+    "path": "tmp/coach-completion-20260921/workflow-state-v9.json",
+    "sha256": "c32cd6f25db8a408cf5371af01766c58d01264557af6b688c1c97fc4c6140e63",
+    "cadence": "final-astra",
+    "readBack": "supported controller status: active, index 0, scopes index-paired, 216 origin events preserved"
+  },
+  "candidateManifest": {
+    "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/candidate-manifest.json",
+    "sha256": "8115dc4c66e509ef87fce97e79e3b8041c4a77b794b9eb8363807f2f9da1a619",
+    "entries": 360
+  },
+  "verification": {
+    "commands": [
+      "node --test tests/unit/coachRunner{Sequence,RefusalPath,Lifecycle,Verdict}.test.mjs",
+      "node --test scripts/coach-completion-checkpoint.test.mjs scripts/coach-completion-admission.test.mjs",
+      "SWAN_COACH_CONTROLLER_BEFORE=<v7> SWAN_COACH_CONTROLLER_AFTER=<v9> node tmp/run-checkpoint.mjs",
+      "workflow.mjs migrate --check over 5 negative inputs (each refused, exit 1)",
+      "SWAN_COACH_TEST_PORT=55533 node run-coach-postgres.mjs"
+    ],
+    "exitCodes": [
+      0,
+      0,
+      "0 (six gates CLEAN; successor NOT-CHECKED pre-receipt by design)",
+      "5 refusals",
+      0
+    ],
+    "totals": {
+      "runnerUnits": "67/67 node:test (59 pre-handoff + 8 orchestration)",
+      "checkpointAdmission": "22/22 checkpoint + admission module file",
+      "vitestGroup": "12 files, 157/157 (includes R5-11 real-model consent suites)",
+      "nodeGroupTAP": "8+8+2 = 18/18, 0 skipped",
+      "fullRun": "exit 0"
+    },
+    "fullRunLog": {
+      "path": "tmp/coach-completion-20260921/full-guarded-run-20260921T2255.log",
+      "sha256": "d5509ee6786baf9248ff1bd5ecba40db5c79d171a9116dbb70e4d61b64e3f23a"
+    }
+  },
+  "connectionIdentity": "127.0.0.1:55533 coach_test_20260906/coach_test_admin, probed from the runner namespace (g0-db-receipt-v2.json)",
+  "markerFate": "created atomically before the lease; protectionVerified true; cleared on the clean verdict",
+  "clusterLifecycle": "operator window; v1 container (no published port) stopped 2026-09-22T04:46:17Z; -host container shutdown at session window end",
+  "notes": "The successor gate is NOT-CHECKED in the pre-receipt aggregate by design; this receipt is the predecessor artifact C1 admission must supply (with its sha256)."
+}

@@ -1,0 +1,2842 @@
+{
+  "generatedAt": "2026-09-22T21:05:47.167Z",
+  "purpose": "C0 candidate manifest — raw current-byte identity of every dirty/untracked candidate path (forged evidence contract). Supersedes the byte-count/committed-blob-only claims R6-08 measured as inconsistent; g0/preservation history retained alongside.",
+  "baseHead": "70547685c0fc8496342bf61210bf3b576f7e425c",
+  "baseHeadSource": "HEAD at manifest build time (baseHead === headAtManifest)",
+  "headAtManifest": "70547685c0fc8496342bf61210bf3b576f7e425c",
+  "branch": "codex/swan-coach-astra-owned-20260906",
+  "hashing": "sha256 of raw file bytes as read from disk (no git smudge, no line-ending normalization); committed blobs are preserved separately under evidence/preserved-r4-package/",
+  "counts": {
+    "total": 402,
+    "byOwner": {
+      "C0": 166,
+      "C1": 35,
+      "C2": 49,
+      "C5": 87,
+      "C4": 20,
+      "C3": 45
+    },
+    "byStatus": {
+      "M": 89,
+      "D": 3,
+      "A": 14,
+      "??": 296
+    }
+  },
+  "entries": [
+    {
+      "path": ".gitignore",
+      "rawByteLength": 12569,
+      "sha256": "d959b570432a7621099a35d3f038a5ae99a095298614edc2ac35e9df8c6a361a",
+      "trackedStatus": "M",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "AGENTS.md",
+      "rawByteLength": 215035,
+      "sha256": "622b1818e9132977e9b8ddefeb72b1545680e4152b93715413135204999b95d2",
+      "trackedStatus": "M",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/controllers/notificationSettingsController.mjs",
+      "rawByteLength": 11654,
+      "sha256": "2f85faf26c50e1b5a509faaa833a50339e58efa9408229ece4b21e236495eb72",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/controllers/profileController.mjs",
+      "rawByteLength": 37319,
+      "sha256": "c3af0bd7cca8406028fdc04a8703e7b002a8101eb0ae87c755d0e744f63f99b5",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/migrations/20240115000000-update-orientation-model.cjs",
+      "rawByteLength": 8008,
+      "sha256": "172778f8a22e70bdddf01da03ccc2af6450f68f2623fdba9dffb0a68ea8baadf",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20250107000000-create-clients-pii.cjs",
+      "rawByteLength": 4560,
+      "sha256": "de62f0b306132c06e23c46aead0fc75c0b70d9adb5212e6f8a1c4b707eee461a",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20250129000000-add-cancellation-charge-fields.cjs",
+      "rawByteLength": 4681,
+      "sha256": "c8162136f6a25baaaa6cee8b97cc83322c0aa603a92c475c8f142897fa544116",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20250201000000-create-trainer-availability.cjs",
+      "rawByteLength": 5322,
+      "sha256": "d00e3e1463ea528dbe2c1bec5cd34bec6ad736577d110501ff7d162373f4a338",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20250212060728-create-user-table.cjs",
+      "rawByteLength": 25536,
+      "sha256": "b99e5386f0f4ac9a5cdf9757618ee9aa595aae671d9fba37d4304e3eba70fac2",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20251113000001-create-exercise-videos-table.cjs",
+      "rawByteLength": 6090,
+      "sha256": "afde2a05754988fa0466e19a558d42ebacaebfb62838f67b572f53e349b18666",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20251113000002-create-video-analytics-table.cjs",
+      "rawByteLength": 4665,
+      "sha256": "6a6e5ab3320526f1cc6bdc35a73dfb246b37886a642c619bb6bdaf6c50fa5783",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20251113000003-add-video-library-to-exercise-library.cjs",
+      "rawByteLength": 5205,
+      "sha256": "89d1c4fc2e727cf8be6e511e7172295eb1b54ff01e2bbbef4f9a3f4dcdbec0ea",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260212000005-add-coaching-cues-to-exercises.cjs",
+      "rawByteLength": 1678,
+      "sha256": "fc5f5180b52fd6cd1eb640c4cfcaad716b69e89bde9b8d84a78b347c0f1faa76",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260301000100-fix-user-achievement-userid-type.cjs",
+      "rawByteLength": 7040,
+      "sha256": "e03506097fd477f9dbf8623bbb8c4ea9d2015aca4f3d19d5903cbc72ab83f6d9",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260301000400-reset-users-level-zero.cjs",
+      "rawByteLength": 2092,
+      "sha256": "eb5b7e1bc4c0fd90d9d33730749971a0bafff08761f50110e05274495093d9d4",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260302050000-gamification-bootstrap.cjs",
+      "rawByteLength": 28047,
+      "sha256": "75719d110cff4154aed09f655156fcee271bf4139ad55d25de88d0ef86e67f90",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260308-add-enhancement-credits.cjs",
+      "rawByteLength": 1790,
+      "sha256": "5b923dbeca03b7432fe069201e10ff855d0aa1bd9b2a0f5adfbdfbb0aaea8b96",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260308-add-gallery-visitor-user-link.cjs",
+      "rawByteLength": 1756,
+      "sha256": "cd172610ec9e72568ce7dd869b097d456c7a63ea6749f88455cfdf450644ac2a",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260308-create-leads-tables.cjs",
+      "rawByteLength": 6402,
+      "sha256": "d6a169836dc1fd94b2e606850f2430c9f63559b43af3010a013c1605d5286468",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260315000001-add-achievement-roles-rewards-privacy.cjs",
+      "rawByteLength": 6268,
+      "sha256": "d1bd9b1828a5c83335f9132ebac9e3667f70a9998aaeb946e60006dcf4b306b1",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260325000001-create-pain-entry-corrective-exercises.cjs",
+      "rawByteLength": 9260,
+      "sha256": "3c88f6061e79eaac7351f01c0dec2add65e361bc8e002c7b7dbf4ad3eb66bd00",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260330000000-create-workout-plans.cjs",
+      "rawByteLength": 10793,
+      "sha256": "341fdd29a9a674b29b5a10aa67012417ca2076350fa9ec2b794eef160ab8be7f",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260401000001-bootcamp-upgrade-phase0.cjs",
+      "rawByteLength": 9701,
+      "sha256": "7e6977a8ffb6418416153ab69f0ff5a7dee78c7fd86ea81d3aab65389c7773cd",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260416000001-allow-null-workout-session-intensity.cjs",
+      "rawByteLength": 4580,
+      "sha256": "13e4409c4299fc61217ab428ecf4fe268fdf3be1480d3d98e95cd4ee57bd9975",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260418000002-retarget-daily-workout-forms-session-fk.cjs",
+      "rawByteLength": 6726,
+      "sha256": "5d4f94abe440e450e0a2ac812cc32b89f8ec2abdaa332b4a0bfd625c389fc4da",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260418000003-retarget-daily-workout-forms-user-fks.cjs",
+      "rawByteLength": 12375,
+      "sha256": "205d9cd7fb84cba2f7ac65a5b0f2b10be5fdef7c528fe9a36f63f43e615307d1",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260501180931-add-workout-plan-active-unique-index.cjs",
+      "rawByteLength": 3384,
+      "sha256": "cded9afc7e4bffee58ca6cc69aa8cdb4497511db061382ee063e4f73060ab39b",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260502000000-add-can-generate-workout-plans-to-users.cjs",
+      "rawByteLength": 5631,
+      "sha256": "b902c7f3524c747497883708417c8b7db9571f52ed1c5a71f594d651af1436a3",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260510000001-add-banner-object-position.cjs",
+      "rawByteLength": 2431,
+      "sha256": "a4df38e73e95c7fe8a3a64602bda54f920ccbf26464bbfc12bed794fcb336d21",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260709001000-backfill-daily-macro-encryption.cjs",
+      "rawByteLength": 2296,
+      "sha256": "bbb5d6b9ebce8b9b2654b7a8fda6d9f712a23e33c0f4d12f0e964a6a1eea8332",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260804120000-waiver-hardening-swa140.cjs",
+      "rawByteLength": 5937,
+      "sha256": "5e5e178669a436fa74516623bfbecfb7cfed62938958d8842a87cfb87101fc63",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/DIRECT-FOREIGN-KEY-CONSTRAINT-FIX.cjs",
+      "rawByteLength": 0,
+      "sha256": null,
+      "trackedStatus": "D",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/EMERGENCY-DATABASE-REPAIR.cjs",
+      "rawByteLength": 0,
+      "sha256": null,
+      "trackedStatus": "D",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/UUID-INTEGER-TYPE-MISMATCH-FIX.cjs",
+      "rawByteLength": 0,
+      "sha256": null,
+      "trackedStatus": "D",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/retired-production-incident-fixes/DIRECT-FOREIGN-KEY-CONSTRAINT-FIX.cjs",
+      "rawByteLength": 10941,
+      "sha256": "984390856e3db2b86941fe60a1857f675f6fe6dd46fc89256aea28964d2f8cc5",
+      "trackedStatus": "A",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/retired-production-incident-fixes/EMERGENCY-DATABASE-REPAIR.cjs",
+      "rawByteLength": 13428,
+      "sha256": "86143b108256f9adc2bb67bcc0c52a815a0b5d9f0e580dee484240765edb41a5",
+      "trackedStatus": "A",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/retired-production-incident-fixes/README.md",
+      "rawByteLength": 4437,
+      "sha256": "d5d91ad4d9cd27939da407268907ea3edb497505b838f3e94529bf15b28e654b",
+      "trackedStatus": "A",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/retired-production-incident-fixes/UUID-INTEGER-TYPE-MISMATCH-FIX.cjs",
+      "rawByteLength": 12562,
+      "sha256": "4f5a9d2c91cfc360df728adcd8d514d9275ce072e54f7c4d9c5bb1e4646119bd",
+      "trackedStatus": "A",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/models/CoachFact.mjs",
+      "rawByteLength": 6046,
+      "sha256": "673dd586f24577337f95dccd93a3c891585aa68d305af3108f8293dab8db7b3f",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/package.json",
+      "rawByteLength": 10532,
+      "sha256": "676bac2890864bfb0d4ae3adc527bac916f2404df9c29c5cd0b15b25c1432c7e",
+      "trackedStatus": "M",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/routes/coachMemoryRoutes.mjs",
+      "rawByteLength": 9330,
+      "sha256": "c07fd50534cc6ae6c1d57a6e7638d85ed47482809e019dd077ac96137a96f0a0",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/services/coachFactMemoryPolicy.mjs",
+      "rawByteLength": 8547,
+      "sha256": "915c6634ee118e07d0b041661e2e020e04606e1245a7cce366a22988b17ccc62",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/services/coachFactService.mjs",
+      "rawByteLength": 19370,
+      "sha256": "735745321fa9a50c114238b26b26b83c5c0983b53bb1f19f65657b6a0a06af5e",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/api/coachMemoryRoutesAuthz.test.mjs",
+      "rawByteLength": 24352,
+      "sha256": "ed1516be76a40201307cda58ba2f519a6d05c275c587ae871443095e3b229eb2",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/api/notificationSettingsCoachNudgeConsent.test.mjs",
+      "rawByteLength": 25198,
+      "sha256": "e989376e743528458648f8da5c0eea6620c63d3c1a9d852504120710a4e5ed70",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/helpers/coachTestDatabase.mjs",
+      "rawByteLength": 10177,
+      "sha256": "2286dcedf2a5e872c99bf2cd49af71ab693f0a1e6c469fb659c69ae6a4189dbb",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/integration/coachWorkoutAtomic.postgres.test.mjs",
+      "rawByteLength": 14254,
+      "sha256": "696c786f53abaece76ef0e87c6d32a3809733909fb2ae3d1a27f1f1209462110",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/unit/coachFactsMigration.test.mjs",
+      "rawByteLength": 9333,
+      "sha256": "e9981149ed555921020b0d837ece3881f15a99f9b7bacca8ba282794d106908e",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/utils/modelTableGuard.mjs",
+      "rawByteLength": 5181,
+      "sha256": "c728652a1ad166e7207fa5442b0b0dbc10f763468aec4fd52377d23f18906db0",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/utils/tableCreationOrder.mjs",
+      "rawByteLength": 14188,
+      "sha256": "886b8725897a91620caa09efc9790f0300124715d88679041871791c5f04f261",
+      "trackedStatus": "M",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/README.md",
+      "rawByteLength": 21150,
+      "sha256": "5ab7be92b6e632b5279e7c803704757b6f05888ad7f9e12e7a68b8ae2f87d22d",
+      "trackedStatus": "M",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "frontend/e2e/coach-command-center-mobile.spec.ts",
+      "rawByteLength": 27337,
+      "sha256": "3622398b8134a04ee9f387d3d435e8398ac1764aa943c760358763d1d0c98650",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/client-dashboard/ClientProfilePage.authPipeline.test.ts",
+      "rawByteLength": 5741,
+      "sha256": "b8b0175dca5b17157fe795f0b987c038917cf59baf3ba2efe0ac420d3bf50f59",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/client-dashboard/ClientProfilePage.tsx",
+      "rawByteLength": 18524,
+      "sha256": "1f61a15f29fc05cf9677265a23ef84e008ac8c8fc8e50381772e1ccd3494182d",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.actions.ts",
+      "rawByteLength": 13928,
+      "sha256": "bf980e0cd3e0f86277b1b1dcc59def3ffe442c4468d658e55358ecf1d602ff74",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.bridgeMobileDockStyles.ts",
+      "rawByteLength": 6401,
+      "sha256": "37522d0005dd580393446f0541ccbd262dcf1b5e8fdd1e4f0edaef8c12554fc1",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts",
+      "rawByteLength": 16860,
+      "sha256": "3d28dc652698595c455b2315646121750aaa40318dc21547da652c0374fd8165",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controllerEffects.ts",
+      "rawByteLength": 5185,
+      "sha256": "9f2d64ede977cf953c078399d76ebb66f1baca288105e44efbdde4ee1029d079",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.sectionSplit.test.ts",
+      "rawByteLength": 4181,
+      "sha256": "c6ab03ec24446a2249e8373c5092001fd7e69118af262d06d8b581ca83ee3725",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterOpsDrawer.test.tsx",
+      "rawByteLength": 16215,
+      "sha256": "952fa7aef7fd00fb0f1c1f6c9642d01ce2e7610853118b45ab6545fbdded18c1",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.keyboard.test.tsx",
+      "rawByteLength": 4554,
+      "sha256": "c6a48ec20450cc23a37251b5853dcae226b84233ddccbb71edd6cadf5056e37d",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.selectionBinding.test.tsx",
+      "rawByteLength": 12224,
+      "sha256": "e1b400c396b41e01538c8129fe58b35fa714660e01b989e4e02cfcb2e60c62b6",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.shell.test.tsx",
+      "rawByteLength": 16589,
+      "sha256": "069c4088442c9b4d56598ca55784fca459bc769d4c7002682d2978ee09407060",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.test.harness.tsx",
+      "rawByteLength": 17126,
+      "sha256": "c7254d73f23433717198efd29a2ce65f3018265933f9c104407aab5f7777fa8d",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+      "rawByteLength": 16399,
+      "sha256": "bd00569a09893f11f0e526d08c5e33a940a63af3b23b62fa37432a0aa3422f31",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPinnedClient.test.tsx",
+      "rawByteLength": 2339,
+      "sha256": "3435405a5361e8b14670427b3d509a922ab1c6b02bd8acea789f11d19760b7e9",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandOpsRail.test.tsx",
+      "rawByteLength": 10338,
+      "sha256": "6224cd5c3e46b267e27d7e8f16fa233b4e7b64b67a41fc10ace4000d8b127adc",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandOpsRail.tsx",
+      "rawByteLength": 8036,
+      "sha256": "371c96b0d6442f22d78b40391f77e50c9584ebe18aeb93528e075e3f74540bfa",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSelectionDecision.gate.test.tsx",
+      "rawByteLength": 11090,
+      "sha256": "ca9f5bc7afd2ef84d0ccf04d975c3ea91bc32d40aadd3d5cd24eac4bc92cf434",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSelectionDecision.tsx",
+      "rawByteLength": 10088,
+      "sha256": "0e8582480ef64248df2f250593c598e146ae375fb95a80dabcaf6dc2f06a011f",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/coachSessionDraftState.ts",
+      "rawByteLength": 14726,
+      "sha256": "d6c65168a713c922f921e64e53d472f3bed1732d725247fee3952012c2566f3d",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/coachSelectionContract.ts",
+      "rawByteLength": 12125,
+      "sha256": "b7501681dc61b76439bd1540fc0a838e6662cb3e172463f8653fb1e7ad6a3265",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachCommandCenterSelection.ts",
+      "rawByteLength": 14654,
+      "sha256": "a02e5f584bdafe63c19704a8c9781c169eb7b66dc90a59019304fa2037162c71",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachPinnedClient.ts",
+      "rawByteLength": 6503,
+      "sha256": "5dc5a2a0a1597976139c0e52bee4eeda591759dfa23d1990b547dcfb037a7187",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSelectionAdmission.ts",
+      "rawByteLength": 5548,
+      "sha256": "589423b96c3f9a214c66277d1457a0d0ee14eabaa366ffbc3adbe1f539fd8771",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSelectionCommit.ts",
+      "rawByteLength": 10489,
+      "sha256": "f80cdf0bc3ac7bc600ad0d58a535248ad2962049554ff87014dfd087edd88c44",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSessionSelection.test.tsx",
+      "rawByteLength": 12900,
+      "sha256": "62a83aec376e88c73bcf1f87170320da12b1a84df99945afc0703802dc9cfb94",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSessionSelection.ts",
+      "rawByteLength": 10913,
+      "sha256": "ec5145267fa960815ee337c55fb20c2b2e90740e225c726d3c047adf62abe7ee",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSessionSelectionState.ts",
+      "rawByteLength": 11141,
+      "sha256": "a775c3c85c497c85c0c3ee28311cba2fd6d11fe5a8b06e8f5061f7e4bc93206e",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/UniversalDashboardLayout.styles.ts",
+      "rawByteLength": 9190,
+      "sha256": "4ba72f6d2283ba11655281790d5b0ce7867a1f4b77f85c4062b3d419ed22c979",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/UniversalMasterSchedule/NotificationPreferencesModal.tsx",
+      "rawByteLength": 7845,
+      "sha256": "428fe0453146bd0d34176a064a7eb8f2e2fec52eb97cb12198f3b5807d64df29",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "frontend/src/components/UserDashboard/components/UserSettingsHub.saveContract.test.tsx",
+      "rawByteLength": 4882,
+      "sha256": "5beda3b0de73827bad99f7a3679e3f3ecc5fe848a3941f10126e24b9bdb76183",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "frontend/src/components/UserDashboard/components/UserSettingsHub.tsx",
+      "rawByteLength": 15195,
+      "sha256": "5cb7756c36b41e859f5420279ef4601f0faf5ca94f62c6627c616bf7c06c475d",
+      "trackedStatus": "M",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useRestTimer.endsAt.test.ts",
+      "rawByteLength": 5772,
+      "sha256": "62da4c37d74749a4133537898e01bc870d935f404ffe6c28b6e0ffdd09de4615",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useRestTimer.ts",
+      "rawByteLength": 12792,
+      "sha256": "34d2d6b717488f53d0dc6a548ddd81e2a921fa89f8994868bfb3197f5ac02e30",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutAiEvents.rest.test.tsx",
+      "rawByteLength": 4438,
+      "sha256": "db29c9de185d98e07df15c4792ba96c36a3e4796ee9798b3629c10034972790d",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutAiEvents.ts",
+      "rawByteLength": 12661,
+      "sha256": "75f433783663d3268572f5e29ab70aaed7103c0ef9f84ff65442ffe3c802a239",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutLoggerDictation.provenance.test.tsx",
+      "rawByteLength": 3101,
+      "sha256": "ab5145f4abb26672c5dd9ec71880b844526bbbb3016353673336f7e5a0c4c519",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutLoggerDictation.test.tsx",
+      "rawByteLength": 11598,
+      "sha256": "3940ecc55d4376696bceede4fc02e31cef4763b0dd161b28abad84aa1504835f",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutLoggerDictation.ts",
+      "rawByteLength": 8515,
+      "sha256": "f1e4c435fec5ea6695e9506da1601f7ad48998a299a44ffb0cfee613528d870c",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/hooks/useCoachCommand.frontendDispatch.test.tsx",
+      "rawByteLength": 13851,
+      "sha256": "13252b06780bdafc8615ac5bf5560cbf43f8445a6586c30d7eb0756160dabd0a",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/hooks/useCoachCommand.ts",
+      "rawByteLength": 21260,
+      "sha256": "43dae31c79d50453ff76c1497ececd5b371dcf0f11e2968e859f3da9ca73e74c",
+      "trackedStatus": "M",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/services/api.service.ts",
+      "rawByteLength": 9491,
+      "sha256": "144f57b1727dbce2793b91761d178c8918cd07c9c52a93c243ffe19df3125e11",
+      "trackedStatus": "M",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "frontend/src/utils/aiWorkoutEvents.test.ts",
+      "rawByteLength": 7664,
+      "sha256": "084f48313ad82dde2739fbb724d3e61389840331377af94bda7dbd0535c2e5cd",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/utils/aiWorkoutEvents.ts",
+      "rawByteLength": 10311,
+      "sha256": "8b41f0bb5bd773c6d570669a3a11767a13d34b8c2d0c1cf076dba1daa555f251",
+      "trackedStatus": "M",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/vite.config.ts",
+      "rawByteLength": 4807,
+      "sha256": "6b2864b7257dc0f6f3850d75fedac06e99bc40ecb9f8882f22c3ac6e7288e09d",
+      "trackedStatus": "M",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "scripts/coach-completion-admission.mjs",
+      "rawByteLength": 8899,
+      "sha256": "e50acb6b638eff46d09fbf1c9fdc168651f8e2c132b845d7c6032a55b085e80e",
+      "trackedStatus": "A",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-admission.successor.test.mjs",
+      "rawByteLength": 6831,
+      "sha256": "afb6830f16074fdf7e034348f5926253adcb984397f7fe2413cd8bbc7fdca5e9",
+      "trackedStatus": "A",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-admission.test.mjs",
+      "rawByteLength": 18793,
+      "sha256": "1b017ce6767adad8f56c98a995da73c0d128807d8dcec14a9931f2edf123307c",
+      "trackedStatus": "A",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-checkpoint.mjs",
+      "rawByteLength": 17565,
+      "sha256": "4740468d9a3bb3d6be6dcdac8402f575ddb3781bb09f625c0ea647945d1236f3",
+      "trackedStatus": "A",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-checkpoint.test.mjs",
+      "rawByteLength": 13931,
+      "sha256": "9cd42309ceaebe45f07a4207b804040c8a2bb983a3184b1edad36f44791a2f99",
+      "trackedStatus": "A",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-controller-preservation.mjs",
+      "rawByteLength": 19275,
+      "sha256": "bb3a0306f8149f6951a120a4604f15dd8806eea4b5b7650ce1bb5c1685825e56",
+      "trackedStatus": "A",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-controller-preservation.test.mjs",
+      "rawByteLength": 8461,
+      "sha256": "c3995b35bd2c207d0894becd1305727f396934490888355ce2e87b1310648710",
+      "trackedStatus": "A",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-manifest.mjs",
+      "rawByteLength": 10823,
+      "sha256": "f83b36d8d4a4b2f9bb42675823c4b635ffcb0623c33989dce7251e8105609dda",
+      "trackedStatus": "A",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-manifest.test.mjs",
+      "rawByteLength": 9862,
+      "sha256": "8216c3ffeb531889c5456b33c32d89975eb251cbd55f655a758c3a20bea60970",
+      "trackedStatus": "A",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-preservation.mjs",
+      "rawByteLength": 6287,
+      "sha256": "b0a16abd6e2f031404f7c69cbb5a4fcd4cfadcbf5139304588c5f9d2b8d2f82f",
+      "trackedStatus": "A",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/migrations/20240114000000-bootstrap-users-baseline.cjs",
+      "rawByteLength": 7087,
+      "sha256": "71dc83ac130b59045184edddac1fe6d8786c008b0aebce4ce66928bd26d50861",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20250305000001-apply-cancellation-charge-fields.cjs",
+      "rawByteLength": 3353,
+      "sha256": "71ab984fefb90562875af536576d48b677540720b2978d230ef64bc0ebd99862",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20250626000001-add-deferred-user-fks.cjs",
+      "rawByteLength": 3040,
+      "sha256": "1aa2f9bd9ba88b47d3d963694c393df3fda55402acd759bca49ff97b1a014b3a",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260101000000-baseline-SocialPosts.cjs",
+      "rawByteLength": 7557,
+      "sha256": "d4cac020b7f0b87d50328bcad83909431e9f4e5aa09ff161a06873d052fb70f4",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260101000001-baseline-SocialComments.cjs",
+      "rawByteLength": 5738,
+      "sha256": "10466e36476c1bb790638e6ca326b8566a6fb9b4d936f16b1b85ba4c5859ec05",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260101000002-baseline-SocialLikes.cjs",
+      "rawByteLength": 2242,
+      "sha256": "18ad54dc377747fd0ec205c160b07452172e58c4cd2b5e2f0c34661ce9dd2cb9",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260101000003-baseline-coach_facts.cjs",
+      "rawByteLength": 4339,
+      "sha256": "11e856e63a173751fac7d990331e3e468bf688791d7e28a17171a6e1bec9cd04",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260101000004-baseline-marketing_calendar_items.cjs",
+      "rawByteLength": 2218,
+      "sha256": "d10212d5cd6f9532a8aac129d5ad2f1c3499ab042c66115ea12f2a0193922b37",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260308000003-apply-gallery-deferred-columns.cjs",
+      "rawByteLength": 2184,
+      "sha256": "39d5a018e7f953796cd857b2d5277b9c38719eaea6c9ef1f69b316295127ce27",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/migrations/20260913010000-add-coach-fact-correction-replay.cjs",
+      "rawByteLength": 1247,
+      "sha256": "c7458efc5b384bed3fb9f475a245d2082870ba3ac268e7daeb557a1a62fb886b",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/run-coach-postgres.mjs",
+      "rawByteLength": 16804,
+      "sha256": "f96ea112d5209970b13d6bbcb703873851ed4d3196504f993f2d3f8030969f0e",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/services/coachFactCorrectionService.mjs",
+      "rawByteLength": 6740,
+      "sha256": "b6ca6354156fee504aef224117cb0e234724d3d1049fa97a22b3620c4a046459",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/services/coachFactReadService.mjs",
+      "rawByteLength": 7233,
+      "sha256": "05feaad06ca16aef363bb8a2143d6dbcbdcf5afcede8aabc144d917de3907352",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/services/notificationPreferenceUpdateService.mjs",
+      "rawByteLength": 7843,
+      "sha256": "c10f67c8a4eb8e6436689102071e1de3717ca2ffb0f54d11e14bf8f28190adc5",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/api/profileNotificationPreferenceWrites.test.mjs",
+      "rawByteLength": 10549,
+      "sha256": "4c5f67cacc30fc7c8ed4b4db203bbec6d626ce7a958fde128d8f408d41e4048c",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/helpers/coachApprovalFixture.mjs",
+      "rawByteLength": 6221,
+      "sha256": "1acfcc2e320952feb58370dd5b3de4cee35a4f3e9476d1ae1d6fea6323e1543e",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/helpers/coachChildRunner.mjs",
+      "rawByteLength": 5593,
+      "sha256": "60f6705b7b9de0ebb29c55237e199ed9d62b7b40814d05ae11feb02216ed301f",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/coachConsentPersistenceFixtures.mjs",
+      "rawByteLength": 2678,
+      "sha256": "4e5f535070d54cb3d4d7be37b10275f863bbdff11ca2c2343a559eac8f6add0c",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/helpers/coachConsentRealModelHarness.mjs",
+      "rawByteLength": 6968,
+      "sha256": "9c762fe559cfe7ddb2317bf863cd0e6917c93e2886e00f691d4717c89b9a6587",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/helpers/coachDatabaseLease.mjs",
+      "rawByteLength": 13097,
+      "sha256": "ce25b6839acc87ac7cce71f3b525e50859f278057c29478a7500d496a49b9369",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/coachRunnerLifecycle.mjs",
+      "rawByteLength": 9783,
+      "sha256": "79c10f8de8c88516e34a80245eccbf3d73d572a673cc0c58f3c4c47ccd0f07a7",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/coachRunnerOrchestration.mjs",
+      "rawByteLength": 5318,
+      "sha256": "a7e159aa7a346e0506afd2d218690cd164e2df977c3998027335b0dab7ca3f9c",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/coachRunnerReport.mjs",
+      "rawByteLength": 6203,
+      "sha256": "57eeb43bdec346f7297e1ea4eac192692bb20d98f9df05ca3a94577434cf702e",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/coachRunnerSequence.mjs",
+      "rawByteLength": 11011,
+      "sha256": "cdcc6c04f0c982db0e64c0edc05bf5a9bcf2e2ce1e8d0d330ff5710be9e2d8c3",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/coachRunnerVerdict.mjs",
+      "rawByteLength": 7810,
+      "sha256": "058732cebdd0311846176bbd5be4d26ae35e1cd3be729bdf37523868b984ebe9",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/coachSuiteSelection.mjs",
+      "rawByteLength": 8986,
+      "sha256": "05964e6b475be16e3500f828818b3e99d808ed20f8f2199209a7bb664ab7b0ce",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/coachTargetMarker.mjs",
+      "rawByteLength": 10923,
+      "sha256": "f7ef92d3ce10e7ed893e414a2b599b368aaf6b1ef081bbd3b5b02ad5ba88acce",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/coachTimeoutProfiles.mjs",
+      "rawByteLength": 5567,
+      "sha256": "393103480bb6b46ebf649e39a71563946e3e35b0c5d81d628f5c32b82e0719d5",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/cohortChecks.mjs",
+      "rawByteLength": 10302,
+      "sha256": "25e1784098d18eb049dd9b778edfaa29f9dc8bcf37d3bf47ef579d96286e3284",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/resetCoachTestSchema.mjs",
+      "rawByteLength": 6380,
+      "sha256": "eb236c63761bfddc71435f735988a7ef0278acbfa37d06ead9e758627ba5fbe8",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/helpers/resetCoachTestSchemaNow.mjs",
+      "rawByteLength": 1769,
+      "sha256": "4f8ba9e6143c0533ed1b6be927680397c23646ac97afa2f3e5c93dbc2bd25e74",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/integration/coachConsentPersistence.postgres.test.mjs",
+      "rawByteLength": 11303,
+      "sha256": "1e0c455a6d7f0d7513caef56d1b8ed4326b5eb08a81132f678a1d4f07fe6f2cc",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/integration/coachConsentRealModel.postgres.test.mjs",
+      "rawByteLength": 14186,
+      "sha256": "41fdfa15da6a222e056911549b6190a69ec149928ff0a1afa7c67a64c211d198",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/integration/coachConsentRealModelInterleavings.postgres.test.mjs",
+      "rawByteLength": 13440,
+      "sha256": "55476cfe6c9e330280e6ace5e9f78c372e106867c11c579cfe5d1952987ba9e4",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/integration/coachMemoryPersistence.postgres.test.mjs",
+      "rawByteLength": 13196,
+      "sha256": "056809e98cd1de4bc444ecfe729a0d5f3f2de73f2388686c1ee805a26c2f223d",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/integration/coachWorkoutPoolBudget.postgres.test.mjs",
+      "rawByteLength": 12961,
+      "sha256": "792cfa5b5991f3b0299b7c5e11eb23f515a21e4ec8874eac86e2debdb3b84084",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/unit/coachChildRunner.test.mjs",
+      "rawByteLength": 10309,
+      "sha256": "b6532482ea680fe1b2fbdd83cdf6e2f8c9190ba9462cca351b247ee0c3ca5549",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachDatabaseLease.test.mjs",
+      "rawByteLength": 11163,
+      "sha256": "50a11c0468d93285ae892255c144d91b9e7ff8cf1054298c4b43479d57136c09",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachFactCorrectionService.test.mjs",
+      "rawByteLength": 8048,
+      "sha256": "12604db20695e4adab7c570992161ce4db8db31c5d16c08dd472ca3cf355e850",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/unit/coachFactReadService.test.mjs",
+      "rawByteLength": 5485,
+      "sha256": "006b13a98e263e131af52d49c0d7f12bab6e094c401dc66d422669aa1e3001eb",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "backend/tests/unit/coachRunPlan.test.mjs",
+      "rawByteLength": 6808,
+      "sha256": "8ab3320f66fef4f3f1067388ebef482a968f2023f9044271e576247428f401f9",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachRunnerLifecycle.test.mjs",
+      "rawByteLength": 11454,
+      "sha256": "09f58c1813e59b79ac17b796192effd5f13f2dfe0187ab7e8f32722e9b5e250e",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachRunnerOrchestration.test.mjs",
+      "rawByteLength": 8129,
+      "sha256": "06e6f96efc6858dfeb5f024403519299681006a091abaa94619eb4627b941dc5",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachRunnerRefusalPath.test.mjs",
+      "rawByteLength": 7855,
+      "sha256": "4722062449209ffc3530648d241665fbe9d1e45767fb3ea0cd8c4b0e0839597b",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachRunnerSequence.test.mjs",
+      "rawByteLength": 12742,
+      "sha256": "ed519b3d55734e03c1cd345c0f89021000f9dd46f49a02e61236c95a7d615d90",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachRunnerVerdict.test.mjs",
+      "rawByteLength": 11321,
+      "sha256": "d0cc0b5467558023f4b85f184126f51b1d77d1b4dc3a7f6c55c83a13cdc88550",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachSuiteSelection.test.mjs",
+      "rawByteLength": 5066,
+      "sha256": "d1e0f0f7b69f1bf81f4993332946a7fc75d350e8a33aa337cbd2300db79052ce",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachTargetMarker.test.mjs",
+      "rawByteLength": 10951,
+      "sha256": "02f22c39fb8c53607f2e56baf94dcde33e3a837d4273432936b8b248ac014be4",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachTargetPreflight.test.mjs",
+      "rawByteLength": 5190,
+      "sha256": "3f0301e9fe58286a22ea43a61a6952595dc37fc8247d8557e7115720ef0f04b7",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/coachTimeoutProfiles.test.mjs",
+      "rawByteLength": 7267,
+      "sha256": "23410f80ae18790675ef59ca4545577666af5947f52bd3e980b27ac1b6f5e8bb",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/cohortChecks.test.mjs",
+      "rawByteLength": 9875,
+      "sha256": "63fc1033f1dbc8f0ce70244181f0550ae6929c6a9d4b3ccf70d5cc15418034c6",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "backend/tests/unit/migrationFkTypeCompat.test.mjs",
+      "rawByteLength": 13268,
+      "sha256": "72ad4897bdfcdb38b768ed8ee297bea204ba77c2bfb9bd3f63b410c14584feb8",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/tests/unit/migrationGuardTableNames.test.mjs",
+      "rawByteLength": 9554,
+      "sha256": "d6fe84d2fb9ac210e22bae44ed588a74c1ddda24e03fda218bca676b3c9b263f",
+      "trackedStatus": "??",
+      "ownerSlice": "C2"
+    },
+    {
+      "path": "backend/vitest.coach-postgres.config.mjs",
+      "rawByteLength": 10366,
+      "sha256": "72021577221a5b611789b05927d51a1f86aaae981d5297c45b6e1378ef2a4a69",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/.packet-review3-check.tmp.md",
+      "rawByteLength": 191472,
+      "sha256": "b6731f1f718e7cce186de5454fbef95455e94ea29de0e7cfa159146f1792b1be",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/00-README.md",
+      "rawByteLength": 4219,
+      "sha256": "b45d848fdf601617f7a02cf3359d2c8f15ba6dcc12ccf8afb7a45150e89b14cf",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/01-architecture.md",
+      "rawByteLength": 10397,
+      "sha256": "892b6159c2c6116f127a6c301b450a00d01472677ee8c5f7db289105d1c84aef",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/02-wireframes.md",
+      "rawByteLength": 9918,
+      "sha256": "af6a6e5f194d7ccc67d8d0f5d6e6f48a0fe259422dbcded5c635816f3fdd8394",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/03-contracts.md",
+      "rawByteLength": 10455,
+      "sha256": "05fc2ce0049e7cc1074e98f06d56af0abc554cc44adbe22841a10aede077206b",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/04-build-order.md",
+      "rawByteLength": 5469,
+      "sha256": "c0828de7dff3e0cc6c03e6d41e9a75054b1900e5029980167fbb3dbff37f218e",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/05-slices.md",
+      "rawByteLength": 5184,
+      "sha256": "b674bf03ea7fd173665a06b45baa2713662063aff79e62445495284a00bbbf64",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/06-bans.md",
+      "rawByteLength": 2498,
+      "sha256": "714d525e935ca7868badb5caa6efc80288f1214c5bfeb6cfd69d1895ea5d0a36",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/07-checkpoints.md",
+      "rawByteLength": 10293,
+      "sha256": "6498a2f30ab7d85169890f9f16d598b2fc8722f8369a8aa802c6044e4ec2258f",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/08-decision-density-self-test.md",
+      "rawByteLength": 5289,
+      "sha256": "f32838fa3224d032329ee0bc052df7262c994f7f263c43ba504a2f6b59b8c8bc",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/09-tests.md",
+      "rawByteLength": 14760,
+      "sha256": "c0b56ee6706a479ad936d94be0a98722b4db23ab51e23fe5fc01de77b07a26d4",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-2.md",
+      "rawByteLength": 39691,
+      "sha256": "a5dbfd04e64bca02d9d3c943c3000589bb00f8fd41fffe47124716b0797af9f8",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-2.meta.json",
+      "rawByteLength": 968,
+      "sha256": "8487eba82ce4c13cb95ce6cb91b1adf9c8b2b41b5bae9e014cb3c66d5f38d66c",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-3.md",
+      "rawByteLength": 48190,
+      "sha256": "63db8fba2b72582cae7a781abb8a6fe3a06f0f99a9a0ef281bfc8d53fd9f2b65",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-3.meta.json",
+      "rawByteLength": 970,
+      "sha256": "4cdce1b5d6d98ca33733c80f5e4140b08ea7f23e423b74f9e9535f38bb3a22ef",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-4-xhigh.md",
+      "rawByteLength": 100821,
+      "sha256": "de7f058602cc051e02ad99e2beb5fea00e9eb3be49d61115bc251ab3e7715f79",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-4-xhigh.meta.json",
+      "rawByteLength": 998,
+      "sha256": "bea919ccd19dd9b0a70f922d9d6a5928af6e427772f2a8af94f8d7d683d57179",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-4.md",
+      "rawByteLength": 90834,
+      "sha256": "3639f8b352e606cebb3325f4e46bc4cd2c7742af3e1ef40ca7eb8fe45da05d6d",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-4.meta.json",
+      "rawByteLength": 990,
+      "sha256": "443bb9eca5d885b2a7852f9d75a16b2000b576a59b2de640b73a0f85b07fa85d",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-5.md",
+      "rawByteLength": 86964,
+      "sha256": "0b7184da3d772aeeb73052637d953a7413cbf2569c07d0757b365a0344f34f22",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-5.meta.json",
+      "rawByteLength": 941,
+      "sha256": "029c74af8ebcf748cf4dc6e2a21c3fd624a74ab705178080544c96369ccb6e32",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-6.md",
+      "rawByteLength": 86927,
+      "sha256": "8948b2c7c8eae8e3ff2a1e76a02804fcdfc9285ef1005387cb11ea7f98e2d425",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-6.meta.json",
+      "rawByteLength": 938,
+      "sha256": "8a97b079fca9d80f0978c5e9325d6b275e046d3be0a6667b266ba09bcb893017",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-7.md",
+      "rawByteLength": 83920,
+      "sha256": "4c1d06c3afc30bb14db3cd82da4db2f5d2f5d52d286631efe8f66d7aa07d4d21",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-7.meta.json",
+      "rawByteLength": 936,
+      "sha256": "cf03fd9e5a731fb54492cdafc64a2f15342acb8542154db7826c3457e9e7fd88",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY.md",
+      "rawByteLength": 100385,
+      "sha256": "8395b703c43e38f0440700e303217f38fbe50adab6d8492822e42f127b403dc6",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY.meta.json",
+      "rawByteLength": 614,
+      "sha256": "fef73422da149512635743fb9723d42c3c51d89a354d3dc1e61680aeb525fa18",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-PREAMBLE.md",
+      "rawByteLength": 18310,
+      "sha256": "2b1fc5945e838cdce3ec383ef5d71b51de1f4ad6911c0aba52e896474efbc8ae",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-2-PREAMBLE.md",
+      "rawByteLength": 19826,
+      "sha256": "99ef594ba424e78a5669c07a34b138aa84b343d84ce474da55fd364d8d9e88c8",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-2.md",
+      "rawByteLength": 119755,
+      "sha256": "0bfec678ae3664efbf937570805e1f566340e6eac5f0bb8a34f9889068d36627",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-3-PREAMBLE.md",
+      "rawByteLength": 26799,
+      "sha256": "ef2fb4d273d62f4772f886b2bce9f79933555ce0b6c5896fc5891187d24e8570",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-3.md",
+      "rawByteLength": 191735,
+      "sha256": "32854ce62ba02164c1636d9c2d926353b088a26d148369eba092ac8126dbf6a3",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-4-PREAMBLE.md",
+      "rawByteLength": 12825,
+      "sha256": "be99eb4075659e615e2340e902a3c477d518cab46d2bddf5101b31c17f28982f",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-4.md",
+      "rawByteLength": 130255,
+      "sha256": "84931bb697616037926e1342286b0851848b05be8f1b4299eea75c9b4fdd98d8",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-5-PREAMBLE.md",
+      "rawByteLength": 18077,
+      "sha256": "48f4c05f341cd3f941a1980cc1045aaafbaead565d7cdc2daef70e5fab336c7c",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-5.md",
+      "rawByteLength": 97679,
+      "sha256": "9211cb46800c830d4a9e3f639cbb8c1d718fb9b23ab261f4cc88fa1809aef781",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-6-PREAMBLE.md",
+      "rawByteLength": 19252,
+      "sha256": "c23c64d928a134dde4e40099d1c5853382bcea799d90cf3572ba810f02b780df",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-6.md",
+      "rawByteLength": 315854,
+      "sha256": "8256f22679464c76317427c71614042c42fae0449e0e13fc19daef56e0e837ae",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-7-PREAMBLE.md",
+      "rawByteLength": 24555,
+      "sha256": "4ecdddaef8dfd50e25d98cc4e085769dae6f1a11fd1080a957dcffafa3653c50",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-7.md",
+      "rawByteLength": 174780,
+      "sha256": "a9912c93999ed55fdb3098eeb003bd1bc23744cac4823722785e387cbe0b2998",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET.md",
+      "rawByteLength": 287495,
+      "sha256": "950379fea604f2c8b60c3aee68064b2883578f7eb3641004e5947d048d302e87",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/HOSTILE-REVIEW.md",
+      "rawByteLength": 13451,
+      "sha256": "f66e3e8148490095352e094a9e3721628fdfa4ed8149317ad66f31d832ab6ee0",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/MANIFEST.md",
+      "rawByteLength": 7174,
+      "sha256": "45da0d06ae2f927133630df5c11069e20fd79028e23a0415acab5e9d7d4a29ad",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/RUNNER-HARDENING-NOTES.md",
+      "rawByteLength": 28778,
+      "sha256": "16fcf2ae99fdc74524614732d3e602a81c2b86429db8d8e5b8b105d8b7d199d2",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/VERIFICATION-NOTES-REVIEW-2.md",
+      "rawByteLength": 37526,
+      "sha256": "a54e1ae3e98152a16accce1d7e0658f46239be97d17f21d5aa4b5ffa0ef87512",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/VERIFICATION-NOTES-REVIEW-3.md",
+      "rawByteLength": 28658,
+      "sha256": "d18ede8832966483ebf588980d110e12a03ddb10d15f15095f85bba4bd6b7820",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/VERIFICATION-NOTES-REVIEW-4.md",
+      "rawByteLength": 37532,
+      "sha256": "eb82f2d9bc0deca071059b67a61f78a045db4ea564575d00cb5266d995ec6636",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/VERIFICATION-NOTES-REVIEW-5.md",
+      "rawByteLength": 12165,
+      "sha256": "0244f9963520c21c129c2fc40e7e9c464b146511f74f634339ef7d5ef41fbe4c",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/VERIFICATION-NOTES.md",
+      "rawByteLength": 20256,
+      "sha256": "c793837ff97b8cbfa29efe0c5cf4fd839389cc96f1434576ad7aa1ae850383cc",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/c0-freeze-build-evidence.json",
+      "rawByteLength": 1214,
+      "sha256": "ef9574f582dfbc3c54b0bcdf315a2e0b4bf0fb93661e25d9f9384a91468d7a74",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/c0-freeze-tests-evidence.json",
+      "rawByteLength": 798,
+      "sha256": "7b156a59aec59ffda6640c6037bce6eb11df64e891e0c882ba0a4a8a93897bec",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/c1-freeze-build-evidence.json",
+      "rawByteLength": 753,
+      "sha256": "eb7149c37918d5efd53d503a5574a1f1c2f82f754bbdb602ab3d0846ed1a0e17",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/c1-freeze-tests-evidence.json",
+      "rawByteLength": 971,
+      "sha256": "be82827a2ba4b97af7f98ea856e91d956bf51f53405e7e61d871ac6952fbb567",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/controller-migration-input.json",
+      "rawByteLength": 47142,
+      "sha256": "c5f6dd768940e7431613ea486bfef2fe64e1fdff5e45ffad60d69738f53163a0",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/coverage-mapping.json",
+      "rawByteLength": 7431,
+      "sha256": "cc4c349ef8d87963e18b37327b33354a4004b395755e2915e07e8e9726902108",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/dirty-baseline.json",
+      "rawByteLength": 6178,
+      "sha256": "0aafbd548e8906860f6b623ca4efdd582452f45126ec9439919fb57cc6c8d704",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/g0-db-receipt-v2.json",
+      "rawByteLength": 6371,
+      "sha256": "d5ae20710784b8741cc321dacb78e6cbe5a1ce00a3c7a869cd8ec527092736b0",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/g0-db-receipt.json",
+      "rawByteLength": 4388,
+      "sha256": "917e8cceb5e0bc597093c4e8e8d2d5723d1732b5c593bfaa308ca46ead5bfc2a",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/inputs/G0-ADOPT.md",
+      "rawByteLength": 720,
+      "sha256": "3dad858308eda647c1899e9aa3e4e479547d6b1a31af730dcf74c1f5c83be042",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/inputs/G0-CONSENT.md",
+      "rawByteLength": 702,
+      "sha256": "b2eb4edb070a25924186bb600de88ebe1ab4bf9c13c933657d56db9269926930",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/inputs/G0-DB.md",
+      "rawByteLength": 1284,
+      "sha256": "2fdf2aa1aa01eafe048b28f035ba3e667452658e77a7006bc734e143605eedc2",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/inputs/G0-MEMORY.md",
+      "rawByteLength": 634,
+      "sha256": "2047109b6ef82316789acb6468cca38fd08ab32eb041a51a48c5b31a2a2c27b5",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/inputs/G0-MOUNT.md",
+      "rawByteLength": 977,
+      "sha256": "13595713ebd14950a937b2c40dd30c8d04f8aa86a74627c8c47bab4174b77767",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/inputs/G0-OWNER.md",
+      "rawByteLength": 846,
+      "sha256": "5e3f099ed783caae483cc5f1b40d0fd073e121cd67ecfc9fc2b45dcd05af2096",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/inputs/G0-RELEASE.md",
+      "rawByteLength": 742,
+      "sha256": "c9265b0cf7c5cef1a27c0a3398426dc7f07a13b46a2cd70925b04a2082d34a78",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/inputs/G0-SCHEMA.md",
+      "rawByteLength": 631,
+      "sha256": "3c9b41189d44123ad0c980e052486cf925806d8acf36a0460bd8bb2a1a94bd9d",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/inputs/G0-TEST.md",
+      "rawByteLength": 660,
+      "sha256": "38d2c26144b8fa4169a3cde55fa7659d4440644d64a5e6c58b9ea1bd7830e990",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preservation.json",
+      "rawByteLength": 11662,
+      "sha256": "efb6c56d13105b64dd5498015889755d7d10936c297fa5601b941976c1ac01da",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/.packet-review3-check.tmp.md",
+      "rawByteLength": 191242,
+      "sha256": "c15bd9f7f9519006264b82103d3939aa87464fb23dfbf9ebf8d9a5be6d736af1",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/00-README.md",
+      "rawByteLength": 5701,
+      "sha256": "3c8bb67ab359452d4cf61f30b487f3e47d863f8a4edc05d21a9334d3e3885946",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/01-architecture.md",
+      "rawByteLength": 12644,
+      "sha256": "ed407cce8a9dea67e6556823b855e054bce8181e345abaf9d230c7b419378870",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/02-wireframes.md",
+      "rawByteLength": 14389,
+      "sha256": "f217da3578c90ff52e63db634eb920b76663778915e623ea65e017a6205ae49a",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/03-contracts.md",
+      "rawByteLength": 13093,
+      "sha256": "4b0e9e6918121ab327e54a42d472f74b7a61ecc2e51baa0b9f26f4fb932e3c81",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/04-build-order.md",
+      "rawByteLength": 7681,
+      "sha256": "526b928c98a4032dd8ebee980be7d4845924e78a6f39cafc7424becfb61f873f",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/05-slices.md",
+      "rawByteLength": 7655,
+      "sha256": "ce84b09ab947ea6806ed3b40a09585bbebde9ec4614ae919d752bfbd88a2912d",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/06-bans.md",
+      "rawByteLength": 3917,
+      "sha256": "adaf3ab073ebcf1c5d44546f32c10d3f817ba071fd9a22e7c6ffbac0f9a793e1",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/07-checkpoints.md",
+      "rawByteLength": 3610,
+      "sha256": "86e66365642a0da03d24bc142c6451c3e2df0f9982474dbd0014a4fa63a48c47",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/08-decision-density-self-test.md",
+      "rawByteLength": 5289,
+      "sha256": "f32838fa3224d032329ee0bc052df7262c994f7f263c43ba504a2f6b59b8c8bc",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/09-tests.md",
+      "rawByteLength": 12059,
+      "sha256": "c6e61f0b305b60d41db44074174a932983687e8b7067287fea883f929e5e4e20",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY-REVIEW-2.md",
+      "rawByteLength": 39691,
+      "sha256": "a5dbfd04e64bca02d9d3c943c3000589bb00f8fd41fffe47124716b0797af9f8",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY-REVIEW-2.meta.json",
+      "rawByteLength": 968,
+      "sha256": "8487eba82ce4c13cb95ce6cb91b1adf9c8b2b41b5bae9e014cb3c66d5f38d66c",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY-REVIEW-3.md",
+      "rawByteLength": 48190,
+      "sha256": "63db8fba2b72582cae7a781abb8a6fe3a06f0f99a9a0ef281bfc8d53fd9f2b65",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY-REVIEW-3.meta.json",
+      "rawByteLength": 970,
+      "sha256": "4cdce1b5d6d98ca33733c80f5e4140b08ea7f23e423b74f9e9535f38bb3a22ef",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY.md",
+      "rawByteLength": 100385,
+      "sha256": "8395b703c43e38f0440700e303217f38fbe50adab6d8492822e42f127b403dc6",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/ASTRA-REPLY.meta.json",
+      "rawByteLength": 614,
+      "sha256": "fef73422da149512635743fb9723d42c3c51d89a354d3dc1e61680aeb525fa18",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET-PREAMBLE.md",
+      "rawByteLength": 18310,
+      "sha256": "2b1fc5945e838cdce3ec383ef5d71b51de1f4ad6911c0aba52e896474efbc8ae",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET-REVIEW-2-PREAMBLE.md",
+      "rawByteLength": 19826,
+      "sha256": "99ef594ba424e78a5669c07a34b138aa84b343d84ce474da55fd364d8d9e88c8",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET-REVIEW-2.md",
+      "rawByteLength": 119511,
+      "sha256": "acc7d9eb9b6584fcb0fa63edb4f3967824414887a639a86d7960a2ed1ad46924",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET-REVIEW-3-PREAMBLE.md",
+      "rawByteLength": 26799,
+      "sha256": "ef2fb4d273d62f4772f886b2bce9f79933555ce0b6c5896fc5891187d24e8570",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET-REVIEW-3.md",
+      "rawByteLength": 191505,
+      "sha256": "25dbd6ecff7417fb885852dc5c5771fdb31e54c9e10e0f93c511a8fad27729e9",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/CONSULT-PACKET.md",
+      "rawByteLength": 286829,
+      "sha256": "540d4b97b44563b8b22bbcd68651f7ff03d29880ce7b49f8b29d9dc4ce295b29",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/HOSTILE-REVIEW.md",
+      "rawByteLength": 13451,
+      "sha256": "f66e3e8148490095352e094a9e3721628fdfa4ed8149317ad66f31d832ab6ee0",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/MANIFEST.md",
+      "rawByteLength": 7174,
+      "sha256": "45da0d06ae2f927133630df5c11069e20fd79028e23a0415acab5e9d7d4a29ad",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/RUNNER-HARDENING-NOTES.md",
+      "rawByteLength": 9927,
+      "sha256": "edfcd2d2fd289d8b50f9b8361125c1ca1e90781938c39af174f76a832c5aa6ea",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/VERIFICATION-NOTES-REVIEW-2.md",
+      "rawByteLength": 37526,
+      "sha256": "a54e1ae3e98152a16accce1d7e0658f46239be97d17f21d5aa4b5ffa0ef87512",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/VERIFICATION-NOTES-REVIEW-3.md",
+      "rawByteLength": 27869,
+      "sha256": "f6bc450fb635b5225cc4bbe6ae181d0fff87828ec320c4b493bedb1fc6c36f74",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/preserved-r4-package/VERIFICATION-NOTES.md",
+      "rawByteLength": 20256,
+      "sha256": "c793837ff97b8cbfa29efe0c5cf4fd839389cc96f1434576ad7aa1ae850383cc",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/r5-08-cadence-precondition.md",
+      "rawByteLength": 1545,
+      "sha256": "5d6053f4005b124eb54a262a30ec5953db7ca68fb7960eede9ea6208604e3e30",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/r5-08-runner-scope-closure.md",
+      "rawByteLength": 12985,
+      "sha256": "5f577bf4613c345de03dfabd33f13d498b860a461681d62ebaf55844dbd55a51",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/r5-08-scope-finding.md",
+      "rawByteLength": 3073,
+      "sha256": "525f2215610ba4450abbdf36d1c69bd1969691efc1f3a9b401e95d7b8ab1d3f1",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/r5-11-real-model-closure.md",
+      "rawByteLength": 11174,
+      "sha256": "34db663567793dee323037e2f9b8f26659458521d26685f77e0d6f06f8bf6381",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/r7-02-controller-preservation-closure.md",
+      "rawByteLength": 9821,
+      "sha256": "0043db5a0a55bcbabfe059cb88e34218db80e4b56018bfe3a83cf0c55e374544",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/r7-04-preservation-enumeration-closure.md",
+      "rawByteLength": 7664,
+      "sha256": "1ab8f416c00b75263b81286fea5e8555e86fe1d111bf5359f4e9aa216263806b",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/r7-06-retirement-closure.md",
+      "rawByteLength": 9254,
+      "sha256": "ed14bd20f491d5805674f461188be6fb5ef68fdd2152500c50cfc3ae27047d04",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/r7-12-preservation-provenance-unreachable.md",
+      "rawByteLength": 4417,
+      "sha256": "b647a92c561b69592890fa9ba7b30dba3268803ebd61af616d069a89e3f052c9",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/run-contract-v1-superseded.json",
+      "rawByteLength": 9834,
+      "sha256": "e84be3e81fcdb68e8cecc2877786af99d0436d8bf4094b3fbc4469753e4af091",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/run-contract.json",
+      "rawByteLength": 13824,
+      "sha256": "2eca59db12757ffdefd1af4b1a227d8453db41509c492e72978cb01058ca700a",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/source-bindings.json",
+      "rawByteLength": 12112,
+      "sha256": "2d19830f9754973f57faf0ac45980ae27b08d3cbbaff953286ae267d05435e29",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/83-remediation-blueprint-20260913.md",
+      "rawByteLength": 6766,
+      "sha256": "5dbb87dc3b268580cb26c54c79979297f5a39b039f409719ea1184e43d42c8c8",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/84-persistence-and-completion-blueprint-20260913.md",
+      "rawByteLength": 39359,
+      "sha256": "c76fc6eb125d8d034c2f25e262c0871643a3888c36559103868f5d59fe4fb405",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/85-rest-adjust-and-mobile-completion-blueprint-20260913.md",
+      "rawByteLength": 37124,
+      "sha256": "c7dfcaf1e6d26e50662dc34acfd04a41b0aaeed34d7f67c6db41d097574b9843",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/86-lifecycle-maintainability-blueprint-20260913.md",
+      "rawByteLength": 29264,
+      "sha256": "209b913f03e70024e4164b617da3503b7b4868ec518043464d6f1c3ba6400d41",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/87-scope-path-correction-register-20260913.md",
+      "rawByteLength": 13906,
+      "sha256": "7815e7e3cff544b7cff3dee769cafcca49bf1da58106196a3c6a9d31e752804f",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/88-S83-HOSTILE-REVIEW-AND-CONTINUATION-HANDOFF-20260917.md",
+      "rawByteLength": 60516,
+      "sha256": "21f0db3b38b6757f343d80c225840743193aac9a9f774d8ee21dc672e818a8c4",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/SWAN-COACH-HOSTILE-REVIEW.md",
+      "rawByteLength": 13729,
+      "sha256": "011b5072c970945cf75a75b3720ec6c501cc14e74978586085be0860b3582eb2",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/astra-migration-diagnosis.md",
+      "rawByteLength": 2210,
+      "sha256": "95ffe8559d4242f53925c313f1f16dae51f13929565c62d411023f90f9962058",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/astra-s83-default-hydration-adjudication.md",
+      "rawByteLength": 1442,
+      "sha256": "36ba5f792eb3fb83ed10e0f1b4a1ffc799d0723f829b074deb9b2f6d3152376f",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/authorization.md",
+      "rawByteLength": 695,
+      "sha256": "89ea59ea536bc8272532af6226b8bf9664a631f8bf9343b9b4d0f604e1a522b6",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/backend-review-runner.mjs",
+      "rawByteLength": 2744,
+      "sha256": "b2673ba6378791358f8ed0d4a1e92364f7290745b0b953c6172c3524e7ebdc3d",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/baseline-build-fixture-additions.json",
+      "rawByteLength": 9472,
+      "sha256": "4015ef4379727e9cdb5fc4411f828c518a7f77051209e9be1ca38be5822ecc63",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/migration-input.json",
+      "rawByteLength": 18260,
+      "sha256": "e9f57c3c1ecc76ce2d1cc514818528879327c5ef6c27a68d9cff94bda11b2118",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/mobile-shell-before.json",
+      "rawByteLength": 936,
+      "sha256": "bd5a3197ac29454b50720e9abb940e4f4a1028fe331dc038ca85bbcd303a2807",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/mobile-shell-before.png",
+      "rawByteLength": 100940,
+      "sha256": "6a9497437ad907c1454c4a8dbccbef59eefe6fc8aaf95587276d22ccf70051f8",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/postgres-matrix-corrected.json",
+      "rawByteLength": 4889,
+      "sha256": "5dc15272ebfb0c682ad987f2025c035ca17d7fdc9fcb40914a51a5ee8363d604",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/pre-remediation-build-receipt.json",
+      "rawByteLength": 89019,
+      "sha256": "6265c0c88bf67409342c8f706c175e062048bc9affaae78f673837127d4090fa",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/preservation.json",
+      "rawByteLength": 29873,
+      "sha256": "411e69f3535c16d31bbe588635926e44b2f3caea815f3107c2d75f8a37bbf269",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/readiness-s83.json",
+      "rawByteLength": 6719,
+      "sha256": "4e40013f052cb99e8f75909a8470f6544251facb6fe7192940d2e7cbb5b416fe",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/readiness-s84.json",
+      "rawByteLength": 5932,
+      "sha256": "fa43fc698565cee51a639c702ddfe908285aa6c56e00188b15821a5aedc0e8fb",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/readiness-s85.json",
+      "rawByteLength": 5932,
+      "sha256": "6838f2efa0c78921e2c6a16cb86fc2cee71838f146e9daf535deafda2da1aafe",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/readiness-s86.json",
+      "rawByteLength": 5931,
+      "sha256": "eaa1f4499892fcae74e4706064b11327e60335f07332b8950c2891f03748a350",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/readiness-s87.json",
+      "rawByteLength": 5931,
+      "sha256": "71cfd358e9edb437d057a7e673ed156b588bc4166633831f348b6ac5d5aca9dc",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/readiness-s88a.json",
+      "rawByteLength": 6171,
+      "sha256": "fa4828c192967ccac547b8e57a08c28316668937cfba9c6e845b58568903de0e",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/readiness-s88b.json",
+      "rawByteLength": 6171,
+      "sha256": "b87d67a344b0e3fcc65aa4791c175b6c33f6bce858c7d3f4fe6cf85a9f820561",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/readiness-s89.json",
+      "rawByteLength": 6165,
+      "sha256": "e0ce419c6228b0278dd7d1bfcfabdd276ba901ac92412f5681aef19ece4eeb6e",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/readiness-s90.json",
+      "rawByteLength": 6027,
+      "sha256": "a1a174d367ba664befe67db7aeee72689ec2c476280a7c2f2a44305bf896faa2",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/readme-preservation-update.json",
+      "rawByteLength": 399,
+      "sha256": "76cc21baa4ec1a51b2da18c4a3ec04eefe8fdd46b13f41486d30356ae3032f83",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/reset-owned-coach-db.mjs",
+      "rawByteLength": 963,
+      "sha256": "22be40b46576ad4fbb439d33594b040c308bbe375a8d15ce8a4a04198fb348b1",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/run-owned-postgres-matrix.mjs",
+      "rawByteLength": 1328,
+      "sha256": "5289e9524979612bf762dc0aaf68b1be0405fbcd3166ddcdffef0d66d9bc1aeb",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s83-native-command-history-interim.json",
+      "rawByteLength": 71720,
+      "sha256": "9001af406b7e54340abbacd8f3a41824e7afb4c1afdee0846ec4cda85ed7ec6e",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s84-readiness-check.json",
+      "rawByteLength": 162,
+      "sha256": "534c605f99d2a8a86fd42ed65048a248d05e48ccebf8d5ddcfb2dd397c653551",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s85-readiness-check.json",
+      "rawByteLength": 162,
+      "sha256": "534c605f99d2a8a86fd42ed65048a248d05e48ccebf8d5ddcfb2dd397c653551",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s86-readiness-check.json",
+      "rawByteLength": 162,
+      "sha256": "534c605f99d2a8a86fd42ed65048a248d05e48ccebf8d5ddcfb2dd397c653551",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s87-initial-bootstrap.mjs",
+      "rawByteLength": 4446,
+      "sha256": "70edd2460f14a8d39b29e1d464e96edc10f2aed0ef2081e59f778c53e94c04c0",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s87-initial-database.mjs",
+      "rawByteLength": 548,
+      "sha256": "a083845d3eaa1c5ac997c185e0e97bb982dfaaa43d54b8316ae64b408558e93a",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s87-initial-loader.mjs",
+      "rawByteLength": 523,
+      "sha256": "681d55f4b8a58c5d22c19226ea0b58f85ca05e08e95ae96a5bd625ed657b348d",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s87-initial-s87-bootstrap-2026-09-14T01-41-28-568Z.json",
+      "rawByteLength": 2543,
+      "sha256": "dfff79560bad63339b30c349dfe9dd441e38d8873d9ee573a061e64bc6b02f62",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s87-initial-server.mjs",
+      "rawByteLength": 3754,
+      "sha256": "1672041fc5aed2e96a7fe2dc7c5b4b36390a721297b545a19688629585d185e7",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s87-readiness-check.json",
+      "rawByteLength": 162,
+      "sha256": "534c605f99d2a8a86fd42ed65048a248d05e48ccebf8d5ddcfb2dd397c653551",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s87-real-auth-bootstrap-receipt.json",
+      "rawByteLength": 5292,
+      "sha256": "d384796d3232fa7f3d69a4cff43af3461a4d33b6eafea05b1c3ecf22a51af11a",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s88a-readiness-check.json",
+      "rawByteLength": 162,
+      "sha256": "534c605f99d2a8a86fd42ed65048a248d05e48ccebf8d5ddcfb2dd397c653551",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s88b-readiness-check.json",
+      "rawByteLength": 162,
+      "sha256": "534c605f99d2a8a86fd42ed65048a248d05e48ccebf8d5ddcfb2dd397c653551",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s89-readiness-check.json",
+      "rawByteLength": 162,
+      "sha256": "534c605f99d2a8a86fd42ed65048a248d05e48ccebf8d5ddcfb2dd397c653551",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/s90-readiness-check.json",
+      "rawByteLength": 162,
+      "sha256": "534c605f99d2a8a86fd42ed65048a248d05e48ccebf8d5ddcfb2dd397c653551",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/scope-path-correction-evidence.json",
+      "rawByteLength": 13816,
+      "sha256": "ebb22e36452d42143c1ed50e197c3a5e5f6e328e99c953631f864852dffe9c40",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/scope-repair-append-remediation-slice.before-scope-repair.mjs",
+      "rawByteLength": 3563,
+      "sha256": "d71120e9db43feb852a7c49e189a4f724d2734b97c06202a5e91c3c246bd244e",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/scope-repair-parse-remediation-scope.mjs",
+      "rawByteLength": 633,
+      "sha256": "449fe508957844cbeb2d815c6fec2bc9e7ebe88d0b287534eb4168021f53c911",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/scope-repair-parse-remediation-scope.test.mjs",
+      "rawByteLength": 1273,
+      "sha256": "dcce352e514d44ae5bf03db3d038cb34dfff77b928422b2500c821cce3fba381",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/manifest.json",
+      "rawByteLength": 7652,
+      "sha256": "0c61f42bf5528ac1cc93fd18b9536221271b23d44afe21fee53101a4e90a3880",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/s87-bootstrap-2026-09-14T02-33-11-761Z-restart.json",
+      "rawByteLength": 348,
+      "sha256": "a0201f3cf0d8ee56d4288da73014905f8a56b98110bf62d7e2e877e812ab2967",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/s87-bootstrap-2026-09-14T02-33-11-761Z.json",
+      "rawByteLength": 2543,
+      "sha256": "dfff79560bad63339b30c349dfe9dd441e38d8873d9ee573a061e64bc6b02f62",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/s87-harness/README.md",
+      "rawByteLength": 3240,
+      "sha256": "8e27c4c398797d359758cdb6e5777019d7257429387b62aca53bdd324bb9a4eb",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/s87-harness/bootstrap.mjs",
+      "rawByteLength": 7049,
+      "sha256": "8fbe3bb6364a16ba207cb9916be6c4bce507acf715b137659ecb0fef8df3febc",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/s87-harness/browser-baseline.mjs",
+      "rawByteLength": 3861,
+      "sha256": "cf1adc66c80700b92149c040ae91ad031469b17f597e215f2e8d9c96d64aac4d",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/s87-harness/database.mjs",
+      "rawByteLength": 548,
+      "sha256": "a083845d3eaa1c5ac997c185e0e97bb982dfaaa43d54b8316ae64b408558e93a",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/s87-harness/loader.mjs",
+      "rawByteLength": 523,
+      "sha256": "681d55f4b8a58c5d22c19226ea0b58f85ca05e08e95ae96a5bd625ed657b348d",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/s87-harness/server.mjs",
+      "rawByteLength": 4272,
+      "sha256": "b1da7df2dbcac6b38c459dfe8e2e4485a54f7b8fa3ee434a4b345c84e04de4ab",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/scope-correction-v6-executions.json",
+      "rawByteLength": 2918,
+      "sha256": "292e47bbb0cae661d7eed128e1825baba7941e99a491a896f5814ae515c4134d",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/active-state-before.json",
+      "rawByteLength": 267,
+      "sha256": "1a123ca3a22d5d412517ac036403620961f6dbaeb7ce57a143b40caae87c8137",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/active-state-validation.json",
+      "rawByteLength": 337,
+      "sha256": "12147f3731e15f19ba9a8e3306ee030ce3676aa6fe2b51745b428ea2d41a643a",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/alias-convergence/before/references/workflow-usage.md",
+      "rawByteLength": 29446,
+      "sha256": "2882ca88f971641f19c2f1004e011e6ce80818ee440ba281b94cc966e4d43192",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/alias-convergence/before/scripts/workflow-migration.mjs",
+      "rawByteLength": 4716,
+      "sha256": "efe95d9b1f4d9c236bb8217e99762b8fc6bfcc0b83a8c070553ccaaad941dc78",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/alias-convergence/before/scripts/workflow-migration.test.mjs",
+      "rawByteLength": 9896,
+      "sha256": "d14e1816ce6f2087e06158f4d71539448470411eb5859cea2c3ca9863cda8f37",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/alias-convergence/preservation.json",
+      "rawByteLength": 1214,
+      "sha256": "3764455892049dab5cb5001482116724754ef8ccfe05aa8fabc4419645942a66",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/alias-convergence/repair-addendum.md",
+      "rawByteLength": 2116,
+      "sha256": "8d98cbc0ebc660b6e75cf8b89821354b38048ba7175f251d20c83b0f726855b0",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/before/references/workflow-usage.md",
+      "rawByteLength": 26639,
+      "sha256": "2d1c99d6bedddd5f5cf653d9c8b6f351997ef3bf4495a45380c13b9305418d3d",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/before/scripts/workflow-override-evidence.mjs",
+      "rawByteLength": 13539,
+      "sha256": "380a2b1849650068eaa781a73fa48ce729f7ce3a7189a03b0576b302aeb66243",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/before/scripts/workflow-override.mjs",
+      "rawByteLength": 13096,
+      "sha256": "36bf6c94c49795b73b8aa3d6af4c6156a65910cc4b8be708dd8d262998ef594a",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/final-receipt-v2.json",
+      "rawByteLength": 3208,
+      "sha256": "73d4a8c79bd5385531d31d14b2cd698b0221cb328c7443cb68d13a8817da0670",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/final-receipt.json",
+      "rawByteLength": 3509,
+      "sha256": "5fe8d0d31ad6d18a6859641c032c274e142d54a231163d3338cf4ee1f7bd74d4",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/preservation.json",
+      "rawByteLength": 1331,
+      "sha256": "985b9b1cb9af0f764ca4ccb1089401af604c2a27a540d780deb35a6eb04fca3c",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/repair-plan.md",
+      "rawByteLength": 5341,
+      "sha256": "89fe3d27f8cdecd701139573c8ed2bfab52cfad0fd41e952d42adc4d2880f41f",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/restore-verification/references/workflow-usage.md",
+      "rawByteLength": 26639,
+      "sha256": "2d1c99d6bedddd5f5cf653d9c8b6f351997ef3bf4495a45380c13b9305418d3d",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/restore-verification/scripts/workflow-override-evidence.mjs",
+      "rawByteLength": 13539,
+      "sha256": "380a2b1849650068eaa781a73fa48ce729f7ce3a7189a03b0576b302aeb66243",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/restore-verification/scripts/workflow-override.mjs",
+      "rawByteLength": 13096,
+      "sha256": "36bf6c94c49795b73b8aa3d6af4c6156a65910cc4b8be708dd8d262998ef594a",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-and-restart-proof/workflow-repair/verify-active-state.mjs",
+      "rawByteLength": 959,
+      "sha256": "c592f2141ed9660c85cfba04cfeca409d4bed32af6013e4def356d58cbd6c567",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/evidence/remediation-20260913/workflow-state-v5-before-scope-correction.json",
+      "rawByteLength": 1115277,
+      "sha256": "b635bfdcb897dfdcaff718a21ff4ace05c3550b72cddc769c6428de613df65a0",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "evidence/remediation-20260913/astra-architecture-output.md",
+      "rawByteLength": 39359,
+      "sha256": "c76fc6eb125d8d034c2f25e262c0871643a3888c36559103868f5d59fe4fb405",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "evidence/remediation-20260913/astra-lifecycle-maintainability-output.md",
+      "rawByteLength": 29264,
+      "sha256": "209b913f03e70024e4164b617da3503b7b4868ec518043464d6f1c3ba6400d41",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "evidence/remediation-20260913/astra-rest-adjust-mobile-architecture-output.md",
+      "rawByteLength": 37124,
+      "sha256": "c7dfcaf1e6d26e50662dc34acfd04a41b0aaeed34d7f67c6db41d097574b9843",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "frontend/.hermes/environment.json",
+      "rawByteLength": 796,
+      "sha256": "c62e4c6283201f4d1207935588a66ad67ff733f5a7287bdc2b6b1b257cf4d842",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "frontend/.m68-probe-chromium.mjs",
+      "rawByteLength": 252,
+      "sha256": "45009b75e0211747efd19a59480fb40227f2a18499632539f2a2a9932d3c1584",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "frontend/.m68-probe-rollup.mjs",
+      "rawByteLength": 171,
+      "sha256": "a1a37ee8a327ff8050533768c6ea12ed71e65171a4ca73453029a6f8d6555d7e",
+      "trackedStatus": "??",
+      "ownerSlice": "C5"
+    },
+    {
+      "path": "frontend/e2e/coach-memory-consent-remediation.spec.ts",
+      "rawByteLength": 17003,
+      "sha256": "b3c135ceffe6626532ce0a93802f40e66bb3927fadd64ba7bc12774b9c20abed",
+      "trackedStatus": "??",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/e2e/workout-logger-rest-adjust.spec.ts",
+      "rawByteLength": 16377,
+      "sha256": "334b9ce67314d1d7dd8a1f4628eccfe2e24b298783c7cb1a3ca7dc9e09f1228a",
+      "trackedStatus": "??",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/playwright.workout-logger-rest-adjust.config.ts",
+      "rawByteLength": 2417,
+      "sha256": "9ad650b20e30e7284fbb1706518192dfdac0103e33db18a9972e5a95f49b926c",
+      "trackedStatus": "??",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachMemoryAccess.tsx",
+      "rawByteLength": 12727,
+      "sha256": "5a2400aa1ffec332d3e63f3dc7e68547c449f16996e4b7def04e4ba1cb4bfec3",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachMemoryDrawer.styles.ts",
+      "rawByteLength": 8800,
+      "sha256": "f870147816ef4a96a547eea5cb1a134811f953b51f6872a2d946d72fabae7fa1",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachMemoryDrawer.test.tsx",
+      "rawByteLength": 11646,
+      "sha256": "49384a776a0d4259c0f4d00ad1e9f8ec15fa58cfc9cef056698e3610eb2684b2",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachMemoryDrawer.tsx",
+      "rawByteLength": 8690,
+      "sha256": "ba95a47595de72ee0fb03fc3aaccedb3e847785c764905271498399565c2b086",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachSelectionDecision.styles.ts",
+      "rawByteLength": 3450,
+      "sha256": "8ec03f3beb6d7ddee5de488cff9de95308c604f7509bbe657f36bc442cf3a21c",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/coachSelectionLifecycleTypes.ts",
+      "rawByteLength": 7288,
+      "sha256": "a05d0c1c7f505dbb59bacdc69a1af19a1922d2134e492d068f564685b117cc10",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/hostileReview.integration.test.tsx",
+      "rawByteLength": 24717,
+      "sha256": "4deb388e8b29ce18733d1c248ad89c39462934253c1bf51dae77a2f004eff3cc",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachCreatedThreadAdoption.test.tsx",
+      "rawByteLength": 13577,
+      "sha256": "7bb8e582620679a352e05e7b2dd13aabfcdebd13d89edf0d302cfc1b92badfe8",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachCreatedThreadAdoption.ts",
+      "rawByteLength": 8099,
+      "sha256": "eff6eb5566faee034a492e54e4a854ee63cdb8707c9202834eeed6a39753f7cd",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachMemory.test.tsx",
+      "rawByteLength": 12924,
+      "sha256": "e5f28dd99bc6baa75361976694674dec74ef7997336c3695b36702919bcbaefe",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachMemory.ts",
+      "rawByteLength": 12452,
+      "sha256": "08e52c2e5c1490c9e91f30cdcc5f4f6fb2f9eebaed059073ed755b11c409f66f",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSelectionCommitEffects.ts",
+      "rawByteLength": 10404,
+      "sha256": "a313e3be23463bea2dbad58bb1679f57689b78a6ddc46c6b63606441e208882f",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSelectionNavigationBlocker.test.tsx",
+      "rawByteLength": 15542,
+      "sha256": "d6c2d5db4f9edae6ea9cdf12b89d191f2aaced7df685952571a922f8729af851",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSelectionNavigationBlocker.ts",
+      "rawByteLength": 14231,
+      "sha256": "a0405b9fd847a06ab73e3d39e2e36bf50cdbbcbdcf57b8a23617618a4c2b7f8e",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSelectionOwnerBranches.ts",
+      "rawByteLength": 10869,
+      "sha256": "ab5d39ba8648a9cfb150ab24355f7e09d5cefa4ba564992dd36974b652b7dd37",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSelectionSettledAction.epoch.test.tsx",
+      "rawByteLength": 6361,
+      "sha256": "d44d3710e7b702b9adb47bfed07a6b1a480fd20e6ce413c96732cba37909576d",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSelectionSettledAction.ts",
+      "rawByteLength": 9635,
+      "sha256": "8319c01f14d57e6ca6c0ace1f2150993282a65afc9f0a4190be327bd7b1603f0",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachSessionSelection.adoption.test.tsx",
+      "rawByteLength": 7481,
+      "sha256": "902e25a502000c5948b62419c62bd8f9c55cb12dfe4089f74ee7b3f21e42cddc",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachThreadHydration.ts",
+      "rawByteLength": 6958,
+      "sha256": "3bfc325e28dfec46a5459db3b39b4250416a36ccd195986aef84376aaa85c078",
+      "trackedStatus": "??",
+      "ownerSlice": "C3"
+    },
+    {
+      "path": "frontend/src/components/UniversalMasterSchedule/NotificationPreferencesModal.saveContract.test.tsx",
+      "rawByteLength": 5428,
+      "sha256": "7e26e98d8a5607dd2c1caaf6df2e058bafb70090ff91dd15404fc82e897a89ef",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "frontend/src/components/UserDashboard/components/CoachNudgePreferences.test.tsx",
+      "rawByteLength": 10074,
+      "sha256": "790b1f4fbdb5be8a8b0fd3bb887ba1b3941b45ae85009b45c7a05b9e63a60c8d",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "frontend/src/components/UserDashboard/components/CoachNudgePreferences.tsx",
+      "rawByteLength": 10897,
+      "sha256": "8a77fac9aebc8edf8ec8794449f1a3f194747f04b63fbc99052d8e425b2d49e9",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useRestTimer.adjust.test.ts",
+      "rawByteLength": 8290,
+      "sha256": "43fd4ed1b7ed2743698ec5fea773ee7609a9498dc8485181eb72520cfd1b6d92",
+      "trackedStatus": "??",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutAiEvents.restAdjust.contract.test.tsx",
+      "rawByteLength": 5546,
+      "sha256": "227cc75760fb0902b94405906103fa9399f0261873c156439741d1d42cad0408",
+      "trackedStatus": "??",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutLoggerCommandScope.test.tsx",
+      "rawByteLength": 6146,
+      "sha256": "30e5f6e8a54b16668668e272b0391f6c5607b861fdfb885571a663ad2fbd14d2",
+      "trackedStatus": "??",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutLoggerCommandScope.ts",
+      "rawByteLength": 4619,
+      "sha256": "e6ddd57cdb8ef7da1345b8ff16d4b6d6ee6804a486adc09b990176549cc8557b",
+      "trackedStatus": "??",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/components/WorkoutLogger/useWorkoutLoggerDictation.retirement.test.tsx",
+      "rawByteLength": 7089,
+      "sha256": "749624d6e5a35737f7b68d1e86ca9380bb9b39e38f6693c17d3a5a28ad7a741d",
+      "trackedStatus": "??",
+      "ownerSlice": "C4"
+    },
+    {
+      "path": "frontend/src/services/coachMemoryService.ts",
+      "rawByteLength": 10873,
+      "sha256": "5650e412b7a3a526f1df9261cd8a4b0a1de42bf4e846cc9ed921db7b040ff150",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "frontend/src/services/coachNudgePreferencesService.ts",
+      "rawByteLength": 5215,
+      "sha256": "1881563809f5c85e1e652d6049ca75be960232f04a814f72b9fe1510dceb601b",
+      "trackedStatus": "??",
+      "ownerSlice": "C1"
+    },
+    {
+      "path": "scripts/coach-completion-tools/README.md",
+      "rawByteLength": 4391,
+      "sha256": "e3845e781176342594dc9a86e62cffc379df80411414d863a5c3599f5c6f7f74",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/_root.mjs",
+      "rawByteLength": 2654,
+      "sha256": "83de35646e7f929e5a50153e5df2383fcc404b436f6a96cf5de585a56032d3d9",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/c0-build-bindings.mjs",
+      "rawByteLength": 10540,
+      "sha256": "30a129d25d3eeb6870dfbe77f944e326f19d499250279ff42d43adb5a85f03b8",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/c0-build-candidate-manifest.mjs",
+      "rawByteLength": 6117,
+      "sha256": "7ca93ca68e7b8cbed176d78561c7d371a4ae8f72be8dd0928433a9b6cf4736a0",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/c0-build-manifest.mjs",
+      "rawByteLength": 5018,
+      "sha256": "ea7ef25bbb9c29a69bb9c6e9101b6ec6ceeb9309e9b4dc4307fbc4a2ae09965e",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/c0-build-migration-input.mjs",
+      "rawByteLength": 4358,
+      "sha256": "1fdb3df1ebf6bca3b0fc24c9b34e9542466e209ac5d17de3588b5b4876afc50b",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/c0-build-v9-migration-input.mjs",
+      "rawByteLength": 11982,
+      "sha256": "9700a4d4f2f42f3a5603333ebe241a617a6ac9a10e0c023d2be4ded197b33aea",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/c0-owner-rules.mjs",
+      "rawByteLength": 9577,
+      "sha256": "6820546ee273db4ae692021873de36988486a496e96af2935ca91ca8f2fb7c39",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/c0-snapshot.mjs",
+      "rawByteLength": 1312,
+      "sha256": "81572f8acf753575825362937d908967550b2b6ae611e4402f90621ef29dfc18",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/c0-verify-snapshot.mjs",
+      "rawByteLength": 1259,
+      "sha256": "19ef52eb5beaf7251af5a38deead43eeb7372f01d451f4c7c254e454ef8bf97c",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/c0-write-receipts.mjs",
+      "rawByteLength": 3893,
+      "sha256": "07f86dc9d2838f964b87644d1b5e22a3131779fd22104adf987a9fb1d8b9f9d8",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/r701-probe.mjs",
+      "rawByteLength": 2910,
+      "sha256": "8a0efdc412264dda62727ef20cb0b0b57f3bbdfea484f522b90875553680a425",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/r702-mutation-probe.mjs",
+      "rawByteLength": 2792,
+      "sha256": "ac604990b470e75d27e9dfcb8f4c698705aee3c36ed01c412b5b1eefd90edc26",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/r702-real-probe.mjs",
+      "rawByteLength": 890,
+      "sha256": "6626822d5fd73d78dde0f329394b35f6190edada0ed3d96c0b1244222c1cae33",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/r704-backfill-preservation-inventory.mjs",
+      "rawByteLength": 6862,
+      "sha256": "e610077704c3aa971d2067a1780c1220c98d085d4d611c72ebb36817e3ff2379",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/r706-baseline-probe.mjs",
+      "rawByteLength": 965,
+      "sha256": "28f11d330d31dd447da42f5f2800655e81558254728b66feafad75a3ee6cbe18",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/r708-live-probe.mjs",
+      "rawByteLength": 2161,
+      "sha256": "a28c290dc8fb64904463070d34e972cdb4175a6464a9aec22a117f1d428bb305",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    },
+    {
+      "path": "scripts/coach-completion-tools/r711-manifest-byte-probe.mjs",
+      "rawByteLength": 5830,
+      "sha256": "ef9b6ab8f913621df3803f2a2aed9931f22567606b367c66f77dc33c0a9253ac",
+      "trackedStatus": "??",
+      "ownerSlice": "C0"
+    }
+  ]
+}

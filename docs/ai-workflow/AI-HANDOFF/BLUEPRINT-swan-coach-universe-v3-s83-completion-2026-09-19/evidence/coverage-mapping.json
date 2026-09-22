@@ -1,0 +1,111 @@
+{
+  "generatedAt": "2026-09-21T19:05:00Z",
+  "purpose": "C-to-S coverage mapping (Astra R5-08): the C0-C6 package slices and the migrated controller state use different slice vocabularies. This maps them by ACTUAL FILE CONTENT so a reader can tell which controller slice carries which package slice's work, and where the correspondence is genuinely not 1:1.",
+  "packageVocabulary": "C0..C6 (PKG/05-slices.md)",
+  "controllerVocabulary": "S83-SELECTION-AND-PRESERVED-BASELINE, S84, S85, S86, S87, S88a, S88b, S89, S90 (workflow-state-v8.json)",
+  "controllerState": "tmp/coach-completion-20260921/workflow-state-v8.json",
+  "method": "Classified each S slice's allowedFiles by path area (harness, persistence-suites, migration, coach-assistant FE, browser, config) and matched against the C slices' declared scope. Every mapping below cites the file evidence that justifies it. Where a slice spans more than one C concern, that is stated rather than forced into a single row.",
+  "mapping": [
+    {
+      "packageSlice": "C0",
+      "controllerSlices": [],
+      "status": "NOT COVERED BY THE CONTROLLER STATE",
+      "evidence": "The controller has no slice whose allowedFiles include scripts/coach-completion-checkpoint.mjs or PKG/evidence/*. C0 is package-admission work that predates the C-vocabulary.",
+      "consequence": "C0's own work is tracked by PKG/evidence/, not by a controller slice. This is a REAL gap in the binding, not a naming difference. v8's index 0 sits on S83-SELECTION-AND-PRESERVED-BASELINE, which is not C0.",
+      "needs": "Either a C0 slice appended to the controller, or an explicit statement that C0 is governed outside the controller."
+    },
+    {
+      "packageSlice": "C1",
+      "controllerSlices": [
+        "S84 (persistence half)",
+        "S85 (consent half)"
+      ],
+      "status": "COVERED, SPLIT ACROSS TWO SLICES",
+      "evidence": "S84's allowedFiles include backend/tests/integration/coachMemoryPersistence.postgres.test.mjs and the coachFact* services \u2014 the memory persistence surface C1 requires. S85's include backend/tests/integration/coachConsentPersistence.postgres.test.mjs, backend/services/notificationPreferenceUpdateService.mjs and both writers \u2014 the consent surface C1 requires.",
+      "note": "C1 also requires the RUNNER changes (coachRunnerLifecycle.mjs, run-coach-postgres.mjs). Those appear in NEITHER S slice's allowedFiles.",
+      "uncoveredWithinC1": "The runner hardening (R4-03/R5-01/R5-02) has no controller slice. This is the work most recently completed and it is currently bound by no controller scope."
+    },
+    {
+      "packageSlice": "C2",
+      "controllerSlices": [
+        "S84 (migration half)"
+      ],
+      "status": "PARTIALLY COVERED",
+      "evidence": "S84 holds backend/migrations/20260913010000-add-coach-fact-correction-replay.cjs and backend/tests/unit/coachFactsMigration.test.mjs. C2 additionally requires the migration-completion suite, its config and fixtures, which do not exist yet and so appear in no allowedFiles.",
+      "note": "Correct for not-yet-created files: a future deliverable cannot be in a scope that was frozen before it existed."
+    },
+    {
+      "packageSlice": "C3",
+      "controllerSlices": [
+        "S86",
+        "S87"
+      ],
+      "status": "COVERED",
+      "evidence": "S86 is 14 coach-assistant FE files; S87 is 9 coach-assistant FE files plus 6 other and 1 browser. C3's scope is the created-thread composition and navigation lifecycle in the coach-assistant tree.",
+      "note": "S87 carries a browser file, so it straddles C3 and C4."
+    },
+    {
+      "packageSlice": "C4",
+      "controllerSlices": [
+        "S87 (browser overlap)",
+        "S88b",
+        "S89 (browser overlap)"
+      ],
+      "status": "COVERED, WITH OVERLAP",
+      "evidence": "S88b holds 2 browser files; S87 and S89 hold 1 each. C4's scope is the mounted completion journeys.",
+      "note": "The C4 browser configs (playwright.coach-completion.config.ts, the two new real specs) do not exist yet and appear in no allowedFiles."
+    },
+    {
+      "packageSlice": "C5",
+      "controllerSlices": [],
+      "status": "NOT COVERED BY THE CONTROLLER STATE",
+      "evidence": "No S slice's allowedFiles include PKG/evidence/module-line-audit.json, verification-receipt.json, or the swan-coach-universe-v3 findings register.",
+      "consequence": "Same shape as C0: evidence-closure work tracked by PKG/evidence/ rather than a controller slice."
+    },
+    {
+      "packageSlice": "C6",
+      "controllerSlices": [],
+      "status": "NOT COVERED BY THE CONTROLLER STATE",
+      "evidence": "The controller's FINAL stage is separate from its slice list; no S slice covers the combined Astra adjudication.",
+      "note": "In the controller's model, C6 would be the FINAL stage, not a slice. That is a vocabulary difference rather than a gap \u2014 but it is UNCONFIRMED because no FINAL slice has been configured in v8."
+    }
+  ],
+  "summary": {
+    "cSlicesFullyMapped": [
+      "C3"
+    ],
+    "cSlicesPartiallyMapped": [
+      "C1",
+      "C2",
+      "C4"
+    ],
+    "cSlicesNotMapped": [
+      "C0",
+      "C5"
+    ],
+    "cSlicesNeedingVocabularyTranslation": [
+      "C6"
+    ],
+    "honestStatement": "The mapping is NOT clean. C3 maps well; C1/C2/C4 map with splits and overlaps; C0 and C5 are tracked by PKG/evidence/ rather than by any controller slice; C6 is probably the FINAL stage but is unconfirmed. The most consequential finding is that the RUNNER HARDENING \u2014 the R4-03/R5-01/R5-02 work \u2014 falls inside C1's requirement yet inside NO controller slice's scope.",
+    "runnerScopeGap": "CONFIRMED AND HISTORICAL: all 6 guarded-runner files have NO controller owner in v8, AND had none in v4, v5, v6 or v7. See evidence/r5-08-scope-finding.md. C1 acceptance criteria reference these files; C1 scope does not contain them. preserveOwnedScope never fired because there was nothing to lose."
+  },
+  "unresolved": [
+    "Whether C0 and C5 should be appended as controller slices, or explicitly governed outside the controller.",
+    "Whether C6 should be the controller's FINAL stage."
+  ],
+  "notDone": "No controller change is made by this document. It reports the mapping and its gaps; resolving them is a scoping decision.",
+  "resolved": [
+    {
+      "item": "Which controller slice, if any, is permitted to touch the runner files (run-coach-postgres.mjs, coachRunnerLifecycle.mjs, coachRunnerReport.mjs, coachRunnerVerdict.mjs).",
+      "resolution": "S91-GUARDED-RUNNER-SURFACE \u2014 appended 2026-09-21 by operator decision.",
+      "evidence": "evidence/r5-08-runner-scope-closure.md"
+    },
+    {
+      "item": "RESOLVE THE RUNNER SCOPE GAP: append a bounded slice covering the runner surface, or declare it explicitly out of controller scope and name its governing authority.",
+      "resolution": "Option (a) taken: a bounded slice was appended. S91 owns 11 paths, including the 6 named in the finding and the 5 same-surface paths the finding did not name.",
+      "evidence": "evidence/r5-08-runner-scope-closure.md",
+      "verified": "tmp/verify-s91.mjs \u2014 22/22, with negative sentinels.",
+      "newFinding": "checkControllerMigration is blind to a slice's allowedFiles being hollowed to []. Recorded in the closure doc; NOT fixed this cycle."
+    }
+  ]
+}
