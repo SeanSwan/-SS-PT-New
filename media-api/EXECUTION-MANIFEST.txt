@@ -1,6 +1,6 @@
 EXECUTION MANIFEST — media-api readiness suite
-generated: 2026-09-22T20:28:10Z   (DERIVED — never hand-edit this file)
-HEAD:      68e8dc7d4c68ceb7a9386f3787c016e2b8edaa6d
+generated: 2026-09-22T20:48:10Z   (DERIVED — never hand-edit this file)
+HEAD:      d5c08b002f2352196ca6185c4bdb53ceeaf96353
 gates:     33    failed: 0    assertions: 1231
 
 ORD  ID              GATE
