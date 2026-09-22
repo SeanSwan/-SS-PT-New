@@ -1589,9 +1589,25 @@ is left byte-for-byte as it was written — the numbers in it are now known to b
 the honest state of a receipt for an artifact that no longer exists — and the current verification is
 stated below instead, against the thing that DOES exist.
 
-**The handover of record is the COMMIT, not the patch — and here is the commit this document was REVIEWED AGAINST, not the tip it rides on.** The reviewed base is `fb82c21a1` (round 28, the commit this document rides on),
-whose chain is `fb82c21a1` → `b796338fb` (round 27) → `main` at `2b3e7a62a`. A commit is checkable with
+**The handover of record is the COMMIT, not the patch — and here is the commit this document was REVIEWED AGAINST, not the tip it rides on.** The reviewed base is `4c93db148` (round 31 — the `creator-brains-engine-r2-20260915` tip, and the commit this document rides on),
+whose chain is `4c93db148` → `7c7774447` → `main` at `2b3e7a62a`. A commit is checkable with
 `git rev-parse`; a stale file is not.
+
+> **THE NAMED BASE MOVED A SECOND TIME, 2026-09-22 (round 31) — read this before treating it as drift.**
+> It was `fb82c21a1` (round 28). It is now `4c93db148`. The reason is the same one that moved it the
+> first time, only further along: the object store lost the subtrees the media-api lineage's commits
+> point at. `fb82c21a1` survives as a commit, but its `media-api/` tree (`2dd1923f5`) and its `backend/`
+> tree (`2354fb584`) are **missing**, so no tree can be read out of it and it can no longer be verified
+> as an ancestor of anything. Recovery therefore rebuilt the lane's commit from the surviving working
+> tree onto the last commit whose tree reads completely — `4c93db148`, the
+> `creator-brains-engine-r2-20260915` tip — and that is the commit this document now rides on. The
+> rebuilt commit is `68e8dc7d4`. It is path-scoped and purely additive: **+92 files (83 added, 9
+> modified), 0 deletions, 0 changes outside the four lane directories** (`media-api/`,
+> `shared/providers/video/`, `backend/scripts/handlers/`, and this blueprint directory). The lane's
+> content is unchanged and complete; only its ancestry was rebuilt. An earlier attempt, `cb3170f0b`,
+> carried only `media-api/` and this blueprint and derived 68 files against this document's 92 — gate
+> 28 (E1) caught it, and it is superseded. See `OBJECT-STORE-DAMAGE.md` and
+> `C:\tmp\astra-mega-r4\WORKING-STATE-R31.md`.
 
 **WHY THE NAMED BASE MOVED FROM `b796338fb` TO `fb82c21a1` — AND WHY THAT IS NOT A COUNT FIX.** It
 moved because `b796338fb` can no longer be VERIFIED as an ancestor in this repository. That is a fact
