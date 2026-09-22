@@ -73,11 +73,16 @@ Case 12 is parameterized over the approved enabled registry entries. The number 
 
 `backend/tests/integration/coachHarnessProviderBoundary.test.mjs` — 7:
 
-1. `raw_message_identifier_never_reaches_recording_adapter`.
+1. `raw_message_identifier_never_reaches_recording_adapter` — **scoped in round 5 (R5-04) to the
+   *recording* channel, not the provider boundary.** The identifier must not reach the telemetry/receipt
+   sink (`03-contracts.md` §1.1 — no raw transcript in receipts). An identifier inside an admissible
+   `message` **is** permitted to reach the provider by design (`03c` §6.1), so reading this case as a
+   provider-boundary assertion would make every legitimate message containing a client name a defect.
 2. `route_previous_and_food_context_cannot_smuggle_fields`.
 3. `unapproved_cortex_note_is_excluded`.
 4. `approved_note_cannot_invoke_dispatcher`.
-5. `classifier_and_chat_use_same_admission_boundary`.
+5. `classifier_and_chat_use_same_admission_boundary` — the direct regression test for round-5 **R5-04**:
+   both paths must apply the **same** disposition matrix, which is why the matrix now lives in one place.
 6. `invalid_model_output_is_not_saved_as_approved_action`.
 7. `provider_timeout_has_no_automatic_retry_or_mutation`.
 
@@ -97,16 +102,83 @@ Each file contains three named behavioral cases. Actual exports and adapters are
 |---|---|
 | `backend/tests/unit/coachHarnessInputSanitizer.test.mjs` | `rejects_invalid_input_type`; `bounds_input_without_silent_action_change`; `sanitization_does_not_grant_authority` |
 | `backend/tests/unit/coachHarnessDeIdentifier.test.mjs` | `synthetic_identifiers_removed`; `cross_request_mapping_isolated`; `rehydration_requires_correct_authorized_mapping` |
-| `backend/tests/unit/coachHarnessPhiScanner.test.mjs` | `synthetic_email_phone_and_medical_identifier_detected`; `obfuscated_fixture_rejected_or_blocked_by_admission`; `ordinary_training_fixture_not_misrepresented_as_private_data` |
+| `backend/tests/unit/coachHarnessPhiScanner.test.mjs` | `synthetic_email_phone_and_medical_identifier_detected`; `obfuscated_fixture_rejected_or_blocked_by_admission`; `ordinary_training_fixture_not_misrepresented_as_private_data` — the third case must **also** assert that the approved classifier template is **flagged by the raw scanner yet not refused by the gate** (round-5 **R5-02**, `03c` §6.0) |
 | `backend/tests/unit/coachHarnessManualOnlyPolicy.test.mjs` | `manual_only_command_blocked`; `known_nonmanual_command_unchanged`; `unknown_command_not_promoted_to_executable` |
 | `backend/tests/unit/coachHarnessDeterministicIntent.test.mjs` | `supported_intake_phrase_classified`; `negated_action_not_executed`; `ambiguous_multi_action_requires_clarification` |
 | `backend/tests/unit/coachHarnessModelSelector.test.mjs` | `approved_entitlement_selects_allowed_model`; `missing_entitlement_cannot_escalate`; `unsupported_model_fails_without_paid_fallback` |
 | `backend/tests/unit/coachHarnessErrorLoop.test.mjs` | `repeated_failure_blocks_loop`; `unrelated_conversation_isolated`; `authorized_reset_does_not_erase_other_conversation_state` |
 | `backend/tests/unit/coachHarnessMeasurementContext.test.mjs` | `authorized_measurement_fields_only`; `missing_or_nonfinite_measurement_not_fabricated`; `out_of_scope_client_rejected_at_call_boundary` |
 
-A failing privacy detector does not justify weakening its test. The boundary must either reject the payload or provide approved evidence that no identifying content crosses.
+**The rule this section applies — one sentence, scoped (round-5 R5-04).** It previously read: *"The boundary must either reject the payload or provide approved evidence that **no identifying content crosses**."* That is **stronger than the contract**, and the scoping fix made in `03b-contracts-proposed-artifacts.md` never reached here. The correct rule is:
+
+> **The boundary must reject an inadmissible input, or provide approved evidence that the input was
+> admissible.** It is **not** required — and not able — to guarantee that no identifier ever crosses,
+> because `message` is the user's own authored text and is admissible **by design** (`03c` §6.1).
+> "No identifying content crosses" would make every legitimate message containing a client name a defect,
+> which is a test that can only be satisfied by breaking the product.
 
 Add direct `detectPii` assertions to the existing validator test location supplied at S0. This closes the uncertainty about that symbol; module import counts do not close it.
+
+**Privacy boundary tests — the assertions that get skipped**
+
+The boundary itself is contracted in the sibling package: **`privacy-boundary@1.2.0`**
+(`BLUEPRINT-swan-coach-live-2026-09-20/03b-privacy-boundary.md`, with its `03c-release-predicate.md` carrying
+the predicate and admission and its `03d-context-channels.md` carrying the context channels). This package
+**consumes** it and pins it by id **and version**; it does not
+restate it (round-3 **R3-02** — a gate specified in two places is specified in neither). **The pin moved from
+`@1.0.0` in round 5 (R5-06): the predicate's meaning changed when provenance scoping was added, and an
+unchanged id would have asserted that it had not.**
+
+**One shared disposition matrix, used by both suites (round-5 R5-04).** This package and the sibling package
+described the same canary assertions in two places with two different vocabularies, so a fixture could satisfy
+one description and not the other. There is now **one** matrix — defined in the sibling's `09-tests.md` §5 and
+**referenced** here, not restated:
+
+| Disposition | Meaning | Assertion |
+|---|---|---|
+| **REFUSED** | the request is **not sent** — `503 PRIVACY_UNAVAILABLE` | dispatcher call count `== 0` |
+| **DROPPED** | the field is removed from the envelope; the request **is sent** | canary absent from the bytes **and** dispatcher call count `== 1` |
+| **PRESENT** | the value survives to the wire | canary present in the provider-decoded bytes |
+
+**Exactly one disposition per fixture.** A fixture that accepts *either* "absent" *or* "refused" is satisfied
+by a silent drop-and-send, which is precisely what P1 forbids (`03b` §3: an inadmissible input is **rejected,
+not dropped later**). Four assertions are required here:
+
+1. **Dispatcher call count.** For a rejected request, assert the provider adapter was called **zero**
+   times. Instrument the **dispatcher**, not the scanner: a scanner unit test proves the scanner
+   returned, not that the request was withheld. This is the assertion that catches a fallback.
+2. **The fallback path.** Force a privacy rejection on the **classification** dispatch and assert it
+   surfaces as `503 PRIVACY_UNAVAILABLE` rather than being absorbed into a chat result. `classifyIntent`
+   awaits a provider call inside a `try` whose `catch` (`intentClassifier.mjs:170`) returns a chat
+   fallback (`:187`), so a rejection raised in that awaited path is currently **converted, not
+   propagated** (round-3 **D-B**). **Round-5 R5-03 adds three more absorbers to the same assertion:** the
+   provider failover loop (`aiChatService.mjs:2034`) and the Pro→Flash retry (`:2301`) both `continue`
+   **without inspecting the error's type**, and the chat route (`aiChatRoutes.mjs:823`) returns a generic
+   500 carrying **no privacy code**. **Round-6 R6-05 added the command route's outer `catch`
+   (`aiCommandRoutes.mjs:283`)** — the *thrown* path, distinct from the returned path at `:171` — and
+   **round-7 R7-02 added the asynchronous job's `catch` (`debate/debateOrchestrator.mjs:480`)**, which
+   returns `null` and lets the job finish `complete`. The assertion is that a refusal survives **all eight**
+   sites, and for the async site the assertion is **not** that a status code propagates — there is no
+   request left — but that the job terminates in a **refusal state** and emits no salvaged result.
+3. **Repeated identifiers.** Two occurrences of the same identifier, and two different identifiers, in
+   one field — R2-02's missing `/g` means only the **first** is enumerated.
+4. **Detector false negatives — by channel, not by content.** `scanForPHI("log a workout for Jordan T.,
+   knee felt bad")` returns `hasPHI: false` — names are not detected at all (R2-02). The assertion is
+   therefore **channel-scoped**: a name arriving through a **context** channel must be **blocked by P1** —
+   assert it never reaches assembly. A name inside `message` is the user's own authored text and is **out
+   of the boundary's scope** (`03c` §6.1); the test must instead assert the name did **not** arrive
+   through any other channel. Asserting "the detector caught the name" asserts the blind spot as if it
+   were coverage. **Round-5 R5-01:** `previousContext` is now **server-held state referenced by id**
+   (`03c` §6.1), so a *replayed* admitted turn is re-emitted as user-authored content and is **not** a
+   name "injected into a context channel". Assert that a **caller-supplied** context array is refused —
+   not that a name inside one is blocked.
+
+**`routeContext` is a channel, not a hint.** `buildRouteContextLine` re-emits **seven** fields into the
+provider prompt (`intentClassifier.mjs:28-51` → `:116` → `:133`) while `stepPHIScan` covers
+`ctx.sanitizedInput` **only** (`commandExecutor.mjs:192`). Verified by executing the shipped function
+(round-4 probe `probe-r4-emitted-fields.mjs`): the token gate admits `source=123-45-6789` and a bare
+single-token name, and the date gate admits `workoutDate=1990-01-01`. Give it its **own** canary — a
+shared canary cannot say which channel leaked.
 
 **S5 — 12 frontend integration cases**
 
@@ -155,7 +227,21 @@ Parameterize role/access expectations from the actual registry and fixtures. Do 
 
 **Isolation**
 
-Test startup must refuse a database lacking an explicit test marker and an approved disposable database identity. Never fall back to `DATABASE_URL`. Provider adapters are recording fakes unless a separate live call is authorized. No test sends a message to a real client, creates a real workout, or uses private production data.
+Test startup must refuse a database lacking an explicit test marker and an approved disposable database identity. Never fall back to `DATABASE_URL`. No test sends a message to a real client, creates a real workout, or uses private production data.
+
+**What "recording fake" means, exactly (round-4 R4-05).** It is **not** a licence to stub the adapter. The
+sibling package forbids a mock standing in for the provider adapter, and the two readings contradict until
+the boundary is placed correctly:
+
+- **Do not stub assembly or serialization** — the canary must travel through the **production** code paths,
+  or the test proves nothing about what ships;
+- **do intercept the outbound network transport** — replace the HTTP call, not the adapter. Serialization
+  stays real; the call becomes harmless and observable;
+- **assert on the captured outbound bytes, then again on the provider-decoded content** — JSON escaping is
+  exactly where **R4-02** lives.
+
+A fake that *fabricates* the body defeats the test; an intercepted transport that *captures* the real body
+is the requirement. Both packages state it the same way, in one shared suite.
 
 **Traceability**
 

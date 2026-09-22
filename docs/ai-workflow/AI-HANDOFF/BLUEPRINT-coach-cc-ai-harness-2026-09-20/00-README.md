@@ -29,7 +29,7 @@ Voice recording, transcription/TTS internals, Plaud ingestion, quick-client onbo
 | H03 | Current authorization and client scope | Cross-actor, revoked-access, changed-target, and stale-version cases produce no domain write |
 | H04 | Bounded replay protection | Concurrent confirmations commit at most one supported domain effect and one success audit |
 | H05 | Registry-owned write classification | Write-pause tests cover every enabled mutating dispatcher; no second risk registry |
-| H06 | Enforced provider privacy boundary | Final provider-request capture contains only admitted template content and fields |
+| H06 | Enforced provider privacy boundary | Final provider-request capture contains only admitted template content and fields. **Contract: `privacy-boundary@1.2.0`** (`BLUEPRINT-swan-coach-live-2026-09-20/03b-privacy-boundary.md`) — this package consumes and pins it, and does not restate it (round-3 R3-02). Assertions: `09-tests.md`, "Privacy boundary tests" |
 | H07 | Model output is untrusted | Invalid output, fabricated tools, and injected instructions produce no dispatcher invocation |
 | H08 | Honest receipts and recovery | Lost responses and browser handoffs never produce unsupported “saved” claims |
 | H09 | Accessible floor workflow | Required states verified at 375px and desktop; 44px targets; keyboard and reduced-motion checks |
