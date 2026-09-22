@@ -28,6 +28,9 @@
 
 - Do not send raw messages, client names, medical histories, private notes, or unrestricted context to providers.
 - Do not treat a regular-expression scanner as proof that arbitrary prose contains no identifying information.
+- **Do not treat a successful scanner invocation as the release predicate.** A clean scan is one clause of a conjunction — the predicate is defined in `privacy-boundary@1.2.0` §6 (`BLUEPRINT-swan-coach-live-2026-09-20/03c-release-predicate.md`), and the detector provably does not see names. Round-3 **R3-03**.
+- **Do not let a generic `catch` absorb a privacy rejection.** It must stay a typed, non-retriable error; `classifyIntent`'s `catch` (`intentClassifier.mjs:170`) otherwise turns it into a chat fallback and `503 PRIVACY_UNAVAILABLE` becomes unreachable. Round-3 **D-B**.
+- **Do not treat `routeContext` as bounded-and-therefore-handled.** It is a live, unscanned channel emitting **seven** fields (`intentClassifier.mjs:28-51` → `:116` → `:133`); normalization constrains shape, never content. Round-3 **D-A**.
 - Do not interpolate retrieved note text into executable instructions.
 - Do not log raw messages, provider bodies, decrypted operation parameters, credentials, or private infrastructure values.
 - Do not persist new raw drafts in browser storage.

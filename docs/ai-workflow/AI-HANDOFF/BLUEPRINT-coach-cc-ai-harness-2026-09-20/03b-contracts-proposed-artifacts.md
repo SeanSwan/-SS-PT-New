@@ -156,6 +156,23 @@ function buildProviderMessages(
 - Real task templates and numeric bounds are not supplied in the packet. Production template enablement remains blocked until those approved artifacts are included.
 - Classification, debate, plan generation, and other in-scope model callers must use this boundary or have a separately approved equivalent. No “internal AI call” exemption.
 
+**Scope of the rules above — NEW templates only (round-4 R4-03).** These bullets govern the **proposed
+`ProviderEnvelope` / `buildProviderMessages` artifacts**, i.e. *new* provider templates. They are
+**stricter** than the boundary the existing paths run under, deliberately:
+
+- **new templates** interpolate **no** free text — only finite enumerations from approved content, per the
+  bullets above;
+- the **existing** classification and chat paths **do** carry authored free text (`message`,
+  `previousContext`), governed by `privacy-boundary@1.2.0` §6.1.
+
+The two rules do not conflict once scoped — but an **unscoped** reading of this list ("raw messages are
+never interpolated") appears to forbid exactly what §6.1 admits, and round-4 **R4-03** found that reading.
+Where they could touch, the stricter rule wins for new artifacts, and §6.1 governs the existing channels.
+
+**Pinned contract.** This package consumes **`privacy-boundary@1.2.0`**
+(`BLUEPRINT-swan-coach-live-2026-09-20/03b-privacy-boundary.md`). See `03-contracts.md` for the reciprocal
+pin, the binding requirement (**H06**), and the change rule. This file does not restate it.
+
 **Additional implementation interfaces**
 
 ```ts
