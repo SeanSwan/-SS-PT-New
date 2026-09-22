@@ -186,12 +186,35 @@ async function stepSanitize(ctx) {
   return ctx;
 }
 
-/** Step 2: Scan for PHI in user input */
+/**
+ * Step 2: Scan for PHI in user input AND in every assembled context channel.
+ *
+ * R2-01 [HIGH]: this step previously scanned `ctx.sanitizedInput` (the user's `message`)
+ * only, while `stepClassify` passed `previousContext` and `routeContext` straight through
+ * to `classifyIntent`, which interpolates them into the provider prompt
+ * (`intentClassifier.mjs:113-124`). PHI placed in `previousContext` therefore reached a
+ * third-party provider unscanned.
+ *
+ * Reproduced 2026-09-22 against the shipped functions
+ * (`tmp/coach-cc-ai-harness-20260920/probe-r8-r2-01-context-channel.mjs`):
+ *   message "log my session for today"        -> hasPHI false  (scanned)
+ *   previousContext "…on Metformin…; SSN 123-45-6789"
+ *   assembled body                            -> ["on Metformin","123-45-6789"] (NOT scanned)
+ *
+ * The fix is the one round 2 recommended (Option 1), scoped to the context channels and
+ * using the existing strip semantics — not a change to `phiScanner.mjs`'s matching rules.
+ * It is deliberately additive: no channel is removed, no matching semantics change.
+ *
+ * The scan is a CONJUNCTION over channels, not a per-input check: the assembled body is
+ * what the provider receives, so the gate proves something about the assembly.
+ */
 async function stepPHIScan(ctx) {
   ctx.stage = 'phi_scan';
+
   const { hasPHI, matches, categories } = scanForPHI(ctx.sanitizedInput);
 
-  ctx.metadata.phiMatches = matches;
+  const allMatches = [...matches];
+  const allCategories = new Set(categories);
 
   if (hasPHI) {
     // Strip PHI from the message before it reaches AI
@@ -202,18 +225,151 @@ async function stepPHIScan(ctx) {
       matchCount: matches.length,
     });
   }
+
+  // ── R2-01: the assembled context channels are scanned too ──────────────────────────
+  // These are the values `stepClassify` will interpolate into the provider prompt. Each
+  // is scanned with the same detector and stripped with the same semantics as `message`.
+  const contextScan = scanContextChannels(ctx.options, ctx.user);
+  if (contextScan.scanned.length > 0) {
+    ctx.options = contextScan.options;
+    allMatches.push(...contextScan.matches);
+    for (const category of contextScan.categories) allCategories.add(category);
+
+    if (contextScan.matches.length > 0) {
+      logger.info('[CommandExecutor] PHI stripped from context channels (R2-01)', {
+        userId: ctx.user.id,
+        categories: contextScan.categories,
+        matchCount: contextScan.matches.length,
+        channels: contextScan.scanned,
+      });
+    }
+  }
+
+  ctx.metadata.phiMatches = allMatches;
+  ctx.metadata.phiScannedChannels = ['message', ...contextScan.scanned];
+  ctx.metadata.phiCategories = [...allCategories];
+
   return ctx;
+}
+
+/**
+ * Scan every context channel that reaches the provider prompt, in place.
+ *
+ * Returns the rewritten options plus the matches found, so the caller can report one
+ * combined `phiMatches` list. A channel that carries PHI is STRIPPED, never merely
+ * reported — reporting without stripping leaves the leak exactly where it was.
+ *
+ * `selectedClientName` is included deliberately even though this route hardcodes it to
+ * `null`: the field is live in the classifier (`intentClassifier.mjs:118-120`), so the
+ * guard must cover it the moment a caller populates it.
+ *
+ * @param {Object} options - ctx.options
+ * @param {Object} [user] - ctx.user, for the log line only
+ * @returns {{ options: Object, scanned: string[], matches: string[], categories: string[] }}
+ */
+function scanContextChannels(options, user) {
+  const next = { ...options };
+  const scanned = [];
+  const matches = [];
+  const categories = new Set();
+
+  // `previousContext` is free text — the widest channel, and the one R2-01 named.
+  //
+  // NOTE (R2-01b): every channel is recorded in `scanned` UNCONDITIONALLY, before any
+  // content check. "Scanned" means the channel was CONSIDERED and admitted or rejected —
+  // not that it carried content. An absent channel has nothing to leak and is therefore
+  // trivially covered. Recording only *populated* channels made the guard throw on every
+  // context-free request, which is the common case — measured in
+  // `tmp/coach-cc-ai-harness-20260920/probe-r8-r2-01-regression.mjs`, where 4 of 5 request
+  // shapes threw PRIVACY_UNAVAILABLE. Fail-closed must not mean fail-always.
+  scanned.push('previousContext');
+  if (typeof next.previousContext === 'string' && next.previousContext.length > 0) {
+    const scan = scanForPHI(next.previousContext);
+    if (scan.hasPHI) {
+      next.previousContext = stripPHI(next.previousContext, scan.matches);
+      matches.push(...scan.matches);
+      for (const category of scan.categories) categories.add(category);
+    }
+  } else if (next.previousContext && typeof next.previousContext === 'object') {
+    // A non-string from the request body was previously stringified into the prompt by
+    // template interpolation. It is not admissible in any form: drop it rather than
+    // inspect it, so an arbitrary object cannot reach the provider.
+    // Capture the type BEFORE the delete, or the log always reports 'undefined'.
+    const receivedType = Array.isArray(next.previousContext) ? 'array' : typeof next.previousContext;
+    delete next.previousContext;
+    logger.warn('[CommandExecutor] non-string previousContext dropped (R2-01)', { receivedType });
+  }
+
+  // `routeContext` is structurally constrained by `buildRouteContextLine`, but the token
+  // gate `/^[a-z0-9_-]{1,80}$/i` admits a bare SSN as a "source" — so it is scanned too.
+  // Recorded unconditionally, for the same reason as `previousContext` above.
+  scanned.push('routeContext');
+  if (next.routeContext && typeof next.routeContext === 'object') {
+    for (const [key, value] of Object.entries(next.routeContext)) {
+      if (typeof value !== 'string') continue;
+      const scan = scanForPHI(value);
+      if (scan.hasPHI) {
+        next.routeContext = { ...next.routeContext, [key]: stripPHI(value, scan.matches) };
+        matches.push(...scan.matches);
+        for (const category of scan.categories) categories.add(category);
+      }
+    }
+  }
+
+  // `selectedClientName` is the classifier's third channel (`:118-120`). A client name is
+  // exactly what the detector does NOT see (R2-02), so this cannot rely on detection:
+  // the field is not admissible as free text, and a name is only ever resolved
+  // server-side from `selectedClientId`. Recorded unconditionally, as above.
+  scanned.push('selectedClientName');
+  if (typeof next.selectedClientName === 'string' && next.selectedClientName.length > 0) {
+    delete next.selectedClientName;
+    logger.warn('[CommandExecutor] selectedClientName dropped — not admissible as context (R2-01)', {
+      userId: user?.id,
+    });
+  }
+
+  return { options: next, scanned, matches, categories: [...categories] };
 }
 
 /** Step 3: Classify intent via AI */
 async function stepClassify(ctx) {
   ctx.stage = 'classify';
+
+  // ── R2-01 fail-closed guard ─────────────────────────────────────────────────────────
+  // `stepPHIScan` rewrites `ctx.options` and records which channels it covered. If a
+  // future refactor reorders the pipeline, drops `stepPHIScan`, or adds a context channel
+  // without listing it here, this throws instead of sending unscanned text to a provider.
+  // A refusal is terminal: no channel reaches the provider on an unproven assembly.
+  assertContextChannelsScanned(ctx);
+
   ctx.intent = await classifyIntent(ctx.sanitizedInput, ctx.user.role, {
     previousContext: ctx.options.previousContext,
     routeContext: ctx.options.routeContext,
     selectedClientName: ctx.options.selectedClientName,
   });
   return ctx;
+}
+
+/**
+ * The context channels `classifyIntent` interpolates into the provider prompt.
+ *
+ * This list is a CONTRACT with `intentClassifier.mjs`. Adding an interpolation there
+ * without adding the channel here is the exact defect R2-01 recorded, so the guard below
+ * fails closed rather than trusting the two files to stay in step.
+ */
+const PROVIDER_CONTEXT_CHANNELS = ['previousContext', 'routeContext', 'selectedClientName'];
+
+function assertContextChannelsScanned(ctx) {
+  const covered = new Set(ctx.metadata?.phiScannedChannels || []);
+  const uncovered = PROVIDER_CONTEXT_CHANNELS.filter((channel) => !covered.has(channel));
+
+  if (uncovered.length > 0) {
+    throw new Error(
+      `PRIVACY_UNAVAILABLE: context channel(s) not scanned before dispatch: ${uncovered.join(', ')}. ` +
+        'The provider prompt is assembled from these channels, so an unscanned one is an ' +
+        'unproven assembly (R2-01). Fail closed.'
+    );
+  }
 }
 
 /** Step 4: Match intent to command registry + Zod validate */
@@ -883,3 +1039,8 @@ export function checkForConfirmation(message) {
 }
 
 export { rehydrateResponse };
+
+// Exported for the R2-01 boundary tests. `scanContextChannels` and
+// `assertContextChannelsScanned` are the two halves of the context-channel gate, and a
+// gate that cannot be exercised in isolation is a gate nobody has tested.
+export { scanContextChannels, assertContextChannelsScanned, PROVIDER_CONTEXT_CHANNELS };
