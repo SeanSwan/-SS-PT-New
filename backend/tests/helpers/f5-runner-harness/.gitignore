@@ -1,0 +1,7 @@
+# The mutation self-check's throwaway root.
+#
+# .mutant-root/migrations is a JUNCTION to the real backend/migrations directory.
+# Committing it would stage a symlink holding an absolute local path, and a
+# recursive delete that followed it would destroy real source. It is created on
+# demand by mutants.mjs and must never be tracked.
+.mutant-root/
