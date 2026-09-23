@@ -86,12 +86,47 @@ describe('CoachCommandCenter actions — chat truth (no fake replies)', () => {
     expect(h.getLogs()[0]).toMatchObject({ actor: 'system', label: 'upgrade required' });
   });
 
-  it('logs nothing extra when a newer message superseded this one (null response)', async () => {
+  // RE-ANCHORED (brain-v4 C2, rule 79/81): this test used to assert that a lone
+  // null send logs NOTHING. Nothing newer had been sent, so that null was a
+  // refusal, and the assertion locked in the silent drop. Only a null that a
+  // newer send really superseded may stay silent (next test).
+  it('a null with no newer send is a refusal: visible notice, words restored, retry offered', async () => {
     const h = buildHarness(null);
     await h.actions.handleSubmit(submitEvent());
-    // Only the operator's own message is logged; no coach/system entry is invented.
-    expect(h.getLogs()).toHaveLength(1);
-    expect(h.getLogs()[0].actor).toBe('operator');
+    expect(h.getLogs()).toHaveLength(2);
+    expect(h.getLogs()[0]).toMatchObject({ actor: 'system', label: 'message not sent', retryMessage: 'hello coach, how is Ava trending?' });
+    expect(h.getLogs()[0].body).toMatch(/Nothing was saved/);
+    expect(h.getLogs()[0].body).not.toMatch(/Swan Coach says|reply:/i);
+    expect(h.setSelectedStatus).toHaveBeenLastCalledWith('Message not sent');
+    const restore = h.setCommandText.mock.calls.at(-1)?.[0] as (current: string) => string;
+    expect(restore('')).toBe('hello coach, how is Ava trending?');
+    expect(restore('typed since')).toBe('typed since');
+  });
+
+  it('a null that a NEWER send superseded stays silent; the newer send reports', async () => {
+    const h = buildHarness(null);
+    let releaseFirst: (value: unknown) => void = () => undefined;
+    h.sendMessageWithConversation
+      .mockImplementationOnce(() => new Promise((resolve) => { releaseFirst = resolve; }))
+      .mockResolvedValueOnce({ role: 'assistant', content: 'Newest reply.' });
+    const first = h.actions.handleIntentSubmit('first message');
+    await h.actions.handleIntentSubmit('second message');
+    releaseFirst(null);
+    await first;
+    const labels = h.getLogs().map((entry) => entry.label);
+    expect(labels).not.toContain('message not sent');
+    expect(h.getLogs()[0]).toMatchObject({ actor: 'coach', body: 'Newest reply.' });
+  });
+
+  it('a thread switch supersedes an in-flight send: no notice lands in the new thread', async () => {
+    const h = buildHarness(null);
+    let release: (value: unknown) => void = () => undefined;
+    h.sendMessageWithConversation.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    const pending = h.actions.handleIntentSubmit('message for old thread');
+    h.actions.handleNewThread();
+    release(null);
+    await pending;
+    expect(h.getLogs().map((entry) => entry.label)).not.toContain('message not sent');
   });
 
   it('handleRetryMessage resubmits through the same pipeline', async () => {
