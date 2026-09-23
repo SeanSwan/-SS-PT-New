@@ -187,7 +187,7 @@ export const WorkspaceHeaderBar = styled.header`
   .ws-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ws-gold); box-shadow: 0 0 8px var(--ws-gold); }
 
   @media (max-width: 1023.98px) {
-    .ws-divider, .ws-thread-title, .ws-btn-label { display: none; }
+    .ws-btn-label { display: none; }
   }
   @media (max-width: 767.98px) {
     min-height: 52px; padding: 0 6px 4px; gap: 4px; flex-wrap: wrap;
@@ -198,13 +198,14 @@ export const WorkspaceHeaderBar = styled.header`
     .ws-views button { padding: 0 6px; min-width: 0; }
     .ws-views .ws-live-dot { flex: none; }
   }
-  /* < 360px the switch has its own row but each segment is ~96px: words, no icons. */
-  @media (max-width: 359.98px) {
+  /* < 368px the switch has its own row but each segment is ~100px: words, no icons. */
+  @media (max-width: 367.98px) {
     .ws-views button svg { display: none; }
   }
-  /* 360–767px: ONE header row — the view switch goes icon-only (the text stays its
-     accessible name) so the conversation keeps the phone. Below 360 it takes row 2. */
-  @media (min-width: 360px) and (max-width: 767.98px) {
+  /* 368–767px: ONE header row — the view switch goes icon-only (the text stays its
+     accessible name) so the conversation keeps the phone. Below 368 it takes row 2
+     (a staff header needs ~367px on one row: toggle, switch, state, 3 tools). */
+  @media (min-width: 368px) and (max-width: 767.98px) {
     flex-wrap: nowrap; gap: 2px; padding: 0 6px;
     .ws-mark { display: none; }
     .ws-views { order: 0; width: auto; display: inline-flex; padding: 2px; }

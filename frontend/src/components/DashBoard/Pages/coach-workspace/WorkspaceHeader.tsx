@@ -54,7 +54,7 @@ const WorkspaceHeader: React.FC<Props> = ({ model }) => {
 
   return (
     <WorkspaceHeaderBar>
-      {!panels.docking.sidebarDocked ? (
+      {!panels.docking.sidebarDocked && model.view !== 'floor' ? (
         <button
           type="button"
           className="ws-icon-btn"

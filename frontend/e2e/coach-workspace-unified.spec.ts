@@ -5,7 +5,8 @@
  *     "Start in Floor mode" pins the client by id and opens Floor.
  *  2. Floor logs a set heard in the composer ("145 for 6") and "End session"
  *     saves ONCE through POST /api/workout-forms — nothing goes to the coach.
- *  3. Today and Floor never overflow sideways, 320 → 2560.
+ *  3. Today and Floor never overflow sideways, 320 → 2560, and the chat header
+ *     keeps every control on screen (incl. the 360–367px two-row band).
  */
 import { expect, test, type Page } from '@playwright/test';
 import { json, open } from './coachWorkspace.fixtures';
@@ -63,13 +64,18 @@ test('Today → Floor → one save: the plan seeds Floor, a spoken set logs, not
 });
 
 for (const vp of [
-  { width: 320, height: 640 }, { width: 375, height: 667 }, { width: 414, height: 896 },
+  { width: 320, height: 640 }, { width: 360, height: 740 }, { width: 375, height: 667 }, { width: 414, height: 896 },
   { width: 768, height: 1024 }, { width: 1440, height: 900 }, { width: 2560, height: 1440 },
 ]) {
   test(`Today and Floor fit ${vp.width}x${vp.height} with no sideways scroll`, async ({ page }, info) => {
     await open(page, vp.width, vp.height);
     await mockPlan(page);
     await page.getByRole('combobox', { name: 'Client this chat is about' }).selectOption('12'); // Floor with a real session, dials and all
+    // Chat header: every control fully on screen (the shell clips, so overflow would hide a button, not scroll).
+    const clipped = await page.evaluate(() => [...document.querySelectorAll('[data-coach-workspace="v4"] > header button')]
+      .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.right > window.innerWidth + 0.5 || r.left < -0.5); })
+      .map((el) => el.getAttribute('aria-label') || el.textContent));
+    expect(clipped, 'chat header controls inside the viewport').toEqual([]);
     const views = page.getByRole('navigation', { name: 'Coach view' });
     await views.getByRole('button', { name: 'Today' }).click();
     await expect(page.getByRole('region', { name: 'Your day' })).toBeVisible();

@@ -7,7 +7,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { CoachClientNamesProvider, clientNameLookup, nameClientTokens } from './coachClientNames';
+import { CoachClientNamesProvider, clientNameLookup, nameClientTokens, useCoachClientNames } from './coachClientNames';
 import CoachCommandLogEntry from './CoachCommandLogEntry';
 
 const names = clientNameLookup([{ id: 84, label: 'Jesse Moreno' }, { id: 7, label: 'Ava Stone' }]);
@@ -44,5 +44,19 @@ describe('a coach reply renders names, while the ID text is what leaves the brow
     expect(screen.queryByText(/Client #84/)).not.toBeInTheDocument();
     screen.getByRole('button', { name: /read aloud|listen|speak/i }).click();
     expect(onSpeak).toHaveBeenCalledWith("Client #84's last workout: squat 155 × 5.");
+  });
+});
+
+describe('the names context only changes when a name does', () => {
+  it('a rebuilt-but-identical roster keeps the same lookup (memoised turns do not re-render per keystroke)', () => {
+    const seen: unknown[] = [];
+    const Probe = () => { seen.push(useCoachClientNames()); return null; };
+    const roster = () => [{ id: 84, label: 'Jesse Moreno' }];
+    const view = render(<CoachClientNamesProvider clients={roster()}><Probe /></CoachClientNamesProvider>);
+    view.rerender(<CoachClientNamesProvider clients={roster()}><Probe /></CoachClientNamesProvider>);
+    expect(seen[1]).toBe(seen[0]);
+    view.rerender(<CoachClientNamesProvider clients={[{ id: 84, label: 'Jesse M. Moreno' }]}><Probe /></CoachClientNamesProvider>);
+    expect(seen[2]).not.toBe(seen[0]);
+    expect((seen[2] as Map<number, string>).get(84)).toBe('Jesse M. Moreno');
   });
 });

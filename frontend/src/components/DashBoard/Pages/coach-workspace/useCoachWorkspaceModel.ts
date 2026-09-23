@@ -199,6 +199,10 @@ export function useCoachWorkspaceModel() {
     }
     const pin = controller.clientPin;
     const target = pdfTarget(text, pin.clients, pin.selectedClientId);
+    if (target === 'ambiguous') {
+      setScheduleAskStatus('More than one client matches that name — pick the client with @ and ask again. No PDF was made.');
+      return false;
+    }
     if (!target) {
       setScheduleAskStatus('Pick the client with @ (or name them) — the PDF is built from their records on this device.');
       return false;
@@ -219,7 +223,8 @@ export function useCoachWorkspaceModel() {
     switch (id) {
       case 'new-chat': controller.handleNewThread(); setView('chat'); break;
       case 'review': openReview('intake'); break;
-      case 'schedule': case 'context': panels.revealInspector(); break;
+      // Today and Floor have no inspector column: come back to Chat, then open it.
+      case 'schedule': case 'context': if (view !== 'chat') setView('chat'); panels.revealInspector(); break;
       case 'logger': if (workoutLoggerRoute) navigate(workoutLoggerRoute); break;
       case 'planner': if (workoutPlannerRoute) navigate(workoutPlannerRoute); break;
       case 'note': controller.notebook?.onToggle(); break;
@@ -228,7 +233,7 @@ export function useCoachWorkspaceModel() {
       case 'pdf': requestPdf(); break;
       default: break;
     }
-  }, [controller, navigate, openReview, panels, requestPdf, workoutLoggerRoute, workoutPlannerRoute]);
+  }, [controller, navigate, openReview, panels, requestPdf, view, workoutLoggerRoute, workoutPlannerRoute]);
 
   return {
     user, userRole, scheduleRole, isClientMode, controller, catalog, layout, panels,

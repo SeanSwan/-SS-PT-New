@@ -7,7 +7,7 @@ import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CoachProgressPdf from './CoachProgressPdf';
 
-const chartState = vi.hoisted(() => ({ current: { charts: { marker: 'charts' }, isLoading: false, error: null as string | null } }));
+const chartState = vi.hoisted(() => ({ current: { charts: { marker: 'charts' }, isLoading: false, error: null as string | null, unavailableChartCount: 0, lockedChartIds: [] as string[] } }));
 const adminHook = vi.hoisted(() => vi.fn());
 const selfHook = vi.hoisted(() => vi.fn());
 const buildPreview = vi.hoisted(() => vi.fn(async (input: unknown) => ({ blob: new Blob(['%PDF']), filename: 'r.pdf', brandWordmark: 'SwanStudios', input })));
@@ -34,7 +34,7 @@ vi.mock('../../../Shared/PdfApprovalVault', () => ({
 }));
 
 beforeEach(() => {
-  chartState.current = { charts: { marker: 'charts' }, isLoading: false, error: null };
+  chartState.current = { charts: { marker: 'charts' }, isLoading: false, error: null, unavailableChartCount: 0, lockedChartIds: [] };
   adminHook.mockClear(); selfHook.mockClear(); buildPreview.mockClear(); vaultProps.current = null;
 });
 
@@ -70,6 +70,16 @@ describe('CoachProgressPdf', () => {
     chartState.current = { ...chartState.current, error: 'Forbidden' };
     render(<CoachProgressPdf request={{ nonce: 2, kind: 'client', clientId: 84, clientName: 'Jesse Moreno' }} onClose={onClose} onStatus={onStatus} />);
     expect(onStatus).toHaveBeenCalledWith("Could not load Jesse Moreno's records for the PDF: Forbidden");
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('every chart unavailable is a failed load — never a blank report (the staff fetch hides errors per chart)', () => {
+    const onStatus = vi.fn();
+    const onClose = vi.fn();
+    chartState.current = { ...chartState.current, unavailableChartCount: 99 };
+    render(<CoachProgressPdf request={{ nonce: 4, kind: 'client', clientId: 84, clientName: 'Jesse Moreno' }} onClose={onClose} onStatus={onStatus} />);
+    expect(onStatus).toHaveBeenCalledWith("Could not load Jesse Moreno's records for the PDF: none of the charts could be loaded");
     expect(onClose).toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).toBeNull();
   });

@@ -20,7 +20,7 @@ import { buildSlashItems, pickableExample, slashQuery, type SlashItem } from './
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 import { workspaceStatus } from './workspaceStatus';
 import { isPdfRequest } from './coachPdfRequest';
-import { parseSetUtterance } from './floorSession';
+import { wholeSetUtterance } from './floorSession';
 
 type Props = { model: CoachWorkspaceModel };
 
@@ -82,8 +82,9 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
       void controller.handleIntentSubmit(text, type);
       return;
     }
-    // Floor mode: a bare set ("145 for 6") fills the dials; it is never sent to the coach, so it can't be logged twice.
-    const heardSet = model.view === 'floor' && text.trim().length <= 40 ? parseSetUtterance(text) : null;
+    // Floor mode: a message that is ONLY a set ("145 for 6") fills the dials instead of reaching the coach.
+    // Anything else ("Log bench 4x8 at 185") is an ordinary message. The sink exists only while there is an exercise.
+    const heardSet = model.view === 'floor' ? wholeSetUtterance(text) : null;
     if (!noteMode && heardSet && model.floorSetSink?.current) {
       event.preventDefault();
       model.floorSetSink.current(heardSet);

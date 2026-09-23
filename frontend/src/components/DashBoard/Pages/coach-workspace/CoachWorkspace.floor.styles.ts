@@ -95,6 +95,8 @@ export const FloorRoot = styled.section`
     .ws-floor-side ol { grid-auto-flow: column; grid-auto-columns: minmax(180px, 1fr); overflow-x: auto; }
   }
   .ws-floor-coach .ws-hint { display: none; }
+  .ws-floor-turn { margin: 0 auto; width: calc(100% - 32px); max-width: 760px; max-height: 38vh; overflow-y: auto; }
+  .ws-floor-turn .ws-flat-entry > article[data-presentation='flat'] { background: transparent; border: 0; box-shadow: none; padding: 0; max-width: 100%; }
   /* Legacy phone CSS forces form buttons to width:100% !important; this row sizes its own. */
   .ws-floor-add button { width: auto !important; flex: none; }
   @media (max-width: 767.98px) {

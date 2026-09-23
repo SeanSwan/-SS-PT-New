@@ -41,13 +41,26 @@ describe('resolveNamedClient — names on screen, never guessed', () => {
   ];
 
   it('a full name wins, possessives included', () => {
-    expect(resolveNamedClient("make a PDF of Jesse Moreno's plan", roster)?.id).toBe(84);
-    expect(resolveNamedClient('pdf for maria chen', roster)?.id).toBe(9);
+    expect((resolveNamedClient("make a PDF of Jesse Moreno's plan", roster) as { id: number }).id).toBe(84);
+    expect((resolveNamedClient('pdf for maria chen', roster) as { id: number }).id).toBe(9);
   });
 
-  it('a first name counts only when exactly one client carries it', () => {
-    expect(resolveNamedClient("make Jesse's pdf", roster)?.id).toBe(84);
-    expect(resolveNamedClient("make Maria's pdf", roster)).toBeNull();
+  it('a first name counts only when exactly one client carries it — two is ambiguous, never a guess', () => {
+    expect((resolveNamedClient("make Jesse's pdf", roster) as { id: number }).id).toBe(84);
+    expect((resolveNamedClient('can you get me a PDF for Jesse?', roster) as { id: number }).id).toBe(84);
+    expect(resolveNamedClient("make Maria's pdf", roster)).toBe('ambiguous');
+  });
+
+  it('a first name alone must read as a name, not an ordinary word', () => {
+    const withWill = [...roster, { id: 30, label: 'Will Smith' }];
+    expect(resolveNamedClient('Will you make me a PDF?', withWill)).toBeNull();
+    expect((resolveNamedClient('make a PDF for Will', withWill) as { id: number }).id).toBe(30);
+  });
+
+  it('the longest full name wins when one contains another; a hyphenated name is not its prefix', () => {
+    const lees = [{ id: 1, label: 'Ann Lee' }, { id: 2, label: 'Ann Lee-Park' }];
+    expect((resolveNamedClient('PDF for Ann Lee-Park', lees) as { id: number }).id).toBe(2);
+    expect((resolveNamedClient('PDF for Ann Lee please', lees) as { id: number }).id).toBe(1);
   });
 
   it('CONTROL: no name, a partial word, or the ID fallback label resolve to nobody', () => {
@@ -59,9 +72,14 @@ describe('resolveNamedClient — names on screen, never guessed', () => {
 
 describe('pdfTarget', () => {
   const roster = [{ id: 84, label: 'Jesse Moreno' }, { id: 7, label: 'Maria Rios' }];
+  it('an ambiguous name is refused — it never falls back to the pinned client', () => {
+    const marias = [...roster, { id: 9, label: 'Maria Chen' }];
+    expect(pdfTarget("make Maria's pdf", marias, 84)).toBe('ambiguous');
+  });
+
   it('the client you name beats the pinned client; no name → the pinned one; neither → nobody', () => {
-    expect(pdfTarget("make Jesse's pdf", roster, 7)?.id).toBe(84);
-    expect(pdfTarget('make her pdf', roster, 7)?.id).toBe(7);
+    expect((pdfTarget("make Jesse's pdf", roster, 7) as { id: number }).id).toBe(84);
+    expect((pdfTarget('make her pdf', roster, 7) as { id: number }).id).toBe(7);
     expect(pdfTarget('make her pdf', roster, null)).toBeNull();
     expect(pdfTarget('make her pdf', roster, 999)).toBeNull(); // a pin outside the roster is not trusted
   });

@@ -67,6 +67,11 @@ describe('Floor mode: a set typed into the one composer fills the dials, never t
     expect(controller.handleSubmit).not.toHaveBeenCalled();
     expect(controller.setCommandText).toHaveBeenCalledWith('');
   });
+  it('a message that merely CONTAINS a set is still a message on Floor', () => {
+    const sink = vi.fn();
+    expect(mount('Log bench 4x8 at 185', { view: 'floor', sink }).controller.handleSubmit).toHaveBeenCalledTimes(1);
+    expect(sink).not.toHaveBeenCalled();
+  });
   it('CONTROL: a question on Floor is an ordinary send', () => {
     const sink = vi.fn();
     expect(mount('how is her knee today?', { view: 'floor', sink }).controller.handleSubmit).toHaveBeenCalledTimes(1);

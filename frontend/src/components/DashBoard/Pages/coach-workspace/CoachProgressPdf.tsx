@@ -17,6 +17,7 @@ import { useClientProgressCharts } from '../../../../hooks/analytics/useClientPr
 import type { UseCanonicalProgressChartsFetchReturn } from '../../../../hooks/analytics/useCanonicalProgressChartsFetch';
 import { useOptionalGlobalClient } from '../../../../context/GlobalClientContext';
 import { buildProgressReportSections } from '../../progress-proof/buildProgressReportSections';
+import { CANONICAL_CHART_IDS } from '../../../../hooks/analytics/useClientProgressCharts.types';
 
 export type CoachPdfRequest =
   | { nonce: number; kind: 'client'; clientId: number; clientName: string }
@@ -29,7 +30,12 @@ function ReportVault({ data, clientName, clientSource, onClose, onStatus }: Call
   clientName: string;
   clientSource: string | null;
 }) {
-  const { charts, isLoading, error } = data;
+  const { charts, isLoading, unavailableChartCount, lockedChartIds } = data;
+  // The staff chart fetch turns each failed chart into "unavailable" rather than an error, so a total
+  // failure must be caught here — a report with every chart missing is a failed load, not an empty client.
+  const allGone = !isLoading && unavailableChartCount >= CANONICAL_CHART_IDS.length;
+  const error = data.error ?? (!allGone ? null
+    : lockedChartIds.length >= CANONICAL_CHART_IDS.length ? 'their progress charts are locked on this plan' : 'none of the charts could be loaded');
   // The fetch hook reports "not loading" before its first request starts, so the
   // vault opens only after a load has really begun AND finished — never on the
   // empty initial bundle (which would print a blank report).

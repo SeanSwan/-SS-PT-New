@@ -16,11 +16,13 @@ const clampReps = (value: number) => Math.max(0, Math.min(200, Math.round(value)
 export const nextWeight = (weight: number, delta: number) => clampWeight(weight + delta);
 export const nextReps = (reps: number, delta: number) => clampReps(reps + delta);
 
-/** "3 × 10", "3x10", "4 x 8-10", "3 sets" → targets; anything else → unknown. */
+/** "3 × 10", "3x10", "4 x 8-10", "3 sets" → targets; distances and times ("2 × 400m", "3 x 30s") are not reps. */
 export function parseSetScheme(scheme: string | null | undefined): { sets: number | null; reps: number | null } {
   const value = String(scheme ?? '');
-  const both = /(\d{1,2})\s*[×x*]\s*(\d{1,3})/i.exec(value);
+  const both = /(\d{1,2})\s*[×x*]\s*(\d{1,3})(?![\d.])(?!\s*(?:m|s|sec|secs|min|mins|yd|yds|ft|km|mi|k)\b|\s*["'’])/i.exec(value);
   if (both) return { sets: Number(both[1]), reps: Number(both[2]) };
+  const timed = /(\d{1,2})\s*[×x*]\s*\d/i.exec(value);
+  if (timed) return { sets: Number(timed[1]), reps: null };
   const setsOnly = /(\d{1,2})\s*sets?\b/i.exec(value);
   return { sets: setsOnly ? Number(setsOnly[1]) : null, reps: null };
 }
@@ -32,6 +34,21 @@ export function parseSetScheme(scheme: string | null | undefined): { sets: numbe
  */
 export function parseSetUtterance(text: string): FloorSet | null {
   const value = text.toLowerCase().replace(/,/g, ' ');
+  return parseSet(value);
+}
+
+/**
+ * The WHOLE text is a set and nothing else ("145 for 6", "145 x 6 lbs.") — the
+ * only shape the Floor composer may turn into a set instead of a chat message.
+ * "Log bench 4x8 at 185" or "What about 3x10 for Jesse?" stay messages.
+ */
+export function wholeSetUtterance(text: string): FloorSet | null {
+  const value = text.toLowerCase().replace(/,/g, ' ').trim();
+  const whole = /^(?:\d{1,4}(?:\.\d)?\s*(?:lbs?|pounds|kg)?\s*(?:for|x|×|by)\s*\d{1,3}(?:\s*reps?)?|\d{1,3}\s*(?:reps?|times)?\s*(?:at|@)\s*\d{1,4}(?:\.\d)?\s*(?:lbs?|pounds|kg)?)\s*[.!]?$/;
+  return whole.test(value) ? parseSet(value) : null;
+}
+
+function parseSet(value: string): FloorSet | null {
   const repsFirst = /\b(\d{1,3})\s*(?:reps?|times)\s*(?:at|with|@)\s*(\d{1,4}(?:\.\d)?)\b/.exec(value)
     ?? /\b(\d{1,2})\s*(?:at|@)\s*(\d{2,4}(?:\.\d)?)\s*(?:lbs?|pounds|kg)?\b/.exec(value);
   if (repsFirst) return valid(Number(repsFirst[2]), Number(repsFirst[1]));
@@ -69,4 +86,4 @@ export function localDateISO(date = new Date()): string {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
-export const floorStorageKey = (actorKey: string, clientId: number, day: string) => `swan-coach:floor:v1:${actorKey}:${clientId}:${day}`;
+export const floorStorageKey = (actorKey: string, clientId: number) => `swan-coach:floor:v2:${actorKey}:${clientId}`;

@@ -41,7 +41,11 @@ export function CoachClientNamesProvider({ clients, children }: {
   clients: ReadonlyArray<{ id: number; label: string }>;
   children: React.ReactNode;
 }) {
-  const value = useMemo(() => clientNameLookup(clients), [clients]);
+  // The pin rebuilds its roster array every render; key the lookup on the id:label pairs so the
+  // context value (and every memoised transcript turn) only changes when a name actually does.
+  const signature = clients.map((client) => `${client.id}:${client.label}`).join('\u0000');
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- signature captures every field the lookup reads
+  const value = useMemo(() => clientNameLookup(clients), [signature]);
   return <CoachClientNamesContext.Provider value={value}>{children}</CoachClientNamesContext.Provider>;
 }
 

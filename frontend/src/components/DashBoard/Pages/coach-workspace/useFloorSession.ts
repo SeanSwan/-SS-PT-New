@@ -5,13 +5,14 @@
  * saves between reps, and the single save at the end.
  *
  * - Sets live on this device until the coach ends the session (sessionStorage,
- *   keyed by actor + client + day), so a refresh or a detour never loses them.
+ *   keyed by actor + client, carrying the day), so a refresh, a detour or
+ *   midnight never loses them.
  * - Ending saves through the Workout Logger's own payload builder and service
  *   (POST /api/workout-forms). Every outcome is told truthfully: saved; a workout
  *   already owns today (sets kept, open it in the logger); offline or failed
  *   (sets kept, try again). Nothing is cleared unless the server said saved.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { dailyWorkoutFormService } from '../../../../services/nasmApiService';
 import { buildWorkoutFormSubmitBody } from '../../../WorkoutLogger/workoutLoggerSubmitPayload';
 import { dispatchWorkoutLogged } from '../../../../utils/workoutLoggedEvent';
@@ -25,14 +26,14 @@ export type FloorSaveState =
   | { phase: 'idle' } | { phase: 'saving' } | { phase: 'saved' }
   | { phase: 'conflict'; message: string } | { phase: 'failed'; message: string };
 
-type Stored = { exercises: FloorExercise[]; index: number };
+type Stored = { day: string; exercises: FloorExercise[]; index: number };
 
 function readStored(key: string | null): Stored | null {
   if (!key) return null;
   try {
     const raw = window.sessionStorage.getItem(key);
     const parsed = raw ? (JSON.parse(raw) as Stored) : null;
-    return parsed && Array.isArray(parsed.exercises) ? parsed : null;
+    return parsed && Array.isArray(parsed.exercises) && typeof parsed.day === 'string' ? parsed : null;
   } catch { return null; }
 }
 
@@ -44,36 +45,36 @@ function writeStored(key: string | null, value: Stored | null) {
   } catch { /* storage refused: the session still works in memory */ }
 }
 
+const seedTarget = (reps: number | null) => (reps && reps <= 50 ? reps : null);
+
+/**
+ * ONE mount per client: FloorView keys the live session by client id, so a client
+ * switch remounts this hook (and the plan read) instead of racing the previous
+ * client's plan into the new client's list. A stored session keeps the day it
+ * was trained on, so crossing midnight never strands its sets.
+ */
 export function useFloorSession(actorKey: string | null, clientId: number | null) {
-  const day = useMemo(() => localDateISO(), []);
-  const key = actorKey && clientId ? floorStorageKey(actorKey, clientId, day) : null;
+  const key = actorKey && clientId ? floorStorageKey(actorKey, clientId) : null;
+  const [initial] = useState(() => readStored(key));
+  const [day, setDay] = useState(() => initial?.day ?? localDateISO());
   const plan = useSessionPlannedWorkout(clientId, clientId ? day : null);
-  const [exercises, setExercises] = useState<FloorExercise[]>(() => readStored(key)?.exercises ?? []);
-  const [index, setIndex] = useState(() => readStored(key)?.index ?? 0);
+  const [exercises, setExercises] = useState<FloorExercise[]>(() => initial?.exercises ?? []);
+  const [index, setIndex] = useState(() => initial?.index ?? 0);
   const [draft, setDraft] = useState<FloorSet>({ weight: 0, reps: 0 });
   const [save, setSave] = useState<FloorSaveState>({ phase: 'idle' });
-  const seededFrom = useRef<string | null>(null);
+  const seeded = useRef(Boolean(initial));
 
-  // A different client or day starts from THAT session's stored sets, never this one's.
+  // The day's plan seeds the list once, and only when nothing has been logged yet.
   useEffect(() => {
-    const stored = readStored(key);
-    setExercises(stored?.exercises ?? []);
-    setIndex(stored?.index ?? 0);
-    setSave({ phase: 'idle' });
-    seededFrom.current = stored ? key : null;
-  }, [key]);
-
-  // Today's plan seeds the list once, and only when nothing has been logged yet.
-  useEffect(() => {
-    if (plan.status !== 'ready' || seededFrom.current === key) return;
-    seededFrom.current = key;
+    if (plan.status !== 'ready' || seeded.current) return;
+    seeded.current = true;
     setExercises((current) => (loggedSetCount(current) > 0 ? current : plan.exercises.map((exercise) => {
       const target = parseSetScheme(exercise.setScheme);
-      return { name: exercise.name, targetSets: target.sets, targetReps: target.reps, sets: [] };
+      return { name: exercise.name, targetSets: target.sets, targetReps: seedTarget(target.reps), sets: [] };
     })));
-  }, [key, plan]);
+  }, [plan]);
 
-  useEffect(() => { writeStored(key, { exercises, index }); }, [exercises, index, key]);
+  useEffect(() => { writeStored(key, { day, exercises, index }); }, [day, exercises, index, key]);
 
   const current = exercises[index] ?? null;
   // Moving to an exercise starts from its last set, else its target reps.
@@ -122,11 +123,12 @@ export function useFloorSession(actorKey: string | null, clientId: number | null
         dispatchWorkoutLogged({ clientId, formId: response.data.id ?? null, date: day });
         writeStored(key, null);
         setExercises((list) => list.map((exercise) => ({ ...exercise, sets: [] })));
+        setDay(localDateISO()); // anything logged after this save belongs to today
         setSave({ phase: 'saved' });
       } else if (response.data?.id || (response.data as { formId?: unknown } | undefined)?.formId) {
-        setSave({ phase: 'conflict', message: response.message || 'A workout is already saved for today. Your sets are kept here — add them in the workout logger.' });
+        setSave({ phase: 'conflict', message: `${response.message || 'A workout is already saved for this day.'} Your sets are kept here — add them in the workout logger.` });
       } else {
-        setSave({ phase: 'failed', message: response.message || 'The workout was not saved. Your sets are kept here — try again.' });
+        setSave({ phase: 'failed', message: `${response.message || 'The workout was not saved.'} Your sets are kept here — try again.` });
       }
     } catch {
       setSave({ phase: 'failed', message: 'The workout was not saved. Your sets are kept here — try again.' });

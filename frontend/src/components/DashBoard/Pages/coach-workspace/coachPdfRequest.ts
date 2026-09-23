@@ -28,29 +28,45 @@ export function isPdfRequest(text: string): boolean {
 export type RosterClient = { id: number; label: string };
 
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const says = (text: string, words: string) => new RegExp(`(?:^|[^\\p{L}])${escape(words)}(?:$|[^\\p{L}])`, 'iu').test(text);
+/** Whole-word match that does not continue into a hyphenated or longer name ("Ann Lee" ≠ "Ann Lee-Park"). */
+const says = (text: string, words: string, flags = 'iu') => new RegExp(`(?:^|[^\\p{L}\\-])${escape(words)}(?:$|[^\\p{L}\\-])`, flags).test(text);
+/** A first name alone must look like a name, not a word: capitalised, and possessive or after for/of/about/with. */
+const saysFirstName = (text: string, first: string) => new RegExp(
+  `(?:\\b(?:[Ff]or|[Oo]f|[Aa]bout|[Ww]ith)\\s+${escape(first)}(?![\\p{L}\\-])|(?:^|[^\\p{L}\\-])${escape(first)}['’]s\\b)`, 'u',
+).test(text);
+
+export type NamedClient = RosterClient | 'ambiguous' | null;
 
 /**
- * The roster client the text names: a full name wins; a first name counts only
- * when exactly one client carries it. Never a guess — ambiguous or none → null.
+ * The roster client the text names. A full name wins (the longest when one name
+ * contains another); a first name alone counts only when it reads as a name and
+ * exactly one client carries it. Two possible clients → 'ambiguous', never a guess.
  * The roster is the viewer's own RBAC'd list, so nothing here widens access.
  */
-export function resolveNamedClient(text: string, clients: ReadonlyArray<RosterClient>): RosterClient | null {
-  const named = clients.filter((client) => /\s/.test(client.label.trim()) && says(text, client.label.trim()));
-  if (named.length === 1) return named[0];
-  if (named.length > 1) return null;
+export function resolveNamedClient(text: string, clients: ReadonlyArray<RosterClient>): NamedClient {
+  const full = clients.filter((client) => /\s/.test(client.label.trim()) && says(text, client.label.trim()));
+  if (full.length) {
+    const longest = Math.max(...full.map((client) => client.label.trim().length));
+    const best = full.filter((client) => client.label.trim().length === longest);
+    return best.length === 1 ? best[0] : 'ambiguous';
+  }
   const byFirst = new Map<string, RosterClient[]>();
   for (const client of clients) {
     const first = client.label.trim().split(/\s+/)[0];
     if (!first || /^Client$/i.test(first)) continue;
-    const key = first.toLowerCase();
-    byFirst.set(key, [...(byFirst.get(key) ?? []), client]);
+    byFirst.set(first, [...(byFirst.get(first) ?? []), client]);
   }
-  const hits = [...byFirst.entries()].filter(([first]) => says(text, first));
-  return hits.length === 1 && hits[0][1].length === 1 ? hits[0][1][0] : null;
+  const hits = [...byFirst.entries()].filter(([first]) => saysFirstName(text, first));
+  if (!hits.length) return null;
+  return hits.length === 1 && hits[0][1].length === 1 ? hits[0][1][0] : 'ambiguous';
 }
 
-/** Who the PDF is for: the client the text names wins over the pinned one; else the pinned client. */
-export function pdfTarget(text: string, clients: ReadonlyArray<RosterClient>, pinnedId: number | null | undefined): RosterClient | null {
-  return resolveNamedClient(text, clients) ?? clients.find((client) => client.id === pinnedId) ?? null;
+/**
+ * Who the PDF is for: the client the text names wins over the pinned one; no
+ * name → the pinned client. An ambiguous name is refused — it never falls back.
+ */
+export function pdfTarget(text: string, clients: ReadonlyArray<RosterClient>, pinnedId: number | null | undefined): RosterClient | 'ambiguous' | null {
+  const named = resolveNamedClient(text, clients);
+  if (named) return named;
+  return clients.find((client) => client.id === pinnedId) ?? null;
 }

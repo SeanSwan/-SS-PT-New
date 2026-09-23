@@ -3,7 +3,7 @@
  * producing EXACTLY the Workout Logger's canonical /api/workout-forms body.
  */
 import { describe, expect, it } from 'vitest';
-import { floorExerciseEntries, floorStorageKey, localDateISO, loggedSetCount, nextReps, nextWeight, parseSetScheme, parseSetUtterance } from './floorSession';
+import { floorExerciseEntries, floorStorageKey, localDateISO, loggedSetCount, nextReps, nextWeight, parseSetScheme, parseSetUtterance, wholeSetUtterance } from './floorSession';
 import { buildWorkoutFormSubmitBody } from '../../../WorkoutLogger/workoutLoggerSubmitPayload';
 
 describe('parseSetScheme', () => {
@@ -11,6 +11,11 @@ describe('parseSetScheme', () => {
     expect(parseSetScheme('3 × 10')).toEqual({ sets: 3, reps: 10 });
     expect(parseSetScheme('4x8-10')).toEqual({ sets: 4, reps: 8 });
     expect(parseSetScheme('3 sets')).toEqual({ sets: 3, reps: null });
+  });
+  it('distances and times are not reps', () => {
+    expect(parseSetScheme('2 × 400m')).toEqual({ sets: 2, reps: null });
+    expect(parseSetScheme('3 x 30s')).toEqual({ sets: 3, reps: null });
+    expect(parseSetScheme('3 x 45 sec')).toEqual({ sets: 3, reps: null });
   });
   it('CONTROL: unknown schemes stay unknown', () => {
     expect(parseSetScheme('—')).toEqual({ sets: null, reps: null });
@@ -65,6 +70,15 @@ describe('floorExerciseEntries → the canonical submit body', () => {
   it('counts, the local day, and the storage key are stable', () => {
     expect(loggedSetCount([{ name: 'a', targetSets: null, targetReps: null, sets: [{ weight: 1, reps: 1 }, { weight: 1, reps: 1 }] }])).toBe(2);
     expect(localDateISO(new Date(2026, 8, 3, 23, 30))).toBe('2026-09-03');
-    expect(floorStorageKey('1:trainer', 84, '2026-09-23')).toBe('swan-coach:floor:v1:1:trainer:84:2026-09-23');
+    expect(floorStorageKey('1:trainer', 84)).toBe('swan-coach:floor:v2:1:trainer:84');
+  });
+});
+
+describe('wholeSetUtterance — only a message that IS a set becomes one', () => {
+  it.each(['145 for 6', '145 x 6', '145x6', '135 lb × 8.', '6 reps at 145', '8 @ 115 pounds', '145 for 6 reps'])('%s', (text) => {
+    expect(wholeSetUtterance(text)).not.toBeNull();
+  });
+  it.each(['Log bench 4x8 at 185', 'What about 3x10 for Jesse?', 'Rest 90 for 2 minutes', 'her knee felt fine at 145 for 5', ''])('stays a message: %s', (text) => {
+    expect(wholeSetUtterance(text)).toBeNull();
   });
 });

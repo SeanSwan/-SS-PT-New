@@ -67,7 +67,8 @@ describe('useFloorSession', () => {
     submit.mockResolvedValue({ success: false, data: { id: 55 }, message: 'A workout already exists for this date.' });
     const { result } = await logTwoSets();
     await act(async () => { await result.current.endAndSave(); });
-    expect(result.current.save).toEqual({ phase: 'conflict', message: 'A workout already exists for this date.' });
+    // The server's message, plus what happened to the sets (the server never says that part).
+    expect(result.current.save).toEqual({ phase: 'conflict', message: 'A workout already exists for this date. Your sets are kept here — add them in the workout logger.' });
     expect(result.current.loggedSets).toBe(2);
     expect(logged).not.toHaveBeenCalled();
   });
@@ -94,5 +95,28 @@ describe('useFloorSession', () => {
     expect(submit).not.toHaveBeenCalled();
     act(() => { result.current.addExercise('Farmer carry'); });
     expect(result.current.current?.name).toBe('Farmer carry');
+  });
+});
+
+describe('useFloorSession — day and seeding guards', () => {
+  it('a stored session keeps the day it was trained on (midnight never strands its sets)', async () => {
+    window.sessionStorage.setItem('swan-coach:floor:v2:1:trainer:84', JSON.stringify({
+      day: '2026-09-22', index: 0, exercises: [{ name: 'Box squat', targetSets: 4, targetReps: 6, sets: [{ weight: 145, reps: 6 }] }],
+    }));
+    submit.mockResolvedValue({ success: true, data: { id: 902 } });
+    const { result } = renderHook(() => useFloorSession('1:trainer', 84));
+    expect(result.current.loggedSets).toBe(1);
+    expect(result.current.exercises).toHaveLength(1); // the stored session wins over the plan seed
+    await act(async () => { await result.current.endAndSave(); });
+    expect(submit.mock.calls[0][0]).toMatchObject({ date: '2026-09-22', clientId: 84 });
+  });
+
+  it('absurd plan targets (distances read as reps) never seed the draft', async () => {
+    plan.current = { status: 'ready', exercises: [{ name: 'Row', setScheme: '2 × 400m', tempo: null, rest: null }, { name: 'Carry', setScheme: '3 x 80', tempo: null, rest: null }] };
+    const { result } = renderHook(() => useFloorSession('1:trainer', 84));
+    await waitFor(() => expect(result.current.exercises).toHaveLength(2));
+    expect(result.current.exercises[0].targetReps).toBeNull();
+    expect(result.current.exercises[1].targetReps).toBeNull(); // 80 "reps" is not a rep target
+    expect(result.current.draft.reps).toBe(0);
   });
 });

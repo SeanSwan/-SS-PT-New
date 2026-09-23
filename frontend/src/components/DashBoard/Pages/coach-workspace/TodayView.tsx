@@ -53,6 +53,7 @@ const TodayView: React.FC<Props> = ({ model }) => {
   const now = Date.now();
   const slots = state.phase === 'ready' ? state.slots : [];
   const focus = slots.find((slot) => slot.id === picked) ?? upNext(slots, now);
+  const liveCount = slots.filter((slot) => slot.status !== 'cancelled').length;
   // The now-line sits before the first session that has not ended (none after the last).
   const nowBefore = slots.find((slot) => now < slot.startsAt.getTime() + slot.minutes * 60_000)?.id ?? null;
   const today = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
@@ -69,7 +70,7 @@ const TodayView: React.FC<Props> = ({ model }) => {
         <h1>{today}</h1>
         {state.phase === 'ready' ? (
           <div className="ws-today-chips">
-            <span className="ws-pill"><b>{slots.filter((slot) => slot.status !== 'cancelled').length}</b> session{slots.length === 1 ? '' : 's'}</span>
+            <span className="ws-pill"><b>{liveCount}</b> session{liveCount === 1 ? '' : 's'}</span>
             {!isClientMode && model.reviewTotal ? <span className="ws-pill" data-tone="gold"><b>{model.reviewTotal}</b> waiting on you</span> : null}
           </div>
         ) : null}
@@ -122,7 +123,7 @@ const TodayView: React.FC<Props> = ({ model }) => {
       <div className="ws-today-grid">
         {focus ? (
           <section className="ws-today-card ws-next" aria-labelledby="ws-next-title">
-            <span className="ws-eyebrow">{focus === upNext(slots, now) ? 'Up next' : 'Selected'}</span>
+            <span className="ws-eyebrow">{focus !== upNext(slots, now) ? 'Selected' : now >= focus.startsAt.getTime() + focus.minutes * 60_000 ? 'Last session today' : now >= focus.startsAt.getTime() ? 'In session now' : 'Up next'}</span>
             <h2 id="ws-next-title">{focus.who} · {time(focus.startsAt)}</h2>
             <p className="ws-today-note">{focus.minutes} min · {focus.status}{focus.what ? ` · ${focus.what}` : ''}</p>
             <PlanPeek clientId={isClientMode ? (Number(model.user?.id) || null) : focus.clientId} />
