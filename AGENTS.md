@@ -19,6 +19,8 @@ Applies to this Codex surface when working in the SwanStudios repo.
 
 At session start, after loading normal Codex instructions and before exploring the task:
 
+0. **🚨 READ `START-HERE-INCIDENT-2026-09-22.md` FIRST if this is 2026-09-22 or later.** On 2026-09-22 a git race destroyed **23 unpushed commits** from this repo's object store. **The content survives ONLY as untracked working-tree files.** Before anything else: do **NOT** run `git clean -fd`, `git reset --hard`, `git checkout -- .`, `git stash`, or `git gc`/`git prune`. Do **NOT** `git worktree add` in this repo while other agents are active. Before you report any file as "missing", "uncommitted by mistake", or "sloppy", read that file — it explains the survival boundary (`4c93db148`) and how to verify content by hash. Full incident record: `docs/ai-workflow/INCIDENT-2026-09-22-object-store-refs-loss.md`. Open questions for reviewing models (Astra / Opus 5.5 / Fable 5.1) are listed there as §5.
+
 1. Read these continuity files if they exist:
    - `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md`
    - `.ai-workflow/continuity/rolling-last-done.md`
