@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
+import { expectCoachSurfaceMount } from './coachSurfaceMount.testUtil';
 
 const readCoachFile = (fileName: string) =>
   readFileSync(resolve(__dirname, fileName), 'utf8');
@@ -16,8 +17,9 @@ describe('CoachCommandLogEntry canonical command-center contract', () => {
     const pageSource = readCoachFile('CoachCommandCenterPage.tsx');
     const transcriptSource = readCoachFile('CoachChatTranscript.tsx');
 
-    expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
-    expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    // RE-ANCHORED (brain-v4): the route now mounts CoachSurfaceRoute (v4 workspace
+    // by default, this legacy page behind the flag); the helper checks both chains.
+    expectCoachSurfaceMount(routeComponentsSource, routesSource);
     expect(pageSource).toContain("import CoachChatTranscript from './CoachChatTranscript'");
     expect(pageSource).toContain('<CoachChatTranscript');
     expect(pageSource).toContain('logs={commandCenter.logs}');

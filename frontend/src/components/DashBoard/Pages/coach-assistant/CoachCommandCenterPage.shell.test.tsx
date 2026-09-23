@@ -23,9 +23,10 @@ const openCommandTools = () => {
 };
 describe('CoachCommandCenterPage shell', () => {
   beforeEach(resetCoachCommandCenterMocks);
-  it('renders Floor Mode with Talk, Review, History, and a minimal command dock', () => {
+  it('renders Floor Mode with Talk, Review, History, and a minimal command dock', async () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
-    expect(listConversationsMock).toHaveBeenCalledWith('active', true);
+    // RE-ANCHORED (brain-v4): history lists once ADMITTED (an unadmitted list is always []).
+    await waitFor(() => expect(listConversationsMock).toHaveBeenCalledWith('active', true));
     expect(screen.queryByTestId('coach-session-desk')).toBeNull();
     expect(screen.getByText(/Now coaching/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^New chat$/i })).toBeInTheDocument();

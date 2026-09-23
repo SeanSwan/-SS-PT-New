@@ -45,4 +45,10 @@ export type CoachCommandLogEntryProps = {
   onSpeak?: (text: string) => void;
   workoutLoggerRoute?: string | null;
   workoutLoggerScopeLabel?: string | null;
+  /**
+   * 'bubble' (default): the legacy Command Center card with its speaker/time row.
+   * 'flat': the v4 Workspace names the speaker itself, so the entry drops its
+   * meta row and exposes data-presentation="flat" for the host to restyle.
+   */
+  presentation?: 'bubble' | 'flat';
 };

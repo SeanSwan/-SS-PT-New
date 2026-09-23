@@ -75,6 +75,7 @@ function CoachCommandLogEntry({
   onSpeak,
   workoutLoggerRoute,
   workoutLoggerScopeLabel,
+  presentation = 'bubble',
 }: CoachCommandLogEntryProps) {
   const [copied, setCopied] = useState(false);
   const [acknowledgedConfirmationId, setAcknowledgedConfirmationId] = useState<string | null>(null);
@@ -101,8 +102,8 @@ function CoachCommandLogEntry({
     : null;
 
   return (
-    <LogEntry $actor={entry.actor}>
-      <LogMeta>
+    <LogEntry $actor={entry.actor} data-presentation={presentation}>
+      {presentation === 'flat' ? null : <LogMeta>
         {/* Coach/operator labels already name the speaker ("Swan Coach", "You",
             "operator command") — the raw actor tag only adds signal for system rows. */}
         {entry.actor === 'system' ? <span>{entry.actor}</span> : <span aria-hidden="true" />}
@@ -110,7 +111,7 @@ function CoachCommandLogEntry({
           {entry.label}
           {formatLogTime(entry.at) ? <time dateTime={entry.at}> · {formatLogTime(entry.at)}</time> : null}
         </span>
-      </LogMeta>
+      </LogMeta>}
 
       <LogBody>
         {formatted.variants?.length ? (

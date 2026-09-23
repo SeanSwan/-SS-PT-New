@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { expectCoachSurfaceMount } from './coachSurfaceMount.testUtil';
 import {
   workoutImportItemKey,
   workoutImportItems,
@@ -24,8 +25,9 @@ describe('CoachMessage workout import identity contract', () => {
     const backendRoutesSource = readFileSync(resolve(__dirname, '../../../../../../backend/core/routes.mjs'), 'utf8');
     const aiChatRoutesSource = readFileSync(resolve(__dirname, '../../../../../../backend/routes/aiChatRoutes.mjs'), 'utf8');
 
-    expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
-    expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    // RE-ANCHORED (brain-v4): the route now mounts CoachSurfaceRoute (v4 workspace
+    // by default, this legacy page behind the flag); the helper checks both chains.
+    expectCoachSurfaceMount(routeComponentsSource, routesSource);
     expect(pageSource).toContain('const chat = useAIChat()');
     expect(pageSource).toContain('<SwanCoachMessagesPanel');
     expect(panelSource).toContain('<CoachMessage');

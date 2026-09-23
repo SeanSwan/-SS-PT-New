@@ -69,7 +69,8 @@ export const WorkoutPlannerPage = React.lazy(() => import('./Pages/admin-workout
 export const WorkoutDesignLabPage = React.lazy(() => import('./Pages/workout-design-lab/WorkoutDesignLabPage'));
 export const LiveStreamingPage = React.lazy(() => import('../Social/LiveStreaming/LiveStreamingView'));
 export const CreatorEconomyPage = React.lazy(() => import('../Social/CreatorEconomy/CreatorEconomyView'));
-export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'));
+// The /coach-assistant mount: v4 Coach Workspace by default, legacy page behind the flag (coachWorkspaceFlag.ts).
+export const CoachSurfaceRoute = React.lazy(() => import('./Pages/coach-workspace/CoachSurfaceRoute'));
 export const AdminWaiversManagerPage = React.lazy(() => import('./Pages/admin-waivers/AdminWaiversManager'));
 export const AdminViewAsWrapper = React.lazy(() => import('./Pages/admin-clients/components/AdminViewAsWrapper'));
 export const ClientMyWorkoutsPage = React.lazy(() => import('./Pages/client-dashboard/ClientMyWorkoutsPage'));

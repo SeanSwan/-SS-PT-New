@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
+import { expectCoachSurfaceMount } from './coachSurfaceMount.testUtil';
 
 import { audioInspectionItemKey } from './CoachAudioInspectionResultCard';
 
@@ -28,8 +29,9 @@ describe('CoachAudioInspectionResultCard identity contract', () => {
     const routeSource = readFileSync(resolve(__dirname, '../../../../../../backend/routes/aiCommandRoutes.mjs'), 'utf8');
     const coreRoutesSource = readFileSync(resolve(__dirname, '../../../../../../backend/core/routes.mjs'), 'utf8');
 
-    expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
-    expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    // RE-ANCHORED (brain-v4): the route now mounts CoachSurfaceRoute (v4 workspace
+    // by default, this legacy page behind the flag); the helper checks both chains.
+    expectCoachSurfaceMount(routeComponentsSource, routesSource);
     expect(pageSource).toContain('<CoachChatTranscript');
     expect(transcriptSource).toContain('<CoachCommandLogEntry');
     expect(logEntrySource).toContain('<ExecutionResultCard');
