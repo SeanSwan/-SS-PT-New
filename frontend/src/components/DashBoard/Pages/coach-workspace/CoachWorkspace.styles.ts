@@ -86,7 +86,7 @@ export const WorkspaceShell = styled.div`
   }
   .ws-panel-close { display: none; }
 
-  @media (max-width: 1199px) {
+  @media (max-width: 1199.98px) {
     grid-template-columns: 240px minmax(0, 1fr);
     grid-template-areas: 'header header' 'sidebar main';
     &[data-inspector='hidden'] { grid-template-columns: 240px minmax(0, 1fr); }
@@ -107,7 +107,7 @@ export const WorkspaceShell = styled.div`
     }
     &[data-ws-layout='atrium-split'][data-inspector='hidden'] { grid-template-columns: minmax(0, 1fr) 0; }
   }
-  @media (min-width: 768px) and (max-width: 1199px) {
+  @media (min-width: 768px) and (max-width: 1199.98px) {
     &[data-ws-layout='atrium-split'] { ${overlayBoth} }
   }
   &[data-ws-layout='editorial-column'], &[data-ws-layout='playfield-stack'] { ${overlayBoth} }
@@ -117,7 +117,7 @@ export const WorkspaceShell = styled.div`
   &[data-ws-layout='playfield-stack'] .ws-composer-card { max-width: 640px; }
   &[data-ws-layout='playfield-stack'] .ws-tool, &[data-ws-layout='playfield-stack'] .ws-send { min-width: 48px; height: 48px; }
 
-  @media (max-width: 767px) {
+  @media (max-width: 767.98px) {
     ${overlayBoth}
     height: calc(100dvh - var(--ws-fit-top, 56px) - var(--ws-fit-bottom, 8px) - env(safe-area-inset-bottom, 0px) - var(--coach-kb-inset, 0px));
     min-height: 400px;
@@ -158,7 +158,7 @@ export const WorkspaceHeaderBar = styled.header`
   .ws-brain[data-state='degraded'] .ws-brain-dot { background: var(--ws-warn); }
   @keyframes ws-pulse { 50% { opacity: 0.35; } }
 
-  @media (max-width: 767px) {
+  @media (max-width: 767.98px) {
     min-height: 52px; padding: 0 6px; gap: 4px;
     .ws-divider, .ws-thread-title, .ws-brain-label, .ws-btn-label { display: none; }
     .ws-brain { padding: 0 8px; }

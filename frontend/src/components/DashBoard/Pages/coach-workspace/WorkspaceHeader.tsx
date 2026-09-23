@@ -17,7 +17,7 @@ type BrainState = 'ready' | 'busy' | 'degraded';
 const PHASE_STATE: Partial<Record<string, { state: BrainState; label: string }>> = {
   unadmitted: { state: 'busy', label: 'Connecting' },
   checking: { state: 'busy', label: 'Connecting' },
-  committing: { state: 'busy', label: 'Switching client' },
+  committing: { state: 'busy', label: 'Updating chat' },
   decision: { state: 'degraded', label: 'Needs your choice' },
   invalid: { state: 'degraded', label: 'Not connected' },
   denied: { state: 'degraded', label: 'No access' },

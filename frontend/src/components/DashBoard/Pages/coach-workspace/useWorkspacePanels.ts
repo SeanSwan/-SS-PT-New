@@ -14,10 +14,24 @@ import { workspaceDocking, type CoachWorkspaceLayout } from './coachWorkspaceLay
 
 export type PanelState = 'default' | 'open' | 'hidden';
 
+/**
+ * The docking width, read through the SAME media queries the stylesheet uses
+ * (max-width 767.98px / 1199.98px), so at a fractional zoom width the CSS and the
+ * docking math can never land on different sides of a breakpoint (review #14).
+ */
+function dockingWidth(): number {
+  if (typeof window === 'undefined') return 1440;
+  const width = window.innerWidth;
+  if (typeof window.matchMedia !== 'function') return width;
+  if (window.matchMedia('(max-width: 767.98px)').matches) return Math.min(width, 767);
+  if (window.matchMedia('(max-width: 1199.98px)').matches) return Math.min(Math.max(width, 768), 1199);
+  return Math.max(width, 1200);
+}
+
 function useViewportWidth(): number {
-  const [width, setWidth] = useState(() => (typeof window === 'undefined' ? 1440 : window.innerWidth));
+  const [width, setWidth] = useState(dockingWidth);
   useEffect(() => {
-    const onResize = () => setWidth(window.innerWidth);
+    const onResize = () => setWidth(dockingWidth());
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);

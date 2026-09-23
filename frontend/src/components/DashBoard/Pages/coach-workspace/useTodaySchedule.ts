@@ -33,7 +33,17 @@ export type TodayScheduleState =
   | { phase: 'ready'; slots: TodaySlot[]; scopeLabel: string }
   | { phase: 'error'; reason: 'waiver' | 'failed' };
 
-type Role = 'admin' | 'trainer' | 'client' | 'user';
+export type Role = 'admin' | 'trainer' | 'client' | 'user';
+
+/**
+ * Review #12: GET /api/sessions scopes by the AUTHENTICATED role, not by the
+ * dashboard path. An admin on /dashboard/trainer/… still receives the whole
+ * studio, so labelling that "Your sessions" (or filtering a trainer previewing
+ * the client view down to their own id) described data the server never sent.
+ */
+export function scheduleRoleForUser(authRole: string | null | undefined): Role | null {
+  return authRole === 'admin' || authRole === 'trainer' || authRole === 'client' || authRole === 'user' ? authRole : null;
+}
 
 const HIDDEN_STATUSES = new Set<Session['status']>(['available', 'blocked']);
 
@@ -110,6 +120,8 @@ export function useTodaySchedule(role: Role, actorId: number | null, enabled = t
 
   useEffect(() => {
     if (!enabled) return undefined;
+    // A new actor/role never sees the previous one's slots while its own load runs.
+    setState({ phase: 'loading' });
     void refresh();
     const stopSync = setupDashboardSync(() => { void refresh(); });
     const onVisible = () => { if (document.visibilityState === 'visible') void refresh(); };

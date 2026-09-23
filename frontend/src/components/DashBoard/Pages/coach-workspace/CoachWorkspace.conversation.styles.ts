@@ -110,7 +110,7 @@ export const EmptyState = styled.div`
   .ws-starter b svg { color: var(--ws-accent); }
   .ws-starter span { font-size: 12.5px; color: var(--ws-muted); }
   .ws-safe { font: 500 11.5px var(--ws-mono); color: var(--ws-muted); }
-  @media (max-width: 767px) {
+  @media (max-width: 767.98px) {
     padding: 18px 12px; gap: 12px;
     .ws-empty-mark { width: 40px; height: 40px; border-radius: 12px; }
     .ws-starters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -175,7 +175,7 @@ export const ComposerDock = styled.div`
   .ws-status { margin: 6px auto 0; max-width: 820px; font-size: 12px; font-weight: 600; color: var(--ws-muted); text-align: center; overflow-wrap: anywhere; }
   .ws-status:empty { display: none; }
   .ws-status[data-tone='warn'] { color: var(--ws-warn); }
-  @media (max-width: 767px) {
+  @media (max-width: 767.98px) {
     .ws-hint { display: none; }
     textarea { font-size: 16px; }
     .ws-toolbar { flex-wrap: nowrap; gap: 2px; }

@@ -58,7 +58,7 @@ const InspectorPanel: React.FC<Props> = ({ model }) => {
           onRetry={() => { void model.schedule.refresh(); }}
           onAsk={model.askAboutSession}
           scheduleRoute={model.scheduleRoute}
-          scheduleLabel={model.userRole === 'admin' ? 'Master schedule' : 'Schedule'}
+          scheduleLabel={model.scheduleRole === 'admin' ? 'Master schedule' : 'Schedule'}
           clientMode={isClientMode}
         />
 

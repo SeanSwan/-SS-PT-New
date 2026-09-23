@@ -16,7 +16,7 @@ import VoiceRecordingOverlay from '../coach-assistant/VoiceRecordingOverlay';
 import CoachCommandCatalogSheet from '../coach-assistant/CoachCommandCatalogSheet';
 import SlashMenu, { slashOptionId } from './SlashMenu';
 import { ComposerDock } from './CoachWorkspace.conversation.styles';
-import { buildSlashItems, slashQuery, type SlashItem } from './slashCommands';
+import { buildSlashItems, pickedPrefix, slashQuery, type SlashItem } from './slashCommands';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 import { workspaceStatus } from './workspaceStatus';
 
@@ -41,7 +41,10 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
   // begins with what was picked — rewriting the message drops back to the classifier.
   const [picked, setPicked] = useState<{ type: string; prefix: string } | null>(null);
   const pickedType = picked && text.trimStart().startsWith(picked.prefix) ? picked.type : null;
-  const setPickedType = (type: string | null, prompt = '') => setPicked(type ? { type, prefix: prompt.trim().slice(0, 16) } : null);
+  const setPickedType = (type: string | null, prompt = '') => {
+    const prefix = type ? pickedPrefix(prompt) : null;
+    setPicked(type && prefix ? { type, prefix } : null);
+  };
   const [activeIndex, setActiveIndex] = useState(0);
   const [menuDismissed, setMenuDismissed] = useState(false);
 
@@ -65,6 +68,9 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
   };
 
   const submit = (event: React.FormEvent) => {
+    // requestSubmit() ignores the disabled send button: a second send while one is in
+    // flight would abort the first inside useAIChat (review #15).
+    if (busy) { event.preventDefault(); return; }
     if (menuOpen && items[activeIndex]) { event.preventDefault(); pick(items[activeIndex]); return; }
     if (pickedType && !noteMode) {
       event.preventDefault();
@@ -77,10 +83,13 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // An IME is choosing text: its arrows and Enter are not ours (review #10).
+    if (event.nativeEvent.isComposing) return;
     if (menuOpen && items.length) {
       if (event.key === 'ArrowDown') { event.preventDefault(); setActiveIndex((i) => (i + 1) % items.length); return; }
       if (event.key === 'ArrowUp') { event.preventDefault(); setActiveIndex((i) => (i - 1 + items.length) % items.length); return; }
-      if (event.key === 'Tab') { event.preventDefault(); pick(items[activeIndex]); return; }
+      // Tab COMPLETES (like a shell); Enter runs. Tab used to run the item.
+      if (event.key === 'Tab' && !event.shiftKey) { event.preventDefault(); controller.setCommandText(`/${items[activeIndex].trigger}`); return; }
     }
     if (menuOpen && event.key === 'Escape') { event.preventDefault(); setMenuDismissed(true); return; }
     if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
@@ -90,7 +99,9 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
   };
 
   const openSlash = () => {
-    if (!text.startsWith('/')) controller.setCommandText(`/${text}`);
+    // A draft is never turned into "/draft text" (which also closed the menu).
+    if (text.trim() && !text.startsWith('/')) { model.setCatalogOpen(true); return; }
+    if (!text.startsWith('/')) controller.setCommandText('/');
     setMenuDismissed(false);
     window.setTimeout(() => controller.commandTextRef.current?.focus({ preventScroll: true }), 0);
   };

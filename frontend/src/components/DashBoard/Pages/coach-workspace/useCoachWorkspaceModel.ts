@@ -29,7 +29,7 @@ import {
 } from '../coach-assistant/CoachCommandCenter.roleConfig';
 import { resolveCoachWorkspaceLayout } from './coachWorkspaceLayout';
 import { useWorkspacePanels } from './useWorkspacePanels';
-import { useTodaySchedule } from './useTodaySchedule';
+import { scheduleRoleForUser, useTodaySchedule } from './useTodaySchedule';
 import type { WorkspaceActionId } from './slashCommands';
 
 export type WorkspaceView = 'chat' | 'review';
@@ -121,13 +121,13 @@ export function useCoachWorkspaceModel() {
     drafts: isClientMode ? 0 : controller.summary.pendingDrafts,
   };
   const reviewTotal = counts.intake + counts.audio + counts.drafts;
-  const scheduleRoute = SCHEDULE_ROUTE[userRole];
+  const scheduleRole = scheduleRoleForUser(user?.role);
+  const scheduleRoute = SCHEDULE_ROUTE[scheduleRole === 'user' || !scheduleRole ? 'client' : scheduleRole];
   const clientPickerRoute = userRole === 'trainer' ? '/dashboard/trainer/clients?intent=log_workout' : '/dashboard/admin/client-management?intent=log_workout';
 
   // ── Today's schedule (Universal Master Schedule source) ──────────────
   const actorNumber = Number.isFinite(Number(user?.id)) ? Number(user?.id) : null;
-  const rawRole = user?.role === 'user' ? 'user' : userRole;
-  const schedule = useTodaySchedule(rawRole, actorNumber, Boolean(user));
+  const schedule = useTodaySchedule(scheduleRole ?? 'client', actorNumber, Boolean(user && scheduleRole));
 
   // ── Composer helpers ─────────────────────────────────────────────────
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -172,7 +172,7 @@ export function useCoachWorkspaceModel() {
   }, [controller, navigate, openReview, panels, workoutLoggerRoute, workoutPlannerRoute]);
 
   return {
-    user, userRole, isClientMode, controller, catalog, layout, panels,
+    user, userRole, scheduleRole, isClientMode, controller, catalog, layout, panels,
     view, setView, backToChat, reviewSection, setReviewSection, openReview, startPlaudUpload,
     searchParams, setSearchParams,
     workoutLoggerRoute, workoutPlannerRoute, scopeLabel, loggerScopeLabel, nextActionLabel,

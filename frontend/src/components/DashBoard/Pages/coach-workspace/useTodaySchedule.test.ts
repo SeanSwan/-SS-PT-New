@@ -10,7 +10,7 @@ vi.mock('../../../../services/universal-master-schedule-service', () => ({
   },
 }));
 
-import { dayBounds, toTodaySlots, useTodaySchedule } from './useTodaySchedule';
+import { dayBounds, scheduleRoleForUser, toTodaySlots, useTodaySchedule } from './useTodaySchedule';
 
 const s = (over: Record<string, unknown>) => ({
   id: '1', sessionDate: '2026-09-22T17:00:00.000Z', duration: 60, userId: '12', trainerId: '3',
@@ -63,5 +63,17 @@ describe('today schedule', () => {
     await act(async () => { window.dispatchEvent(new Event('dashboardDataSync')); });
     await waitFor(() => expect(getSessions).toHaveBeenCalledTimes(2));
     expect(getSessions.mock.calls[0][0]).toMatchObject({ customDateStart: expect.any(String), customDateEnd: expect.any(String) });
+  });
+});
+
+describe('scheduleRoleForUser (review #12: the server scopes by the signed-in role)', () => {
+  it('uses the authenticated role, whatever dashboard path is open', () => {
+    expect(scheduleRoleForUser('admin')).toBe('admin');
+    expect(scheduleRoleForUser('trainer')).toBe('trainer');
+    expect(scheduleRoleForUser('user')).toBe('user');
+  });
+  it('CONTROL: an unknown role reads nothing', () => {
+    expect(scheduleRoleForUser('ghost')).toBeNull();
+    expect(scheduleRoleForUser(undefined)).toBeNull();
   });
 });

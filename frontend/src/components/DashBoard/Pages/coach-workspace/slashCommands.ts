@@ -88,3 +88,15 @@ export function buildSlashItems(query: string, commands: CoachCommandCatalogEntr
     && (item.trigger.includes(q) || item.label.toLowerCase().includes(q)));
   return [...starts, ...contains].slice(0, limit);
 }
+
+/**
+ * The part of a picked command's prompt that must still lead the text for the
+ * picked type to apply (review #11). A templated example ("Log {client}'s
+ * workout") is cut at its first "{" — the operator replaces the slot, so the
+ * whole-prompt prefix never matched and the pick silently fell back to the
+ * classifier. Null when nothing fixed precedes the slot.
+ */
+export function pickedPrefix(prompt: string): string | null {
+  const fixed = prompt.split('{')[0].trim().slice(0, 16).trimEnd();
+  return fixed.length >= 3 ? fixed : null;
+}

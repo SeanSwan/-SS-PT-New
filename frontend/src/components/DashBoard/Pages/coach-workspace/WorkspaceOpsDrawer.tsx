@@ -5,9 +5,10 @@
  * controls, Plaud/intake hand-offs) as a right sheet at every width, portaled
  * above the dashboard chrome. The workspace owns the sheet (position, scrim,
  * focus); CommandBridgeShell is inside it only so the rail's own class-based
- * styles apply. Escape + restore come from useCoachCommandCenterDrawerEffects.
+ * styles apply. Escape + restore come from useCoachCommandCenterDrawerEffects;
+ * the focus trap and the inert workspace behind the sheet are owned here.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { workspaceTokens } from './workspaceTokens';
@@ -16,6 +17,8 @@ import CoachCommandOpsRail from '../coach-assistant/CoachCommandOpsRail';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 
 type Props = { model: CoachWorkspaceModel };
+
+const FOCUSABLE = 'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 const Sheet = styled.div`
   ${workspaceTokens}
@@ -37,13 +40,34 @@ const WorkspaceOpsDrawer: React.FC<Props> = ({ model }) => {
   const [accountControlsOpen, setAccountControlsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const open = !model.isClientMode && controller.drawer === 'right';
-  useEffect(() => {
+  // A real modal (review #7): focus moves in, Tab stays in, and everything behind
+  // the sheet — the whole workspace — is inert and hidden from assistive tech.
+  // Layout effect: the inert flag must be gone before closeDrawer's deferred
+  // focus-restore reaches the (inside-the-workspace) trigger.
+  useLayoutEffect(() => {
     if (!open) return undefined;
-    const timer = window.setTimeout(() => {
-      panelRef.current?.querySelector<HTMLElement>('button:not([disabled]), a[href], input, select, textarea')?.focus();
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [open]);
+    const behind = controller.shellRef.current as (HTMLElement & { inert?: boolean }) | null;
+    if (behind) { behind.inert = true; behind.setAttribute('aria-hidden', 'true'); }
+    const focusables = () => Array.from(panelRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])
+      .filter((element) => !element.hasAttribute('disabled') && element.getClientRects().length > 0);
+    const timer = window.setTimeout(() => focusables()[0]?.focus(), 0);
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const list = focusables();
+      if (!list.length) return;
+      const first = list[0];
+      const last = list[list.length - 1];
+      const inside = panelRef.current?.contains(document.activeElement);
+      if (event.shiftKey && (document.activeElement === first || !inside)) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (document.activeElement === last || !inside)) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', trap);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('keydown', trap);
+      if (behind) { behind.inert = false; behind.removeAttribute('aria-hidden'); }
+    };
+  }, [controller.shellRef, open]);
   if (!open || typeof document === 'undefined') return null;
 
   return createPortal(

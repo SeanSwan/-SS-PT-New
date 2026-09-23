@@ -30,7 +30,8 @@ export function createCoachSubmit(props: CoachCommandActionProps, addLog: AddCoa
   return async (trimmed: string, commandType?: string) => {
     const sendToken = beginCoachSend(props.commandTextRef);
     addLog({ actor: 'operator', label: props.clientFacing ? 'client request' : 'operator command', body: trimmed });
-    props.setCommandText('');
+    // Clear only what was sent: a starter or /command send keeps an unrelated draft.
+    props.setCommandText((current) => (current.trim() === trimmed ? '' : current));
     props.setSelectedStatus('Sending command to Swan Coach');
     const commandTitle = buildCoachCommandTitle({
       activeThreadTitle: props.activeThreadTitle,

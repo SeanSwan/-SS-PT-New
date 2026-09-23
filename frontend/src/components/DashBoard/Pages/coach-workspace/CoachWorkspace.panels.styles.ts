@@ -29,7 +29,7 @@ export const SidebarRoot = styled.nav`
   .ws-search { position: relative; margin: 0 10px 8px; }
   .ws-search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--ws-muted); }
   .ws-search input {
-    width: 100%; height: 40px; padding: 0 12px 0 34px; border-radius: var(--ws-radius-sm);
+    width: 100%; height: 44px; padding: 0 12px 0 34px; border-radius: var(--ws-radius-sm);
     border: 1px solid var(--ws-line); background: var(--ws-sunken); color: var(--ws-text); font-size: 13px;
   }
   .ws-search input::placeholder { color: var(--ws-muted); }

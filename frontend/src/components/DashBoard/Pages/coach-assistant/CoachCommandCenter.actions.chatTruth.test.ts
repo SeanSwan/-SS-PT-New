@@ -113,8 +113,18 @@ describe('CoachCommandCenter actions — chat truth (no fake replies)', () => {
     expect(h.getLogs()[0].body).toMatch(/may already be saved/);
     expect(h.getLogs()[0].body).not.toMatch(/Nothing was (sent|saved)/);
     expect(h.getLogs()[0].retryMessage).toBeUndefined();
-    expect(h.setCommandText.mock.calls.every(([value]) => typeof value !== 'function'), 'no restore that would invite a duplicate post').toBe(true);
+    // The send-time clear is functional now (it keeps unrelated drafts); what must not
+    // happen is any update that puts the sent words back into an empty composer.
+    expect(h.setCommandText.mock.calls.every(([value]) => typeof value !== 'function' || value('') === ''), 'no restore that would invite a duplicate post').toBe(true);
     expect(h.setSelectedStatus).toHaveBeenLastCalledWith('Reply not shown');
+  });
+
+  it('a send clears only what it sent: a starter/command send keeps an unrelated draft', async () => {
+    const h = buildHarness({ role: 'assistant', content: 'Brief ready.' });
+    await h.actions.handleIntentSubmit('Brief my day');
+    const clear = h.setCommandText.mock.calls[0]?.[0] as (current: string) => string;
+    expect(clear('half-typed note about Avery')).toBe('half-typed note about Avery');
+    expect(clear('Brief my day')).toBe('');
   });
 
   it('with no stage signal (older chat hook) the notice never claims nothing was sent', async () => {

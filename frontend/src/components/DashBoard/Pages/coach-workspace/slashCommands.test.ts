@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSlashItems, commandAliases, slashQuery } from './slashCommands';
+import { buildSlashItems, commandAliases, pickedPrefix, slashQuery } from './slashCommands';
 
 const catalog = [
   { type: 'brief_my_day', description: 'Day sheet', group: 'G' },
@@ -43,5 +43,19 @@ describe('slash commands', () => {
     const items = buildSlashItems('at', catalog, { staff: true, notebookAvailable: true });
     expect(items[0].trigger).toBe('attention');
     expect(items.some((item) => item.trigger === 'at-risk-clients')).toBe(true);
+  });
+});
+
+describe('pickedPrefix (review #11)', () => {
+  it('cuts a templated prompt at its first slot', () => {
+    expect(pickedPrefix('Log {client} workout: {exercise}')).toBe('Log');
+    expect(pickedPrefix('Brief me on {client} before today')).toBe('Brief me on');
+  });
+  it('keeps the first 16 characters of a fixed prompt', () => {
+    expect(pickedPrefix("Day sheet — today's sessions")).toBe("Day sheet — toda");
+  });
+  it('CONTROL: a prompt that starts with a slot has no usable prefix', () => {
+    expect(pickedPrefix('{client} progress')).toBeNull();
+    expect(pickedPrefix('Go {x}')).toBeNull();
   });
 });
