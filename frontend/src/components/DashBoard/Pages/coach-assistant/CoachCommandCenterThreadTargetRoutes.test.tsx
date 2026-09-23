@@ -63,6 +63,9 @@ describe('CoachCommandCenter selected thread target routes', () => {
         'Ava Stone weekly training',
         424242,
         'both',
+        null,
+        null,
+        { reachedNetwork: null },
       );
     });
   });
@@ -123,6 +126,9 @@ describe('CoachCommandCenter selected thread target routes', () => {
         'Ava Stone weekly training',
         424242,
         'both',
+        null,
+        null,
+        { reachedNetwork: null },
       );
     });
   });

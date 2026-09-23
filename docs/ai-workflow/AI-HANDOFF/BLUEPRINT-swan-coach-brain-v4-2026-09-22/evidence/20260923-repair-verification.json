@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-23T09:17:49.708Z",
+  "status": "LOCAL_FRONTEND_VERIFIED_RELEASE_BLOCKED",
+  "baseline": "92c7e21da992f66ba22a912fec134156c569ad4d",
+  "branch": "codex/coach-v4-hostile-20260923",
+  "archiveReviewId": "2026-09-23-021253-swan-coach-v4-workspace-repair-and-delivery",
+  "tests": [
+    {
+      "id": "R1-R6-unit",
+      "requirements": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "cwd": "frontend",
+      "command": "node node_modules/vitest/vitest.mjs run src/components/DashBoard/Pages/coach-assistant src/components/DashBoard/Pages/coach-workspace src/hooks src/context --maxWorkers=3",
+      "status": "PASS",
+      "exitCode": 0,
+      "filesPassed": 313,
+      "testsPassed": 1883,
+      "log": "tmp/hostile-review-20260923/full-frontend-complete.log"
+    },
+    {
+      "id": "R1-R6-browser",
+      "requirements": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "cwd": "frontend",
+      "command": "node node_modules/@playwright/test/cli.js test e2e/coach-workspace-smoke.spec.ts e2e/coach-workspace-client.spec.ts e2e/coach-workspace-repairs.spec.ts --project=\"Desktop Chrome\" --workers=1 --retries=0 --reporter=line",
+      "environment": {
+        "BASE_URL": "http://127.0.0.1:5198",
+        "SWAN_PLAYWRIGHT_SKIP_WEBSERVER": "1",
+        "backend": "intercepted synthetic responses"
+      },
+      "status": "PASS",
+      "exitCode": 0,
+      "testsPassed": 27,
+      "log": "tmp/hostile-review-20260923/browser-final-27.log"
+    },
+    {
+      "id": "typecheck",
+      "requirements": [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "cwd": "frontend",
+      "command": "node --max-old-space-size=16384 node_modules/typescript/bin/tsc --noEmit",
+      "status": "PASS",
+      "exitCode": 0,
+      "log": "tmp/hostile-review-20260923/typecheck-complete.log"
+    }
+  ],
+  "preservation": {
+    "baselineSnapshotCount": 13,
+    "manifest": "tmp/hostile-review-20260923/blueprint-before/manifest.json",
+    "source": "Original canonical planning packet; copies hash-verified before edits."
+  },
+  "evidence": [
+    {
+      "path": "tmp/hostile-review-20260923/full-frontend-complete.log",
+      "bytes": 4217,
+      "sha256": "afc08522c2e916f0965db5d456865fd9558eec2eb3c44da0eeffb03a8f64d5d3"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/browser-final-27.log",
+      "bytes": 6047,
+      "sha256": "e6bbc0d895dcbd1c057b3cf15e5b7de3e5fab317c7987337388b2ffc6fe072a9"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/typecheck-complete.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/section-split-final.log",
+      "bytes": 276,
+      "sha256": "ea48e0dde576a1eaac7590f8e07a8de0efe52ec2e4012d6b72909c0e77e209d0"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/schedule-red.log",
+      "bytes": 8151,
+      "sha256": "c54182d029b0381c47876e77f07e9224dc6725c7783a741844a5fee30805c5e5"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/thread-reset-red.log",
+      "bytes": 1323,
+      "sha256": "619977f39550fa256d4886a936f9823dc7c772e9b62c1ca93a929e56ae0545f3"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/send-receipt-red.log",
+      "bytes": 1945,
+      "sha256": "1707494a72b1377cb9b35568417cd0b2fa420537929e8fc53c4771257e44c7ed"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/keyboard-red.log",
+      "bytes": 3719,
+      "sha256": "be19b88ecf1c8366b6d8057e4088516d147a550ad05bcfa9acd6a5041337fbc1"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/list-integration-red.log",
+      "bytes": 2409,
+      "sha256": "226df08a67b3669aef649e60d5876213f8e1d3c72a920852a94d09ddc2bc38a6"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/list-failure-red.log",
+      "bytes": 3305,
+      "sha256": "967a64cf9c65e49f010d68e57e970a547435fe14ee1099fd75ad641da80f333d"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/claude-auth-status.log",
+      "bytes": 243,
+      "sha256": "f3aa7602c979eac19c3f6d0ef2f4e6634e18ac2eb9e44569fbcd5710ae1c51fa"
+    },
+    {
+      "path": "tmp/hostile-review-20260923/blueprint-before/manifest.json",
+      "bytes": 1653,
+      "sha256": "58d3234e2d14e15922196c666e6b9dd2d050d87d70aa1a50917aa5e8eacd1adf"
+    }
+  ],
+  "unproven": [
+    "Independent Claude review unavailable: CLI not authenticated; earlier Kimi gate also pending.",
+    "Real backend, PostgreSQL persistence, production auth/permissions and provider behavior not run.",
+    "Actual fractional browser zoom; matchMedia probes are synthetic.",
+    "S83 backend delta not delivered and future one-brain phases remain unbuilt."
+  ],
+  "limitations": [
+    "This receipt records observed local commands. It is not a workflow-controller or native-hook approval.",
+    "Raw log hashes describe the retained local evidence files. TypeScript success produces an empty log.",
+    "R4 network-stage concurrency is verified by real-hook unit tests; browser API responses are mocked.",
+    "No push, deployment, paid review or real database write performed."
+  ]
+}

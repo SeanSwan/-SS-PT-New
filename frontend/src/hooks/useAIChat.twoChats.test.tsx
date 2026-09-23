@@ -82,14 +82,16 @@ describe('staff can start a SECOND chat after the first one adopted its thread',
   it('reports whether a refused send reached the network (review #4: "nothing was saved" must be true)', async () => {
     const { result, rerender } = renderHook(() => useStaffChat());
     let refused: unknown;
-    await act(async () => { refused = await result.current.chat.sendMessageWithConversation('hi', 'coach_assistant', 'A', null, 'both'); });
+    const refusedReceipt = { reachedNetwork: null as boolean | null };
+    await act(async () => { refused = await result.current.chat.sendMessageWithConversation('hi', 'coach_assistant', 'A', null, 'both', null, null, refusedReceipt); });
     expect(refused).toBeNull();
     expect(postMock).not.toHaveBeenCalled();
-    expect(result.current.chat.lastSendReachedNetwork()).toBe(false);
+    expect(refusedReceipt.reachedNetwork).toBe(false);
     act(() => { result.current.selection.publish({ actorId: 7, rawRole: 'trainer', audienceRole: 'trainer', generation: 1, targetUserId: null, threadId: null } as never); });
     rerender();
-    await act(async () => { await result.current.chat.sendMessageWithConversation('hi', 'coach_assistant', 'A', null, 'both'); });
-    expect(result.current.chat.lastSendReachedNetwork()).toBe(true);
+    const sentReceipt = { reachedNetwork: null as boolean | null };
+    await act(async () => { await result.current.chat.sendMessageWithConversation('hi', 'coach_assistant', 'A', null, 'both', null, null, sentReceipt); });
+    expect(sentReceipt.reachedNetwork).toBe(true);
   });
 
   it('a refusal after the thread is created but BEFORE the message POST still reports "not sent"', async () => {
@@ -97,10 +99,11 @@ describe('staff can start a SECOND chat after the first one adopted its thread',
     const binding = { getSnapshot: () => snap, adoptCreatedThread: async () => null };
     const { result } = renderHook(() => (useAIChat as unknown as (role: string, b: unknown) => ReturnType<typeof useAIChat>)('trainer', binding));
     let sent: unknown;
-    await act(async () => { sent = await result.current.sendMessageWithConversation('hi', 'coach_assistant', 'A', null, 'both'); });
+    const receipt = { reachedNetwork: null as boolean | null };
+    await act(async () => { sent = await result.current.sendMessageWithConversation('hi', 'coach_assistant', 'A', null, 'both', null, null, receipt); });
     expect(sent).toBeNull();
     expect(postMock.mock.calls.map(([url]) => url)).toEqual(['/api/ai-chat/conversations']);
-    expect(result.current.lastSendReachedNetwork(), 'the words never reached the coach').toBe(false);
+    expect(receipt.reachedNetwork, 'the words never reached the coach').toBe(false);
   });
 });
 

@@ -2,8 +2,8 @@
 
 **Package ID:** `SWAN-COACH-BRAIN-V4-20260922`
 **Location:** `docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-brain-v4-2026-09-22/`
-**Status:** `D1 BUILT on coach/brain-v4 — v4 Coach Workspace, hostile review round 3 APPROVE (second seat); Kimi gate + PR pending; D2–D4 and D9–D10 pending` (see `11-v4-review-log.md`, `PART-C-decisions.md`, `10-local-first-hive-brain.md` §6)
-**Implementation verified:** On the branch only — unit + e2e + scoped tsc (evidence in `11`); full tsc not yet run. **Deployed:** No.
+**Current status (2026-09-23):** D1 workspace repaired on `codex/coach-v4-hostile-20260923`; builder audit PARTIAL. See [12 — repair and verification receipt](12-astra-hostile-repair-20260923.md). S83 delivery and independent review remain blocked/pending; D2–D4 and D9–D10 remain pending. The historical round-3 approval in `11` does not approve these new changes.
+**Implementation verified:** Local frontend repairs — unit + 27 browser checks with mocked APIs + full frontend TypeScript check. Evidence and limitations in `12`. **Deployed:** No.
 **Evidence basis:** Hostile review `Z:\HostileReviews\2026-09-22-153136-swan-coach-coach-command-center-whole-system.md` (3C/8H/6M/2L), run against:
 - `origin/main@53f93854b`
 - `codex/swan-coach-astra-owned-20260906@70547685c`
@@ -109,3 +109,4 @@ The historical records stay where they are, and nothing is deleted. From P0 onwa
 
 **PLAN READY, IMPLEMENTATION VERIFIED and DEPLOYED are separate states.** This package claims none of them.
 - `11-v4-review-log.md` — what shipped on `coach/brain-v4`, the three hostile-review rounds, evidence, residual risks, next slice.
+- `12-astra-hostile-repair-20260923.md` — current residual-defect repairs, exact validation, delivery gaps and archive successor.

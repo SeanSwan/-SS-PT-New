@@ -41,7 +41,7 @@ export async function mockApi(page: Page, opts: { history?: boolean; user?: Sess
     if (path === '/api/auth/me' || path === '/api/profile') return json(route, { success: true, user });
     if (path === '/api/ai-chat/target-access') {
       const id = (key: string) => (url.searchParams.get(key) ? Number(url.searchParams.get(key)) : null);
-      return json(route, { success: true, access: { scope: 'coach_target_read', actorUserId: 1, actorRole: 'admin', targetUserId: id('targetUserId'), conversationId: id('conversationId') } });
+      return json(route, { success: true, access: { scope: 'coach_target_read', actorUserId: user.id, actorRole: user.role, targetUserId: id('targetUserId'), conversationId: id('conversationId') } });
     }
     if (path === '/api/subscriptions/status') {
       return json(route, { success: true, subscription: { tier: 'pro', status: 'active', hasFullAIAccess: true }, usage: {} });

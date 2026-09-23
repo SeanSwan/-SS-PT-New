@@ -23,6 +23,7 @@ import {
 import { interpretCoachChatResponse } from './CoachCommandCenter.chatResponse';
 import { beginCoachSend, isLatestCoachSend, REFUSED_SEND_NOTICE, UNCONFIRMED_SEND_NOTICE } from './coachSendSequence';
 import type { AddCoachLog, CoachCommandActionProps } from './CoachCommandCenter.actions';
+import type { AIChatSendReceipt } from '../../../../hooks/useAIChat';
 
 export function createCoachSubmit(props: CoachCommandActionProps, addLog: AddCoachLog) {
   const restoreText = (trimmed: string) => props.setCommandText((current) => (current.trim() ? current : trimmed));
@@ -74,15 +75,17 @@ export function createCoachSubmit(props: CoachCommandActionProps, addLog: AddCoa
       }
     }
     const chatPrompt = buildRouteScopedCoachPrompt(trimmed, props.routeContextPrompt);
-    const response = props.routeRequestContext
-      ? await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both', null, props.routeRequestContext)
-      : await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both');
+    const receipt: AIChatSendReceipt = { reachedNetwork: null };
+    const response = await props.chat.sendMessageWithConversation(
+      chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both',
+      null, props.routeRequestContext, receipt,
+    );
     const outcome = interpretCoachChatResponse(response, trimmed, typeof navigator !== 'undefined' && navigator.onLine === false);
     if (outcome.kind === 'superseded') {
       // Really superseded → the newer work speaks. Nothing newer → it was refused.
       if (!isLatestCoachSend(props.commandTextRef, sendToken)) return;
       // Unknown stage counts as "reached the network": never claim nothing was sent.
-      if (props.chat.lastSendReachedNetwork?.() ?? true) {
+      if (receipt.reachedNetwork !== false) {
         addLog(UNCONFIRMED_SEND_NOTICE);
         props.setSelectedStatus('Reply not shown');
         return;

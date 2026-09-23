@@ -19,8 +19,7 @@ import type { CoachChatRouteRequestContext, CoachCommandRouteContext, DrawerSide
 import type { CoachCommandInputMode } from '../../../../hooks/coachInputOrigin';
 import type { ConfirmResult } from '../../../../hooks/useCoachCommand';
 
-type CoachCommandChat = Pick<ReturnType<typeof useAIChat>, 'listConversations' | 'loadConversation' | 'newChat' | 'sendMessageWithConversation'>
-  & Partial<Pick<ReturnType<typeof useAIChat>, 'lastSendReachedNetwork'>>;
+type CoachCommandChat = Pick<ReturnType<typeof useAIChat>, 'listConversations' | 'loadConversation' | 'newChat' | 'sendMessageWithConversation'>;
 type CoachCommandQueue = { refresh: () => unknown };
 export type CoachCommandActionProps = {
   activeThread: ConversationSummary | null;

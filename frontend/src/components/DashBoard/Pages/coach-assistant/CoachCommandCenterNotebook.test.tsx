@@ -72,6 +72,9 @@ describe('CoachCommandCenter client notebook', () => {
         expect.any(String),
         41,
         'both',
+        null,
+        null,
+        { reachedNetwork: null },
       );
     });
   });

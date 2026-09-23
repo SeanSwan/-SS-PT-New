@@ -90,8 +90,7 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
     if (menuOpen && items.length) {
       if (event.key === 'ArrowDown') { event.preventDefault(); setActiveIndex((i) => (i + 1) % items.length); return; }
       if (event.key === 'ArrowUp') { event.preventDefault(); setActiveIndex((i) => (i - 1 + items.length) % items.length); return; }
-      // Tab COMPLETES (like a shell); Enter runs. Tab used to run the item.
-      if (event.key === 'Tab' && !event.shiftKey) { event.preventDefault(); controller.setCommandText(`/${items[activeIndex].trigger}`); return; }
+      // Tab and Shift+Tab retain native focus navigation; Enter explicitly picks.
     }
     if (menuOpen && event.key === 'Escape') { event.preventDefault(); setMenuDismissed(true); return; }
     if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
@@ -197,7 +196,7 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
           </button>
         </div>
       </form>
-      <p className="ws-status" role="status" aria-live="polite" data-tone={status?.tone}>{status?.text ?? ''}</p>
+      <p className="ws-status" role="status" aria-live="polite" data-tone={status?.tone}>{model.scheduleAskStatus ?? status?.text ?? ''}</p>
       <p className="ws-hint" id="ws-composer-hint">
         {noteMode
           ? 'Enter saves this note to the client profile · Shift+Enter for a new line'

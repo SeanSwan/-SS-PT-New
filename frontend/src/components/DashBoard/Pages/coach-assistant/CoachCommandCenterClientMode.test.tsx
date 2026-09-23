@@ -158,6 +158,9 @@ describe('CoachCommandCenterPage client mode', () => {
         'Friday intake cleanup',
         null,
         'both',
+        null,
+        null,
+        { reachedNetwork: null },
       );
     });
     expect(executeCommandMock).not.toHaveBeenCalled();

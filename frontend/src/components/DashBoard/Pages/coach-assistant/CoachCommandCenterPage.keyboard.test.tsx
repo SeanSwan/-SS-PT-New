@@ -28,6 +28,9 @@ describe('CoachCommandCenterPage keyboard submit', () => {
         'Chaz',
         null,
         'both',
+        null,
+        null,
+        { reachedNetwork: null },
       );
     });
     expect(loadConversationMock, 'no thread is auto-loaded for staff').not.toHaveBeenCalled();

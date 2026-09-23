@@ -11,7 +11,11 @@ function buildHarness(sendResult: unknown, options: { commandText?: string; exec
   });
   const setSelectedStatus = vi.fn();
   const setCommandText = vi.fn();
-  const sendMessageWithConversation = vi.fn().mockResolvedValue(sendResult);
+  const sendMessageWithConversation = vi.fn().mockImplementation(async (...args: unknown[]) => {
+    const receipt = args[7] as { reachedNetwork: boolean | null };
+    if (receipt && options.reachedNetwork !== undefined) receipt.reachedNetwork = options.reachedNetwork;
+    return sendResult;
+  });
   const speakCoachReply = vi.fn();
   const actions = createCoachCommandCenterActions({
     activeThread: null,
@@ -21,7 +25,6 @@ function buildHarness(sendResult: unknown, options: { commandText?: string; exec
       loadConversation: vi.fn(),
       newChat: vi.fn(),
       sendMessageWithConversation,
-      ...(options.reachedNetwork === undefined ? {} : { lastSendReachedNetwork: () => options.reachedNetwork as boolean }),
     },
     coachQueue: { refresh: vi.fn() },
     clientFacing: false,

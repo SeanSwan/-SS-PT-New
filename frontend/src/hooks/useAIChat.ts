@@ -35,6 +35,9 @@ import {
 const CONVERSATION_CACHE_TTL_MS = 5 * 60 * 1000;
 const CREATED_THREAD_ADOPTION_TIMEOUT_MS = 5000;
 
+/** Owned by one invocation; null means the caller has no stage evidence yet. */
+export type AIChatSendReceipt = { reachedNetwork: boolean | null };
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -338,6 +341,7 @@ export function useAIChat(
   const auth = useAuth();
   const { showPaywall } = usePaywall();
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [conversationListStatus, setConversationListStatus] = useState<'unloaded' | 'loading' | 'settled' | 'error'>('unloaded');
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -662,6 +666,7 @@ export function useAIChat(
       retireOperation(listing);
       finishLoading(listing);
       listOperationRef.current = null;
+      setConversationListStatus('error');
     }
     const loadingThread = loadOperationRef.current;
     if (removedThreadId !== undefined && loadingThread?.readThreadId === removedThreadId) {
@@ -680,6 +685,7 @@ export function useAIChat(
     conversationEpochRef.current += 1;
     scopeGenerationRef.current += 1;
     adoptedTransitionRef.current = null;
+    if (listOperationRef.current) setConversationListStatus('error');
     retireOperationSet(operationsRef.current);
     mutationOperationsRef.current.clear();
     createOperationRef.current = null;
@@ -746,6 +752,7 @@ export function useAIChat(
     committedScopeRef.current = renderScope;
     setPublishedScope(renderScope);
     setConversations([]);
+    setConversationListStatus('unloaded');
     setActiveConversation(null);
     convCacheTimeRef.current = 0;
     conversationCacheRef.current = [];
@@ -849,6 +856,7 @@ export function useAIChat(
       return conversationCacheRef.current;
     }
     const operation = beginOperation('active', listOperationRef);
+    setConversationListStatus('loading');
     beginLoading(operation);
     setError(null);
     try {
@@ -864,12 +872,15 @@ export function useAIChat(
       }
       if (!validateOperationAndAuth(operation, captured, source)) return [];
       setConversations(data.conversations);
+      setConversationListStatus('settled');
       conversationCacheRef.current = data.conversations;
       convCacheStatusRef.current = status;
       convCacheTimeRef.current = Date.now();
       return data.conversations;
     } catch (err: unknown) {
-      if (!validateOperationAndAuth(operation, captured, source) || isCanceledAiRequest(err)) return [];
+      if (!validateOperationAndAuth(operation, captured, source)) return [];
+      setConversationListStatus('error');
+      if (isCanceledAiRequest(err)) return [];
       setFailureState(toAiApiError(err, 'Failed to list conversations').message);
       return [];
     } finally {
@@ -1045,12 +1056,6 @@ export function useAIChat(
     validateOperationAndAuth,
   ]);
 
-  // Brain-v4 review #4: a null send was refused either before the MESSAGE POST (the
-  // words were not sent; a created thread may exist, empty) or after it (the message
-  // may be saved). Callers read which, once, right after their own send resolves.
-  const sendReachedNetworkRef = useRef(false);
-  const lastSendReachedNetwork = useCallback(() => sendReachedNetworkRef.current, []);
-
   const sendMessageWithConversation = useCallback(async (
     message: string,
     context: AIContext = 'general',
@@ -1059,8 +1064,10 @@ export function useAIChat(
     responseStyle: ResponseStyle = 'both',
     foodContext?: Record<string, unknown> | null,
     requestContext?: AIRequestContext | null,
+    receipt?: AIChatSendReceipt,
   ) => {
-    sendReachedNetworkRef.current = false;
+    // A concurrent food/slash send cannot overwrite another caller's evidence.
+    if (receipt) receipt.reachedNetwork = false;
     if (!canUseRenderScope() || renderedConversationEpoch !== conversationEpochRef.current) return null;
     if (isChatMessageTooLong(message)) {
       const msg = buildChatMessageTooLongError(message.length);
@@ -1144,7 +1151,7 @@ export function useAIChat(
 
       const safeRequestContext = buildSafeRequestContext(requestContext);
       if (!validateOperationAndAuth(operation, publication, source)) return null;
-      sendReachedNetworkRef.current = true;
+      if (receipt) receipt.reachedNetwork = true;
       const res = await apiService.post(
         `/api/ai-chat/conversations/${convId}/messages`,
         {
@@ -1235,6 +1242,7 @@ export function useAIChat(
     loadingOperationRef.current = null;
     setActiveConversation(null);
     setConversations([]);
+    setConversationListStatus('unloaded');
     convCacheTimeRef.current = 0;
     conversationCacheRef.current = [];
     setLoading(false);
@@ -1385,6 +1393,8 @@ export function useAIChat(
 
   return {
     conversations: publicationVisible ? conversations : [],
+    conversationsRefreshing: !publicationVisible || conversationListStatus === 'unloaded' || conversationListStatus === 'loading',
+    conversationListFailed: publicationVisible && conversationListStatus === 'error',
     activeConversation: visibleConversation,
     messages: visibleConversation?.messages || [],
     loading: publicationVisible ? loading : false,
@@ -1398,7 +1408,6 @@ export function useAIChat(
     loadConversation,
     sendMessage,
     sendMessageWithConversation,
-    lastSendReachedNetwork,
     deleteConversation,
     renameConversation,
     archiveConversation,

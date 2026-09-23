@@ -23,10 +23,12 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
   const { controller, panels, isClientMode } = model;
   const searching = controller.threadSearch.trim().length > 0;
   const actorKey = model.user ? `${model.user.id}:${model.user.role}` : null;
-  const list = useStableThreadList(controller.coachThreads, actorKey, searching);
-  const groups = useMemo(() => groupThreads(list.threads), [list.threads]);
   // Only a selection still in flight is "loading"; a failed one is not (the header says so).
   const settling = ['unadmitted', 'checking', 'committing'].includes(controller.selectionPhase);
+  const refreshing = settling || ((controller.selectionPhase === 'ready' || isClientMode) && controller.conversationsRefreshing);
+  const failed = controller.conversationListFailed && (controller.selectionPhase === 'ready' || isClientMode);
+  const list = useStableThreadList(controller.coachThreads, actorKey, searching, refreshing, failed);
+  const groups = useMemo(() => groupThreads(list.threads), [list.threads]);
 
   const pick = (thread: (typeof controller.coachThreads)[number]) => {
     controller.handleThreadSelect(thread);
@@ -60,7 +62,13 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
           aria-label="Search conversations"
         />
       </label>
-      <div className="ws-thread-list" aria-busy={list.refreshing || undefined} data-refreshing={list.refreshing || undefined}>
+      <div className="ws-thread-list" aria-busy={refreshing || undefined} data-refreshing={list.refreshing || undefined}>
+        {failed ? (
+          <div role="status">
+            <p className="ws-side-empty">{list.threads.length ? "Couldn't refresh conversations. Showing the last loaded list." : "Couldn't load conversations."}</p>
+            <button type="button" className="ws-side-link" onClick={controller.retryConversations}>Retry conversations</button>
+          </div>
+        ) : null}
         {groups.length ? groups.map((group) => (
           <section key={group.label} aria-label={group.label}>
             <h3 className="ws-group-label">{group.label}</h3>
@@ -84,7 +92,7 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
           </section>
         )) : (
           <p className="ws-side-empty">
-            {searching ? 'No conversation matches that search.' : settling ? 'Loading conversations…' : 'No conversations yet. Anything you ask starts one.'}
+            {failed ? '' : searching ? 'No conversation matches that search.' : refreshing ? 'Loading conversations…' : 'No conversations yet. Anything you ask starts one.'}
           </p>
         )}
       </div>

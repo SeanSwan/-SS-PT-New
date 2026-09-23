@@ -47,6 +47,9 @@ describe('CoachCommandCenter pinned client', () => {
         expect.stringMatching(/Ben Harbor|Client #52/),
         52,
         'both',
+        null,
+        null,
+        { reachedNetwork: null },
       );
     });
   });

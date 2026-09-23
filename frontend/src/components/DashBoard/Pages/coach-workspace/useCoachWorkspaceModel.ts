@@ -153,7 +153,23 @@ export function useCoachWorkspaceModel() {
     if (view !== 'chat') setView('chat');
     window.setTimeout(() => controller.commandTextRef.current?.focus({ preventScroll: true }), 0);
   }, [controller, view]);
-  const askAboutSession = useAskAboutSession({ clientPin: controller.clientPin, isClientMode, write: writeUnderDraft, closeSheets: panels.closeSheets });
+  const [scheduleAskStatus, setScheduleAskStatus] = useState<string | null>(null);
+  useEffect(() => {
+    if (controller.commandBusy || controller.notebook?.saving) setScheduleAskStatus(null);
+  }, [controller.commandBusy, controller.notebook?.saving]);
+  const askAboutSession = useAskAboutSession({
+    actorKey: user ? `${user.id}:${user.role}` : null,
+    threadKey: searchParams.get('threadId') ?? '',
+    noteMode: Boolean(controller.notebook?.active),
+    admission: {
+      phase: controller.selectionPhase,
+      targetUserId: controller.selection.accepted?.targetUserId ?? null,
+      requestGeneration: controller.selection.requestGeneration,
+      returning: controller.selection.instructions?.kind === 'return',
+    },
+    clientPin: controller.clientPin, isClientMode, write: writeUnderDraft,
+    closeSheets: panels.closeSheets, notify: setScheduleAskStatus,
+  });
 
   const runAction = useCallback((id: WorkspaceActionId) => {
     controller.setCommandText('');
@@ -176,7 +192,8 @@ export function useCoachWorkspaceModel() {
     searchParams, setSearchParams,
     workoutLoggerRoute, workoutPlannerRoute, scopeLabel, loggerScopeLabel, nextActionLabel,
     counts, reviewTotal, scheduleRoute, clientPickerRoute,
-    schedule, prefill, writeUnderDraft, sendCommand, askAboutSession, runAction, catalogOpen, setCatalogOpen,
+    schedule, prefill, writeUnderDraft, sendCommand, askAboutSession, scheduleAskStatus,
+    runAction, catalogOpen, setCatalogOpen,
   };
 }
 

@@ -47,10 +47,8 @@ export function useCoachCommandCenterController({
   const [searchParams, setSearchParams] = useSearchParams();
   const initialRouteThreadId = parseRouteThreadId(searchParams.get('threadId'));
   const [activeThreadId, setActiveThreadId] = useState<number | null>(initialRouteThreadId);
-  // Plan 55 §3 C3 — the metadata-only selection adapter is mounted BEFORE the
-  // transports, so every one of them is constructed with the SAME live
-  // publication binding. `rawRole` is the ACTUAL authenticated role, passed
-  // separately from the `userRole` presentation/audience role.
+  // Plan 55 §3 C3: mount selection before transports so all share its live binding.
+  // `rawRole` is authenticated; `userRole` is the presentation/audience role.
   const { selection, binding } = useCoachCommandCenterSelection({ actorId, rawRole, audienceRole: userRole, setActiveThreadId });
   const chat = useAIChat(userRole, binding);
   const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand(binding);
@@ -227,6 +225,9 @@ export function useCoachCommandCenterController({
     activeThreadId,
     allCoachThreads,
     chatLoading: chat.loading,
+    conversationsRefreshing: chat.conversationsRefreshing,
+    conversationListFailed: chat.conversationListFailed,
+    retryConversations: () => { void chat.listConversations('active', true); },
     clientContextTiles,
     clientPin: clientPin.barProps,
     coachQueue,

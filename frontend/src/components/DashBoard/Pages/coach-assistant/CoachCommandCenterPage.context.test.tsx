@@ -51,6 +51,7 @@ describe('CoachCommandCenterPage route context', () => {
           intent: 'log_workout',
           surface: 'coach-command-center',
         },
+        { reachedNetwork: null },
       );
     });
   }, COACH_COMMAND_CENTER_TEST_TIMEOUT);
@@ -83,6 +84,7 @@ describe('CoachCommandCenterPage route context', () => {
           intent: 'log_workout',
           surface: 'coach-command-center',
         },
+        { reachedNetwork: null },
       );
     });
     const [message] = sendMessageWithConversationMock.mock.calls[0];
@@ -122,6 +124,7 @@ describe('CoachCommandCenterPage route context', () => {
           scheduledSessionDate: '2026-06-07',
           scheduledSessionCredits: 2,
         },
+        { reachedNetwork: null },
       );
     });
 
@@ -235,6 +238,7 @@ describe('CoachCommandCenterPage route context', () => {
           surface: 'coach-command-center',
           workoutDate: '2026-06-18',
         },
+        { reachedNetwork: null },
       );
     });
   });
