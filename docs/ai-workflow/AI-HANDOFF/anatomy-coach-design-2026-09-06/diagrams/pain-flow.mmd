@@ -1,0 +1,34 @@
+flowchart TD
+  A["Open Pain Chart"] --> B{"Authorized target?"}
+  B -- No --> C["Choose allowed target or sign in"]
+  B -- Yes --> D["Load ported Atlas, reports and scoped body measurements independently"]
+  D --> E{"3D available?"}
+  E -- No --> F["DOM region list and 2D fallback"]
+  E -- Yes --> V["Honor saved measured or reference body mode"]
+  V --> G["Easy default: select broad region and side"]
+  V --> W["Customize preview; keep measured facts unchanged"]
+  W --> V
+  F --> G
+  G --> AID["Optional Muscles, Bones or Joints view"]
+  AID --> H["Draft score; tissue and symptom detail optional"]
+  G --> H
+  H -- Optional --> I["Explore: veins, nerves, organs and advanced tools"]
+  I --> J["Return Easy: assembled view, correct picking, draft retained"]
+  J --> H
+  H --> K{"Save or defer?"}
+  K -- Defer --> L["Keep tab draft or explicitly discard"]
+  K -- Save --> M{"Valid and target unchanged?"}
+  M -- No --> H
+  M -- Yes --> N["Submit same mutation ID"]
+  N --> O{"Server outcome"}
+  O -- Committed --> P["Receipt and same-episode timeline"]
+  O -- Lost response --> Q["Check outcome; replay same ID"]
+  Q --> O
+  O -- Conflict --> R["Latest observation and draft diff"]
+  R --> H
+  O -- Denied --> C
+  O -- Known failure --> S["Retain draft; scoped retry"]
+  S --> N
+  P --> T["Trainer review and follow-up"]
+  D --> U{"Feature rollback?"}
+  U -- Yes --> F

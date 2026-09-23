@@ -1,0 +1,17 @@
+{
+  "model": "gpt-6-astra",
+  "servedModel": null,
+  "provider": "openai-codex",
+  "billing": "chatgpt-subscription",
+  "authMode": "chatgpt_subscription",
+  "transport": "codex-cli",
+  "document": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-cinematic-frontend-2026-09-19/CONSULT-PACKET.md",
+  "inputTokens": 346604,
+  "outputTokens": 19974,
+  "wallSeconds": 634.8,
+  "generatedAt": "2026-09-19T23:16:03.813Z",
+  "megaBlueprint": true,
+  "megaBlueprintArmedBy": [
+    "document"
+  ]
+}

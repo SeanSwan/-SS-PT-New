@@ -1,0 +1,20 @@
+# GLM Consult
+
+**Model:** glm-5.3
+**Document:** docs/ai-workflow/AI-HANDOFF/debate-swa200-blueprint-2026-08-23/R19-PACKET.md
+**Tokens:** 9056 in / 9968 out (reasoning: 9035) | total 19024
+**Wall:** 144.6s
+
+---
+
+**1. Classification — mostly yes, with one sharp edge.** The saving grace is that shapes 5 and 6 both collapse onto one bit — read the build colour — and both red variants route to the same place (section 9), both green variants are no-freeze. A skimmer who reads *only* the colour gets the binary right. The sharp edge is `"locked":false` vs `"lockVerified":false` — two field names differing by a suffix, opposite urgencies (concurrent-deploy race vs. pooler diagnosis), and at a glance they are the same word. But there's a prior problem: the decode table lives in **7.1, and section 9 uses "shape 5-red" and "shape 6" without a pointer to it**. Given only section 9 and the log, the shape names are undefined jargon; the responder must guess that the taxonomy exists two sections up. Section 9's own cues (`pendingAfter` numeric vs. `"unknown"`) are self-sufficient, so this is friction, not failure.
+
+**2. Next action vs. decision.** Steps 1, 3, 5 are actions and hold up. Step 4 is the decision, but it has a stated default (prefer forward-fix, because restore point and RTO are both unknown) — acceptable. The two steps that are *nominally* actions but actually stop-and-think moments: **step 2 ("Snapshot the damaged state") has no mechanism** — B0 removed the backup, `pg_dump` doesn't exist on the build image, and the two candidate scripts include a decoy that hangs, none of which section 9 knows; and **step 4 tells you to prefer a forward-fix but never says how to apply one**, which converts it from a decision into an invention.
+
+**3. The most dangerous plausible misreading.** Not a misreading of the shapes — a misreading of step 4's remedy. Tired engineer reads "prefer a targeted forward-fix," writes the migration, and applies it via the most available route: **`npm run migrate:production` from the laptop, against the repo's production-pointing `DATABASE_URL`.** That is exactly 0.2's trap, and 0.2 is the one section a person entering at section 9 never reads. The structural cause is worse than the instance: **step 5 hard-gates the *restore* behind Sean, but nothing gates the *forward-fix* — the action the runbook recommends is the one it leaves unsupervised**, and hand-running it also silently violates the freeze. Every calm-path rehearsal read 0.2 before 9; the 2am reader arrives at 9 with the warnings behind them.
+
+**4. Steps you cannot perform.** Yes: **steps 1 and 2 both require Render dashboard access** (suspend auto-deploy; snapshot). The only access warning is in 0.1, phrased around 3.4 and A3 — not the freeze — so the responder discovers the gap *at the first action*, with no fallback given, in the exact "discovering it at the step" mode the document itself declared unacceptable. One credit: the known-unknowns tail does warn, in-section, that the restore credential is unknown. One more: per section 1, the guard isn't wired yet — tonight's broken deploy may have **no attestation lines at all**, and section 9 handles `pendingAfter` numeric and `"unknown"` but has no branch for *POST-absent*. It handles shape 6's degraded evidence but not the shape-1/4 world where the attestation never existed.
+
+---
+
+**Verdict: not clean.** The runbook's skeleton survives pressure — freeze first, capture, honest unknowns, escalate-before-restore, the colour-collapse — but section 9 was rehearsed by readers who had sections 0–8 behind them. The 2am reader has nothing behind them, and both of the document's life-threatening warnings (prod-pointing `DATABASE_URL`; dashboard access) stay behind them, while the one action the runbook actively recommends (forward-fix) is the one it leaves unguarded and un-routed. Three clauses fix it: restate both warnings at the steps that need them, add the POST-absent branch, and gate forward-fix deploys behind the freeze lifting — landing the fix as a PR that deploys through the normal path, never from a laptop.

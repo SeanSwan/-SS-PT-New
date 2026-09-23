@@ -1,0 +1,1156 @@
+{
+  "schemaVersion": 1,
+  "phase": "plan",
+  "ui": true,
+  "blockers": [],
+  "nextSlice": "Design review of blueprint and synthetic preview only. No app implementation authorized in this pass. Provider integration must resolve C0 privacy gates and reconcile findings onto current main.",
+  "sections": {
+    "baseline": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "01-audit.md",
+          "sha256": "07be7e65e41ae038ae8d4d79fa1b7cd2d581db696aa79150fd9674b0f112932b"
+        },
+        {
+          "path": "evidence/source-manifest.json",
+          "sha256": "b73c02949de8cc3ce93a1819b50096d676bdbbab905422573eeae6a04814e969"
+        }
+      ]
+    },
+    "requirements": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "README.md",
+          "sha256": "8b0e852d4c28e27bbccbc053b2cadbc31a66bf5cd32cb166c9c770d5fd641526"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        },
+        {
+          "path": "11-build-workflow.md",
+          "sha256": "8188370fd86ede8829ef44aed81450043b7743895132b0cf0a8cdb7cac93907a"
+        }
+      ]
+    },
+    "blueprint": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "02-agent-contracts.md",
+          "sha256": "407797386f43f36dd1ab822b856a9f98f50082d4510e986cc8936a2a938b03c7"
+        },
+        {
+          "path": "03-planner.md",
+          "sha256": "373ff1eaf6e2f565f1ee73282c3243cbf6b80d7b1e2cb0a3ce4b6f88e276c706"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        },
+        {
+          "path": "11-build-workflow.md",
+          "sha256": "8188370fd86ede8829ef44aed81450043b7743895132b0cf0a8cdb7cac93907a"
+        }
+      ]
+    },
+    "flowchart": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "06-diagrams.md",
+          "sha256": "b141d69a4d069b78677769419af0caacd8171e6cb126fff104fb7823dbb2dd01"
+        },
+        {
+          "path": "diagrams.html",
+          "sha256": "87660cba7cff926523f4463e92d6ce4567e3951514b057b1d2ee4d91838a1a73"
+        },
+        {
+          "path": "evidence/v2-preview-qa.json",
+          "sha256": "d00e743d6001d47971cfbd7897bc854db9303898df79404b05d2bddbcc94b776"
+        }
+      ]
+    },
+    "contracts": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "02-agent-contracts.md",
+          "sha256": "407797386f43f36dd1ab822b856a9f98f50082d4510e986cc8936a2a938b03c7"
+        },
+        {
+          "path": "03-planner.md",
+          "sha256": "373ff1eaf6e2f565f1ee73282c3243cbf6b80d7b1e2cb0a3ce4b6f88e276c706"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        }
+      ]
+    },
+    "tests": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        },
+        {
+          "path": "verification.config.mjs",
+          "sha256": "bad155a00d4f64c51c88abdfb81e3f9b5258a9fe5eb2e45ba80fc656260a5905"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        },
+        {
+          "path": "11-build-workflow.md",
+          "sha256": "8188370fd86ede8829ef44aed81450043b7743895132b0cf0a8cdb7cac93907a"
+        }
+      ]
+    },
+    "traceability": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        },
+        {
+          "path": "11-build-workflow.md",
+          "sha256": "8188370fd86ede8829ef44aed81450043b7743895132b0cf0a8cdb7cac93907a"
+        }
+      ]
+    },
+    "slices": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "05-delivery-review.md",
+          "sha256": "fdb804effa2c98fe92728c8815138ec582891cbd70ba665869b8ef9ca241f757"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        },
+        {
+          "path": "11-build-workflow.md",
+          "sha256": "8188370fd86ede8829ef44aed81450043b7743895132b0cf0a8cdb7cac93907a"
+        }
+      ]
+    },
+    "review": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "05-delivery-review.md",
+          "sha256": "fdb804effa2c98fe92728c8815138ec582891cbd70ba665869b8ef9ca241f757"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        },
+        {
+          "path": "11-build-workflow.md",
+          "sha256": "8188370fd86ede8829ef44aed81450043b7743895132b0cf0a8cdb7cac93907a"
+        }
+      ]
+    },
+    "preservation": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "evidence/preservation.json",
+          "sha256": "cf07d5c26684a2d93e0d3d45b23313913230b8e168f30427d26f1a18f9164e5e"
+        },
+        {
+          "path": "evidence/preservation-v2.json",
+          "sha256": "aa82c6e13191000bf4745a3ee9e42164d57746fafc18cc23e57e6577c998f4cc"
+        }
+      ]
+    },
+    "wireframes": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "wireframes.html",
+          "sha256": "646e013ad897398e3c82f2f51cec59142329ff249645d41ee783fb1bfcd7a4bf"
+        },
+        {
+          "path": "wireframes.css",
+          "sha256": "0d1d67a648ee92ea50c0402ac4724cbfb2635c4745657d366872e12f96c9c40e"
+        },
+        {
+          "path": "wireframes.js",
+          "sha256": "3031259c77218e2151f076622b0863fdeafbef2d8681f93fb18b3e6dacbc9b5a"
+        },
+        {
+          "path": "wireframe-states.html",
+          "sha256": "122c4b2100eee64ba35663907ba5b9046519abe45d9f110ba0c6231da2aeda88"
+        },
+        {
+          "path": "08-design-synthesis.md",
+          "sha256": "2143e42314d77b6061f5b51d77c14bdf9d83843856abffab137e7e1df14f6a71"
+        },
+        {
+          "path": "evidence/v2-preview-qa.json",
+          "sha256": "d00e743d6001d47971cfbd7897bc854db9303898df79404b05d2bddbcc94b776"
+        }
+      ]
+    },
+    "state": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "06-diagrams.md",
+          "sha256": "b141d69a4d069b78677769419af0caacd8171e6cb126fff104fb7823dbb2dd01"
+        }
+      ]
+    },
+    "sequence": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "06-diagrams.md",
+          "sha256": "b141d69a4d069b78677769419af0caacd8171e6cb126fff104fb7823dbb2dd01"
+        }
+      ]
+    },
+    "erd": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "06-diagrams.md",
+          "sha256": "b141d69a4d069b78677769419af0caacd8171e6cb126fff104fb7823dbb2dd01"
+        }
+      ]
+    },
+    "permissions": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "02-agent-contracts.md",
+          "sha256": "407797386f43f36dd1ab822b856a9f98f50082d4510e986cc8936a2a938b03c7"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        }
+      ]
+    },
+    "privacy": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "02-agent-contracts.md",
+          "sha256": "407797386f43f36dd1ab822b856a9f98f50082d4510e986cc8936a2a938b03c7"
+        },
+        {
+          "path": "06-diagrams.md",
+          "sha256": "b141d69a4d069b78677769419af0caacd8171e6cb126fff104fb7823dbb2dd01"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        },
+        {
+          "path": "10-coach-privacy-audit.md",
+          "sha256": "9838898f16771dbc6a6f97ae9d78b0c9daec10edd61269c24a03263b762bfcfd"
+        },
+        {
+          "path": "evidence/privacy-reproductions.json",
+          "sha256": "fc8f78f99355f595a5732466930ef3597a7a3497cce2b03126e017ffe8ef056b"
+        }
+      ]
+    },
+    "operations": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "05-delivery-review.md",
+          "sha256": "fdb804effa2c98fe92728c8815138ec582891cbd70ba665869b8ef9ca241f757"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        },
+        {
+          "path": "11-build-workflow.md",
+          "sha256": "8188370fd86ede8829ef44aed81450043b7743895132b0cf0a8cdb7cac93907a"
+        }
+      ]
+    }
+  },
+  "requirements": [
+    {
+      "id": "R-A01",
+      "acceptance": "Personal connections for user, client, trainer and admin; effective tool access is the intersection of grant, current role, object access and feature eligibility",
+      "tests": [
+        "T-A01",
+        "T-A02"
+      ]
+    },
+    {
+      "id": "R-A02",
+      "acceptance": "Hermes plus one independently implemented MCP client complete the same synthetic read/propose/revoke workflow",
+      "tests": [
+        "T-A03"
+      ]
+    },
+    {
+      "id": "R-A03",
+      "acceptance": "Local inference supports tested Hermes and OpenAI-compatible local runtimes; induced model failure makes zero cloud fallback calls",
+      "tests": [
+        "T-A04"
+      ]
+    },
+    {
+      "id": "R-A04",
+      "acceptance": "Agent output only creates a draft/proposal; an authorized human reviews the exact version before activation; replay causes no duplicate effect",
+      "tests": [
+        "T-A05",
+        "T-A06"
+      ]
+    },
+    {
+      "id": "R-A05",
+      "acceptance": "Pseudonymous allowlisted context only; no names, contacts, raw notes, secrets or private operator memory; revoked access denies the next request",
+      "tests": [
+        "T-A02",
+        "T-A04",
+        "T-A06",
+        "T-A10",
+        "T-O04"
+      ]
+    },
+    {
+      "id": "R-A06",
+      "acceptance": "Pair, inspect capabilities, pause, revoke, re-pair and handle sleeping devices in the app; no inbound public port required",
+      "tests": [
+        "T-A07",
+        "T-A08"
+      ]
+    },
+    {
+      "id": "R-A07",
+      "acceptance": "Consulting setup has an optional onboarding service and customer-owned credentials; support access is separate, scoped, time-limited and revocable",
+      "tests": [
+        "T-A09"
+      ]
+    },
+    {
+      "id": "R-P01",
+      "acceptance": "Chosen exercise count and rotation reach generation unchanged after validation; omitted values retain current behavior",
+      "tests": [
+        "T-P01",
+        "T-P02"
+      ]
+    },
+    {
+      "id": "R-P02",
+      "acceptance": "Session length, equipment, schedule, goals, split, preferences, restrictions and programming controls persist and affect the plan; unsupported combinations return explicit violations",
+      "tests": [
+        "T-P03",
+        "T-P04",
+        "T-P13"
+      ]
+    },
+    {
+      "id": "R-P03",
+      "acceptance": "Ordered blocks and typed per-set prescriptions round-trip through save/load/PDF/logger without losing grouping, units, warmups or cooldowns",
+      "tests": [
+        "T-P05",
+        "T-P13"
+      ]
+    },
+    {
+      "id": "R-P04",
+      "acceptance": "Exercise Rolodex keeps search, filters, Library/In plan, undo and Teach Mode; richer comparisons and substitutions preserve canonical exercise identity",
+      "tests": [
+        "T-P06"
+      ]
+    },
+    {
+      "id": "R-P05",
+      "acceptance": "Whole-program editing preserves unedited weeks; edits explain session time, planned volume and expected progression without inventing logged progress",
+      "tests": [
+        "T-P04",
+        "T-P07"
+      ]
+    },
+    {
+      "id": "R-P06",
+      "acceptance": "Current, draft, backup, blended, template and archived plans remain distinguishable; existing revision conflicts/PDF invalidation remain enforced",
+      "tests": [
+        "T-P08"
+      ]
+    },
+    {
+      "id": "R-P07",
+      "acceptance": "Backup refresh previews differences and preserves a recoverable prior revision; promotion uses the existing transactional lifecycle",
+      "tests": [
+        "T-P09",
+        "T-O02"
+      ]
+    },
+    {
+      "id": "R-P08",
+      "acceptance": "Blending explains source lineage and validates merged constraints before creating a new draft; originals are unchanged",
+      "tests": [
+        "T-P10"
+      ]
+    },
+    {
+      "id": "R-P09",
+      "acceptance": "Any client switch, timeout, duplicate request, cancellation or access change prevents cross-client results and silent overwrite",
+      "tests": [
+        "T-A05",
+        "T-A08",
+        "T-P08",
+        "T-P11"
+      ]
+    },
+    {
+      "id": "R-P10",
+      "acceptance": "All modes work by keyboard and at 320/390/414/768/1024/1440/1920/2560/3840 CSS widths; 44px targets, 200% zoom and reduced motion",
+      "tests": [
+        "T-W01",
+        "T-P12",
+        "T-O03"
+      ]
+    },
+    {
+      "id": "R-O01",
+      "acceptance": "Feature-flag rollback, schema compatibility, isolated restore and privacy-safe diagnostics are proven before release",
+      "tests": [
+        "T-B01",
+        "T-B02",
+        "T-L01",
+        "T-A10",
+        "T-O01",
+        "T-O02",
+        "T-O03",
+        "T-O04"
+      ]
+    },
+    {
+      "id": "R-B01",
+      "acceptance": "Default Coach without API setup; connection owner distinct from target.",
+      "tests": [
+        "T-CON01"
+      ]
+    },
+    {
+      "id": "R-B02",
+      "acceptance": "Personal S256 PKCE owner/session binding, encrypted key storage, rotation and revocation.",
+      "tests": [
+        "T-CON02"
+      ]
+    },
+    {
+      "id": "R-B03",
+      "acceptance": "One atomic root-task reservation across tabs/workers/retries/children; 105 attempts cannot admit 105 calls.",
+      "tests": [
+        "T-CON03"
+      ]
+    },
+    {
+      "id": "R-B04",
+      "acceptance": "Unknown price/allowance/acceptance blocks another paid dispatch; no implicit fallback.",
+      "tests": [
+        "T-CON04"
+      ]
+    },
+    {
+      "id": "R-B05",
+      "acceptance": "Final payload protects identity/medical/child data and every modality; withdrawal terminal.",
+      "tests": [
+        "T-CON05"
+      ]
+    },
+    {
+      "id": "R-B06",
+      "acceptance": "Local-only tasks never call disallowed cloud services under induced failures.",
+      "tests": [
+        "T-CON06"
+      ]
+    },
+    {
+      "id": "R-B07",
+      "acceptance": "Current role/assignment/consent governs every enrichment/dispatch/save; agents cannot change policy.",
+      "tests": [
+        "T-CON07"
+      ]
+    },
+    {
+      "id": "R-B08",
+      "acceptance": "Exact prescription diff and retained state across mobile panes and Program Map.",
+      "tests": [
+        "T-CON08"
+      ]
+    },
+    {
+      "id": "R-W01",
+      "acceptance": "Every implemented slice and final state has current v3 workflow evidence.",
+      "tests": [
+        "T-WF01"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-B01",
+      "requirements": [
+        "R-O01"
+      ],
+      "command": "$env:SWAN_BLUEPRINT_TEST_MODE='frontend'; node frontend/node_modules/vitest/vitest.mjs run --config docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/verification.config.mjs --reporter=dot",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": "evidence/current-main-frontend.txt",
+          "sha256": "aad2f58354739f7b5acd71719dfa7ac0d01aaba2f3e9c09b76a46545185093fd"
+        }
+      ]
+    },
+    {
+      "id": "T-B02",
+      "requirements": [
+        "R-O01"
+      ],
+      "command": "$env:SWAN_BLUEPRINT_TEST_MODE='backend'; node frontend/node_modules/vitest/vitest.mjs run --config docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/verification.config.mjs --reporter=dot",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": "evidence/current-main-backend.txt",
+          "sha256": "960e11a09b70d6a02b17706ef522726baf4b010108ff7f3f86facdc47697b8cf"
+        }
+      ]
+    },
+    {
+      "id": "T-P01",
+      "requirements": [
+        "R-P01"
+      ],
+      "command": "$env:SWAN_BLUEPRINT_TEST_MODE='red'; node frontend/node_modules/vitest/vitest.mjs run --config docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/verification.config.mjs --reporter=dot",
+      "status": "EXPECTED RED",
+      "reason": "Eight requested exercises become six in the actual request builder.",
+      "evidence": [
+        {
+          "path": "planner-controls.red.test.ts",
+          "sha256": "e599effe5199fbb2db21691e20b687f375623dae895c77c5ac73dc13e91e14e3"
+        },
+        {
+          "path": "evidence/planner-controls-red.txt",
+          "sha256": "ef1ca4e093ec62793a1149e4d356eb28ff458efcba5045a8a593ea575ce496d2"
+        }
+      ]
+    },
+    {
+      "id": "T-P02",
+      "requirements": [
+        "R-P01"
+      ],
+      "command": "$env:SWAN_BLUEPRINT_TEST_MODE='red'; node frontend/node_modules/vitest/vitest.mjs run --config docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/verification.config.mjs --reporter=dot",
+      "status": "EXPECTED RED",
+      "reason": "Conservative rotation becomes standard in the actual request builder.",
+      "evidence": [
+        {
+          "path": "planner-controls.red.test.ts",
+          "sha256": "e599effe5199fbb2db21691e20b687f375623dae895c77c5ac73dc13e91e14e3"
+        },
+        {
+          "path": "evidence/planner-controls-red.txt",
+          "sha256": "ef1ca4e093ec62793a1149e4d356eb28ff458efcba5045a8a593ea575ce496d2"
+        }
+      ]
+    },
+    {
+      "id": "T-L01",
+      "requirements": [
+        "R-O01"
+      ],
+      "command": "Read authenticated admin planner; open Advanced then Multi-week only. Inspect visible controls; do not generate or write.",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": "01-audit.md",
+          "sha256": "07be7e65e41ae038ae8d4d79fa1b7cd2d581db696aa79150fd9674b0f112932b"
+        }
+      ]
+    },
+    {
+      "id": "T-W01",
+      "requirements": [
+        "R-P10"
+      ],
+      "command": "node preview-qa.mjs using configured Playwright/Brave, local synthetic server",
+      "status": "PASS",
+      "evidence": [
+        {
+          "path": "evidence/v2-preview-qa.json",
+          "sha256": "d00e743d6001d47971cfbd7897bc854db9303898df79404b05d2bddbcc94b776"
+        }
+      ]
+    },
+    {
+      "id": "T-A01",
+      "requirements": [
+        "R-A01"
+      ],
+      "command": "Synthetic isolated fixture. Connect as each role, request own/other target and ungranted tools; compare tools/list and tools/call with current eligibility. Guard: No object disclosure or privilege amplification; real auth/API + DB",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-A02",
+      "requirements": [
+        "R-A01",
+        "R-A05"
+      ],
+      "command": "Synthetic isolated fixture. Revoke, disable account or reassign C1 after preview and during a lock wait; next read and commit denied. Guard: No stale-authority read/write; concurrency integration",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-A03",
+      "requirements": [
+        "R-A02"
+      ],
+      "command": "Synthetic isolated fixture. Pinned Hermes + second MCP client perform discovery, OAuth, search, proposal, status and revoke against synthetic staging. Guard: No app bearer token sharing; real client/protocol",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-A04",
+      "requirements": [
+        "R-A03",
+        "R-A05"
+      ],
+      "command": "Synthetic isolated fixture. Managed local profile: synthetic canary; model down, speech/compression failure, DNS denial, HTTP error and malformed tool call. Guard: Zero canaries/requests at denied external sinks; observed network negative controls",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-A05",
+      "requirements": [
+        "R-A04",
+        "R-P09"
+      ],
+      "command": "Synthetic isolated fixture. Replay request 20 times; race two approvals; reuse ID with changed payload. Guard: One proposal/effect or explicit conflict; real unique constraints/transaction",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-A06",
+      "requirements": [
+        "R-A04",
+        "R-A05"
+      ],
+      "command": "Synthetic isolated fixture. Place injection text/URLs in candidate notes, tool results and exercise metadata; send forged actor/target/provenance. Guard: Text stays data; no expanded scope, fetch or execution; API/privacy",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-A07",
+      "requirements": [
+        "R-A06"
+      ],
+      "command": "Synthetic isolated fixture. Pair expired/replayed challenge, wrong key, stolen device label; sleep/restart device; revoke during job. Guard: Invalid devices rejected; late response cannot apply; device integration",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-A08",
+      "requirements": [
+        "R-A06",
+        "R-P09"
+      ],
+      "command": "Synthetic isolated fixture. Interrupt after dispatch, during output, before commit and after commit with lost response. Guard: Known task resumes/status checks; no blind resave; real interruption",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-A09",
+      "requirements": [
+        "R-A07"
+      ],
+      "command": "Synthetic isolated fixture. Customer completes consultant-assisted setup, exports configuration without secrets, revokes support and reconnects independently. Guard: No consultant master credential or mandatory purchase; manual onboarding drill",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-A10",
+      "requirements": [
+        "R-A05",
+        "R-O01"
+      ],
+      "command": "Synthetic isolated fixture. Wrong audience, redirect mismatch, PKCE omission/downgrade, refresh reuse and cross-origin write probes. Guard: Reject before data/effect; OAuth/security integration",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P03",
+      "requirements": [
+        "R-P02"
+      ],
+      "command": "Synthetic isolated fixture. Apply preset plus conflicting client exclusions/equipment/time constraints, then save/reload. Guard: Effective values + provenance retained or explicit conflict; no ignored control; UI/API",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P04",
+      "requirements": [
+        "R-P02",
+        "R-P05"
+      ],
+      "command": "Synthetic isolated fixture. All goals, phases, single/multi-week scopes, frequencies, custom horizons and allowed split combinations. Guard: Scope alone chooses endpoint; all days populated or explicit validation; property/contract",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P05",
+      "requirements": [
+        "R-P03"
+      ],
+      "command": "Synthetic isolated fixture. Save/load/export/log fixture with warmup, superset, circuit, timed sets, unilateral work and mixed supported units. Guard: Same ordered prescribed meaning; no flattening, unit drift or lost weeks; DB/PDF/logger E2E",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P06",
+      "requirements": [
+        "R-P04"
+      ],
+      "command": "Synthetic isolated fixture. Search/filter/compare/substitute unknown or archived IDs; remove then undo; navigate virtualized list by keyboard. Guard: Canonical identities/media/defaults preserved; unknown is not Bodyweight; component/contract",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P07",
+      "requirements": [
+        "R-P05"
+      ],
+      "command": "Synthetic isolated fixture. Edit week 8 of 26; regenerate only unlocked rows; compare prescribed versus actual data. Guard: Other weeks/locked rows unchanged; no fabricated progress; integration",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P08",
+      "requirements": [
+        "R-P06",
+        "R-P09"
+      ],
+      "command": "Synthetic isolated fixture. Two editors update the same contentRevision; metadata-only edits; wrong-owner copy; stale PDF. Guard: Existing mutation conflicts and derivative lifecycle retained; real transactions",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P09",
+      "requirements": [
+        "R-P07"
+      ],
+      "command": "Synthetic isolated fixture. Refresh backup with changed context/revision, fail midway, then promote or restore prior snapshot. Guard: One designated backup; prior prescription recoverable; current-plan swap atomic; DB",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P10",
+      "requirements": [
+        "R-P08"
+      ],
+      "command": "Synthetic isolated fixture. Blend P1/P2, then mutate source during preview; attempt blend with P3. Guard: New draft only, fresh sources required, unauthorized source denied, originals unchanged; DB/API",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P11",
+      "requirements": [
+        "R-P09"
+      ],
+      "command": "Synthetic isolated fixture. Switch C1\u2192C2 with reversed fetch and generation completion order; return stale save result. Guard: No C1 text/result in C2; navigation retains correct draft or asks to defer; component/E2E",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P12",
+      "requirements": [
+        "R-P10"
+      ],
+      "command": "Synthetic isolated fixture. Desktop/mobile workflow with keyboard, screen reader, 200% zoom, reduced motion and offline-device state. Guard: No clipped content/hidden actions; 44px targets; responsive/accessibility",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-P13",
+      "requirements": [
+        "R-P02",
+        "R-P03"
+      ],
+      "command": "Synthetic isolated fixture. NaN, Infinity, negative/rest overflow, zero duration, numeric strings, invalid enums and oversized arrays. Guard: 422/413 with fields, zero partial write or silent truncation; contract/fuzz",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-O01",
+      "requirements": [
+        "R-O01"
+      ],
+      "command": "Synthetic isolated fixture. Seed legacy plan shapes; expand schema; create V2; roll flag back; read legacy and V2. Guard: Existing plans usable; V2 read-only if unsupported; no dropped columns; migration",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-O02",
+      "requirements": [
+        "R-O01",
+        "R-P07"
+      ],
+      "command": "Synthetic isolated fixture. Restore snapshots and database backup into new disposable database; compare semantic hashes and dependencies. Guard: No restore over production; real restore evidence",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-O03",
+      "requirements": [
+        "R-O01",
+        "R-P10"
+      ],
+      "command": "Synthetic isolated fixture. Benchmark synthetic 1k-exercise catalog, 52-week plan and 25 concurrent authorized jobs. Guard: Meet budgets in 05, no uncapped result/queue growth; performance",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-O04",
+      "requirements": [
+        "R-O01",
+        "R-A05"
+      ],
+      "command": "Synthetic isolated fixture. Kill new gateway flags while job/save in flight; inspect all logs and retained caches. Guard: No raw prompts/PII, bounded fail-closed state, truthful saved outcome; operations",
+      "status": "NOT RUN",
+      "reason": "Future implementation acceptance; runtime changes are outside this plan-only turn.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        }
+      ]
+    },
+    {
+      "id": "T-CON01",
+      "requirements": [
+        "R-B01"
+      ],
+      "command": "Execute T-CON01 isolated real-boundary fixture in 04-verification.md and 09-model-connections-and-budgets.md",
+      "status": "NOT RUN",
+      "reason": "Future app acceptance. This pass is blueprint/preview only; known privacy findings block provider implementation release.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        }
+      ]
+    },
+    {
+      "id": "T-CON02",
+      "requirements": [
+        "R-B02"
+      ],
+      "command": "Execute T-CON02 isolated real-boundary fixture in 04-verification.md and 09-model-connections-and-budgets.md",
+      "status": "NOT RUN",
+      "reason": "Future app acceptance. This pass is blueprint/preview only; known privacy findings block provider implementation release.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        }
+      ]
+    },
+    {
+      "id": "T-CON03",
+      "requirements": [
+        "R-B03"
+      ],
+      "command": "Execute T-CON03 isolated real-boundary fixture in 04-verification.md and 09-model-connections-and-budgets.md",
+      "status": "NOT RUN",
+      "reason": "Future app acceptance. This pass is blueprint/preview only; known privacy findings block provider implementation release.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        }
+      ]
+    },
+    {
+      "id": "T-CON04",
+      "requirements": [
+        "R-B04"
+      ],
+      "command": "Execute T-CON04 isolated real-boundary fixture in 04-verification.md and 09-model-connections-and-budgets.md",
+      "status": "NOT RUN",
+      "reason": "Future app acceptance. This pass is blueprint/preview only; known privacy findings block provider implementation release.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        }
+      ]
+    },
+    {
+      "id": "T-CON05",
+      "requirements": [
+        "R-B05"
+      ],
+      "command": "Execute T-CON05 isolated real-boundary fixture in 04-verification.md and 09-model-connections-and-budgets.md",
+      "status": "NOT RUN",
+      "reason": "Future app acceptance. This pass is blueprint/preview only; known privacy findings block provider implementation release.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        }
+      ]
+    },
+    {
+      "id": "T-CON06",
+      "requirements": [
+        "R-B06"
+      ],
+      "command": "Execute T-CON06 isolated real-boundary fixture in 04-verification.md and 09-model-connections-and-budgets.md",
+      "status": "NOT RUN",
+      "reason": "Future app acceptance. This pass is blueprint/preview only; known privacy findings block provider implementation release.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        }
+      ]
+    },
+    {
+      "id": "T-CON07",
+      "requirements": [
+        "R-B07"
+      ],
+      "command": "Execute T-CON07 isolated real-boundary fixture in 04-verification.md and 09-model-connections-and-budgets.md",
+      "status": "NOT RUN",
+      "reason": "Future app acceptance. This pass is blueprint/preview only; known privacy findings block provider implementation release.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        }
+      ]
+    },
+    {
+      "id": "T-CON08",
+      "requirements": [
+        "R-B08"
+      ],
+      "command": "Execute T-CON08 isolated real-boundary fixture in 04-verification.md and 09-model-connections-and-budgets.md",
+      "status": "NOT RUN",
+      "reason": "Future app acceptance. This pass is blueprint/preview only; known privacy findings block provider implementation release.",
+      "evidence": [
+        {
+          "path": "04-verification.md",
+          "sha256": "5cd588bfcd9c72f6a5760810811f4025183a43d274dfe2c9624252a9ca48c8d7"
+        },
+        {
+          "path": "09-model-connections-and-budgets.md",
+          "sha256": "7a15076a207bda817bb9fb51999cc80bf8b54926b7d32ab1ba07cdff567bc9e3"
+        }
+      ]
+    },
+    {
+      "id": "T-WF01",
+      "requirements": [
+        "R-W01"
+      ],
+      "command": "Run installed workflow controller/native gate with real future app slice; attach workflow receipt.",
+      "status": "NOT RUN",
+      "reason": "App implementation not authorized in this pass; skill/controller installation does not prove Swan runtime.",
+      "evidence": [
+        {
+          "path": "11-build-workflow.md",
+          "sha256": "8188370fd86ede8829ef44aed81450043b7743895132b0cf0a8cdb7cac93907a"
+        }
+      ]
+    }
+  ]
+}

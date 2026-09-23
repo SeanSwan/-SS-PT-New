@@ -1,0 +1,21 @@
+{
+  "model": "gpt-6-astra",
+  "servedModel": null,
+  "effort": "xhigh",
+  "identityVerified": false,
+  "identityUnverifiableReason": "codex exec --json emits no model field: measured 2026-09-19 on codex-cli 0.154.0, event set = thread.started, turn.started, item.completed, turn.completed; the substring \"model\" does not occur in the raw JSONL. Requested model is provable; served model is not.",
+  "provider": "openai-codex",
+  "billing": "chatgpt-subscription",
+  "authMode": "chatgpt_subscription",
+  "transport": "codex-cli",
+  "document": "docs/ai-workflow/blueprints/creator-brains-console-20260917/17-astra-mega-packet-r8.md",
+  "wallSeconds": 949.5,
+  "generatedAt": "2026-09-21T05:05:02.433Z",
+  "megaBlueprint": true,
+  "megaBlueprintArmedBy": [
+    "operator flag"
+  ],
+  "inputTokens": 1360713,
+  "outputTokens": 30900,
+  "reasoningOutputTokens": 14017
+}

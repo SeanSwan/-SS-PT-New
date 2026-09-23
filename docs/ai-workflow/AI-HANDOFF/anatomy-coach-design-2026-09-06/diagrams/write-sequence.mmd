@@ -1,0 +1,29 @@
+sequenceDiagram
+  actor Client
+  participant UI as Pain UI
+  participant API as Scoped API
+  participant DB as PostgreSQL
+  Client->>UI: Save observation
+  UI->>API: Actor auth + target + revision + mutation key
+  API->>DB: Begin transaction, recheck access
+  alt Access denied
+    DB-->>API: No authorized target
+    API-->>UI: 403, clear private state
+  else Authorized
+    API->>DB: Lock episode, inspect key and payload hash
+    alt Same key committed
+      DB-->>API: Existing result IDs
+    else Revision conflict or changed payload
+      DB-->>API: Conflict, no new observation
+    else New valid mutation
+      API->>DB: Append observation + update summary + replay record
+      DB-->>API: Commit once
+    end
+    API-->>UI: Result or 409
+  end
+  alt Response lost after commit
+    UI->>API: Recheck/replay SAME mutation key
+    API->>DB: Reauthorize, read committed result
+    API-->>UI: Original receipt
+  end
+  UI-->>Client: Saved receipt or specific recovery

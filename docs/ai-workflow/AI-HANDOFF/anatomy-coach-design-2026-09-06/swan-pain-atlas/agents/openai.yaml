@@ -1,0 +1,4 @@
+interface:
+  display_name: "Swan Pain Atlas"
+  short_description: "Blueprint and verify Swan anatomy, pain and recovery."
+  default_prompt: "Use $swan-pain-atlas with Mega Blueprints to handle this pain atlas or recovery request within my stated planning or implementation scope."

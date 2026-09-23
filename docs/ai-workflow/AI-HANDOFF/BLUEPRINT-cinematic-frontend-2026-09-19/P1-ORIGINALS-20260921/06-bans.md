@@ -1,0 +1,25 @@
+- No replacement of the twelve-section home structure.
+- No new capability detector outside the canonical provider policy.
+- No permanent old-tier adapters after A3 completes.
+- No full-tier override of reduced motion, save-data, or constrained-network policy.
+- No R3F, Three.js scene machinery, or new GSAP import through the initial home rendering graph.
+- No R3F request in lean/reduced mode.
+- No Lenis, scroll hijacking, new pinned home timeline, second canvas, or persistent render loop.
+- No new particle field, remote model, texture, HDRI, bloom, or video.
+- No disappearing copy, delayed CTA, spinner-only hero, or blank failure state.
+- No replay after downgrade, context loss, or failed import during the same route mount.
+- No global `ScrollTrigger` destruction.
+- No opacity-only “reduced” animation justified solely by MotionConfig.
+- No animation of layout properties, large blur, box-shadow, or background position.
+- No more than two animated properties per target or three animated targets in a viewport.
+- No stagger over 80ms or more than five children in a stagger group.
+- No animated nested section children while their wrapper animates.
+- No MUI, new Tailwind, retired palette, Arctic Cyan button/glow, fake metrics, or unapproved brand geometry.
+- No new files over 300 lines; required component headers and documentation apply.
+- No claim that all Framer consumers inherit the helper repair.
+- No React 19 install based solely on a “latest” table.
+- No package-manager peer bypasses or type-check suppression to pass the migration.
+- No broad `any` substitution for changed React types.
+- No production API writes, form submissions, or personal data in automated tests.
+- No whole-tree rollback, cleanup, broad staging, or push to `main`.
+- No test pass, live-surface fix, or performance claim without corresponding evidence.

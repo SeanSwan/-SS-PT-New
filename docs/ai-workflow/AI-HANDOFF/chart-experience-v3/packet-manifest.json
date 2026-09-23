@@ -1,0 +1,187 @@
+{
+  "schemaVersion": "swan-chart-planning-v3",
+  "createdAt": "2026-09-04T23:36:24.648Z",
+  "scope": "planning, synthetic study, acceptance gates and local slice evidence; not production verification",
+  "files": [
+    {
+      "path": "01-review-and-baseline.md",
+      "sha256": "5d17dedf61b7c415725a11833e2e2058af43a362e3b42a04e8d7532dd12b6721"
+    },
+    {
+      "path": "02-experience-and-wireframes.md",
+      "sha256": "2ec7dd0210435a5f20830b147b011d6cd4a80020ea72ffc9e55dd95e987d3b59"
+    },
+    {
+      "path": "03-metric-registry.md",
+      "sha256": "f84699214c4d2e39b6eca78cfb9f13d7391fd78bfe65f5b0158d67783e5221df"
+    },
+    {
+      "path": "04-contracts.md",
+      "sha256": "912fc15736538a4ba882cae6bb3a56c6d838b7f216452b618320c303966844dc"
+    },
+    {
+      "path": "05-flows.md",
+      "sha256": "9aebac536745e9b6fbe5c124a3bbaf54008d18dead25469d199b263df58f6f13"
+    },
+    {
+      "path": "06-tests-and-traceability.md",
+      "sha256": "50c7f543ffaf9ce6b6b30bc8cf1ed37aa45e304317244406cda7c4939a37a907"
+    },
+    {
+      "path": "07-luna-handoff.md",
+      "sha256": "a427f40c944551fb51f94920f5baaf0ba1a801b0b31e9187ab8c180177cd63df"
+    },
+    {
+      "path": "08-readiness.md",
+      "sha256": "aab23fee90cabd414763a1354cddf8a366dca1e3f8bc5cb1aa5f9f2221a530f3"
+    },
+    {
+      "path": "09-adoption-register.md",
+      "sha256": "fcc69080a44f43b3a00ac962a9beac473689c6237aee2cbcbde69e95898f6565"
+    },
+    {
+      "path": "10-approved-uniformity.md",
+      "sha256": "ef427275de9b92f3aa65ffc55f78419f8782785fe752386cc90885d9c5117161"
+    },
+    {
+      "path": "11-s0-readiness.md",
+      "sha256": "4d600b9548ad16a80059ed21e45cd205c9af856bac1f37c0c60ed73e93f6bab9"
+    },
+    {
+      "path": "12-worldwide-weight-units.md",
+      "sha256": "50eb64bd3ddf98b23eb0f2683b35eff9bdb7f233691afc6c2450f3bbed70f8b7"
+    },
+    {
+      "path": "13-kg0-verification.md",
+      "sha256": "29ce2e419a0b21fffd9dc056a2cfb8372d747952e4eb8d022884831aeb17e597"
+    },
+    {
+      "path": "14-external-review-gate.md",
+      "sha256": "f1244dd3cf52ec3e9aac7f6693d66b78f900d7aafc98b8b8a6b0e71dd05f6a2a"
+    },
+    {
+      "path": "15-kg1-preflight.md",
+      "sha256": "86c85d7e6d5a093ba733501de7d9282f52cbbe8a21e70e45ab67b4e1af9f4fe3"
+    },
+    {
+      "path": "16-kg1a-db-guard.md",
+      "sha256": "3fc8737dfb01c6e87c34b49a1fb632ea00e94bdc0eca5982cf8225ebcde078e7"
+    },
+    {
+      "path": "17-kg1a-verification.md",
+      "sha256": "d7416ea3fe19e0215b39789a1d2d64d0509375d18a27253654c0d7014992cfe9"
+    },
+    {
+      "path": "18-workout-log-field-census.md",
+      "sha256": "5be21a363aa27fd166948c0dd61da24b7646648a798a188d3d0a8cc50a5b402c"
+    },
+    {
+      "path": "19-kg1b0-same-handle.md",
+      "sha256": "32d7f399b2776cfb0617b2105a22e8ad44f73e1c61f68ec76845da912c2f9595"
+    },
+    {
+      "path": "20-kg1b0-verification.md",
+      "sha256": "9b87a9557f85d8a762d816510317dd7242b26a30970d19dcc9c52896ce71040d"
+    },
+    {
+      "path": "21-kg1b1-storage.md",
+      "sha256": "6da5c055a3747267177204139ed3976e74f2b27adc6d95f2c883db3eb407d116"
+    },
+    {
+      "path": "22-kg1b1-verification.md",
+      "sha256": "c4e6296c75c423da15952185d6597fc4428a24550aed90bb9a1457f5e2fc82a1"
+    },
+    {
+      "path": "23-writer-decision-receipt.md",
+      "sha256": "42aace683183adc910ad42154bfb3e6ae9b674ba1a0f26517852a7ffb48e4301"
+    },
+    {
+      "path": "24-history-writer-surface-receipt.md",
+      "sha256": "5ea6139e6145c42c22646b6aad8deea667dea9c88ac1bb2033ddc7e47e08ef39"
+    },
+    {
+      "path": "25-kg1c0-writer-draft-contract.md",
+      "sha256": "ac15b50b2aae6d81cf8aca0619f3f15358753310bc2f59817147f781556ca200"
+    },
+    {
+      "path": "26-kg1c0-verification.md",
+      "sha256": "4e2ee9966dffd1441213b1bc4bf272fdb9be9c61a7fb1f44e7ab38a9c163454b"
+    },
+    {
+      "path": "README.md",
+      "sha256": "e5fe1a4362152de786364078d05b4cd74afeb38263e88aa48e1a8739b49b1579"
+    },
+    {
+      "path": "acceptance.red.mjs",
+      "sha256": "c367ae087391065202a80b516ad53c56e3c34994ab4acb3d2f9021ab9b683929"
+    },
+    {
+      "path": "capture-preview.mjs",
+      "sha256": "96372485ce8afb32cfefa35ee27325f80a6e094ceff9435da0c1baa95ddfda42"
+    },
+    {
+      "path": "kg1-db-guard.red.mjs",
+      "sha256": "27d81d7c7e97c3af95cf5bce2ebeccb57b046286f0023342c9490c702c44f6e8"
+    },
+    {
+      "path": "kg1-same-handle.red.mjs",
+      "sha256": "8a7cc88e7a84ee7b1feba352d4d4af8f58b3be6036e53a0031ac4e05fb0726f1"
+    },
+    {
+      "path": "prepare-kg0-review.mjs",
+      "sha256": "9af02cc32ef33a52f5fb33655b62498ec1fbd0428088229318c1fa63143743ea"
+    },
+    {
+      "path": "preserve-plans.mjs",
+      "sha256": "d0d73582a52355cc37d7cef2d3afbc8c3681aede6961b3ff40691d4244055f77"
+    },
+    {
+      "path": "preview.css",
+      "sha256": "b1a5ef74eca075718c050c20523c1d3810f1ca327777a1f7d4773c50924893fb"
+    },
+    {
+      "path": "preview.html",
+      "sha256": "457a107695e93a57d896b8e0756092641f4b7ddbc6a5ffbcce3b50a9728aa0ac"
+    },
+    {
+      "path": "preview.js",
+      "sha256": "ee6e5ec11bd2ecdb67929563238cf6c18c641ea6b75561ec02464befc7c82076"
+    },
+    {
+      "path": "seal-packet.mjs",
+      "sha256": "92e37f215892170f3c8577de325858bf7e494be169111dab886553f368e74429"
+    },
+    {
+      "path": "validate-packet.mjs",
+      "sha256": "6f541105573430e39a8fe3542d68f59bbdacc58fdc91fec6beceabff1c204de1"
+    },
+    {
+      "path": "verify-kg1a-runtime.mjs",
+      "sha256": "6b82c8cf8c89c0bd3079e2a5b4d067918ad7375306b239b1b0b7da2f1b21f593"
+    },
+    {
+      "path": "verify-kg1b0-runtime.mjs",
+      "sha256": "35d822bb06eba9c51f6a283d196f4200a002b66ba705fa37c2a11a444ca2d39d"
+    },
+    {
+      "path": "verify-kg1b1-storage.mjs",
+      "sha256": "459f3452f8bcd2025bc4c96289478acaa2fbf931b367c7c597de835c695da32b"
+    },
+    {
+      "path": "verify-kg1c0-contract.mjs",
+      "sha256": "5c909b99c08e7dbfb7533929cfd527f5952209bcd4efcb6a2c8ae8469126c736"
+    },
+    {
+      "path": "verify-weight-boundaries.mjs",
+      "sha256": "eeff7fe83ef18baefd59803f4d500928b4efab022264a5f8adbfa6c576be234f"
+    },
+    {
+      "path": "verify-weight-types.mjs",
+      "sha256": "b4ff74f6881c173045182ac2758367feafa58ac6033dacd8967e440de5e90696"
+    },
+    {
+      "path": "weight-units.red.mjs",
+      "sha256": "dcacfe70c34b99d3d02506bd09380e2307bd9ed1b6f0d263520a42e88ef11e7b"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# DeepSeek V4 Pro — Hostile Gate Review
+
+**Reviewer:** OpenRouter `deepseek/deepseek-v4-pro` (effort: high)
+**Document:** docs\ai-workflow\AI-HANDOFF\panel-run-clean-2026-08-23\rounds\round-9\REVIEW-DOC.md
+**Seed:** (none)
+**Tokens:** 6940 in / 4884 out · **Cost:** ~$0.0062 · **Wall:** 102.6s · **finish:** stop
+
+---
+
+=== VERDICT ===
+status: CONSENSUS
+confidence: 95
+findings: F1=MAJOR: AiCommandAuditLog.mjs L24-91: missing actionId unique key and idempotent executor | F2=MAJOR: commandExecutor.mjs L309-343: missing capability registry check post-resolution pre-execution | F3=MAJOR: aiCommandRoutes.mjs L111-145: missing canonical targetUserId identity and null rejection | F4=MAJOR: (no existing code): missing IndexedDB intent queue keyed by actionId with honest UI states | F5=MAJOR: coachIntakeRoutes.mjs L23-25 and coachProposalRoutes.mjs L15-16: missing aiChatRoutes.mjs:466 middleware family and TTL | F6=MAJOR: coachProposalRoutes.mjs L30-54: missing conditional UPDATE transaction and idempotent apply | F7=MAJOR: aiStreamSpikeRoutes.mjs: missing method inventory and disabled-404 on every method | F8=MAJOR: packet header: 'review-gated writes' claim uncited in code | F9=MAJOR: APP-AI-HIVE-MIND.md L7-22: runtime drift, needs archive/rewrite | F10=MAJOR: aiDebateRoutes.mjs L57-76: missing ensureClientAccess on start path | F11=MAJOR: SwanCoachAssistantPage: legacy page referenced by tests/comments, needs fencing
+rebuttals: (none)
+open: Q1=whether admin unbounded scope in clientResolver.mjs:110-166 is accepted as intentional policy; Q2=whether Express mount order at routes.mjs:630-634 is correct practice; Q3=Hermes/debate classification unresolved; Q4=acceptance criterion 7 (44px/WCAG) has zero packet artifacts
+consensus_block: FIX BEFORE BUILD: F1 (add actionId unique key + idempotent executor + receipt return in AiCommandAuditLog.mjs/aiCommandRoutes.mjs:111-145/useCoachCommand.ts:96,170,207), F3 (single canonical targetUserId user-PK identity; server-reject null targets with 400 TARGET_REQUIRED; receipts echo alias+resolved PK), F2 (capability registry checked post-resolution pre-execution in commandExecutor.mjs:309-343; denial writes audit row and returns denial-shaped response), F6 (conditional UPDATE ... WHERE status='pending' transaction + idempotent apply + durable applied/failed receipt at coachProposalRoutes.mjs:30-54), F5 (apply aiChatRoutes.mjs:466 middleware family + TTL to coachIntakeRoutes.mjs:23-25 and coachProposalRoutes.mjs:15-16; parity table gate). MUST-FIX PER SLICE: F4 (IndexedDB intent queue keyed by actionId; UI states queued/sending/verified only; reconcile replays exactly once), F7 (spike method inventory + disabled-404 on every method), F10 (ensureClientAccess on aiDebateRoutes.mjs:57-76 start path), F11 (fence SwanCoachAssistantPage, migrate tests, cite or drop 'locks'), F8 (cite the review-gate code or strike header claim), F9 (archive/rewrite hive doc). ACCEPTED AS INTENTIONAL (pending panel ruling): admin unbounded scope in clientResolver.mjs:110-166 IF ruled policy and tagged in audit; Express specific-before-prefix mount order at routes.mjs:630-634 is correct practice, not a defect. RESIDUAL RISKS: constraints 2/3/4/6 unverifiable until F1/F3/F4 land; all absence-based MAJORs require live probes confirming, not assuming; Hermes/debate classification unresolved; acceptance criterion 7 (44px/WCAG) has zero packet artifacts and must be carried entirely by the blueprint verification matrix.
+=== END-VERDICT ===

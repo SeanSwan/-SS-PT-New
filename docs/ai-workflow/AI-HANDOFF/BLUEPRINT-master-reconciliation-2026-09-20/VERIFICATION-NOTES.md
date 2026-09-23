@@ -40,9 +40,9 @@ is recorded here rather than quietly corrected. **Count the verdicts from the he
 **This document now has three parts.** PART A (below) adjudicates the ten A1 findings. PART B
 adjudicates the six A2 findings. **PART C**, at the end, records the round-2 hostile review
 (Astra, 2026-09-21): its `DEFECTS-FOUND` verdict, the binding of its input and output, the
-adjudication of all twelve R2 defects, and the three checker code defects carried open with the
-reviewer's own named fix. **A verdict in PART A is a filer verdict. PART C is where a hostile
-reviewer attacked it.**
+adjudication of all twelve R2 defects, and the three checker code defects — **all three since
+repaired** against the reviewer's own named fix. **A verdict in PART A is a filer verdict. PART C is
+where a hostile reviewer attacked it.**
 
 ---
 
@@ -309,13 +309,23 @@ That framing is the reason this round found things round 1 could not. Twelve def
 
 | Outcome | Count | Defects |
 |---|---|---|
-| Closed by a document edit or a code fix | **6** | R2-02, R2-03, R2-04, R2-07, R2-09, R2-12 |
-| **Carried open — checker code** | **3** | R2-06, R2-08, R2-10 |
+| Closed by a document edit or a code fix | **9** | R2-02, R2-03, R2-04, R2-06, R2-07, R2-08, R2-09, R2-10, R2-12 |
 | **Part fixed, part carried open** | **3** | R2-01, R2-05, R2-11 |
+
+> **Corrected 2026-09-21.** This table previously carried R2-06, R2-08 and R2-10 as *"carried open —
+> checker code"*. All three have since been **repaired in code**, each with a named-reason acceptance
+> case drawn from Astra's own matrix and a mutation proof that the case dies when its mechanism is
+> broken. The count moved from **6 closed / 3 code-open / 3 partial** to **9 closed / 0 code-open /
+> 3 partial**. See C.3.
 
 The distinction is not softened below: where a fix was partial, the remainder is named with the
 reviewer's own fix text rather than left to look finished. A filer marking its own work closed is
 not evidence that it is closed — which is what this round was commissioned to test.
+
+**Closing the three code defects is not an admission decision.** R2-06's own conclusion stands
+unchanged — *"Authenticity requires a trusted collection/authority boundary; adding more self-authored
+JSON does not create one."* That boundary was not created, the G3 caller-path run was **not run**, and
+**product admission remains blocked.** Round 3 is still owed.
 
 ## C.1 Binding — round-2 input, output and remit, bound separately
 
@@ -348,11 +358,11 @@ binding. Each is bound, or not, on its own terms.
 | R2-03 | High | A moving branch tip is confused with changed reviewed material: the register calls L4's review binding stale because shared HEAD advanced, which establishes commit drift but not that L4's reviewed files, dependencies, policy or packet changed. | **ACCEPTED** | Fixed: `10-lane-register-beyond-the-eight.md` §1 now separates **historical packet identity / exact-checkout identity / scoped applicability** and calls the condition **revision mismatch**, not proof that reviewed content changed. Carry-forward requires a documented scope comparison and the existing authority's acceptance. |
 | R2-04 | High | L3's recovery conclusion exceeds both the Git evidence and the arithmetic: 22 file-change **entries**, not 22 files; the union is **at most 20 distinct paths**; and testing branch-tip ancestry does not test either named slice commit. | **ACCEPTED** | Fixed: L3 restated as "at most 20 distinct paths", classification changed to **PRESERVE; evaluate adoption**, "recover the 22 files" withdrawn, and the reviewer's falsification method recorded in the document. |
 | R2-05 | **Medium** | The test index converts bounded searches into global absence claims: "no test file anywhere" from checking HEAD and one branch; L5 names **four** absent artifacts (three modules **plus one component**) under "three source modules"; zero tracked files under `mobile/` does not establish the directory does not exist; five artifact groups summarise ~30 criteria with no coverage proof. | **ACCEPTED — PART FIXED, PART CARRIED OPEN** | Fixed: every `ABSENT` → **`NOT FOUND`**; a new §0 table states what *was* and *was not* searched; L5 corrected to **three backend modules + one frontend component**; L7 downgraded to a tracked-file measurement with "~30 criteria, 5 mapped" disclosed. **The remaining criteria are disclosed, not mapped — carried open.** See C.4. |
-| R2-06 | High | Hash-correct garbage can satisfy admission evidence — `artifact()` proves bytes match a hash, not that the bytes support the receipt's assertion. | **ACCEPTED — CARRIED OPEN (code)** | See C.3. |
+| R2-06 | High | Hash-correct garbage can satisfy admission evidence — `artifact()` proves bytes match a hash, not that the bytes support the receipt's assertion. | **ACCEPTED — FIXED** | **Fixed in code.** `scripts/blueprint-master-evidence.test.mjs` now interprets every evidence class with named reasons; commit `81d799b74`. See C.3. |
 | R2-07 | High | Preservation could count the same copy twice: two entries with different `storageId` and the same resolved root enumerate one directory. | **ACCEPTED** | **Fixed in code.** `scripts/blueprint-master-evidence.test.mjs` now rejects duplicate resolved roots (case-folded) *before* trusting storage labels. |
-| R2-08 | High | Reach has false negatives and does not implement its relative-target promise. | **ACCEPTED — CARRIED OPEN (code)** | See C.3. |
+| R2-08 | High | Reach has false negatives and does not implement its relative-target promise. | **ACCEPTED — FIXED** | **Fixed in code.** Real parser, relative resolution, and an explicit INCOMPLETE state; commit `d237f6050`. See C.3. |
 | R2-09 | High | The mandate amendment replaced one overclaim with several others: "do not exist in this repository", "was ever installed here", "detects drift at checkpoints" — bound to no repository, revision or search scope. | **ACCEPTED** | Fixed in the `.agents` repository, commit `e074bcb`. See C.5. |
-| R2-10 | Medium | A filesystem-generated registry is not an authority validator. | **ACCEPTED — CARRIED OPEN (code)** | See C.3. |
+| R2-10 | Medium | A filesystem-generated registry is not an authority validator. | **ACCEPTED — FIXED** | **Fixed in code.** Aliases are normalized before the uniqueness comparison and a REJECTED document cannot stand as an authority. The commit is the one recorded against **order 9, second component** in `04-build-order.md`. See C.3. |
 | R2-11 | Medium | Filing provenance mixes a historical review with a later adjudication: four HEAD transitions reported as "three"; the round-1 `Snapshot-SHA256` does not cover the registry, the scripts, the mandate amendment or the filer additions; and the two self-report histories are unsupplied. | **ACCEPTED — PART FIXED, PART CARRIED OPEN** | Fixed: `FILE-RECEIPT.md` now says **four**, carries a table of exactly what the round-1 binding does *not* cover, and separates the 17:35 from the 17:32:41 timestamps; C.1 above binds the round-2 input, remit and output **separately**, and filer conclusions are attributed to the filer throughout. The stale-hash and incomplete-fix self-report histories remain **carried open** — see C.4. |
 | R2-12 | Medium | The Guardian observation establishes neither a universal admission prerequisite nor a safe repair; and "135 MB/h" mixes units. | **ACCEPTED** | Fixed: unit corrected to **135.0 MiB/h ≈ 142 MB/h**, with a three-bullet correction recording that "add a maximum age" is insufficient and that the Guardian item is an **operational hazard with UNKNOWN communication impact**. |
 
@@ -361,24 +371,50 @@ resolved"; the headings give **1 partially resolved (A1-02) + 1 open (A1-09)**, 
 substantive correction stands and was applied; the gloss was not adopted. Recorded so that a reader
 does not take this table as blanket agreement with the reviewer's every word.
 
-## C.3 Carried open — the three checker code defects
+## C.3 The three checker code defects — **all three now FIXED**
 
-These three are **accepted and not fixed**. Each requires a rewrite of the evidence checker rather
-than a document edit, and a hurried rewrite would leave the checker in a worse state than a named,
-recorded defect. They are carried open with Astra's own fix text, and `03-contracts.md` /
-`09-tests.md` in this package were corrected to stop asserting what these defects break.
+> **Corrected 2026-09-21.** This section previously recorded R2-06, R2-08 and R2-10 as *"accepted and
+> not fixed"* and carried them open. **That is no longer true and the table is withdrawn.** Leaving a
+> "carried open" record for three repaired defects would itself be a false-evidence defect — the exact
+> class this package exists to eliminate. Each was repaired in code, with a named-reason acceptance
+> case and a mutation proof that the case dies when its mechanism is broken.
 
-| ID | Astra's named fix (quoted) | Why carried open |
+| ID | Astra's named fix (quoted) | Disposition |
 |---|---|---|
-| R2-06 | *"parse and cross-check structured evidence, require consumed source/policy artifacts to belong to their declared frozen scope, and separate **structural consistency** from **authorized human admission**. Authenticity requires a trusted collection/authority boundary; adding more self-authored JSON does not create one."* | Requires a semantic parser for every evidence class and a trusted collection boundary that does not exist yet. This is an architecture change, not a patch. |
-| R2-08 | *"report syntactic reference evidence without claiming runtime liveness. Parse supported source syntax, resolve relative imports, distinguish reference classes, and expose incomplete scans. Unsupported resolution and I/O failures must prevent absence/deletion conclusions."* | Requires a real parser and a resolution step. The current regex+comment-stripper cannot be incrementally corrected into one. |
-| R2-10 | *"validate aliases as normalized repository-relative paths with explicit alias semantics; bind registry and authority contents; validate precedence against the applicable authority decision. Keep **path exists**, **document status**, and **authority is valid** as separate results."* | Requires an authority model, not a filesystem walk. |
+| R2-06 | *"parse and cross-check structured evidence, require consumed source/policy artifacts to belong to their declared frozen scope, and separate **structural consistency** from **authorized human admission**. Authenticity requires a trusted collection/authority boundary; adding more self-authored JSON does not create one."* | **FIXED** — `scripts/blueprint-master-evidence.test.mjs`, commit `81d799b74`. Semantic validators with stable reason codes (`E_RUN_REPORT_INVALID`, `E_REVIEW_CONTENT`, `E_TERMINAL_EVIDENCE`, `E_IDENTITY_EVIDENCE`, `E_ADMISSION_ATTESTATION`); authority refs and the budget record now bound to the frozen scope. **The trusted collection boundary is NOT created and is not claimed** — see §5 of `28-c2-repair-evidence-validation-completion.md`. |
+| R2-08 | *"report syntactic reference evidence without claiming runtime liveness. Parse supported source syntax, resolve relative imports, distinguish reference classes, and expose incomplete scans. Unsupported resolution and I/O failures must prevent absence/deletion conclusions."* | **FIXED** — `scripts/intake-reach.mjs`, commit `d237f6050`. Real `@babel/parser` parse; relative resolution per importer; `LIVE` / `INCOMPLETE` / `INDETERMINATE` / `DEAD-CANDIDATE` verdicts; exit `6` on incomplete scans. The orphaned `stripComments` was **removed** — see `27-c3-repair-reach-completion.md` §2. |
+| R2-10 | *"validate aliases as normalized repository-relative paths with explicit alias semantics; bind registry and authority contents; validate precedence against the applicable authority decision. Keep **path exists**, **document status**, and **authority is valid** as separate results."* | **FIXED** — `scripts/blueprint-master-evidence.test.mjs`; the commit is recorded against **order 9, second component** in `04-build-order.md`. `normalizeRepoPath` rejects escaping/unnormalized aliases *before* the uniqueness comparison (`E_ALIAS_INVALID`); a REJECTED document cited as an authority is rejected for its designated reason (`E_AUTHORITY_UNBOUND`); the three results are now separate and **observable**. See `29-r210-registry-authority-validation-completion.md`. |
 
-Astra also named the acceptance test for R2-06, which is the right bar for whoever picks it up:
+### Acceptance evidence
+
+Each defect was repaired against **Astra's own cases, taken verbatim**, not a locally convenient
+fixture. A hand-authored matrix that passes while Astra's cases fail is not evidence.
+
+| Matrix | Suite | Result | Mutation proof |
+|---|---|---|---|
+| A (R2-06/R2-07) | `scripts/blueprint-master-evidence.regression.test.mjs` | 4/4 pass | — |
+| A (R2-10) | same file, cases AT-05…AT-07 | 7/7 pass | `scripts/.mutation-proof-r210.mjs` — **2/2 detected** (N1→AT-06, N2→AT-07) |
+| B (R2-08) | `scripts/intake-reach.regression.test.mjs` | 8/8 pass | `scripts/.mutation-proof-c3.mjs` — **4/4 detected** (M1→RT-02, M2→RT-03, M3→RT-04, M4→RT-08) |
+
+Every mutation kill is **case-precise**: `pass=6 fail=1`, not `fail=7`. A mutation that failed every
+case would prove only that the suite is fragile.
+
+Astra's acceptance bar for R2-06 was met as stated:
 
 > *"A negative fixture must preserve valid hashes and fail on the semantic contradiction. A missing
 > file, spawn error, malformed fixture setup, or unrelated dirty-tree failure is not a successful
 > rejection test."*
+
+Every negative case preserves a valid hash and fails on the semantic contradiction, **for its
+designated reason code**.
+
+### What the repairs deliberately do not do
+
+Closing these three did not create the trusted collection/authority boundary R2-06 names, and did not
+produce the G3 caller-path run. Both remain **NOT RUN** and are not implied by the matrices. Per
+Round 2 PART C, *"the matrices' 4/4 + 4/4 target is a bounded regression result, not the complete
+acceptance count."* **Product admission remains blocked; Round 3 is still owed.**
+
 
 ## C.4 Carried open — evidence bindings and the two self-report histories
 

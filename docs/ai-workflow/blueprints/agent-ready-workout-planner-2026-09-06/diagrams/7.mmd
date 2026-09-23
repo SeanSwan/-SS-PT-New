@@ -1,0 +1,18 @@
+stateDiagram-v2
+  [*] --> Quoted
+  Quoted --> Blocked: stale price or eligibility denied
+  Quoted --> Reserved: atomic claim
+  Reserved --> Cancelled: cancelled before dispatch
+  Reserved --> Dispatching: one admitted call
+  Dispatching --> Uncertain: timeout or lost receipt
+  Uncertain --> Uncertain: status lookup only
+  Uncertain --> Settled: verified receipt
+  Dispatching --> Settled: verified result and cost
+  Settled --> ProposalReady: valid output
+  Settled --> NeedsReview: invalid output
+  ProposalReady --> Reviewed: human decision
+  Reviewed --> Saved: current authorization and revision
+  Reviewed --> Deferred: cancel or stale
+  Blocked --> [*]
+  Cancelled --> [*]
+  Saved --> [*]

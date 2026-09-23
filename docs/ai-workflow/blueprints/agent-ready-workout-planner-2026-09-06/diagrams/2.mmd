@@ -1,0 +1,20 @@
+stateDiagram-v2
+  [*] --> Draft
+  Draft --> Validating: submit bounded candidate
+  Validating --> NeedsChanges: violations
+  NeedsChanges --> Draft: edit
+  Validating --> AwaitingReview: valid
+  AwaitingReview --> Cancelled: cancel or expiry
+  AwaitingReview --> Conflict: context changed
+  Conflict --> Draft: deliberate rebase
+  AwaitingReview --> Applying: human approval and current access
+  Applying --> Failed: transaction rolled back
+  Applying --> Reconciling: response lost
+  Applying --> CommittedUnverified: commit acknowledged
+  Reconciling --> CommittedUnverified: receipt found
+  Reconciling --> Failed: rollback proven
+  CommittedUnverified --> Verified: semantic read-back
+  CommittedUnverified --> CommittedUnverified: retry verification
+  Verified --> [*]
+  Failed --> Draft: new reviewed proposal
+  Cancelled --> [*]

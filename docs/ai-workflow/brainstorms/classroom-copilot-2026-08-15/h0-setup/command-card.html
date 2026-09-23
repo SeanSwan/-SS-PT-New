@@ -1,0 +1,156 @@
+<title>Assistant Card</title>
+
+<style>
+  :root{
+    --paper:#F1F3F1; --sheet:#FFFFFF; --ink:#1C2321; --ink-soft:#4A544F;
+    --ink-faint:#8A928D; --rule:#D8DDD9; --line:#E3E8E4;
+    --accent:#2F6F62; --accent-soft:#E4EDE9; --alert:#B4451F; --alert-bg:#FBF1EC;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){ --paper:#15191A; } }
+  :root[data-theme="dark"]{ --paper:#15191A; }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);font-family:var(--sans);color:var(--ink);
+    -webkit-font-smoothing:antialiased;padding:26px 16px 60px}
+
+  .screen-note{max-width:560px;margin:0 auto 20px;font-size:14px;line-height:1.6;
+    background:var(--sheet);border:1px solid var(--rule);border-left:4px solid var(--accent);
+    border-radius:4px;padding:14px 18px}
+  .screen-note p{margin:0}
+
+  .cards{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+
+  .card{background:var(--sheet);border:1.5px solid var(--ink);border-radius:5px;
+    padding:20px 22px 18px;box-shadow:0 8px 26px -16px rgba(28,35,33,.4)}
+
+  .card h1{font-family:var(--serif);font-weight:400;font-size:23px;margin:0;line-height:1}
+  .card .sub{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent);margin:5px 0 0;font-weight:600}
+  .hr{height:1.5px;background:var(--ink);margin:12px 0 13px}
+
+  .open{background:var(--accent-soft);border-radius:4px;padding:9px 12px;margin-bottom:13px;
+    font-size:13px;line-height:1.4}
+  .open strong{font-weight:650}
+
+  .grp{font-family:var(--mono);font-size:8.5px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--ink-faint);margin:0 0 6px;display:flex;align-items:center;gap:7px}
+  .grp::after{content:"";flex:1;height:1px;background:var(--rule)}
+
+  ul{list-style:none;margin:0 0 13px;padding:0}
+  li{font-size:12.5px;line-height:1.4;padding:4px 0;border-bottom:1px solid var(--line);
+    display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:baseline}
+  li:last-child{border-bottom:none}
+  li b{font-weight:650;white-space:nowrap}
+  li span{color:var(--ink-soft);font-size:11.5px}
+
+  .memo{background:var(--alert-bg);border:1px solid var(--alert);border-radius:4px;
+    padding:9px 12px;margin-bottom:12px;font-size:12px;line-height:1.45}
+  .memo b{color:var(--alert);font-weight:650}
+
+  .rules{font-size:11.5px;line-height:1.5;color:var(--ink-soft);margin:0;
+    border-top:1.5px solid var(--ink);padding-top:9px}
+  .rules b{color:var(--ink);font-weight:650}
+  .rules p{margin:0 0 4px}
+  .rules p:last-child{margin:0}
+
+  @media print{
+    @page{size:auto;margin:12mm}
+    body{background:#fff;padding:0}
+    .screen-note{display:none}
+    .cards{max-width:none;gap:14mm}
+    .card{box-shadow:none;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .open,.memo{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+
+<div class="screen-note">
+  <p><strong>Print this.</strong> Two identical cards to a page — cut them apart, one by the
+  laptop and one spare. Everything she needs to use the assistant is on it.</p>
+</div>
+
+<div class="cards">
+
+  <div class="card">
+    <h1>Your assistant</h1>
+    <p class="sub">On your laptop · Private · Offline</p>
+    <div class="hr"></div>
+
+    <div class="open"><strong>To open it:</strong> double-click <b>Assistant</b> on your Desktop.
+    That's it — no typing, no setup.</div>
+
+    <p class="grp">Just paste your day in</p>
+    <ul>
+      <li><b>Any mess</b><span>Five things in one paragraph is exactly right. It sorts them.</span></li>
+    </ul>
+
+    <p class="grp">Or ask for</p>
+    <ul>
+      <li><b>Sort this</b><span>the main one</span></li>
+      <li><b>What's most important here?</b><span>puts it in order</span></li>
+      <li><b>Daily notes</b><span>wording for families, from what you told it</span></li>
+      <li><b>Help me plan tomorrow</b><span>realistic, not Pinterest</span></li>
+      <li><b>I'm overwhelmed, here's everything…</b><span>must / should / extra</span></li>
+      <li><b>What did I get done?</b><span>from this conversation</span></li>
+    </ul>
+
+    <div class="memo"><b>It has no memory.</b> Every time you open it, it starts fresh — it
+    genuinely does not know about yesterday, and it will tell you so rather than make something
+    up. Start a new conversation each evening.</div>
+
+    <div class="rules">
+      <p><b>Names go here, not on your phone.</b> This can't send anything anywhere. Your phone's
+      notes app can.</p>
+      <p><b>Something happened?</b> Write it on the paper incident form, today, before you leave.
+      The chat is never the record.</p>
+      <p><b>Big dumps take about a minute.</b> Keep it plugged in.</p>
+      <p><b>If it mixes up two children</b> — just correct it, or start a fresh conversation.
+      Not your fault, not broken.</p>
+      <p><b>When you finish, press Cmd+K then Cmd+W.</b> Every night. It clears the window so
+      today's notes aren't sitting on screen tomorrow.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h1>Your assistant</h1>
+    <p class="sub">On your laptop · Private · Offline</p>
+    <div class="hr"></div>
+
+    <div class="open"><strong>To open it:</strong> double-click <b>Assistant</b> on your Desktop.
+    That's it — no typing, no setup.</div>
+
+    <p class="grp">Just paste your day in</p>
+    <ul>
+      <li><b>Any mess</b><span>Five things in one paragraph is exactly right. It sorts them.</span></li>
+    </ul>
+
+    <p class="grp">Or ask for</p>
+    <ul>
+      <li><b>Sort this</b><span>the main one</span></li>
+      <li><b>What's most important here?</b><span>puts it in order</span></li>
+      <li><b>Daily notes</b><span>wording for families, from what you told it</span></li>
+      <li><b>Help me plan tomorrow</b><span>realistic, not Pinterest</span></li>
+      <li><b>I'm overwhelmed, here's everything…</b><span>must / should / extra</span></li>
+      <li><b>What did I get done?</b><span>from this conversation</span></li>
+    </ul>
+
+    <div class="memo"><b>It has no memory.</b> Every time you open it, it starts fresh — it
+    genuinely does not know about yesterday, and it will tell you so rather than make something
+    up. Start a new conversation each evening.</div>
+
+    <div class="rules">
+      <p><b>Names go here, not on your phone.</b> This can't send anything anywhere. Your phone's
+      notes app can.</p>
+      <p><b>Something happened?</b> Write it on the paper incident form, today, before you leave.
+      The chat is never the record.</p>
+      <p><b>Big dumps take about a minute.</b> Keep it plugged in.</p>
+      <p><b>If it mixes up two children</b> — just correct it, or start a fresh conversation.
+      Not your fault, not broken.</p>
+      <p><b>When you finish, press Cmd+K then Cmd+W.</b> Every night. It clears the window so
+      today's notes aren't sitting on screen tomorrow.</p>
+    </div>
+  </div>
+
+</div>

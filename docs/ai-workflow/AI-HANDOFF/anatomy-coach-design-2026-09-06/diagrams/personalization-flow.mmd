@@ -1,0 +1,34 @@
+flowchart TD
+  A["Open authorized client in Planner or Pain Atlas"] --> MODE{"Saved mode or explicit choice?"}
+  MODE -- Measured --> B["Load profile and timestamped measurements"]
+  MODE -- Reference --> MANUAL["Load chosen catalog and visual preferences"]
+  MANUAL --> H["Publish atomic morph revision"]
+  MANUAL -- Unknown asset --> G["Reference or partial fit; retain measured facts"]
+  B --> C{"Valid units and supported fields?"}
+  C -- Partial --> D["Apply known inputs; show missing and stale sources"]
+  C -- Yes --> E["Fit coordinated custom anatomy"]
+  D --> E
+  E --> F{"Within reviewed rig and fit limits?"}
+  F -- No --> G["Reference or partial fit; retain measured facts"]
+  F -- Yes --> H["Publish atomic morph revision"]
+  G --> I["Pain reporting remains usable"]
+  H --> I
+  I --> J["Customize visual preview"]
+  J --> K{"Save, cancel or correct measurement?"}
+  K -- Cancel --> H
+  K -- Save --> L["Save scoped display preference with revision"]
+  L --> M{"Outcome?"}
+  M -- Committed --> H
+  M -- Conflict --> N["Compare saved preference and draft"]
+  N --> J
+  M -- Uncertain --> O["Check receipt and retry same mutation ID"]
+  O --> M
+  K -- Correct --> P["Canonical measurement flow; deliberate save"]
+  P --> B
+  B -- Denied --> Q["Clear private shape and fields"]
+  B -- Failed --> R["Same-target stale state; retry"]
+  R --> B
+  H -- Source changed in measured mode --> B
+  MANUAL -- New measurements --> MANUAL
+  H -- Rig rollback --> S["Previous approved asset version; preserve reports"]
+  S --> I

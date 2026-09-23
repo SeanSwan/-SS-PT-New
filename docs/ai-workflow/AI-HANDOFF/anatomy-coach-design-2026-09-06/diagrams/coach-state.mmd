@@ -1,0 +1,24 @@
+stateDiagram-v2
+  [*] --> RolePending
+  RolePending --> Denied: unknown or expired
+  RolePending --> Ready: authorized context
+  Ready --> Draft: type or select task
+  Draft --> Waiting: submit
+  Waiting --> Ready: explanation received
+  Waiting --> Reviewable: proposal ready
+  Waiting --> Checking: interrupted or response lost
+  Checking --> Reviewable: pending proposal recovered
+  Checking --> Committed: receipt recovered
+  Checking --> Draft: known failure
+  Reviewable --> Confirming: explicit confirm
+  Reviewable --> Deferred: cancel or defer
+  Reviewable --> Conflict: source changed
+  Conflict --> Draft: revise against latest
+  Confirming --> Committed: server commit
+  Confirming --> Checking: outcome unknown
+  Committed --> Ready: open receipt
+  Deferred --> Ready: return
+  Ready --> RolePending: switch target or access epoch
+  Draft --> RolePending: switch after draft decision
+  Reviewable --> Denied: access revoked
+  Denied --> RolePending: sign in or choose target

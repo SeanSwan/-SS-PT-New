@@ -3,393 +3,404 @@
 **Requested:** `glm-5.3`
 **Served:** `glm-5.3`
 **Document:** (path redacted; packet digest is recorded by consult-panel.mjs)
-**Tokens:** 2560 in / 27246 out (reasoning: 17920) | total 29806
-**Wall:** 1015.8s
+**Tokens:** 2560 in / 25326 out (reasoning: 15726) | total 27886
+**Wall:** 939.2s
 
 ---
 
-# CHARACTER CAPTURE — design deliverable
+# CHARACTER CAPTURE — Full Design Delivery
 
-Preliminary rulings first (they shape everything below), then the six items in order.
-
----
-
-## §0 RULINGS — where I agree, disagree, and reframe back
-
-**§6 reframe (extractor → capture director): RIGHT, but undersold.** I agree the coverage map + named gaps + reshoot instructions are first-class deliverables. But the packet still treats directing as something that happens *after* a video fails to cover. If the bar is "exactly like them," the director's job starts **before capture**: the single highest-leverage feature is a pre-shoot protocol card (paused turntable, 8 angles × 2s, tripod, 4K, 1/60s shutter minimum, two lighting setups) that Sean sees on first run — before he's wasted an evening shooting smooth orbits that the app will then reject for motion blur. I go further than the packet: the product's defensible core is **coverage instrument + shot protocol + closed-loop fidelity probe** (see Objection 1). Extraction is the commodity part; §7's competitive analysis is correct and I'd weight effort accordingly.
-
-**Clips export: real win, not scope creep — but minimal scope.** H3 holds identity on *reused reference sets* and accepts ≤3 clips / ≤15s total. For a video-generation model, a 12s clip of the subject turning through 3–4 angles is plausibly the strongest single reference asset it can be given. Krea can't use clips, so this only serves the H3 profile — which is why it's the last feature slice, gated behind a recorded A/B. `[UNSURE: whether H3 video references materially outperform image sets for identity lock — not empirically established in the packet. Treat as an experiment with a kill switch, slice 7.]` No clip editor, no trim UI. Auto-picked spans only.
-
-**Uniform vs diverse lighting: split by export profile, not globally.**
-- **H3 set (≤9): uniform.** These images go into *conditioning* at inference time. Mixed lighting across 9 references makes the model arbitrage between them and drags generation lighting. Pick the dominant lighting cluster, export only from it.
-- **Krea set (12–30): diverse contexts, neutral white balance per frame.** Identity LoRA overfit = can't render the person in new lighting. Diversity decorrelates illumination from identity — *provided* lighting doesn't correlate with pose (all left-profiles warm, all right-profiles cool = poisoned). The coverage report must check pose×lighting correlation and add a "second lighting setup" instruction when a single context dominates.
-
-**Component vetoes (challenging §4):**
-- **Drop the SAM 2 fallback** for v1. Two tracker stacks = double maintenance; the identity-veto layer already catches SAM-2-style failures (drift onto a lookalike gets rejected by ArcFace). Fallback is cold re-detect + appearance match, which reuses parts we already have.
-- **Defer CR-FIQA.** `[UNSURE: packaging/licensing/integration cost of CR-FIQA as a drop-in.]` v1 uses an FIQA *proxy*: ArcFace embedding norm (MagFace-style signal) + face pixel width + Laplacian variance. CR-FIQA is a slice-5 upgrade only if the proxy's ranking visibly misbehaves on real data.
-- **Keep** fs.watch + debounce, but add a **5s polling backstop** (Windows rename events are flaky; ~30 lines of code).
-- **Keep** PySceneDetect, ArcFace/InsightFace (buffalo_l, ONNX), 6DRepNet360, MEBOW (head yaw ≠ body yaw is exactly right), Laplacian **as tie-breaker only** on body crops.
-- **`lib/lora.mjs`: reuse the machinery, fork the doctrine.** Keep `datasetFor`/`captionFor`/licence gate. `TRAINING_NOTES` is style-LoRA doctrine — write `TRAINING_NOTES_IDENTITY` from scratch. Do not let the old notes leak into exports.
-
-**H3 per-image limits: `[UNSURE — not documented in sources]`.** Not hard-coded. Config `h3.imageMaxLongEdge = 2048` with an `"unverified": true` flag in config; slice 3 includes a 10-minute empirical check by Sean (export at native, at 2048, at 1024; note which H3 accepts/compresses).
-
-Audio references: out of scope (Sean asked for photos/clips; H3 audio can't be sent without image/video anyway).
+**Pre-flight rulings first**, because the blueprint depends on them. Then §8.1–8.6 in full.
 
 ---
 
-## §1 BLUEPRINT
+## 0. RULINGS ON OPEN QUESTIONS
 
-### 1.1 Process architecture
+### 0a. The §6 reframe — **Right, but under-scoped. Make it the product, not a feature.**
 
-Two processes, stdio-coupled. The Node hub inherits the swan-taste-brain ethos (zero npm deps, no build, `node hub.mjs` runs it); all rot-prone ML lives in the Python worker behind a stable line protocol, so the hub stays five-year-runnable even if the worker doesn't.
+The reframe is correct and I'll go further: the coverage engine is the *spine* and the extractor is just its first data source. Two sharpenings:
+
+1. **Coverage must aggregate per-subject across all sessions/videos**, not per-video. "Ava's rear-3/4-left bin is empty across 14 videos" is a director's instruction. Per-video coverage is a debug view. This is the actual moat over LoRA Dataset Studio et al.
+2. **I half-disagree on "pauses at each angle."** Pauses are right for tripod/turntable work. But a handheld slow orbit at high shutter (1/250s, 4K60 conformed, walking speed ~15°/s) yields sharp frames fine and is 5× faster to shoot than stop-and-hold. The shot-list generator should emit *recipes* ("tripod + pause at these angles" **or** "handheld slow orbit, shutter ≥1/250, 90s") — not mandate pauses. The photogrammetry analogy proves "smooth = blur" only at default shutter speeds.
+
+**Kill nothing, promote everything:** coverage map + named gap cards + printable shot list = first-class deliverables alongside the exports.
+
+### 0b. §2 conflict (Krea "uniform" vs LoRA-field "diverse") — **Doctrine: "Pose-diverse, exposure-normalized, lighting-mild."**
+
+- **Diversity budget goes to pose/angle.** That's the axis with 8+ bins that must be filled and the axis where overfit shows (can't generalize to new angles).
+- **Lighting: at most 2 clusters** (e.g., frontal-key + side-key). No silhouettes, no blown highlights, no colored gels. With N=10–30 you cannot afford lighting diversity without diluting identity — each strongly-lit outlier drags the embedding average.
+- **Uniformity enforced by normalization, not capture:** all exports exposure-matched to the set median luma (linear gain/offset only — *zero generative processing*), white-balance-matched, resolution-matched.
+- **Per-profile:** H3 (inference-time, ≤9, identity holds by *set reuse*): uniform lighting, maximize per-frame fidelity — 1 cluster. Krea (training, 12–30): 2 clusters max, per above.
+
+Reasoning: Sean's bar is fidelity, Krea's own doc says uniformity buys it, and the LoRA field's "diversity" advice is aimed at *flexibility* failures, which is not Sean's failure mode. Diversity of **pose** is non-negotiable in both profiles; diversity of **lighting** is a luxury a 20-image set can't buy.
+
+### 0c. H3 clips export — **Real win, sequenced late.**
+
+Identity in H3 holds by reusing the same reference *set*; clips carry gait, posture, and micro-expression that stills structurally cannot, and H3 is a video generator. Also note the budget arithmetic: 9 stills + 3 clips = exactly the 12-file cap, so clips are a *substitution*, not an addition. **But** Sean asked for photos, stills de-risk the premise test, and clips reuse 95% of the tracking infra. → Slice 7, behind a config flag, with an A/B likeness protocol.
+
+### 0d. §7 competitive read — **Agree, with one caveat.** Concentrate on (a) identity-lock, (b) honest 360° coverage + gap direction, (c) dual export profiles. Caveat: the extractor core (sharpness, dedup, scene-detect) is table stakes — if it's sloppy, the coverage map *lies with confidence*. Budget accordingly; don't skip it, just don't differentiate on it.
+
+### 0e. What I refuse to guess
+
+- **H3 per-image resolution/size limits: unknown.** No number is hard-coded anywhere; exporter emits a manifest warning and the config has an explicit `null // verify empirically` field.
+- Face restoration: **banned entirely**, including previews (a restored preview would corrupt Sean's curation judgment). Enforced by a test that fails if a restoration module is importable from the export path.
+
+---
+
+## 8.1 BLUEPRINT
+
+### 8.1.1 Architecture
+
+Two processes, one boundary. The five-year mandate **cannot** cover the CV stack (SAM 3, ArcFace, pose nets, torch/Blackwell wheels); pretending otherwise is the fastest way to kill the tool. So the mandate applies where it can hold:
 
 ```
-┌─────────────────────── Sean's desktop (Win 11, RTX 5090) ───────────────────────┐
-│                                                                                  │
-│  data/inbox/  ──drop──►  hub.mjs (Node 22, zero deps)                            │
-│                           ├─ lib/watch.mjs      fs.watch + 2s debounce + 5s poll │
-│                           ├─ lib/jobs.mjs       state machine, job.json (atomic) │
-│                           ├─ lib/api.mjs        localhost:3777, static + JSON    │
-│                           │                     API + SSE progress               │
-│                           └─ spawn ──►  worker/worker.py (persistent, holds     │
-│                                            SAM 3 + InsightFace + 6DRepNet360 +  │
-│                                            MEBOW in VRAM)                       │
-│                           JSON-lines over stdio:                                 │
-│                             ► {"id","op":"analyze","job":{...}}                  │
-│                             ◄ {"id","type":"event","name":"stage"|"frame",...}   │
-│                             ◄ {"id","type":"result","report":{...}}              │
-│                           ffmpeg/ffprobe: bundled GPL build, child_process,      │
-│                                            args arrays, no shell                │
-│  ComfyUI (8189): NOT used by this app. Probe slice scores with ArcFace only.     │
-└──────────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────── Windows 11 box (RTX 5090, 32GB) ─────────────────────────┐
+│                                                                                    │
+│  cc-server  (Node 22, ZERO deps, node:http, binds 127.0.0.1:7640)                  │
+│  ├─ serves ui/ (vanilla HTML/CSS/JS, no build, no CDN)                             │
+│  ├─ watches inbox/ (fs.watch recursive + debounce + Windows lock probe)            │
+│  ├─ enqueues jobs: queue/<video_id>.job  (atomic file-create = enqueue)            │
+│  ├─ JSON API: GET /state  POST /tag  POST /export  POST /retry  …                  │
+│  └─ spawns worker on boot:  uv run --project pipeline python -m cc.worker          │
+│                                                                                    │
+│  cc.worker  (Python 3.12, uv-pinned, lockfile committed)                           │
+│  ├─ claims jobs by rename  queue/x.job → queue/x.claim                             │
+│  ├─ GPU: SAM 3 track (≤960px proxy), CPU fine: ArcFace/pose (onnx)                 │
+│  └─ writes everything as files under library/<video_id>/ (UI is a file reader)     │
+│                                                                                    │
+│  State = flat files on disk. No database. UI polls GET /state every 1s.            │
+│  Five-year rule: holds for server+UI; worker pinned by uv.lock + model revision    │
+│  hashes; documented reality: ML layer re-pinned ~yearly.                           │
+└────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-One worker, one job at a time (single GPU). Hub queues. No listening sockets in the Python worker (avoids Windows firewall prompts); the hub's only socket is localhost:3777.
+Why files-not-DB: `node:sqlite` in 22.14 is still experimental-flag territory [UNSURE — avoided on purpose]; append-only JSONL + atomic-rename JSON survives crashes, is diffable, greppable, and matches the house style.
 
-**Model manifest / pinning** — `worker/models/REVISIONS.txt` records every model's source URL + commit/hash at install. `[UNSURE: exact install channel for SAM 3 (pip vs HF vs git clone) — bot must resolve at install time and record it.]` `[UNSURE: torch pin for RTX 5090 (sm_120) — install latest stable CUDA wheel whose `torch.cuda.get_device_capability()` reports `(12,0)`; verify in bootstrap script, fail loudly otherwise.]`
+**ComfyUI fallback path:** if SAM 3 / onnxruntime GPU wheels misbehave on Blackwell (sm_120), the worker is a thin shell and models run via subprocess against ComfyUI's already-proven 0.34.2 env. Adapter interface (below) exists so this is a config swap, not a rewrite. [UNSURE how likely this is; it's cheap insurance.]
 
-### 1.2 Pipeline stages
+### 8.1.2 Stage table (inputs → outputs → choice + why)
 
-Funnel principle: **decode everything cheaply, run models on few frames.** Motion blur means the best stills sit at motion minima; find them with cheap metrics before spending GPU.
+| # | Stage | In | Out | Tool | Why this one |
+|---|---|---|---|---|---|
+| 0 | Watch/enqueue | file in `inbox/` | `queue/<id>.job` | Node `fs.watch` recursive (supported on win32) + 1.5s debounce + stability probe (size stable ×2 polls, openable read-share — Windows locks in-flight copies) | zero-dep, handles the "drop and walk away" mandate; hardlink (fallback copy) into `library/<id>/source.ext` so deleting the inbox copy never orphans a run |
+| 1 | Ingest | source video | `probe.json`, `shots.json` | ffmpeg/ffprobe (via `imageio-ffmpeg` bundled binary) + PySceneDetect `ContentDetector` | deterministic, maintained, no GPU needed |
+| 1.5 | Preflight | sampled frames | `preflight.json` | own code + OpenCV Laplacian | kill "video too low quality" early: if >60% of sampled frames below sharpness floor **or** short edge <640 → session `needs_input`, UI offers "process anyway" |
+| 2 | Sample | shots | frame idx list | own: 2 fps + 5-frame burst at each shot head; cap 4000 candidates (config) | shot heads are where pose/expression variety lives; cap bounds cost |
+| 3 | Detect persons | first sample per shot | person chips (bbox, face, thumb, screen-time %) | SAM 3 detect w/ text prompt "person", merged with InsightFace `retinaface` faces (face-in-mask assignment) | SAM 3's text-prompt + persistent-ID claims are the packet's candidate; InsightFace merge gives the *face* thumbnail the tag UI needs |
+| 4 | Tag | chips | `subject_ref` | **Human, 1 click** (or auto-pick if dominance margin ≥10% screen-time) | tagging is the one irreplaceable human act; auto-pick keeps the zero-click happy path |
+| 5 | Track | subject chip per shot | per-frame bbox+mask (proxy-res) for all shots | SAM 3 video predictor on ≤960px proxy; crops always cut from **source-res** frames via scale transform | persistent IDs through occlusion = the advertised capability. Fallback: SAM 2.1 per-shot + gallery re-association at cuts [UNSURE SAM 3 Windows/GPU packaging — adapter `TrackerAdapter` with `sam3`/`sam2p1` impls selected in config] |
+| 6 | Embed | face crops ≥64px | 512-d ArcFace embeddings | InsightFace `buffalo_l` (ArcFace R50, w600k) | de-facto standard, onnx, runs fine on CPU at our volumes (hundreds of crops) — dodges Blackwell onnxruntime-GPU risk entirely [UNSURE wheel status; CPU path is the default] |
+| 7 | Identity gate | embeddings + tracker continuity | per-frame: accept / quarantine / reject(reason) | own `calib.py` — **per-video threshold**, not fixed (see 8.1.5) | risk 3: fixed thresholds kill profile/rear coverage; per-video calibration with in-video impostors as negatives is the fix |
+| 8 | Quality | crops + frames | sub-scores | OpenCV Laplacian variance on **face crop** (normalized by crop area) + exposure-clip fraction + CR-FIQA-L if installable [UNSURE — wheels are research-grade]; fallback quality proxy: ArcFace embedding norm (MagFace property, quality-correlated) [UNSURE correlation strength — hence percentile-ranked composite, never an absolute cut] | non-generative only; percentile-within-session ranking avoids resolution-dependent magic numbers |
+| 9 | Pose | frames/crops | head yaw/pitch/roll, body yaw | 6DRepNet360 (full-range head) + MEBOW (body). Fallbacks: WHENet (±90°) + "no-face + head-mask ⇒ rear bins" heuristic for |yaw|>90; body yaw from RTMPose torso keypoint geometry (shoulder/hip lateral offsets) | both primaries are research code of varying upkeep [UNSURE]; both fallbacks are coarse but coverage bins only need ±23° precision, and rear bins are intentionally coarse |
+| 10 | Coverage + select | stages 7–9 + scale | `coverage.json`, `selection.json` | own `coverage.py` — recomputed **from artifacts on disk**, never from a stored summary | honesty requirement (§8.4); selection = per-bin top-k after near-dup suppression (same-bin cosine >0.90 [UNSURE, config] or Δt<0.5s) |
+| 11 | Export | selection + source frames | `exports/h3/`, `exports/krea/`, `manifest.json` | Node, copies `lib/lora.mjs` from swan-taste-brain (licence gate preserved verbatim); new `h3.mjs` | reuse proven code; both profiles enforce caps in tests |
+| 12 | Report | coverage | `coverage.md`, `shotlist.md` (+ `.json`) | own `report.py` | the capture-director deliverable; shot list = gap cards with recipes |
+| 13 | Clips *(optional, Slice 7)* | track + quality time-series | ≤3 clips, 2–15s, ≤15s total | ffmpeg (`-c copy` when keyframe-aligned, else CRF 18 re-encode) | §0c |
 
-| # | Stage | Input → Output | Model/Lib | Why this one | Failure behavior |
-|---|-------|----------------|-----------|--------------|------------------|
-| 0 | Ingest | inbox file → job dir (atomic same-volume rename to `data/jobs/<id>/source.ext`) | fs.watch+poll | Rename is atomic; inbox stays clean ("in = todo") | Partial copies: wait until size stable 3s + openable exclusive |
-| 1 | Probe/gate | source → `probe.json` (res, fps, dur, bitrate, codec) | ffprobe | needed anyway for decode params | res < 720 short edge or bits/pixel/frame < 0.05 `[UNSURE heuristic]` → `rejected:quality` + minimums card. Flag-not-reject for 720–1080 |
-| 2 | Scenes | source → `scenes.json` (cut list) | PySceneDetect (content detector) | Cuts break tracking continuity; clips must not span cuts | Empty result = whole video one scene; fine |
-| 3 | Cheap funnel | video → per-window candidate list | OpenCV: decode at ½ res, full fps; frame-diff magnitude + Laplacian var on face region (RetinaFace every 0.5s, box-interpolated between) | Finds stillness/sharpness peaks without GPU cost | None fatal; worst case more candidates |
-| 4 | Candidate set | per 1.0s window, top-2 by stillness+sharpness → ~2 fps effective → `cache/` full-res JPEGs | ffmpeg seek-extract | Full-res decode only for winners | Corrupt frame → skip, log |
-| 5 | Detect+tag | first 30s → identity clusters (ArcFace embeddings, cluster by cosine < 0.35 `[UNSURE cut]`) | InsightFace buffalo_l (ONNX) | 1 cluster → auto-tag (zero clicks). ≥2 → tagging screen. 0 → scan whole video, then `rejected:no_person` + manual frame-pick offer | |
-| 6 | Enroll | top-5 frontal (yaw<20°, best FIQA-proxy) first 10s → anchor set (≤5 L2-normalized embeddings, max-cosine scoring) | InsightFace | **Incremental enrollment**: better frontal found later gets added; early-anchor bias is the hidden single point of failure | No frontal in whole video → manual frame pick on tagging screen |
-| 7 | Track | SAM 3 click/concept on chosen person → persistent ID, mask+bbox per candidate frame | SAM 3 (`facebook/sam3`) | Persistent IDs through occlusion is the advertised strength; text prompt ("the man in the red jacket") as secondary tag input | ID lost > 5s → cold re-detect (persons via SAM 3 concept) + appearance match (torso HSV histogram + face when visible); ambiguous → quarantine span + re-tag prompt |
-| 8 | Verify (pose-conditional, veto-style) | face crop from **mask**, not bbox (prevents crop bleed from a second face) | ArcFace vs anchors | See thresholds below. Veto, not requirement: rejection requires *positive evidence of wrong person*, not merely low cosine | |
-| 9 | Pose | 6DRepNet360 (face yaw/pitch, full range) + MEBOW (body yaw) on subject crop | | head yaw ≠ body yaw; both axes needed for bins | `[UNSURE: 6DRepNet360 error at |yaw|>90° — calibrate with fixture F7 before trusting rear bins]` |
-| 10 | Quality | FIQA-proxy (embed norm + face width + Laplacian), body-crop Laplacian, exposure/CCT stats, subject height px | | Tiered: face frames judged on face; body frames on subject crop (risk 6 resolved by tiers, not by one gate) | |
-| 11 | Coverage | accepted frames → bins, gaps, shot list (`coverage.py` templates) | | First-class deliverable per §0 | |
-| 12 | Review | UI grid grouped by bin; vetoes persist to job | | Sean vetoes; nothing auto-deletes silently | |
-| 13 | Export | selection policies → `exports/` | vendored `lora-identity/` fork of `lib/lora.mjs` | Reuse machinery + licence gate; forked identity doctrine notes | |
+**Hard rules encoded in stage 11 and enforced by tests:** never upscale; never face-restore (test asserts the module isn't importable); crop from source pixels only; jpeg re-encode at q≥95 with roundtrip-pixel-diff assertions.
 
-**Verification thresholds (defaults, all in config):**
-
-| Band | Gate | Borderline handling |
-|---|---|---|
-| \|yaw\| ≤ 30° | cos ≥ τ_front = 0.40 `[UNSURE]` | 0.25–0.35 → human review queue, never auto-accept |
-| 30–70° | τ_front − 0.08 | same |
-| 70–100° | τ_front − 0.15 **and** FIQA-proxy ≥ min | same |
-| \|yaw\| > 100° or no face | **unverifiable** → body tier: requires track-continuity ≥ 0.9 + torso-histogram match; labeled `verified:body-only` in manifest | Always human-confirmable; excluded from H3 face slots |
-| Any band | **Impostor veto:** another face in frame scores *higher* vs anchors than the tracked subject's face → reject frame, emit `identity_switch` event, quarantine ±1s | This is the anti-blend rule (risk 4) |
-
-τ_front is **per-video adaptive** where possible: if ≥2 identity clusters exist, set τ above the impostor cosine distribution (p99 + 0.05); otherwise stay conservative. No precomputed magic number survives contact with a new video.
-
-**Yaw sign convention (defined once, used everywhere):** yaw ∈ [−180, 180], 0 = frontal, **positive = subject turned to their own right (viewer's left)**. All bins, shot lists, and tests use this.
-
-### 1.3 Data model
+### 8.1.3 Data model
 
 ```jsonc
-// Subject — data/subjects/<subjectId>/subject.json
-{ "subjectId": "subj_8f3a", "name": "Maya",
-  "consent": { "granted": true, "date": "2026-09-02", "scope": "personal" },
-  "anchors": [ { "embedRef": "anchors/a1.npy", "quality": 0.81, "yaw": 4, "srcJob": "2026-09-02T1015-interview" } ],
-  "appearance": { "torsoHSV": [/* 16-bin h, 8-bin s, 8-bin v */], "heightRatio": 0.42 } }
+// subjects/<sid>/subject.json  — Subject = a real person, aggregates across sessions
+{ "id": "ava", "name": "Ava",
+  "consent": { "scope": "self|third_party", "confirmedBy": "sean", "date": "2026-09-05" },
+  "gallery": { "embeddings": "gallery.npy",   // confirmed accept frames, all sessions
+               "centroidCos": null },          // NOT used for gating; per-video calib is
+  "mergedCoverage": "coverage.json" }          // union across sessions → gap cards
 
-// Job (session) — data/jobs/<jobId>/job.json ; jobId = "2026-09-02T1015-<slug>"
-{ "jobId": "...", "source": "source.mp4", "subjectId": "subj_8f3a",
-  "status": "discovered|probing|needs_tag|auto_tagged|enrolled|analyzing|needs_review|exporting|done|rejected|failed|quarantined",
-  "rejectReason": "quality|no_person", "stages": [ {"name":"scenes","status":"ok","ms":4120} ],
-  "coverageSummary": { "faceYawFilled": [0,30,60,120,-60], "gaps": ["faceYaw:-90..-60"] } }
+// library/<vid>/session.json  — Session = one processed video
+{ "id": "ava_interview", "source": "source.ext", "sha4mb": "…", "subject": "ava",
+  "status": "ingest|preflight|needs_input|segment|tagging|tracking|analyzing|review|exported|failed",
+  "stageCursor": "track", "resumeSafe": true, "blendRisk": false,
+  "stats": { "shots": 7, "candidates": 1180, "accepted": 214, "quarantined": 63 } }
 
-// CandidateFrame — append-only frames.jsonl (also the crash checkpoint)
-{ "i": 4213, "t": 175.5, "shot": 6, "track": 1,
-  "face": { "box": [x,y,w,h], "cos": 0.52, "fiqaProxy": 0.78, "wPx": 214 },
-  "pose": { "yaw": -63, "pitch": 4, "bodyYaw": -90 },
-  "body": { "box": [x,y,w,h], "hPx": 1188, "sharp": 146 },
-  "light": { "cluster": 1, "cct": 5100, "ev": 0.2 },
-  "tier": "face", "verdict": "accept", "reason": "" }
+// library/<vid>/candidates.jsonl  — CandidateFrame (append-only, idempotent by frame_idx)
+{ "frame": 18341, "tSec": 767.3, "shot": 4, "track": 12,
+  "bbox": [x,y,w,h], "mask": "masks/18341.png",          // mask saved only for selected frames
+  "face": { "found": true, "box": [..], "embIdx": 190, "cos": 0.44, "crFiqa": 0.71 },
+  "quality": { "lap": 0.83, "exposureClip": 0.01, "facePx": 612, "composite": 0.79 },
+  "pose": { "headYaw": -78, "headPitch": 4, "headRoll": -3, "bodyYaw": -95 },
+  "bins": { "face": "PROFILE_L:LEVEL", "body": "E", "scale": "BUST" },
+  "decision": "accept|quarantine|reject", "reasons": ["id_borderline"] }
 
-// CoverageBin — derived view in report.json
-{ "axis": "faceYaw", "center": -60, "range": [-75,-45), "n": 7, "bestQ": 0.81,
-  "verified": 7, "bodyOnly": 0, "example": "job://frames/4213" }
+// coverage.json  — CoverageBin axes (canonical, tests pin these):
+//  face: 8 yaw bins × 3 pitch bins
+//    yaw: FRONT |y|≤22; 3/4_L/R 23–67; PROFILE_L/R 68–112; REAR3/4_L/R 113–157; REAR 157–180
+//    pitch: UP>15 / LEVEL ±15 / DOWN<−15  (roll |r|>25 = "tilted" flag, not a bin)
+//  body: 8 compass bins N,NE,E,SE,S,SW,W,NW (±22.5° around each)
+//  scale (mask height ÷ frame height): WIDE<0.10 FULL 0.10–0.25 HALF 0.25–0.40 BUST 0.40–0.65 CU>0.65
+//  each cell: { "count": 3, "qualifiedKrea": 2, "qualifiedH3": 2, "idConfidence": "high|low" }
+//  + sheet coverage: config/sheet.json rows P1(8)/P2(8)/P3(4), each row = bin + expr + notes
 
-// ExportProfile — config.json (excerpt)
-{ "h3":  { "maxImages": 9, "clips": { "max": 3, "maxTotalSec": 15 },
-           "imageMaxLongEdge": 2048, "imageMaxLongEdgeUnverified": true,
-           "lighting": "uniform-dominant-cluster",
-           "policy": { "frontal": 2, "yawQuadrants": 4, "body": 2, "detail": 1 } },
-  "krea": { "min": 12, "target": 20, "max": 30, "longEdge": 1024,
-            "lighting": "diverse-contexts-neutral-wb",
-            "warningFlag": "INSUFFICIENT_COVERAGE" } }
+// config/profiles — ExportProfile = named constraint+policy bundle
+"h3":  { "stills": 9, "clips": 0, "maxFiles": 12, "lightingClusters": 1,
+         "bg": "original", "longEdge": [1024,2048], "imageLimits": null }   // null = UNVERIFIED
+"krea": { "images": 20, "min": 12, "max": 30, "lightingClusters": 2,
+          "bg": "neutral-feather-4px", "normalizeExposure": true, "longEdge": [1024,1536],
+          "minImageDims": [512,512] }
 ```
 
-### 1.4 Disk layout
+Note the face-size vs image-size distinction: Krea's ≥512 is on **image** dims; face-px targets are *quality weights* (CU/BUST prefer face ≥512px, HALF ≥250, FULL ≥120), not hard gates — otherwise risk 6 (face-gate vs body requirement) silently deletes every full-body frame.
+
+### 8.1.4 Disk layout
 
 ```
-~/Desktop/character-capture/
-  hub.mjs  config.json
-  lib/{watch,jobs,api,export,constants}.mjs
-  vendor/lora-identity/        # fork of lib/lora.mjs + TRAINING_NOTES_IDENTITY
-  public/{index.html,app.js,style.css}          # vanilla, no build
-  worker/{worker.py, pipeline/{probe,scenes,funnel,detect,track,embed,pose,quality,coverage,select,report}.py, models/REVISIONS.txt, tests/}
-  ffmpeg/bin/{ffmpeg.exe,ffprobe.exe}
-  data/
-    inbox/                     # <-- Sean drops here
-    probe/<subjectId>/         # <-- Sean drops H3 OUTPUTS here (slice 6)
-    jobs/<jobId>/{source.ext, job.json, frames.jsonl, events.jsonl, cache/, report.json, exports/}
-    subjects/<subjectId>/
-    exports/<profile>-<ts>/
-  tests/{run.mjs, fixtures/make_fixtures.py}
+character-capture/
+  serve.mjs  config/app.json  config/sheet.json  README.md
+  ui/            (index.html, app.js, style.css — vanilla, no build)
+  lib/           server.mjs watch.mjs queue.mjs state.mjs api.mjs lora.mjs h3.mjs
+  tests/         *.mjs (node tests) + pipeline/tests/*.py
+  pipeline/
+    pyproject.toml  uv.lock  fetch_models.py   (pinned HF revisions + sha256)
+    cc/  worker.py ingest.py preflight.py segment.py detect.py track.py
+         identity.py quality.py pose.py coverage.py select.py report.py clips.py
+    models/       (HF_HOME; ~2–4GB)  fixtures/  tools/
+  inbox/                       ← the watch folder
+  queue/                       ← *.job / *.claim
+  subjects/<sid>/
+  library/<vid>/  source.ext probe.json shots.json session.json candidates.jsonl
+                  frames/ masks/ exports/h3/ exports/krea/ reports/coverage.md shotlist.md
 ```
 
-### 1.5 Failure & resume
+### 8.1.5 Identity calibration (the risk-3/4 answer, in full)
 
-- `job.json` written atomically (tmp + rename) on every transition; illegal transitions rejected by `jobs.mjs` (tested).
-- `frames.jsonl` **is** the checkpoint. On worker restart mid-analysis: stream it, collect analyzed frame indices, continue from first unanalyzed candidate. Report generation is a pure function of `frames.jsonl` + vetoes → idempotent (golden-diff tested).
-- Worker crash → hub respawns it, resumes job, SSE shows "resumed at frame N". Hub crash → on start, scan `data/jobs/`, reconcile statuses, resume.
-- `cache/` is deletable at any time (re-extractable from source). Cache eviction: after `done`, keep only accepted frames' caches; purge > 7 days.
+Per video, at stage 7:
 
-**Performance budget** `[UNSURE ±2×]`: 4K/10-min video ≈ 2–4 min cheap-funnel (CPU) + ~1,200 candidates × ~100ms GPU ≈ 2–4 min → **≤ 10 min end-to-end**, models resident in VRAM « 32 GB.
+1. **Positives** = frames in the confirmed track with cos ≥ 0.55 (self-evident matches); take their min → `minPos`.
+2. **Negatives** = every other detected face in the video (tagging other people is free negatives); need ≥3, else fall back to `defaultThr = 0.38` [UNSURE — mid-range of the packet's 0.30–0.45 band; config].
+3. `thr = clamp( maxNeg + 0.05, 0.28, 0.45 )`, additionally `thr ≤ minPos − 0.02`. If those conflict (lookalikes), set `thr = midpoint(maxNeg, minPos)` and set session flag `ambiguous_identity` → re-tag prompt, export blocked.
+4. **Band logic:** cos ≥ thr → accept; cos ∈ [thr−0.08, thr) **with tracker continuity** → quarantine (kept, reviewable, excluded from auto-export); below → reject.
+5. **Tracker-vs-identity disagreement:** ≥15% of a shot's tracked frames reject/quarantine → shot flagged `blend_risk`; ≥2 flagged shots → session-level alert, auto-export blocked pending review. Sporadic disagreement → frame quarantined only (never silently dropped — recall is the scarce resource).
+
+Reasoning: within a shot, tracker continuity is strong evidence and ArcFace is pose-degraded — so continuity rescues borderline profiles. At shot boundaries and post-occlusion re-acquisitions, ArcFace is authoritative. Quarantine keeps the 360° tail reviewable instead of deleted.
+
+### 8.1.6 Failure & resume
+
+| Failure | Behaviour |
+|---|---|
+| Crash at any stage | Worker restart reads `session.stageCursor` + per-stage `reports/<stage>.done` markers; each stage idempotent; `candidates.jsonl` upserts by `frame_idx`; tracking restarts at shot granularity, not video granularity |
+| File locked / still copying | Poll ×40 @1.5s, then `failed:locked` with retry button |
+| Duplicate drop (same content) | sha of first 4MB + size → dedupe, link to existing session |
+| Corrupt/truncated video | ffmpeg error → `failed:corrupt`, card in UI, inbox file untouched |
+| GPU OOM | track retries at 720px proxy, then CPU SAM checkpoint [UNSURE viability]; else `failed:oom` with guidance |
+| Worker dead | Server health-checks subprocess, restarts, resumes |
+| Export interrupted | Manifest written last, atomic rename; partial dir without manifest = invisible to UI |
 
 ---
 
-## §2 WIREFRAMES
+## 8.2 WIREFRAMES
 
-### Desktop (localhost:3777, 1280+)
-
-**State A — Idle / watching**
+### Desktop — 1. Watch-folder idle / auto-start
 
 ```
-┌─ Character Capture ─────────────────────────────── watching data/inbox ── [＋ Add video] ─┐
-│ Jobs (2)                                                                                   │
-│ ┌───────────────────────────────────────────────────────────────────────────────────────┐ │
-│ │ ▶ interview_take3.mp4     ANALYZING 62%   scenes ✓ funnel ✓ verify ▓▓▓▓▓▓░░░  412 acc │ │
-│ │ ▶ backyard_test.mp4       NEEDS TAG — 2 people found            [Tag now ▸]           │ │
-│ └───────────────────────────────────────────────────────────────────────────────────────┘ │
-│                                                                                             │
-│  ┌─ NEW SUBJECT? Shoot this first ────────────────────────────────────────────────────┐   │
-│  │ ❶ Tripod, 4K/30, shutter 1/60 or faster   ❷ Subject turns ON THE SPOT, pausing 2s  │   │
-│  │  at each of 8 angles (every 45°)          ❸ Again under a 2nd lighting setup       │   │
-│  │  ❹ One slow full-body pan, head to feet   [Print card]   [Skip — I have footage]   │   │
-│  └─────────────────────────────────────────────────────────────────────────────────────┘   │
-│  Inbox: ~/Desktop/character-capture/data/inbox   ·   drop a file to start ·   0 clicks   │ │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
+┌ CHARACTER CAPTURE ─────────────────────────────────── 127.0.0.1:7640 ─┐
+│ ● WATCHING  C:\...\character-capture\inbox        [Pause] [Settings]  │
+├───────────────────────────────────────────────────────────────────────┤
+│                                                                       │
+│        Drop video files here — processing starts on its own.          │
+│        Or  [ Choose file… ]  to run one manually.                     │
+│                                                                       │
+├─ ACTIVE ──────────────────────────────────────────────────────────────┤
+│ ▶ ava_interview.mp4    ████████████░░░░░░  62%  tracking shot 4/7     │
+│    subject: AVA (auto-picked, 41% screen time)  [Wrong person?]      │
+│ ▶ gym_b-roll.mov       queued                                           │
+├─ NEEDS YOU (1) ───────────────────────────────────────────────────────┤
+│ ⚠ doppel.mov   two likely subjects — pick one            [TAG →]      │
+├─ DONE (14) ───────────────────────────────────────────────────────────┤
+│ ava_orbit_1  exported 12/20 sheet rows · gaps: rear, rear-3/4 L  [↗]  │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
-**State B — Tagging (only when ≥2 identity clusters)**
+### Desktop — 2. Tagging (only appears on ambiguity or "Wrong person?")
 
 ```
-┌─ Tag: who is the subject? ── interview_take3.mp4 ──────────────────────────────────────────┐
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐   Click the person.            │
-│  │  ◉ face A     │  │  ◻ face B     │  │  ◻ face C     │   Or type: [man, red jacket  ]│
-│  │  (268 frames) │  │  (154 frames) │  │  (31 frames)  │   [None of these — pick frame] │ │
-│  └───────────────┘  └───────────────┘  └───────────────┘                                  │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-Auto path (1 cluster): no tagging screen — toast "1 person found — locked on" with a 10s "change" link.
-
-**State C — Analyzing (live)**
-
-```
-┌─ interview_take3.mp4 ── analyzing 62% ── ▓▓▓▓▓▓▓░░░ ───────────────────────────────────────┐
-│  faceYaw bins (live):   −180 ▁ ▂ 15 ▁ │ −90 ▁ │ 0 ▂48▂ │ +90 ▁ │ +180 ▁ ▃ 9 ▁            │
-│  bodyYaw:  filled 5/8 ·  accepted 412 ·  quarantined 1 span (00:02:41, possible swap)    │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
+┌ TAG THE SUBJECT ── doppel.mov ── shot 1/9 ── 00:00:04 ── PAUSED ────┐
+│  ┌─────────────────────────────────────────┐  WHO IS THE SUBJECT?   │
+│  │                                           │ ┌──────┐ ┌──────┐    │
+│  │        ┌──────┐                           │ │ (1)  │ │ (2)  │    │
+│  │        │  1   │         ┌──────┐          │ │ face │ │ face │    │
+│  │        └──────┘         │  2   │          │ │ 46%▮ │ │ 43%▮ │    │
+│  │                           └──────┘        │ │      │ │      │    │
+│  │        (other people ghosted)             │ └──────┘ └──────┘    │
+│  └─────────────────────────────────────────┘  TRACK ▸   TRACK ▸     │
+│  [ Neither — jump +10s ]                    margin 3% → asking you  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-**State D — Review + coverage map + gaps (the main screen)**
+### Desktop — 3. Review / curation (the money screen)
 
 ```
-┌─ interview_take3 ── REVIEW ─────────────────────────────────────────── [Export both ⏎] 1 ─┐
-│ COVERAGE (✓ verified · ◔ body-only · · empty)                    LIGHTING: 1 context ⚠   │
-│           pitch: down      level      up                                                    │
-│  yaw −150   ·        ◔2        ·        KREA SET 14/20 · under target                     │
-│  yaw −120   ·        ·         ·        ┌─ SHOOT LIST (fills 6 gaps) ─────────────────┐   │
-│  yaw  −90   ·        ◔1        ·        │ ❶ Face 3/4 right (yaw −45): pause 2s        │   │
-│  yaw  −60   ·        ·         ·        │ ❷ Right profile (−90) + rear (−150)         │   │
-│  yaw  −30   ✓3       ✓11       ✓2       │ ❸ Body rear + right 3/4 (full body)         │   │
-│  yaw    0   ✓4       ✓23       ✓5       │ ❹ Second lighting: warm practical, repeat ❶ │   │
-│  yaw  +30   ✓2       ✓9        ✓1       │    [Print checklist] [Merge reshoot later]  │   │
-│  ...                                     └────────────────────────────────────────────┘   │
-│ Bin: yaw −30, level ── 11 frames ────────────────────────────────────────────────────────  │
-│ [f4213 ✓q.81] [f4187 ✓q.79] [f4102 ✓q.74] [f4461 ✗ vetoed]   click=preview  X=veto  U=undo│
-│ ⚠ 12 frames in review queue (borderline identity)  [Review ▸]     E=export  ←/→=navigate  │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
+┌ REVIEW ── ava_interview ── subject AVA (14 videos merged) ───────────┐
+│ SHEET 12/24 rows filled ── ⚠ P1 GAPS: rear-3/4 L · full-body rear    │
+├─ FACE YAW × PITCH ────────────────┬─ BODY COMPASS ──┬─ GAP CARDS ────┤
+│ yaw→  R3/4L PRF.L 3/4L FRT 3/4R PRF.R R3/4R REAR │      N 12●      │ ▸ SHOOT  │
+│ UP     ×     ×     ○2   ●3   ○1    ×     ×      │  NW ○3   NE ●9   │  rear-3/4 │
+│ LEVEL  ×     ○1    ●4   ●6   ●3    ○1    ×      │ W ×       E ●11  │  L: tripod,│
+│ DOWN   ×     ×     ○1   ●2   ○1    ×     ×      │  SW ×    SE ○3   │  135° yaw, │
+│  ● = H3+Krea qualified  ○ = Krea-only  × = EMPTY │      S ○7        │  hold 3s…  │
+├─ SCALE FILLED ─────────────────────┴────────────────┴───────────────┤
+│ CU ●6  BUST ●8  HALF ●5  FULL ○2 (face<250px)  WIDE ×0              │
+├─ SELECTED (20)  click = big view · drag = reorder · ✕ = drop        │
+│ [1][2][3][4][5][6][7][8][9][10][11][12][13][14][15][16][17][18]…    │
+├─ QUARANTINE (63 · mostly profile/rear, id 0.31–0.38)  [show all ▾]  │
+│ [q][q][q][q][q] … click item → SWAP INTO ITS BIN (2 clicks)         │
+├──────────────────────────────────────────────────────────────────────┤
+│ [ shotlist.md ▾ ]   [ EXPORT H3 (9) ]   [ EXPORT KREA (20) ]  BOTH ▸│
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-### Mobile (review-first; tagging/analysis stay desktop)
+### Mobile (monitor-class device; heavy curation stays on desktop)
 
 ```
-┌─ CC · interview_take3 ──────┐
-│ coverage: 9/12 yaw bins     │
-│ −180 ─░░░░░░░░░░░─ +180     │
-│ ▂▂▂▂ ✓✓✓✓ ✓✓✓ ✓◔ ✓ ...    │
-│ GAPS (6): +45 face · rear…  │
-│ ─────────────────────────── │
-│ ┌───────────────┐           │
-│ │  f4213  q.81  │  ◄ swipe ►│
-│ │  yaw −32      │           │
-│ └───────────────┘           │
-│   [ ✓ keep ]  [ ✗ veto ]    │
-│ [ Export both ]             │
-└─────────────────────────────┘
+┌──────────────────────────────┐   ┌──────────────────────────────┐
+│ ● CC ▸ inbox watching        │   │ TAG · doppel.mov             │
+│                              │   │ ┌──────────────────────────┐ │
+│ ACTIVE                       │   │ │   frame, 2 boxes         │ │
+│ ▶ ava_interview  62%         │   │ └──────────────────────────┘ │
+│   AVA auto ✓ [change]        │   │  (1) face 46%▮  [TRACK ▸]   │
+│ ▶ gym_b-roll    queued       │   │  (2) face 43%▮  [TRACK ▸]   │
+│                              │   │  [neither → +10s]           │
+│ NEEDS YOU                    │   └──────────────────────────────┘
+│ ⚠ doppel: pick subject [→]   │
+└──────────────────────────────┘   ┌──────────────────────────────┐
+┌──────────────────────────────┐   │ AVA · sheet 12/24           │
+│ AVA coverage (merged)        │   │ FACE YAW strip              │
+│  yaw: × × ○ ● ● ○ × ×        │   │ R3/4L…: ××○●●○××            │
+│  body:  N12 NE9 E11 SE3      │   │ ▸ GAP: rear-3/4 L  [recipe] │
+│         SW× W× S7            │   │ ▸ GAP: full-body rear       │
+│  CU6 BUST8 HALF5 FULL2 WIDE0 │   │ ┌─┐┌─┐┌─┐┌─┐┌─┐ selected 20 │
+│  [shotlist.md] [export ⋯]    │   │ └─┘└─┘└─┘└─┘└─┘  swipe →   │
+└──────────────────────────────┘   │ ═══ [EXPORT BOTH] ═══       │
+                                   └──────────────────────────────┘
 ```
 
-**Click counts (main path):** drop file → **0 clicks** through analysis (auto-tag when unique). Review defaults preselected → **1 click** ("Export both", also `E`). Ambiguous person: **+1 click**. Each veto: +1 (optional, never required to export). Manual start instead of watch: 2 clicks (＋ Add → choose file).
+**Click counts (main paths):**
+- Auto happy path: drop file (**0**) → auto-run with auto-picked subject → review appears → **EXPORT BOTH = 1 click**. Total: **1 click** from drop to both datasets.
+- Ambiguity path: drop (0) → TAG notification → person chip (**1**) → export (**1**) = **2 clicks**.
+- Manual start: Choose-file (**2**) → same as above = **3 clicks**.
+- Frame swap in review: quarantine item (**1**) → SWAP (**1**) = 2 clicks.
 
 ---
 
-## §3 FLOWCHART
+## 8.3 FLOWCHART
 
 ```mermaid
 flowchart TD
-    A[Video dropped in inbox] --> B{file stable 3s?}
-    B -- no --> B
-    B -- yes --> C[probe: ffprobe]
-    C -- "res<720 or bits/px/frame<0.05" --> R1[REJECTED: quality<br/>+ minimums card]
-    C -- pass --> D[PySceneDetect + cheap funnel]
-    D --> E{faces in first 30s?}
-    E -- no --> E2[scan whole video]
-    E2 -- still none --> R2[REJECTED: no_person<br/>offer manual frame pick]
-    E2 -- found --> F
-    E -- yes --> F{identity clusters?}
-    F -- "exactly 1" --> G[auto-tag · toast 'locked on']
-    F -- "2+" --> T[TAGGING screen:<br/>click the person / text prompt]
-    T --> G
-    G --> H[enroll anchors from best frontal frames]
-    H --> I[SAM 3 track + pose-conditional verify per candidate]
-    I --> J{tracker lost > 5s?}
-    J -- yes --> J2[cold re-detect +<br/>appearance match]
-    J2 -- ambiguous --> Q1[QUARANTINE span<br/>+ re-tag prompt]
-    J2 -- ok --> I
-    J -- no --> K{identity verdict?}
-    K -- "low cos AND rival face scores higher" --> SW[identity_switch event:<br/>quarantine ±1s, re-tag]
-    SW --> I
-    K -- "low cos, no rival (pose likely)" --> LQ[borderline queue<br/>→ human review]
-    K -- pass --> L[accept → tier + bin]
-    L --> M[coverage map + selection]
-    LQ --> M
-    M --> N{coverage complete<br/>for target profile?}
-    N -- gaps --> O[SHOT LIST: named gaps +<br/>protocol card; partial export<br/>allowed with INSUFFICIENT_COVERAGE]
-    N -- ok --> P[review grid]
-    O --> P
-    P -- "Export (1 click)" --> X[h3 ≤9 uniform-light<br/>krea 12–30 target 20 diverse]
-    X --> Z[done: manifest + open folder]
+    A[File dropped in inbox] --> B{Stable + unlocked?}
+    B -- no --> B1[poll 1.5s x40] --> B
+    B -- yes --> C[hash, hardlink, create session]
+    C --> D[Preflight sharpness/res check]
+    D --> E{Quality floor passed?}
+    E -- no --> F[needs_input card:<br/>process anyway?]
+    F -- Sean forces --> G
+    F -- discard --> X0[failed:low_quality<br/>report written]
+    E -- yes --> G[Shot segmentation]
+    G --> H{Persons found in shot?}
+    H -- none --> Z1[log empty shot<br/>next shot / end]
+    H -- one/more --> I{Dominance margin >= 10% ?}
+    I -- yes --> J[auto-pick subject<br/>+ 'wrong person?' chip]
+    I -- no --> K[TAG SCREEN:<br/>Sean clicks one chip]
+    J --> L
+    K --> L[SAM3 track subject per shot]
+    L --> M{Tracker lost > 2s?}
+    M -- yes --> N{Gallery re-acquire<br/>within 5s?}
+    N -- yes --> L
+    N -- no --> O[close segment, log span,<br/>next shot]
+    M -- no --> P
+    O --> P[Embed + per-video<br/>identity calibration]
+    P --> Q{ID vs tracker}
+    Q -- agree --> T
+    Q -- sporadic mismatch --> R[frame -> quarantine]
+    Q -- ">=15% of shot" --> S[shot flagged blend_risk]
+    S --> S2{">=2 flagged shots?"}
+    S2 -- yes --> S3[BLOCK export,<br/>re-tag / review required]
+    S2 -- no --> T
+    R --> T[Quality + pose + binning]
+    T --> U[Coverage + selection<br/>merged with subject history]
+    U --> V{Sheet rows filled?}
+    V -- no --> W[gap cards + shotlist.md<br/>banner on export]
+    V -- yes --> X
+    W --> X[EXPORT: H3 (<=9) + Krea (12-30)]
+    X --> Y[coverage.md + manifest.json sha256]
 ```
 
-Branch table (all six required branches): no face → `rejected:no_person` after full scan, with manual-pick escape hatch. Two candidates → tagging screen, never a silent guess. Tracker loss → occlusion-tolerant 5s, then cold re-detect; ambiguity quarantines rather than guesses. Identity disagreement → the impostor-veto rule; disagreement without a rival is treated as *pose*, not rejection (risk 3). Coverage incomplete → first-class shot list; partial export permitted but flagged in manifest (risk 5). Low quality → early reject with the minimums card, so Sean learns the capture protocol from the failure itself.
+Branch notes (what the UI shows, never silently): `no persons` → session completes with zero frames + shotlist says "no usable footage of subject"; `tracker lost` → untracked spans appear as a WIDE-bin gap card ("subject left frame / occluded — re-shoot rear walk-away"); `coverage incomplete` → **always** produces shotlist.md, export still allowed with red banner "8/24 rows — see gaps."
 
 ---
 
-## §4 TESTS
+## 8.4 TESTS
 
-**Philosophy:** every absence claim ships with a positive control — a paired assertion that the *same pipeline accepts known-good data*. A degenerate gate that rejects everything must fail the suite. House style: plain `.mjs` for hub/API (fetch against a test server on an ephemeral port), `pytest` for worker; fixtures built deterministically by `tests/fixtures/make_fixtures.py`.
+### 8.4.1 Positive-control matrix — every absence claim has a must-pass twin
 
-### Golden fixtures
-
-| ID | Fixture | Recipe | Purpose |
-|---|---|---|---|
-| F1a/F1b | `turntable_full_{soft,warm}.mp4` | Sean (developer = inherent consent) on tripod, 8 paused angles × 2s, 4K/30, two lighting setups; tape marks on wall give yaw ±10° | Full-coverage positive control; lighting clusters |
-| F2 | `switcheroo.mp4` | Two different people, similar wardrobe, A exits / B enters (ffmpeg concat) | Impostor precision |
-| F3 | `occlusion_pole.mp4` | Subject walks behind a pole/door, reappears | Tracker loss/recovery |
-| F4 | `interview_narrow.mp4` | Frontal-only conversation footage | Honest gap reporting |
-| F5 | `crushed_720.mp4` | F1a re-encoded 720p CRF 40 | Quality gate |
-| F6 | `no_person.mp4` | Scenery only | No-face branch |
-| F7 | `pose_stills/` | 8 stills at labeled yaws (0, ±45, ±90, ±135, 180) from F1 wall-mark protocol | Pose calibration |
-| F8 | `sharp_blur_pairs/` | Accepted stills + ffmpeg `boxblur` copies | Blur gate |
-| F9 | `gen_probe_sample.mp4` | One real H3 generation of the F1 subject (recorded once, manually) | Fidelity probe sanity |
-
-*Note: fixture faces must be real humans — synthetic faces embed poorly in ArcFace `[UNSURE]`, which would invalidate the identity tests.*
-
-### Test matrix (absence claim ↔ positive control)
-
-| # | Claim under test | Test | Positive control (fails if check is broken) |
-|---|---|---|---|
-| 1 | Rejects low quality | F5 → `rejected:quality`, reason matches `/resolution|bitrate/` | F1a passes gate |
-| 2 | Rejects no-person | F6 → `rejected:no_person` | F1a yields ≥1 cluster |
-| 3 | Cluster counting | F1a → exactly 1 (auto-tag); F2 → ≥2 (tagging screen) | — (self-paired) |
-| 4 | **Identity lock held** | F2, enrolled on A: accepted frames with t > swap ≡ **0** (impostor precision = 1.0) | Pre-swap acceptance ≥ 20 face-tier frames (gate not broken-closed) |
-| 5 | Occlusion recovery | F3: zero impostor accepts; acceptance resumes post-occlusion; ≤1 quarantine span | Occlusion must not reject the same person (resume count > 0) |
-| 6 | Pose honesty | F7: \|pred−label\| ≤ 15° for \|yaw\|≤90°, ≤ 25° beyond | Detector returns *some* value for every F7 still (not crash/NaN) |
-| 7 | **Coverage map honest — anti-interpolation** | Harness veto-hook force-rejects yaw ∈ [−75,−45) on F1a → report shows that bin **empty**, shot list names "3/4 right face," selection excludes it, all other bins unchanged ±2 | Unmodified F1a lights **12/12** yaw bins — the map fills when data exists |
-| 8 | Narrow coverage honesty | F4: ≥4 named gaps; krea count <12 → manifest `INSUFFICIENT_COVERAGE`; every exported file's provenance `t` maps to an `accept` row in frames.jsonl (no fabricated frames) | F1a krea export reaches target 20 with no warning |
-| 9 | Export constraints (fuzz) | 10k random score vectors → h3 ≤ 9 always; krea ∈ [12,30] or warned; manifest count + hashes match disk exactly | Fuzz with all-high scores must produce *full* sets (selector isn't conservatively broken) |
-| 10 | Licence gate | Existing suite + fork guard: `TRAINING_NOTES_IDENTITY` used, style notes never emitted | Export succeeds on gated-pass fixture |
-| 11 | **No face restoration, ever** (risk 2) | `test_no_restorers`: grep worker/ for `gfpgan|codeformer|retinex` → 0 matches | Paired F8: sharp originals accepted (sharpness isn't achieved by restoration) |
-| 12 | Watch stability | Append-write 1MB/200ms → job starts only ≥3s after last write | Fast full copy detected within 10s |
-| 13 | Resume = idempotent | F1a full run → `report.golden.json`; SIGKILL worker at 25/50/75% frame indices, restart → canonical-JSON-identical report | — |
-| 14 | Borderline routing | Synthetic cosine 0.25–0.35 → review queue, never auto-accept, never silently dropped | Cosines ≥0.5 auto-accept |
-| 15 | State machine legality | Random transition sequences → illegal ones rejected | Legal sequence reaches `done` |
-| 16 | Probe instrument sanity (slice 6) | probe(F1a vs F1a anchors) median cos ≥ 0.5 `[UNSURE value — calibrate from enrollment distribution]` | probe(F6 frames) scores low |
-
-The **degenerate-gate floor** applies globally: any fixture run that accepts 0 frames where ≥N known-good frames exist fails the suite. N per fixture lives in `tests/fixtures/expected.json`.
-
----
-
-## §5 SLICES
-
-**S1 — Premise harness (prove/kill risk 1).** Offline CLI, no UI, no tracking: `python -m tools.premise_probe --video F1a --reference-dir <Sean's hand-curated set>`. Samples frames, runs face detect + FIQA-proxy + sharpness, exports top-9 + a parity report (video-top-9 vs hand-picked distributions). Sean does one manual H3 A/B (hand-picked vs harvested, forced-choice) recorded in `docs/premise-verdict.md`.
-*Accept:* report runs on this machine; parity ratio computed; verdict recorded. **Kill/pivot criterion:** parity < 0.7 `[UNSURE threshold]` or Sean reliably prefers hand-picked → app pivots to director-first (shot lists + probe become the product; extraction stays for good-footage cases). Timebox: 1 day.
-
-**S2 — Hub v0: watch, gate, card.** Node hub, watch folder + manual start, probe + quality gate, job state machine, UI shell (idle, rejected states), the **pre-shoot protocol card** on idle screen (§0). Analyzer stub ends at `needs_tag: "analyzer not installed (S3)"`.
-*Accept:* F5 → rejected card; F6 → no_person; F1a → job queued; slow-copy test passes; card printable.
-
-**S3 — Extractor end-to-end (single person).** Stages 3–8 + crude top-9 H3 export (manual count, uniform-light best-effort). Auto-tag when unique; click-to-tag otherwise.
-*Accept:* F1a auto-tags, ≥ fixture-floor accepts, top-9 produced; **F2 impostor accepts = 0**; F4 partial with warning; H3 long-edge limit empirically checked by Sean and un-flagged in config.
-
-**S4 — Coverage + dual export + review grid.** Pose models, bins, coverage map UI, gap shot lists, review grid with veto round-trip, h3 + krea profiles, vendored `lora-identity` fork with licence gate.
-*Accept:* anti-interpolation test (T7) passes; F4 named gaps + `INSUFFICIENT_COVERAGE`; vetoed frames never export; default path = 1 click.
-
-**S5 — Robustness.** Adaptive τ_front, impostor-veto spans, cold re-detect, quarantine UX, checkpoint resume, illegal-transition guard, occlusion handling; optional CR-FIQA swap-in if proxy misranks on real data.
-*Accept:* T5, T13, T14, T15 pass; 3 consecutive real-world videos complete without manual state surgery.
-
-**S6 — Fidelity probe (closed loop, see Objection 1).** `data/probe/<subjectId>/`: drop H3 outputs → ArcFace vs anchors → per-generation median-cos report appended to subject history; trend shown in UI.
-*Accept:* T16 passes; Sean has ≥3 generations scored and can state whether the number tracks his eyeball verdict.
-
-**S7 — Clip export (experiment).** Auto-select ≤3 contiguous spans (identity-verified throughout, no cut inside, stillness-preferring, motion variety), ≤15s total, ffmpeg CRF 18; manifest lists seconds; toggle in h3 profile.
-*Accept:* constraint fuzz (clips ≤3, ≤15s); Sean A/B recorded in `docs/clips-verdict.md`; kill switch = config flag if A/B shows no identity gain.
-
-**S8 — Subject library, merge, polish.** Multi-video jobs merge into one coverage map per subject; combined exports; mobile review polish; cache eviction/archive.
-*Accept:* F1a + F4 (same subject) merge: gaps from one filled by the other, export reflects union; mobile veto round-trips.
-
----
-
-## §6 THREE STRONGEST OBJECTIONS
-
-**1. As specced, the app never measures the thing it exists to achieve.** Every internal metric — FIQA, sharpness, bin counts — is a proxy. "Exactly like them" is decided inside H3/Krea at generation time, and nothing in the packet looks back. Sean will iteratively tweak reference sets against an instrument that doesn't exist. The fix is cheap because the stack already exists: **the fidelity probe** (S6) — drop generated outputs back in, ArcFace them against the subject anchors, report a number per generation. It's not ground truth (it's the same embedding family, so it's generous to the enrollment set), but it converts "feels off" into a trend line. I'd trade the clip feature and half the robustness polish before I'd cut the probe; if you only keep one of my changes, keep this one.
-
-**2. The packet's reframe is right for the wrong reason — the director isn't a recovery mode, it's the product, and it should change slice order.** Casual video has a narrow yaw band; most drops will end as shot lists, not datasets. Extraction alone is already commoditized (§7's list). So the first-run experience for a new subject must be the protocol card, not the inbox; "42% coverage — here's what to shoot" must be presented as a **success state**; and the merge path (S8) is the actual loop: shoot → harvest → see gaps → reshoot → merge. If we build extractor-first and bolt directing on later, the UI, the copy, and Sean's habits will all encode the wrong default. I moved the card to S2 for this reason.
-
-**3. The identity instrument degrades exactly where this product's value lives, and pose-binned thresholds are a patch, not a fix.** ArcFace embeddings were never trained to match at ±90°+; rear views are unverifiable by *any* face embedding; 6DRepNet360's error at extreme yaw may itself be ±30° `[UNSURE — F7 calibrates this before rear bins are trusted]`. Consequences I've designed in, and would defend hard: (a) **veto-style gating** — low cosine alone never rejects; rejection needs a *rival face scoring higher*; (b) bins are filled with confidence labels (`verified` vs `body-only`) and the UI renders them differently, so the map never pretends rear coverage is face-verified; (c) frames with |yaw| > 70° default to human-confirm; (d) **chain-of-custody scoring** for unverifiable frames — a frame is trusted if it's inside one continuous track segment anchored at both ends by verified frontal frames with no crossing face, which is evidence the threshold table can't manufacture. If calibration (F7) shows the instrument is too noisy past ±90°, cut the 12-bin map down to what's honest rather than shipping false precision — an honest 6-bin map with a "rear: unverifiable, go shoot" instruction beats a decorative 12-bin one.
-
----
-
-## Register of `[UNSURE]`s (build-blocking only)
-
-| Item | Disposition |
+| Absence claim the app can make | Positive control (fails ⇒ the absence claim is a lie) |
 |---|---|
-| H3 per-image resolution/size caps | Config flagged unverified; empirical check in S3 |
-| torch/CUDA pin for RTX 5090 (sm_120) | Bootstrap script verifies `get_device_capability()==(12,0)` |
-| SAM 3 install channel + packaging | Resolve at install; record in `models/REVISIONS.txt` |
-| CR-FIQA drop-in availability | Deferred; FIQA-proxy in v1 |
-| ArcFace τ values (0.40 base, band offsets) | Defaults + per-video adaptation + F2/F7 calibration |
-| Cluster split cosine 0.35; quality-gate bits/px/frame 0.05; S1 kill threshold 0.7; probe sanity 0.5; performance estimates | Calibrate against fixtures in S1–S3 |
+| "REAR bin empty" | `orbit_sphere` fixture (360° GT): same pipeline must fill REAR ≥ N |
+| "no second person in video" (solo → no calibration negatives) | `imposter_pair` fixture: 2 people → detector returns 2 chips, negatives ≥3 |
+| "all frames too blurry" | `blur_gradient` fixture: sharp tail must pass the same gate |
+| "no face detected" | `frontal_probe`: must detect ≥95% frames |
+| "45° yaw goes to 3/4 bin, neighbors stay empty" | `orbit_sphere` at 2°/frame: every frame lands in exactly its GT bin, no neighbor spill (±23° tolerance test) |
+| "no near-duplicates in export" | inject exact duplicate frame → dedup must collapse to 1 |
+| "no face restoration happened" | roundtrip pixel-diff: exported crop vs source region ≤ jpeg q95 tolerance; import-scan asserts no restoration module on export path |
 
-Everything else in this document is buildable as written.
+**Honesty invariant:** `coverage.json` is always recomputed from files on disk at render/export time. Test: delete a selected frame file → UI count drops and `missing_artifact` warning fires. Test: append fabricated `candidates.jsonl` rows claiming rear frames with no files → map shows 0, warning fires. **No interpolation anywhere:** bins are pure point measurements; single frame at yaw 100° lands in PROFILE_R alone.
+
+### 8.4.2 Golden fixtures (named, buildable, no questions)
+
+| Fixture | Construction | Proves |
+|---|---|---|
+| `orbit_sphere` | `tools/gen_sphere_orbit.py`: pyrender + bundled CC0 head mesh (fallback: textured sphere with painted asymmetric face) rendering 2°/frame ×180, GT yaw in filename | pose binning, REAR honesty, selection spread |
+| `blur_gradient` | synthetic clip, seeded Gaussian blur ramp σ 0→6 | sharpness gate + preflight floors |
+| `crosser` | two people walk and cross (Sean records 30s per spec in Slice 1; spec in `fixtures/README.md`) | **blend trap** — the mis-tracking killer |
+| `imposter_pair` | two similar-looking people, separate clips | threshold calibration, `ambiguous_identity` path |
+| `frontal_only` | 20s talking-head clip | narrow-band coverage → rear gap cards must fire |
+| `corrupt_truncated` | head-truncated mp4 | failure/resume |
+| `locked_copy` | open handle during watch test | Windows enqueue gating |
+
+### 8.4.3 Test inventory
+
+**Unit (.mjs + pytest):** bin-boundary math pinned to §8.1.3 constants; sheet priority ordering; export caps (seed 40 qualified frames → H3 dir has exactly 9 files, total ≤12 incl. clips; Krea in [12,30]); min-image-dims (512) enforcement; exposure-normalization is linear-only (assert gain/offset, no kernels); naming/manifest sha256; licence-gate regression on copied `lora.mjs`; calibration math (clamps, midpoint conflict); dedup logic.
+
+**Integration:** full pipeline on each fixture; resume — `kill -9` worker at every stage marker ×N loop, assert no lost/duplicated candidates; watch: drop → `job.claim` → session appears ≤5s; duplicate drop dedupes; manual-run API parity with auto-run.
+
+**Identity-lock proof (the hard one — avoid circularity):** gate with `buffalo_l`; **verify with a different FR model** — OpenCV zoo SFace (zero extra stack) — then assert: every exported frame SFace-cos ≥ τ₂ vs subject gallery, and ≤ τ₂−0.10 vs the `imposter_pair` other person. On `crosser`: person-B frames in export must be **zero**; run once with identity gate disabled to confirm the fixture actually traps (that disabled run failing is itself the positive control). Plus manual protocol: Sean blind-confirms 10 random exports per session during beta.
+
+**Coverage honesty:** §8.4.1 matrix, automated.
+
+**Downstream likeness (the only test of the actual bar):** fixed 5-prompt battery per subject, Sean scores 0–5 likeness, blind A/B vs a photo-trained control set. Run at Slice 1 (go/no-go) and after each profile ships.
+
+---
+
+## 8.5 SLICES
+
+**S1 — Premise probe (prove/kill risk 1). Standalone script, no UI, no server.**
+`pipeline/probe.py`: Sean records per spec (two 60s clips: one tripod multi-angle of a consenting subject, one casual) or reuses sample footage → sharpness distribution, % frames with face ≥512px per yaw bin, 20 hand-curated frames packaged for one manual Krea train + one H3 run + the blind likeness battery. **Accept:** report generated; likeness ≥4/5 → proceed; 3–3.5 → proceed but capture-director is primary mode; <3 → premise killed for casual video, pivot app to "coverage director + mining" with photos as the primary ingest (video optional). *Kill criteria stated up front.*
+
+**S2 — Skeleton: server + watch + queue + worker stub + ingest/scene/sample/preflight + idle UI + job list.** Accept: drop → session → shots.json + extracted `frames/` ≤5s after file settles; `needs_input` card works; resume works; `node serve.mjs` from clean checkout works.
+
+**S3 — Tag + track + identity gate.** Accept: on `crosser`, zero impostor frames in accept set (SFace-verified); auto-pick fires when margin ≥10%, tag screen when <10%; quarantine band populated on `imposter_pair`; blend-risk blocks export.
+
+**S4 — Pose + coverage + selection + Krea export.** Accept: `orbit_sphere` bins exact; `frontal_only` emits rear gap cards; Krea export 20 images, dims ≥512, exposure-normalized, dedup'd, captions via `lora.mjs` licence gate; shotlist.md printable.
+
+**S5 — H3 export profile.** Accept: exactly ≤9 stills (≤12 files), manifest warns `imageLimits: unverified`; "merged coverage across sessions" works (second video of same subject updates subject-level gaps).
+
+**S6 — Review UI polish + gap-card recipes + quarantine swap.** Accept: click counts hit §8.2 numbers; swap updates coverage map live; map recomputes from disk (honesty test green).
+
+**S7 — Clips export (flagged off).** Accept: ≤3 clips, 2–15s each, ≤15s total, subject-visible throughout (mask coverage >80% of clip), 12-file budget enforced with stills; A/B likeness run logged.
+
+**S8 — Hardening + packaging.** Accept: uv.lock + model revision hashes committed; `cc doctor` validates env; kill-loop resume test ×50 green; consent gate blocks third-party subjects without typed confirmation; server refuses non-localhost binds.
+
+---
+
+## 8.6 THREE STRONGEST OBJECTIONS
+
+**1. The premise is thinner than the packet admits — build the director first, the extractor second.** "Exactly like them" is bounded not by coverage but by *information per pixel on the best frames*. A 4K/60 phone clip at 1/250s has maybe 800–1500 usable pixels on the face in a bust shot; one phone photo has 3000+. Coverage fills bins; fidelity comes from the top decile. Casual video will frequently produce a *complete but mediocre* sheet — the app will "succeed" (24/24 rows) and still miss the bar. My alternative, which I'd argue for over the current emphasis: S1's kill line is real, and if it lands even at 3.5/5, the product's headline should be **"coverage director + archive miner"** — the shot list and the merged per-subject gap map *are* the app, extraction is the onboarding feature that justifies trusting the map. Twenty minutes of directed phone capture beats two hours of mining in every realistic case. Design accordingly (S4's shotlist is not "nice-to-have," it's the deliverable).
+
+**2. The five-year mandate is being quietly violated, and pretending otherwise will rot the whole tool.** SAM 3 + onnxruntime + torch on Windows/Blackwell (sm_120 needs CUDA 12.8-era builds) is a maintenance treadmill [UNSURE how rough: several of these ecosystems lag new GPU archs by months]. The Node shell will indeed run in 2031; the worker will not, and if worker rot is allowed to infect the design (workarounds, unpinned wheels, "just reinstall X"), the *whole* app dies with it. My demand: the file-based boundary in §8.1.1 is load-bearing — the Node layer must never import, spawn cleverly around, or know anything about Python internals beyond "files appear in `library/`." ML deps live in `pipeline/` with uv.lock + revision-pinned models, and the ComfyUI-env subprocess fallback is implemented in S3 (one weekend), not deferred, because it's the difference between a bad week and a dead project when a wheel breaks.
+
+**3. The identity gate cannot be solved by thresholds, and shipping it as if it can produces confident blends — the worst failure mode.** Risks 3 and 4 pull in opposite directions: tighten the gate, lose the 360° tail (the whole point); loosen it, blend two faces into a dataset that looks fine. Per-video calibration (§8.1.5) helps, but with a solo-subject video there are no negatives, and with lookalikes calibration *itself* becomes unreliable. What I'd insist on instead of "solved": (a) coverage cells carry an `idConfidence` field and rear/profile bins render visibly different when their evidence is quarantine-grade — the map must never present a shaky rear frame as equivalent to a frontal one; (b) blend-risk hard-blocks export rather than warning; (c) the second-model (SFace) verification runs on **every export**, not just tests — circular self-checks are how this failure mode ships; (d) quarantine is a first-class review surface, not a log. If that's too much ceremony, the honest fallback is dropping the "exactly" claim for rear coverage and saying so in the shot list — which loops back to objection 1: the director is where the bar actually gets met.
+
+---
+
+**[UNSURE] ledger (asserted nowhere as fact):** SAM 3 pip/Windows packaging & real-world occlusion performance; onnxruntime-GPU on sm_120; CR-FIQA-L installability (MagFace-norm proxy is the fallback); 6DRepNet360 and MEBOW maintenance status; H3 per-image resolution/size limits (unverified — config `null`, manifest warning); default threshold 0.38 and quarantine band 0.08 (calibrated per-video regardless); near-dup cosine 0.90; `node:sqlite` stability (avoided); Krea's exact training-side behavior on full-body images with small faces.

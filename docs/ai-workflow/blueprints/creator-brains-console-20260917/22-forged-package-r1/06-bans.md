@@ -1,0 +1,40 @@
+- Do not modify any file under `scripts/creator-brains/**`; no README or cap-split exception.
+- Do not rebuild, re-theme, or replace CD3 merely because this package adds documentation.
+- Do not treat historical totals, screenshots, or review verdicts as current evidence.
+- Do not call a source-built slice shipped without its actual user-path receipt.
+- Do not read transcript contents through the display plane or send them across worker result messages.
+- Do not dump engine errors, `skipped` records, environment values, or private paths directly into UI/logs.
+- Do not claim that a regex leak guard proves absence of all leakage.
+- Do not write engine registry/state/publication files directly.
+- Do not release the registry gate because the browser disconnected.
+- Do not automatically retry, terminate-and-retry, or label an uncertain write unchanged.
+- Do not use process exit or lock disappearance as proof of run success.
+- Do not let repair bypass the same exclusion and publication safety checks as daily.
+- Do not add backup, restore, rollback, authorize, cancellation, Atlas, or ledger endpoints ahead of an explicit contract change.
+- Do not accept a browser-supplied root, destination, worker module, or filesystem path.
+- Do not rename `BrainDoc.slug`; its value is the channel ID.
+- Do not treat generation ID alone as a content fingerprint.
+- Do not render a missing publication as exhaustive zero evidence.
+- Do not mark derived claims reviewed, curated, verified, affiliated, or causally connected.
+- Do not use `tStartMs` as publication time.
+- Do not add Cesium, embeddings, geographic maps, or a second narrative animation.
+- Do not move the evidence list inside a lazy-map boundary that can fail.
+- Do not introduce MUI, Tailwind, another state framework, or a second React copy.
+- Use styled-components; use its `css` helper for shared fragments.
+- No pigments outside the six-token set. Specifically ban `#0a0a1a`, `#00FFFF`, `#7851A9` and equivalent RGB/HSL forms.
+- No hover-only controls; no control below 44px; no color-only status.
+- No chart library other than Victory if a chart is genuinely required. The bounded evidence grouping is a relationship view, not permission to introduce a chart stack.
+- No yoga/meditation wording.
+- No file above 300 physical lines; no minification or formatting tricks to meet the cap.
+- No helper exports from `*.test.*` files.
+- No tests against the real backend or production database.
+- No accidental engine `live.test.mjs` execution.
+- No aggregate test claims without unique-file/case accounting.
+- No mutation claim without restoration and a clean baseline afterward.
+- No blind cleanup, destructive Git recovery, broad staging, or edits to another seat’s claimed files.
+- Stage explicit paths only; use `type(scope): description`; no push to main without explicit approval.
+- No paid model calls, reviewer substitution, or usage-limit claims inferred from subscription availability.
+- No automatic continuity closeout.
+- No forged archive receipt. The caller files this review and records the resulting `review_id`.
+
+**N/A:** SQL foreign-key conventions and Sequelize model definitions; this package adds no SQL schema.

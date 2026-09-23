@@ -1,0 +1,49 @@
+# GLM Consult
+
+**Model:** glm-5.3
+**Document:** docs\ai-workflow\AI-HANDOFF\rounds\round-8\REVIEW-DOC.md
+**Tokens:** 7011 in / 7698 out (reasoning: 5089) | total 14709
+**Wall:** 97.7s
+
+---
+
+# ROUND 8 — GLM 5.3 (full-spectrum: correctness, security, schema truth, 8 criteria line-by-line)
+
+## 1. Line-by-line audit of the 8 non-negotiable constraints vs. the consensus candidate
+
+| # | Constraint | Candidate coverage | Verdict |
+|---|---|---|---|
+| 1 | Least-privilege on health/training/identity | F2 probes per enumerated router; F3 clientResolver fix | Covered, probe-gated |
+| 2 | Wrong-client mutation: explicit, server-validated, **observable, recoverable** | F3 (server-resolved clientId), F4 receipts (observable) — **no recoverability mechanism anywhere** | **GAP → F14 (new MAJOR)** |
+| 3 | Memory ≠ truth; durable receipts are truth | F4 + N1 + packet's own `aiWorkoutEvents.ts:121-128` boolean admission | Covered |
+| 4 | UI must not claim saved pre-write | F4 "renders success only on receipt" + N2/N3 + F13 error states | Covered |
+| 5 | Server-enforced entitlement | F2; any failing router blocked from writes | Covered, probe-gated |
+| 6 | Offline gym-floor logging; cloud not sole path | C6 — but queue design unbound to F4 idempotency | Partial → F15 |
+| 7 | Standards (TS, tokens, 44px, WCAG, QA) | C7 deferral — all packet excerpts are TS/TSX, no citable code defect | Agree with deferral |
+| 8 | Ox Alpha canary redaction | C8 trusted-not-verified | Agree, residual (c) stands |
+
+## 2. Resolving the RUNNING STATE's unresolved item
+
+The running state flags: *AiCommandAuditLog.mjs L24-91 + aiWorkoutEvents.ts L121-128 — F4 as written ships unrecoverable catastrophic-class mutations.* I confirm and close it this round as **F14**, not by weakening F4.
+
+**F14 = MAJOR.** The candidate's F4 CAS machine is `draft→pending_confirm→applied|denied|cancelled|failed`. `applied` is terminal with no exit edge. No `reversing_action_id`, no per-capability reversibility declaration. Packet evidence: the candidate's own F4 text; `AiCommandAuditLog.mjs:24-91` (outcome/error-code/duration only — packet's "Receipt and idempotency boundary" section itself admits no `action_id`/idempotency, a fortiori no reversal); `aiWorkoutEvents.ts:121-128` (boolean, nothing durable). This violates Non-Negotiable #2 ("recoverable") and Question #5 ("confirmation, **undo**, cancel, and receipts"). A blueprint that ships `applied` as a dead end for a wrong-client workout-assignment mutation is exactly the catastrophic class constraint #2 exists to prevent.
+
+**Fix (engineer-grade):**
+- WHAT: reversal linkage + reversibility taxonomy. WHERE: new receipts store (explicitly *not* `AiCommandAuditLog.mjs:24-91`, which stays append-only observer) + N1 dispatcher registry + confirmation UI (N2/N3 surface). HOW: receipts gain `reversing_action_id` (nullable self-FK), `reversal_of`, and each capability in the N1 registry declares `reversibility ∈ {reversible, compensable, irreversible}`. Reversal is a **new capability invocation through the same N1 gate with a fresh entitlement check at reversal time** (actor may have lost client access between apply and undo — never reverse via direct row edit). `irreversible` capabilities must hard-label "no undo available" at the confirm step (constraint #4 honesty). Audit appends both action_ids.
+
+**F15 = MINOR.** C6's offline queue and F4's `UNIQUE(idempotency_key)` are unbound. If replayed gym-floor intents don't carry the client-minted key, reconcile double-applies core workout facts — a direct hit on constraint #6 and round-10's "offline/retry duplicates" attack. WHERE: C6 queue schema + F4 receipts. HOW: queue entries are `{client_minted_idempotency_key (minted at intent-creation time, uuidv7), capability, payload_hash, status pending|sent|acked|failed, attempts}`; on reconcile the server matches key→receipt: if `applied`, ack silently; else execute exactly once. Server `UNIQUE` is the sole dedupe point.
+
+**N5 = NOTE (evidence hygiene, my schema-truth lane).** The packet's own line-cites drift: "Backend action-route mount order" header says `routes.mjs:625-634` for five `app.use` lines, while the evidence-gate refresh says the same five mounts live at `:630-634`, and the consensus candidate cites `:625/:626/:627/:632/:633`. Names are unambiguous so the ruling is unaffected, but final package item 2 must normalize line cites to one excerpt before builder handoff.
+
+## 3. Adoption
+
+Everything else in the candidate is adopted **verbatim**: F2 (probe-and-block), F3 (server-issued context token collapsing `targetUserId`/`selectedClientId`; `clientResolver.mjs:110-166` existence+tenant), F4 core (receipt contract + CAS; audit log not reused), F5, F6, F13, F7/F8/F9/F12 probe disposition, N1 (absorbing N4), N2/N3, C6 as amended by F15. I explicitly concur with the F10/F11 strike and the C7/C8 intentional-acceptance. Residual risks (a)–(g) all stand; I add (h) reversal re-entitlement surface and (i) F14's `irreversible` classification pending Q1.
+
+=== VERDICT ===
+status: CONSENSUS
+confidence: 91
+findings: F14=MAJOR: F4-as-written: status machine terminal at applied with no reversing_action_id/compensated_by/reversibility enum — Non-Negotiable #2 "recoverable" + Q5 "undo" unmet (AiCommandAuditLog.mjs L24-91 outcome-only; aiWorkoutEvents.ts L121-128 boolean-only) | F15=MINOR: C6 offline queue unbound to F4 UNIQUE(idempotency_key) — reconcile replays double-apply core workout facts (AiConversation.mjs L24-83 is the store C6 forbids; constraint #6) | N5=NOTE: packet-internal line-cite drift on route mounts (excerpt header routes.mjs:625-634 vs refresh :630-634 vs candidate :625-:633) — normalize in package item 2
+rebuttals: F4=AGREE: receipt/CAS core stands; extended not replaced by F14 | F13=AGREE | F10/F11-strike=AGREE | C7/C8-intentional=AGREE | F2/F3/F5/F6/N1/N2/N3=AGREE
+open: Q1=irreversible capabilities: hard-deny-at-confirm vs compensable+human-recovery-runbook — seats must pick by R9 | Q2=confirm compensating-action registry lives inside N1 dispatcher registry (my position: yes) | Q3=who normalizes route line cites per N5
+consensus_block: ADOPTED VERBATIM plus F14/F15/N5. FIXES: F2 — probe entitlement middleware per enumerated router: /api/ai-chat (routes.mjs:626), /api/ai-command (:627), /api/coach/intake + /api/coach/proposals (mounts unexcerpted), /api/ai-chat/stream-spike (:625 with F5), /api/hermes (:632), /api/ai/debate (:633); failing router BLOCKED from write capability until gated. F3 — delete clientId argument at AITerminalPanel.tsx:119 and :133; collapse targetUserId (aiChatRoutes.mjs:308-344) and selectedClientId (aiCommandRoutes.mjs:111-145) into one server-issued context token; clientResolver.mjs:110-166 existence+tenant checks admins, not role-only; receipts bind server-resolved client_id. F4 — receipt contract {action_id, capability, server-resolved client_id, actor, idempotency_key UNIQUE at storage, provenance chat|command|workout-bridge, status enum}; AITerminalPanel renders success only on receipt; dispatchAIWorkoutEvent boolean never maps to success; UNIQUE(idempotency_key) + CAS draft→pending_confirm→applied|denied|cancelled|failed; never reuse AiCommandAuditLog.mjs:24-91. F14 — receipts store adds reversing_action_id (self-FK), reversal_of, and N1 registry declares reversibility {reversible|compensable|irreversible} per capability; reversal = new capability invocation through N1 gate with FRESH entitlement check at reversal time; irreversible capabilities hard-label "no undo" at confirm UI; audit appends both action_ids. F15 — C6 queue entries {client_minted_idempotency_key minted at intent time, capability, payload_hash, status pending|sent|acked|failed, attempts}; server matches key→receipt (applied→silent ack, else execute-once); server UNIQUE is sole dedupe point; queue is a separate durable store, never AiConversation.messages/status (AiConversation.mjs:24-83). F5 — probe spike-lane auth parity; flag + kill switch before enable. F6 — CoachCommandCenterPage.tsx:38-42 re-coerce activeTab via effect on [userRole, searchParams]. F13 — try/catch around sendMessageWithConversation at AITerminalPanel.tsx:116-139; failure state per N2/N3. F7/F8/F9/F12 — probes + excerpts into final package item 2; F8 settles 4-named-surfaces vs 3-mounts and classifies SwanCoachAssistantPage. N1 — capability-token gate + payload schema validation + provenance audit + result enum + reversibility declaration (absorbs N4; hosts F14 compensating registry). N2/N3 — single explicit persistence mode in AITerminalPanel.tsx:116-139; defined failure states incl. F13 errors and F14 "no undo" labels. N5 — normalize route-mount line cites (625-634 vs 630-634 drift) in package item 2 before handoff. ACCEPTED AS INTENTIONAL: F7/F8/F9 evidence-boundary admissions with probe list in package item 2; F10/F11 STRUCK; C8 redaction trusted not verified; C7 standards deferral to blueprint items 5+8 (no citable code defect). RESIDUAL RISKS: (a) F2/F3 severity ceilings unproven until probes return; (b) C6/F15 offline is net-new design — no queue/idempotency code exists in packet; (c) C8 redaction unverified; (d) F1 artifact identity — if the seeder packet was the true subject, every finding is void; (e) until N1 lands, the client event bus remains an unauthenticated in-page capability surface; (f) AiConversation embedded messages + no version (AiConversation.mjs:24-83) — unproven lost-update race pending write-SQL excerpt; (g) F13 may be partially mitigated if useAIChat wraps the call — probe; (h) F14 introduces a reversal-time re-entitlement surface that must itself be probe-tested; (i) F14 irreversible-capability classification (Q1) unresolved until R9. RUNNING-STATE ITEM RESOLVED: the AiCommandAuditLog.mjs L24-91 + aiWorkoutEvents.ts L121-128 unrecoverability concern is now carried as F14 with contract-level fix.
+=== END-VERDICT ===

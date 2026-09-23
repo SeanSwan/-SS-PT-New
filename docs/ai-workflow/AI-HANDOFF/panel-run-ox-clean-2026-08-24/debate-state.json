@@ -1,0 +1,111 @@
+{
+  "roundsAnswered": 10,
+  "unresolved": [
+    "backend/models/AiCommandAuditLog.mjs L24-91",
+    "frontend/src/components/DashBoard/AITerminalPanel.tsx L124-133",
+    "docs/ai-workflow/references/APP-AI-HIVE-MIND.md L7-22",
+    "backend/core/routes.mjs L630-634",
+    "backend/services/clientResolver.mjs L110-166 + commandExecutor.mjs L309-343",
+    "backend/routes/aiChatRoutes.mjs L308-344",
+    "frontend/src/utils/aiWorkoutEvents.ts L121-128",
+    "SwanCoachAssistantPage legacy-but-test-referenced; candidate dropped retirement slice; RESTORED",
+    "F5-as-written rejects legitimately self-scoped command families with no target client",
+    "backend/models/AiCommandAuditLog.mjs L24-91",
+    "frontend/src/components/DashBoard/AITerminalPanel.tsx L116-139",
+    "docs/ai-workflow/references/APP-AI-HIVE-MIND.md L7-22",
+    "backend/services/clientResolver.mjs L110-166 + commandExecutor.mjs L309-343",
+    "backend/routes/aiChatRoutes.mjs L308-344",
+    "frontend/src/utils/aiWorkoutEvents.ts L121-128",
+    "SwanCoachAssistantPage still referenced by own tests (surface table)",
+    "backend/routes/aiChatRoutes.mjs L308-344 vs L610-625",
+    "backend/models/AiCommandAuditLog.mjs L24-91",
+    "frontend/src/components/DashBoard/AITerminalPanel.tsx L124-133",
+    "docs/ai-workflow/references/APP-AI-HIVE-MIND.md L7-22",
+    "backend/core/routes.mjs L630-634",
+    "backend/services/clientResolver.mjs L110-166",
+    "backend/routes/aiChatRoutes.mjs L308-344",
+    "frontend/src/utils/aiWorkoutEvents.ts L121-128",
+    "backend/models/AiCommandAuditLog.mjs L24-91",
+    "backend/models/AiConversation.mjs L24-83 vs aiCommandRoutes.mjs L111-145 vs aiDebateRoutes.mjs L57-76 vs AITerminalPanel.tsx L116-139"
+  ],
+  "consensusCandidate": "Adopt the integrated ruling with the following additions. Fix F1: add `commandIdemKey` UUID UNIQUE column to AiCommandAuditLog model (L24-91) and enforce insertion idempotency in commandExecutor using a client-generated key; reject duplicates with the original receipt. Fix F2: refactor AITerminalPanel.tsx L124-133 to always pass mode and options via a helper object (e.g., `buildChatParams`) to eliminate argument drift. Fix F3: mark APP-AI-HIVE-MIND.md DORMANT and link to the new blueprint. Fix F4: use the authoritative mount range L630-634 from the expanded snippet. Fix F5: enforce client-scope validation for admin commands in clientResolver.mjs and commandExecutor.mjs; reject any command without a validated target client. Fix F6 (new): enforce client-scope validation for admin chat conversation creation in aiChatRoutes.mjs; reject any conversation creation with a targetUserId not validated for the admin’s scope. Acceptance criteria: (1) duplicate command POST returns original receipt and no new row; (2) test proves both branches of AITerminalPanel send identical context/mode; (3) reference doc removed from active architecture index; (4) admin command without valid client scope returns 4xx and logs a security event; (5) admin chat conversation creation with out-of-scope targetUserId returns 4xx. Residual risks: panel must define full action/receipt lifecycle and offline reconciliation; existing retry/queue logic must be audited for new idempotency key; function signature in useAIChat.ts should be explicitly typed; admin scoping must be verified across all command families and related lanes (debate, hermes); all chat operations (read, update) must also enforce admin client scope; SwanCoachAssistantPage test references remain and must be resolved in the migration plan to prevent build breakage upon deletion.",
+  "winner": "dspro",
+  "costUsd": 0,
+  "log": [
+    {
+      "round": 1,
+      "answered": "glm:CONSENSUS@90 grokA:DISPUTE@88 dspro:CONSENSUS@92",
+      "failed": "ox",
+      "spentUsdRound": 0.0763,
+      "totalUsd": 0.0763
+    },
+    {
+      "round": 2,
+      "answered": "glm:DISPUTE@90 grokA:DISPUTE@90 dspro:CONSENSUS@92 ox:DISPUTE@88",
+      "failed": null,
+      "spentUsdRound": 0.069,
+      "totalUsd": 0.1453
+    },
+    {
+      "round": 3,
+      "answered": "glm:DISPUTE@90 grokA:DISPUTE@90 dspro:CONSENSUS@95",
+      "failed": "ox",
+      "spentUsdRound": 0.0746,
+      "totalUsd": 0.2199
+    },
+    {
+      "round": 4,
+      "answered": "glm:DISPUTE@90 grokA:DISPUTE@90 dspro:CONSENSUS@92",
+      "failed": "ox",
+      "spentUsdRound": 0.0834,
+      "totalUsd": 0.3033
+    },
+    {
+      "round": 5,
+      "answered": "glm:DISPUTE@90 grokA:DISPUTE@90 dspro:CONSENSUS@95",
+      "failed": "ox",
+      "spentUsdRound": 0.078,
+      "totalUsd": 0.3813
+    },
+    {
+      "round": 6,
+      "answered": "glm:DISPUTE@90 grokA:DISPUTE@90 dspro:CONSENSUS@94 ox:CONSENSUS@88",
+      "failed": null,
+      "spentUsdRound": 0.0825,
+      "totalUsd": 0.4638
+    },
+    {
+      "round": 7,
+      "answered": "glm:DISPUTE@90 grokA:DISPUTE@90 dspro:CONSENSUS@92",
+      "failed": "ox",
+      "spentUsdRound": 0.0627,
+      "totalUsd": 0.5265
+    },
+    {
+      "round": 8,
+      "answered": "glm:DISPUTE@91 grokA:DISPUTE@90 dspro:CONSENSUS@95",
+      "failed": "ox",
+      "spentUsdRound": 0.0619,
+      "totalUsd": 0.5884
+    },
+    {
+      "round": 9,
+      "answered": "glm:DISPUTE@91 grokA:DISPUTE@90",
+      "failed": "dspro,ox",
+      "spentUsdRound": 0.065,
+      "totalUsd": 0.6534
+    },
+    {
+      "note": "DEGENERATE: only 2/4 answered (< 3) — round not counted toward consensus"
+    },
+    {
+      "round": 10,
+      "answered": "glm:CONSENSUS@91 grokA:DISPUTE@91 dspro:CONSENSUS@95 ox:DISPUTE@90",
+      "failed": null,
+      "spentUsdRound": 0.0886,
+      "totalUsd": 0.742
+    }
+  ],
+  "packetIdentity": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\PANEL-SWAN-COACH-UNIFIED-BRAIN-2026-08-23.md",
+  "packetFingerprint": "6e8162763230763a16ea39d82e4cb3e9ee2db0ec8a7e04c0cf5ed0d3aecc5cad"
+}

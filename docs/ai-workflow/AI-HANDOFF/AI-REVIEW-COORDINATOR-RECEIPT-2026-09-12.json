@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "phase": "plan",
+  "ui": false,
+  "blockers": [],
+  "nextSlice": "S4: add the import-only GLM/DeepSeek report relay against the frozen S1-S3 packet.",
+  "sections": {
+    "baseline": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" }
+      ]
+    },
+    "requirements": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" }
+      ]
+    },
+    "blueprint": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" },
+        { "path": "scripts/mcp/swan-council-subscription.mjs", "sha256": "36fffb13c6c8c240c359fb8419d549f23cc8323a35efc50aa436e2ecc405042e" },
+        { "path": "scripts/mcp/swan-claude-subscription.mjs", "sha256": "3c663d2b2ca95067a52073865594ef53457bb82507422de5d5610e30426c9950" }
+      ]
+    },
+    "wireframes": { "status": "N/A", "reason": "S1-S3 are headless CLI/MCP and evidence-file contracts; no visual surface changes." },
+    "flowchart": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" }
+      ]
+    },
+    "contracts": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "scripts/mcp/swan-council-subscription.mjs", "sha256": "36fffb13c6c8c240c359fb8419d549f23cc8323a35efc50aa436e2ecc405042e" },
+        { "path": "scripts/mcp/swan-claude-subscription.mjs", "sha256": "3c663d2b2ca95067a52073865594ef53457bb82507422de5d5610e30426c9950" },
+        { "path": "scripts/mcp/swan-review-packet.mjs", "sha256": "26989fb5c47607cbec5b3d3ee4caf4bc28d97a25fef5f2bdd415dce7e36dd455" }
+      ]
+    },
+    "tests": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "scripts/mcp/swan-council-subscription.test.mjs", "sha256": "e5853a3ed61774bc7c16ce7dc4f231190bbb83f397ed41281112ad8d89f52272" },
+        { "path": "scripts/mcp/swan-review-packet.test.mjs", "sha256": "1dadb9098d84aa65ef8d34cbd5e79c7d4d5ae0fd19141dbd608efdb9fda51674" },
+        { "path": "scripts/mcp/swan-claude-subscription.test.mjs", "sha256": "ef801fc1413517e2fe10bdea19ccf9fa49169d041d9820d007cf22ebdbad2994" }
+      ]
+    },
+    "traceability": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" }
+      ]
+    },
+    "slices": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" }
+      ]
+    },
+    "review": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" }
+      ]
+    },
+    "preservation": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "scripts/consult-codex.mjs", "sha256": "848b06ea1d1898f86acf278018d5204ebb64427d3eb6111b1f00ea6e36523a56" },
+        { "path": "scripts/mcp/swan-council-server.mjs", "sha256": "f9cad5436ff99f74aa412c2c26558c9b7901108541761ebdda0adfc05b0d149f" }
+      ]
+    },
+    "state": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" }
+      ]
+    },
+    "sequence": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" }
+      ]
+    },
+    "erd": { "status": "N/A", "reason": "S1/S2 add no database schema or relational persistence." },
+    "permissions": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" }
+      ]
+    },
+    "privacy": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "scripts/mcp/swan-council-subscription.mjs", "sha256": "36fffb13c6c8c240c359fb8419d549f23cc8323a35efc50aa436e2ecc405042e" }
+      ]
+    },
+    "operations": {
+      "status": "COMPLETE",
+      "evidence": [
+        { "path": "docs/ai-workflow/AI-HANDOFF/AI-REVIEW-COORDINATOR-BLUEPRINT-2026-09-12.md", "sha256": "e15479eb75b3af701dd36af084a2bf28948b38d3ddb64d5a816926bd073c8bd3" }
+      ]
+    }
+  },
+  "requirements": [
+    { "id": "R1", "acceptance": "Subscription auth is exact and ineligible states make no provider call.", "tests": ["T1", "T5", "T6", "T7"] },
+    { "id": "R2", "acceptance": "Identity and usage are truthful; unavailable telemetry remains null.", "tests": ["T4", "T7", "T11", "T12"] },
+    { "id": "R3", "acceptance": "Child execution is sanitized, read-only, bounded, and shell-safe.", "tests": ["T2", "T3", "T5", "T7"] },
+    { "id": "R4", "acceptance": "Review scope is explicit and traversal/injection is rejected.", "tests": ["T8"] },
+    { "id": "R5", "acceptance": "Metered fallback requires explicit opt-in.", "tests": ["T9", "T10"] },
+    { "id": "R6", "acceptance": "Shared work is preserved and no provider inference is invoked.", "tests": ["T10"] },
+    { "id": "R7", "acceptance": "Packet writes are immutable/idempotent and report envelopes are hashed.", "tests": ["T11"] },
+    { "id": "R8", "acceptance": "Claude accepts only first-party subscription auth and runs with tools/persistence/custom MCP disabled.", "tests": ["T12"] }
+  ],
+  "tests": [
+    { "id": "T1", "requirements": ["R1"], "command": "node --test scripts/mcp/swan-council-subscription.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-council-subscription.test.mjs", "sha256": "e5853a3ed61774bc7c16ce7dc4f231190bbb83f397ed41281112ad8d89f52272" }] },
+    { "id": "T2", "requirements": ["R3"], "command": "node --test scripts/mcp/swan-council-subscription.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-council-subscription.test.mjs", "sha256": "e5853a3ed61774bc7c16ce7dc4f231190bbb83f397ed41281112ad8d89f52272" }] },
+    { "id": "T3", "requirements": ["R3"], "command": "node --test scripts/mcp/swan-council-subscription.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-council-subscription.test.mjs", "sha256": "e5853a3ed61774bc7c16ce7dc4f231190bbb83f397ed41281112ad8d89f52272" }] },
+    { "id": "T4", "requirements": ["R2"], "command": "node --test scripts/mcp/swan-council-subscription.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-council-subscription.test.mjs", "sha256": "e5853a3ed61774bc7c16ce7dc4f231190bbb83f397ed41281112ad8d89f52272" }] },
+    { "id": "T5", "requirements": ["R1", "R3"], "command": "node --test scripts/mcp/swan-council-subscription.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-council-subscription.test.mjs", "sha256": "e5853a3ed61774bc7c16ce7dc4f231190bbb83f397ed41281112ad8d89f52272" }] },
+    { "id": "T6", "requirements": ["R1"], "command": "node --test scripts/mcp/swan-council-subscription.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-council-subscription.test.mjs", "sha256": "e5853a3ed61774bc7c16ce7dc4f231190bbb83f397ed41281112ad8d89f52272" }] },
+    { "id": "T7", "requirements": ["R1", "R2", "R3"], "command": "node --test scripts/mcp/swan-council-subscription.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-council-subscription.test.mjs", "sha256": "e5853a3ed61774bc7c16ce7dc4f231190bbb83f397ed41281112ad8d89f52272" }] },
+    { "id": "T8", "requirements": ["R4"], "command": "node --test scripts/consult-codex.test.mjs scripts/mcp/swan-council-lib.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/consult-codex.test.mjs", "sha256": "e176a174edb6a32d1c12aade085c5c695b9ac49d1cbe8ec033cf16c0b53fb800" }, { "path": "scripts/mcp/swan-council-lib.test.mjs", "sha256": "3afba8baa51feb54cfa7f757380e959432a016d67e556bf9e709b5db135aeabb" }] },
+    { "id": "T9", "requirements": ["R5"], "command": "node --test scripts/mcp/swan-council-lib.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-council-lib.test.mjs", "sha256": "3afba8baa51feb54cfa7f757380e959432a016d67e556bf9e709b5db135aeabb" }] },
+    { "id": "T10", "requirements": ["R5", "R6"], "command": "node --check scripts/consult-codex.mjs; node --check scripts/consult-codex.test.mjs; node --check scripts/mcp/swan-council-subscription.mjs; node --check scripts/mcp/swan-council-subscription.test.mjs; node --check scripts/mcp/swan-review-packet.mjs; node --check scripts/mcp/swan-review-packet.test.mjs; node --check scripts/mcp/swan-council-lib.mjs; node --check scripts/mcp/swan-council-lib.test.mjs; node --check scripts/mcp/swan-council-server.mjs; git diff --check -- scripts/consult-codex.mjs scripts/mcp/swan-council-lib.mjs scripts/mcp/swan-council-lib.test.mjs scripts/mcp/swan-council-server.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-council-lib.test.mjs", "sha256": "3afba8baa51feb54cfa7f757380e959432a016d67e556bf9e709b5db135aeabb" }] },
+    { "id": "T11", "requirements": ["R2", "R7"], "command": "node --test scripts/mcp/swan-review-packet.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-review-packet.test.mjs", "sha256": "1dadb9098d84aa65ef8d34cbd5e79c7d4d5ae0fd19141dbd608efdb9fda51674" }] },
+    { "id": "T12", "requirements": ["R2", "R8"], "command": "node --test scripts/mcp/swan-claude-subscription.test.mjs scripts/mcp/swan-council-lib.test.mjs", "status": "PASS", "evidence": [{ "path": "scripts/mcp/swan-claude-subscription.test.mjs", "sha256": "ef801fc1413517e2fe10bdea19ccf9fa49169d041d9820d007cf22ebdbad2994" }, { "path": "scripts/mcp/swan-council-lib.test.mjs", "sha256": "3afba8baa51feb54cfa7f757380e959432a016d67e556bf9e709b5db135aeabb" }] }
+  ]
+}

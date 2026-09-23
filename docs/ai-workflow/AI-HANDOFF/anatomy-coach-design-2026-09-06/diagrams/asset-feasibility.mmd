@@ -1,0 +1,15 @@
+flowchart TD
+  A["Pin licensed source and full Three.js baseline"] --> B["Apply Swan interface and workflow"]
+  B --> C["Bounded derivative asset sample"]
+  C --> D{"Detail, identity, alignment, picking and effort viable?"}
+  D -- Yes --> E["Extend reviewed derivative catalog"]
+  D -- No --> F["One focused correction or defer"]
+  F --> G{"Correction resolves sample?"}
+  G -- Yes --> E
+  G -- No --> H["DEFER CUSTOM: keep detailed source assets"]
+  E --> I["Release actual supported choices"]
+  H --> I
+  I --> J["Measured or manual reference mode"]
+  I -- Asset failure --> K["Previous approved asset version"]
+  K --> I
+  C -- Cancel --> H

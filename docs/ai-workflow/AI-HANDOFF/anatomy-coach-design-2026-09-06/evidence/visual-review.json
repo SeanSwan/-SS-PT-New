@@ -1,0 +1,54 @@
+{
+  "kind": "Standalone blueprint review only",
+  "source": "http://127.0.0.1:8878/review.html",
+  "tests": [
+    "Manual reference wireframe selected and explains source-update independence",
+    "Measured mode wireframe restored",
+    "Selected reference mode has distinct visible styling",
+    "Easy default; optional details collapsed; broad area selection without tissue classification",
+    "Optional bone aid changes explanation only; no diagnosis",
+    "Explore return retains Right knee and restores Areas selection",
+    "Details open/close with keyboard; Easy buttons and summary at least 44px"
+  ],
+  "viewports": [
+    {
+      "width": 320,
+      "height": 700,
+      "overflow": false
+    },
+    {
+      "width": 414,
+      "height": 896,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "overflow": false
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "overflow": false
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "overflow": false
+    }
+  ],
+  "limitations": [
+    "No application API or private data used",
+    "No native Atlas port, custom assets or database integration built",
+    "Actual physical device and production acceptance NOT RUN"
+  ],
+  "diagrams": 9,
+  "iframeCount": 1,
+  "publicReference": "Heading loaded",
+  "artifactUI": "PASS"
+}

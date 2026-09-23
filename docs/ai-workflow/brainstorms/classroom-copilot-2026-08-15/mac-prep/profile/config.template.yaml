@@ -1,0 +1,20 @@
+# Reference only. Do not install unchanged or add credentials here.
+# Configure the observed endpoint/model through `classroom-teacher model`.
+
+terminal:
+  home_mode: profile
+
+# Local candidate only after a measured 64K-context benchmark:
+# model:
+#   provider: custom
+#   default: REPLACE_WITH_OBSERVED_LOCAL_MODEL_TAG
+#   base_url: http://127.0.0.1:11434/v1
+#   context_length: 64000
+
+# The private 5090 endpoint is configured later through the interactive picker
+# only after overlay identity, HTTPS, application auth, log purge, exact model
+# digest/license, and generic-only request tests pass.
+#
+# Keep the fallback chain empty. Do not place API keys, tokens, child data,
+# school records, Sean configuration, or a public endpoint in this file.
+

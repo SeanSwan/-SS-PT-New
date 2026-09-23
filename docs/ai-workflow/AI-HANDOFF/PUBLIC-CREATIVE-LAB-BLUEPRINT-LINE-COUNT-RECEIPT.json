@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "line-count-receipt-v1",
+  "packetPath": "docs/ai-workflow/AI-HANDOFF/PUBLIC-CREATIVE-LAB-HOSTILE-REVIEW-AND-BUILD-BLUEPRINT-2026-08-25.md",
+  "packetSha256": "9bcc95ae9865021b9d50c04919e7b75931f2abe1a9953a36306720fa51666875",
+  "byteLength": 377648,
+  "maxByteLength": 400000,
+  "physicalLines": 300,
+  "normalizedLines": 300,
+  "terminalBlankLines": 0,
+  "normalization": "CRLF and LF normalized to LF; terminal line ending excluded from count",
+  "status": "verified-local-staging",
+  "ownerKeyId": null,
+  "algorithm": null,
+  "signature": null
+}

@@ -1,0 +1,53 @@
+{
+  "repository": "C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT",
+  "observedAt": "2026-09-06T23:28:49.967Z",
+  "readOnly": true,
+  "files": [
+    {
+      "path": "backend/models/User.mjs",
+      "sha256": "2f97cfa502d0b3f10f017a4bd7511ec5f5bfaff2578e5237c4f12a06f6b223f2"
+    },
+    {
+      "path": "backend/models/BodyMeasurement.mjs",
+      "sha256": "e784233b7f31858ca698ace830868d2e41d60667caef1241c5649dfa256ef68b"
+    },
+    {
+      "path": "backend/routes/profileRoutes.mjs",
+      "sha256": "d687f1431da81862dd6ccec2b6b738cb319bb1e422d4bc34ef626e8860270f44"
+    },
+    {
+      "path": "backend/routes/bodyMeasurementRoutes.mjs",
+      "sha256": "1ef6aebcc4b9811c9791135442a2ecba21736ddb439faebc05d4275dd3a62b6b"
+    },
+    {
+      "path": "backend/controllers/profileController.mjs",
+      "sha256": "e518e6494986a2d7770dd5c4eb6c9e380099a34d3e333677fa7b9b018c567b12"
+    },
+    {
+      "path": "backend/controllers/bodyMeasurementController.mjs",
+      "sha256": "b7efd7cc792fd83c341e693a6669aa07facbcb614838a9f318d794378c517da7"
+    },
+    {
+      "path": "backend/services/measurementWriteService.mjs",
+      "sha256": "7f2e89f4d09a20c6667dc7c5e33ae34f0560c8842d43304298f3b1bcac330605"
+    },
+    {
+      "path": "frontend/src/services/profileTypes.ts",
+      "sha256": "e30b88f17defdbdfe9d0a004025bfcb159d7116a5194f6819633efe7dc447f84"
+    },
+    {
+      "path": "frontend/src/services/profileService.ts",
+      "sha256": "16affbc83a985e170d1ba450c5c10c6fa10f737c7a77c04a422c651c8b1760a9"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.controller.ts",
+      "sha256": "c15de93e54eec0f0add15d522c07d78d5783dc0c731bcdc078401117fd4916e1"
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-clients/CreateClientModal.tsx",
+      "sha256": "a00565c8c51ab025523c2d3c1a079f42c4d91f04ed8ffcd413b960423f084b2b"
+    }
+  ],
+  "previousRepository": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT",
+  "relocationVerifiedAt": "2026-09-08T03:42:11.233Z"
+}

@@ -1,0 +1,1494 @@
+{
+  "observedAt": "2026-09-06T22:27:50.805Z",
+  "rootInventory": [
+    {
+      "name": ".agents",
+      "kind": "directory"
+    },
+    {
+      "name": ".ai-workflow",
+      "kind": "directory"
+    },
+    {
+      "name": ".auth",
+      "kind": "directory"
+    },
+    {
+      "name": ".claude",
+      "kind": "directory"
+    },
+    {
+      "name": ".clinerules",
+      "kind": "file"
+    },
+    {
+      "name": ".codex",
+      "kind": "directory"
+    },
+    {
+      "name": ".codex-aiwrite-test-encryption-mock.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-contract-test.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-direction-a-link",
+      "kind": "directory"
+    },
+    {
+      "name": ".codex-e2e-helper.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-e2e-helper2.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-e2e-line-cap.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-e2e-main.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-e2e-main2.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-e2e-move-delete.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-e2e-move-insert.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-e2e-shell-mocks.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-eof-fix.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-frontend-fixup1.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-frontend-fixup2.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-frontend-impl1.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-frontend-impl1b.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-frontend-impl2.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-frontend-tests1.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-frontend-tests2.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-frontend-tests3.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-generated-backend.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-generated-small.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-local",
+      "kind": "directory"
+    },
+    {
+      "name": ".codex-qa-repair-v2",
+      "kind": "directory"
+    },
+    {
+      "name": ".codex-review-panel-impl.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-search-sequence.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-serving-test-fix.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-smoke",
+      "kind": "directory"
+    },
+    {
+      "name": ".codex-testexpect.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-aiChatService.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-aiDataWriteService.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-apply-custom-patch-v2.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-apply-custom-patch.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-auth-hostile-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-auth-hostile-fix2.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-auth-hostile-tests.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-auth-hostile-tests2.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-auth-rate-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-auth-rate-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-AuthGate.test.tsx",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-backfill-daily-macro-encryption.cjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-ClientNutritionEstimateReviewPanel.tsx",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-dailyMacroRosterTriageRoutes.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-dailyMacroRoutes.utils.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-healthDataEncryption.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-nutritionDraftIntegrity.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-NutritionSourceRecord.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-NutritionWorkspace.today.test.tsx",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-browser-runner.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-browser.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-civic-route.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-client-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-config-web-red.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-detail-fix.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-detail-test-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-doc-browser-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-doc.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-docs-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-domain.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-harness-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-hostile-fix.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-hostile-test-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-integration-red.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-postgres-fix.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-postgres-test-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-red-tests.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-runtime-test-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-service-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-stack-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-test-type-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-ui-test.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1284-web-source.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-bundle-receipt.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-docs.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-edit.ps1",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-lazy.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-red.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-secret-add.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-secret-fixtures.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-secret-script.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-secret-untracked.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-test-eager.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-phase1285-update.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-provenance.cjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-reviewedNutritionDraftService.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-reviewedNutritionDraftService.test.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-connector-config-edit.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-connector-config-test.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-connector-hostile-fixes.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-connector-hostile-tests.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-connector-quota-race-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-connector-quota-reserve-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-connector-volume-fixes.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-connectors-visual-qa.py",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-csrf-header-isolation-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-csrf-rotation-fix-v2.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-csrf-rotation-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-csrf-rotation-red-v2.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-csrf-rotation-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-export-fix-syntax.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-export-red-test-syntax-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-export-redaction-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-export-redaction-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-identity-subject-green.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-identity-subject-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-impact-optout-green.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-impact-optout-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-migration-0022-wire.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-migration-test-0022.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-clients-impl.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-clients-tests.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-owner-state-v2.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-owner-state.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-panel-import.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-panel-test.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-panel.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-postgres-tests.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-postgres.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-route-wire-rest.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-route-wire.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-routes-tests.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-routes.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-runtime-test.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-runtime-wire.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-service-impl.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-service-tests.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-web-clients.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-web-types.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-official-workspace-wire.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-owner-api-test.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-actions.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-api.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-components.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-mount-red.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-mount-v2.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-mount-v3.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-mount.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-props.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-qa-exact.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-qa-level.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-qa-owner.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-qa-port.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-race-green.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-race-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-red.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-test-fix-v2.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-test-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-type-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-parity-visual-qa.py",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase128-doc-appends.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase128-docs.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1283-doc-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1283-doc-wire.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1283-doc.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-additions.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-desktop.png",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-edit-cont.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-edit.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-harnessfix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-hostilefix-cont.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-hostilefix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-mobile.png",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-red.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-testfix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-typefix-cont.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-typefix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-phase1284-webtestfix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-preflight-stale-green.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-preflight-stale-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-provider-config-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-provider-config-test.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-provider-payload-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-provider-payload-test.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-script-migration-test.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-supporter-consent-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-supporter-consent-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-supporter-key-green.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-supporter-key-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-supporter-stale-page-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-supporter-stale-page-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-trust-busy-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-trust-busy-red.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-type-fixes.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-watchtower-connector-test.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-watchtower-connector-wire.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-swanguard-watchtower-dispatch.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-visual-review-20260725",
+      "kind": "directory"
+    },
+    {
+      "name": ".codex-tmp-vitest4-types-fix.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-vitest4-types-fix2.mjs",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-tmp-webAuthnProduction.test.ts",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-workspace-impl.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-workspace-test-repair.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".codex-worktrees",
+      "kind": "directory"
+    },
+    {
+      "name": ".continue",
+      "kind": "directory"
+    },
+    {
+      "name": ".cursor",
+      "kind": "directory"
+    },
+    {
+      "name": ".env",
+      "kind": "file"
+    },
+    {
+      "name": ".env.example",
+      "kind": "file"
+    },
+    {
+      "name": ".fallow",
+      "kind": "directory"
+    },
+    {
+      "name": ".fallowrc.json",
+      "kind": "file"
+    },
+    {
+      "name": ".forfeit.cjs",
+      "kind": "file"
+    },
+    {
+      "name": ".git",
+      "kind": "directory"
+    },
+    {
+      "name": ".gitattributes",
+      "kind": "file"
+    },
+    {
+      "name": ".githooks",
+      "kind": "directory"
+    },
+    {
+      "name": ".github",
+      "kind": "directory"
+    },
+    {
+      "name": ".gitignore",
+      "kind": "file"
+    },
+    {
+      "name": ".kilo",
+      "kind": "directory"
+    },
+    {
+      "name": ".mcp.json",
+      "kind": "file"
+    },
+    {
+      "name": ".mcp.local.json",
+      "kind": "file"
+    },
+    {
+      "name": ".p1.cjs",
+      "kind": "file"
+    },
+    {
+      "name": ".panel-runs",
+      "kind": "directory"
+    },
+    {
+      "name": ".playwright-mcp",
+      "kind": "directory"
+    },
+    {
+      "name": ".queue-cli-export-trim.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-cli-export.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-cli-export2.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-cli-hardening.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-cli.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-doc.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-hardening.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-hardening2.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-impl-fix.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-impl.valid.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-index.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-main-direct.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-main-import.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-main-split.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-main-trim.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-main-trim2.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-primitives.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-receipt-identity.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-test-corrupt-lease.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-test-hardening.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-test-list-time.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-test-live-lock.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-test-receipt.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-test-reset.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-test-tail.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-test-workfingerprint.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-test.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-test.valid.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".queue-trim3.patch",
+      "kind": "file"
+    },
+    {
+      "name": ".secretignore",
+      "kind": "file"
+    },
+    {
+      "name": ".swan",
+      "kind": "directory"
+    },
+    {
+      "name": ".tmp",
+      "kind": "directory"
+    },
+    {
+      "name": ".tmp_world_browser_patch.py",
+      "kind": "file"
+    },
+    {
+      "name": ".tmp_world_fix.py",
+      "kind": "file"
+    },
+    {
+      "name": ".tmp_world_fix2.py",
+      "kind": "file"
+    },
+    {
+      "name": ".tmp_world_fix3.py",
+      "kind": "file"
+    },
+    {
+      "name": ".tmp_world_hardening_patch.py",
+      "kind": "file"
+    },
+    {
+      "name": ".tmp_world_tests_patch.py",
+      "kind": "file"
+    },
+    {
+      "name": ".vscode",
+      "kind": "directory"
+    },
+    {
+      "name": ".worktrees",
+      "kind": "directory"
+    },
+    {
+      "name": "ACTIVE-INDEX.md",
+      "kind": "file"
+    },
+    {
+      "name": "AGENTS.md",
+      "kind": "file"
+    },
+    {
+      "name": "AGENTS.md.bak-20260802",
+      "kind": "file"
+    },
+    {
+      "name": "AI-Village-Documentation",
+      "kind": "directory"
+    },
+    {
+      "name": "apex-branch.diff",
+      "kind": "file"
+    },
+    {
+      "name": "appearance-studio-mobile-414.png",
+      "kind": "file"
+    },
+    {
+      "name": "archive",
+      "kind": "directory"
+    },
+    {
+      "name": "archive-414-hostile.png",
+      "kind": "file"
+    },
+    {
+      "name": "backend",
+      "kind": "directory"
+    },
+    {
+      "name": "backups",
+      "kind": "directory"
+    },
+    {
+      "name": "brain-slice2-final.png",
+      "kind": "file"
+    },
+    {
+      "name": "CLAUDE.md",
+      "kind": "file"
+    },
+    {
+      "name": "client-data",
+      "kind": "directory"
+    },
+    {
+      "name": "coach-admin-320-current.png",
+      "kind": "file"
+    },
+    {
+      "name": "combined.log",
+      "kind": "file"
+    },
+    {
+      "name": "config",
+      "kind": "directory"
+    },
+    {
+      "name": "deploy-style-lens",
+      "kind": "directory"
+    },
+    {
+      "name": "docs",
+      "kind": "directory"
+    },
+    {
+      "name": "error.log",
+      "kind": "file"
+    },
+    {
+      "name": "fix12.tmp.py",
+      "kind": "file"
+    },
+    {
+      "name": "fix3.tmp.py",
+      "kind": "file"
+    },
+    {
+      "name": "FOREIGN-PROBE.tmp",
+      "kind": "file"
+    },
+    {
+      "name": "forge-editorial-capture-final.png",
+      "kind": "file"
+    },
+    {
+      "name": "forge-gallery-crystalline.png",
+      "kind": "file"
+    },
+    {
+      "name": "forge-gallery-editorial.png",
+      "kind": "file"
+    },
+    {
+      "name": "forge-golf-cta-preview.png",
+      "kind": "file"
+    },
+    {
+      "name": "frontend",
+      "kind": "directory"
+    },
+    {
+      "name": "graph-after-fix.png",
+      "kind": "file"
+    },
+    {
+      "name": "graphify-out",
+      "kind": "directory"
+    },
+    {
+      "name": "graphify-out-swanguard",
+      "kind": "directory"
+    },
+    {
+      "name": "graphify-out-swanguard-api",
+      "kind": "directory"
+    },
+    {
+      "name": "graphify-out-swanguard-web",
+      "kind": "directory"
+    },
+    {
+      "name": "hermes-v1-414.png",
+      "kind": "file"
+    },
+    {
+      "name": "hero-1440.jpeg",
+      "kind": "file"
+    },
+    {
+      "name": "home-mobile-about-sean-clip.jpeg",
+      "kind": "file"
+    },
+    {
+      "name": "node_modules",
+      "kind": "directory"
+    },
+    {
+      "name": "orbcheck-initial.png",
+      "kind": "file"
+    },
+    {
+      "name": "output",
+      "kind": "directory"
+    },
+    {
+      "name": "package-lock.json",
+      "kind": "file"
+    },
+    {
+      "name": "package.json",
+      "kind": "file"
+    },
+    {
+      "name": "README.md",
+      "kind": "file"
+    },
+    {
+      "name": "render.env.example",
+      "kind": "file"
+    },
+    {
+      "name": "render.yaml",
+      "kind": "file"
+    },
+    {
+      "name": "review-glacier-cathedral.png",
+      "kind": "file"
+    },
+    {
+      "name": "review-nebula-drift.png",
+      "kind": "file"
+    },
+    {
+      "name": "review-neon-meridian.png",
+      "kind": "file"
+    },
+    {
+      "name": "review-tiny-metropolis.png",
+      "kind": "file"
+    },
+    {
+      "name": "scripts",
+      "kind": "directory"
+    },
+    {
+      "name": "shared",
+      "kind": "directory"
+    },
+    {
+      "name": "site21-1440-full.jpeg",
+      "kind": "file"
+    },
+    {
+      "name": "skills-lock.json",
+      "kind": "file"
+    },
+    {
+      "name": "SOUL.md",
+      "kind": "file"
+    },
+    {
+      "name": "SWAN-DECISION-PACKET.md",
+      "kind": "file"
+    },
+    {
+      "name": "SWAN-FORGE-PACKET.md",
+      "kind": "file"
+    },
+    {
+      "name": "SWAN-FORGE-ROUND4-PACKET.md",
+      "kind": "file"
+    },
+    {
+      "name": "SWAN-FORGE-ROUND5-PACKET.md",
+      "kind": "file"
+    },
+    {
+      "name": "SWAN-FORGE-ROUND6-PACKET.md",
+      "kind": "file"
+    },
+    {
+      "name": "SWAN-FORGE-ROUND7-PACKET.md",
+      "kind": "file"
+    },
+    {
+      "name": "SWAN-FORGE-ROUND8-PACKET.md",
+      "kind": "file"
+    },
+    {
+      "name": "SWAN-FORGE-ROUND9-PACKET.md",
+      "kind": "file"
+    },
+    {
+      "name": "SWAN-FORGE-SHIPPED-REVIEW-PACKET.md",
+      "kind": "file"
+    },
+    {
+      "name": "swan-home-mobile-414.png",
+      "kind": "file"
+    },
+    {
+      "name": "swan-lens-review-packet.tmp.md",
+      "kind": "file"
+    },
+    {
+      "name": "swan-public-home-desktop-viewport-20260812.png",
+      "kind": "file"
+    },
+    {
+      "name": "swan-public-home-mobile-414-20260812.png",
+      "kind": "file"
+    },
+    {
+      "name": "SWAN-SERIALIZER-REVIEW-PACKET.md",
+      "kind": "file"
+    },
+    {
+      "name": "swanguard-audit-desktop.png",
+      "kind": "file"
+    },
+    {
+      "name": "swanguard-audit-intel-wiki-desktop.png",
+      "kind": "file"
+    },
+    {
+      "name": "swanguard-audit-mobile-390.png",
+      "kind": "file"
+    },
+    {
+      "name": "swanguard-graphify-corpus",
+      "kind": "directory"
+    },
+    {
+      "name": "swanguard-merge-security-batches.mjs",
+      "kind": "file"
+    },
+    {
+      "name": "swanguard-mobile-metrics.json",
+      "kind": "file"
+    },
+    {
+      "name": "swanguard-slice4-entry.png",
+      "kind": "file"
+    },
+    {
+      "name": "tests",
+      "kind": "directory"
+    },
+    {
+      "name": "three-kernels-live.png",
+      "kind": "file"
+    },
+    {
+      "name": "tmp",
+      "kind": "directory"
+    },
+    {
+      "name": "trainer-home-4k-3840.png",
+      "kind": "file"
+    },
+    {
+      "name": "trainer-home-mobile-375.png",
+      "kind": "file"
+    },
+    {
+      "name": "viz-ai-director-panel.png",
+      "kind": "file"
+    },
+    {
+      "name": "viz-ai-star-final.png",
+      "kind": "file"
+    },
+    {
+      "name": "viz-fullscreen.png",
+      "kind": "file"
+    },
+    {
+      "name": "viz-initial.png",
+      "kind": "file"
+    },
+    {
+      "name": "viz-kaleido.png",
+      "kind": "file"
+    },
+    {
+      "name": "viz-mag-fixed.png",
+      "kind": "file"
+    },
+    {
+      "name": "viz-mag-vivid.png",
+      "kind": "file"
+    },
+    {
+      "name": "viz-magnetosphere.png",
+      "kind": "file"
+    },
+    {
+      "name": "viz-nebula-broken.png",
+      "kind": "file"
+    },
+    {
+      "name": "viz-transition-check.png",
+      "kind": "file"
+    },
+    {
+      "name": "world-final-archive-mobile.png",
+      "kind": "file"
+    }
+  ],
+  "relevantSurfaces": [
+    "backend/models/ClientPainEntry.mjs",
+    "backend/models/PainEntryCorrectiveExercise.mjs",
+    "frontend/src/components/BodyMap/PainEntryPanel.tsx",
+    "frontend/src/components/BodyMap/PainChartTrendFollowUp.tsx",
+    "frontend/src/components/BodyMap/painChartInsights.ts",
+    "frontend/src/components/BodyMap/painChartInsights.test.ts",
+    "frontend/src/components/BodyMap/PainChartInsightPanel.tsx",
+    "frontend/src/components/BodyMap/PainChartInsightPanel.render.test.tsx",
+    "frontend/src/components/BodyMap/index.tsx",
+    "frontend/src/components/BodyMap/bodyRegions.ts",
+    "frontend/src/components/BodyMap/BodyMapToolbar.tsx",
+    "frontend/src/components/BodyMap/BodyMapSVG.tsx",
+    "frontend/src/components/BodyMap/BodyMapClientTargetSelector.tsx",
+    "frontend/src/components/BodyMap/BodyMap.interaction.test.tsx",
+    "frontend/src/components/BodyMap/BodyMap.insightsSource.test.ts",
+    "frontend/src/components/BodyMap/BodyMap.clientTarget.test.ts",
+    "frontend/src/components/Charts/charts/heatmap/MuscleRecoveryHeatmap.tsx",
+    "frontend/src/components/Charts/charts/live/RecoverySignalBars.tsx",
+    "frontend/src/components/Charts/charts/live/RecoverySignalBars.sanitizer.test.ts",
+    "frontend/src/components/Charts/charts/live/MuscleRecoveryHeatmap.tsx",
+    "frontend/src/components/DashBoard/Pages/admin-clients/components/ClientBodyMapModal.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.composerStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.commandTitle.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.commandTitle.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.commandLane.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.chatLogs.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.bridgeStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.bridgeMobileDockStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.bridgeDockStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.bridgeDockMenuStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.actions.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.actions.commandError.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.headerActionStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.foundationStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.data.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.crystallineFocusStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controllerEffects.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.logic.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.logic.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.layout.contract.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.messageRouteContext.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.mobileDockStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.keyboard.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.context.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterOpsDrawer.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterHeaderActions.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterDeepLinkMatrix.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterClientMode.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.workspaceStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.voiceText.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.voiceCapture.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.types.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.threadHeaderStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.themeBridge.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.styleSplit.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.styles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.shellStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.sectionSplit.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.routeContext.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.roleConfig.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.responsiveStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.ownerControlsStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.opsStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.opsMissionStyles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterWorkoutRoutes.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterWorkbenchPanel.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoice.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterThreadTargetRoutes.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterRouteMount.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterReviewPanel.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPlanReviewRoute.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.threadIdentity.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.test.harness.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.shell.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.styleExtraction.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.sendRoutingSplit.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.pendingFoodSplit.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.messagesPanelSplit.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.longPrompt.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.conversationActionsSplit.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.clientSelectionSplit.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.audioIntakeNavigationSplit.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.voiceControlsSplit.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.transcriptReviewSplit.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.transcriptIntake.test.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.teachPrompt.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.styles.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/useCoachCommandCenterDrawerEffects.ts"
+  ],
+  "routeOverlap": [
+    "/api/workout mount precedes /api/workout/sessions; sessions CRUD overlaps",
+    "RecoverySignalBars versus deprecated MuscleRecoveryHeatmap and legacy chart-muscle-recovery request",
+    "Shared BodyMap embedded in role routes and client/modal/measurement consumers",
+    "Shared Coach UI versus separately owned Universe V3 and Astra worktrees"
+  ],
+  "archiveCandidates": [
+    "Superseded Coach plans after link/owner/restore checks",
+    "Legacy Coach shells after all-caller proof",
+    "Loose root patch/backup files after ownership review"
+  ],
+  "actions": "Inventory only; nothing archived, moved or deleted."
+}

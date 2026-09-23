@@ -1,0 +1,268 @@
+{
+  "repository": "C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT",
+  "observedAt": "2026-09-06T22:27:50.805Z",
+  "files": [
+    {
+      "path": ".claude/skills/swan-design-router/SKILL.md",
+      "sha256": "04658674ef65c35ee7177c099bbc23276ceae79dfe4aa154466e954b83064c02",
+      "lines": 308
+    },
+    {
+      "path": "backend/controllers/chartDataController.mjs",
+      "sha256": "f7380a44bc1f1638e08f0353b7c2239599cee55205952a254a73eddb955d8333",
+      "lines": 916
+    },
+    {
+      "path": "backend/controllers/painEntryController.mjs",
+      "sha256": "a9402ed426c6d92e17e2f2900ec5bfb154b5ab2af8b1adc1888ce8283e08b294",
+      "lines": 389
+    },
+    {
+      "path": "backend/core/routes.mjs",
+      "sha256": "f5c23302f2b33250448e91130e8cfe955094617230bb6c733abe41feb18d809f",
+      "lines": 885
+    },
+    {
+      "path": "backend/models/BootcampExercise.mjs",
+      "sha256": "74e5eec8d773919f2b21aee27541c2b687e5faaac154c5b86a1e8ae01d071c3f",
+      "lines": 145
+    },
+    {
+      "path": "backend/models/ClientPainEntry.mjs",
+      "sha256": "f61205e0edcb9df7f02b3aa6e49ece140466e85c5f35680153ac9f600a44d13d",
+      "lines": 136
+    },
+    {
+      "path": "backend/models/CustomExercise.mjs",
+      "sha256": "7f2a66c5dc58b5d7e147444c1659bd83c985a1664762b04d18c988bf2ba8d8e1",
+      "lines": 122
+    },
+    {
+      "path": "backend/models/Exercise.mjs",
+      "sha256": "3f6da83ae04acda18e3283350c1966f741c05e9966b46a4a89b4f3ef130cb4d9",
+      "lines": 356
+    },
+    {
+      "path": "backend/models/ExerciseMuscleGroup.mjs",
+      "sha256": "57fedca16717a575640406a8c8d6f3e45f348caa73b7c0292961f56d6a9d9595",
+      "lines": 67
+    },
+    {
+      "path": "backend/models/PainEntryCorrectiveExercise.mjs",
+      "sha256": "d73573b2d7160921c33c5650183eb3919207c17a3f8854bcb1872385a54e159c",
+      "lines": 89
+    },
+    {
+      "path": "backend/models/WorkoutExercise.mjs",
+      "sha256": "99b8d862ecc6d646506c21bbe4270a0ad723f6e2b155b94c63ec319b3b532bae",
+      "lines": 147
+    },
+    {
+      "path": "backend/models/WorkoutLog.mjs",
+      "sha256": "2414339ad7d8fc08e60846e80dd839a08d5eb3f59bf29bff7a28092ebcb462a1",
+      "lines": 129
+    },
+    {
+      "path": "backend/models/WorkoutPlanDayExercise.mjs",
+      "sha256": "22dea22de005ebb4703d4dd6b505af097e9b56b4f61cc4d04c5f319a36faf9f1",
+      "lines": 97
+    },
+    {
+      "path": "backend/models/WorkoutSession.mjs",
+      "sha256": "b8eefc73bad39a6b2ec2af66a686d4010d37964806cd8417f654820cf9443af3",
+      "lines": 253
+    },
+    {
+      "path": "backend/routes/analyticsRoutes.mjs",
+      "sha256": "90d05219ae5d84699c4fe806197f2e69f6990e5c090ff2ac51bb194d4fbccd0d",
+      "lines": 190
+    },
+    {
+      "path": "backend/routes/clientAnalyticsRoutes.mjs",
+      "sha256": "cf5dde5c03b46d4904b324a729d4c6685f9dcbc62d8c820321c505f4c1b55392",
+      "lines": 229
+    },
+    {
+      "path": "backend/routes/clientDashboardRoutes.mjs",
+      "sha256": "69b71f0264e531c875315f7dfdd7a4d8f215a427b32828d71175d09d142b1278",
+      "lines": 215
+    },
+    {
+      "path": "backend/routes/dashboard/adminDashboardRoutes.mjs",
+      "sha256": "e537976a3d173c1222f1c7f026ff7cb4e60601c0b500a7fd0a9f07828013cd30",
+      "lines": 61
+    },
+    {
+      "path": "backend/routes/dashboard/sharedDashboardRoutes.mjs",
+      "sha256": "d56e97946b1c4a7eb8a65a985f4d403ecf82f9480217665dad2602ce13e49617",
+      "lines": 523
+    },
+    {
+      "path": "backend/routes/painEntryRoutes.mjs",
+      "sha256": "184d5d1749641717453ea1730e180c3d6a4352f2db0fb245b547199073c595bf",
+      "lines": 37
+    },
+    {
+      "path": "backend/routes/workoutRoutes.mjs",
+      "sha256": "93503caf87738af6bd723826ac2c4901f8353a6be91994ed93bb5ec55fb141cc",
+      "lines": 344
+    },
+    {
+      "path": "backend/routes/workoutSessionRoutes.mjs",
+      "sha256": "7a18d4a06f2a25bb954031af54e31979cccc74f333ff790db1690cc8a2b2972d",
+      "lines": 731
+    },
+    {
+      "path": "backend/services/ai/painWriteService.mjs",
+      "sha256": "c11cfcf1b25d83f1f7aa6818df87bf7ef69b0d2de339d02d932fab3bb0840f36",
+      "lines": 113
+    },
+    {
+      "path": "backend/services/bootcamp/bootcampPainAlerts.mjs",
+      "sha256": "5ed2d822ca535ffebba76e4794db0b3d1e12302208cbe08ccf0670458aea473e",
+      "lines": 59
+    },
+    {
+      "path": "backend/services/workout/workoutLogService.mjs",
+      "sha256": "24ece062709beb1a95cf4f9f09cfb95d0613c79b0da6104d6dbace6fa400c1f0",
+      "lines": 514
+    },
+    {
+      "path": "docs/ai-workflow/design-brain/adapters/product-surfaces.md",
+      "sha256": "f5c1d3dc1d62ce549cac30226ef25ba1dc946bb9a15d2d8ad4f975767bdf529b",
+      "lines": 56
+    },
+    {
+      "path": "docs/ai-workflow/design-brain/design.md",
+      "sha256": "8e0b1a92089fb085afebcc6c1989466f3adc5dd5bdb5c6c20b77a84594ec4987",
+      "lines": 239
+    },
+    {
+      "path": "docs/ai-workflow/design-brain/qa-gates.md",
+      "sha256": "b3dd915abe05f7db84eff94bf6ca7af52095f65a334e0072e92e92b3458ebda7",
+      "lines": 81
+    },
+    {
+      "path": "docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md",
+      "sha256": "21eb2233843b86cb797e9b7d37b8f71976934c0784b1f24500503c00cafb092f",
+      "lines": 569
+    },
+    {
+      "path": "frontend/package.json",
+      "sha256": "7c1b0318c061291a248cfdade923e946ed332436bf4235aeb9f9aa1878cd7c20",
+      "lines": 105
+    },
+    {
+      "path": "frontend/src/components/BodyMap/index.tsx",
+      "sha256": "9f1c584bfd243b65d5c997cd4249658bacdbaba35896a805c91f3a705a0761c1",
+      "lines": 466
+    },
+    {
+      "path": "frontend/src/components/BodyMap/painChartInsights.ts",
+      "sha256": "e9686bd003fcc8d1df8e6a71346018a89c5d76ef850c3ad73c047acf5d7fbe31",
+      "lines": 301
+    },
+    {
+      "path": "frontend/src/components/Charts/charts/live/RecoverySignalBars.tsx",
+      "sha256": "61a4b9b3293f28724d61fa6dda6e8d0cf4ae983e73c25ac08256095ad9ccbedd",
+      "lines": 234
+    },
+    {
+      "path": "frontend/src/components/ClientProgressCharts/ClientAnalyticsPanel.tsx",
+      "sha256": "b8f4bada239bb53e592e0ef3e59f38193fb238f0f1fbe60e6527f8799f38838c",
+      "lines": 208
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-clients/components/ClientAnalyticsPanel.tsx",
+      "sha256": "d4f62abd87441a89d0b39b2be97a0c0e6b2f609b94175506ea8cef771c95e663",
+      "lines": 1294
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-clients/components/ClientBodyMapModal.tsx",
+      "sha256": "7aa5f9a5ec06fd2f8a2ee6d6673f3602723a348b7b802a4dd6b7b5be0eb5ef07",
+      "lines": 92
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx",
+      "sha256": "af975c08ae7955c4e4d7a3e7e0f9fbe9152c7e52d87aa82d351f4076a474b6d3",
+      "lines": 156
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/admin-dashboard/analyticsRoutes.mjs",
+      "sha256": "a78890d49b86a8d1ef61b106a6e7f28817d5a56017f220e2626eb66d1c356dd1",
+      "lines": 12
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.roleConfig.ts",
+      "sha256": "7c4f811637e3a2eb3c792680fcfb1e96980df4654c35465760816ea3dadfa985",
+      "lines": 71
+    },
+    {
+      "path": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterPage.tsx",
+      "sha256": "816b46d632b3c91e8e247b348b2f6679e2c685e493196163cc050d933b508f76",
+      "lines": 295
+    },
+    {
+      "path": "frontend/src/components/DashBoard/UniversalDashboardLayout.routeComponents.tsx",
+      "sha256": "1c9878f0343a8009dd8c1fe76a8a1bd5a66818c517518ac6589a04fa3878d892",
+      "lines": 190
+    },
+    {
+      "path": "frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx",
+      "sha256": "b3a74fa51cfec1be9849160eba60ed85de5edeeb5f60d8d3ece1880f08856774",
+      "lines": 211
+    },
+    {
+      "path": "frontend/src/components/DashBoard/UniversalDashboardLayout.shellPieces.tsx",
+      "sha256": "27879a2c8b29d3f5c996d584c1cdf24201e6af28c015ceeeeb68562b52d5bfad",
+      "lines": 117
+    },
+    {
+      "path": "frontend/src/components/DashBoard/workspaces/WorkoutOutletWrapper.tsx",
+      "sha256": "42d6384f66b2e32727cf5cfaf50d0d726fa325bd13112ee2e884cac5bba8651a",
+      "lines": 163
+    },
+    {
+      "path": "frontend/src/components/DashBoard/workspaces/clients-team/tabs/BiometricsTabContent.tsx",
+      "sha256": "482f1cddec811d9b594804fd621181a42792310ba845fcb0972107fc7a1736c0",
+      "lines": 275
+    },
+    {
+      "path": "frontend/src/hooks/analytics/useClientAnalytics.ts",
+      "sha256": "37a50a28b3f8f8f7eb916023369baf4400fb60437104cd61ad04d6d56ae648ac",
+      "lines": 160
+    },
+    {
+      "path": "frontend/src/hooks/useAIChat.ts",
+      "sha256": "5e0782e860820deb8a493dd4dc792cf9d726ef862150b8adaf71b6abd01bc656",
+      "lines": 568
+    },
+    {
+      "path": "frontend/src/hooks/useAnalytics.ts",
+      "sha256": "c6f7d14f4144ae4381dfba45fdd2d8fb64a13feb5368ccb3b9bc96088ef0429d",
+      "lines": 241
+    },
+    {
+      "path": "frontend/src/hooks/useCoachCommand.ts",
+      "sha256": "b46f1c9bb1828f40f35ccc7f068f66cca5cd65223b7667b31022653c539d290e",
+      "lines": 215
+    },
+    {
+      "path": "frontend/src/pages/Social/components/ProfileChartsSection.tsx",
+      "sha256": "62a5fc3afca88740976af039d3e48420c480f1e136ac63d2a8040110fb109dfc",
+      "lines": 218
+    },
+    {
+      "path": "frontend/src/routes/DashboardRoutes.tsx",
+      "sha256": "0b0e0bd86c121c59ec61a0dfa54ad90a432841adf0ff2ea80acbbbc1132e71be",
+      "lines": 129
+    },
+    {
+      "path": "frontend/src/services/painEntryService.ts",
+      "sha256": "d8ddef43f4d0be2e93219fc7c1786b555d4063b4f72ba13f2d787b2eac46b483",
+      "lines": 98
+    }
+  ],
+  "previousRepository": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT",
+  "relocationVerifiedAt": "2026-09-08T03:42:11.232Z"
+}

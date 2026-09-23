@@ -1,0 +1,96 @@
+{
+  "version": "1.3",
+  "observedAt": "2026-09-08T04:10:21.249Z",
+  "scope": "Easy pain selection planning revision only",
+  "canonicalSource": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT\\docs\\ai-workflow\\AI-HANDOFF\\anatomy-coach-design-2026-09-06",
+  "sourceHead": "a89cbf0f080644877ae8a45729d3f0a59d4cb8b8",
+  "branch": "wip/comms-notifications-2026-07-05",
+  "dirtyEntries": 925,
+  "preservation": {
+    "files": 65,
+    "sourceMatchesCompletedV12": true,
+    "bothStagedCopiesVerified": true,
+    "manifestSha256": "54ccc6e786a9aee56d2a04d6e69be10a5f6975b7cbf48b5b23b0215c5bda524b",
+    "nativeHook": "UNOBSERVED",
+    "beforeAfterManifests": "Vault snapshots written and checked by guarded promotion; no remote backup claimed"
+  },
+  "skills": {
+    "count": 2,
+    "command": "python -X utf8 skill-creator/scripts/quick_validate.py <packaged skill>",
+    "status": "PASS",
+    "installed": false
+  },
+  "syntax": {
+    "count": 10,
+    "status": "PASS",
+    "scope": "Packet JavaScript helpers and future specifications only"
+  },
+  "UI": {
+    "kind": "Standalone blueprint review only",
+    "source": "http://127.0.0.1:8878/review.html",
+    "tests": [
+      "Manual reference wireframe selected and explains source-update independence",
+      "Measured mode wireframe restored",
+      "Selected reference mode has distinct visible styling",
+      "Easy default; optional details collapsed; broad area selection without tissue classification",
+      "Optional bone aid changes explanation only; no diagnosis",
+      "Explore return retains Right knee and restores Areas selection",
+      "Details open/close with keyboard; Easy buttons and summary at least 44px"
+    ],
+    "viewports": [
+      {
+        "width": 320,
+        "height": 700,
+        "overflow": false
+      },
+      {
+        "width": 414,
+        "height": 896,
+        "overflow": false
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "overflow": false
+      },
+      {
+        "width": 1440,
+        "height": 1000,
+        "overflow": false
+      },
+      {
+        "width": 2560,
+        "height": 1440,
+        "overflow": false
+      },
+      {
+        "width": 3840,
+        "height": 2160,
+        "overflow": false
+      }
+    ],
+    "limitations": [
+      "No application API or private data used",
+      "No native Atlas port, custom assets or database integration built",
+      "Actual physical device and production acceptance NOT RUN"
+    ],
+    "diagrams": 9,
+    "iframeCount": 1,
+    "publicReference": "Heading loaded",
+    "artifactUI": "PASS"
+  },
+  "requirements": 35,
+  "acceptanceScenarios": 32,
+  "hostileReview": {
+    "resolved": [
+      "Removed tissue classification and symptom-detail requirements from primary report path",
+      "Easy presentation reset is separate from persistent pain draft and body preferences",
+      "Hidden advanced meshes cannot intercept Easy-mode selection in the proposed native implementation",
+      "Corrected inherited diagram to honor manual reference mode",
+      "Public reference panels remain explicitly reference-only; no native Easy integration claimed"
+    ],
+    "remaining": "Actual native hit masks, guarded writes, clinical validity, real devices and timed usability remain NOT RUN"
+  },
+  "baseline": "Prior application baseline retained; no app changes warrant rerunning broad suites. Existing B01 FAIL remains. Startup Bash process was denied; no continuity cleanup or closeout performed.",
+  "readiness": "Plan revision delivered; implementation not authorized and readiness withheld for existing blockers"
+}

@@ -1,0 +1,10 @@
+
+ RUN  v4.0.18 C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/frontend
+
+···········································
+
+ Test Files  6 passed (6)
+      Tests  43 passed (43)
+   Start at  15:10:55
+   Duration  1.67s (transform 600ms, setup 742ms, import 1.04s, tests 365ms, environment 4.49s)
+

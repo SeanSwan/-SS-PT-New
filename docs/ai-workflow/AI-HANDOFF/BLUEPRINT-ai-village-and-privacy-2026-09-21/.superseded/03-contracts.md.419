@@ -1,0 +1,419 @@
+**C1 — CLI contract**
+
+Proposed interface:
+
+```text
+node scripts/village/run.mjs prepare --mode 1|2 --manifest <path> --roster <path> --budget <path> --run-dir <path> [--rounds 1..7] [--profile subscription|special]
+node scripts/village/run.mjs dispatch --run-dir <path> --approve-stage <sha256>
+node scripts/village/run.mjs status --run-dir <path>
+node scripts/village/run.mjs cancel --run-dir <path>
+```
+
+Rules:
+
+- `--manifest`, `--roster`, `--budget`, and `--run-dir` are required for `prepare`.
+- Profile defaults to `subscription`.
+- Mode 1 has one review round; supplying `--rounds` is rejected.
+- Mode 2 defaults to at most three review rounds; allowed range is 1–7.
+- Reviewers are explicitly selected; supported count is 1–4.
+- No default roster is fabricated.
+- The adjudicator route is separately selected and cannot also occupy a reviewer seat in the same run.
+- `dispatch` authorizes only the displayed frozen stage. It may prepare the next stage, but must stop before sending it.
+- The operator action must come from the authenticated host workflow or the operator’s terminal. An agent must not generate its own approval.
+- A digest proves content binding, not the identity of the approving human.
+
+Exit codes:
+
+| Code | Meaning |
+|---|---|
+| `0` | Requested local operation succeeded. A report or prepared stage may still be pending. |
+| `2` | Policy, privacy, route, budget, or approval blocked the operation. |
+| `3` | Provider execution failed, became ambiguous, or returned incomplete output. |
+| `4` | CLI/schema usage error. |
+| `5` | Journal, integrity, or internal invariant failure. |
+
+**C2 — Artifact manifest**
+
+Strict JSON, recursively rejecting unknown keys:
+
+```ts
+type ArtifactKind =
+  | 'source_excerpt'
+  | 'schema_excerpt'
+  | 'design_document'
+  | 'synthetic_fixture';
+
+type SourceClass = 'repository' | 'authored_synthetic';
+
+type Artifact = {
+  id: string;
+  kind: ArtifactKind;
+  sourceClass: SourceClass;
+  text: string;
+  sha256: string;
+};
+
+type Applicability = {
+  area: number; // integer 1..10, exactly once each
+  status: 'applicable' | 'not_applicable';
+  reason: string;
+};
+
+type Manifest = {
+  schemaVersion: 1;
+  subject: string;
+  artifacts: Artifact[];
+  applicability: Applicability[];
+};
+```
+
+Validation:
+
+- IDs match `^[a-z][a-z0-9_-]{0,47}$` and are unique.
+- Hashes are lowercase SHA-256 over UTF-8 `text`.
+- Text uses LF line endings; reject CR rather than silently changing approved bytes.
+- At least one artifact and one applicable area are required.
+- Maximum 64 artifacts.
+- Maximum 1 MiB UTF-8 per artifact; maximum 4 MiB total.
+- Maximum subject length: 200 characters.
+- Applicability reasons: 1–2,000 characters.
+- A synthetic fixture must use `authored_synthetic`.
+- Production-derived and unknown source classes are rejected.
+- File paths, database connections, attachments, and arbitrary extra fields are not manifest inputs.
+- Source provenance is reviewed locally; a caller-supplied label alone does not prove it.
+
+The assembler keeps any local file-location mapping separately. Outbound citations use artifact IDs and excerpt-relative line numbers.
+
+This schema limits structure. Its `text` field still requires local content review.
+
+**C3 — Privacy ownership and hardening decisions**
+
+| Proposal | Decision |
+|---|---|
+| H1 | Adopt structural admission and prohibition of production-derived material; remove infallibility claim. |
+| H2 | Require locally authored synthetic fixtures with documented provenance. |
+| H3 | Reject unknown fields; never strip and continue. |
+| H4 | Do not query a client database or export a name roster in this build. A future local-only denylist needs separate ownership and retention design. |
+| H5 | Clinical-shape detection may be added only with explicit detector definitions and fixtures. No unspecified PHI detector is claimed here. |
+| H6 | Do not implement an undefined “person-name density” detector. Its thresholds and false-positive behavior are absent from the packet. |
+| H7 | Add structural rejection and zero-dispatch canaries. Preserve existing detector canaries without expanding their claims. |
+
+The Village admission owner handles source classification and approved content. The dispatcher owns enforcement at its supported transport boundary. Product privacy services retain their existing, separate product policy.
+
+**C4 — Provider admission**
+
+The operator chooses route IDs from an implementation-controlled registry. User input cannot supply arbitrary endpoints, shell commands, executable paths, or provider credentials.
+
+For every selected route, the verifier must establish:
+
+- Requested model and supported effort.
+- Actual transport and authentication mode.
+- Incremental billing classification.
+- Permission for the intended automated use.
+- Available entitlement and known expiration, if any.
+- Outbound-context isolation.
+- Input/output limits and a conservative input-token bound.
+- Receipt support for served identity and usage.
+- Evidence provenance, digest, verification time, and expiration.
+
+A roster’s editable `verified: true` field is not accepted as evidence.
+
+Evidence must remain valid through the stage’s maximum execution window and be checked immediately before each call. No proof may be reused for more than 24 hours without revalidation. An unknown promotional expiration prevents selecting that promotional route.
+
+Policy:
+
+- Astra’s requested adjudicator identity is `gpt-6-astra`, effort `xhigh`.
+- `gpt-6-astra-pro` is not substituted.
+- Kimi is prohibited by provider/model-family identity, including known aliases; unknown identities are rejected.
+- GLM subscription routes must be direct Z.ai routes.
+- A Google consumer subscription is not treated as proof that a Gemini API call is included.
+- Fable is unavailable in the subscription profile.
+- WorkBuddy routes require demonstrated automation, entitlement, and expiration evidence.
+- No automatic fallback exists.
+- Served-model mismatch or unavailable identity evidence makes the result inadmissible.
+
+**C5 — Freezing and approval**
+
+A stage contains:
+
+```ts
+type FrozenStage = {
+  schemaVersion: 1;
+  runId: string;
+  stageId: string;
+  stageKind: 'review' | 'adjudication';
+  round: number;
+  manifestDigest: string;
+  rosterDigest: string;
+  policyDigest: string;
+  budgetDigest: string;
+  requestDigests: string[];
+  expiresAt: string;
+  stageDigest: string;
+};
+```
+
+Procedure:
+
+1. Build complete requests, including all instructions and peer material.
+2. Apply local privacy transformations.
+3. Validate content, limits, and evidence.
+4. Serialize application bodies deterministically.
+5. Freeze the exact per-request content and stage metadata.
+6. Display preflight.
+7. Obtain stage-specific authorization.
+8. Immediately before sending, revalidate authorization, route evidence, and bytes.
+
+For HTTP, the send callback checks the actual post-`fetchForEgress` body digest. A mismatch causes zero socket calls.
+
+For CLI subscriptions, approval binds the application text. The adapter’s separately verified isolation contract accounts for any CLI-managed wrapper content. If that boundary cannot be demonstrated, the adapter remains blocked.
+
+Approval expires after 60 minutes or earlier when any underlying evidence expires. Changed content requires a new stage digest and authorization.
+
+**C6 — Budgets**
+
+```ts
+type Amount = {
+  calls: number;
+  tokens: number;
+  usdMicros: number;
+};
+
+type Budget = {
+  limits: Amount;
+  charged: Amount;
+};
+```
+
+All values are nonnegative safe integers. One dollar equals 1,000,000 `usdMicros`.
+
+Per-call output ceiling: 8,000 tokens.  
+Per-call timeout ceiling: 600 seconds.  
+Concurrent provider calls: one.
+
+The operator declares the task’s call, token, and monetary limits. A subscription profile requires `usdMicros: 0`.
+
+A round is admissible only if:
+
+```text
+charged
++ all requests in the proposed round
++ one remaining adjudication reservation
+<= declared limits
+```
+
+The final reservation is counted exactly once.
+
+Input bounds include instructions, artifacts, and peer material. If an adapter cannot produce a conservative input bound, dispatch is blocked. For metered routes, current price evidence must bound both input and output charges; rough packet prices are insufficient.
+
+Settlement:
+
+- Count every started invocation as one attempt.
+- Use authoritative usage to settle tokens and spend.
+- Missing usage retains the maximum reservation.
+- Timeout or uncertain execution retains the full reservation and blocks the run.
+- Actual usage beyond a declared bound is a reported budget breach and blocks further dispatch.
+- Never retry automatically.
+
+Maximum review-plus-adjudication call counts are:
+
+```text
+Mode 1: N + 1
+Mode 2: N × completed_review_rounds + 1
+```
+
+For four reviewers: 5, 13, and 29 calls correspond to one, three, and seven review rounds.
+
+A cap need not fund every allowed round. For example, a 12-call cap can admit two complete four-seat rounds plus adjudication, totaling nine calls; it cannot admit the third round.
+
+**C7 — Review and coverage contract**
+
+Ten areas, fixed order:
+
+1. Architecture and boundaries.
+2. Logic and correctness.
+3. Backend.
+4. Frontend.
+5. Data and persistence.
+6. Security and trust boundaries.
+7. Performance.
+8. Tests and verifiability.
+9. Operations and failure modes.
+10. Design and UX.
+
+```ts
+type EvidenceRef = {
+  artifactId: string;
+  sha256: string;
+  startLine: number;
+  endLine: number;
+  quote: string;
+};
+
+type AreaCoverage = {
+  area: number;
+  status: 'examined' | 'not_applicable' | 'unexamined';
+  method: 'static_inspection' | 'test_evidence' | 'none';
+  observation: string;
+  evidence: EvidenceRef[];
+  findingIds: string[];
+};
+
+type Finding = {
+  localId: string;
+  area: number;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  claim: string;
+  fix: string;
+  evidence: EvidenceRef[];
+};
+```
+
+The response also contains:
+
+- `schemaVersion: 1`
+- `seatId`
+- `round`
+- `findings`
+- `coverage`
+- `positions`
+- `stop: "continue" | "settled" | "disagree"`
+
+Validation:
+
+- Exact JSON only; no prose extraction or fence stripping.
+- Ten coverage entries, each area exactly once.
+- `examined` requires a nonempty observation, a real method, and at least one valid reference.
+- `not_applicable` must match the approved manifest; the reviewer cannot invent it.
+- `unexamined` is retained as an honest result but blocks successful completion.
+- Every reference must match artifact hash and complete referenced line text.
+- Reference ranges contain 1–20 lines; quotations are limited to 8 KiB each.
+- Every finding has a concrete fix and valid evidence.
+- Coverage finding IDs must exist and match the area.
+- Maximum 50 findings per response; excess is an invalid response, never silently discarded.
+- No field may claim an unexecuted test passed.
+- Citations establish reference integrity, not semantic correctness.
+
+Finding IDs are assigned by the engine:
+
+```text
+<seatId>:r<round>:<localId>
+```
+
+**C8 — Debate and adjudication**
+
+Round 1:
+
+- Same approved subject and remit for every reviewer.
+- No peer reviews in any request.
+- Distinct seat identity is the only seat-specific instruction.
+
+Later rounds:
+
+- Every seat receives the same complete frozen prior-review corpus and finding ledger.
+- No seat sees another seat’s current-round answer.
+- Serial execution does not change available evidence.
+- Peer content is delimited as untrusted data.
+
+A position is:
+
+```ts
+type Position = {
+  findingId: string;
+  stance: 'uphold' | 'dismiss' | 'defer';
+};
+```
+
+Convergence requires:
+
+1. Every selected reviewer returned valid, evidence-complete output.
+2. Every reviewer addresses exactly the current ledger.
+3. No new finding appeared in this round.
+4. All normalized position vectors agree.
+5. No position is `defer`.
+6. Every reviewer explicitly chose `settled`.
+
+“Agree to disagree” requires all reviewers to choose `disagree`, complete ledger coverage, and at least one actual conflicting position.
+
+Otherwise continue only if below the round limit and the next complete round plus adjudication fits the budget.
+
+Adjudication is one fresh call with the complete ledger and reviews. Each ledger finding receives exactly one resolution:
+
+```ts
+type Resolution = {
+  findingId: string;
+  disposition: 'confirmed' | 'dismissed' | 'duplicate' | 'unresolved';
+  rationale: string;
+  evidence: EvidenceRef[];
+  duplicateOf: string | null;
+};
+```
+
+Duplicate links must resolve to a known nonduplicate finding and contain no cycle.
+
+The adjudicator may introduce new evidenced findings. These receive engine-assigned adjudicator IDs and force `REVISE`; they do not trigger an unbudgeted debate.
+
+The engine derives the result:
+
+- `APPROVE`: complete valid evidence; every finding dismissed or linked to a dismissed duplicate root; no new findings.
+- `REVISE`: any confirmed, unresolved, or new finding.
+- `INCONCLUSIVE`: missing, invalid, or incomplete required evidence.
+
+Convergence is a workflow condition, not a claim that the reviewed work is correct.
+
+**C9 — Journal and failure behavior**
+
+Persist before every provider invocation:
+
+- Run/stage/request IDs.
+- Frozen-content and policy digests.
+- Reservation.
+- `STARTED` state.
+- Attempt timestamp.
+
+Persist afterward:
+
+- `COMPLETE`, `FAILED`, or `AMBIGUOUS`.
+- Verified requested/served identity.
+- Usage or retained maximum reservation.
+- Structured error code.
+- Response artifact digest.
+
+A restarted process encountering `STARTED` without a terminal receipt marks it `AMBIGUOUS` and makes no new call.
+
+Use exclusive run ownership and atomic writes. Do not seize a provider lock held by another process. If platform-specific durability cannot be demonstrated, live dispatch remains blocked.
+
+Raw sensitive matches and credential-bearing errors must not enter public logs or receipts. Raw responses stay local and are not forwarded or archived until inspected and admitted.
+
+**C10 — Configuration, storage, migration, rollback**
+
+No new environment variable enables fallback or spending.
+
+The existing `SWAN_COUNCIL_ENABLE_METERED_FALLBACK` must not bypass the new explicit profile and approval contract. Its current behavior requires inspection before integration.
+
+Run-local files:
+
+```text
+run.json
+manifest.json
+roster-receipt.json
+budget.json
+journal.jsonl
+stages/<stageId>.json
+requests/<requestId>.json
+responses/<requestId>.json
+report.json
+report.md
+```
+
+The run directory must be private, outside tracked source, and verified writable only by the intended local account and required system administrators. Do not invent a Windows ACL command without inspecting the actual environment.
+
+No database migration is required.
+
+Rollback:
+
+- Disable new live dispatch.
+- Preserve run evidence.
+- Restore verified source snapshots if needed.
+- Do not restore an old unguarded network path as the rollback behavior.
+- No automatic deletion or retention cleanup occurs.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Detailed Interactive Design"
+  short_description: "Design detailed, useful 3D and interactive site experiences."
+  default_prompt: "Use $detailed-interactive-design to plan this site at the visual depth and interaction quality of Human Atlas, within my stated scope."

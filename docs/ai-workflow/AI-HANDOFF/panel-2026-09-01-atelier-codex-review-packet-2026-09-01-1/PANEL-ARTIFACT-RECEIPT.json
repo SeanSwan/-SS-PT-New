@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "panel-artifact-v1",
+  "documentSha256": "82a6607135552579a81ede9035c0c09f0477e504008a0d923d45f89bfd129d96",
+  "generatedAt": "2026-09-01T17:35:49.849Z",
+  "seats": [
+    {
+      "seat": "glm",
+      "model": "glm-5.3",
+      "scriptSha256": "17e9cd8081aa01088df1643219cce405c8955672d4777fd4dba641a31c17fe2c",
+      "status": "valid",
+      "byteLength": 10399,
+      "replySha256": "7401f34b85a24dddfc6bc10b4173344fe773b4e7c306e40634a0ca4a3ae55c47",
+      "wallSeconds": "242.0"
+    },
+    {
+      "seat": "glmflash",
+      "model": "glm-5.3-flash",
+      "scriptSha256": "c14b92e0748a135ff1b1afaa7e600abafb27f075a7abb119106f95d718520a8e",
+      "status": "valid",
+      "byteLength": 14994,
+      "replySha256": "f5d6bb827b4a88632a7cd156d157135bd927b522e48c9340bdfcde7dc889a04c",
+      "wallSeconds": "545.0"
+    }
+  ]
+}

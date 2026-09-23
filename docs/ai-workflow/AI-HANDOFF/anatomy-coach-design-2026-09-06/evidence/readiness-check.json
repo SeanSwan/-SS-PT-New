@@ -1,0 +1,8 @@
+{
+  "structurallyReady": false,
+  "errors": [
+    "Open or unspecified blockers.",
+    "B01: unresolved FAIL."
+  ],
+  "limitation": "Reference integrity only; inspect evidence and behavior before readiness or completion claims."
+}

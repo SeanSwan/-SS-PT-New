@@ -64,9 +64,19 @@ Proposed extension to Rule 74: for a *detector* — a gate, guard, or check — 
 | Error class | Times this session | Written up before? | What actually stops it |
 |---|---|---|---|
 | Instrument reports something confidently while measuring the wrong thing | **~14** | Yes, repeatedly | Cross-check any surprising or *convenient* result against a second signal before banking it |
-| **Detector shipped with a signal that cannot discriminate** | 1 | **No — new class** | Assert the signal on real data of BOTH states before shipping. "Logic is correct" is not the test. |
+| **Detector shipped with a signal that cannot discriminate** | **4** | **Yes — written up in THIS packet, then repeated three more times the same day** | Assert the signal on real data of BOTH states before shipping. "Logic is correct" is not the test. |
 | Mutation test that changes no outcome, read as a pass | 1 | No | A mutation must flip at least one assertion or it is a failed experiment |
 | Test/tool timeout set below the real runtime, read as failure | 2 | No | Re-run a lone failure with a longer limit before recording it |
+
+**UPDATE, same day, after three recurrences.** This packet was written after the first instance. The same class then shipped three more times within hours, in code I wrote *while this document existed*:
+
+1. A migration guard took a Postgres advisory lock, closed the connection, and exited — releasing the lock before the migration it protected had started. Caught by re-reading my own comment, which described holding the lock across the child process while the code did the opposite.
+2. The rewritten guard held the lock on a **sequelize pooled connection** with default `min: 0, idle: 10000` — released roughly ten seconds into a multi-minute migration, while logging `deploy lock acquired`. Caught by GLM 5.3, not by me.
+3. The same guard was **fail-open with no positive signal**: its healthy state and its dead state produced identical output. Caught by Kimi K3 — and it is the *same defect* GLM had found in the hook layer that morning, which I had already fixed once.
+
+The pattern across all four: **the code was reviewed for correctness and never for discrimination.** Each version was logically coherent, well-commented, and passed its tests. What none of them had was evidence that the signal differed between the two states it claimed to separate — and in three of four cases the logs actively asserted the opposite.
+
+The sharpest form of the lesson is now: **when a control reports its own health, that report is a claim requiring proof, exactly like any other claim.** A log line saying "lock acquired" is not evidence a lock is held. The fix that finally stuck was making the guard *measure* itself — querying `pg_locks` for its own backend rather than trusting that the acquire succeeded.
 
 The second row is the one to carry, and it is genuinely new. It survived syntax checking, self-review, and a first mutation pass — **all three of which were pointed at whether the code was correct rather than whether the signal was discriminating.** The correction is one procedural step: before trusting a detector, run its signal against a real example of each state and confirm the values differ.
 

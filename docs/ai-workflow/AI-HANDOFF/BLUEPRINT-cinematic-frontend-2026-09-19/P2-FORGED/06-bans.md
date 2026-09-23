@@ -1,0 +1,23 @@
+**Replace renderer/loading/deletion clauses; retain unrelated prohibitions.**
+
+- No GSAP, R3F, Drei or Lenis adoption for this surface.
+- No static Three.js/controller/mesh import through the hero’s initial module graph. Type-only imports must erase completely.
+- No hero loader invocation or hero controller in pending, lean or reduced states.
+- No claim that this prohibits shared chunks requested independently by the existing header.
+- No second hero WebGL context, second displayed hero canvas, or extra scratch buffer. The permitted displayed-2D plus scratch-WebGL pair is intentional.
+- No independent component rAF loop alongside the controller scheduler.
+- No permanent render loop after settlement.
+- No duplicate SwanMark geometry factory, duplicate scene spec or React scene adapter.
+- No disposal of another controller’s resources.
+- No source-text assertion presented as runtime proof.
+- No runtime import from the cinematic reference subtree.
+- No deletion outside the verified R1 allowlist.
+- No changes to shared cinematic-kit defaults merely to constrain Home.
+- No repair of the unused motion helper represented as a live-home fix.
+- No CPU-plus-GPU sum represented as frame latency.
+- No fallback-only run represented as full-signature acceptance.
+- No new particle field, remote asset service, camera flight, bloom, postprocessing, video or pointer tracking.
+- No replay after terminal disablement/failure during the same route mount.
+- No hidden copy, delayed CTA, spinner-only hero, or technical error copy.
+- No new implementation file over 300 lines; avoid fragmentation that creates no meaningful boundary.
+- Preserve all existing production-data, dependency-bypass, staging, rollback and no-main-push prohibitions.

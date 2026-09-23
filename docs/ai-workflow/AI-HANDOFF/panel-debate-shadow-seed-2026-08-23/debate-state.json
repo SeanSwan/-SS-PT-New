@@ -1,0 +1,136 @@
+{
+  "roundsAnswered": 15,
+  "unresolved": [
+    "seed-shadow-db.mjs normalizeModel() \"enum",
+    "brief AC-8 scan-secrets.sh CLEAN is absent from the builder's verification list",
+    "?host= query-param divergence between validateShadowUrl and pg-connection-string dropped from the candidate residual-risk list though fail-closed today",
+    "seed-shadow-db.mjs main() §3 associations walk",
+    "seed-shadow-db.mjs normalizeModel()",
+    "seed-shadow-db.mjs §4 pkCol=Object.keys(attrs).find(c=>attrs[c].pk) + updateOnDuplicate",
+    "seed-shadow-db.mjs §4 insertedIds.set(lower, pkCol? scalars",
+    ".github/workflows/migration-shadow-check.yml L25 POSTGRES_PASSWORD is \"***\" not \"shadow\" — contradicts L15-16 and breaks Postgres auth vs a shadow-password URL",
+    "workflow Assert L87 grep '^SHADOW-SEED ' also matches OK/cycle-backfill; tail -1 is print-order luck",
+    "workflow has no step after npm ci running node scripts/seed-shadow-db.selftest.mjs — AC2 unenforced",
+    "workflow Seed L77 `> seed-shadow.log` drops SKIP/FAIL/REFUSED stderr from the artifact",
+    "seed-shadow-db.mjs §4b backfill pushed once per row; update is WHERE col IS NULL — dedupe on (table,col)",
+    "seed-shadow-db.mjs dependency graph built from model.associations not from attrs foreignKeyTarget (misses FKs defined only in references, risks over-including non-BelongsTo)",
+    "seed-shadow-db.mjs normalizeModel() association lookup does not require `BelongsTo` + foreignKey equality — may pick HasMany or wrong target, corrupting FK map",
+    "seed-shadow-db.mjs updateOnDuplicate uses single pk column `pkCol`; composite-PK tables break idempotency",
+    "seed-shadow-db.mjs insertedIds stores only first pk column values, insufficient for composite-PK FK resolution and backfill",
+    ".github/workflows/migration-shadow-check.yml L25 POSTGRES_PASSWORD",
+    ".github/workflows/migration-shadow-check.yml Assert step grep `'^SHADOW-SEED '` matches non-report lines (OK, cycle-backfill), risk of tail -1 picking wrong line; must use `'^SHADOW-SEED {'`",
+    ".github/workflows/migration-shadow-check.yml Seed step redirects only stdout; stderr diagnostics (SKIP/FAIL) lost from artifact",
+    ".github/workflows/migration-shadow-check.yml missing step to run `node scripts/seed-shadow-db.selftest.mjs` (acceptance criterion 2 not enforced)",
+    "seed-shadow-db.mjs backfill array may contain duplicate (table,col) entries; need dedupe to avoid redundant updates"
+  ],
+  "consensusCandidate": "FIX ALL: (1) AMENDED — seed-shadow-db.mjs: DELETE the §3 associations walk; build deps solely from meta attrs with foreignKeyTarget (complete only after fix below). (1a) normalizeModel(): change the association lookup to require `x.associationType === 'BelongsTo' && x.foreignKey === col` before using found.target; keep the a.references.model fallback. (2) pkCols=Object.keys(attrs).filter(c=>attrs[c].pk); pass pkCols to updateOnDuplicate. (3) Store full PK maps in insertedIds; generateRowValues sets out[col]=parentRow[a.foreignKeyTarget.pk]; backfill reads insertedIds[targetLower][0][attrs[bf.col].foreignKeyTarget.pk]; delete unused tPk .find; update fixtures. (4) workflow L25 POSTGRES_PASSWORD: \"shadow\"; DATABASE_URL password must be shadow. (5) Assert grep '^SHADOW-SEED {'. (6) NO CHANGE to vitest retry. (7) dedupe backfill on (table,col). (8) NO CHANGE: 32/32 selftest claim stands. NEW (9) workflow: add step after npm ci — `node scripts/seed-shadow-db.selftest.mjs` (dependency-free). NEW (10) Seed step: `> seed-shadow.log 2>&1` so SKIP/FAIL reach the artifact. ACCEPTED INTENTIONAL: PII guard, deterministic generation, synthetic-over-snapshot (§3), F5/F6 deferred. RESIDUAL RISK: composite-PK FK targets resolve to first pk column only until verified; FKs expressed neither as attributes nor BelongsTo associations are missed; hard-cycle tables without nullable edge stay empty for migration run 2.",
+  "winner": "dspro",
+  "costUsd": 0,
+  "log": [
+    {
+      "round": 1,
+      "answered": "glm:DISPUTE@86 grokA:DISPUTE@90 grokB:CONSENSUS@88 dspro:CONSENSUS@90 ox:CONSENSUS@88",
+      "failed": null,
+      "spentUsdRound": 0.5068,
+      "totalUsd": 0.5068
+    },
+    {
+      "round": 2,
+      "answered": "glm:DISPUTE@88 grokA:DISPUTE@91 grokB:CONSENSUS@90 dspro:CONSENSUS@95 ox:DISPUTE@88",
+      "failed": null,
+      "spentUsdRound": 0.3448,
+      "totalUsd": 0.8516
+    },
+    {
+      "round": 3,
+      "answered": "glm:DISPUTE@88 grokA:DISPUTE@88 grokB:CONSENSUS@90 dspro:CONSENSUS@93",
+      "failed": "ox",
+      "spentUsdRound": 0.4752,
+      "totalUsd": 1.3268
+    },
+    {
+      "round": 4,
+      "answered": "glm:DISPUTE@88 grokA:DISPUTE@90 dspro:CONSENSUS@98 ox:CONSENSUS@88",
+      "failed": "grokB",
+      "spentUsdRound": 0.2335,
+      "totalUsd": 1.5603
+    },
+    {
+      "round": 5,
+      "answered": "glm:DISPUTE@88 grokA:DISPUTE@91 grokB:DISPUTE@91 dspro:DISPUTE@90 ox:CONSENSUS@88",
+      "failed": null,
+      "spentUsdRound": 0.4523,
+      "totalUsd": 2.0126
+    },
+    {
+      "round": 6,
+      "answered": "glm:DISPUTE@92 grokA:CONSENSUS@91 grokB:CONSENSUS@92 dspro:CONSENSUS@95 ox:CONSENSUS@90",
+      "failed": null,
+      "spentUsdRound": 0.3385,
+      "totalUsd": 2.3511
+    },
+    {
+      "round": 7,
+      "answered": "glm:DISPUTE@90 grokA:DISPUTE@91 grokB:CONSENSUS@93 dspro:DISPUTE@95",
+      "failed": "ox",
+      "spentUsdRound": 0.3648,
+      "totalUsd": 2.7159
+    },
+    {
+      "round": 8,
+      "answered": "grokA:DISPUTE@90 grokB:CONSENSUS@91 dspro:DISPUTE@95",
+      "failed": "glm,ox",
+      "spentUsdRound": 0.3558,
+      "totalUsd": 3.0717
+    },
+    {
+      "round": 9,
+      "answered": "glm:CONSENSUS@93 grokA:CONSENSUS@91 grokB:CONSENSUS@91 dspro:CONSENSUS@95 ox:DISPUTE@88",
+      "failed": null,
+      "spentUsdRound": 0.3128,
+      "totalUsd": 3.3845
+    },
+    {
+      "round": 10,
+      "answered": "glm:CONSENSUS@91 grokA:DISPUTE@91 grokB:DISPUTE@90 dspro:CONSENSUS@95 ox:CONSENSUS@88",
+      "failed": null,
+      "spentUsdRound": 0.3737,
+      "totalUsd": 3.7582
+    },
+    {
+      "round": 11,
+      "answered": "glm:DISPUTE@90 grokA:DISPUTE@90 grokB:DISPUTE@91 dspro:CONSENSUS@95 ox:DISPUTE@90",
+      "failed": null,
+      "spentUsdRound": 0.3892,
+      "totalUsd": 4.1474
+    },
+    {
+      "round": 12,
+      "answered": "glm:DISPUTE@89 grokA:DISPUTE@91 grokB:DISPUTE@90 dspro:CONSENSUS@95 ox:DISPUTE@90",
+      "failed": null,
+      "spentUsdRound": 0.4084,
+      "totalUsd": 4.5558
+    },
+    {
+      "round": 13,
+      "answered": "glm:DISPUTE@91 grokA:DISPUTE@91 grokB:DISPUTE@91 dspro:DISPUTE@95",
+      "failed": "ox",
+      "spentUsdRound": 0.3088,
+      "totalUsd": 4.8646
+    },
+    {
+      "round": 14,
+      "answered": "glm:DISPUTE@93 grokA:DISPUTE@90 grokB:DISPUTE@90 dspro:DISPUTE@95 ox:CONSENSUS@88",
+      "failed": null,
+      "spentUsdRound": 0.3937,
+      "totalUsd": 5.2583
+    },
+    {
+      "round": 15,
+      "answered": "glm:DISPUTE@90 grokA:CONSENSUS@91 dspro:CONSENSUS@95",
+      "failed": "grokB,ox",
+      "spentUsdRound": 0.1689,
+      "totalUsd": 5.4272
+    }
+  ]
+}

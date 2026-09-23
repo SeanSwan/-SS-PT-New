@@ -109,8 +109,28 @@ Missing, and each independently exploitable:
   (`:91`), then calls `fetch` (`:127`), which **re-resolves independently** — so the validated
   address is not necessarily the connected one. The module's own comment says so
   (*"a check-time validation only, NOT a complete DNS-rebinding defence"*). A valid publisher HMAC
-  authenticates the **sender**, not the remote image server it names. **DNS rebinding remains an
+  authenticates the **sender**, not the remote image server it names. **DNS rebinding remained an
   open, accepted residual risk, not a closed one.**
+
+  **Corrected again 2026-09-21 — now CLOSED at the connect boundary.** The residual above was
+  documented but not fixed. It is now fixed: `resolveAndValidate` in
+  `backend/services/spotlightImageUrlPolicy.mjs` **returns the addresses it approved** instead of
+  discarding them (discarding them was the defect — the fetch had no choice but to resolve again),
+  and `createPinnedDispatcher` builds an `undici.Agent` whose `connect.lookup` answers from that
+  fixed set. `spotlightImageFetch.mjs` passes that dispatcher to its `fetch` call, so the socket can
+  only go where the check looked. **The re-resolution path no longer exists.**
+  - **Honest caveats, stated rather than glossed.** (1) A pinned `connect.lookup` is consulted only
+    when the transport must resolve a NAME. An **IP-literal** host (`https://10.0.0.1/`) short-circuits
+    the resolver and never reaches the pin — the literal case is closed by **admission** instead
+    (`resolveAndValidate` validates a literal directly against the same private-range table, before a
+    dispatcher is built), and a test asserts both halves of that asymmetry. (2) The pin makes the
+    *first* hop honest; not following redirects at all (`redirect: 'error'` above) is what keeps the
+    connected host the validated host, so the two controls are complementary and neither is a defence
+    on its own. (3) The 3 s `DNS_LOOKUP_TIMEOUT_MS` pre-flight bound applies to the pinned setup too.
+  - Evidence: `backend/tests/unit/spotlightImageDnsPin.test.mjs` (18 tests). Four mutations were run
+    against it; the first — removing the `dispatcher` from the fetch call — **passed all 15 tests
+    that existed at the time**, proving that constructing a pin is not the same as wiring one. The
+    suite now asserts the call itself, and that mutation turns 2 tests RED.
 - **A streamed byte cap** ✅ — 5 MiB, enforced *while* reading; the reader is cancelled mid-stream. A
   declared `Content-Length` is treated as a claim, used only as an early exit.
 - **Reject SVG, polyglots, and animation** ✅ — by decoder inspection, not by content-type prefix. The
@@ -140,7 +160,7 @@ succeeding.** Adding a control must not turn an image failure into a 4xx/5xx on 
 | Existing file/surface | Authorized edit |
 |---|---|
 | `backend/core/middleware/index.mjs` | Preserve bridge raw-body exclusion; add only verified new mounts |
-| `backend/routes/bridge/bridgeIngestRoutes.mjs` | Extract shared application service without changing shipped HTTP contract. **The `rehostImage()` SSRF controls above are DONE** — the function now delegates to `spotlightImageFetch.mjs`. See `CORRECTIONS-APPLIED.md` §4. **Scoped 2026-09-20 (hostile review D4 / F08): "DONE" covers redirect rejection, the HTTPS-only rule, the streamed byte cap and SVG rejection. It does NOT cover DNS rebinding, which remains an open accepted residual risk.** |
+| `backend/routes/bridge/bridgeIngestRoutes.mjs` | Extract shared application service without changing shipped HTTP contract. **The `rehostImage()` SSRF controls above are DONE** — the function now delegates to `spotlightImageFetch.mjs`. See `CORRECTIONS-APPLIED.md` §4. **Scoped 2026-09-20 (hostile review D4 / F08): "DONE" covers redirect rejection, the HTTPS-only rule, the streamed byte cap and SVG rejection. It does NOT cover DNS rebinding, which remains an open accepted residual risk.** **Updated 2026-09-21: DNS rebinding is now closed at the connect boundary too** (pinned `connect.lookup` over the validated addresses) — so "DONE" now covers it, subject to the IP-literal and redirect caveats recorded above. |
 | `backend/routes/social/coachSignalRoutes.mjs` | Transactional quota and verified target handling; **no `sessionId`**. `postId` stays **nullable** — correction 3 superseded, see `05-slices.md` |
 | `frontend/src/components/Social/Spotlight/SpotlightRail.tsx` | Visibility/dismissal event adapter; no publisher details |
 | `apps/api/src/featureDispatchOwnerOperator.ts` | Prefix dispatch following verified owner pattern |

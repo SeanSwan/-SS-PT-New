@@ -1,0 +1,23 @@
+**[PLAN]**
+
+- No implementation, staging, commit, push or deployment during this review task.
+- No transcript-engine, console, backend, database, billing or account-preference changes.
+- No theme removal, reordering, palette repaint or global token-contract reduction.
+- No widening contrast ledgers or recorded coercion sets to obtain green tests.
+- No assumption that two storage writes or reads are atomic.
+- No event-payload authority, peer echo writes, polling or automatic save retries.
+- No storage cleanup or compensating rollback writes.
+- No replacement bootstrap, SSR migration or hydration project.
+- No new dependency installation without Sean’s recorded decision and measured justification.
+- No treating the no-install recommendation as Sean’s answer.
+- No new styling/chart framework; styled-components and existing Victory conventions remain.
+- No banned Galaxy colours or raw component palette literals beyond approved token fallbacks.
+- No permanent lens animation, global colour tween, text-on-canvas or decorative pointer tracking.
+- No scene dependency for choosing, saving or understanding a theme.
+- No unchecked CSS grammar silently treated as “no measured colour.”
+- No mocked callback result presented as mounted-browser proof.
+- No browser configuration that starts the production-connected backend.
+- No source-string assertion presented as proof of paint or event delivery.
+- No self-granted line-cap exemption.
+- No resetting workflow counters, rewriting filed findings or claiming archive completion without a record.
+- No unrelated cleanup while executing these slices.

@@ -1,0 +1,76 @@
+erDiagram
+  USER ||--o{ PAIN_EPISODE : owns
+  PAIN_EPISODE ||--o{ PAIN_OBSERVATION : records
+  PAIN_EPISODE ||--o{ PAIN_REVIEW : receives
+  PAIN_OBSERVATION ||--o| MUTATION_RECEIPT : deduplicated_by
+  USER ||--o{ WORKOUT_SESSION : performs
+  WORKOUT_SESSION ||--o{ CANONICAL_SET : contains
+  EXERCISE o|--o{ CANONICAL_SET : identifies_when_known
+  EXERCISE ||--o{ EXERCISE_MUSCLE_MAPPING : maps
+  MUSCLE_GROUP ||--o{ EXERCISE_MUSCLE_MAPPING : receives
+  MUSCLE_GROUP ||--o{ ATLAS_GROUP_MAPPING : visualized_by
+  ATLAS_CATALOG ||--o{ ATLAS_GROUP_MAPPING : versions
+  USER ||--o{ RECOVERY_PROJECTION : derived_for
+  PAIN_EPISODE {
+    int id
+    int userId
+    string bodyRegion
+    string side
+    int revision
+    json anatomyLocation
+  }
+  PAIN_OBSERVATION {
+    uuid id
+    int episodeId
+    string eventKind
+    datetime reportedAt
+    datetime receivedAt
+  }
+  WORKOUT_SESSION {
+    uuid id
+    int userId
+    string status
+    datetime date
+  }
+  CANONICAL_SET {
+    string sourceSetId
+    uuid workoutSessionId
+    uuid exerciseId_nullable
+  }
+  RECOVERY_PROJECTION {
+    string sourceRevision
+    string mappingVersion
+    string modelVersion
+    string calibrationVersion_nullable
+    datetime asOf
+  }
+
+  USER ||--o{ BODY_MEASUREMENT : records
+  USER ||--o{ BODY_DISPLAY_PREFERENCE : chooses
+  USER ||--o{ MORPH_PROJECTION : derived_for
+  ATLAS_CATALOG ||--o{ MORPH_PROJECTION : parameterizes
+  BODY_MEASUREMENT {
+    int id
+    int userId
+    datetime measurementDate
+    decimal weight
+    string weightUnit
+    decimal bodyFatPercentage
+    string circumferenceUnit
+  }
+  BODY_DISPLAY_PREFERENCE {
+    int userId
+    string shapeMode
+    string variantId
+    string appearancePresetId
+    string assetVersion
+    int preferenceRevision
+    json visualAdjustments
+  }
+  MORPH_PROJECTION {
+    string sourceRevision
+    string inputVersion
+    string morphVersion
+    datetime asOf
+    json provenance
+  }

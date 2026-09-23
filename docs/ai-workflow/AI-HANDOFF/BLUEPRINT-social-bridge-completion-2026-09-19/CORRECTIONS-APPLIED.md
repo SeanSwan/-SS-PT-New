@@ -150,6 +150,14 @@ Controls implemented, and the reason each is the right shape:
   code was honest and this document was not. **DNS rebinding is an open, accepted residual risk**
   (accepted because the path is HMAC-gated, which authenticates the sender, **not** the remote image
   server).
+  **Corrected again 2026-09-21 — the residual is now CLOSED, not accepted.** `resolveAndValidate`
+  returns the addresses it approved (previously it discarded them, which is what forced the fetch to
+  resolve a second time), and `createPinnedDispatcher` pins them into the connection through an
+  `undici.Agent`'s `connect.lookup`; `spotlightImageFetch.mjs` passes that dispatcher. The
+  re-resolution path is gone. Two honest limits remain, and neither is hidden: an **IP-literal host
+  never consults the pin** (there is no name to resolve) and is stopped by admission instead, and the
+  pin only makes the first hop honest — `redirect: 'error'` is what prevents a second hop existing.
+  Coverage: `backend/tests/unit/spotlightImageDnsPin.test.mjs`.
 - **HTTPS only** — the `http:` branch is gone.
 - **Credentials in the URL rejected** — `https://allowed@evil.com` would otherwise read as `evil.com`.
 - **DNS-resolved private-range rejection for IPv4 *and* IPv6**, failing closed when resolution fails,

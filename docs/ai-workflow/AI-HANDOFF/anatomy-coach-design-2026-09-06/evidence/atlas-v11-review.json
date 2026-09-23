@@ -1,0 +1,51 @@
+{
+  "version": "1.1",
+  "observedAt": "2026-09-06T23:32:22.569Z",
+  "scope": "Canonical planning revision only",
+  "sourceHead": "a89cbf0f080644877ae8a45729d3f0a59d4cb8b8",
+  "preservation": {
+    "completeV10": {
+      "files": 49,
+      "allLiveMatchedBeforeRevision": true,
+      "manifestSha256": "47e6a757cf39667f5af003d7820aa616c8f0e282e5af1cc17be735a88b5156ea"
+    },
+    "portableBeforeV11": {
+      "discovered": 15,
+      "restoreSamples": 2,
+      "status": "PASS",
+      "manifestSha256": "5d61b638062eeff817eb9d410680cc4329c9d6d2af398b3b6d14a2878b3901ba"
+    },
+    "nativeHook": "UNOBSERVED"
+  },
+  "syntax": {
+    "files": 10,
+    "status": "PASS"
+  },
+  "skills": [
+    {
+      "skill": "swan-pain-atlas",
+      "exitCode": 0,
+      "output": "Skill is valid!",
+      "installed": false
+    },
+    {
+      "skill": "detailed-interactive-design",
+      "exitCode": 0,
+      "output": "Skill is valid!",
+      "installed": false
+    }
+  ],
+  "referencePort": "NOT IMPLEMENTED",
+  "profileData": "Model/route/service source inspected read-only; no client database read",
+  "sources": "evidence/source-manifest.json + personalization-source-manifest.json",
+  "baseline": "Prior application baselines retained; no rerun justified for documentation-only revision",
+  "newAcceptance": {
+    "P09": "T26 source fidelity",
+    "D04": "T27 actual agent invocation",
+    "P10": "T28 custom anatomy assets",
+    "P11": "T29 profile-driven body"
+  },
+  "futureAcceptance": "NOT RUN",
+  "applicationMutations": false,
+  "visualEvidence": "evidence/visual-review.json"
+}

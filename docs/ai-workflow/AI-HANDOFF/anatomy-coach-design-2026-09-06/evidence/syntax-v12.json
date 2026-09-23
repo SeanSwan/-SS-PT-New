@@ -1,0 +1,55 @@
+{
+  "kind": "Syntax only; future application tests NOT RUN",
+  "checks": [
+    {
+      "path": "acceptance/api-contract.test.mjs",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "path": "acceptance/atlas-port-contract.test.mjs",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "path": "acceptance/build-receipt.mjs",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "path": "acceptance/capture-evidence.mjs",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "path": "acceptance/model-conformance.test.mjs",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "path": "acceptance/playwright.config.cjs",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "path": "acceptance/serve-review.mjs",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "path": "acceptance/ui.spec.cjs",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "path": "acceptance/verify-packet.mjs",
+      "status": "PASS",
+      "exitCode": 0
+    },
+    {
+      "path": "review.js",
+      "status": "PASS",
+      "exitCode": 0
+    }
+  ]
+}

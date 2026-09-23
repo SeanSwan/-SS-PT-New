@@ -1,0 +1,47 @@
+[
+  {
+    "file": "review.js",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "file": "acceptance\\api-contract.test.mjs",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "file": "acceptance\\build-receipt.mjs",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "file": "acceptance\\capture-evidence.mjs",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "file": "acceptance\\model-conformance.test.mjs",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "file": "acceptance\\playwright.config.cjs",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "file": "acceptance\\serve-review.mjs",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "file": "acceptance\\ui.spec.cjs",
+    "exitCode": 0,
+    "output": ""
+  },
+  {
+    "file": "acceptance\\verify-packet.mjs",
+    "exitCode": 0,
+    "output": ""
+  }
+]

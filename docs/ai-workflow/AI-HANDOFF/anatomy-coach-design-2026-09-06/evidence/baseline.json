@@ -1,0 +1,67 @@
+{
+  "observedAt": "2026-09-06T22:27:50.805Z",
+  "repository": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT",
+  "branch": "wip/comms-notifications-2026-07-05",
+  "head": "a89cbf0f080644877ae8a45729d3f0a59d4cb8b8",
+  "initialStatusEntries": 804,
+  "currentStatusEntries": 807,
+  "applicationWritesByThisTask": 0,
+  "authorization": "Planning, read-only audit, wireframes, acceptance specifications and reusable packaged skill only",
+  "tests": [
+    {
+      "id": "B01",
+      "status": "FAIL",
+      "passed": 808,
+      "failed": 2,
+      "files": 131,
+      "exitCode": 1,
+      "log": "frontend-baseline.log"
+    },
+    {
+      "id": "B02",
+      "status": "PASS",
+      "passed": 5,
+      "failed": 0,
+      "files": 2,
+      "exitCode": 0,
+      "log": "backend-baseline.log"
+    },
+    {
+      "id": "B03",
+      "status": "PASS",
+      "passed": 39,
+      "failed": 0,
+      "exitCode": 0,
+      "log": "design-brain-baseline.log"
+    }
+  ],
+  "liveAudit": {
+    "actualViewport": [
+      2195,
+      1097
+    ],
+    "coachComposerTop": 1139.6,
+    "coachComposerBottom": 1191.6,
+    "deploymentSha": "UNKNOWN",
+    "roleJourneys": "Admin observed read-only; real client/trainer acceptance NOT RUN",
+    "requestedViewportOverrides": "414x896,2560x1440,3840x2160 ineffective; not verified"
+  },
+  "skill": {
+    "path": "swan-pain-atlas/SKILL.md",
+    "status": "Packaged and quick_validate passed; not installed globally or promoted into Design Brain"
+  },
+  "preservation": {
+    "manifest": ".ai-workflow/vault/anatomy-coach-planning-20260906/manifest.json",
+    "sha256": "8e1b2cda80369c65f0fbcaebe65a19181ae5220b043a269e26c86bd9a52b9c6a",
+    "verifiedFiles": 243,
+    "restoreSamples": 2,
+    "nativeHook": "UNOBSERVED"
+  },
+  "externalSpend": 0,
+  "sourceFilesHashed": 52,
+  "limitations": [
+    "Source checks are not DB runtime proof",
+    "No application implementation/deployment acceptance",
+    "No clinical calibration or physical-device GPU test"
+  ]
+}

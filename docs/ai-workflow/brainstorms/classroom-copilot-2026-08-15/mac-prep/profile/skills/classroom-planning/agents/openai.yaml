@@ -1,0 +1,5 @@
+interface:
+  display_name: "Classroom Planning"
+  short_description: "Create safe public or synthetic toddler plans"
+  default_prompt: "Use $classroom-planning to prepare one safe two-year-old daily activity card."
+

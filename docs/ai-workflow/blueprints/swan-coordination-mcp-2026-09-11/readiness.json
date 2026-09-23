@@ -1,0 +1,628 @@
+{
+  "schemaVersion": 1,
+  "phase": "plan",
+  "ui": false,
+  "blockers": [],
+  "nextSlice": "S1 - server core + registry + security shell (builder Luna-class or verified alternative; per-slice review route glm-5.3 -> glm-5.3-flash -> gpt-6-astra)",
+  "sections": {
+    "baseline": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "README.md",
+          "sha256": "9256a96d0a71163632b98f61761d96b4e6eec22607d01ac96b3d57baef663510"
+        }
+      ]
+    },
+    "requirements": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "01-requirements.md",
+          "sha256": "8d124c04a83165942927ea638b9579594dd9a761fb0d5c818bae400f3cddb8d8"
+        }
+      ]
+    },
+    "blueprint": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "02-architecture.md",
+          "sha256": "f582d679f845c856531b47c0be272b67b62e473f1f94ddd79e79c3e256e96832"
+        }
+      ]
+    },
+    "flowchart": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "04-diagrams.md",
+          "sha256": "29ffba5bb445ced07c511864fe586dc61cb9c3c0e0695f9affed12e8d4f57129"
+        }
+      ]
+    },
+    "wireframes": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "05-wireframes-headless.md",
+          "sha256": "e1614cb1979e4724dedb5b67d61ded5412232e8e14b48f217afb60281d1e7912"
+        }
+      ]
+    },
+    "contracts": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "03-contracts.md",
+          "sha256": "a1b4a7ae5c26e6bca4e76777c6a1c33cd8f0b3b38849d33ed7da22e18f6e9279"
+        }
+      ]
+    },
+    "state": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "03-contracts.md",
+          "sha256": "a1b4a7ae5c26e6bca4e76777c6a1c33cd8f0b3b38849d33ed7da22e18f6e9279"
+        }
+      ]
+    },
+    "sequence": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "04-diagrams.md",
+          "sha256": "29ffba5bb445ced07c511864fe586dc61cb9c3c0e0695f9affed12e8d4f57129"
+        }
+      ]
+    },
+    "erd": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "03-contracts.md",
+          "sha256": "a1b4a7ae5c26e6bca4e76777c6a1c33cd8f0b3b38849d33ed7da22e18f6e9279"
+        }
+      ]
+    },
+    "permissions": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "03-contracts.md",
+          "sha256": "a1b4a7ae5c26e6bca4e76777c6a1c33cd8f0b3b38849d33ed7da22e18f6e9279"
+        }
+      ]
+    },
+    "privacy": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "02-architecture.md",
+          "sha256": "f582d679f845c856531b47c0be272b67b62e473f1f94ddd79e79c3e256e96832"
+        }
+      ]
+    },
+    "tests": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "58700b0a54b51a2b00d733b96372ab0986a140544274b17586cd8ec71ab04a69"
+        }
+      ]
+    },
+    "traceability": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "06-test-plan.md",
+          "sha256": "58700b0a54b51a2b00d733b96372ab0986a140544274b17586cd8ec71ab04a69"
+        }
+      ]
+    },
+    "slices": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "07-slices-operations.md",
+          "sha256": "41137d1b01fd29429cd31f8ab6a5109b144e848696b2a9eae205d1e01dac736f"
+        }
+      ]
+    },
+    "review": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "08-hostile-review.md",
+          "sha256": "dc309011c38a97191bbb73a87a58f77b2611c1d597be8d2bb8132f56d849d525"
+        }
+      ]
+    },
+    "preservation": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "README.md",
+          "sha256": "9256a96d0a71163632b98f61761d96b4e6eec22607d01ac96b3d57baef663510"
+        }
+      ]
+    },
+    "operations": {
+      "status": "COMPLETE",
+      "evidence": [
+        {
+          "path": "07-slices-operations.md",
+          "sha256": "41137d1b01fd29429cd31f8ab6a5109b144e848696b2a9eae205d1e01dac736f"
+        }
+      ]
+    }
+  },
+  "requirements": [
+    {
+      "id": "R1",
+      "acceptance": "Two seats register and each observes the other in who_is_active within 2s; no-heartbeat seats report stale",
+      "tests": [
+        "T-R1-01",
+        "T-R1-02"
+      ]
+    },
+    {
+      "id": "R2",
+      "acceptance": "Parallel claims on one path grant exactly one; conflicts deny with holder identity; path normalization incl. Windows case",
+      "tests": [
+        "T-R2-01",
+        "T-R2-02",
+        "T-R2-03"
+      ]
+    },
+    {
+      "id": "R3",
+      "acceptance": "Dead-holder claims reaped by PID probe; TTL backstop; operator force-release audited",
+      "tests": [
+        "T-R3-01",
+        "T-R3-02",
+        "T-R3-03",
+        "T-R3-04"
+      ]
+    },
+    {
+      "id": "R4",
+      "acceptance": "Cross-seat activity feed ordered with identity; 2KB cap; 30/min rate limit",
+      "tests": [
+        "T-R4-01",
+        "T-R4-02"
+      ]
+    },
+    {
+      "id": "R5",
+      "acceptance": "Review request appends idempotent house-format block to review-queue.md; verdicts tracked",
+      "tests": [
+        "T-R5-01",
+        "T-R5-02",
+        "T-R5-03"
+      ]
+    },
+    {
+      "id": "R6",
+      "acceptance": "coord_ask enforces Rule 16 double gate, one-in-flight, caps, redact-egress reuse, DeepSeek counter",
+      "tests": [
+        "T-R6-01",
+        "T-R6-02",
+        "T-R6-03",
+        "T-R6-04",
+        "T-R6-05"
+      ]
+    },
+    {
+      "id": "R7",
+      "acceptance": "Server projects presence/claims to lane-format file with no token leakage",
+      "tests": [
+        "T-R7-01"
+      ]
+    },
+    {
+      "id": "R8",
+      "acceptance": "Server-down degrade to file-lane rules with WAL resume; kill switch refuses start",
+      "tests": [
+        "T-R8-01",
+        "T-R8-02"
+      ]
+    },
+    {
+      "id": "R9",
+      "acceptance": "Loopback-only bind, per-seat bearer auth, fail-closed placeholder config, payload secret scan",
+      "tests": [
+        "T-R9-01",
+        "T-R9-02",
+        "T-R9-03",
+        "T-R9-04"
+      ]
+    },
+    {
+      "id": "R10",
+      "acceptance": "Every record round-trips agent_id+model+harness provenance",
+      "tests": [
+        "T-R10-01"
+      ]
+    },
+    {
+      "id": "R11",
+      "acceptance": "Status CLI, metrics, 30-day retention prune, 5MB log rotation",
+      "tests": [
+        "T-R11-01",
+        "T-R11-02"
+      ]
+    },
+    {
+      "id": "R12",
+      "acceptance": "Runs on fixture worktree; zero writes outside allowed dirs; zero production coupling",
+      "tests": [
+        "T-R12-01"
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-R1-01",
+      "requirements": [
+        "R1"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R1-02",
+      "requirements": [
+        "R1"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R2-01",
+      "requirements": [
+        "R2"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R2-02",
+      "requirements": [
+        "R2"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R2-03",
+      "requirements": [
+        "R2"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R3-01",
+      "requirements": [
+        "R3"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R3-02",
+      "requirements": [
+        "R3"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R3-03",
+      "requirements": [
+        "R3"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R3-04",
+      "requirements": [
+        "R3"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R4-01",
+      "requirements": [
+        "R4"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R4-02",
+      "requirements": [
+        "R4"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R5-01",
+      "requirements": [
+        "R5"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R5-02",
+      "requirements": [
+        "R5"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R5-03",
+      "requirements": [
+        "R5"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R6-01",
+      "requirements": [
+        "R6"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R6-02",
+      "requirements": [
+        "R6"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R6-03",
+      "requirements": [
+        "R6"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R6-04",
+      "requirements": [
+        "R6"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R6-05",
+      "requirements": [
+        "R6"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R7-01",
+      "requirements": [
+        "R7"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R8-01",
+      "requirements": [
+        "R8"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R8-02",
+      "requirements": [
+        "R8"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R9-01",
+      "requirements": [
+        "R9"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R9-02",
+      "requirements": [
+        "R9"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R9-03",
+      "requirements": [
+        "R9"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R9-04",
+      "requirements": [
+        "R9"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R10-01",
+      "requirements": [
+        "R10"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R11-01",
+      "requirements": [
+        "R11"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R11-02",
+      "requirements": [
+        "R11"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    },
+    {
+      "id": "T-R12-01",
+      "requirements": [
+        "R12"
+      ],
+      "command": "node --test scripts/swan-coordination/",
+      "status": "NOT RUN",
+      "reason": "plan-phase specification (06-test-plan.md): builder proves behavioral RED per slice, then GREEN; import-error RED is invalid per packet §06",
+      "evidence": [
+        "06-test-plan.md"
+      ]
+    }
+  ]
+}

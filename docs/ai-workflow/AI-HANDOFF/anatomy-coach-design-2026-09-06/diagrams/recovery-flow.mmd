@@ -1,0 +1,22 @@
+flowchart TD
+  A["Committed workout save, edit, delete or import"] --> B["Invalidate source revision after commit"]
+  B --> C["Authorize target and read canonical completed sets"]
+  C --> D["Dedupe source identities"]
+  D --> E["Resolve reviewed exercise and muscle mapping"]
+  E --> F{"Enough supported data?"}
+  F -- No --> G["Partial or unknown; retain observed facts"]
+  F -- Yes --> H["Observed recent-load projection"]
+  H --> I{"Reviewed calibration profile enabled?"}
+  I -- No --> J["Show recent load; estimate unavailable"]
+  I -- Yes --> K["Versioned estimate and coverage"]
+  G --> L["Merge independent reported-pain badges"]
+  J --> L
+  K --> L
+  L --> M["Atlas, private charts, workout locker, Coach"]
+  M --> N["Evidence drill-down or draft plan change"]
+  N --> O{"Explicit current confirmation?"}
+  O -- No --> P["Explain or defer; no write"]
+  O -- Yes --> Q["Existing scoped command service"]
+  C --> R["Read error or stale source"]
+  R --> S["Unavailable / stale, never all fresh"]
+  S --> C

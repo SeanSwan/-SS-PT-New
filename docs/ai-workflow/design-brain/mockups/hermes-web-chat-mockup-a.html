@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hermes — Chat (Mockup A)</title>
+<style>
+  /* ── Codex-restraint palette: near-monochrome, ONE accent, no decoration ──
+     Deliberately NOT the Crystalline Swan palette. Sean chose "restrained and
+     neutral" over house style for a tool he stares at for hours. Colour is
+     reserved for STATE (running / needs-approval / error), never chrome.     */
+  :root{
+    --bg:            #0d0e10;
+    --bg-rail:       #101114;
+    --bg-elev:       #16181c;
+    --line:          #22252b;
+    --line-soft:     #1a1d22;
+    --ink:           #e7e9ee;   /* primary text            */
+    --ink-2:         #a3a8b3;   /* secondary               */
+    --ink-3:         #6b7280;   /* tertiary / metadata     */
+    --accent:        #7aa2f7;   /* the ONE accent          */
+    --ok:            #7bc47f;
+    --warn:          #d9a441;
+    --err:           #e06c75;
+    --radius:        7px;
+    --mono: ui-monospace,"SF Mono","JetBrains Mono","Fira Code",Menlo,monospace;
+    --sans: -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:15px/1.65 var(--sans);
+    -webkit-font-smoothing:antialiased;
+    display:grid; grid-template-columns:236px 1fr 268px; height:100vh; overflow:hidden;
+  }
+
+  /* ── LEFT RAIL: sessions ─────────────────────────────────────────────── */
+  .rail{background:var(--bg-rail);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+  .brand{padding:16px 16px 12px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--line-soft)}
+  .brand b{font:600 13px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(123,196,127,.12)}
+  .newchat{margin:12px;padding:8px 11px;border:1px solid var(--line);border-radius:var(--radius);
+    background:transparent;color:var(--ink-2);font:13px var(--sans);text-align:left;cursor:pointer;transition:.12s}
+  .newchat:hover{border-color:#2e333c;color:var(--ink);background:var(--bg-elev)}
+  .grp{padding:14px 16px 6px;font:11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+  .sessions{overflow-y:auto;flex:1;padding-bottom:12px}
+  .s{padding:7px 16px;cursor:pointer;border-left:2px solid transparent}
+  .s:hover{background:var(--bg-elev)}
+  .s.on{background:var(--bg-elev);border-left-color:var(--accent)}
+  .s-t{font:13px/1.4 var(--sans);color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .s.on .s-t{color:var(--ink)}
+  .s-m{font:11px/1.5 var(--sans);color:var(--ink-3)}
+  .railfoot{border-top:1px solid var(--line-soft);padding:11px 16px;font:11px var(--sans);color:var(--ink-3);
+    display:flex;justify-content:space-between;align-items:center}
+
+  /* ── CENTER: conversation. NO BUBBLES — speaker label + prose. ───────── */
+  .main{display:flex;flex-direction:column;overflow:hidden}
+  .top{height:47px;border-bottom:1px solid var(--line);display:flex;align-items:center;
+    justify-content:space-between;padding:0 22px;flex-shrink:0}
+  .top h1{font:500 13px var(--sans);color:var(--ink-2)}
+  .model{font:12px var(--mono);color:var(--ink-3);display:flex;align-items:center;gap:7px}
+  .thread{flex:1;overflow-y:auto;padding:30px 0 20px}
+  .turn{max-width:720px;margin:0 auto 30px;padding:0 22px}
+  .who{font:11px/1 var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);margin-bottom:9px}
+  .turn.me .who{color:var(--accent)}
+  .body p{margin:0 0 12px}
+  .body p:last-child{margin:0}
+  code{font:13px var(--mono);background:var(--bg-elev);border:1px solid var(--line-soft);
+    padding:1.5px 5px;border-radius:4px;color:var(--ink)}
+
+  /* collapsed tool lines — one quiet row each, expandable */
+  .tools{margin:14px 0}
+  .tool{display:flex;align-items:center;gap:9px;padding:5px 0;font:12.5px var(--mono);
+    color:var(--ink-3);cursor:pointer;border-bottom:1px solid transparent}
+  .tool:hover{color:var(--ink-2)}
+  .tool .car{color:var(--ink-3);font-size:9px;width:8px}
+  .tool .nm{color:var(--ink-2)}
+  .tool .meta{margin-left:auto;color:var(--ink-3);font-size:11.5px}
+  .tool.open .car{transform:rotate(90deg)}
+  .toolout{display:none;margin:2px 0 10px 17px;padding:10px 13px;background:var(--bg-elev);
+    border:1px solid var(--line-soft);border-left:2px solid var(--line);border-radius:0 var(--radius) var(--radius) 0;
+    font:12px/1.7 var(--mono);color:var(--ink-2);white-space:pre-wrap}
+  .tool.open + .toolout{display:block}
+
+  /* approval — the one place colour is loud, because it BLOCKS */
+  .appr{margin:14px 0;padding:13px 15px;background:rgba(217,164,65,.055);
+    border:1px solid rgba(217,164,65,.28);border-radius:var(--radius)}
+  .appr .h{font:12px var(--mono);color:var(--warn);margin-bottom:5px}
+  .appr .d{font:13px var(--sans);color:var(--ink-2);margin-bottom:11px}
+  .appr button{font:12px var(--sans);padding:5px 13px;border-radius:5px;cursor:pointer;margin-right:7px;border:1px solid var(--line)}
+  .b-y{background:var(--ink);color:var(--bg);border-color:var(--ink)!important;font-weight:500}
+  .b-n{background:transparent;color:var(--ink-2)}
+
+  pre{background:var(--bg-elev);border:1px solid var(--line-soft);border-radius:var(--radius);
+    padding:13px 15px;overflow-x:auto;font:12.5px/1.7 var(--mono);color:var(--ink-2);margin:12px 0}
+  .k{color:var(--accent)} .st{color:var(--ok)} .cm{color:var(--ink-3)}
+
+  /* composer */
+  .composer{padding:14px 22px 20px;flex-shrink:0}
+  .cbox{max-width:720px;margin:0 auto;border:1px solid var(--line);border-radius:9px;
+    background:var(--bg-rail);padding:11px 14px;transition:border-color .15s}
+  .cbox:focus-within{border-color:#333a46}
+  .cin{font:14px var(--sans);color:var(--ink-3)}
+  .crow{display:flex;align-items:center;justify-content:space-between;margin-top:9px}
+  .hint{font:11px var(--mono);color:var(--ink-3)}
+  .send{width:25px;height:25px;border-radius:5px;background:var(--bg-elev);border:1px solid var(--line);
+    color:var(--ink-3);font-size:11px;display:grid;place-items:center}
+
+  /* ── RIGHT RAIL: activity ────────────────────────────────────────────── */
+  .act{background:var(--bg-rail);border-left:1px solid var(--line);overflow-y:auto;padding:16px 15px}
+  .act h2{font:11px var(--sans);letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);margin:0 0 11px}
+  .act h2:not(:first-child){margin-top:24px}
+  .ev{display:flex;gap:9px;padding:6px 0;font:12px var(--sans);color:var(--ink-2)}
+  .ev .i{width:5px;height:5px;border-radius:50%;margin-top:6px;flex-shrink:0;background:var(--ink-3)}
+  .ev.run .i{background:var(--accent);box-shadow:0 0 0 3px rgba(122,162,247,.14)}
+  .ev.ok .i{background:var(--ok)}
+  .ev .sub{color:var(--ink-3);font-size:11px}
+  .srv{display:flex;justify-content:space-between;padding:5px 0;font:12px var(--sans);color:var(--ink-2)}
+  .srv .n{font-family:var(--mono);font-size:11.5px}
+  .srv .up{color:var(--ok);font-size:10.5px}
+  .srv .off{color:var(--ink-3);font-size:10.5px}
+  .stat{display:flex;justify-content:space-between;padding:4px 0;font:11.5px var(--sans);color:var(--ink-3)}
+  .stat b{color:var(--ink-2);font-weight:500;font-family:var(--mono)}
+</style>
+</head>
+<body>
+
+<!-- ══ SESSIONS ══ -->
+<aside class="rail">
+  <div class="brand"><span class="dot"></span><b>Hermes</b></div>
+  <button class="newchat">＋&nbsp; New chat</button>
+  <div class="sessions">
+    <div class="grp">Today</div>
+    <div class="s on"><div class="s-t">Dashboard Node 22 fix</div><div class="s-m">now · 24 msgs</div></div>
+    <div class="s"><div class="s-t">Morning Ops Briefing</div><div class="s-m">3h · cron</div></div>
+    <div class="s"><div class="s-t">Qwen 3.8 throughput</div><div class="s-m">5h · 12 msgs</div></div>
+    <div class="grp">Earlier</div>
+    <div class="s"><div class="s-t">Hermes Inbox Pattern Report</div><div class="s-m">2d · 45 msgs</div></div>
+    <div class="s"><div class="s-t">H0.5 Hostile-Review Report</div><div class="s-m">6d · 133 msgs</div></div>
+    <div class="s"><div class="s-t">SwanGuard Blueprint Review</div><div class="s-m">10d · 89 msgs</div></div>
+  </div>
+  <div class="railfoot"><span>Gateway</span><span style="color:var(--ok)">running</span></div>
+</aside>
+
+<!-- ══ CONVERSATION ══ -->
+<main class="main">
+  <div class="top">
+    <h1>Dashboard Node 22 fix</h1>
+    <div class="model"><span class="dot" style="background:var(--accent);box-shadow:0 0 0 3px rgba(122,162,247,.13)"></span>hermes-fast-38</div>
+  </div>
+
+  <div class="thread">
+    <div class="turn me">
+      <div class="who">You</div>
+      <div class="body"><p>The dashboard won't start — it says the web UI build failed. Can you figure out why?</p></div>
+    </div>
+
+    <div class="turn">
+      <div class="who">Hermes</div>
+      <div class="body">
+        <div class="tools">
+          <div class="tool"><span class="car">▸</span><span class="nm">read_file</span><span>dashboard-9119.log</span><span class="meta">3 lines</span></div>
+          <div class="toolout">→ Building web UI...
+  ✗ Web UI npm install failed</div>
+          <div class="tool open"><span class="car">▸</span><span class="nm">execute_code</span><span>npm install --workspace web</span><span class="meta">exit 1</span></div>
+          <div class="toolout">npm error code EBADENGINE
+npm error Required: {"node":"&gt;=22.22.0"}
+npm error Actual:   {"node":"v20.20.2"}</div>
+          <div class="tool"><span class="car">▸</span><span class="nm">grep</span><span>engine-strict</span><span class="meta">1 match</span></div>
+          <div class="toolout">.npmrc:2  engine-strict=true</div>
+        </div>
+
+        <p>Found it. The update raised the Node floor to <code>22.22.0</code> and your WSL is on <code>20.20.2</code>. The repo ships <code>engine-strict=true</code>, so it's a hard failure rather than a warning.</p>
+        <p>Your npm is fine — only Node is short. Nothing else on the box pins Node 20, so upgrading is safe:</p>
+        <pre><span class="cm"># NodeSource repo 20.x → 22.x</span>
+<span class="k">sudo</span> sed -i <span class="st">'s|node_20\.x|node_22.x|'</span> \
+  /etc/apt/sources.list.d/nodesource.sources</pre>
+
+        <div class="appr">
+          <div class="h">⚠ approval required · T2 · shell</div>
+          <div class="d">Run the Node upgrade and rebuild the web UI. Modifies system packages.</div>
+          <button class="b-y">Approve once</button><button class="b-n">Deny</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="composer">
+    <div class="cbox">
+      <div class="cin">Ask Hermes…</div>
+      <div class="crow"><span class="hint">⌘↵ send · / commands · @ files</span><span class="send">↑</span></div>
+    </div>
+  </div>
+</main>
+
+<!-- ══ ACTIVITY ══ -->
+<aside class="act">
+  <h2>Activity</h2>
+  <div class="ev run"><span class="i"></span><div>Awaiting approval<div class="sub">shell · node upgrade</div></div></div>
+  <div class="ev ok"><span class="i"></span><div>grep<div class="sub">1 match · 40ms</div></div></div>
+  <div class="ev ok"><span class="i"></span><div>execute_code<div class="sub">exit 1 · 6.2s</div></div></div>
+  <div class="ev ok"><span class="i"></span><div>read_file<div class="sub">3 lines · 12ms</div></div></div>
+
+  <h2>MCP Servers</h2>
+  <div class="srv"><span class="n">swanstudios-operator</span><span class="up">8</span></div>
+  <div class="srv"><span class="n">operator-workflows</span><span class="up">8</span></div>
+  <div class="srv"><span class="n">browser-harness-safe</span><span class="up">13</span></div>
+  <div class="srv"><span class="n">hermes-public-graph</span><span class="up">12</span></div>
+  <div class="srv"><span class="n">moa-policy</span><span class="up">8</span></div>
+  <div class="srv"><span class="n">brain-vault</span><span class="off">off</span></div>
+
+  <h2>Session</h2>
+  <div class="stat"><span>Context</span><b>18.2k / 65k</b></div>
+  <div class="stat"><span>Tools</span><b>24</b></div>
+  <div class="stat"><span>Skills</span><b>128</b></div>
+  <div class="stat"><span>Approvals</span><b>manual</b></div>
+  <div class="stat"><span>Elapsed</span><b>1m 49s</b></div>
+</aside>
+
+<script>
+  document.querySelectorAll('.tool').forEach(t=>t.onclick=()=>t.classList.toggle('open'));
+  document.querySelectorAll('.s').forEach(s=>s.onclick=()=>{
+    document.querySelectorAll('.s').forEach(x=>x.classList.remove('on'));s.classList.add('on');});
+</script>
+</body>
+</html>

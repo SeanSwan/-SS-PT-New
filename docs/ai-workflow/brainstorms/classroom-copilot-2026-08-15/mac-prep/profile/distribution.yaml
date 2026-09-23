@@ -1,0 +1,9 @@
+name: classroom-teacher
+version: 0.1.0
+description: "Private teacher-owned Hermes profile for public and synthetic two-year-old planning"
+author: "Swan Studios"
+license: "Proprietary"
+distribution_owned:
+  - SOUL.md
+  - skills/classroom-planning/
+

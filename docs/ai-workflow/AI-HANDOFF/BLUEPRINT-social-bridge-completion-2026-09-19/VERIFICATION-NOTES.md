@@ -172,7 +172,14 @@ Astra called it an "unverified risk". It is a **present defect**, in `rehostImag
 - **`image/svg+xml` passes `startsWith('image/')`** at `:165`. SVG is executable markup, not a raster
   image; accepting it is an XSS vector wherever it is later served inline. Astra's "reject SVG and
   animation" is confirmed as a required control, not a nicety.
-- No DNS-rebinding defence (validate-then-fetch is a TOCTOU).
+- No DNS-rebinding defence at the time of writing: validate-then-fetch is a TOCTOU.
+  **CLOSED 2026-09-21.** `spotlightImageUrlPolicy.mjs` now RETURNS the validated addresses
+  (`resolveAndValidate`) and pins them into the connection via an `undici.Agent`'s `connect.lookup`
+  (`createPinnedDispatcher`), which `spotlightImageFetch.mjs` passes to its fetch. The validated
+  address is now the connected address, and the finding above is historical. Limits that remain, and
+  are asserted rather than assumed: an IP-literal host never consults the pin (stopped by admission
+  instead), and `redirect: 'error'` is what keeps the connected host the validated host.
+  Evidence: `backend/tests/unit/spotlightImageDnsPin.test.mjs` (18 tests, 4 mutations run).
 
 Mitigating context, stated fairly: this path is reached only through the HMAC-signed bridge, so the
 attacker must hold `SWAN_BRIDGE_SECRET_V1` or be able to influence the publisher's `imageUrl`. That

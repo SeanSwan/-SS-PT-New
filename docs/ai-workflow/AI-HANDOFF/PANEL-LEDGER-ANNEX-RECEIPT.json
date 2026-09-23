@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "panel-ledger-annex-receipt-v1",
+  "receiptId": "plar_r190",
+  "annexPath": "docs/ai-workflow/AI-HANDOFF/PANEL-LEDGER-ANNEX-V1.json",
+  "annexSha256": "d02b4987dc3533952f8b35d5e8b7690cf657108806f2f3d6ea45385c43ace685",
+  "roundCount": 102,
+  "createdAt": "2026-08-30T23:00:00.000Z",
+  "status": "verified-local-staging",
+  "ownerKeyId": null,
+  "algorithm": null,
+  "signature": null
+}

@@ -1,0 +1,7 @@
+{
+  "artifactChecks": "PASS",
+  "files": 69,
+  "diagrams": 9,
+  "errors": [],
+  "limitation": "Links, source hashes and basic inventory only. Mermaid render, application behavior and clinical calibration are separate evidence."
+}

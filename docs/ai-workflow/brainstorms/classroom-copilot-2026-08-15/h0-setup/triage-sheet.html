@@ -1,0 +1,148 @@
+<title>Three Buckets</title>
+
+<style>
+  :root{
+    --paper:#F1F3F1; --sheet:#FFFFFF; --ink:#1C2321; --ink-soft:#4A544F;
+    --ink-faint:#8A928D; --rule:#D8DDD9; --line:#E8ECE9;
+    --must:#B4451F; --should:#9A6B1E; --extra:#5F7A8C;
+    --must-bg:#FBF1EC; --should-bg:#FAF4E8; --extra-bg:#EFF3F5;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){ --paper:#15191A; }
+  }
+  :root[data-theme="dark"]{ --paper:#15191A; }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);font-family:var(--sans);color:var(--ink);
+    -webkit-font-smoothing:antialiased;padding:28px 16px 60px}
+
+  .screen-note{
+    max-width:760px;margin:0 auto 22px;font-size:14.5px;line-height:1.6;color:var(--ink);
+    background:var(--sheet);border:1px solid var(--rule);border-left:4px solid var(--must);
+    border-radius:4px;padding:16px 20px;
+  }
+  .screen-note strong{font-weight:650}
+  .screen-note p{margin:0}
+
+  .sheet{
+    max-width:760px;margin:0 auto;background:var(--sheet);color:var(--ink);
+    border:1px solid var(--rule);border-radius:4px;padding:34px 36px 30px;
+    box-shadow:0 10px 34px -18px rgba(28,35,33,.4);
+  }
+
+  .head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;
+    border-bottom:2.5px solid var(--ink);padding-bottom:12px;margin-bottom:22px}
+  h1{font-family:var(--serif);font-weight:400;font-size:34px;line-height:1;margin:0;
+    letter-spacing:-.01em}
+  .head .sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--ink-faint);margin:6px 0 0}
+  .datebox{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-faint);white-space:nowrap}
+  .datebox .line{display:inline-block;width:130px;border-bottom:1.5px solid var(--ink);
+    margin-left:8px;height:16px}
+
+  .buckets{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+  .bucket{border:1.5px solid;border-radius:4px;padding:12px 13px 8px;min-height:262px;
+    display:flex;flex-direction:column}
+  .bucket.must{border-color:var(--must);background:var(--must-bg)}
+  .bucket.should{border-color:var(--should);background:var(--should-bg)}
+  .bucket.extra{border-color:var(--extra);background:var(--extra-bg)}
+  .bucket h2{font-family:var(--sans);font-size:14px;font-weight:750;letter-spacing:.07em;
+    text-transform:uppercase;margin:0 0 2px}
+  .bucket.must h2{color:var(--must)}
+  .bucket.should h2{color:var(--should)}
+  .bucket.extra h2{color:var(--extra)}
+  .bucket .desc{font-size:10.5px;line-height:1.35;color:var(--ink-soft);margin:0 0 10px;
+    min-height:29px}
+  .lines{flex:1;display:flex;flex-direction:column;gap:0}
+  .lines span{flex:1;border-bottom:1px solid var(--line);min-height:22px}
+
+  .strip{border:1.5px solid var(--rule);border-radius:4px;padding:11px 13px 7px;margin-bottom:14px}
+  .strip h3{font-family:var(--sans);font-size:12px;font-weight:750;letter-spacing:.07em;
+    text-transform:uppercase;margin:0 0 1px;color:var(--ink)}
+  .strip .desc{font-size:10.5px;color:var(--ink-soft);margin:0 0 8px}
+  .strip .lines{min-height:64px}
+  .strip.done{border-color:var(--ink);border-width:2px}
+  .strip.done h3{font-size:13px}
+
+  .foot{border-top:1.5px solid var(--ink);margin-top:18px;padding-top:11px;
+    display:flex;justify-content:space-between;gap:18px;align-items:center}
+  .rulebox{font-family:var(--serif);font-style:italic;font-size:13.5px;color:var(--ink);
+    line-height:1.4;margin:0}
+  .foot .tag{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-faint);white-space:nowrap;text-align:right;line-height:1.5}
+
+  @media (max-width:640px){
+    .buckets{grid-template-columns:1fr}
+    .bucket{min-height:150px}
+    .sheet{padding:24px 20px}
+    .head{flex-direction:column;align-items:flex-start;gap:8px}
+  }
+
+  @media print{
+    @page{size:auto;margin:11mm}
+    body{background:#fff;padding:0}
+    .screen-note{display:none}
+    .sheet{max-width:none;margin:0;border:none;border-radius:0;box-shadow:none;padding:0}
+    .bucket,.strip,.head,.foot{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .bucket{min-height:auto;height:255px}
+    .strip .lines{min-height:58px}
+    h1{font-size:31px}
+  }
+</style>
+
+<div class="screen-note">
+  <p><strong>Print this.</strong> Two copies — one to write on, one to laminate for a dry-erase
+  marker. It prints to a single page and the colours are set to survive the printer.
+  The three buckets are the part that matters; everything else on the sheet serves them.</p>
+</div>
+
+<div class="sheet">
+
+  <div class="head">
+    <div>
+      <h1>Three Buckets</h1>
+      <p class="sub">Extras never come before the must list</p>
+    </div>
+    <div class="datebox">Day<span class="line"></span></div>
+  </div>
+
+  <div class="buckets">
+    <div class="bucket must">
+      <h2>🔴 Must</h2>
+      <p class="desc">Safety, the children, families, curriculum, admin — or it's needed tomorrow.</p>
+      <div class="lines"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+    <div class="bucket should">
+      <h2>🟡 Should</h2>
+      <p class="desc">Important — but nothing bad happens if it moves a day or two.</p>
+      <div class="lines"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+    <div class="bucket extra">
+      <h2>🟢 Extra</h2>
+      <p class="desc">Cute, fun, lovely if there's time. Never before the red list is done.</p>
+      <div class="lines"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <div class="strip">
+    <h3>Parking lot</h3>
+    <p class="desc">Every "ooh, we should do that!" — putting it here means you don't owe it anything today.</p>
+    <div class="lines"><span></span><span></span><span></span></div>
+  </div>
+
+  <div class="strip done">
+    <h3>Done today</h3>
+    <p class="desc">Fill this in. On the days it feels like nothing got accomplished, this is the evidence.</p>
+    <div class="lines"><span></span><span></span><span></span></div>
+  </div>
+
+  <div class="foot">
+    <p class="rulebox">Functional first. Cute second.</p>
+    <p class="tag">Dump the rest into<br>the assistant tonight</p>
+  </div>
+
+</div>

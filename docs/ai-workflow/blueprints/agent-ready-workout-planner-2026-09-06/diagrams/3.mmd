@@ -1,0 +1,34 @@
+sequenceDiagram
+  actor H as Human
+  participant E as Personal agent
+  participant G as Swan gateway
+  participant P as Policy and proposal service
+  participant W as Existing plan writer
+  participant DB as PostgreSQL
+  H->>G: Sign in and consent to selected capabilities
+  G-->>E: Audience-bound authorization result
+  E->>G: Request minimized training context
+  G->>P: Check grant and current target access
+  alt Missing or revoked authority
+    P-->>E: Denied without private details
+  else Allowed
+    P-->>E: Typed context and snapshot reference
+    E->>G: Propose candidate with request ID and revision
+    G->>P: Validate and deduplicate
+    P-->>H: Review exact candidate and violations
+    alt Human cancels or defers
+      H->>P: Cancel or retain draft
+    else Human approves
+      H->>P: Bound approval proof
+      P->>DB: Begin transaction and check current authority
+      P->>W: Apply with expected revision and same transaction
+      W->>DB: Persist plan and proposal outcome
+      DB-->>P: Commit outcome
+      alt Commit known
+        P->>DB: Read back semantic result
+        P-->>H: Verified or saved-checking receipt
+      else Response uncertain
+        P-->>H: Check same proposal without saving again
+      end
+    end
+  end

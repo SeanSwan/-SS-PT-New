@@ -1,0 +1,26 @@
+flowchart LR
+  subgraph Public["Public, cacheable assets"]
+    Catalog["Licensed catalog and geometry"]
+  end
+  subgraph Private["Authenticated Swan boundary"]
+    UI["Role-scoped UI and memory-only draft"]
+    Auth["Self / assignment / admin check"]
+    DB["Pain and workout facts"]
+    Projection["Recovery projection and evidence"]
+    Confirm["Existing confirmed command service"]
+  end
+  subgraph Provider["Existing permitted Coach boundary"]
+    Filter["Consent and minimum structured context"]
+    AI["Coach explanation / draft proposal"]
+  end
+  Catalog --> UI
+  UI --> Auth
+  Auth --> DB
+  DB --> Projection
+  Projection --> UI
+  UI --> Filter
+  Filter --> AI
+  AI --> UI
+  UI -- "Explicit existing confirmation" --> Confirm
+  Confirm --> Auth
+  UI -. "No health payload to public asset URLs" .-> Catalog

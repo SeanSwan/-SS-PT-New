@@ -1,0 +1,74 @@
+<!doctype html>
+<!-- SWAN-CHART-V3 visual study; owner lead Codex; 2026-09-04. Synthetic only.
+     Static documentation, NOT an app implementation. Runtime behavior lives in the linked spec. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark"><title>Sapphire Ledger — chart experience design study</title>
+  <link rel="stylesheet" href="preview.css">
+</head>
+<body>
+<div class="study-banner">SWANSTUDIOS DESIGN STUDY <span>Synthetic examples · planning only · not live client data</span></div>
+<div class="layout">
+  <aside class="nav" aria-label="Illustrated dashboard navigation">
+    <div class="wordmark">SWAN<span>STUDIOS</span></div>
+    <div class="nav-label">YOUR TRAINING</div>
+    <div class="nav-item">Overview</div><div class="nav-item">Workouts</div>
+    <div class="nav-item active">Progress <span>↗</span></div><div class="nav-item">Schedule</div>
+    <div class="nav-item">Community</div>
+    <div class="nav-note">A clearer view<br>of the work you put in.<div class="tiny-rule"></div><small>CLIENT EXPERIENCE / V3</small></div>
+  </aside>
+  <main>
+    <header class="page-head"><div><div class="eyebrow">THE WORK. THE EVIDENCE.</div><h1>Your progress</h1>
+      <p class="intro">Small steps. <em>Visible progress.</em></p></div><span class="primary control">＋ &nbsp; Log workout</span></header>
+    <div class="toolbar"><div class="tabs"><span class="selected control">Overview</span><a class="control" href="#library">All charts <small>15</small></a></div>
+      <div class="freshness"><span class="status-dot"></span> Updated 14:32 <span class="icon control">↻</span></div></div>
+    <div class="story-grid">
+      <section class="chart-card hero" aria-labelledby="rhythm-title">
+        <div class="card-top"><span class="eyebrow">01 / CONSISTENCY</span><span class="quiet">Completed sessions</span></div>
+        <h2 id="rhythm-title">Training rhythm</h2>
+        <div class="hero-summary"><div class="hero-metric">12 <span>sessions</span></div><div class="delta">+3 <span>vs previous 4 weeks</span></div></div>
+        <p class="caption">Your last 4 complete weeks <span class="caption-dot">·</span> Aug 3–30, 2026</p>
+        <div class="chart-toolbar"><div class="range"><span class="control">4 weeks</span><span class="control chosen">12 weeks</span><span class="control">24 weeks</span></div><span class="quiet">sessions / week</span></div>
+        <svg id="rhythm" viewBox="0 0 800 275" role="img" aria-label="Synthetic example: completed sessions across twelve weeks. Last four complete weeks total twelve, prior four total nine. Current week has two sessions."></svg>
+        <div class="chart-caption"><span class="hatch-key"></span> Current week in progress <span class="source">From completed workout logs</span></div>
+        <div class="card-actions"><a class="primary control" href="#evidence">Explore selected week <span>↗</span></a><a class="secondary control" href="#evidence">View table</a><span class="more control">•••</span></div>
+      </section>
+      <aside class="story-aside">
+        <section class="chart-card record">
+          <div class="card-top"><span class="eyebrow">02 / STRENGTH IN FOCUS</span><span class="record-mark">↗</span></div>
+          <h2>One more step<br>in your record.</h2>
+          <div class="exercise">Bench press <span>5 reps</span></div>
+          <div class="record-number">135 <span>lb</span></div>
+          <div class="record-delta">+5 lb <span>over your earlier best at 5 reps</span></div>
+          <svg class="strength-plot" viewBox="0 0 300 92" role="img" aria-label="Synthetic best logged loads at five reps: 120, 125, 125, 130, 135 pounds.">
+            <path class="minor-grid" d="M10 72H290 M10 38H290"/><polyline class="strength-line" points="12,70 78,53 144,53 210,36 276,19"/>
+            <circle class="strength-point" cx="12" cy="70" r="4"/><circle class="strength-point" cx="78" cy="53" r="4"/><circle class="strength-point" cx="144" cy="53" r="4"/><circle class="strength-point" cx="210" cy="36" r="4"/><circle class="strength-point" cx="276" cy="19" r="5"/>
+          </svg>
+          <p class="caption">Best logged set · Sep 2, 2026<br>Compared with earlier sets at the same reps.</p>
+          <a class="secondary control evidence-link" href="#evidence">See the evidence <span>→</span></a>
+        </section>
+        <div class="quiet-note"><span class="note-number">01</span><p><strong>It’s your progress.</strong><br>Explore the numbers at your pace.<br>No scores. No pressure.</p></div>
+      </aside>
+    </div>
+    <section class="explore" id="library" aria-labelledby="library-title">
+      <div class="section-head"><div><div class="eyebrow">GO A LITTLE DEEPER</div><h2 id="library-title">Explore your progress</h2></div><a href="02-experience-and-wireframes.md">Browse all 15 charts ↗</a></div>
+      <div class="library-grid">
+        <article class="library-card"><div class="library-index">01 / TRAINING</div><h3>The shape of your week</h3><p>Sessions, workload and how training felt.</p><div class="mini-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><a href="03-metric-registry.md">6 charts <span>→</span></a></article>
+        <article class="library-card"><div class="library-index">02 / STRENGTH</div><h3>The work behind the lift</h3><p>Logged sets, main lifts and training mix.</p><svg class="mini-line" viewBox="0 0 280 45" aria-hidden="true"><polyline points="0,37 40,27 80,29 120,17 160,20 200,9 240,12 280,3"/></svg><a href="03-metric-registry.md">7 charts <span>→</span></a></article>
+        <article class="library-card body-card"><div class="library-index">03 / BODY · PRIVATE</div><h3>Measurements, in context</h3><p>Your observations. Neutral changes.<br>Never shared to the feed.</p><div class="privacy-rule" aria-hidden="true"></div><a href="03-metric-registry.md">2 charts <span>→</span></a></article>
+      </div>
+    </section>
+    <section class="annotation"><span>A</span><p><strong>The opening-screen rule.</strong> One hero, one supporting fact, one useful next action. Chart geometry is shared; the meaning of each metric is not.</p></section>
+    <section id="evidence" class="evidence-study">
+      <div class="section-head"><div><div class="eyebrow">DETAIL STUDY / OPENED FROM A DATUM</div><h2>The evidence stays close.</h2></div><span class="quiet">Illustrated, not a live dialog</span></div>
+      <div class="detail-grid"><section class="chart-card sheet-study"><div class="card-top"><span class="eyebrow">TRAINING RHYTHM / WEEK DETAIL</span><span class="control">×</span></div><h2>Aug 24–30, 2026</h2><p class="caption">3 completed sessions · full week<br>America/Los_Angeles</p><div class="session-row"><strong>Mon, Aug 24</strong><span>42 min &nbsp; −</span></div><h3>Bench press</h3><table><caption>Example session sets · synthetic</caption><thead><tr><th>Set</th><th>Reps</th><th>Load</th><th>RPE</th></tr></thead><tbody><tr><td>1</td><td>5</td><td>130 lb</td><td>8</td></tr><tr><td>2</td><td>5</td><td>125 lb</td><td>—</td></tr></tbody></table><span class="secondary control pdf">↓ Download session PDF</span><div class="session-row"><strong>Wed, Aug 26</strong><span>51 min &nbsp; ＋</span></div><div class="session-row"><strong>Sat, Aug 29</strong><span>38 min &nbsp; ＋</span></div><p class="caption">These are the sessions included in this bar.<br>Two sessions on one day count as two.</p></section>
+      <div class="detail-notes"><div><span>B</span><h3>A chart is an invitation.</h3><p>Tap a real mark—or activate its table row—to see the same source records. Full sets survive the redesign.</p></div><div><span>C</span><h3>Context travels with the number.</h3><p>Date, unit, source, freshness and permissions stay visible in cards, detail and export. A failed request is never a zero.</p></div><div><span>D</span><h3>Calm is part of the craft.</h3><p>No chart loops, hover-only tools, spinning data, or celebratory body-weight deltas. The still frame is the design.</p></div></div></div>
+    </section>
+    <section class="state-study"><div class="section-head"><h2>Honest in every state.</h2><span class="quiet">State-copy studies</span></div><div class="state-grid"><article><div class="eyebrow">GENUINELY EMPTY</div><h3>Your first completed workout starts this chart.</h3><span class="secondary control">Log workout →</span></article><article><div class="eyebrow">REFRESH FAILED</div><h3>Your last update is still here.</h3><p>Showing the last successful update from 14:32.</p><span class="secondary control">Retry</span></article><article><div class="eyebrow">DETAIL LOCKED</div><h3>Keep the overview. Go deeper when you choose.</h3><p>Session details require your plan’s advanced analytics access.</p><span class="secondary control">See plan options →</span></article></div></section>
+    <footer>SWAN-CHART-V3 · Sapphire Ledger <span>Design reference, not implementation evidence. <a href="README.md">Read Luna’s packet ↗</a></span></footer>
+  </main>
+</div>
+<script src="preview.js"></script>
+</body>
+</html>

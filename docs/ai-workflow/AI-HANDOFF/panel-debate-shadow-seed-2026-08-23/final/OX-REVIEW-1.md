@@ -1,0 +1,16 @@
+# Grok 4.6 — Hostile Gate Review
+
+**Reviewer:** OpenRouter `x-ai/grok-4.6` (effort: high)
+**Document:** docs/ai-workflow/AI-HANDOFF/panel-debate-shadow-seed-2026-08-23/PACKET.md
+**Seed:** (none)
+**Tokens:** 20157 in / 20406 out · **Cost:** ~$0.1626 · **Wall:** 407.2s · **finish:** stop
+
+---
+
+=== VERDICT ===
+status: CONFIRM
+confidence: 74
+findings: F1=MINOR: backend/scripts/seed-shadow-db.mjs generateRowValues STRING/TEXT branch: seed labels are not truncated to declared CHAR/VARCHAR length, so short columns will fail the Postgres insert, land in `failed`, and exit 1 (fail-closed) — likely first real CI redness the SQLite audit could not see | F2=MINOR: backend/scripts/seed-shadow-db.mjs generateRowValues TIMESTAMP/DATE branches: every temporal column is filled, including paranoid deletedAt, so those tables are fully soft-deleted and live-row data migrations are not stressed | F3=MINOR: backend/scripts/seed-shadow-db.mjs main() values loop (before the bulkCreate try): generateRowValues can throw (PII guard) and abort with no SHADOW-SEED report line | F4=MINOR: backend/scripts/seed-shadow-db.mjs bulkCreate updateOnDuplicate + plain-insert fallback: brief AC#3 (second seed does not crash or duplicate PKs) is unproven on Postgres; the fallback path is not idempotent | F5=NOTE: backend/scripts/seed-shadow-db.mjs plainTable / normalizeModel: getTableName() object form `{tableName,schema}` would become "[object Object]"; not observed on the 167-model audit | F6=NOTE: .github/workflows/migration-shadow-check.yml self-test step / backend/vitest.config.mjs include: shadow job runs the dependency-free self-test, not vitest; vitest is wired but was not executed in the verification environment
+evidence: validateShadowUrl is the first statement in main() (no DB import above it), checks parse + exact hostname localhost|127.0.0.1 + /shadow/i, and has no override env/flag. generateRowValues emits only `seed-<table>-<n>` / `seed-<table>-<col>-<n>` and throws on email-shaped strings. Workflow order is migrate → seed → assert `^SHADOW-SEED {` with rows>0 → migrate again; service user/password/db are all `shadow`. serializeReport + post-insert SELECT count drive the report; exitCode=1 when dbRows===0 or failed.length>0. Packet audit: 257/257 FKs resolve, 139/139 enums non-null after the DataTypes.ENUM / type-string recovery, 36/36 self-test, live gate refuses unset / non-loopback / no-shadow. No `REFERENCES users`. E2E Postgres insert still unproven.
+ruling: CONFIRM — the safety contract the brief treats as non-negotiable holds (loopback+shadow gate before any connection, no override, no prod data, no fake PII, no silent zero-row green path), the panel fixes (BelongsTo-only deps, full PK maps, enum recovery, backfill dedupe, report-line assert) are in the code, and every residual failure mode found is fail-closed rather than green-and-meaningless. A REJECT is not warranted: VARCHAR-length friction, paranoid deletedAt fills, and unproven double-seed idempotence can paint the first real Postgres job red or leave effectiveness gaps, but they do not let this seeder point at production or certify an empty shadow DB. Sean should merge only after the shadow job itself is green; that run is the remaining proof, not a reason to block the PR on design.
+=== END-VERDICT ===

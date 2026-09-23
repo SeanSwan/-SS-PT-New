@@ -1,0 +1,106 @@
+{
+  "version": "1.2",
+  "observedAt": "2026-09-08T03:55:09.036Z",
+  "scope": "Planning artifacts only; source, body assets and application not built",
+  "currentRepository": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT",
+  "sourceHead": "a89cbf0f080644877ae8a45729d3f0a59d4cb8b8",
+  "preservation": {
+    "originalFiles": 60,
+    "stagedCopies": "All 60 hashes verified against live v1.1 and prior completed-v11 snapshot",
+    "manifestSha256": "afd7d7e1204cd90fecc9a19e13de0084fb75aae72ff04c0d5995361a15d39bd2",
+    "promotion": "Conditioned on an unchanged canonical file inventory and hashes; before/after vault manifests are authoritative after promotion",
+    "nativeHook": "UNOBSERVED"
+  },
+  "requirements": 34,
+  "acceptanceScenarios": 31,
+  "sourceHashes": {
+    "principal": 52,
+    "personalization": 11,
+    "status": "PASS at relocated source"
+  },
+  "syntax": {
+    "files": 10,
+    "status": "PASS",
+    "evidence": "syntax-v12.json"
+  },
+  "skills": [
+    {
+      "skill": "swan-pain-atlas",
+      "status": "PASS",
+      "installed": false
+    },
+    {
+      "skill": "detailed-interactive-design",
+      "status": "PASS",
+      "installed": false
+    }
+  ],
+  "reviewUI": {
+    "status": "PASS",
+    "diagrams": 9,
+    "viewports": [
+      {
+        "width": 320,
+        "height": 700,
+        "overflow": false
+      },
+      {
+        "width": 414,
+        "height": 896,
+        "overflow": false
+      },
+      {
+        "width": 768,
+        "height": 1024,
+        "overflow": false
+      },
+      {
+        "width": 1440,
+        "height": 1000,
+        "overflow": false
+      },
+      {
+        "width": 2560,
+        "height": 1440,
+        "overflow": false
+      },
+      {
+        "width": 3840,
+        "height": 2160,
+        "overflow": false
+      }
+    ],
+    "bodyModeControlTests": [
+      "Manual reference wireframe selected and explains source-update independence",
+      "Measured mode wireframe restored",
+      "Selected reference mode has distinct visible styling"
+    ],
+    "sourceReference": "Heading loaded",
+    "scope": "Standalone synthetic wireframe only"
+  },
+  "hostileReview": {
+    "findingsResolved": [
+      "Removed mandatory Black-only/full-custom launch gate",
+      "Reconciled manual reset with measured reset and removed binary asset assumptions",
+      "Added Planner ownership/target fencing and no appearance-derived prescriptions",
+      "Fixed selected body-mode styling overridden by more-specific button selector"
+    ],
+    "finalPass": "No further contradictory current-scope requirements found in targeted text scan; links, source hashes, syntax, mode selection and diagram render checked",
+    "limits": [
+      "No independent external reviewer invoked",
+      "Real body catalog/rig coverage and asset cost remain future feasibility work",
+      "No full final production scene or physical-device fidelity claim"
+    ]
+  },
+  "knownOpen": [
+    "B01 prior frontend assertions: 808 pass, 2 fail; not rerun for docs revision",
+    "S0 source/release/worktree authority reconciliation",
+    "Real application permissions, DB, migration, device budgets, asset mapping and recovery calibration NOT RUN"
+  ],
+  "userDecision": "Diverse references plus measured/manual choice; Three.js and Swan theme; try practical derivatives, retain current detailed source assets if impractical",
+  "referenceSources": [
+    "https://github.com/ashemag/human-atlas",
+    "https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html"
+  ],
+  "readiness": "Implementation readiness intentionally withheld; planning handoff only"
+}
