@@ -4,9 +4,10 @@
  * the empty state, the composer, and the slash menu. Colours are var(--ws-*)
  * only (the coach-* bridge in workspaceTokens repaints reused cards to match).
  *
- * Reading model (Codex / Claude Code): the coach speaks in full-width prose with
- * no bubble; the person speaks in a compact right-aligned bubble; the system
- * speaks in one quiet line unless it carries an approval or a result card.
+ * Reading model — Crystalline Conversation (Design Brain §14, unified design):
+ * the coach speaks in a raised graphite panel with an Ice Wing edge; the person
+ * speaks in a compact right-aligned Royal Depth bubble; the system speaks in one
+ * quiet line unless it carries an approval or a result card.
  */
 import styled from 'styled-components';
 
@@ -48,7 +49,7 @@ export const Turn = styled.article`
 
   &.ws-turn-user { justify-items: end; }
   .ws-bubble {
-    max-width: min(78%, 620px); padding: 10px 14px; border-radius: 16px 16px 4px 16px;
+    max-width: min(78%, 620px); padding: 10px 14px; border-radius: 18px 18px 6px 18px;
     background: var(--ws-action-soft); border: 1px solid color-mix(in srgb, var(--ws-action) 30%, transparent);
     color: var(--ws-text); font-size: 14.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
   }
@@ -57,6 +58,13 @@ export const Turn = styled.article`
   .ws-who svg { color: var(--ws-accent); }
   .ws-who time { font-family: var(--ws-mono); font-size: 11.5px; }
   &.ws-turn-coach { font-size: 15px; line-height: 1.65; color: var(--ws-text-soft); }
+  &.ws-turn-coach > .ws-flat-entry {
+    max-width: min(100%, 720px); padding: 14px 18px 14px 20px; border-radius: 6px 20px 20px 20px;
+    background: color-mix(in srgb, var(--ws-elevated) 94%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ws-accent) 20%, transparent); border-left: 2px solid var(--ws-accent);
+    box-shadow: 0 10px 36px color-mix(in srgb, var(--ws-action) 11%, transparent);
+  }
+  @media (max-width: 767.98px) { &.ws-turn-coach > .ws-flat-entry { padding: 12px 14px 12px 16px; } }
   &.ws-turn-card .ws-card-shell {
     border: 1px solid var(--ws-line); border-radius: calc(var(--ws-radius-sm) + 5px);
     background: color-mix(in srgb, var(--ws-panel) 82%, transparent); padding: 12px 14px;

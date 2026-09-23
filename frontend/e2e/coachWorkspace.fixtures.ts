@@ -130,6 +130,9 @@ export const layoutOf = (page: Page) => page.evaluate(() => {
     composerInside: Boolean(composer && composer.bottom <= window.innerHeight + 1 && composer.height > 0),
     sidebarVisible: visible('.ws-sidebar'),
     inspectorVisible: visible('.ws-inspector'),
-    headerControls: document.querySelectorAll('[data-coach-workspace="v4"] > header button').length,
+    // The Chat · Today · Floor switch is ONE segmented control (unified design, 2026-09-23), so it counts once.
+    headerControls: document.querySelectorAll('[data-coach-workspace="v4"] > header button').length
+      - document.querySelectorAll('[data-coach-workspace="v4"] > header .ws-views button').length
+      + (document.querySelector('[data-coach-workspace="v4"] > header .ws-views') ? 1 : 0),
   };
 });

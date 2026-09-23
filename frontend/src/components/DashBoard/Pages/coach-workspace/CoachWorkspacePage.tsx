@@ -2,8 +2,10 @@
  * Blueprint: CoachWorkspacePage (brain-v4 — "the one and only" Swan Coach surface)
  * Mounted at /dashboard/{admin|trainer|client}/coach-assistant through
  * CoachSurfaceRoute. Parent of: WorkspaceHeader, ThreadSidebar,
- * ConversationColumn | WorkspaceReviewView, InspectorPanel, WorkspaceOpsDrawer,
- * CoachSelectionDecisionGate.
+ * ConversationColumn | TodayView | FloorView | WorkspaceReviewView, InspectorPanel,
+ * WorkspaceOpsDrawer, CoachProgressPdf, CoachSelectionDecisionGate.
+ * Unified design (Sean 2026-09-23): Chat · Today · Floor are one header click
+ * apart and share ONE conversation and ONE composer.
  *
  * Design: Codex / Claude Code reading model — threads left, one conversation
  * column with a single composer, context right — worn in the header Swan Style
@@ -19,12 +21,16 @@ import WorkspaceHeader from './WorkspaceHeader';
 import ThreadSidebar from './ThreadSidebar';
 import ConversationColumn from './ConversationColumn';
 import WorkspaceReviewView from './WorkspaceReviewView';
+import TodayView from './TodayView';
+import FloorView from './FloorView';
 import InspectorPanel from './InspectorPanel';
 import WorkspaceOpsDrawer from './WorkspaceOpsDrawer';
 import CoachSelectionDecisionGate from '../coach-assistant/CoachSelectionDecision';
 import { useCoachWorkspaceModel } from './useCoachWorkspaceModel';
 import { CoachClientNamesProvider } from '../coach-assistant/coachClientNames';
 import CoachProgressPdf from './CoachProgressPdf';
+
+const VIEW_LABEL = { chat: 'Conversation', review: 'Review', today: 'Today', floor: 'Live session' } as const;
 
 const CoachWorkspacePage: React.FC = () => {
   const model = useCoachWorkspaceModel();
@@ -34,11 +40,14 @@ const CoachWorkspacePage: React.FC = () => {
     <CoachWorkspaceLensFrame>
       {/* Names on screen, IDs to the coach: the roster joins names back on (coachClientNames.tsx). */}
       <CoachClientNamesProvider clients={controller.clientPin.clients}>
-      <WorkspaceShell ref={controller.shellRef} data-coach-workspace="v4" {...panels.shellAttributes}>
+      <WorkspaceShell ref={controller.shellRef} data-coach-workspace="v4" data-ws-view={model.view} {...panels.shellAttributes}>
         <WorkspaceHeader model={model} />
         <ThreadSidebar model={model} />
-        <div className="ws-main" role="region" aria-label={model.view === 'review' ? 'Review' : 'Conversation'}>
-          {model.view === 'review' && !model.isClientMode ? <WorkspaceReviewView model={model} /> : <ConversationColumn model={model} />}
+        <div className="ws-main" role="region" aria-label={VIEW_LABEL[model.view]}>
+          {model.view === 'review' && !model.isClientMode ? <WorkspaceReviewView model={model} />
+            : model.view === 'today' ? <TodayView model={model} />
+              : model.view === 'floor' ? <FloorView model={model} />
+                : <ConversationColumn model={model} />}
         </div>
         <InspectorPanel model={model} />
         <button type="button" className="ws-scrim" aria-label="Close panel" tabIndex={-1} onClick={panels.closeSheets} />

@@ -56,6 +56,8 @@ export const workspaceTokens = css`
   --ws-font: 'Sora', 'Plus Jakarta Sans', system-ui, sans-serif;
   --ws-title-font: 'Plus Jakarta Sans', 'Sora', system-ui, sans-serif;
   --ws-mono: 'Fira Code', ui-monospace, 'SFMono-Regular', monospace;
+  /* Design Brain drama face — one Cormorant italic moment per view. */
+  --ws-drama-font: var(--font-drama, 'Cormorant Garamond', Georgia, serif);
   --ws-focus: 0 0 0 2px var(--ws-bg), 0 0 0 4px var(--ws-accent);
 
   [data-lens2-plan] & {

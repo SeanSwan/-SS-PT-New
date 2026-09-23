@@ -12,7 +12,7 @@ import { buildSlashItems } from './slashCommands';
 vi.mock('../coach-assistant/CoachCommandCatalogSheet', () => ({ default: () => null }));
 vi.mock('../coach-assistant/VoiceRecordingOverlay', () => ({ default: () => null }));
 
-function mount(text: string, { made = true, noteMode = false } = {}) {
+function mount(text: string, { made = true, noteMode = false, view = 'chat', sink = null as null | ((set: unknown) => void) } = {}) {
   const controller = {
     commandText: text, commandTextRef: createRef<HTMLTextAreaElement>(), commandFormRef: createRef<HTMLFormElement>(),
     commandBusy: false, selectedStatus: '', notebook: noteMode ? { active: true, saving: false, onToggle: vi.fn() } : null,
@@ -21,7 +21,7 @@ function mount(text: string, { made = true, noteMode = false } = {}) {
   };
   const model = {
     controller, catalog: { commands: [] }, isClientMode: false, runAction: vi.fn(), prefill: vi.fn(),
-    requestPdf: vi.fn(() => made),
+    requestPdf: vi.fn(() => made), view, floorSetSink: { current: sink },
   };
   render(<MemoryRouter><WorkspaceComposer model={model as never} /></MemoryRouter>);
   const input = screen.getByRole('combobox', { name: noteMode ? 'Client note' : 'Message Swan Coach' });
@@ -56,5 +56,25 @@ describe('a PDF ask stays on the device', () => {
       const items = buildSlashItems('pdf', [], { staff, notebookAvailable: false });
       expect(items[0]).toMatchObject({ kind: 'action', id: 'pdf' });
     }
+  });
+});
+
+describe('Floor mode: a set typed into the one composer fills the dials, never the chat', () => {
+  it('"145 for 6" on Floor goes to the dials and clears; the coach gets nothing', () => {
+    const sink = vi.fn();
+    const { controller } = mount('145 for 6', { view: 'floor', sink });
+    expect(sink).toHaveBeenCalledWith({ weight: 145, reps: 6 });
+    expect(controller.handleSubmit).not.toHaveBeenCalled();
+    expect(controller.setCommandText).toHaveBeenCalledWith('');
+  });
+  it('CONTROL: a question on Floor is an ordinary send', () => {
+    const sink = vi.fn();
+    expect(mount('how is her knee today?', { view: 'floor', sink }).controller.handleSubmit).toHaveBeenCalledTimes(1);
+    expect(sink).not.toHaveBeenCalled();
+  });
+  it('CONTROL: the same set typed in Chat is an ordinary send', () => {
+    const sink = vi.fn();
+    expect(mount('145 for 6', { view: 'chat', sink }).controller.handleSubmit).toHaveBeenCalledTimes(1);
+    expect(sink).not.toHaveBeenCalled();
   });
 });

@@ -32,9 +32,11 @@ import { useWorkspacePanels } from './useWorkspacePanels';
 import { scheduleRoleForUser, useTodaySchedule } from './useTodaySchedule';
 import type { WorkspaceActionId } from './slashCommands';
 import type { CoachPdfRequest } from './CoachProgressPdf';
+import type { FloorSet } from './floorSession';
 import { pdfTarget } from './coachPdfRequest';
 
-export type WorkspaceView = 'chat' | 'review';
+/** Chat, the Day Sheet, Floor (live session), or Review — one header switch, one conversation. */
+export type WorkspaceView = 'chat' | 'review' | 'today' | 'floor';
 
 const SCHEDULE_ROUTE: Record<'admin' | 'trainer' | 'client', string> = {
   admin: '/dashboard/admin/master-schedule',
@@ -95,6 +97,15 @@ export function useCoachWorkspaceModel() {
   const startPlaudUpload = useCallback(() => {
     openReview('audio'); setPlaudUploadRequest((count) => count + 1);
   }, [openReview]);
+  /** Today and Floor are whole-screen views: sheets close, the conversation keeps its state. */
+  const showView = useCallback((next: 'chat' | 'today' | 'floor') => {
+    setView(next); panels.closeSheets();
+  }, [panels]);
+  /** Floor mode for a client: pins them by ID first (same admission path as the @ chip). */
+  const startFloor = useCallback((clientId?: number | null) => {
+    if (!isClientMode && clientId && clientId !== controller.clientPin.selectedClientId) controller.clientPin.onSelectClient(clientId);
+    showView('floor');
+  }, [controller.clientPin, isClientMode, showView]);
   const backToChat = useCallback(() => {
     setView('chat');
     window.setTimeout(() => controller.commandTextRef.current?.focus({ preventScroll: true }), 0);
@@ -174,6 +185,8 @@ export function useCoachWorkspaceModel() {
   });
 
   // ── "Make me a PDF": built on this device, never sent to Swan Coach ───
+  /** Floor mode registers here so a set typed or dictated into the ONE composer fills the dials (never the chat). */
+  const floorSetSink = useRef<((set: FloorSet) => void) | null>(null);
   const [pdfRequest, setPdfRequest] = useState<CoachPdfRequest | null>(null);
   const pdfNonce = useRef(0);
   const closePdf = useCallback(() => setPdfRequest(null), []);
@@ -193,6 +206,13 @@ export function useCoachWorkspaceModel() {
     setPdfRequest({ nonce: pdfNonce.current, kind: 'client', clientId: target.id, clientName: target.label });
     return true;
   }, [controller.clientPin, isClientMode, user]);
+  /** The PDF for one roster client by ID (Today's up-next card, the inspector). */
+  const requestPdfFor = useCallback((clientId: number) => {
+    const client = controller.clientPin.clients.find((entry) => entry.id === clientId);
+    if (!client) { setScheduleAskStatus('That client is not on your roster, so no PDF was made.'); return; }
+    pdfNonce.current += 1;
+    setPdfRequest({ nonce: pdfNonce.current, kind: 'client', clientId: client.id, clientName: client.label });
+  }, [controller.clientPin.clients]);
 
   const runAction = useCallback((id: WorkspaceActionId) => {
     controller.setCommandText('');
@@ -212,13 +232,13 @@ export function useCoachWorkspaceModel() {
 
   return {
     user, userRole, scheduleRole, isClientMode, controller, catalog, layout, panels,
-    view, setView, backToChat, reviewSection, setReviewSection, openReview, startPlaudUpload,
+    view, setView, showView, startFloor, backToChat, reviewSection, setReviewSection, openReview, startPlaudUpload,
     searchParams, setSearchParams,
     workoutLoggerRoute, workoutPlannerRoute, scopeLabel, loggerScopeLabel, nextActionLabel,
     counts, reviewTotal, scheduleRoute, clientPickerRoute,
     schedule, prefill, writeUnderDraft, sendCommand, askAboutSession, scheduleAskStatus,
     runAction, catalogOpen, setCatalogOpen,
-    pdfRequest, requestPdf, closePdf, notify: setScheduleAskStatus,
+    pdfRequest, requestPdf, requestPdfFor, closePdf, floorSetSink, notify: setScheduleAskStatus,
   };
 }
 

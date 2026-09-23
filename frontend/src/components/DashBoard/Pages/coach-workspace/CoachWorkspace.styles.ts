@@ -117,6 +117,18 @@ export const WorkspaceShell = styled.div`
   &[data-ws-layout='playfield-stack'] .ws-composer-card { max-width: 640px; }
   &[data-ws-layout='playfield-stack'] .ws-tool, &[data-ws-layout='playfield-stack'] .ws-send { min-width: 48px; height: 48px; }
 
+  /* Floor is a focus view: no thread list, no inspector, at every width and layout. */
+  &&[data-ws-view='floor'] { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'header' 'main'; }
+  &&[data-ws-view='floor'] .ws-sidebar, &&[data-ws-view='floor'] .ws-inspector, &&[data-ws-view='floor'] .ws-scrim { display: none; }
+  /* Today carries its own right column; the inspector would repeat the schedule. */
+  &&[data-ws-view='today'] .ws-inspector { display: none; }
+  @media (min-width: 1200px) {
+    &&[data-ws-view='today']:not([data-ws-layout='atrium-split']):not([data-ws-layout='editorial-column']):not([data-ws-layout='playfield-stack']) {
+      grid-template-columns: 256px minmax(0, 1fr) 0;
+    }
+    &&[data-ws-view='today'][data-ws-layout='atrium-split'] { grid-template-columns: minmax(0, 1fr) 0; }
+  }
+
   @media (max-width: 767.98px) {
     ${overlayBoth}
     height: calc(100dvh - var(--ws-fit-top, 56px) - var(--ws-fit-bottom, 8px) - env(safe-area-inset-bottom, 0px) - var(--coach-kb-inset, 0px));
@@ -157,10 +169,51 @@ export const WorkspaceHeaderBar = styled.header`
   .ws-brain[data-state='busy'] .ws-brain-dot { background: var(--ws-accent); animation: ws-pulse 1.1s ease-in-out infinite; }
   .ws-brain[data-state='degraded'] .ws-brain-dot { background: var(--ws-warn); }
   @keyframes ws-pulse { 50% { opacity: 0.35; } }
+  .ws-views {
+    display: inline-flex; gap: 2px; padding: 3px; flex: none;
+    border-radius: calc(var(--ws-radius-sm) + 3px); border: 1px solid var(--ws-line);
+    background: color-mix(in srgb, var(--ws-sunken) 80%, transparent);
+  }
+  .ws-views button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 44px; padding: 0 14px;
+    border: 0; border-radius: var(--ws-radius-sm); background: transparent; color: var(--ws-muted);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .ws-views button:hover { color: var(--ws-text); }
+  .ws-views button[aria-pressed='true'] {
+    background: var(--ws-elevated); color: var(--ws-text); box-shadow: 0 0 0 1px var(--ws-line-strong);
+  }
+  .ws-views button[aria-pressed='true'] svg { color: var(--ws-accent); }
+  .ws-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ws-gold); box-shadow: 0 0 8px var(--ws-gold); }
 
+  @media (max-width: 1023.98px) {
+    .ws-divider, .ws-thread-title, .ws-btn-label { display: none; }
+  }
   @media (max-width: 767.98px) {
-    min-height: 52px; padding: 0 6px; gap: 4px;
-    .ws-divider, .ws-thread-title, .ws-brain-label, .ws-btn-label { display: none; }
+    min-height: 52px; padding: 0 6px 4px; gap: 4px; flex-wrap: wrap;
+    /* Row 1 must never wrap (a wrapped row costs the chat ~50px): the site header already carries the brand. */
+    .ws-divider, .ws-thread-title, .ws-brain-label, .ws-btn-label, .ws-mark-label { display: none; }
     .ws-brain { padding: 0 8px; }
+    .ws-views { order: 10; width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 2px; }
+    .ws-views button { padding: 0 6px; min-width: 0; }
+    .ws-views .ws-live-dot { flex: none; }
+  }
+  /* < 360px the switch has its own row but each segment is ~96px: words, no icons. */
+  @media (max-width: 359.98px) {
+    .ws-views button svg { display: none; }
+  }
+  /* 360–767px: ONE header row — the view switch goes icon-only (the text stays its
+     accessible name) so the conversation keeps the phone. Below 360 it takes row 2. */
+  @media (min-width: 360px) and (max-width: 767.98px) {
+    flex-wrap: nowrap; gap: 2px; padding: 0 6px;
+    .ws-mark { display: none; }
+    .ws-views { order: 0; width: auto; display: inline-flex; padding: 2px; }
+    .ws-views button { width: 44px; padding: 0; gap: 0; }
+    /* Visually hidden, still the button's accessible name (global phone CSS forces font sizes, so no font-size:0). */
+    .ws-view-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .ws-views .ws-live-dot { position: absolute; top: 6px; right: 6px; width: 6px; height: 6px; }
+    .ws-views button { position: relative; }
+    .ws-icon-btn { position: relative; }
+    .ws-icon-btn[data-badge]::after { position: absolute; top: 3px; right: 1px; margin: 0; }
   }
 `;

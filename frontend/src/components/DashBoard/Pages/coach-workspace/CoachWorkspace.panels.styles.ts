@@ -60,10 +60,27 @@ export const SidebarRoot = styled.nav`
     font-size: 13px; text-align: left; cursor: pointer; text-decoration: none;
   }
   .ws-side-link:hover { background: color-mix(in srgb, var(--ws-text) 5%, transparent); color: var(--ws-text); }
+  .ws-waiting { margin: 0 6px 6px; padding-bottom: 6px; border-bottom: 1px solid var(--ws-line); }
+  .ws-waiting ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .ws-waiting .ws-group-label { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .ws-waiting .ws-group-label .ws-count,
   .ws-side-link .ws-count {
     margin-left: auto; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 999px;
-    background: var(--ws-gold-soft); color: var(--ws-gold); font: 600 11px/20px var(--ws-mono); text-align: center;
+    background: var(--ws-gold-soft); color: var(--ws-gold); font: 600 11px/20px var(--ws-mono); text-align: center; letter-spacing: 0;
   }
+  .ws-wait-row {
+    display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; min-height: 44px;
+    padding: 0 10px; border-radius: var(--ws-radius-sm); cursor: pointer; text-align: left; font-size: 13px;
+    border: 1px solid color-mix(in srgb, var(--ws-gold) 38%, transparent); background: var(--ws-gold-soft); color: var(--ws-text);
+  }
+  .ws-wait-row svg { color: var(--ws-gold); }
+  .ws-wait-row b { font: 600 12px var(--ws-mono); color: var(--ws-gold); }
+  .ws-wait-row[data-empty='true'] { border-color: transparent; background: transparent; color: var(--ws-muted); }
+  .ws-wait-row[data-empty='true'] svg, .ws-wait-row[data-empty='true'] b { color: var(--ws-muted); }
+  .ws-wait-row:hover { border-color: var(--ws-line-strong); }
+  .ws-wait-row[aria-current='true'] { box-shadow: inset 3px 0 0 var(--ws-edge); }
+  .ws-waiting .ws-side-empty { margin: 6px 10px 0; font-size: 12px; }
+  .ws-waiting .ws-side-empty[data-tone='warn'] { color: var(--ws-warn); }
 `;
 
 export const InspectorRoot = styled.aside`
@@ -96,6 +113,12 @@ export const InspectorCard = styled.section`
   .ws-card-note[data-tone='warn'] { color: var(--ws-warn); }
   .ws-card-note[data-tone='danger'] { color: var(--ws-danger); }
   .ws-stat-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ws-flags { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .ws-flags li {
+    display: flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: var(--ws-radius-sm); font-size: 12.5px;
+    border: 1px solid color-mix(in srgb, var(--ws-gold) 42%, transparent); background: var(--ws-gold-soft); color: var(--ws-text);
+  }
+  .ws-flags svg { flex: none; color: var(--ws-gold); }
   .ws-stat {
     flex: 1 1 80px; display: grid; gap: 2px; padding: 8px 10px; border-radius: var(--ws-radius-sm);
     background: var(--ws-sunken); border: 1px solid var(--ws-line);

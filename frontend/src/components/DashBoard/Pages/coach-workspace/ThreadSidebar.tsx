@@ -1,8 +1,9 @@
 /**
  * Blueprint: ThreadSidebar
  * Parent: CoachWorkspacePage. The conversation list (Codex / Claude Code style):
- * New chat, search, threads grouped by recency, and a short footer of the
- * places a coach jumps to from a conversation (Review, Schedule, Logger).
+ * New chat, "Waiting on you" (the review queue by kind — unified design), search,
+ * threads grouped by recency, and a short footer of the places a coach jumps
+ * to from a conversation (Schedule, Logger).
  * Docked in operator-grid ≥768px; a left sheet everywhere else.
  * It takes NO controller rail ref: the legacy drawer effect treats a ref'd rail
  * with no data-drawer as a closed dialog and makes it aria-hidden + inert
@@ -10,7 +11,7 @@
  */
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { CalendarDays, Dumbbell, Inbox, MessageSquarePlus, Search, X } from 'lucide-react';
+import { AudioLines, CalendarDays, ClipboardList, Dumbbell, FileCheck2, Inbox, MessageSquarePlus, Search, X } from 'lucide-react';
 import { SidebarRoot } from './CoachWorkspace.panels.styles';
 import { groupThreads, threadWhen } from './threadGroups';
 import { useStableThreadList } from './useStableThreadList';
@@ -18,6 +19,12 @@ import { getConversationTitle } from '../coach-assistant/CoachCommandCenter.logi
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 
 type Props = { model: CoachWorkspaceModel };
+
+const WAITING = [
+  { section: 'intake', label: 'Intake to review', Icon: ClipboardList },
+  { section: 'audio', label: 'Audio to log', Icon: AudioLines },
+  { section: 'drafts', label: 'Drafts to approve', Icon: FileCheck2 },
+] as const;
 
 const ThreadSidebar: React.FC<Props> = ({ model }) => {
   const { controller, panels, isClientMode } = model;
@@ -29,6 +36,7 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
   const failed = controller.conversationListFailed && (controller.selectionPhase === 'ready' || isClientMode);
   const list = useStableThreadList(controller.coachThreads, actorKey, searching, refreshing, failed);
   const groups = useMemo(() => groupThreads(list.threads), [list.threads]);
+  const holds = isClientMode ? [] : controller.queueHealthRows.filter((row) => row.tone !== 'ready' && Number(row.value) > 0);
 
   const pick = (thread: (typeof controller.coachThreads)[number]) => {
     controller.handleThreadSelect(thread);
@@ -52,6 +60,33 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
           <X size={18} aria-hidden="true" />
         </button>
       </div>
+      {!isClientMode ? (
+        <section className="ws-waiting" aria-labelledby="ws-waiting-title">
+          <h3 className="ws-group-label" id="ws-waiting-title">
+            <Inbox size={13} aria-hidden="true" /> Waiting on you
+            {model.reviewTotal ? <span className="ws-count" aria-label={`${model.reviewTotal} in total`}>{model.reviewTotal}</span> : null}
+          </h3>
+          <ul>
+            {WAITING.map(({ section, label, Icon }) => (
+              <li key={section}>
+                <button
+                  type="button"
+                  className="ws-wait-row"
+                  data-empty={model.counts[section] ? undefined : 'true'}
+                  aria-current={model.view === 'review' && model.reviewSection === section ? 'true' : undefined}
+                  onClick={() => { model.openReview(section); panels.afterThreadPick(); }}
+                >
+                  <Icon size={15} aria-hidden="true" />
+                  <span>{label}</span>
+                  <b>{model.counts[section]}</b>
+                </button>
+              </li>
+            ))}
+          </ul>
+          {holds.length ? <p className="ws-side-empty" data-tone="warn">{holds.map((row) => `${row.value} ${row.label.toLowerCase()}`).join(' · ')}</p> : null}
+          {model.nextActionLabel ? <p className="ws-side-empty">Next: {model.nextActionLabel}</p> : null}
+        </section>
+      ) : null}
       <label className="ws-search">
         <Search size={15} aria-hidden="true" />
         <input
@@ -97,12 +132,6 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
         )}
       </div>
       <div className="ws-side-foot">
-        {!isClientMode ? (
-          <button type="button" className="ws-side-link" onClick={() => model.openReview('intake')}>
-            <Inbox size={16} aria-hidden="true" /> Review queue
-            {model.reviewTotal ? <span className="ws-count" aria-label={`${model.reviewTotal} waiting`}>{model.reviewTotal}</span> : null}
-          </button>
-        ) : null}
         <Link className="ws-side-link" to={model.scheduleRoute}>
           <CalendarDays size={16} aria-hidden="true" /> {model.scheduleRole === 'admin' ? 'Master schedule' : 'Schedule'}
         </Link>

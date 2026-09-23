@@ -4,15 +4,23 @@
  * is a sheet), the Swan Coach mark, the thread title, the brain's live state,
  * then Review / Context / More. Every control is a 44px target; on phones the
  * labels collapse to icons with aria-labels (brain-v4 J12, "≤ 6 header controls").
+ * The view switch — Chat · Today · Floor — is one click from anywhere (unified
+ * design, Sean 2026-09-23); on phones it drops to its own full-width row.
  */
 import React from 'react';
-import { Feather, Inbox, MoreHorizontal, PanelLeft, PanelRight } from 'lucide-react';
+import { CalendarDays, Dumbbell, Feather, Inbox, MessageCircle, MoreHorizontal, PanelLeft, PanelRight } from 'lucide-react';
 import { WorkspaceHeaderBar } from './CoachWorkspace.styles';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 
 type Props = { model: CoachWorkspaceModel };
 
 type BrainState = 'ready' | 'busy' | 'degraded';
+
+const VIEWS = [
+  { id: 'chat', label: 'Chat', Icon: MessageCircle },
+  { id: 'today', label: 'Today', Icon: CalendarDays },
+  { id: 'floor', label: 'Floor', Icon: Dumbbell },
+] as const;
 
 const PHASE_STATE: Partial<Record<string, { state: BrainState; label: string }>> = {
   unadmitted: { state: 'busy', label: 'Connecting' },
@@ -38,7 +46,10 @@ export function brainState(model: Pick<CoachWorkspaceModel, 'controller' | 'cata
 
 const WorkspaceHeader: React.FC<Props> = ({ model }) => {
   const { controller, panels, isClientMode } = model;
-  const title = controller.activeThread?.title?.trim() || (model.view === 'review' ? 'Review' : 'New conversation');
+  const title = model.view === 'today' ? 'Your day'
+    : model.view === 'floor' ? `Floor · ${isClientMode ? 'My session' : model.scopeLabel}`
+      : controller.activeThread?.title?.trim() || (model.view === 'review' ? 'Review' : 'New conversation');
+  const whole = model.view === 'today' || model.view === 'floor';
   const brain = brainState(model);
 
   return (
@@ -61,6 +72,20 @@ const WorkspaceHeader: React.FC<Props> = ({ model }) => {
       </span>
       <span className="ws-divider" aria-hidden="true" />
       <span className="ws-thread-title" title={title}>{title}</span>
+      <nav className="ws-views" aria-label="Coach view">
+        {VIEWS.map(({ id, label, Icon }) => (
+          <button
+            type="button"
+            key={id}
+            aria-pressed={model.view === id}
+            onClick={() => (id === 'floor' ? model.startFloor() : model.showView(id))}
+          >
+            <Icon size={15} aria-hidden="true" />
+            <span className="ws-view-label">{label}</span>
+            {id === 'floor' && model.view === 'floor' ? <span className="ws-live-dot" aria-hidden="true" /> : null}
+          </button>
+        ))}
+      </nav>
       <span className="ws-spacer" />
       {/* Not a live region: the composer's status line is the one place that announces. */}
       <span className="ws-brain" data-state={brain.state} role="img" aria-label={`Swan Coach: ${brain.label}`}>
@@ -80,7 +105,7 @@ const WorkspaceHeader: React.FC<Props> = ({ model }) => {
           <span className="ws-btn-label">Review</span>
         </button>
       ) : null}
-      <button
+      {!whole ? <button
         type="button"
         className="ws-icon-btn"
         aria-label="Context and schedule"
@@ -90,7 +115,7 @@ const WorkspaceHeader: React.FC<Props> = ({ model }) => {
       >
         <PanelRight size={18} aria-hidden="true" />
         <span className="ws-btn-label">Context</span>
-      </button>
+      </button> : null}
       {!isClientMode ? (
         <button
           type="button"

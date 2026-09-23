@@ -20,6 +20,7 @@ import { buildSlashItems, pickableExample, slashQuery, type SlashItem } from './
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 import { workspaceStatus } from './workspaceStatus';
 import { isPdfRequest } from './coachPdfRequest';
+import { parseSetUtterance } from './floorSession';
 
 type Props = { model: CoachWorkspaceModel };
 
@@ -79,6 +80,14 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
       const type = pickedType;
       setPickedType(null);
       void controller.handleIntentSubmit(text, type);
+      return;
+    }
+    // Floor mode: a bare set ("145 for 6") fills the dials; it is never sent to the coach, so it can't be logged twice.
+    const heardSet = model.view === 'floor' && text.trim().length <= 40 ? parseSetUtterance(text) : null;
+    if (!noteMode && heardSet && model.floorSetSink?.current) {
+      event.preventDefault();
+      model.floorSetSink.current(heardSet);
+      controller.setCommandText('');
       return;
     }
     // "Make me a PDF of …" is answered on this device from first-party records; the

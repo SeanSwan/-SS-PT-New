@@ -1,7 +1,8 @@
 /**
  * Blueprint: ConversationColumn
- * Parent: CoachWorkspacePage. The reading column: day dividers, turns, the live
- * "thinking" row, an honest empty state with starters, then the composer.
+ * Parent: CoachWorkspacePage. The reading column: the one-line Today strip, day
+ * dividers, turns, the live "thinking" row, an honest empty state with starters,
+ * then the composer.
  * Scroll follows new replies only while the reader is near the bottom; reading
  * history is never yanked (a "New reply" pill appears instead). The latest entry
  * is mirrored into a polite live region for screen readers.
@@ -13,6 +14,7 @@ import { dayDividerIds } from '../coach-assistant/coachTranscriptDays';
 import TurnEntry from './TurnEntry';
 import { nameClientTokens, useCoachClientNames } from '../coach-assistant/coachClientNames';
 import WorkspaceComposer from './WorkspaceComposer';
+import TodayStrip from './TodayStrip';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 
 type Props = { model: CoachWorkspaceModel };
@@ -101,6 +103,7 @@ const ConversationColumn: React.FC<Props> = ({ model }) => {
           {`${latest.actor === 'coach' ? 'Swan Coach' : latest.actor === 'operator' ? 'You' : latest.label}: ${nameClientTokens(latest.body, clientNames).replace(/\s+/g, ' ').slice(0, 320)}`}
         </div>
       ) : null}
+      <TodayStrip state={model.schedule.state} onOpen={() => model.showView('today')} />
       <div className="ws-scroll" ref={scrollRef} onScroll={onScroll} data-testid="ws-transcript">
         {ordered.length ? (
           <div className="ws-thread">
