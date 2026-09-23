@@ -188,6 +188,7 @@
 
 // backend/controllers/sessionController.mjs
 import logger from '../utils/logger.mjs';
+import { USER_CREDENTIAL_FIELDS } from '../utils/userSerialization.mjs';
 import Session from '../models/Session.mjs';
 import User from '../models/User.mjs';
 import { Op } from 'sequelize';
@@ -213,10 +214,18 @@ export const sessionController = async (req, res) => {
 
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { getModel } from '../models/index.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 export const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id);
+    // R-01 (§18): this previously read the full row (`User.findByPk(req.user.id)`
+    // with no attribute filter) and handed it straight to `successResponse`,
+    // which serializes the Sequelize instance via `toJSON()`. That put the
+    // bcrypt password hash, the refresh-token verifier and a live
+    // password-reset token on the wire.
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS] },
+    });
     return successResponse(res, user, 'User profile retrieved successfully');
   } catch (error) {
     return errorResponse(res, 'Failed to retrieve user profile', 500);
@@ -368,7 +377,7 @@ export const getSessionById = async (req, res) => {
     if (
       req.user.role !== 'admin' && 
       req.user.role !== 'trainer' && 
-      session.userId !== req.user.id &&
+      !idEquals(session.userId, req.user.id) &&
       session.status !== 'available'
     ) {
       return res.status(403).json({
@@ -689,8 +698,8 @@ export const cancelSession = async (req, res) => {
 
     // Check permissions
     const isAdmin = req.user.role === 'admin';
-    const isTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
-    const isOwner = session.userId === req.user.id;
+    const isTrainer = req.user.role === 'trainer' && idEquals(session.trainerId, req.user.id);
+    const isOwner = idEquals(session.userId, req.user.id);
 
     if (!isAdmin && !isOwner && !isTrainer) {
       return res.status(403).json({
@@ -809,7 +818,7 @@ export const confirmSession = async (req, res) => {
     }
     
     // Additional check for trainers - they can only confirm sessions assigned to them
-    if (req.user.role === 'trainer' && session.trainerId !== req.user.id) {
+    if (req.user.role === 'trainer' && !idEquals(session.trainerId, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'You can only confirm sessions assigned to you'
@@ -908,7 +917,7 @@ export const completeSession = async (req, res) => {
     }
     
     // Additional check for trainers - they can only complete sessions assigned to them
-    if (req.user.role === 'trainer' && session.trainerId !== req.user.id) {
+    if (req.user.role === 'trainer' && !idEquals(session.trainerId, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'You can only complete sessions assigned to you'
@@ -1280,8 +1289,8 @@ export const addSessionNotes = async (req, res) => {
     
     // Check permissions
     const isAdmin = req.user.role === 'admin';
-    const isTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
-    const isOwner = session.userId === req.user.id;
+    const isTrainer = req.user.role === 'trainer' && idEquals(session.trainerId, req.user.id);
+    const isOwner = idEquals(session.userId, req.user.id);
     
     if (!isAdmin && !isOwner && !isTrainer) {
       return res.status(403).json({

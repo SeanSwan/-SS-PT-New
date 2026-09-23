@@ -262,6 +262,9 @@
 
 // backend/controllers/adminClientController.mjs
 import crypto from 'crypto';
+import { USER_CREDENTIAL_FIELDS, stripCredentialFields } from '../utils/userSerialization.mjs';
+import { escapeHtml } from '../utils/htmlEscape.mjs';
+import { serializeCsv } from '../utils/csvEscape.mjs';
 import { getAllModels } from '../models/index.mjs';
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
@@ -411,15 +414,15 @@ const CLIENT_EXPORT_FIELDS = [
   'updatedAt',
 ];
 
-const escapeCsvValue = (value) => {
-  const text = value === null || value === undefined ? '' : String(value);
-  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
-
-const serializeClientsToCsv = (rows) => [
-  CLIENT_EXPORT_FIELDS.join(','),
-  ...rows.map((row) => CLIENT_EXPORT_FIELDS.map((field) => escapeCsvValue(row[field])).join(',')),
-].join('\n');
+// Quoting AND formula neutralisation now come from utils/csvEscape.mjs. The local
+// quoter that used to live here was correct RFC 4180 but had no formula guard, so
+// a client named `=HYPERLINK("http://evil","Invoice")` arrived live in the admin's
+// spreadsheet. Do not re-inline it.
+const serializeClientsToCsv = (rows) =>
+  serializeCsv(
+    CLIENT_EXPORT_FIELDS,
+    rows.map((row) => CLIENT_EXPORT_FIELDS.map((field) => row[field])),
+  );
 
 const buildOnboardingProgressMap = (questionnaires) => {
   const progressMap = {};
@@ -552,7 +555,7 @@ class AdminClientController {
           limit: safeLimit,
           offset,
           order: [[sortBy, sortOrder.toUpperCase()]],
-          attributes: { exclude: ['password', 'refreshTokenHash'] }
+          attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
         });
         count = result.count;
         clients = result.rows;
@@ -564,7 +567,7 @@ class AdminClientController {
           limit: safeLimit,
           offset,
           order: [[sortBy, sortOrder.toUpperCase()]],
-          attributes: { exclude: ['password', 'refreshTokenHash'] }
+          attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
         });
         count = result.count;
         clients = result.rows;
@@ -813,7 +816,7 @@ class AdminClientController {
       const client = await User.findOne({
         where: { id: clientId, role: 'client' },
         include: detailIncludes,
-        attributes: { exclude: ['password', 'refreshTokenHash'] }
+        attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
       });
 
       if (!client) {
@@ -1894,13 +1897,16 @@ class AdminClientController {
             to: normalizedEmail,
             subject: `Claim your SwanStudios Tools account - ${sourceLabel} Client`,
             text: `Hi ${firstName},\n\nYour SwanStudios account has been created as a ${sourceLabel} client.\nEmail: ${normalizedEmail}\n\nClaim your account and set your password here:\n${claimUrl}\n\nYou have access to: Workout Log, Food Logger, Body Map, and Social features.\n\n- SwanStudios Team`,
-            html: `<p>Hi ${firstName},</p><p>Your SwanStudios account has been created as a <strong>${sourceLabel}</strong> client.</p><p><strong>Email:</strong> ${normalizedEmail}</p><p><a href="${claimUrl}">Claim your account and set your password</a>.</p><p>You have access to: Workout Log, Food Logger, Body Map, and Social features.</p><p>&mdash; SwanStudios Team</p>`,
+            html: `<p>Hi ${escapeHtml(firstName)},</p><p>Your SwanStudios account has been created as a <strong>${sourceLabel}</strong> client.</p><p><strong>Email:</strong> ${escapeHtml(normalizedEmail)}</p><p><a href="${claimUrl}">Claim your account and set your password</a>.</p><p>You have access to: Workout Log, Food Logger, Body Map, and Social features.</p><p>&mdash; SwanStudios Team</p>`,
           });
       } catch (emailError) {
         logger.warn(`Claim invite email failed for external client ${normalizedEmail}: ${emailError.message}`);
       }
 
-      const { password: _, refreshTokenHash: __, ...clientData } = newClient.toJSON();
+      // Strip via the shared constant, not a hand-written destructure: a
+      // rest-destructure is a deny-list that a grep for `exclude: [` cannot see,
+      // so it silently kept shipping resetPasswordToken / resetPasswordExpires.
+      const clientData = stripCredentialFields(newClient.toJSON());
 
       logger.info(`External client created: ${normalizedEmail} (source: ${normalizedClientSource}) by admin ${req.user?.id}`);
 

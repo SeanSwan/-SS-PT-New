@@ -1,0 +1,945 @@
+{
+  "$schema": "swan-schema-snapshot/1",
+  "source": "models",
+  "generatedFrom": "backend/models/*.mjs",
+  "modelCount": 161,
+  "tableCount": 153,
+  "sourceDigest": "89e65293ae1a877a",
+  "tables": {
+    "Achievements": {
+      "model": "Achievement",
+      "declaredAs": "Achievements",
+      "idType": "UUID",
+      "caseSensitive": true
+    },
+    "admin_account_audit_logs": {
+      "model": "AdminAccountAuditLog",
+      "declaredAs": "admin_account_audit_logs",
+      "idType": "BIGINT",
+      "caseSensitive": false
+    },
+    "admin_settings": {
+      "model": "AdminSettings",
+      "declaredAs": "admin_settings",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "admin_specials": {
+      "model": "AdminSpecial",
+      "declaredAs": "admin_specials",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "ai_command_audit_logs": {
+      "model": "AiCommandAuditLog",
+      "declaredAs": "ai_command_audit_logs",
+      "idType": "BIGINT",
+      "caseSensitive": false
+    },
+    "ai_consent_logs": {
+      "model": "AiConsentLog",
+      "declaredAs": "ai_consent_logs",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "ai_conversations": {
+      "model": "AiConversation",
+      "declaredAs": "ai_conversations",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "ai_interaction_logs": {
+      "model": "AiInteractionLog",
+      "declaredAs": "ai_interaction_logs",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "ai_metrics_buckets": {
+      "model": "AiMetricsBucket",
+      "declaredAs": "ai_metrics_buckets",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "ai_monitoring_alerts": {
+      "model": "AiMonitoringAlert",
+      "declaredAs": "ai_monitoring_alerts",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "ai_privacy_profiles": {
+      "model": "AiPrivacyProfile",
+      "declaredAs": "ai_privacy_profiles",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "automation_logs": {
+      "model": "AutomationLog",
+      "declaredAs": "automation_logs",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "automation_sequences": {
+      "model": "AutomationSequence",
+      "declaredAs": "automation_sequences",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "avatar_homes": {
+      "model": "AvatarHome",
+      "declaredAs": "avatar_homes",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "Badges": {
+      "model": "Badge",
+      "declaredAs": "Badges",
+      "idType": "UUID",
+      "caseSensitive": true
+    },
+    "body_measurements": {
+      "model": "BodyMeasurement",
+      "declaredAs": "body_measurements",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "bootcamp_class_log": {
+      "model": "BootcampClassLog",
+      "declaredAs": "bootcamp_class_log",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "bootcamp_exercises": {
+      "model": "BootcampExercise",
+      "declaredAs": "bootcamp_exercises",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "bootcamp_overflow_plans": {
+      "model": "BootcampOverflowPlan",
+      "declaredAs": "bootcamp_overflow_plans",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "bootcamp_space_profiles": {
+      "model": "BootcampSpaceProfile",
+      "declaredAs": "bootcamp_space_profiles",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "bootcamp_sprints": {
+      "model": "BootcampSprint",
+      "declaredAs": "bootcamp_sprints",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "bootcamp_stations": {
+      "model": "BootcampStation",
+      "declaredAs": "bootcamp_stations",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "bootcamp_stretches": {
+      "model": "BootcampStretch",
+      "declaredAs": "bootcamp_stretches",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "bootcamp_templates": {
+      "model": "BootcampTemplate",
+      "declaredAs": "bootcamp_templates",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "cart_items": {
+      "model": "CartItem",
+      "declaredAs": "cart_items",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "challenges": {
+      "model": "Challenge",
+      "declaredAs": "challenges",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "challenge_participants": {
+      "model": "ChallengeParticipant",
+      "declaredAs": "challenge_participants",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "challenge_submissions": {
+      "model": "ChallengeSubmission",
+      "declaredAs": "challenge_submissions",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "client_availability": {
+      "model": "ClientAvailability",
+      "declaredAs": "client_availability",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "client_baseline_measurements": {
+      "model": "ClientBaselineMeasurements",
+      "declaredAs": "client_baseline_measurements",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "client_notes": {
+      "model": "ClientNote",
+      "declaredAs": "client_notes",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "client_nutrition_plans": {
+      "model": "ClientNutritionPlan",
+      "declaredAs": "client_nutrition_plans",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "client_onboarding_coverage_items": {
+      "model": "ClientOnboardingCoverageItem",
+      "declaredAs": "client_onboarding_coverage_items",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "client_onboarding_questionnaires": {
+      "model": "ClientOnboardingQuestionnaire",
+      "declaredAs": "client_onboarding_questionnaires",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "client_pain_entries": {
+      "model": "ClientPainEntry",
+      "declaredAs": "client_pain_entries",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "client_photos": {
+      "model": "ClientPhoto",
+      "declaredAs": "client_photos",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "client_progress": {
+      "model": "ClientProgress",
+      "declaredAs": "client_progress",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "client_trainer_assignments": {
+      "model": "ClientTrainerAssignment",
+      "declaredAs": "client_trainer_assignments",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "communication_audit_logs": {
+      "model": "CommunicationAuditLog",
+      "declaredAs": "communication_audit_logs",
+      "idType": "BIGINT",
+      "caseSensitive": false
+    },
+    "CommunicationDrafts": {
+      "model": "CommunicationDraft",
+      "declaredAs": "CommunicationDrafts",
+      "idType": "INTEGER",
+      "caseSensitive": true
+    },
+    "content_projects": {
+      "model": "ContentProject",
+      "declaredAs": "content_projects",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "custom_exercises": {
+      "model": "CustomExercise",
+      "declaredAs": "custom_exercises",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "custom_packages": {
+      "model": "CustomPackage",
+      "declaredAs": "custom_packages",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "daily_hydrations": {
+      "model": "DailyHydration",
+      "declaredAs": "daily_hydrations",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "daily_macro_logs": {
+      "model": "DailyMacroLog",
+      "declaredAs": "daily_macro_logs",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "daily_workout_forms": {
+      "model": "DailyWorkoutForm",
+      "declaredAs": "daily_workout_forms",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "gallery_enhancement_requests": {
+      "model": "EnhancementRequest",
+      "declaredAs": "gallery_enhancement_requests",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "equipment": {
+      "model": "Equipment",
+      "declaredAs": "equipment",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "equipment_exercise_map": {
+      "model": "EquipmentExerciseMap",
+      "declaredAs": "equipment_exercise_map",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "equipment_items": {
+      "model": "EquipmentItem",
+      "declaredAs": "equipment_items",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "equipment_profiles": {
+      "model": "EquipmentProfile",
+      "declaredAs": "equipment_profiles",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "equipment_scan_candidates": {
+      "model": "EquipmentScanCandidate",
+      "declaredAs": "equipment_scan_candidates",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "equipment_scan_sessions": {
+      "model": "EquipmentScanSession",
+      "declaredAs": "equipment_scan_sessions",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "Exercises": {
+      "model": "Exercise",
+      "declaredAs": "Exercises",
+      "idType": "UUID",
+      "caseSensitive": true
+    },
+    "exercise_equipment": {
+      "model": "ExerciseEquipment",
+      "declaredAs": "exercise_equipment",
+      "idType": null,
+      "caseSensitive": false
+    },
+    "exercise_muscle_groups": {
+      "model": "ExerciseMuscleGroup",
+      "declaredAs": "exercise_muscle_groups",
+      "idType": null,
+      "caseSensitive": false
+    },
+    "exercise_trends": {
+      "model": "ExerciseTrend",
+      "declaredAs": "exercise_trends",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "food_ingredients": {
+      "model": "FoodIngredient",
+      "declaredAs": "food_ingredients",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "food_products": {
+      "model": "FoodProduct",
+      "declaredAs": "food_products",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "food_scan_history": {
+      "model": "FoodScanHistory",
+      "declaredAs": "food_scan_history",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "form_analyses": {
+      "model": "FormAnalysis",
+      "declaredAs": "form_analyses",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "gallery_donations": {
+      "model": "GalleryDonation",
+      "declaredAs": "gallery_donations",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "gallery_events": {
+      "model": "GalleryEvent",
+      "declaredAs": "gallery_events",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "gallery_messages": {
+      "model": "GalleryMessage",
+      "declaredAs": "gallery_messages",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "gallery_photos": {
+      "model": "GalleryPhoto",
+      "declaredAs": "gallery_photos",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "gallery_referrals": {
+      "model": "GalleryReferral",
+      "declaredAs": "gallery_referrals",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "gallery_visitors": {
+      "model": "GalleryVisitor",
+      "declaredAs": "gallery_visitors",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "goals": {
+      "model": "Goal",
+      "declaredAs": "goals",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "goal_comments": {
+      "model": "GoalComment",
+      "declaredAs": "goal_comments",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "goal_likes": {
+      "model": "GoalLike",
+      "declaredAs": "goal_likes",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "goal_milestones": {
+      "model": "GoalMilestone",
+      "declaredAs": "goal_milestones",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "goal_supporters": {
+      "model": "GoalSupporter",
+      "declaredAs": "goal_supporters",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "leads": {
+      "model": "Lead",
+      "declaredAs": "leads",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "lead_activities": {
+      "model": "LeadActivity",
+      "declaredAs": "lead_activities",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "locations": {
+      "model": "Location",
+      "declaredAs": "locations",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "long_term_program_plans": {
+      "model": "LongTermProgramPlan",
+      "declaredAs": "long_term_program_plans",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "marketing_calendar_items": {
+      "model": "MarketingCalendarItem",
+      "declaredAs": "marketing_calendar_items",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "measurement_milestones": {
+      "model": "MeasurementMilestone",
+      "declaredAs": "measurement_milestones",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "movement_analyses": {
+      "model": "MovementAnalysis",
+      "declaredAs": "movement_analyses",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "movement_profiles": {
+      "model": "MovementProfile",
+      "declaredAs": "movement_profiles",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "muscle_groups": {
+      "model": "MuscleGroup",
+      "declaredAs": "muscle_groups",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "notifications": {
+      "model": "Notification",
+      "declaredAs": "notifications",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "notification_deliveries": {
+      "model": "NotificationDelivery",
+      "declaredAs": "notification_deliveries",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "notification_settings": {
+      "model": "NotificationSettings",
+      "declaredAs": "notification_settings",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "olympic_events": {
+      "model": "OlympicEvent",
+      "declaredAs": "olympic_events",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "orders": {
+      "model": "Order",
+      "declaredAs": "orders",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "order_items": {
+      "model": "OrderItem",
+      "declaredAs": "order_items",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "orientations": {
+      "model": "Orientation",
+      "declaredAs": "orientations",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "packages": {
+      "model": "Package",
+      "declaredAs": "packages",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "page_views": {
+      "model": "PageView",
+      "declaredAs": "page_views",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "PainEntryCorrectiveExercises": {
+      "model": "PainEntryCorrectiveExercise",
+      "declaredAs": "PainEntryCorrectiveExercises",
+      "idType": "INTEGER",
+      "caseSensitive": true
+    },
+    "pending_movement_analysis_matches": {
+      "model": "PendingMovementAnalysisMatch",
+      "declaredAs": "pending_movement_analysis_matches",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "pending_waiver_matches": {
+      "model": "PendingWaiverMatch",
+      "declaredAs": "pending_waiver_matches",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "gallery_photo_votes": {
+      "model": "PhotoVote",
+      "declaredAs": "gallery_photo_votes",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "plaud_clips": {
+      "model": "PlaudClip",
+      "declaredAs": "plaud_clips",
+      "idType": "BIGINT",
+      "caseSensitive": false
+    },
+    "plaud_clip_mirror_jobs": {
+      "model": "PlaudClipMirrorJob",
+      "declaredAs": "plaud_clip_mirror_jobs",
+      "idType": "BIGINT",
+      "caseSensitive": false
+    },
+    "plaud_merge_locks": {
+      "model": "PlaudMergeLock",
+      "declaredAs": "plaud_merge_locks",
+      "idType": null,
+      "caseSensitive": false
+    },
+    "plaud_merge_requests": {
+      "model": "PlaudMergeRequest",
+      "declaredAs": "plaud_merge_requests",
+      "idType": "BIGINT",
+      "caseSensitive": false
+    },
+    "plaud_webhook_nonces": {
+      "model": "PlaudWebhookNonce",
+      "declaredAs": "plaud_webhook_nonces",
+      "idType": null,
+      "caseSensitive": false
+    },
+    "price_change_logs": {
+      "model": "PriceChangeLog",
+      "declaredAs": "price_change_logs",
+      "idType": "BIGINT",
+      "caseSensitive": false
+    },
+    "print_orders": {
+      "model": "PrintOrder",
+      "declaredAs": "print_orders",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "product_variants": {
+      "model": "ProductVariant",
+      "declaredAs": "product_variants",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "program_mesocycle_blocks": {
+      "model": "ProgramMesocycleBlock",
+      "declaredAs": "program_mesocycle_blocks",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "progress_data": {
+      "model": "ProgressData",
+      "declaredAs": "progress_data",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "progress_reports": {
+      "model": "ProgressReport",
+      "declaredAs": "progress_reports",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "renewal_alerts": {
+      "model": "RenewalAlert",
+      "declaredAs": "renewal_alerts",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "sessions": {
+      "model": "Session",
+      "declaredAs": "sessions",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "session_packages": {
+      "model": "SessionPackage",
+      "declaredAs": "session_packages",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "session_types": {
+      "model": "SessionType",
+      "declaredAs": "session_types",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "sets": {
+      "model": "Set",
+      "declaredAs": "sets",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "shopping_carts": {
+      "model": "ShoppingCart",
+      "declaredAs": "shopping_carts",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "sms_suppressions": {
+      "model": "SmsSuppression",
+      "declaredAs": "sms_suppressions",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "social_publishing_accounts": {
+      "model": "SocialPublishingAccount",
+      "declaredAs": "social_publishing_accounts",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "social_publishing_attempts": {
+      "model": "SocialPublishingAttempt",
+      "declaredAs": "social_publishing_attempts",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "social_publishing_jobs": {
+      "model": "SocialPublishingJob",
+      "declaredAs": "social_publishing_jobs",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "sprint_class_slots": {
+      "model": "SprintClassSlot",
+      "declaredAs": "sprint_class_slots",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "sprint_exercise_memory": {
+      "model": "SprintExerciseMemory",
+      "declaredAs": "sprint_exercise_memory",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "sprint_weeks": {
+      "model": "SprintWeek",
+      "declaredAs": "sprint_weeks",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "storefront_items": {
+      "model": "StorefrontItem",
+      "declaredAs": "storefront_items",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "streaks": {
+      "model": "Streak",
+      "declaredAs": "streaks",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "subscribers": {
+      "model": "Subscriber",
+      "declaredAs": "subscribers",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "subscriptions": {
+      "model": "Subscription",
+      "declaredAs": "subscriptions",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "tax_config": {
+      "model": "TaxConfig",
+      "declaredAs": "tax_config",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "trainer_applications": {
+      "model": "TrainerApplication",
+      "declaredAs": "trainer_applications",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "trainer_availability": {
+      "model": "TrainerAvailability",
+      "declaredAs": "trainer_availability",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "trainer_commissions": {
+      "model": "TrainerCommission",
+      "declaredAs": "trainer_commissions",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "trainer_permissions": {
+      "model": "TrainerPermissions",
+      "declaredAs": "trainer_permissions",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "Users": {
+      "model": "User",
+      "declaredAs": "\"Users\"",
+      "idType": "INTEGER",
+      "caseSensitive": true
+    },
+    "UserAchievements": {
+      "model": "UserAchievement",
+      "declaredAs": "UserAchievements",
+      "idType": "INTEGER",
+      "caseSensitive": true
+    },
+    "user_feature_flags": {
+      "model": "UserFeatureFlag",
+      "declaredAs": "user_feature_flags",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "user_follows": {
+      "model": "UserFollow",
+      "declaredAs": "user_follows",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "user_watch_history": {
+      "model": "UserWatchHistory",
+      "declaredAs": "user_watch_history",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "variation_logs": {
+      "model": "VariationLog",
+      "declaredAs": "variation_logs",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "video_access_grants": {
+      "model": "VideoAccessGrant",
+      "declaredAs": "video_access_grants",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "video_catalog": {
+      "model": "VideoCatalog",
+      "declaredAs": "video_catalog",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "video_collections": {
+      "model": "VideoCollection",
+      "declaredAs": "video_collections",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "video_collection_items": {
+      "model": "VideoCollectionItem",
+      "declaredAs": "video_collection_items",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "video_job_log": {
+      "model": "VideoJobLog",
+      "declaredAs": "video_job_log",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "video_outbound_clicks": {
+      "model": "VideoOutboundClick",
+      "declaredAs": "video_outbound_clicks",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "video_sessions": {
+      "model": "VideoSession",
+      "declaredAs": "video_sessions",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "waiver_consent_flags": {
+      "model": "WaiverConsentFlags",
+      "declaredAs": "waiver_consent_flags",
+      "idType": null,
+      "caseSensitive": false
+    },
+    "waiver_records": {
+      "model": "WaiverRecord",
+      "declaredAs": "waiver_records",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "waiver_record_versions": {
+      "model": "WaiverRecordVersion",
+      "declaredAs": "waiver_record_versions",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "waiver_versions": {
+      "model": "WaiverVersion",
+      "declaredAs": "waiver_versions",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "WearableData": {
+      "model": "WearableData",
+      "declaredAs": "WearableData",
+      "idType": "INTEGER",
+      "caseSensitive": true
+    },
+    "workout_exercises": {
+      "model": "WorkoutExercise",
+      "declaredAs": "workout_exercises",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "workout_logs": {
+      "model": "WorkoutLog",
+      "declaredAs": "workout_logs",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "workout_plans": {
+      "model": "WorkoutPlan",
+      "declaredAs": "workout_plans",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "workout_plan_days": {
+      "model": "WorkoutPlanDay",
+      "declaredAs": "workout_plan_days",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "workout_plan_day_exercises": {
+      "model": "WorkoutPlanDayExercise",
+      "declaredAs": "workout_plan_day_exercises",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "workout_sessions": {
+      "model": "WorkoutSession",
+      "declaredAs": "workout_sessions",
+      "idType": "UUID",
+      "caseSensitive": false
+    },
+    "workout_templates": {
+      "model": "WorkoutTemplate",
+      "declaredAs": "workout_templates",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    },
+    "contacts": {
+      "model": "contact",
+      "declaredAs": "contacts",
+      "idType": "INTEGER",
+      "caseSensitive": false
+    }
+  },
+  "modelsWithoutTableName": [
+    "ComebackChallenge",
+    "Gamification",
+    "GamificationSettings",
+    "Milestone",
+    "PointTransaction",
+    "Reward",
+    "UserMilestone",
+    "UserReward"
+  ],
+  "poisonedTables": {
+    "users": {
+      "canonical": "Users",
+      "why": "stale lowercase duplicate; FK binds to dead table, joins return empty",
+      "evidence": "backend/migrations/20260730120000-repoint-user-fks-to-canonical-Users.cjs"
+    }
+  }
+}

@@ -124,7 +124,14 @@
  *
  * WHY toStringId Conversion (Not Use Raw ID)?
  * - Consistency: UUIDs stored as strings vs integers
- * - Comparison safety: req.user.id === params.userId works correctly
+ * - Comparison safety: req.user.id is a STRING, so comparing it to a route
+ *   param (also a string) is safe — but comparing it to a Sequelize INTEGER
+ *   column (a JS number) is NOT: `42 === '42'` is false and `42 !== '42'` is
+ *   true. Use idEquals() from utils/idUtils.mjs for any comparison against a
+ *   database-sourced id. This line previously claimed the raw `===` "works
+ *   correctly", which is the belief that produced the 74 stuck authorization
+ *   guards catalogued in the 2026-09-18 hostile pass (§13 of the review
+ *   packet).
  * - Type coercion issues: Prevent 123 == "123" edge cases
  * - Standard practice: Normalize IDs to strings for API layer
  *
@@ -260,13 +267,50 @@ import jwt from 'jsonwebtoken';
 // 🚀 ENHANCED: Coordinated model imports for consistent associations
 import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
-import { toStringId } from '../utils/idUtils.mjs';
+import { toStringId, idEquals } from '../utils/idUtils.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
+import { isAccessTokenRevoked } from '../services/tokenRevocationService.mjs';
 import { requireLinkedWaiver } from './waiverGate.mjs';
 import { AdminOwnerGateError, requireOwnerAdmin } from '../services/admin/adminOwnerGate.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
+
+// ── U-05: single JWT verification boundary ─────────────────────────────────
+// All access-token verification funnels through verifyAccessToken: signature
+// (shared secret — every token family is signed with it, so verify() alone
+// proves only "issued by us"), family check, then the E-06 revocation
+// registry. Thrown error NAMES are part of the contract — callers map them
+// to responses (protect maps them below).
+export class TokenFamilyError extends Error {
+  constructor(message = 'Invalid token type') {
+    super(message);
+    this.name = 'TokenFamilyError';
+  }
+}
+
+export class TokenRevokedError extends Error {
+  constructor(message = 'Token has been revoked') {
+    super(message);
+    this.name = 'TokenRevokedError';
+  }
+}
+
+/**
+ * Verify an ACCESS-family JWT: signature + tokenType + revocation.
+ * Throws jsonwebtoken's own errors (TokenExpiredError, JsonWebTokenError),
+ * TokenFamilyError, or TokenRevokedError. Resolves to the decoded payload.
+ */
+export async function verifyAccessToken(token) {
+  const decoded = jwt.verify(token, getJwtSecret());
+  if (decoded?.tokenType !== 'access') {
+    throw new TokenFamilyError();
+  }
+  if (decoded?.tokenId && (await isAccessTokenRevoked(decoded.tokenId))) {
+    throw new TokenRevokedError();
+  }
+  return decoded;
+}
 
 /**
  * PRODUCTION-FIXED Authentication middleware to protect routes
@@ -291,9 +335,9 @@ export const protect = async (req, res, next) => {
     }
 
     try {
-      // Verify token
-      const decoded = jwt.verify(token, getJwtSecret());
-      
+      // U-05: single verification boundary — signature + family + revocation
+      const decoded = await verifyAccessToken(token);
+
       // PRODUCTION FIX: Enhanced token validation with logging
       logger.info('Token decoded successfully', {
         userId: decoded.id,
@@ -301,21 +345,7 @@ export const protect = async (req, res, next) => {
         path: req.path,
         timeToExpiry: decoded.exp ? (decoded.exp * 1000 - Date.now()) : 'unknown'
       });
-      
-      // Check token type
-      if (decoded.tokenType !== 'access') {
-        logger.warn('Invalid token type', { 
-          tokenType: decoded.tokenType,
-          path: req.path, 
-          method: req.method 
-        });
-        
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid token type'
-        });
-      }
-      
+
       // 🚀 ENHANCED: Simplified database lookup with better error handling
       const User = getUser(); // 🎯 ENHANCED: Lazy load User model
       const user = await User.findByPk(decoded.id).catch(dbError => {
@@ -360,6 +390,10 @@ export const protect = async (req, res, next) => {
         username: user.username,
         email: user.email,
         subscriptionTier: user.subscriptionTier || 'free',
+        // E-06: carried so logout (and future admin actions) can revoke THIS
+        // access token in the revocation registry.
+        tokenId: decoded.tokenId ?? null,
+        tokenExp: decoded.exp ?? null,
       };
 
       if (
@@ -399,7 +433,26 @@ export const protect = async (req, res, next) => {
           message: 'Server configuration error'
         });
       }
-      
+
+      // U-05 boundary errors — responses preserved exactly from the pre-
+      // consolidation inline checks (family mismatch) plus the E-06 case.
+      if (tokenError.name === 'TokenFamilyError') {
+        logger.warn('Invalid token type', { path: req.path, method: req.method });
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid token type'
+        });
+      }
+
+      if (tokenError.name === 'TokenRevokedError') {
+        logger.warn('Revoked token presented', { path: req.path, method: req.method });
+        return res.status(401).json({
+          success: false,
+          message: 'Token has been revoked',
+          errorCode: 'TOKEN_REVOKED'
+        });
+      }
+
       const tokenErrors = {
         TokenExpiredError: { message: 'Token expired', code: 'TOKEN_EXPIRED' },
         JsonWebTokenError: { message: 'Invalid token', code: 'TOKEN_INVALID' },
@@ -629,7 +682,14 @@ export const ownerOrAdminOnly = (getOwnerId) => {
       const ownerId = await getOwnerId(req);
       
       // Check if user is the owner
-      if (req.user.id === ownerId) {
+      //
+      // 2026-09-18 hostile pass G-06 — was `req.user.id === ownerId`. req.user.id
+      // is a STRING (set at :381 via toStringId) while getOwnerId(req) may return
+      // a DB-sourced INTEGER, so the owner would be denied (fail closed, not a
+      // hole). NOTE: ownerOrAdminOnly currently has NO call sites — it is
+      // exported and referenced only in this file's doc comments (:52, :208) —
+      // so this is a latent defect for the first future caller, not a live one.
+      if (idEquals(req.user.id, ownerId)) {
         return next();
       }
       
@@ -784,7 +844,7 @@ export const authorizeResourceAccess = (paramName = 'userId') => {
       }
 
       // Own data - always allowed; protect stores req.user.id as a string.
-      if (Number(req.user.id) === targetId) {
+      if (idEquals(req.user.id, targetId)) {
         return next();
       }
 

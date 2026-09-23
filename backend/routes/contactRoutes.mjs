@@ -1,6 +1,7 @@
 import express from "express";
 import Contact from '../models/contact.mjs';
-import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { protect, adminOnly, rateLimiter } from '../middleware/authMiddleware.mjs';
+import { escapeHtml } from '../utils/htmlEscape.mjs';
 import sequelize from '../database.mjs';
 import { createAdminNotification } from '../controllers/notificationController.mjs';
 import { captureLeadFromContact } from '../services/leadCaptureService.mjs';
@@ -73,7 +74,11 @@ router.get("/", protect, adminOnly, async (req, res) => {
 });
 
 // Enhanced Contact Route - Database First + Smart External Services
-router.post("/", async (req, res) => {
+// S-01 (§19): this endpoint is public and unauthenticated by design — it is the website contact
+// form — but it was also unthrottled, while its sibling GET routes carry `protect, adminOnly`.
+// Each submission sends mail to OWNER_EMAIL / OWNER_WIFE_EMAIL, so an open loop here is both an
+// inbox-flooding vector and an outbound-send amplifier. Throttled to 10/hour per IP.
+router.post("/", rateLimiter({ windowMs: 60 * 60 * 1000, max: 10 }), async (req, res) => {
   console.log('🔥 ENHANCED CONTACT ROUTE - Starting processing...');
   
   try {
@@ -248,19 +253,19 @@ ${formData.priority === 'urgent' ? '🚨 RESPOND IMMEDIATELY for URGENT requests
 Your SwanStudios Contact System`,
       html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #00ffff;">${formData.priority === 'urgent' ? '🚨' : formData.priority === 'high' ? '⚡' : '🎯'} New SwanStudios Contact</h2>
+        <h2 style="color: #002060;">${formData.priority === 'urgent' ? '🚨' : formData.priority === 'high' ? '⚡' : '🎯'} New SwanStudios Contact</h2>
         
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Contact Information</h3>
-          <p><strong>Name:</strong> ${formData.name}</p>
-          <p><strong>Email:</strong> ${formData.email}</p>
-          <p><strong>Type:</strong> ${formData.consultationType ? formData.consultationType.replace('-', ' ').toUpperCase() : 'General Inquiry'}</p>
-          <p><strong>Priority:</strong> <span style="color: ${formData.priority === 'urgent' ? '#dc3545' : formData.priority === 'high' ? '#fd7e14' : '#28a745'};">${formData.priority ? formData.priority.toUpperCase() : 'NORMAL'}</span></p>
+          <p><strong>Name:</strong> ${escapeHtml(formData.name)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(formData.email)}</p>
+          <p><strong>Type:</strong> ${escapeHtml(formData.consultationType ? formData.consultationType.replace('-', ' ').toUpperCase() : 'General Inquiry')}</p>
+          <p><strong>Priority:</strong> <span style="color: ${formData.priority === 'urgent' ? '#dc3545' : formData.priority === 'high' ? '#fd7e14' : '#28a745'};">${escapeHtml(formData.priority ? formData.priority.toUpperCase() : 'NORMAL')}</span></p>
         </div>
 
         <div style="background: #e9ecef; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="margin-top: 0;">Message</h3>
-          <p style="white-space: pre-wrap;">${formData.message}</p>
+          <p style="white-space: pre-wrap;">${escapeHtml(formData.message)}</p>
         </div>
 
         <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 20px 0;">

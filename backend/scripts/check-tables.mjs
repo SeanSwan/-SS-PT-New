@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 import { Sequelize } from 'sequelize';
 
+import { assertDevDatabaseUrlAllowed } from '../utils/devDatabaseUrlGuard.mjs';
 const DATABASE_URL = process.env.DATABASE_URL;
+// H-06: this script builds its own connection and bypasses database.mjs —
+// enforce the same guard so a hosted DATABASE_URL from a non-production
+// context is an explicit act, never a silent one.
+assertDevDatabaseUrlAllowed('check-tables');
 const sequelize = new Sequelize(DATABASE_URL, {
   dialect: 'postgres',
   dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },

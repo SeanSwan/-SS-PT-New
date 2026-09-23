@@ -16,6 +16,12 @@ import { setupRoutes } from './routes.mjs';
 import { setupErrorHandling } from './middleware/errorHandler.mjs';
 import { initializeSession } from '../config/session.mjs';
 import { viewAsWriteBlocker } from '../middleware/viewAsGuard.mjs';
+import {
+  buildAllowedOrigins,
+  resolveCorsOrigin,
+  allowAnyOriginFromEnv,
+  parseEnvOrigins,
+} from '../utils/corsOriginPolicy.mjs';
 import logger from '../utils/logger.mjs';
 import sequelize from '../database.mjs';
 
@@ -51,31 +57,22 @@ export const createApp = async () => {
   // ===================== ULTRA-AGGRESSIVE OPTIONS HANDLING (LAYER 1) =====================
   // This runs BEFORE any other middleware to catch ALL OPTIONS requests
 
-  // Get allowed origins from environment or use defaults
-  const envOrigins = process.env.FRONTEND_ORIGINS
-    ? process.env.FRONTEND_ORIGINS.split(',').map(o => o.trim())
-    : [];
+  // Get allowed origins from environment or use defaults.
+  // Localhost dev origins are now gated on !isProduction by the shared policy
+  // (utils/corsOriginPolicy.mjs). They used to be appended unconditionally, so
+  // production answered with `Access-Control-Allow-Origin: http://localhost:5173`
+  // together with `Access-Control-Allow-Credentials: true` — CWE-942.
+  const envOrigins = parseEnvOrigins(process.env.FRONTEND_ORIGINS);
 
-  const allowedOrigins = [
-    ...envOrigins,
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175',
-    'http://localhost:3000',
-    'https://sswanstudios.com',
-    'https://www.sswanstudios.com',
-    'https://swanstudios.com',
-    'https://www.swanstudios.com',
-    'https://swanstudios-frontend.onrender.com'
-  ];
+  const allowedOrigins = buildAllowedOrigins({ envOrigins, isProduction });
 
-  const getAllowedCorsOrigin = (origin) => {
-    if (!origin) return null;
-    if (!isProduction || allowedOrigins.includes(origin)) {
-      return origin;
-    }
-    return null;
-  };
+  // Reflecting an arbitrary Origin is now an explicit opt-in. The standard dev
+  // ports are already in the dev list, so ordinary local development needs no
+  // configuration; only a non-standard dev port needs CORS_ALLOW_ANY_ORIGIN=1.
+  const allowAnyOrigin = allowAnyOriginFromEnv();
+
+  const getAllowedCorsOrigin = (origin) =>
+    resolveCorsOrigin({ origin, allowedOrigins, isProduction, allowAnyOrigin });
 
   const applyCorsHeaders = (res, origin, methods, headers) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
@@ -275,7 +272,31 @@ export const createApp = async () => {
     contentSecurityPolicy: isProduction ? {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'"],
+        /**
+         * M-06 fix (hostile review of the review, 2026-09-18).
+         *
+         * `script-src` used to carry `'unsafe-inline'`, which removes CSP's
+         * primary XSS mitigation — and it compounded H-10 (raw stored HTML on
+         * the public waiver page).
+         *
+         * It is not needed. Both frontend/index.html and frontend/dist/index.html
+         * load exactly one script via an external `src=` attribute and contain
+         * no inline <script> blocks, and React/Vite do not inject inline
+         * scripts at runtime.
+         *
+         * `style-src` deliberately KEEPS `'unsafe-inline'`: styled-components
+         * injects <style> elements at runtime, and removing it there would
+         * break every styled component in production. That is a real
+         * requirement, not a convenience.
+         *
+         * SWAN_CSP_ALLOW_INLINE_SCRIPT=1 is a documented, reversible escape
+         * hatch. If production ever reports a CSP violation blocking a
+         * third-party inline script, set it rather than editing this file —
+         * and then fix the dependency instead of leaving it set.
+         */
+        scriptSrc: process.env.SWAN_CSP_ALLOW_INLINE_SCRIPT === '1'
+          ? ["'self'", "'unsafe-inline'"]
+          : ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:", "blob:", "https://*.r2.cloudflarestorage.com", "https://*.r2.dev", "https://*.cloudflare.com"],
         connectSrc: ["'self'", "https://api.stripe.com", "https://ss-pt-new.onrender.com", "https://sswanstudios.com"],

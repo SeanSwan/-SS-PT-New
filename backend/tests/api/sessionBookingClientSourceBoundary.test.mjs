@@ -105,7 +105,12 @@ describe('session booking clientSource boundary', () => {
     expect(end).toBeGreaterThan(start);
     expect(source).toContain('const targetUserId = parseStrictPositiveInteger(req.params.userId);');
     expect(source).toContain('const sessionId = parseStrictPositiveInteger(req.body?.sessionId);');
-    expect(source).toContain('Number(req.user.id) !== targetUserId');
+    // Self-or-admin gate, pinned to the shared idEquals helper. The route used
+    // to read `Number(req.user.id) !== targetUserId`; it now hoists the
+    // comparison into idEquals (utils/idUtils.mjs) — the string/number-safe
+    // form that the E-01 IDOR class was fixed onto — and keeps the admin
+    // bypass explicit. Assert the rule, not the old spelling of it.
+    expect(source).toContain('if (!idEquals(req.user.id, targetUserId) && req.user.role !== \'admin\') {');
     expect(source).toContain("req.user.role !== 'admin'");
     expect(source).toContain('const bookingUser = req.user.role === \'admin\'');
     expect(source).toContain('deductSession: false');

@@ -3,6 +3,7 @@
  * Handles user profile operations including photo upload and profile updates
  */
 import fs from 'fs/promises';
+import { USER_CREDENTIAL_FIELDS } from '../utils/userSerialization.mjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Op } from 'sequelize';
@@ -142,7 +143,7 @@ export const uploadProfilePhoto = async (req, res) => {
     
     // Get updated user data without sensitive fields
     const updatedUser = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password', 'refreshTokenHash'] }
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
     });
     
     return res.status(200).json({
@@ -175,7 +176,7 @@ export const getUserProfile = async (req, res) => {
   try {
     const targetUserId = req.params.userId || req.user.id;
     const user = await User.findByPk(targetUserId, {
-      attributes: { exclude: ['password', 'refreshTokenHash'] }
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
     });
 
     if (!user) {
@@ -539,7 +540,7 @@ export const updateUserProfile = async (req, res) => {
     
     // Get updated user data without sensitive fields
     const updatedUser = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password', 'refreshTokenHash'] }
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
     });
     
     return res.status(200).json({
@@ -636,7 +637,7 @@ export const updateClientProfile = async (req, res) => {
 
     // Get updated user data without sensitive fields
     const updatedUser = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password', 'refreshTokenHash'] }
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
     });
 
     return res.status(200).json({

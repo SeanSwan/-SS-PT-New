@@ -13,6 +13,7 @@ import { subscribe, confirm, unsubscribe } from '../services/newsletterService.m
 import { sendGridEmail } from '../services/sendgridService.mjs';
 import { captureLeadFromNewsletter } from '../services/leadCaptureService.mjs';
 import { deriveChannel } from '../services/leadCaptureShared.mjs';
+import { escapeHtml, escapeHtmlAttribute } from '../utils/htmlEscape.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -26,19 +27,13 @@ const normalizeDisplayName = (value) => {
   return value.replace(/[\u0000-\u001F\u007F]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
 };
 
-const escapeHtml = (value) => String(value ?? '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#39;');
-
-const escapeHtmlAttribute = escapeHtml;
+// §19: both helpers now come from utils/htmlEscape.mjs (see the import above). This file and
+// orientationController.mjs were the only two that escaped their interpolations at all.
 
 const page = (heading, message, cta = null) => `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${heading} · SwanStudios</title></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(heading)} · SwanStudios</title></head>
 <body style="margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:#0A0A0F;color:#E0ECF4;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px">
-<div style="max-width:480px"><h1 style="color:#60C0F0;margin:0 0 12px">${heading}</h1><p style="opacity:.85;line-height:1.6">${message}</p>${cta ? `<p style="margin:24px 0 8px"><a href="${cta.url}" style="display:inline-block;background:linear-gradient(135deg,#60C0F0,#002060);color:#fff;padding:14px 30px;border-radius:10px;text-decoration:none;font-weight:700">${cta.label}</a></p>` : ''}<p style="margin-top:${cta ? '8px' : '24px'}"><a href="${SITE_URL}" style="color:#C6A84B;text-decoration:none;font-weight:600">Return to SwanStudios →</a></p></div>
+<div style="max-width:480px"><h1 style="color:#60C0F0;margin:0 0 12px">${escapeHtml(heading)}</h1><p style="opacity:.85;line-height:1.6">${escapeHtml(message)}</p>${cta ? `<p style="margin:24px 0 8px"><a href="${escapeHtmlAttribute(cta.url)}" style="display:inline-block;background:linear-gradient(135deg,#60C0F0,#002060);color:#fff;padding:14px 30px;border-radius:10px;text-decoration:none;font-weight:700">${escapeHtml(cta.label)}</a></p>` : ''}<p style="margin-top:${cta ? '8px' : '24px'}"><a href="${SITE_URL}" style="color:#C6A84B;text-decoration:none;font-weight:600">Return to SwanStudios →</a></p></div>
 </body></html>`;
 
 // 1:1 welcome email on confirm — first value-delivery + one booking CTA. Includes

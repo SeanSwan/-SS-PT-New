@@ -10,6 +10,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { HOSTED_DB_PATTERN, devDatabaseUrlAllowed as coreDevDatabaseUrlAllowed } from './utils/devDatabaseUrlGuard.mjs';
 
 // Get directory name equivalent in ESM
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,6 +34,49 @@ const isProduction = process.env.NODE_ENV === 'production';
 console.log(`Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
 
 let sequelize;
+
+// ── H-06 guard ────────────────────────────────────────────────────────────
+// Whether a NON-production process may use DATABASE_URL.
+//
+// It used to be used unconditionally. The repo-root .env points DATABASE_URL at
+// the production Render database, and testConnection() runs at import time, so
+// every local command — including `node scripts/safe-migrate.mjs development`
+// and the entire test suite — authenticated against production and could write
+// to it. That is exactly how 9 rows were inserted into production SequelizeMeta
+// (see the incident at the top of the review ledger).
+//
+// A local/docker DATABASE_URL stays allowed; a hosted one now requires an
+// explicit, deliberately-named override.
+//
+// The decision logic lives in utils/devDatabaseUrlGuard.mjs so standalone ops
+// scripts that build their own Sequelize instance (and therefore never pass
+// through this module) can enforce the same rule — see
+// assertDevDatabaseUrlAllowed(). This wrapper keeps the logging + fallback
+// behaviour specific to the app's connection.
+export function devDatabaseUrlAllowed() {
+  const url = process.env.DATABASE_URL;
+  const allowed = coreDevDatabaseUrlAllowed(url);
+
+  if (allowed && url && HOSTED_DB_PATTERN.test(url)) {
+    console.warn('⚠️  [DB] H-06 override active: connecting to a HOSTED database from a non-production process.');
+    return true;
+  }
+  if (allowed) return true;
+
+  if (!url) return false;
+
+  // Refuse. Deliberately a loud refusal that falls through to the LOCAL
+  // PostgreSQL branch rather than a thrown error: the catch below falls back to
+  // an in-memory SQLite database, and sqlite3 is not installed, so throwing here
+  // would crash every non-production import instead of protecting anything.
+  console.error('');
+  console.error('⛔  [DB] H-06 guard: DATABASE_URL points at a HOSTED database ');
+  console.error('    (render/rds/azure/neon/supabase/...) but this is NOT a production process.');
+  console.error('    Refusing to use it — falling back to the LOCAL PostgreSQL configuration.');
+  console.error('    Set SWAN_DEV_ALLOW_PRODUCTION_DATABASE_URL=1 only if you intend to touch that database.');
+  console.error('');
+  return false;
+}
 
 // Create a logging function that can be disabled in production
 const dbLogger = isProduction 
@@ -92,10 +136,10 @@ try {
     
     console.log('Production database configuration applied');
   } 
-  // DEVELOPMENT: Use DATABASE_URL if available (connects to production DB for parity),
-  // otherwise fall back to local PostgreSQL configuration
-  else if (process.env.DATABASE_URL) {
-    console.log('Development mode: using DATABASE_URL (production DB for local/prod parity)');
+  // DEVELOPMENT: Use DATABASE_URL only when the H-06 guard above allows it,
+  // otherwise fall back to local PostgreSQL configuration.
+  else if (devDatabaseUrlAllowed()) {
+    console.log('Development mode: using DATABASE_URL (local/docker target)');
 
     sequelize = new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',

@@ -20,6 +20,7 @@ import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import cartHelpers from '../utils/cartHelpers.mjs';
 import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
+import { reconcileRefundedCharge } from '../services/refundReconciliationService.mjs';
 import {
   normalizeAuthenticatedUserId,
   safeFindOrCreateActiveCart,
@@ -29,6 +30,7 @@ import {
 // its own service; the cart just calls it. The service is fully guarded and can NEVER affect
 // the cart's real behavior (zero behavior change).
 import { observeCartAdd } from '../services/economics/shadowObserver.mjs';
+import { moneyPathInputGuard } from '../middleware/moneyPathInputGuard.mjs';
 const { updateCartTotals, getCartTotalsWithFallback } = cartHelpers;
 
 const router = express.Router();
@@ -341,7 +343,7 @@ router.get('/', protect, ensureNumericCartUser, async (req, res) => {
  * Adds a training package to the user's cart
  * Supports role-based access and automatic user role upgrade
  */
-router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, async (req, res) => {
+router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, moneyPathInputGuard('cart-add'), async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
     const ShoppingCart = getShoppingCart();
@@ -900,6 +902,20 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
         } else if (cartId) {
           logger.warn('[Webhook] Ignoring expired checkout with invalid cart metadata');
         }
+        break;
+      }
+
+      // E-04 (hostile review): refunds issued from the Stripe dashboard — or
+      // by the app itself — used to leave session balances, cart/order status
+      // and refund analytics untouched. Reconciled in one locked transaction;
+      // see services/refundReconciliationService.mjs for the policy.
+      case 'charge.refunded': {
+        const charge = event.data.object;
+        const result = await reconcileRefundedCharge(charge);
+        logger.info('[Webhook] charge.refunded reconciled', {
+          chargeId: charge?.id,
+          ...result
+        });
         break;
       }
     }

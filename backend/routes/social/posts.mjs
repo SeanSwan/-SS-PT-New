@@ -17,6 +17,7 @@ import { cleanupSocialPostDeletionSideEffects } from '../../services/social/soci
 import { getIO } from '../../socket/socketManager.mjs';
 import { getSocialPointsFailure, sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
 import { attachWorkoutDataToPost, sanitizeWorkoutPostData } from './socialWorkoutData.mjs';
+import { idEquals } from '../../utils/idUtils.mjs';
 
 const router = express.Router();
 
@@ -301,7 +302,7 @@ router.get('/feed', async (req, res) => {
     
     // Extract friend IDs
     const friendIds = friendships.map(f => 
-      f.requesterId === req.user.id ? f.recipientId : f.requesterId
+      idEquals(f.requesterId, req.user.id) ? f.recipientId : f.requesterId
     );
     
     // Include user's own posts and friends' posts, plus public posts
@@ -934,14 +935,14 @@ router.get('/:postId', async (req, res) => {
     }
     
     // Check if current user can view this post
-    if (post.visibility === 'private' && post.userId !== req.user.id) {
+    if (post.visibility === 'private' && !idEquals(post.userId, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to view this post'
       });
     }
     
-    if (post.visibility === 'friends' && post.userId !== req.user.id) {
+    if (post.visibility === 'friends' && !idEquals(post.userId, req.user.id)) {
       // Check if the current user is friends with the post owner
       const friendship = await Friendship.findOne({
         where: {
@@ -1016,7 +1017,7 @@ router.put('/:postId', async (req, res) => {
     }
     
     // Check if user is the owner of the post
-    if (post.userId !== req.user.id) {
+    if (!idEquals(post.userId, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to edit this post'
@@ -1080,7 +1081,7 @@ router.delete('/:postId', async (req, res) => {
     }
     
     // Check if user is the owner of the post
-    if (post.userId !== req.user.id && req.user.role !== 'admin') {
+    if (!idEquals(post.userId, req.user.id) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to delete this post'
@@ -1129,7 +1130,7 @@ router.post('/:postId/report', async (req, res) => {
     }
 
     // Cannot report your own post
-    if (post.userId === req.user.id) {
+    if (idEquals(post.userId, req.user.id)) {
       return res.status(400).json({ success: false, message: 'You cannot report your own post' });
     }
 
@@ -1180,7 +1181,7 @@ router.post('/:postId/repost', async (req, res) => {
     if (!original) return res.status(404).json({ error: 'Post not found' });
 
     // Don't repost your own post
-    if (original.userId === req.user.id) {
+    if (idEquals(original.userId, req.user.id)) {
       return res.status(400).json({ error: 'Cannot repost your own post' });
     }
 
@@ -1268,7 +1269,7 @@ router.post('/:postId/like', async (req, res) => {
     });
 
     let likeReceivedResult = { success: false };
-    if (post.userId !== req.user.id) {
+    if (!idEquals(post.userId, req.user.id)) {
       likeReceivedResult = await awardEngagementReceivedPoints(post.userId, 'post_like_received', {
         postId,
         likedByUserId: req.user.id,
@@ -1391,7 +1392,7 @@ router.post('/:postId/comments', async (req, res) => {
     
     // Award points to the post owner for receiving a comment (but not if they commented on their own post)
     let commentReceivedResult = { success: false };
-    if (post.userId !== req.user.id) {
+    if (!idEquals(post.userId, req.user.id)) {
       commentReceivedResult = await awardEngagementReceivedPoints(post.userId, 'comment_received', {
         postId,
         commentId: comment.id,
@@ -1470,7 +1471,7 @@ router.delete('/:postId/comments/:commentId', async (req, res) => {
     // Check if user is the comment owner or post owner or admin
     const post = await SocialPost.findByPk(postId);
     
-    if (comment.userId !== req.user.id && post.userId !== req.user.id && req.user.role !== 'admin') {
+    if (!idEquals(comment.userId, req.user.id) && !idEquals(post.userId, req.user.id) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to delete this comment'

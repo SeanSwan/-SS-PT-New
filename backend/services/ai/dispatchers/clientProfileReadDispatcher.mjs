@@ -7,6 +7,7 @@
  */
 
 import { getAllModels } from '../../../models/index.mjs';
+import { USER_CREDENTIAL_FIELDS } from '../../../utils/userSerialization.mjs';
 import { toDateOnly } from '../../clientTrainingSafeReadValueService.mjs';
 import { resolveCommandClientId } from './clientScope.mjs';
 
@@ -53,7 +54,7 @@ const findClientProfile = ({ User, include, clientId }) => (
   User.findOne({
     where: { id: clientId, role: 'client' },
     include,
-    attributes: { exclude: ['password', 'refreshTokenHash'] },
+    attributes: { exclude: [...USER_CREDENTIAL_FIELDS] },
   })
 );
 

@@ -437,18 +437,40 @@ export const p0SecurityMonitoring = () => {
         });
       }
       
-      // Monitor for rapid requests (rate limiting indicator)
+      // Monitor for rapid requests (rate limiting indicator).
+      //
+      // This used to count every request for the LIFETIME of the session and emit
+      // a `high_request_volume` event on every request once that total passed 100
+      // — so an ordinary user who browsed past 100 requests produced one security
+      // event per request, indefinitely, burying the events that actually matter.
+      // A lifetime total is also not a rate: it cannot distinguish a burst from a
+      // long browsing session. It is now a fixed window with hysteresis, so it
+      // alerts at most once per window.
       if (req.session) {
-        req.session.requestCount = (req.session.requestCount || 0) + 1;
-        req.session.lastRequest = Date.now();
-        
-        if (req.session.requestCount > 100) { // 100 requests per session
-          piiSafeLogger.trackSecurityEvent('high_request_volume', req.user?.id, {
-            ...securityContext,
-            requestCount: req.session.requestCount,
-            severity: 'medium'
-          });
+        const now = Date.now();
+        const windowStart = req.session.rateWindowStart || 0;
+        const RATE_WINDOW_MS = 60 * 1000;
+        const RATE_ALERT_THRESHOLD = 100;
+
+        if (now - windowStart >= RATE_WINDOW_MS) {
+          req.session.rateWindowStart = now;
+          req.session.rateWindowCount = 1;
+          req.session.rateAlertedThisWindow = false;
+        } else {
+          req.session.rateWindowCount = (req.session.rateWindowCount || 0) + 1;
+
+          if (req.session.rateWindowCount > RATE_ALERT_THRESHOLD && !req.session.rateAlertedThisWindow) {
+            req.session.rateAlertedThisWindow = true; // hysteresis: one alert per window
+            piiSafeLogger.trackSecurityEvent('high_request_volume', req.user?.id, {
+              ...securityContext,
+              requestCount: req.session.rateWindowCount,
+              windowMs: RATE_WINDOW_MS,
+              severity: 'medium'
+            });
+          }
         }
+
+        req.session.lastRequest = now;
       }
       
       // Add response time monitoring

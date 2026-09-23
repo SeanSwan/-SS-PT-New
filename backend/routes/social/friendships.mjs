@@ -6,6 +6,7 @@ import { Friendship } from '../../models/social/index.mjs';
 import User from '../../models/User.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
 import { sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
+import { idEquals } from '../../utils/idUtils.mjs';
 
 const router = express.Router();
 
@@ -46,7 +47,7 @@ router.get('/', async (req, res) => {
     // Format the response to get a clean array of friends
     const friends = friendships.map(friendship => {
       // If current user is requester, return recipient as friend (and vice versa)
-      const friend = friendship.requesterId === req.user.id 
+      const friend = idEquals(friendship.requesterId, req.user.id) 
         ? friendship.recipient 
         : friendship.requester;
         
@@ -126,12 +127,17 @@ router.post('/request/:recipientId', requestLimiter, async (req, res) => {
       });
     }
     
-    // Check if recipient is the current user (params are strings, user.id is number)
+    // Check if recipient is the current user.
+    // 2026-09-18 hostile pass G-09 — the old comment here read "params are
+    // strings, user.id is number", which is the inverse of reality: `protect`
+    // sets req.user.id via toStringId (a STRING), so `recipientIdNum ===
+    // req.user.id` was `42 === '42'` → always false and self-requests were
+    // accepted.
     const recipientIdNum = parseInt(recipientId, 10);
     if (isNaN(recipientIdNum)) {
       return res.status(400).json({ success: false, message: 'Invalid recipient ID' });
     }
-    if (recipientIdNum === req.user.id) {
+    if (idEquals(recipientIdNum, req.user.id)) {
       return res.status(400).json({
         success: false,
         message: 'You cannot send a friend request to yourself'
@@ -155,7 +161,11 @@ router.post('/request/:recipientId', requestLimiter, async (req, res) => {
         if (existingFriendship.status === 'accepted') {
           return { status: 400, body: { success: false, message: 'You are already friends with this user' } };
         } else if (existingFriendship.status === 'pending') {
-          const msg = Number(existingFriendship.requesterId) === req.user.id
+          // 2026-09-18 hostile pass G-09 — was `Number(existingFriendship.requesterId) === req.user.id`
+          // (`42 === '42'`), so this always took the else branch and told the
+          // sender "This user has already sent you a friend request" when the
+          // truth was the reverse.
+          const msg = idEquals(existingFriendship.requesterId, req.user.id)
             ? 'You have already sent a friend request to this user'
             : 'This user has already sent you a friend request';
           return { status: 400, body: { success: false, message: msg } };
@@ -303,7 +313,7 @@ router.delete('/:friendshipId', async (req, res) => {
     }
     
     // Check if the current user is part of this friendship
-    if (friendship.requesterId !== req.user.id && friendship.recipientId !== req.user.id) {
+    if (!idEquals(friendship.requesterId, req.user.id) && !idEquals(friendship.recipientId, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to remove this friendship'
@@ -347,9 +357,11 @@ router.post('/block/:userId', async (req, res) => {
       });
     }
     
-    // Check if user is trying to block themselves
+    // Check if user is trying to block themselves.
+    // 2026-09-18 hostile pass G-09 — `userIdNum === req.user.id` was `42 === '42'`
+    // → always false, so self-blocking was accepted.
     const userIdNum = parseInt(userId, 10);
-    if (userIdNum === req.user.id) {
+    if (idEquals(userIdNum, req.user.id)) {
       return res.status(400).json({
         success: false,
         message: 'You cannot block yourself'
@@ -370,7 +382,13 @@ router.post('/block/:userId', async (req, res) => {
       // Update friendship to blocked status
       friendship.status = 'blocked';
       // Make sure current user is the blocker (requester)
-      if (Number(friendship.recipientId) === req.user.id) {
+      // 2026-09-18 hostile pass G-09 — was `Number(friendship.recipientId) === req.user.id`
+      // (`42 === '42'` → always false), so this swap NEVER ran and blocks were
+      // persisted with the direction reversed: the blocker was stored as the
+      // blocked party. Direction is load-bearing — messagingPolicyService's
+      // blockedIdsForActor() reads blockerId/blockedId off these rows — so a
+      // reversed row means the block may not be enforced against the right user.
+      if (idEquals(friendship.recipientId, req.user.id)) {
         // Swap requester and recipient so current user is the blocker
         const temp = friendship.requesterId;
         friendship.requesterId = friendship.recipientId;
@@ -462,7 +480,7 @@ router.get('/search', searchLimiter, async (req, res) => {
       }
     });
     const blockedIds = blocks.map(b =>
-      b.requesterId === req.user.id ? b.recipientId : b.requesterId
+      idEquals(b.requesterId, req.user.id) ? b.recipientId : b.requesterId
     );
 
     const excludeIds = [...blockedIds, req.user.id];
@@ -500,11 +518,11 @@ router.get('/search', searchLimiter, async (req, res) => {
     // Build a map of userId -> friendship status
     const friendshipMap = {};
     existingFriendships.forEach(f => {
-      const otherId = f.requesterId === req.user.id ? f.recipientId : f.requesterId;
+      const otherId = idEquals(f.requesterId, req.user.id) ? f.recipientId : f.requesterId;
       friendshipMap[otherId] = {
         status: f.status,
         friendshipId: f.id,
-        isRequester: f.requesterId === req.user.id
+        isRequester: idEquals(f.requesterId, req.user.id)
       };
     });
 
@@ -549,7 +567,7 @@ router.get('/suggestions', async (req, res) => {
     
     // Extract friend IDs
     const friendIds = friendships.map(f => 
-      f.requesterId === req.user.id ? f.recipientId : f.requesterId
+      idEquals(f.requesterId, req.user.id) ? f.recipientId : f.requesterId
     );
     
     // Also get blocked users
@@ -564,7 +582,7 @@ router.get('/suggestions', async (req, res) => {
     
     // Extract blocked user IDs
     const blockedIds = blocks.map(b => 
-      b.requesterId === req.user.id ? b.recipientId : b.requesterId
+      idEquals(b.requesterId, req.user.id) ? b.recipientId : b.requesterId
     );
     
     // Combine friend IDs and blocked IDs with current user ID

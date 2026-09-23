@@ -48,6 +48,7 @@ import CartItem from '../models/CartItem.mjs';
 import User from '../models/User.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
+import { serializeCsv } from '../utils/csvEscape.mjs';
 import {
   completeFulfillmentItem,
   getAdminFulfillmentQueue,
@@ -851,20 +852,25 @@ router.get('/orders/export', [heavyOrdersRateLimit, validateExportQuery], async 
     });
     
     if (format === 'csv') {
-      // Generate CSV
-      let csv = 'Order ID,Customer Name,Customer Email,Status,Total Amount,Created At,Completed At\n';
-      
-      orders.forEach(order => {
-        const customerName = order.user ? `${order.user.firstName} ${order.user.lastName}`.trim() : 'Unknown';
-        const customerEmail = order.user?.email || 'N/A';
-        const completedAt = order.completedAt ? order.completedAt.toISOString() : 'N/A';
-        
-        csv += `${order.id},"${customerName}","${customerEmail}",${order.status},${order.total},${order.createdAt.toISOString()},"${completedAt}"\n`;
-      });
+      // Cells via the shared escaper. The previous version wrapped names in quotes
+      // but never DOUBLED an embedded quote, so a name containing '"' broke out of
+      // the cell and could forge the remaining columns.
+      const csvBody = serializeCsv(
+        ['Order ID', 'Customer Name', 'Customer Email', 'Status', 'Total Amount', 'Created At', 'Completed At'],
+        orders.map(order => [
+          order.id,
+          order.user ? `${order.user.firstName} ${order.user.lastName}`.trim() : 'Unknown',
+          order.user?.email || 'N/A',
+          order.status,
+          order.total,
+          order.createdAt.toISOString(),
+          order.completedAt ? order.completedAt.toISOString() : 'N/A',
+        ]),
+      );
       
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="swanstudios-orders-${Date.now()}.csv"`);
-      res.send(csv);
+      res.send(csvBody);
       
     } else {
       // Return JSON

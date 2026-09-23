@@ -34,7 +34,13 @@ describe('orientation route access guard', () => {
   it('uses strict numeric IDs and modern Sequelize operators in update/link controllers', () => {
     expect(controllerSource).toContain('const parsePositiveInt = (value) => {');
     expect(controllerSource).toContain('return Number.isInteger(parsed) && parsed > 0 ? parsed : null;');
-    expect(controllerSource).toContain('const isSameUser = Number(req.user.id) === userId;');
+    // Ownership check must stay on the shared idEquals helper rather than an
+    // inline `Number(req.user.id) === userId`. idEquals is the project-wide
+    // string/number-safe comparison (utils/idUtils.mjs) that the E-01 class of
+    // IDOR bugs was fixed onto; pinning the helper keeps the guard from
+    // regressing back to a raw === that silently fails across id types.
+    expect(controllerSource).toContain("import { idEquals } from '../utils/idUtils.mjs';");
+    expect(controllerSource).toContain('const isSameUser = idEquals(req.user.id, userId);');
     expect(controllerSource).toContain('const requestedUserId = req.body?.userId !== undefined ? parsePositiveInt(req.body.userId) : null;');
     expect(controllerSource).toContain('[Op.or]');
     expect(controllerSource).toContain('[Op.iLike]');

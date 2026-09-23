@@ -38,6 +38,7 @@ import {
 } from '../../utils/emailTemplates.mjs';
 import logger from '../../utils/logger.mjs';
 import { isNonDeductingClient } from '../sessionBillingPolicy.mjs';
+import { idEquals } from '../../utils/idUtils.mjs';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -80,8 +81,16 @@ export async function cancelSessionForAI(sessionId, user) {
   // ── RBAC ─────────────────────────────────────────────────────────────────
 
   const isAdmin   = user.role === 'admin';
-  const isTrainer = user.role === 'trainer' && session.trainerId === user.id;
-  const isOwner   = session.userId === user.id;
+  // 2026-09-18 hostile pass G-12 — both of these were bare `===`, which was
+  // ALWAYS FALSE: Session.userId / Session.trainerId are DataTypes.INTEGER (JS
+  // numbers, models/Session.mjs:69-79) while `user` here is ctx.user — the same
+  // object shape as req.user, whose `id` `protect` sets via toStringId (a
+  // STRING). So isTrainer and isOwner were both permanently false and the next
+  // line threw 'You do not have permission to cancel this session.' for EVERY
+  // non-admin. The AI command lane ("cancel session #N") was dead for every
+  // client and every trainer; only admins could cancel through it.
+  const isTrainer = user.role === 'trainer' && idEquals(session.trainerId, user.id);
+  const isOwner   = idEquals(session.userId, user.id);
 
   if (!isAdmin && !isTrainer && !isOwner) {
     throw new Error('You do not have permission to cancel this session.');
@@ -219,7 +228,12 @@ async function sendCancellationNotifications(session, canceller, creditRestored)
     : 'your scheduled session';
 
   // Notify client (skip if client is the canceller)
-  if (session.client?.email && session.client.id !== canceller.id) {
+  // 2026-09-18 hostile pass G-12b — was a bare `!==`. `session.client.id` is a
+  // DataTypes.INTEGER (JS number); `canceller.id` is ctx.user.id, a STRING. So
+  // this was ALWAYS TRUE and the client was emailed "your session has been
+  // cancelled" even when the client was the one who cancelled it. The comment
+  // above has always said "skip if client is the canceller"; the code did not.
+  if (session.client?.email && !idEquals(session.client.id, canceller.id)) {
     await sendEmailNotification({
       to: session.client.email,
       subject: 'Session Cancelled - SwanStudios',
@@ -243,7 +257,8 @@ async function sendCancellationNotifications(session, canceller, creditRestored)
   }
 
   // Notify trainer (skip if trainer is the canceller)
-  if (session.trainer?.email && session.trainer.id !== canceller.id) {
+  // 2026-09-18 hostile pass G-12b — same defect as the client guard above.
+  if (session.trainer?.email && !idEquals(session.trainer.id, canceller.id)) {
     const clientName = session.client
       ? `${session.client.firstName} ${session.client.lastName || ''}`.trim()
       : 'Client';

@@ -27,6 +27,10 @@
  *   AudioFetchError(code, status) — HTTP fetch failures
  */
 import { promises as dns } from 'node:dns';
+// Imported for local use at line ~114 (the resolved-address rejection in `validateAudioUrl`)
+// AND re-exported at the foot of this file. A bare `export ... from` would not bind the name
+// in this module's scope, so a caller here would silently reference nothing.
+import { isPrivateOrLocalAddress } from './addressClassification.mjs';
 
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024; // 25 MB — matches PLAUD_MAX_FILE_BYTES
 const DEFAULT_TIMEOUT_MS = 30_000;          // 30s per §5.2
@@ -99,8 +103,24 @@ export async function validateAudioUrl(rawUrl, allowedBaseUrl) {
     throw new AudioUrlError('AUDIO_URL_NOT_ALLOWED', `port ${incoming.port || '(default)'} != allowed ${allowed.port || '(default)'}`);
   }
 
-  // 5. DNS resolution check — defeats DNS rebinding where allowed.com
-  //    resolves to 127.0.0.1 / 169.254.169.254 / 10.0.0.1 / etc.
+  // 5. DNS resolution check — every address the name resolves to is checked before the
+  //    fetch is allowed to proceed.
+  //
+  //    HONEST SCOPE (hostile review round 9, C8). An earlier version of this comment said
+  //    this "defeats DNS rebinding". It does not, on its own, and the difference matters.
+  //    This checks the result of ONE `dns.lookup`, then `fetchAudioWithCaps` below fetches
+  //    by HOSTNAME — which performs its OWN lookup. Between the two, a name whose TTL has
+  //    expired (or an attacker's resolver answering differently) can return a public address
+  //    here and a private one there. That is the TOCTOU window, and it is still open on this
+  //    path.
+  //
+  //    It is closed on the IMAGE path, which is the one that fetches user-supplied URLs:
+  //    `spotlightImageUrlPolicy.mjs` resolves once and hands a PINNED dispatcher (an
+  //    `undici.Agent` whose `connect.lookup` answers only from the pre-validated addresses)
+  //    to the request, so the socket cannot go anywhere the check did not see.
+  //
+  //    So: this is a real check and it stops the common case, but it is not a rebinding
+  //    defence and should not be described as one until an equivalent pin is wired here.
   let addrs;
   try {
     addrs = await dns.lookup(incoming.hostname, { all: true });
@@ -267,56 +287,10 @@ export async function fetchAudioWithCaps(audioUrl, declaredSizeBytes, opts = {})
   };
 }
 
-/**
- * Reject any address that's NOT publicly routable.
- *
- * Covers IPv4 + IPv6:
- *   - 127.0.0.0/8       loopback
- *   - 10.0.0.0/8        RFC1918 private
- *   - 172.16.0.0/12     RFC1918 private
- *   - 192.168.0.0/16    RFC1918 private
- *   - 169.254.0.0/16    link-local
- *   - 100.64.0.0/10     CGNAT (carrier-grade NAT)
- *   - 224.0.0.0/4       multicast (224.0.0.0 - 239.255.255.255)
- *   - 0.0.0.0/8         "this network"
- *   - 240.0.0.0/4       reserved (240.0.0.0 - 255.255.255.255 incl broadcast)
- *   - ::1               IPv6 loopback
- *   - fc00::/7          IPv6 ULA
- *   - fe80::/10         IPv6 link-local
- *   - ff00::/8          IPv6 multicast
- *
- * Defaults to "private" on unknown / un-parseable input (fail-closed).
- */
-export function isPrivateOrLocalAddress(ip) {
-  if (typeof ip !== 'string' || ip.length === 0) return true;
 
-  // IPv6
-  if (ip.includes(':')) {
-    if (ip === '::1' || ip === '::') return true;
-    if (/^[fF][cCdD]/.test(ip)) return true;            // fc00::/7 ULA
-    // fe80::/10 link-local. Range covers fe80 - febf (NOT just fe80-fe89).
-    // Bug fix per Codex NH-4 — original /^[fF][eE]8/ missed fea0-febf.
-    if (/^[fF][eE][89aAbB]/.test(ip)) return true;      // fe80::/10 link-local
-    if (/^[fF][fF]/.test(ip)) return true;              // ff00::/8 multicast
-    // IPv4-mapped IPv6 (::ffff:1.2.3.4) — extract and recurse
-    const v4mapped = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
-    if (v4mapped) return isPrivateOrLocalAddress(v4mapped[1]);
-    return false; // public IPv6
-  }
-
-  // IPv4
-  const m = ip.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-  if (!m) return true; // can't parse → fail closed
-  const a = Number(m[1]);
-  const b = Number(m[2]);
-  if (a === 0) return true;                              // 0.0.0.0/8
-  if (a === 10) return true;                             // 10.0.0.0/8
-  if (a === 127) return true;                            // 127.0.0.0/8 loopback
-  if (a === 169 && b === 254) return true;               // 169.254.0.0/16 link-local
-  if (a === 172 && b >= 16 && b <= 31) return true;      // 172.16.0.0/12
-  if (a === 192 && b === 168) return true;               // 192.168.0.0/16
-  if (a === 100 && b >= 64 && b <= 127) return true;     // 100.64.0.0/10 CGNAT
-  if (a >= 224 && a <= 239) return true;                 // multicast
-  if (a >= 240) return true;                             // reserved + broadcast
-  return false;                                          // public IPv4
-}
+// THE ADDRESS CLASSIFIER LIVES IN ITS OWN MODULE (2026-09-21). It was extracted to
+// `addressClassification.mjs` because this file had already breached `06-bans.md` #50
+// (322 lines at HEAD) and round 8's D2/D4 fix added more. Re-exported here so every
+// existing importer — including `tests/unit/plaudSlice53AudioFetcher.test.mjs`, which
+// imports the name from THIS module — keeps working unchanged.
+export { isPrivateOrLocalAddress } from './addressClassification.mjs';

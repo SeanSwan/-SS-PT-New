@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const readSource = (path) => readFileSync(resolve(process.cwd(), path), 'utf8');
+// Normalize CRLF -> LF before asserting. Windows checkouts run with
+// core.autocrlf=true and .gitattributes only pins scripts/*.sh to eol=lf, so
+// every .mjs lands on disk with \r\n. A source-contract assertion that embeds a
+// literal "\n" — e.g. indexOf('ackMessageSend(ack, {\n          ok: true') —
+// then returns -1 even though the source is correct, which is a false red that
+// silently disables the contract it was written to protect.
+const readSource = (path) => readFileSync(resolve(process.cwd(), path), 'utf8').replace(/\r\n/g, '\n');
 const SOCKET_SRC = readSource('socket/socket.mjs');
 const STARTUP_SRC = readSource('core/startup.mjs');
 

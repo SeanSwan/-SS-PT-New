@@ -248,8 +248,16 @@ const initializeDatabases = async () => {
 
     // ENHANCED: Run startup migrations with better error handling
     try {
-      await runStartupMigrations();
-      logger.info('✅ Startup migrations completed successfully');
+      const migrationReport = await runStartupMigrations();
+      if (migrationReport?.ok) {
+        logger.info('✅ Startup migrations completed successfully');
+      } else {
+        // Do not claim success we did not verify: every migration swallows its
+        // own failure, so a resolved promise is not evidence the schema is right.
+        logger.warn(
+          `⚠️  Startup migrations completed with ${migrationReport?.problems?.length ?? 'unknown'} problem(s) — schema may be incomplete.`
+        );
+      }
     } catch (migrationError) {
       logger.warn('⚠️  ENHANCED: Startup migrations had issues (non-critical):', migrationError.message);
 
@@ -403,7 +411,7 @@ const startServer = async (app) => {
 /**
  * Setup graceful shutdown handlers
  */
-const setupGracefulShutdown = ({ server, httpServer }) => {
+const setupGracefulShutdown = ({ server, httpServer, app }) => {
   const gracefulShutdown = async (signal) => {
     logger.warn(`Received ${signal}. Shutting down gracefully...`);
     
@@ -429,7 +437,16 @@ const setupGracefulShutdown = ({ server, httpServer }) => {
       // Close Socket.io connections
       closeSocketIO();
       logger.info('Socket.io connections closed.');
-      
+
+      // E-08: stop in-process workers/crons and close Redis. server.mjs used to
+      // own this and then exit immediately, which is why the rest of THIS
+      // sequence never completed on a real deploy. One owner now.
+      try {
+        await app?.locals?.shutdownCleanup?.();
+      } catch (cleanupErr) {
+        logger.warn('Resource cleanup error during shutdown: %s', cleanupErr.message);
+      }
+
       // Close database connections
       await sequelize.close();
       logger.info('PostgreSQL connection closed.');
@@ -504,8 +521,14 @@ export const criticalDatabasePreflight = async (seq) => {
   // 2. Pending migrations — best-effort; the schema guard is the
   //    real safety net if a migration fails silently.
   try {
-    await runStartupMigrations();
-    logger.info('✅ Startup migrations applied (pre-listen preflight)');
+    const migrationReport = await runStartupMigrations();
+    if (migrationReport?.ok) {
+      logger.info('✅ Startup migrations applied (pre-listen preflight)');
+    } else {
+      logger.warn(
+        `⚠️  Startup migrations completed with ${migrationReport?.problems?.length ?? 'unknown'} problem(s) — schema guard will verify.`,
+      );
+    }
   } catch (migrationError) {
     logger.warn(
       `⚠️  Pre-listen migrations had issues (schema guard will verify): ${migrationError.message}`,
@@ -565,7 +588,7 @@ export const initializeServer = async (app) => {
     // Only reached after the preflight passes. Health checks start
     // responding from this point.
     const serverObjects = await startServer(app);
-    setupGracefulShutdown(serverObjects);
+    setupGracefulShutdown({ ...serverObjects, app });
 
     logger.info('✅ Server is LISTENING — preflight passed, health checks active');
     logger.info('🔄 Non-critical background initialization starting...');

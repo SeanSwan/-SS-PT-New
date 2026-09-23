@@ -22,14 +22,30 @@ let flushTimer = null;
 let PageViewModel = null; // Lazy-loaded to avoid circular imports
 
 const FALLBACK_ANONYMIZATION_SALT = 'swanstudios-local-page-view-salt';
+let warnedAboutFallbackSalt = false;
 
 function getAnonymizationSalt() {
-  return (
+  const configured =
     process.env.PAGE_VIEW_ANONYMIZATION_SALT ||
     process.env.JWT_SECRET ||
-    process.env.SESSION_SECRET ||
-    FALLBACK_ANONYMIZATION_SALT
-  );
+    process.env.SESSION_SECRET;
+  if (configured) return configured;
+
+  // Hostile-review fix: reaching the public literal below means every IP
+  // hash is dictionary-reversible (IPv4 is 2^32 — seconds on one GPU with a
+  // known salt). In production that is a boot failure, not a fallback. In
+  // dev the literal stays (deterministic hashes across restarts are useful)
+  // with a one-time loud warning.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'PAGE_VIEW_ANONYMIZATION_SALT (or JWT_SECRET / SESSION_SECRET) must be set in production — refusing to hash visitor IPs with the public fallback salt'
+    );
+  }
+  if (!warnedAboutFallbackSalt) {
+    warnedAboutFallbackSalt = true;
+    console.warn('⚠️  [pageViewCache] Hashing visitor IPs with the built-in DEV salt — set PAGE_VIEW_ANONYMIZATION_SALT anywhere real.');
+  }
+  return FALLBACK_ANONYMIZATION_SALT;
 }
 
 export function anonymizeVisitorIp(ip) {

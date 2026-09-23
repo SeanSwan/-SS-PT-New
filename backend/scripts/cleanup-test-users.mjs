@@ -19,6 +19,7 @@
  */
 import { Sequelize } from 'sequelize';
 
+import { assertDevDatabaseUrlAllowed } from '../utils/devDatabaseUrlGuard.mjs';
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
   console.error('DATABASE_URL not set');
@@ -30,6 +31,14 @@ if (isProduction && process.env.ALLOW_PROD_CLEANUP !== 'true') {
   console.error('\nPRODUCTION DB detected. Set ALLOW_PROD_CLEANUP=true to proceed.\n');
   process.exit(1);
 }
+
+// H-06: this script builds its own connection and bypasses database.mjs —
+
+// enforce the same guard so a hosted DATABASE_URL from a non-production
+
+// context is an explicit act, never a silent one.
+
+assertDevDatabaseUrlAllowed('cleanup-test-users');
 
 const sequelize = new Sequelize(DATABASE_URL, {
   dialect: 'postgres',

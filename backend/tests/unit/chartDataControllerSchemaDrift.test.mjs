@@ -12,7 +12,8 @@
  *   exercises, sets. Postgres quoted identifiers are case-sensitive, so every
  *   such query errored with `relation "..." does not exist`.
  *
- *   The safeQuery helper (chartDataController.mjs:22-33) catches the error
+ *   The safeQuery helper (chartDataController.mjs:66 — the SYMBOL NAME is the
+ *   stable handle; this line number drifted once already, from :22-33) catches the error
  *   silently and returns [], so the frontend showed "No data yet" on canonical
  *   /progress for every user with real data. Sean has 11 completed sessions
  *   in workout_sessions — none of them ever reached the WorkoutFrequencyBar.

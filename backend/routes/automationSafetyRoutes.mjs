@@ -14,6 +14,7 @@ import {
 } from '../services/automationService.mjs';
 import { isAutomationArmed } from '../services/automationArmState.mjs';
 import { previewSmsTemplates } from '../services/smsService.mjs';
+import { listEmailTemplates } from '../services/emailTemplates.mjs';
 
 const TEST_SEND_VALIDATION_ERRORS = ['confirm_required', 'invalid_phone', 'unknown_template', 'test_allowlist_missing', 'not_in_test_allowlist'];
 
@@ -61,7 +62,13 @@ router.get('/templates/preview', protect, adminOnly, (req, res) => {
     for (const key of ['clientName', 'trainerName', 'time', 'message']) {
       if (typeof req.query[key] === 'string') overrides[key] = req.query[key];
     }
-    return res.status(200).json({ success: true, data: previewSmsTemplates(overrides) });
+    // `emailTemplates` is additive: the speed-to-lead drip emails need the same
+    // copy-review surface the SMS templates already have. Existing consumers of
+    // this response are unaffected.
+    return res.status(200).json({
+      success: true,
+      data: { ...previewSmsTemplates(overrides), emailTemplates: listEmailTemplates() },
+    });
   } catch (error) {
     logger.error('Error previewing SMS templates:', error);
     return res.status(500).json({

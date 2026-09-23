@@ -621,6 +621,34 @@ const MUTATIONS = [
     },
     signature: 'compoundProbe.mjs',
   },
+  {
+    id: 'M18',
+    title: 'literal-only parameter exemption — a TAINTED call site reopens it',
+    note: 'F08 slice. The §19 ratchet gained a `literalOnlyParams` exemption so that a helper whose every call site passes a string literal is not a false positive. That exemption is only sound while EVERY call site is a literal, so this mutation adds one call site that passes user-controlled data. If the exemption is a hole, the guard stays green here and this mutation SURVIVES.',
+    file: 'services/taintedParamsProbe.mjs',
+    apply: () => {
+      writeTmp(
+        'services/taintedParamsProbe.mjs',
+        [
+          "import { escapeHtml } from '../utils/htmlEscape.mjs';",
+          '',
+          '// Both of these call sites pass literals, so at FIRST glance the parameter',
+          '// `heading` is literal-only and the exemption applies.',
+          'const page = (heading, body) =>',
+          '  `<h1>${heading}</h1><p>${body}</p>`;',
+          '',
+          'export const A = page("You are in.", "Welcome.");',
+          '',
+          '// The tainted call site. The exemption must NOT hold once this exists.',
+          'export function render(client) {',
+          '  return page(client.firstName, "ok");',
+          '}',
+          '',
+        ].join('\n'),
+      );
+    },
+    signature: 'taintedParamsProbe.mjs',
+  },
 ];
 
 describe('mutation harness — the email HTML-injection guard', () => {

@@ -12,6 +12,72 @@ import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
+// ────────────────────────────────────────────────────────────────────────────
+// PUBLIC: unsubscribe (deliberately ABOVE router.use(protect) — the link is
+// clicked from an email, so there is no session. Placement is load-bearing.
+// Always 200 text/html: both outcomes are friendly pages, and a probing
+// attacker learns nothing from the response. Never throws, never 500s.
+// ────────────────────────────────────────────────────────────────────────────
+const UNSUB_PAGE_HEAD = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SwanStudios</title></head><body style="margin:0;padding:40px 16px;background:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:8px"><tr><td style="padding:32px;text-align:center"><div style="font-size:13px;letter-spacing:2px;color:#6b7280;margin-bottom:28px">SWANSTUDIOS</div>`;
+
+const unsubPage = (heading, body) =>
+  `${UNSUB_PAGE_HEAD}<h1 style="margin:0 0 20px;font-size:22px;font-weight:600;color:#1a1a24">${heading}</h1><p style="margin:0;font-size:15px;line-height:1.6;color:#4b5563">${body}</p></td></tr></table></body></html>`;
+
+const UNSUB_OK_PAGE = unsubPage(
+  "&check; You're unsubscribed.",
+  "You won't receive marketing emails from SwanStudios anymore. If this was a mistake, just reply to any previous email and we'll fix it."
+);
+
+const UNSUB_INVALID_PAGE = unsubPage(
+  'Link expired or invalid.',
+  "No changes were made. If you need help, reply to any email you've received from SwanStudios."
+);
+
+// /api/leads/unsubscribe?lid=<int>&tok=<hex> — AUTH: none (public link)
+router.get('/unsubscribe', async (req, res) => {
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  try {
+    const lid = String(req.query.lid ?? '');
+    const tok = String(req.query.tok ?? '');
+
+    // Non-numeric or empty lid can never be valid — reject before touching the DB.
+    if (!/^\d+$/.test(lid) || tok.length === 0) {
+      return res.status(200).send(UNSUB_INVALID_PAGE);
+    }
+
+    const { verifyUnsubscribeToken } = await import('../services/leadUnsubscribeToken.mjs');
+    if (!verifyUnsubscribeToken(Number(lid), tok)) {
+      return res.status(200).send(UNSUB_INVALID_PAGE);
+    }
+
+    const { Lead, LeadActivity } = await getModels();
+    const lead = await Lead.findByPk(Number(lid));
+    if (!lead) return res.status(200).send(UNSUB_INVALID_PAGE);
+
+    // Idempotent: re-clicking the same link lands the same page with no
+    // duplicate tag and no duplicate activity row.
+    const tags = Array.isArray(lead.tags) ? lead.tags : [];
+    if (!tags.includes('email-unsubscribed')) {
+      lead.tags = [...new Set([...tags, 'email-unsubscribed'])];
+      await lead.save();
+
+      await LeadActivity.create({
+        leadId: lead.id,
+        type: 'note_added',
+        title: 'Email unsubscribe',
+        description: 'Prospect unsubscribed via email link',
+      });
+    }
+
+    return res.status(200).send(UNSUB_OK_PAGE);
+  } catch (err) {
+    // Fail visible in logs, fail friendly to the visitor. Never a stack trace,
+    // never a non-200, never a hint about which part failed.
+    logger.error('[leads] unsubscribe handler error:', err?.message);
+    return res.status(200).send(UNSUB_INVALID_PAGE);
+  }
+});
+
 // All routes require auth + admin or trainer role
 router.use(protect);
 router.use(trainerOrAdminOnly);

@@ -98,8 +98,16 @@ router.get('/tasks', async (req, res) => {
     const replacements = { userId };
 
     if (phase !== undefined) {
+      // L-08 fix (hostile review of the review, 2026-09-18).
+      // `parseInt('abc', 10)` is NaN, which was bound straight into an integer
+      // column — so a malformed query parameter surfaced as a database error
+      // (a 500) instead of a rejected request (a 400). Reject at the boundary.
+      const parsedPhase = parseInt(phase, 10);
+      if (!Number.isInteger(parsedPhase)) {
+        return res.status(400).json({ success: false, error: 'phase must be an integer' });
+      }
       where += ' AND phase = :phase';
-      replacements.phase = parseInt(phase, 10);
+      replacements.phase = parsedPhase;
     }
     if (status) {
       where += ' AND status = :status';

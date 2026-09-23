@@ -12,6 +12,7 @@
  */
 import { Sequelize } from 'sequelize';
 
+import { assertDevDatabaseUrlAllowed } from '../utils/devDatabaseUrlGuard.mjs';
 const DATABASE_URL = process.env.DATABASE_URL || process.argv[2];
 if (!DATABASE_URL) {
   console.error('Set DATABASE_URL env var or pass as argument');
@@ -27,6 +28,14 @@ if (OWNER_EMAILS.length === 0) {
   console.error('Set OWNER_EMAILS or SUPER_ADMIN_EMAILS to a comma-separated list before running this script');
   process.exit(1);
 }
+
+// H-06: this script builds its own connection and bypasses database.mjs —
+
+// enforce the same guard so a hosted DATABASE_URL from a non-production
+
+// context is an explicit act, never a silent one.
+
+assertDevDatabaseUrlAllowed('promote-owners');
 
 const sequelize = new Sequelize(DATABASE_URL, {
   dialect: 'postgres',

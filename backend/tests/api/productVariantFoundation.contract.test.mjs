@@ -68,7 +68,7 @@ describe('product variant + storefront product-field foundation (Phase 1)', () =
     expect(adminRoutes).toContain("router.put('/variants/:variantId'");
     expect(adminRoutes).toContain("router.delete('/variants/:variantId'");
     expect(adminRoutes).toContain("router.use(protect)");
-    expect(adminRoutes).toContain("router.use(requireAdmin)");
+    expect(adminRoutes).toContain("router.use(adminOnly)"); // S0 2026-07-23: shared adminOnly replaced route-local requireAdmin
     expect(adminRoutes).toContain("Variants are only available for physical products");
     expect(adminRoutes).toContain("StorefrontItem.findByPk(itemId)");
     expect(adminRoutes).not.toContain("storefrontItemId: req.body");

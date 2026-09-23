@@ -6,7 +6,15 @@
 
 import path from 'path';
 import { existsSync } from 'fs';
+import { fileURLToPath } from 'node:url';
 import logger from '../../utils/logger.mjs';
+
+// `__dirname` does not exist in ES module scope. The SPA fallback below referenced it
+// without defining it, so in production every GET that is not /api/*, not /uploads/* and
+// has no dot in it — i.e. every client-side route, including a refresh on /dashboard —
+// threw `ReferenceError: __dirname is not defined` inside the middleware and fell through
+// to the error handler as a 500. Same defect and same fix as services/photoStorageService.mjs.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isProduction = process.env.NODE_ENV === 'production';
 

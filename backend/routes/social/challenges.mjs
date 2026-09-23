@@ -10,6 +10,7 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { uploadPhoto, deletePhoto } from '../../services/photoStorageService.mjs';
 import logger from '../../utils/logger.mjs';
+import { idEquals } from '../../utils/idUtils.mjs';
 
 const ALLOWED_SOCIAL_CHALLENGE_TYPES = new Set(['individual', 'team']);
 
@@ -423,7 +424,7 @@ router.post('/:challengeId/join', async (req, res) => {
     }
     
     // Check visibility permissions
-    if (challenge.visibility === 'private' && challenge.creatorId !== req.user.id) {
+    if (challenge.visibility === 'private' && !idEquals(challenge.creatorId, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'This is a private challenge'

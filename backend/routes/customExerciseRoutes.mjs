@@ -17,6 +17,7 @@ import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import { getCustomExercise } from '../models/index.mjs';
 import { Op } from 'sequelize';
 import logger from '../utils/logger.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ function slugify(text) {
 
 /** Check ownership: trainer owns the exercise, or user is admin. Returns 403 response if denied. */
 function checkOwnership(exercise, req, res) {
-  if (exercise.trainerId !== req.user.id && req.user.role !== 'admin') {
+  if (!idEquals(exercise.trainerId, req.user.id) && req.user.role !== 'admin') {
     res.status(403).json({ success: false, error: 'Access denied' });
     return false;
   }
@@ -399,7 +400,7 @@ router.get('/:id', async (req, res) => {
 
     // Access control: owner, admin, or public exercise
     if (
-      exercise.trainerId !== req.user.id &&
+      !idEquals(exercise.trainerId, req.user.id) &&
       req.user.role !== 'admin' &&
       !exercise.isPublic
     ) {
@@ -502,7 +503,7 @@ router.post('/:id/duplicate', authorize(['admin', 'trainer']), async (req, res) 
     }
 
     // Can duplicate own exercises, public exercises, or admin can duplicate any
-    if (source.trainerId !== req.user.id && !source.isPublic && req.user.role !== 'admin') {
+    if (!idEquals(source.trainerId, req.user.id) && !source.isPublic && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Access denied' });
     }
 

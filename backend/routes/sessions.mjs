@@ -44,6 +44,7 @@ import {
   hasEditableScheduleFields,
   parseEditableSessionId
 } from './sessionEditableUpdate.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 const router = express.Router();
 const MAX_MANUAL_SESSION_ADD = 50;
@@ -517,7 +518,7 @@ router.get('/trainer-assignments/:trainerId', protect, async (req, res) => {
       });
     }
 
-    if (Number(req.user.id) !== trainerId && req.user.role !== 'admin') {
+    if (!idEquals(req.user.id, trainerId) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'You can only view your own trainer assignments'
@@ -554,7 +555,7 @@ router.get('/client-assignments/:clientId', protect, async (req, res) => {
       });
     }
 
-    if (Number(req.user.id) !== clientId && req.user.role !== 'admin') {
+    if (!idEquals(req.user.id, clientId) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'You can only view your own assignments'
@@ -2169,7 +2170,7 @@ router.post("/book/:userId", protect, async (req, res) => {
       });
     }
 
-    if (Number(req.user.id) !== targetUserId && req.user.role !== 'admin') {
+    if (!idEquals(req.user.id, targetUserId) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'You can only book sessions for yourself.'

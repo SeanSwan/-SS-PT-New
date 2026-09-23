@@ -37,6 +37,10 @@ vi.mock('../models/LeadActivity.mjs', () => ({
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => { req.user = { id: 1, role: 'admin' }; next(); },
   adminOnly: (_req, _res, next) => next(),
+  // §19: the public contact POST is now throttled, so the route module imports rateLimiter.
+  // A vi.mock that omits a newly-imported export fails the whole file at collection time
+  // (the same trap §14 recorded as N-04).
+  rateLimiter: () => (_req, _res, next) => next(),
 }));
 
 vi.mock('../database.mjs', () => ({

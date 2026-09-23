@@ -23,6 +23,7 @@ import { query, validationResult } from 'express-validator';
 import { Op, literal, fn, col } from 'sequelize';
 import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
+import { serializeCsv } from '../../utils/csvEscape.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'internal_error';
@@ -766,15 +767,21 @@ router.get('/export', validateExportQuery, async (req, res) => {
     }));
     
     if (format === 'csv') {
-      // Convert to CSV format
-      const csvHeader = 'Transaction ID,Date,Customer Name,Customer Email,Amount,Status,Items\n';
-      const csvRows = exportData.map(row => 
-        `${row.transactionId},${row.date},${row.customerName},${row.customerEmail},${row.amount},${row.status},"${row.items}"`
-      ).join('\n');
+      // Every cell via the shared escaper. This previously interpolated RAW
+      // values with no quoting at all, so a customer name containing a comma
+      // shifted every later column, and a name starting with '=' arrived in the
+      // admin's spreadsheet as a live formula.
+      const csvBody = serializeCsv(
+        ['Transaction ID', 'Date', 'Customer Name', 'Customer Email', 'Amount', 'Status', 'Items'],
+        exportData.map(row => [
+          row.transactionId, row.date, row.customerName,
+          row.customerEmail, row.amount, row.status, row.items,
+        ]),
+      );
       
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="swanstudios-financial-export-${new Date().toISOString().split('T')[0]}.csv"`);
-      res.send(csvHeader + csvRows);
+      res.send(csvBody);
     } else {
       res.json({
         success: true,

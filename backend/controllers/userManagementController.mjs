@@ -319,6 +319,7 @@
 // backend/controllers/userManagementController.mjs
 // 🎯 ENHANCED P0 FIX: Coordinated model imports to prevent initialization race condition
 import { getUser } from '../models/index.mjs';
+import { USER_CREDENTIAL_FIELDS } from '../utils/userSerialization.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
@@ -363,7 +364,7 @@ export const getAllUsers = async (req, res) => {
     const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const users = await User.findAll({
       attributes: { 
-        exclude: ['password', 'refreshTokenHash', 'failedLoginAttempts'] 
+        exclude: [...USER_CREDENTIAL_FIELDS, 'failedLoginAttempts'] 
       },
       order: [['createdAt', 'DESC']]
     });
@@ -676,7 +677,7 @@ export const getRecentSignups = async (req, res) => {
         }
       },
       attributes: {
-        exclude: ['password', 'refreshTokenHash', 'failedLoginAttempts']
+        exclude: [...USER_CREDENTIAL_FIELDS, 'failedLoginAttempts']
       },
       order: [['createdAt', 'DESC']],
       limit: parseInt(limit)

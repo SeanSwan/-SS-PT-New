@@ -20,6 +20,13 @@ vi.mock('../middleware/authMiddleware.mjs', () => ({
     req.user = { id: 1, role: req.headers['x-test-role'] || 'admin' };
     next();
   },
+  // Mirrors the real adminOnly: 403 unless role is admin (protect runs first).
+  adminOnly: (req, res, next) => {
+    const role = String(req.user?.role || '').toLowerCase();
+    if (role === 'admin') return next();
+    return res.status(403).json({ success: false, message: 'Admin access required' });
+  },
+  ownerAdminOnly: (_req, _res, next) => next(),
   rateLimiter: () => (_req, _res, next) => next(),
 }));
 
@@ -35,7 +42,7 @@ vi.mock('../models/index.mjs', () => ({
 }));
 
 vi.mock('../utils/logger.mjs', () => ({
-  default: { info: vi.fn(), error: vi.fn() },
+  default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }));
 
 const { default: adminPackageRoutes } = await import('../routes/adminPackageRoutes.mjs');
@@ -92,5 +99,45 @@ describe('admin package route safety', () => {
   it('keeps source free of development-only error disclosure', () => {
     expect(ROUTE_SOURCE).toContain("const INTERNAL_ERROR = 'internal_error'");
     expect(ROUTE_SOURCE).not.toContain("process.env.NODE_ENV === 'development' ? error.message");
+  });
+
+  // D-02 regression: req.body must never reach the model raw — the Stripe
+  // binding fields (stripeProductId/stripePriceId) and hook-computed totalCost
+  // are exactly what the allowlist exists to drop.
+  it('strips non-allowlisted fields from package creation (D-02)', async () => {
+    const res = await request(app)
+      .post('/api/admin/storefront')
+      .send({
+        name: 'Ten Pack',
+        packageType: 'fixed',
+        pricePerSession: 80,
+        stripeProductId: 'prod_EVIL',
+        stripePriceId: 'price_EVIL',
+        totalCost: 0.01,
+        id: 99999,
+      });
+
+    expect(res.status).toBe(201);
+    expect(storefrontCreate).toHaveBeenCalledTimes(1);
+    const payload = storefrontCreate.mock.calls[0][0];
+    expect(payload).toMatchObject({ name: 'Ten Pack', packageType: 'fixed', pricePerSession: 80 });
+    expect(payload).not.toHaveProperty('stripeProductId');
+    expect(payload).not.toHaveProperty('stripePriceId');
+    expect(payload).not.toHaveProperty('totalCost');
+    expect(payload).not.toHaveProperty('id');
+  });
+
+  it('strips non-allowlisted fields from package update (D-02)', async () => {
+    const update = vi.fn().mockResolvedValue(true);
+    storefrontFindByPk.mockResolvedValue({ id: 5, name: 'Existing', update });
+
+    const res = await request(app)
+      .put('/api/admin/storefront/5')
+      .send({ name: 'Renamed', stripePriceId: 'price_EVIL', displayOrder: 3 });
+
+    expect(res.status).toBe(200);
+    expect(update).toHaveBeenCalledTimes(1);
+    const payload = update.mock.calls[0][0];
+    expect(payload).toEqual({ name: 'Renamed', displayOrder: 3 });
   });
 });

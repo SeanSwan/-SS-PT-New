@@ -36,6 +36,39 @@ const parsePositiveInteger = (value) => {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
+// ── D-02 fix (hostile review, fixing pass) ─────────────────────────────────
+// req.body used to go straight into StorefrontItem.create()/update(). The
+// model carries stripeProductId / stripePriceId, so an admin-scoped request
+// could bind an item to an ARBITRARY Stripe price object while displaying a
+// different price — a money-path integrity hole (the concrete instance of
+// H-14's missing validation boundary).
+//
+// Nothing in the backend ever writes the Stripe binding fields legitimately
+// (verified: they are only read back at :133-134 below), and totalCost is
+// hook-computed — so the allowlist excludes all three, plus identity fields.
+const STOREFRONT_ITEM_MASS_ASSIGNABLE = [
+  'name', 'description', 'packageType',
+  'price', 'pricePerSession', 'sessions', 'months', 'sessionsPerWeek', 'totalSessions',
+  'imageUrl', 'isActive', 'displayOrder',
+  'itemKind', 'isTaxable', 'fulfillmentType', 'stockQuantity', 'sku', 'shippingWeightOz'
+];
+
+function pickStorefrontItemFields(body, userId) {
+  const picked = {};
+  for (const key of STOREFRONT_ITEM_MASS_ASSIGNABLE) {
+    // undefined = key absent (leave model defaults / existing values alone);
+    // explicit null passes through so nullable fields stay clearable.
+    if (body[key] !== undefined) picked[key] = body[key];
+  }
+  const dropped = Object.keys(body).filter(
+    k => !(k in picked) && !['id', 'createdAt', 'updatedAt'].includes(k)
+  );
+  if (dropped.length > 0) {
+    logger.warn('Storefront item write dropped non-allowlisted fields', { dropped, userId });
+  }
+  return picked;
+}
+
 const parseBoundedInteger = (value, fallback, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) => {
   if (value === undefined || value === null || value === '') return fallback;
   const parsed = Number(value);
@@ -222,8 +255,8 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Create the item
-    const item = await StorefrontItem.create(req.body);
+    // Create the item (D-02: allowlisted fields only — see pickStorefrontItemFields)
+    const item = await StorefrontItem.create(pickStorefrontItemFields(req.body, req.user?.id));
     
     logger.info(`Admin created new storefront item: ${item.name} (ID: ${item.id})`);
     
@@ -278,8 +311,8 @@ router.put('/:id', async (req, res) => {
       });
     }
     
-    // Update the item
-    await item.update(req.body);
+    // Update the item (D-02: allowlisted fields only — see pickStorefrontItemFields)
+    await item.update(pickStorefrontItemFields(req.body, req.user?.id));
     
     logger.info(`Admin updated storefront item: ${item.name} (ID: ${item.id})`);
     

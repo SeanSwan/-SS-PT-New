@@ -8,11 +8,11 @@
  * Use case: Routes that serve different content for authenticated vs anonymous
  * users (e.g., video library shows free tier to anon, full library to subscribers).
  */
-import jwt from 'jsonwebtoken';
 import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { toStringId } from '../utils/idUtils.mjs';
-import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
+import { isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
+import { verifyAccessToken } from './authMiddleware.mjs';
 
 export const optionalAuth = async (req, res, next) => {
   req.user = null;
@@ -29,8 +29,11 @@ export const optionalAuth = async (req, res, next) => {
       return next();
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, getJwtSecret());
+    // U-05: shared verification boundary. This middleware previously verified
+    // the signature ONLY — with one secret shared by every token family, a
+    // refresh or force-password-change token authenticated here. Family check
+    // + revocation now apply; failures fall through to anonymous as before.
+    const decoded = await verifyAccessToken(token);
 
     // Fetch user from DB (lazy loading pattern)
     const User = getUser();
@@ -46,6 +49,8 @@ export const optionalAuth = async (req, res, next) => {
       role: user.role,
       username: user.username,
       email: user.email,
+      tokenId: decoded.tokenId ?? null,
+      tokenExp: decoded.exp ?? null,
     };
 
     return next();
@@ -58,7 +63,8 @@ export const optionalAuth = async (req, res, next) => {
     }
 
     // Swallow JWT-specific errors silently — anonymous is fine
-    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+    if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError'
+      || err.name === 'TokenFamilyError' || err.name === 'TokenRevokedError') {
       return next();
     }
 

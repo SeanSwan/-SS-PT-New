@@ -10,6 +10,7 @@
 import express from 'express';
 import logger from '../utils/logger.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 const router = express.Router();
 
@@ -189,7 +190,11 @@ router.get('/client-summary/:clientId', protect, async (req, res) => {
     }
 
     // RBAC: clients can only access own data, trainers only assigned clients
-    if (req.user.role === 'client' && req.user.id !== clientId) {
+    // 2026-09-18 hostile pass G-04 — was `req.user.id !== clientId`, which was
+    // always true: clientId is parsePositiveId(...) (a NUMBER) while req.user.id
+    // is a STRING set by `protect` via toStringId. A client could never read
+    // their own summary; the self-access branch was dead.
+    if (req.user.role === 'client' && !idEquals(req.user.id, clientId)) {
       return res.status(403).json({ error: 'Access denied' });
     }
     if (req.user.role === 'trainer') {

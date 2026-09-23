@@ -7,6 +7,7 @@
  */
 
 import { Op } from 'sequelize';
+import { USER_CREDENTIAL_FIELDS } from '../../../utils/userSerialization.mjs';
 import defaultSequelize from '../../../database.mjs';
 import { getAllModels } from '../../../models/index.mjs';
 import logger from '../../../utils/logger.mjs';
@@ -214,7 +215,7 @@ export const dispatchListActiveClients = async (params = {}, ctx = {}) => {
     limit,
     offset: (page - 1) * limit,
     order: [['createdAt', 'DESC']],
-    attributes: { exclude: ['password', 'refreshTokenHash', 'masterPromptJson'] },
+    attributes: { exclude: [...USER_CREDENTIAL_FIELDS, 'masterPromptJson'] },
   });
 
   const clients = rowsFrom(result.rows).map(rowData);

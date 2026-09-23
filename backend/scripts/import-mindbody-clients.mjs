@@ -48,6 +48,7 @@ import { Op } from 'sequelize';
 import { initializeModelsCache } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import { generateClaimToken } from '../services/claimTokenService.mjs';
+import { serializeCsv } from '../utils/csvEscape.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // CLI args
@@ -115,11 +116,6 @@ function parseCsv(text) {
   if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
   return rows.filter((r) => r.some((v) => v.trim() !== ''));
 }
-
-const csvEscape = (v) => {
-  const s = v === null || v === undefined ? '' : String(v);
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 
 // ─────────────────────────────────────────────────────────────
 // Row helpers
@@ -329,10 +325,13 @@ async function main() {
   // ── Results file (next to input) ──
   const resultsPath = absFile.replace(/\.csv$/i, '') + '.import-results.csv';
   const resultHeader = ['rowNumber', 'email', 'status', 'userId', 'username', 'claimToken', 'message'];
-  const resultsCsv = [
-    resultHeader.join(','),
-    ...results.map((r) => [r.rowNum, r.email, r.status, r.userId, r.username, r.claimToken, r.message].map(csvEscape).join(',')),
-  ].join('\n');
+  // Via the shared escaper: this file used to carry its own copy, which quoted
+  // correctly but did not neutralise a leading '='/+/-/@ — and the values here
+  // (email, username, message) come from the input CSV, so they are untrusted.
+  const resultsCsv = serializeCsv(
+    resultHeader,
+    results.map((r) => [r.rowNum, r.email, r.status, r.userId, r.username, r.claimToken, r.message]),
+  );
   fs.writeFileSync(resultsPath, resultsCsv, 'utf8');
 
   console.log(`\n[MindBody Import] ${COMMIT ? 'created' : 'would create'}: ${created}   skipped: ${skipped}   failed: ${failed}`);

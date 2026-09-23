@@ -112,6 +112,9 @@ let appInstance = null;
     logger.info('Creating Express application...');
     const app = await createApp();
     appInstance = app; // Store reference for graceful shutdown
+    // E-08: hand our resource cleanup to the single shutdown owner
+    // (core/startup.mjs). Declared as a hoisted function below.
+    if (app.locals) app.locals.shutdownCleanup = shutdownServerResources;
 
     // Initialize and start server
     logger.info('Initializing server components...');
@@ -150,9 +153,22 @@ let appInstance = null;
 })();
 
 // ===================== GRACEFUL SHUTDOWN =====================
-// Handle graceful shutdown for Redis connection cleanup
-const gracefulShutdown = async (signal) => {
-  logger.info(`${signal} signal received: closing HTTP server and cleaning up resources`);
+// E-08 fix (hostile review seat 3).
+//
+// This file used to register its OWN SIGTERM/SIGINT handlers here. Module-scope
+// registration happens BEFORE initializeServer() runs, so Node invoked this
+// handler first on every Render deploy — and it exited the process immediately
+// once Redis was closed. core/startup.mjs's careful sequence (close HTTP server ->
+// close Socket.io -> close Postgres) was registered later and therefore never
+// completed: in-flight requests were dropped and DB connections were severed
+// mid-transaction on every deploy.
+//
+// There is now exactly ONE shutdown owner: setupGracefulShutdown() in
+// core/startup.mjs, which calls this function via app.locals.shutdownCleanup.
+// Declared as a hoisted function because server.mjs wires it into app.locals
+// during async init, which can run before this line is reached.
+export async function shutdownServerResources() {
+  logger.info('Cleaning up server resources (workers, crons, Redis)');
 
   // Phase 3 PLAUD: stop the in-process workers + crons before exit
   try {
@@ -168,13 +184,8 @@ const gracefulShutdown = async (signal) => {
     await closeRedisConnection(appInstance.locals.redisClient);
   }
 
-  logger.info('Server shutdown complete');
-  process.exit(0);
-};
-
-// Listen for termination signals
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  logger.info('Server resource cleanup complete');
+}
 
 // Export app for testing purposes
 export default async () => {

@@ -15,6 +15,41 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isProduction = process.env.NODE_ENV === 'production';
 
+// ── U-06: scrub credentials out of request URLs before they hit the log ─────
+// Request logging used to write req.url verbatim, query string included.
+// Gallery access tokens travel as ?token= (see E-02 — that channel exists
+// because <img> tags cannot set headers), and session_id / email / Stripe
+// callback code+state appear on other routes. Every one of those lines was
+// writing a live credential into combined.log, which outlives the token.
+const REDACTED_QUERY_KEYS = new Set([
+  'token', 'access_token', 'refresh_token', 'id_token', 'userToken',
+  'session_id', 'sessionid', 'session_id_token',
+  'code', 'state', 'email', 'password', 'current_password', 'new_password',
+  'api_key', 'apikey', 'key', 'secret', 'signature', 'sig', 'signature_version',
+]);
+
+/**
+ * Replace the values of sensitive query parameters with [REDACTED].
+ * Exported so the behaviour is testable without booting the app.
+ * @param {string} url - req.url (path + query string)
+ * @returns {string} safe-to-log URL
+ */
+export function redactRequestUrl(url) {
+  const raw = String(url || '');
+  const qIndex = raw.indexOf('?');
+  if (qIndex === -1) return raw;
+
+  const base = raw.slice(0, qIndex);
+  const redacted = raw.slice(qIndex + 1).split('&').map((pair) => {
+    const eq = pair.indexOf('=');
+    if (eq === -1) return pair;
+    const key = pair.slice(0, eq);
+    return REDACTED_QUERY_KEYS.has(key.toLowerCase()) ? `${key}=[REDACTED]` : pair;
+  });
+
+  return `${base}?${redacted.join('&')}`;
+}
+
 /**
  * Setup all application middleware
  */
@@ -61,14 +96,17 @@ export const setupMiddleware = async (app) => {
     const shouldLog = !isProduction || (!isHealthCheck && req.path !== '/favicon.ico');
     
     if (shouldLog) {
-      logger.info(`[REQUEST] ${req.method} ${req.url} from ${req.ip || 'unknown'}`);
+      logger.info(`[REQUEST] ${req.method} ${redactRequestUrl(req.url)} from ${req.ip || 'unknown'}`);
     }
     next();
   });
 
   // ===================== STATIC FILE SERVING =====================
   // Serve uploaded files
-  const uploadsPath = path.join(__dirname, '../../uploads');
+  // E-11: single source of truth for where uploads live. photoStorageService
+  // writes here and the serve-photo proxies read from here, so the static
+  // mount can never drift from the write path.
+  const { UPLOADS_ROOT: uploadsPath } = await import('../../services/photoStorageService.mjs');
   app.use('/uploads', express.static(uploadsPath));
 
   // ===================== R2 PHOTO PROXY =====================

@@ -12,6 +12,7 @@ import GamificationPointsService from '../services/gamification/GamificationPoin
 
 // Import models through associations for proper relationships
 import getModels from '../models/associations.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 const parsePositiveInteger = (value, fallback = null) => {
   const stringValue = String(value ?? '').trim();
@@ -595,7 +596,7 @@ const goalController = {
       }
 
       // Check authorization â€” owner or admin only (trainers cannot edit goals)
-      if (goal.userId !== req.user.id && req.user.role !== 'admin') {
+      if (!idEquals(goal.userId, req.user.id) && req.user.role !== 'admin') {
         await transaction.rollback();
         return res.status(403).json({ success: false, message: 'Not authorized to update this goal' });
       }
@@ -670,7 +671,7 @@ const goalController = {
       }
 
       // Check authorization
-      if (goal.userId !== req.user.id && req.user.role !== 'admin') {
+      if (!idEquals(goal.userId, req.user.id) && req.user.role !== 'admin') {
         await transaction.rollback();
         return res.status(403).json({
           success: false,

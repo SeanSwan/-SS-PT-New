@@ -8,6 +8,16 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// §19: `page()` now escapes its arguments, so the rendered HTML carries `&#39;` for an
+// apostrophe. Decode before asserting on visible text — the property is "the heading is
+// present", not "the heading is present in unescaped source form".
+const decodeEntities = (s) => String(s)
+  .replace(/&#39;/g, "'")
+  .replace(/&quot;/g, '"')
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>')
+  .replace(/&amp;/g, '&');
+
 const { subscribe, confirm, unsubscribe, sendGridEmail, captureLeadFromNewsletter } = vi.hoisted(() => ({
   subscribe: vi.fn(), confirm: vi.fn(), unsubscribe: vi.fn(), sendGridEmail: vi.fn(), captureLeadFromNewsletter: vi.fn(),
 }));
@@ -86,7 +96,7 @@ describe('newsletterRoutes (Tier 1.1)', () => {
   it('confirm: valid token -> 200, creates CRM lead + sends welcome email (w/ unsubscribe) + booking CTA', async () => {
     const res = await request(app).get('/api/newsletter/confirm/ctok');
     expect(res.status).toBe(200);
-    expect(res.text).toContain("You're in");
+    expect(decodeEntities(res.text)).toContain("You're in");
     expect(res.text).toContain('Book your free assessment'); // next-action CTA on the confirm page
     expect(confirm).toHaveBeenCalledWith('ctok');
     expect(captureLeadFromNewsletter).toHaveBeenCalledTimes(1);
@@ -119,7 +129,7 @@ describe('newsletterRoutes (Tier 1.1)', () => {
     sendGridEmail.mockRejectedValue(new Error('sg down'));
     const res = await request(app).get('/api/newsletter/confirm/ctok');
     expect(res.status).toBe(200);
-    expect(res.text).toContain("You're in");
+    expect(decodeEntities(res.text)).toContain("You're in");
   });
 
   it('confirm: invalid token -> 400, no lead capture, no welcome email', async () => {

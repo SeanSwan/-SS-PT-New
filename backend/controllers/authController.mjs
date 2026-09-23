@@ -192,7 +192,7 @@
  * Environment Variables:
  * - JWT_SECRET: Secret key for access token signing (REQUIRED)
  * - JWT_REFRESH_SECRET: Secret key for refresh token (defaults to JWT_SECRET)
- * - JWT_EXPIRES_IN: Access token expiry (default: 3h)
+ * - JWT_EXPIRES_IN: Access token expiry (default: 24h)
  * - REFRESH_TOKEN_EXPIRES_IN: Refresh token expiry (default: 7d)
  *
  * Dependencies:
@@ -219,6 +219,7 @@
 
 // backend/controllers/authController.mjs
 import logger from '../utils/logger.mjs';
+import { USER_CREDENTIAL_FIELDS } from '../utils/userSerialization.mjs';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 // 🚀 ENHANCED: Coordinated model imports for consistent associations
@@ -229,6 +230,7 @@ import dotenv from 'dotenv';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 import { getClientIp } from '../services/geoIpService.mjs';
+import { revokeAccessToken } from '../services/tokenRevocationService.mjs';
 import { createNotification, createAdminNotification } from './notificationController.mjs';
 import { captureLeadFromSignup } from '../services/leadCaptureService.mjs';
 import {
@@ -1137,7 +1139,19 @@ export const logout = async (req, res) => {
     
     // Revoke refresh token
     await user.update({ refreshTokenHash: null });
-    
+
+    // E-06 (hostile review): also revoke the CURRENT access token. Before
+    // the revocation registry existed, a logged-out (or stolen) access token
+    // stayed fully valid until its own expiry (default 24h). Best-effort: a
+    // registry hiccup must not fail the logout — the refresh token is already
+    // dead and the access token's own exp remains the backstop.
+    if (req.user?.tokenId) {
+      const revoked = await revokeAccessToken(req.user.tokenId, req.user.tokenExp);
+      if (!revoked) {
+        logger.warn('Logout: access-token revocation best-effort failed — token will expire naturally', { userId: req.user.id });
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: 'Logged out successfully'
@@ -1161,7 +1175,7 @@ export const getProfile = async (req, res) => {
     // The user is already attached to req by the protect middleware
     const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password', 'refreshTokenHash', 'failedLoginAttempts'] }
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS, 'failedLoginAttempts'] }
     });
 
     if (!user) {
@@ -1365,7 +1379,7 @@ export const validateToken = async (req, res) => {
     // Find user by ID
     const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(decoded.id, {
-      attributes: { exclude: ['password', 'refreshTokenHash', 'failedLoginAttempts'] }
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS, 'failedLoginAttempts'] }
     });
 
     if (!user) {
@@ -1416,7 +1430,7 @@ export const getUserById = async (req, res) => {
   try {
     const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(req.params.id, {
-      attributes: { exclude: ['password', 'refreshTokenHash'] }
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
     });
     
     if (!user) {

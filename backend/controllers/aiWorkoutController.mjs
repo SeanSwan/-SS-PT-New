@@ -61,6 +61,7 @@ import { buildClientSourcePolicy } from '../services/sessionBillingPolicy.mjs';
 import { buildSwanCoachPlanningApprovalGate } from '../services/swanCoachPlanningApprovalGateService.mjs';
 import { buildWorkoutGenerationPlanningFingerprint } from '../services/swanCoachPlanningGenerationFingerprintService.mjs';
 import { findExerciseByName, buildExerciseLookupMap } from '../utils/exerciseLookup.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 import {
   ALLOWED_DAY_TYPES,
   ALLOWED_OPT_PHASES,
@@ -249,7 +250,13 @@ export const generateWorkoutPlan = async (req, res) => {
       });
     }
 
-    if (requesterRole === 'client' && targetUserId !== requesterId) {
+    // 2026-09-18 hostile pass G-07 — was `targetUserId !== requesterId`.
+    // targetUserId is a NUMBER when the body carries a usable userId (parsed at
+    // :241) and requesterId is req.user?.id (a STRING), so a client who
+    // explicitly named themselves (userId: 42) was 403'd instead of allowed.
+    // The omitted-userId path already worked because targetUserId then *is*
+    // requesterId by reference.
+    if (requesterRole === 'client' && !idEquals(targetUserId, requesterId)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: Clients can only generate plans for themselves',

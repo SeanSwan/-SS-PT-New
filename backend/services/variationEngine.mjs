@@ -23,6 +23,7 @@
 import { getVariationLog, getModel } from '../models/index.mjs';
 
 import logger from '../utils/logger.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 // ── Safe model getter for optional tables ──────────────────────
 function safeGetExerciseModel() {
@@ -343,7 +344,11 @@ export async function acceptVariation(logId, trainerId) {
   const VariationLog = getVariationLog();
   const log = await VariationLog.findByPk(logId);
   if (!log) throw new Error('Variation log not found');
-  if (log.trainerId !== trainerId) throw new Error('Access denied');
+  // 2026-09-18 hostile pass G-05 — was `log.trainerId !== trainerId`, which was
+  // always true: log.trainerId is an INTEGER column (a JS number) while the only
+  // caller (routes/variationRoutes.mjs:160) passes req.user.id, a STRING set by
+  // `protect` via toStringId. A trainer could never accept a variation.
+  if (!idEquals(log.trainerId, trainerId)) throw new Error('Access denied');
   await log.update({ accepted: true, acceptedAt: new Date() });
   return log;
 }

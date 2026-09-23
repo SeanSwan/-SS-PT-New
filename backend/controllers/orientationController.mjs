@@ -1,11 +1,13 @@
 // backend/controllers/orientationController.mjs
 import logger from '../utils/logger.mjs';
+import { escapeHtml } from '../utils/htmlEscape.mjs';
 import Orientation from '../models/Orientation.mjs';
 import User from '../models/User.mjs';
 import { Op, fn, col, where as sqlWhere } from 'sequelize';
 import { sendAdminNotification, sendNotification } from '../services/notificationService.mjs';
 import { createAdminNotification } from './notificationController.mjs';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 const parsePositiveInt = (value) => {
   const parsed = Number(value);
@@ -25,13 +27,9 @@ const genericPublicOrientationSuccess = {
   message: 'Orientation submitted successfully. We will contact you soon!'
 };
 
-const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;'
-}[char]));
+// §19: this was a private copy of the escaper. It now comes from utils/htmlEscape.mjs so there is
+// one implementation — this file was one of only two that escaped at all, and the other seven
+// HTML-email builders had none to reach for.
 
 /**
  * orientationSignup Controller
@@ -329,7 +327,7 @@ export const getOrientationData = async (req, res) => {
     
     // Check if the requesting user is either an admin or the user themselves
     const isAdmin = req.user.role === 'admin';
-    const isSameUser = Number(req.user.id) === userId;
+    const isSameUser = idEquals(req.user.id, userId);
     
     if (!isAdmin && !isSameUser) {
       return errorResponse(res, 'Not authorized to access this orientation data', 403);

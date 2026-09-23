@@ -15,12 +15,17 @@ const mocks = vi.hoisted(() => ({
   getClientActivationQueue: vi.fn((_req, res) => res.status(200).json({ success: true, route: 'activation-queue' })),
 }));
 
+// Keep this mock in lockstep with the real import list in
+// routes/adminClientRoutes.mjs. A missing export makes vitest fail the whole
+// suite with "No X export is defined on the mock" before a single test runs,
+// which is a false red that hides the route-order guard this file exists for.
 vi.mock('../middleware/authMiddleware.mjs', () => ({
   protect: (req, _res, next) => {
     req.user = { id: 1, role: 'admin' };
     next();
   },
   authorize: () => (_req, _res, next) => next(),
+  ownerAdminOnly: (_req, _res, next) => next(),
 }));
 
 vi.mock('../controllers/adminClientController.mjs', () => ({

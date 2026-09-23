@@ -44,6 +44,7 @@ import {
 import { uploadPhoto } from '../services/photoStorageService.mjs';
 import logger from '../utils/logger.mjs';
 import { Op } from 'sequelize';
+import { idEquals } from '../utils/idUtils.mjs';
 
 const router = express.Router();
 
@@ -119,7 +120,7 @@ async function getOwnedProfile(req, res) {
     res.status(404).json({ success: false, error: 'Profile not found' });
     return null;
   }
-  if (profile.trainerId !== req.user.id && req.user.role !== 'admin') {
+  if (!idEquals(profile.trainerId, req.user.id) && req.user.role !== 'admin') {
     res.status(403).json({ success: false, error: 'Access denied' });
     return null;
   }

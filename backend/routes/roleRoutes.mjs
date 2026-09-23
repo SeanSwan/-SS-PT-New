@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import { USER_CREDENTIAL_FIELDS } from '../utils/userSerialization.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import { upgradeToClient, hasAccessToDashboard, getAccessibleDashboards } from '../services/roleService.mjs';
 import User from '../models/User.mjs';
@@ -31,7 +32,7 @@ router.post('/upgrade-to-client/:userId', protect, adminOnly, async (req, res) =
     
     if (success) {
       const user = await User.findByPk(userId, {
-        attributes: { exclude: ['password', 'refreshTokenHash'] }
+        attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
       });
       
       res.status(200).json({
@@ -150,7 +151,7 @@ router.post('/test-upgrade', protect, async (req, res) => {
     
     if (success) {
       const user = await User.findByPk(userId, {
-        attributes: { exclude: ['password', 'refreshTokenHash'] }
+        attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
       });
       
       res.status(200).json({

@@ -345,6 +345,7 @@ import User from '../models/User.mjs';
 import bcrypt from 'bcryptjs';
 import logger from '../utils/logger.mjs';
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 import { PasswordResetEmailDeliveryError, sendPasswordResetEmailForUser } from '../services/auth/passwordResetEmailService.mjs';
 
 const router = express.Router();
@@ -877,7 +878,12 @@ router.delete('/user/:id', protect, adminOnly, ownerAdminOnly, async (req, res) 
     }
     
     // Prevent deactivating yourself
-    if (user.id === req.user.id) {
+    // 2026-09-18 hostile pass G-11 — was `user.id === req.user.id`, which was
+    // always false: `user` is a User row (INTEGER id → JS number) while
+    // req.user.id is a STRING set by `protect` via toStringId. The guard never
+    // fired, so an admin could soft-delete their own account and lock
+    // themselves out of DELETE /api/auth/user/:id.
+    if (idEquals(user.id, req.user.id)) {
       return res.status(400).json({
         success: false,
         message: 'You cannot deactivate your own account'

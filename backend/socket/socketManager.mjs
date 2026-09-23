@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import logger from '../utils/logger.mjs';
 import { getUser } from '../models/index.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
+import { buildAllowedOrigins, DEV_SOCKET_ORIGINS } from '../utils/corsOriginPolicy.mjs';
 
 // Global socket.io instance
 let io = null;
@@ -32,22 +33,24 @@ export function initSocketIO(httpServer) {
   }
 
   try {
-    // Enhanced CORS configuration for SwanStudios platform
-    const allowedOrigins = [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:5173', // Vite dev server
-      'http://localhost:5174',
-      'http://localhost:5175',
-      'http://localhost:5176',
-      'http://127.0.0.1:5173',
-      'http://127.0.0.1:5174',
-      'http://127.0.0.1:5175',
-      'http://127.0.0.1:5176',
-      'https://sswanstudios.com',
-      'https://www.sswanstudios.com',
-      // Add development origins
-      ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3001', 'http://localhost:8080'] : [])
-    ];
+    // Enhanced CORS configuration for SwanStudios platform.
+    // The localhost/127.0.0.1 entries are gated on !isProduction by the shared
+    // policy (utils/corsOriginPolicy.mjs). They used to be listed
+    // unconditionally alongside `credentials: true`, so production advertised
+    // a credentialed allow-list containing ten dev origins (CWE-942).
+    // FRONTEND_URL is no longer defaulted to http://localhost:3000 — a silent
+    // fallback that quietly put localhost in the production allow-list whenever
+    // the variable was missing.
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    const allowedOrigins = buildAllowedOrigins({
+      envOrigins: process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : [],
+      isProduction,
+      devOrigins: DEV_SOCKET_ORIGINS,
+      extraOrigins: process.env.NODE_ENV === 'development'
+        ? ['http://localhost:3001', 'http://localhost:8080']
+        : [],
+    });
 
     // Create a new socket.io server with enhanced configuration
     io = new Server(httpServer, {
@@ -65,6 +68,43 @@ export function initSocketIO(httpServer) {
     });
 
     logger.info(`Socket.io server initialized with CORS origins: ${allowedOrigins.join(', ')}`);
+
+    // ── D-01 hardening (hostile review, fixing pass) ─────────────────────
+    // The second-opinion pass flagged that this module had no io.use() at
+    // all — authentication was opt-in via the `authenticate` event, unlike
+    // the sibling socket/socket.mjs which enforces io.use().
+    //
+    // This middleware verifies a token PRESENTED IN THE HANDSHAKE
+    // (socket.handshake.auth.token) and attaches the verified identity at
+    // connect time. It deliberately NEVER rejects the handshake:
+    //   - no token     -> anonymous socket, exactly as before; every
+    //                     privileged handler gates on socket.data.user
+    //   - invalid token-> anonymous socket, same posture as a failed
+    //                     `authenticate` event today
+    // Rejecting the handshake would be a breaking change for clients whose
+    // error handling only listens for `auth_error`, and runtime behaviour
+    // is unverified — so hardening here is additive. The `authenticate`
+    // event below remains the authoritative path that joins rooms.
+    io.use(async (socket, next) => {
+      try {
+        const token = socket.handshake?.auth?.token;
+        if (!token) return next();
+        const user = await authenticateSocketUser(token);
+        if (user) {
+          socket.data.user = {
+            id: user.id,
+            role: String(user.role || '').toUpperCase(),
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            authenticatedAt: new Date().toISOString()
+          };
+        }
+      } catch (err) {
+        logger.warn(`Socket handshake auth attach failed (continuing anonymous): ${err.message}`);
+      }
+      next();
+    });
 
     // Enhanced connection handler with SwanStudios-specific features
     io.on('connection', socket => {
@@ -114,6 +154,18 @@ export function initSocketIO(httpServer) {
           
           // Join dashboard-specific rooms
           await joinDashboardRooms(socket, role);
+
+          // D-01: admin-only initial payload. It used to be emitted to any
+          // socket that passed ?dashboard=admin; now it goes only to a socket
+          // whose JWT was verified and whose role is ADMIN.
+          if (role === 'ADMIN') {
+            logger.info(`Admin dashboard connected: ${socket.id}`);
+            socket.emit('admin:dashboard_ready', {
+              connectionsActive: connectionMetrics.activeConnections,
+              serverStatus: 'healthy',
+              timestamp: new Date().toISOString()
+            });
+          }
 
           // Update connection metrics
           updateConnectionMetrics(role, 'connect');
@@ -190,18 +242,19 @@ export function initSocketIO(httpServer) {
         logger.error(`Socket error from ${socket.id}:`, error);
       });
 
-      // Enhanced admin dashboard events
-      if (socket.handshake.query.dashboard === 'admin') {
-        logger.info(`Admin dashboard connected: ${socket.id}`);
-        socket.join('dashboard:admin:active');
-        
-        // Send admin-specific initial data
-        socket.emit('admin:dashboard_ready', {
-          connectionsActive: connectionMetrics.activeConnections,
-          serverStatus: 'healthy',
-          timestamp: new Date().toISOString()
-        });
-      }
+      // ── D-01 fix (hostile review seat 3, fixing pass) ──────────────────
+      // This block used to be:
+      //     if (socket.handshake.query.dashboard === 'admin') socket.join('dashboard:admin:active')
+      // — i.e. the admin room was joined from a value the CLIENT supplied in
+      // its connection query string, with no authentication at all. Any socket,
+      // including one that never presented a token, could sit in
+      // `dashboard:admin:active`. Nothing broadcasts to that room today, so the
+      // live impact is admin-presence integrity, but it becomes a data leak the
+      // moment one broadcast is added.
+      //
+      // The join now happens AFTER JWT verification, gated on the verified role
+      // (see joinDashboardRooms) — which is the pattern the sibling module
+      // socket/socket.mjs already uses.
 
       // Enhanced disconnect handler with cleanup
       socket.on('disconnect', (reason) => {
@@ -263,6 +316,13 @@ async function authenticateSocketUser(token) {
   try {
     // Decode and verify the token
     const decoded = jwt.verify(token, getJwtSecret());
+    // All token families (access, refresh, gallery, force-password-change)
+    // share one signing secret, so verify() alone proves only "issued by us"
+    // — the same class as E-02. Only access tokens may authenticate a socket.
+    if (decoded?.tokenType !== 'access') {
+      logger.warn(`Socket auth rejected non-access tokenType: ${decoded?.tokenType ?? 'unknown'}`);
+      return null;
+    }
     const userId = decoded.userId ?? decoded.id;
     if (!decoded || !userId) {
       logger.warn('Invalid token structure - missing user id');
@@ -367,7 +427,9 @@ async function joinDashboardRooms(socket, userRole) {
   
   switch (String(userRole || '').toUpperCase()) {
     case 'ADMIN':
-      dashboardRooms.push('dashboard:admin', 'dashboard:trainer', 'dashboard:client');
+      // D-01: 'dashboard:admin:active' is here because it is role-gated — it
+      // used to be joined straight from the client's ?dashboard=admin query.
+      dashboardRooms.push('dashboard:admin', 'dashboard:trainer', 'dashboard:client', 'dashboard:admin:active');
       break;
     case 'TRAINER':
       dashboardRooms.push('dashboard:trainer');

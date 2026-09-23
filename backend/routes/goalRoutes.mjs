@@ -44,6 +44,7 @@ import logger from '../utils/logger.mjs';
 import getModels from '../models/associations.mjs';
 import redis from '../services/cache/redisWrapper.mjs';
 import { getUserGoalAnalytics } from '../services/userGoalAnalyticsService.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 const router = express.Router();
 const METRICS_CACHE_TTL_SECONDS = 300;
@@ -143,7 +144,7 @@ router.get('/trainer/:trainerId/achieved', trainerOrAdminOnly, async (req, res) 
       return res.status(400).json({ success: false, message: 'Invalid trainerId' });
     }
 
-    if (req.user.role === 'trainer' && Number(req.user.id) !== trainerId) {
+    if (req.user.role === 'trainer' && !idEquals(req.user.id, trainerId)) {
       return res.status(403).json({ success: false, message: 'Trainers can only view their own goals' });
     }
 

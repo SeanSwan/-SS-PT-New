@@ -24,6 +24,7 @@ import {
 import { deIdentifyClient } from '../services/ai/deIdentifier.mjs';
 import { resolveClient } from '../services/ai/clientResolver.mjs';
 import sequelize from '../database.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ const validateDebateOwnership = (req, res, next) => {
     return res.status(404).json({ success: false, error: 'Debate not found' });
   }
 
-  if (job.userId !== req.user.id && req.user.role !== 'admin') {
+  if (!idEquals(job.userId, req.user.id) && req.user.role !== 'admin') {
     logger.warn(`[Security] User ${req.user.id} attempted unauthorized access to debate ${req.params.jobId}`);
     return res.status(403).json({ success: false, error: 'Unauthorized access' });
   }

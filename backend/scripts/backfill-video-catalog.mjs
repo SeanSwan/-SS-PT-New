@@ -43,6 +43,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { assertDevDatabaseUrlAllowed } from '../utils/devDatabaseUrlGuard.mjs';
 // ── Resolve paths ──────────────────────────────────────────────────────────────
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -69,6 +70,14 @@ if (!DATABASE_URL) {
   console.error('ERROR: DATABASE_URL environment variable is required.');
   process.exit(1);
 }
+
+// H-06: this script builds its own connection and bypasses database.mjs —
+
+// enforce the same guard so a hosted DATABASE_URL from a non-production
+
+// context is an explicit act, never a silent one.
+
+assertDevDatabaseUrlAllowed('backfill-video-catalog');
 
 const sequelize = new Sequelize(DATABASE_URL, {
   dialect: 'postgres',

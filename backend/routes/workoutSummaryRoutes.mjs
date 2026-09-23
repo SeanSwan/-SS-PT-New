@@ -12,6 +12,7 @@
 import { Router } from 'express';
 import { protect, trainerOrAdminOnly } from '../middleware/auth.mjs';
 import { getAllModels } from '../models/index.mjs';
+import { escapeHtml } from '../utils/htmlEscape.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = Router();
@@ -182,7 +183,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
             to: client.email,
             subject: `Your Workout Summary — ${date}`,
             text: summaryText,
-            html: `<pre style="font-family: 'Plus Jakarta Sans', sans-serif; white-space: pre-wrap; line-height: 1.6; color: #334155;">${summaryText}</pre>`,
+            html: `<pre style="font-family: 'Plus Jakarta Sans', sans-serif; white-space: pre-wrap; line-height: 1.6; color: #334155;">${escapeHtml(summaryText)}</pre>`,
           });
           emailSent = true;
           logger.info('[WorkoutSummary] Email sent', { clientId: parsedClientId, email: client.email });

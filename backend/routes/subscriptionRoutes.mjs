@@ -479,9 +479,17 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     } else if (process.env.NODE_ENV === 'production') {
       logger.error('[Subscription Webhook] STRIPE_SUBSCRIPTION_WEBHOOK_SECRET missing in production');
       return res.status(503).send('Subscription webhook is not configured');
+    } else if (process.env.SWAN_DEV_UNSIGNED_WEBHOOKS !== '1') {
+      // E-10 fix (hostile review seat 3): NODE_ENV alone is NOT a safe gate.
+      // backend/database.mjs prefers DATABASE_URL in development, so a dev
+      // process can be pointed straight at the PRODUCTION database (H-06) —
+      // and an unsigned webhook is then an unauthenticated write path into
+      // production data. Require an explicit opt-in flag too.
+      logger.error('[Subscription Webhook] Unsigned dev webhook refused — set SWAN_DEV_UNSIGNED_WEBHOOKS=1 to allow it');
+      return res.status(503).send('Subscription webhook is not configured');
     } else {
       event = hasRawBody ? JSON.parse(req.body.toString()) : req.body;
-      logger.warn('[Subscription Webhook] No webhook secret configured; accepting unsigned development event');
+      logger.warn('[Subscription Webhook] Accepting UNSIGNED event because SWAN_DEV_UNSIGNED_WEBHOOKS=1');
     }
   } catch (err) {
     logger.error('[Subscription Webhook] Signature verification failed:', err.message);

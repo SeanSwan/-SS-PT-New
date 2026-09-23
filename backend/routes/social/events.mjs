@@ -16,6 +16,7 @@ import { Router } from 'express';
 import { SocialEvent, EventAttendance } from '../../models/social/enhanced/EventManagement.mjs';
 import { getUser } from '../../models/index.mjs';
 import { Op } from 'sequelize';
+import { idEquals } from '../../utils/idUtils.mjs';
 
 const router = Router();
 
@@ -213,7 +214,7 @@ router.put('/:id', async (req, res) => {
   try {
     const event = await SocialEvent.findByPk(req.params.id);
     if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
-    if (event.organizerId !== req.user.id && req.user.role !== 'admin') {
+    if (!idEquals(event.organizerId, req.user.id) && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
@@ -242,7 +243,7 @@ router.post('/:id/cancel', async (req, res) => {
   try {
     const event = await SocialEvent.findByPk(req.params.id);
     if (!event) return res.status(404).json({ success: false, message: 'Event not found' });
-    if (event.organizerId !== req.user.id && req.user.role !== 'admin') {
+    if (!idEquals(event.organizerId, req.user.id) && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 

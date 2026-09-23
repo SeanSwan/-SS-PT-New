@@ -30,6 +30,7 @@ import { stableStringify } from '../services/ai/stableStringify.mjs';
 import { buildSwanCoachPlanningApprovalGate } from '../services/swanCoachPlanningApprovalGateService.mjs';
 import { buildLongHorizonPlanningFingerprint } from '../services/swanCoachPlanningGenerationFingerprintService.mjs';
 import { buildClientSourcePolicy } from '../services/sessionBillingPolicy.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 // ── Allowed horizons ────────────────────────────────────────────────
 const VALID_HORIZONS = new Set([3, 6, 9, 12]);
@@ -171,7 +172,11 @@ export const generateLongHorizonPlan = async (req, res) => {
     }
 
     // ── Step 6: Client role isolation ───────────────────────────
-    if (requesterRole === 'client' && targetUserId !== requesterId) {
+    // 2026-09-18 hostile pass G-07 — same class as aiWorkoutController:252.
+    // targetUserId resolves to a NUMBER when the body carries a usable userId
+    // (:157-164) while requesterId is a STRING, so an explicit self-reference
+    // was 403'd.
+    if (requesterRole === 'client' && !idEquals(targetUserId, requesterId)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied: Clients can only generate plans for themselves',

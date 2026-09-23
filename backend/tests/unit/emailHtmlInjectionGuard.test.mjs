@@ -753,6 +753,112 @@ function isCallExpression(expr) {
   return /^[A-Za-z_$][\w$.]*\s*\(/.test(stripOuterParens(expr));
 }
 
+/**
+ * Parameters that ONLY ever receive string literals, across the whole file.
+ *
+ * WHY THIS EXISTS
+ * ---------------
+ * `routes/leadRoutes.mjs` has
+ *
+ *     const unsubPage = (heading, body) => `...${heading}...${body}...`;
+ *     const UNSUB_OK_PAGE = unsubPage("&check; You're unsubscribed.", "You won't ...");
+ *
+ * `${heading}` is raw in SHAPE, so the ratchet above flags it — correctly, by the rule
+ * it states. But the rule cannot see that every call site passes a literal, so nothing
+ * user-controlled can reach the parameter. Flagging it is a false positive, and this
+ * guard's whole survival depends on its false-positive rate.
+ *
+ * WHAT MAKES THIS NOT A WIDENED EXCLUSION
+ * ---------------------------------------
+ * Widening an exclusion to make a guard pass is on Astra's own ban list, and it is how
+ * the original T-01 defect got in. Three things keep this honest:
+ *
+ *   1. It is PROPERTY-based, per the §19 lesson. It does not name `leadRoutes.mjs` or
+ *      `unsubPage`. Any parameter, any file, qualifies only if EVERY call site passes
+ *      a literal.
+ *   2. It is FAIL-CLOSED. A parameter with no call site, with a call site in another
+ *      file, with a spread argument, with a non-literal argument, or with any
+ *      reassignment is NOT literal-only and stays in scope. Absence of evidence is
+ *      not evidence here.
+ *   3. Mutation **M18** plants a tainted call site and must be KILLED by this very
+ *      assertion. If M18 survives, this exemption is a hole and the mutation says so.
+ *
+ * A helper is also disqualifying: `page(heading)` where `heading` was itself passed
+ * in from above is not literal-only, because the literal provenance is lost at the
+ * first hop.
+ */
+function literalOnlyParams(code) {
+  const masked = stripComments(code);
+  const out = new Set();
+
+  // candidate declarations: (params) => or function (params)
+  const decls = [];
+  const declRe = /\b(?:const|let|var)?\s*([A-Za-z_$][\w$]*)?\s*=?\s*\(([^)]*)\)\s*=>|\bfunction\s*([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/g;
+  let m;
+  while ((m = declRe.exec(masked)) !== null) {
+    const fname = m[1] || m[3];
+    const params = (m[2] || m[4] || '')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (!fname || params.length === 0) continue;
+    decls.push({ fname, params, index: m.index });
+  }
+
+  for (const { fname, params } of decls) {
+    // Every call site of this function, by name.
+    const callRe = new RegExp(`\\b${fname}\\s*\\(([^)]*)\\)`, 'g');
+    const argsList = [];
+    let c;
+    while ((c = callRe.exec(masked)) !== null) {
+      // Skip the declaration itself (its own parameter list).
+      const isDecl = new RegExp(`\\b${fname}\\s*\\(([^)]*)\\)\\s*=>`).test(
+        masked.slice(c.index, c.index + c[0].length + 6),
+      );
+      if (isDecl) continue;
+      argsList.push(c[1]);
+    }
+    if (argsList.length === 0) continue; // fail closed: never called here
+
+    for (let i = 0; i < params.length; i++) {
+      const argFor = (args) => {
+        // Split top-level commas only — a nested call's commas are not separators.
+        const parts = [];
+        let depth = 0; let cur = ''; let q = null;
+        for (const ch of args) {
+          if (q) { cur += ch; if (ch === q) q = null; continue; }
+          if (ch === "'" || ch === '"' || ch === '`') { q = ch; cur += ch; continue; }
+          if ('([{'.includes(ch)) depth++;
+          if (')]}'.includes(ch)) depth--;
+          if (ch === ',' && depth === 0) { parts.push(cur); cur = ''; continue; }
+          cur += ch;
+        }
+        parts.push(cur);
+        return parts.map((p) => p.trim());
+      };
+
+      let literalOnly = true;
+      for (const args of argsList) {
+        const parts = argFor(args);
+        if (parts.length !== params.length) { literalOnly = false; break; }
+        const val = parts[i];
+        // A string literal, and nothing else.
+        if (!/^'(?:[^'\\]|\\.)*'$/.test(val) && !/^"(?:[^"\\]|\\.)*"$/.test(val)) {
+          literalOnly = false; break;
+        }
+      }
+      if (!literalOnly) continue;
+
+      const name = params[i];
+      // Fail closed: a reassignment anywhere re-introduces a non-literal value.
+      const reassigned = new RegExp(`(?:^|[,;({[]|\\n)\\s*${name}\\s*[-+*/%&|^]?=(?!=)`).test(masked);
+      if (reassigned) continue;
+      out.add(name);
+    }
+  }
+  return out;
+}
+
 describe('§19 — structural ratchet: no HTML template interpolates a sensitive leaf raw', () => {
   const LEAVES = [
     'firstName', 'lastName', 'email', 'location', 'noShowReason', 'summaryText',
@@ -818,11 +924,17 @@ describe('§19 — structural ratchet: no HTML template interpolates a sensitive
     //     a call-site check cannot see that data flow.
     //   - leaves match whole words, so 'reason' does not fire on the string literal
     //     'No reason provided'.
+    //   - a PARAMETER whose every call site passes a string literal is skipped:
+    //     `${heading}` in a `page(heading, body)` helper is raw in shape but cannot
+    //     carry a payload, because nothing user-controlled reaches the parameter.
+    //     See the note on `literalOnlyParams` — this is provenance, not a widened
+    //     exclusion, and mutation M18 plants a tainted call site to prove it.
     const offenders = [];
     const seen = new Set();
     for (const rel of BUILDER_FILES) {
       const masked = stripCommentsKeepLayout(read(rel));
       const escaped = escapedIdentifiers(masked, canonicalEncoders(masked));
+      const literalOnly = literalOnlyParams(read(rel));
       for (const { text, line } of htmlTemplates(rel)) {
         for (const expr of interpolations(text)) {
           // Escaped right here: an actual encoder CALL, not merely a substring
@@ -833,6 +945,7 @@ describe('§19 — structural ratchet: no HTML template interpolates a sensitive
           if (!mentionsLeaf(expr, LEAVES)) continue;
           const root = (expr.match(/[A-Za-z_$][\w$]*/) || [])[0];
           if (root && escaped.has(root)) continue;     // escaped at assignment
+          if (root && literalOnly.has(root)) continue; // only ever a literal
           const key = `${rel}:${line}  \${${expr.trim().slice(0, 90)}}`;
           // A nested literal is reported both on its own and as part of its
           // parent; count each distinct finding once.
@@ -842,6 +955,113 @@ describe('§19 — structural ratchet: no HTML template interpolates a sensitive
     }
     // Message carries the offenders — see the note on the private-escaper assertion.
     expect(offenders, offenders.length ? `raw sensitive interpolation:\n  ${offenders.join('\n  ')}` : '')
+      .toEqual([]);
+  });
+
+  it('the literal-only exemption is granted to a NARROW, known set — and never mis-attributed', () => {
+    // HOSTILE REVIEW, 2026-09-22. `literalOnlyParams` returns a set of NAMES, and the
+    // exemption is applied as `literalOnly.has(root)` where `root` is just an identifier
+    // string. Two functions in one file that both use a parameter called `heading` are
+    // therefore indistinguishable, so if only ONE is literal-only the exemption leaks to
+    // the other. That is structurally unsound, and it cannot be fixed here without the
+    // parser-based binding identity in tests/security/templateBindings.mjs.
+    //
+    // What CAN be done is make the leak impossible to introduce silently. Two assertions:
+    //
+    //   1. MIS-ATTRIBUTION. For every granted name, fail when it is (a) a parameter of
+    //      more than one function in the same file AND (b) actually the root of an
+    //      interpolation inside an HTML template there. Condition (b) is what makes the
+    //      leak real: a granted name that never roots an HTML interpolation is exempted
+    //      but has no finding to skip. Without (b) this fires on the guard's own test
+    //      file, where `${rel}` appears only in test names and diagnostic strings — a
+    //      true statement about the bindings and a false alarm about exposure.
+    //   2. THE PIN. The exact granted set is asserted, so any widening is a deliberate,
+    //      reviewed edit rather than a side effect of an unrelated change.
+    const granted = new Map();   // rel -> Set(name)
+    const misattributed = [];
+
+    for (const rel of BUILDER_FILES) {
+      const names = literalOnlyParams(read(rel));
+      if (names.size === 0) continue;
+      granted.set(rel, names);
+
+      // Names that are the ROOT of an interpolation inside an HTML template here.
+      const rootedInHtml = new Set();
+      for (const { text } of htmlTemplates(rel)) {
+        for (const expr of interpolations(text)) {
+          const root = (expr.match(/[A-Za-z_$][\w$]*/) || [])[0];
+          if (root) rootedInHtml.add(root);
+        }
+      }
+
+      const src = read(rel);
+      for (const name of names) {
+        if (!rootedInHtml.has(name)) continue;   // exempted but no finding to skip
+        const declRe = new RegExp(
+          '(?:function\\s+([A-Za-z_$][\\w$]*)\\s*\\(([^)]*)\\)'
+          + '|\\b(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*(?:async\\s*)?\\(([^)]*)\\)\\s*=>)',
+          'g',
+        );
+        const owners = new Set();
+        let m;
+        while ((m = declRe.exec(stripComments(src))) !== null) {
+          const fname = m[1] || m[3];
+          const params = (m[2] || m[4] || '')
+            .split(',')
+            .map((p) => p.trim().replace(/[={}[\].:].*$/, '').trim());
+          if (params.includes(name)) owners.add(fname);
+        }
+        if (owners.size > 1) {
+          misattributed.push(`${rel}: "${name}" is a parameter of ${owners.size} functions `
+            + `(${[...owners].join(', ')}) and roots an HTML interpolation — the exemption `
+            + 'cannot tell them apart');
+        }
+      }
+    }
+
+    expect(misattributed,
+      misattributed.length
+        ? `literal-only exemption is mis-attributable:\n  ${misattributed.join('\n  ')}`
+        : '')
+      .toEqual([]);
+
+    // THE PIN — a SUBSET ratchet, not an equality.
+    //
+    // This test runs against two different corpora: the real tree, and the mutation
+    // harness's throwaway tree (a `PLANTED` subset under `SSPT_GUARD_ROOT`). A granted
+    // set is a function of which files are present, so an exact-equality pin is red
+    // under the harness for a reason that has nothing to do with the exemption being
+    // wrong. Measured 2026-09-22: the real tree grants five names; the harness corpus
+    // grants a smaller set, because `services/aiChatService.mjs`,
+    // `tests/unit/templateBindings.test.mjs` and `routes/leadRoutes.mjs` are not copied
+    // into it. The equality form failed the harness's own sanity test on that alone.
+    //
+    // So the ratchet asserts the property that actually matters and is corpus-stable:
+    // every granted name is one of the known, reviewed grants. A NEW grant fails; a
+    // smaller corpus simply grants fewer, which is not a widening. Narrowing is safe by
+    // construction — fewer exemptions can only mean more findings, never fewer.
+    //
+    // GRANTED vs APPLIED, measured by instrumenting the `continue` below: five names are
+    // granted, but only `routes/leadRoutes.mjs:heading` is ever APPLIED, because the
+    // exemption is reached only after `mentionsLeaf(expr, LEAVES)`. An inert grant is one
+    // `LEAVES` edit away from being live, so all five are listed.
+    const ALLOWED_GRANTS = new Set([
+      'routes/leadRoutes.mjs:body',
+      'routes/leadRoutes.mjs:heading',
+      'services/aiChatService.mjs:name',
+      'services/sessions/session.service.mjs:fieldName',
+      'tests/unit/emailHtmlInjectionGuard.test.mjs:rel',
+      'tests/unit/templateBindings.test.mjs:name',
+    ]);
+    const flattened = [...granted.entries()]
+      .flatMap(([rel, set]) => [...set].map((n) => `${rel}:${n}`))
+      .sort();
+    const unexpected = flattened.filter((entry) => !ALLOWED_GRANTS.has(entry));
+    expect(unexpected,
+      unexpected.length
+        ? 'the literal-only exemption granted NEW names — review each one:\n  '
+          + unexpected.join('\n  ')
+        : '')
       .toEqual([]);
   });
 

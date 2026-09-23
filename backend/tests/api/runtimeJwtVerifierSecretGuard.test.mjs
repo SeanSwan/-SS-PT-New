@@ -29,8 +29,19 @@ describe('runtime JWT verifier secret guard', () => {
   it.each(guardedRuntimeFiles)('%s verifies JWTs through the shared resolver', (path) => {
     const source = readRuntimeSource(path);
 
-    expect(source).toContain('jwtSecretGuard.mjs');
-    expect(source).toContain('getJwtSecret');
+    // U-05: optionalAuth verifies through the shared verifyAccessToken
+    // boundary (authMiddleware.mjs), which itself resolves the secret via
+    // getJwtSecret. The fail-closed property is preserved — one hop away.
+    if (path === 'backend/middleware/optionalAuth.mjs') {
+      expect(source).toContain("from './authMiddleware.mjs'");
+      expect(source).toContain('verifyAccessToken');
+      const boundary = readRuntimeSource('backend/middleware/authMiddleware.mjs');
+      expect(boundary).toContain('getJwtSecret');
+      expect(boundary).toContain('jwtSecretGuard.mjs');
+    } else {
+      expect(source).toContain('jwtSecretGuard.mjs');
+      expect(source).toContain('getJwtSecret');
+    }
     expect(source).not.toMatch(/jwt\.verify\([^;]*process\.env\.JWT_SECRET/s);
     expect(source).not.toMatch(/jwt\.verify\([^;]*\bJWT_SECRET\b/s);
     expect(source).not.toMatch(/jwt\.verify\([^;]*\bjwtSecret\b/s);

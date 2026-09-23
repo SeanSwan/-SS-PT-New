@@ -36,6 +36,7 @@
  */
 
 import User from '../models/User.mjs';
+import { USER_CREDENTIAL_FIELDS } from '../utils/userSerialization.mjs';
 import logger from '../utils/logger.mjs';
 
 const ALLOWED_FIELDS = Object.freeze([
@@ -156,7 +157,7 @@ export const updateClientProfile = async (req, res) => {
     });
 
     const updatedUser = await User.findByPk(req.user.id, {
-      attributes: { exclude: ['password', 'refreshTokenHash'] }
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
     });
 
     return res.status(200).json({

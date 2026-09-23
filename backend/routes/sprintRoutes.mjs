@@ -28,6 +28,7 @@ import {
 } from '../services/bootcamp/sprintService.mjs';
 import { generateSprintClasses, regenerateSlot } from '../services/bootcamp/sprintGenerator.mjs';
 import logger from '../utils/logger.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 // ── ARCH-2: In-memory progress store for SSE reconnection ──────────
 const sprintJobs = new Map(); // sprintId → { events: [], done: boolean }
@@ -91,7 +92,7 @@ router.get('/:id', async (req, res) => {
   try {
     const sprint = await getSprintById(req.params.id);
     if (!sprint) return res.status(404).json({ success: false, error: 'Sprint not found' });
-    if (sprint.trainerId !== req.user.id && req.user.role !== 'admin') {
+    if (!idEquals(sprint.trainerId, req.user.id) && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, error: 'Not authorized' });
     }
     res.json({ success: true, sprint });

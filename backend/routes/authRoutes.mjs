@@ -329,12 +329,21 @@ import {
   getAdminAccountCommandTargets,
   runAdminAccountCommand
 } from '../controllers/adminAccountCommandController.mjs';
-import { 
-  protect, 
-  adminOnly, 
-  trainerOrAdminOnly, 
-  rateLimiter 
+import {
+  protect,
+  adminOnly,
+  trainerOrAdminOnly,
+  rateLimiter
 } from '../middleware/authMiddleware.mjs';
+// L-01 / M-05 (hostile review of the review, 2026-09-18): the purpose-built
+// `authLimiter` lived in middleware/rateLimiter.mjs, was exported and
+// documented, and was imported by NOTHING — while /login and /refresh-token
+// used an ad-hoc inline limiter from the legacy hand-rolled implementation.
+// The two implementations have different keying and storage, so their limits
+// are not comparable. authLimiter is now the control for the auth surface; it
+// enforces the same 10/15min that /login already applied, so no client loses
+// attempts — only the implementation changes.
+import { authLimiter } from '../middleware/rateLimiter.mjs';
 import { validate } from '../middleware/validationMiddleware.mjs';
 import User from '../models/User.mjs';
 import { Op } from 'sequelize';
@@ -365,7 +374,7 @@ router.post(
  */
 router.post(
   '/login', 
-  rateLimiter({ windowMs: 15 * 60 * 1000, max: 10 }), // 10 attempts per 15 minutes per IP
+  authLimiter, // L-01: 10 attempts per 15 minutes per IP (was an inline ad-hoc limiter)
   validate('login'),
   login
 );

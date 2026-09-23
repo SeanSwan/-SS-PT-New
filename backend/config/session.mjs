@@ -9,6 +9,7 @@
 import session from 'express-session';
 import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
+import { randomBytes } from 'node:crypto';
 import logger from '../utils/logger.mjs';
 
 const shouldUseRedisSessions = () => {
@@ -66,12 +67,67 @@ export const initializeSession = async () => {
   const useRedis = shouldUseRedisSessions();
   const sessionSecret = process.env.SESSION_SECRET || process.env.JWT_SECRET;
 
+  /**
+   * A degraded session store in production is not a warning.
+   *
+   * express-session's MemoryStore is explicitly not for production: it is
+   * per-instance (sessions vanish on restart and are not shared across
+   * instances) and it never prunes, so it grows without bound. `rolling: true`
+   * plus any `req.session` write re-saves the session on every request, so
+   * unauthenticated traffic can grow it too — a Redis outage degrading to this
+   * store turns into unbounded memory growth rather than a loud failure.
+   *
+   * Previously this degradation logged at `warn` level in production, sitting
+   * next to routine startup noise. It is an `error` in production now.
+   */
+  const reportStoreDegradation = (reason) => {
+    const detail = `Session store degraded to the in-memory MemoryStore (${reason}). `
+      + 'Sessions are per-instance, lost on restart, and the store never prunes.';
+    if (isProduction) {
+      logger.error(`⛔ ${detail} Not a production-safe store — set REDIS_URL / fix the Redis connection.`);
+    } else {
+      logger.warn(`⚠️  ${detail} Expected outside production.`);
+    }
+  };
+
   if (isProduction && !sessionSecret) {
     throw new Error('SESSION_SECRET or JWT_SECRET is required in production');
   }
 
+  /**
+   * M-04 fix (hostile review of the review, 2026-09-18) — key separation.
+   *
+   * Reusing the JWT signing secret as the session-cookie signing secret means a
+   * single leak compromises both, and the project's own standard already
+   * forbids it elsewhere (authControllerJwtSecretGuard.test.mjs,
+   * coachProposalReviewSecretGuard.test.mjs).
+   *
+   * WHY THIS WARNS INSTEAD OF THROWING
+   * ----------------------------------
+   * The ledger recommended "require an independent SESSION_SECRET" — a hard
+   * fail-fast. Applied literally, that would break production login the moment
+   * the Render environment does not define SESSION_SECRET, and nothing in the
+   * ledger checks whether it does. The repo's own .env defines JWT_SECRET and
+   * NO SESSION_SECRET (key names only were inspected, never values).
+   *
+   * A blind fail-fast on an unverified environment variable is exactly the
+   * class of change §11.2 refused to make for E-06's TTL default. Same
+   * reasoning applies here, so: keep working, say it loudly, and make the
+   * hard-fail a deliberate follow-up once the environment is confirmed.
+   */
+  if (isProduction && !process.env.SESSION_SECRET && process.env.JWT_SECRET) {
+    logger.error(
+      '⚠️  [session] SESSION_SECRET is not set — falling back to JWT_SECRET. '
+      + 'This is cryptographic key reuse: one leak compromises both sessions and tokens. '
+      + 'Set a distinct SESSION_SECRET in the environment (openssl rand -hex 32). '
+      + 'Once confirmed, this fallback should be removed (M-04).',
+    );
+  }
+
   if (isProduction && !useRedis) {
-    logger.warn('⚠️ REDIS_URL not set — using in-memory sessions. Set REDIS_URL for multi-instance support.');
+    reportStoreDegradation(
+      process.env.USE_REDIS_SESSIONS === 'false' ? 'USE_REDIS_SESSIONS=false' : 'REDIS_URL not set',
+    );
   }
 
   let store;
@@ -108,7 +164,7 @@ export const initializeSession = async () => {
 
     } catch (error) {
       logger.error('Failed to connect to Redis, falling back to in-memory sessions:', error);
-      logger.warn('⚠️  Using in-memory session store - NOT suitable for multi-instance deployments');
+      reportStoreDegradation('Redis connection failed');
       // Stop reconnect loops after startup failure.
       try {
         if (redisClient) {
@@ -127,13 +183,25 @@ export const initializeSession = async () => {
     }
   } else {
     logger.info('📝 Redis sessions disabled via USE_REDIS_SESSIONS=false');
-    logger.warn('⚠️  Using in-memory session store - NOT suitable for multi-instance deployments');
+    reportStoreDegradation('USE_REDIS_SESSIONS=false');
+  }
+
+  // Hostile-review fix: never fall back to a PUBLIC hardcoded secret. The
+  // production check above already throws when no secret is set; outside
+  // production, generate a per-process secret instead of shipping a known
+  // literal ("fallback-secret-change-in-production" was exactly that — any
+  // session cookie signed with it is forgeable by anyone who has read this
+  // repo). Non-production sessions are in-memory by default, so a per-boot
+  // secret invalidates nothing of value.
+  const effectiveSecret = sessionSecret || randomBytes(32).toString('hex');
+  if (!sessionSecret) {
+    logger.warn('⚠️  SESSION_SECRET/JWT_SECRET unset — generated a per-process session secret. Set SESSION_SECRET in .env to keep sessions valid across restarts.');
   }
 
   // Session middleware configuration
   const sessionConfig = {
     store,
-    secret: sessionSecret || 'fallback-secret-change-in-production',
+    secret: effectiveSecret,
     resave: false,
     saveUninitialized: false,
     name: 'swanstudios.sid', // Custom session cookie name

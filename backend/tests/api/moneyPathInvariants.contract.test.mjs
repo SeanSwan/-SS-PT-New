@@ -74,3 +74,53 @@ describe('money-path: taxable physical products use Stripe Tax', () => {
     expect(pay).toMatch(/automatic_tax:\s*\{\s*enabled:\s*usesStripeTax\s*\}/);
   });
 });
+
+/**
+ * U-08 first slice — webhook + fulfilment contract.
+ * Pins the shapes and orderings that the review's E-01/E-04 work depends on,
+ * so the classes they came from cannot silently regress.
+ */
+describe('money-path: webhook contract', () => {
+  it('verifies the Stripe signature before handling anything', () => {
+    const verifyIdx = cart.indexOf('stripeClient.webhooks.constructEvent');
+    const switchIdx = cart.indexOf('switch (event.type)');
+    expect(verifyIdx).toBeGreaterThan(-1);
+    expect(switchIdx).toBeGreaterThan(verifyIdx);
+    expect(cart).toContain("process.env.STRIPE_WEBHOOK_SECRET");
+  });
+
+  it('refuses unsigned webhooks with 400 and processing failures with 5xx (Stripe retries)', () => {
+    expect(cart).toMatch(/res\.status\(400\)\.send\('Webhook Error: Missing signature or configuration'\)/);
+    expect(cart).toMatch(/res\.status\(500\)\.send\('Webhook processing error'\)/);
+  });
+
+  it('grants sessions only for a PAID completed session', () => {
+    expect(cart).toMatch(/session\.payment_status === 'paid'/);
+    const paidIdx = cart.indexOf("session.payment_status === 'paid'");
+    const grantIdx = cart.indexOf('grantSessionsForCart(');
+    expect(paidIdx).toBeGreaterThan(-1);
+    expect(grantIdx).toBeGreaterThan(paidIdx);
+  });
+
+  it('handles charge.refunded through the reconciliation service (E-04)', () => {
+    expect(cart).toContain("case 'charge.refunded'");
+    expect(cart).toContain('reconcileRefundedCharge(charge)');
+    expect(cart).toContain("from '../services/refundReconciliationService.mjs'");
+  });
+});
+
+describe('money-path: identity comparisons survive type coercion', () => {
+  it('verify-session normalizes BOTH sides before comparing ids (E-01 regression)', () => {
+    // req.user.id is always a string (protect -> toStringId); the Stripe
+    // client_reference_id is an integer. A strict Number !== String comparison
+    // 404s every session-package buyer.
+    expect(pay).toMatch(/String\(packageUserId\)\s*!==\s*String\(userId\)/);
+    expect(pay).not.toMatch(/Number\(session\.client_reference_id\)\s*!==\s*userId/);
+  });
+
+  it('the refund reconciler compares currency/amount in cents consistently', () => {
+    const svc = read('services/refundReconciliationService.mjs');
+    expect(svc).toMatch(/amountRefunded\s*>=\s*Number\(charge\.amount/);
+    expect(svc).toMatch(/Math\.round\(n\)\s*\/\s*100/);
+  });
+});

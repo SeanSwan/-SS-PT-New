@@ -207,6 +207,7 @@
 import workoutService from '../services/workoutService.mjs';
 import { errorResponse, successResponse } from '../utils/responseUtils.mjs';
 import logger from '../utils/logger.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 /**
  * Get all workout sessions for a user
@@ -276,7 +277,7 @@ export async function getWorkoutSessionById(req, res) {
     }
     
     // Check if the user is authorized to view this session
-    if (session.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    if (!idEquals(session.userId, req.user.id) && req.user.role !== 'admin' && req.user.role !== 'trainer') {
       return errorResponse(res, 403, 'You are not authorized to view this session');
     }
     
@@ -306,7 +307,7 @@ export async function createWorkoutSession(req, res) {
     }
 
     // Check if the user is authorized to create a session for another user
-    if (sessionData.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    if (!idEquals(sessionData.userId, req.user.id) && req.user.role !== 'admin' && req.user.role !== 'trainer') {
       return errorResponse(res, 403, 'You are not authorized to create sessions for other users');
     }
 
@@ -336,7 +337,7 @@ export async function updateWorkoutSession(req, res) {
     }
     
     // Check if the user is authorized to update this session
-    if (existingSession.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    if (!idEquals(existingSession.userId, req.user.id) && req.user.role !== 'admin' && req.user.role !== 'trainer') {
       return errorResponse(res, 403, 'You are not authorized to update this session');
     }
     
@@ -376,7 +377,7 @@ export async function deleteWorkoutSession(req, res) {
     }
     
     // Check if the user is authorized to delete this session
-    if (existingSession.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
+    if (!idEquals(existingSession.userId, req.user.id) && req.user.role !== 'admin' && req.user.role !== 'trainer') {
       return errorResponse(res, 403, 'You are not authorized to delete this session');
     }
     
@@ -559,7 +560,7 @@ export async function getWorkoutPlanById(req, res) {
     }
     
     // Check if the user is authorized to view this plan
-    if (plan.clientId !== req.user.id && plan.trainerId !== req.user.id && req.user.role !== 'admin') {
+    if (!idEquals(plan.clientId, req.user.id) && !idEquals(plan.trainerId, req.user.id) && req.user.role !== 'admin') {
       return errorResponse(res, 403, 'You are not authorized to view this plan');
     }
     
@@ -587,7 +588,7 @@ export async function updateWorkoutPlan(req, res) {
     }
     
     // Check if the user is authorized to update this plan
-    if (existingPlan.trainerId !== req.user.id && req.user.role !== 'admin') {
+    if (!idEquals(existingPlan.trainerId, req.user.id) && req.user.role !== 'admin') {
       return errorResponse(res, 403, 'You are not authorized to update this plan');
     }
     
@@ -618,7 +619,7 @@ export async function deleteWorkoutPlan(req, res) {
     }
     
     // Check if the user is authorized to delete this plan
-    if (existingPlan.trainerId !== req.user.id && req.user.role !== 'admin') {
+    if (!idEquals(existingPlan.trainerId, req.user.id) && req.user.role !== 'admin') {
       return errorResponse(res, 403, 'You are not authorized to delete this plan');
     }
     
@@ -648,7 +649,7 @@ export async function generateWorkoutSessions(req, res) {
     }
     
     // Check if the user is authorized to generate sessions from this plan
-    if (existingPlan.clientId !== req.user.id && existingPlan.trainerId !== req.user.id && req.user.role !== 'admin') {
+    if (!idEquals(existingPlan.clientId, req.user.id) && !idEquals(existingPlan.trainerId, req.user.id) && req.user.role !== 'admin') {
       return errorResponse(res, 403, 'You are not authorized to generate sessions from this plan');
     }
     
@@ -657,7 +658,7 @@ export async function generateWorkoutSessions(req, res) {
 
     // Validate target userId — prevent generating sessions attributed to another user
     const targetUserId = userId || req.user.id;
-    if (targetUserId !== req.user.id && existingPlan.trainerId !== req.user.id && req.user.role !== 'admin') {
+    if (!idEquals(targetUserId, req.user.id) && !idEquals(existingPlan.trainerId, req.user.id) && req.user.role !== 'admin') {
       return errorResponse(res, 403, 'You are not authorized to generate sessions for this user');
     }
     // Ensure target user matches the plan's client (if plan has a clientId)

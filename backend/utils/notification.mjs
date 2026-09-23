@@ -8,6 +8,7 @@ import { sendEmail, isEmailServiceConfigured } from '../emailService.mjs';
 import logger from './logger.mjs';
 import { isTwilioEnabled } from './apiKeyChecker.mjs';
 import { isNonDeductingClient } from '../services/sessionBillingPolicy.mjs';
+import { escapeHtml } from './htmlEscape.mjs';
 
 dotenv.config();
 
@@ -208,7 +209,7 @@ export const notifySessionBooked = async (session, client) => {
         to: client.email,
         subject,
         text: textContent,
-        html: textContent.replace(/\n/g, '<br>')
+        html: escapeHtml(textContent).replace(/\n/g, '<br>')
       });
     }
     
@@ -256,7 +257,7 @@ export const notifyAdminSessionBooked = async (session, client) => {
           to: email,
           subject,
           text: textContent,
-          html: textContent.replace(/\n/g, '<br>')
+          html: escapeHtml(textContent).replace(/\n/g, '<br>')
         });
       }
     }
@@ -283,7 +284,7 @@ export const notifyAdminSessionBooked = async (session, client) => {
             to: trainer.email,
             subject: 'New Session Assigned - Swan Studios',
             text: `You have a new training session with ${client.firstName} ${client.lastName} on ${sessionTime}. Please check the trainer dashboard for details.`,
-            html: `<p>You have a new training session with <strong>${client.firstName} ${client.lastName}</strong> on <strong>${sessionTime}</strong>.</p><p>Please check the trainer dashboard for details.</p>`
+            html: `<p>You have a new training session with <strong>${escapeHtml(client.firstName)} ${escapeHtml(client.lastName)}</strong> on <strong>${escapeHtml(sessionTime)}</strong>.</p><p>Please check the trainer dashboard for details.</p>`
           });
         }
         
@@ -338,7 +339,7 @@ export const sendSessionReminder = async (session, client, hoursBeforeSession = 
         to: client.email,
         subject,
         text: textContent,
-        html: textContent.replace(/\n/g, '<br>')
+        html: escapeHtml(textContent).replace(/\n/g, '<br>')
       });
     }
     
@@ -386,7 +387,7 @@ export const notifySessionCancelled = async (session, client, cancelledBy, reaso
         to: client.email,
         subject,
         text: textContent,
-        html: textContent.replace(/\n/g, '<br>')
+        html: escapeHtml(textContent).replace(/\n/g, '<br>')
       });
     }
     
@@ -410,7 +411,7 @@ export const notifySessionCancelled = async (session, client, cancelledBy, reaso
             to: trainer.email,
             subject: 'Session Cancellation - Swan Studios',
             text: `The session with ${client.firstName} ${client.lastName} scheduled for ${sessionTime} has been cancelled. Reason: ${cancellationReason}`,
-            html: `<p>The session with <strong>${client.firstName} ${client.lastName}</strong> scheduled for <strong>${sessionTime}</strong> has been cancelled.</p><p>Reason: ${cancellationReason}</p>`
+            html: `<p>The session with <strong>${escapeHtml(client.firstName)} ${escapeHtml(client.lastName)}</strong> scheduled for <strong>${escapeHtml(sessionTime)}</strong> has been cancelled.</p><p>Reason: ${escapeHtml(cancellationReason)}</p>`
           });
         }
         
@@ -439,7 +440,7 @@ export const notifySessionCancelled = async (session, client, cancelledBy, reaso
             to: email,
             subject: adminSubject,
             text: adminText,
-            html: adminText.replace(/\n/g, '<br>')
+            html: escapeHtml(adminText).replace(/\n/g, '<br>')
           });
         }
       }
@@ -586,7 +587,7 @@ export const sendDeductionNotification = async (session, client) => {
       to: client.email,
       subject,
       text: textContent,
-      html: textContent.replace(/\n/g, '<br>')
+      html: escapeHtml(textContent).replace(/\n/g, '<br>')
     });
   } catch (error) {
     logger.error('Deduction notification error:', error);
@@ -620,7 +621,7 @@ export const notifyLowSessionsRemaining = async (client, remainingSessions) => {
         to: client.email,
         subject,
         text: textContent,
-        html: textContent.replace(/\n/g, '<br>')
+        html: escapeHtml(textContent).replace(/\n/g, '<br>')
       });
     }
     

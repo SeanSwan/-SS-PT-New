@@ -11,6 +11,7 @@ import TrainingSessionService from '../services/TrainingSessionService.mjs';
 import Session from '../models/Session.mjs';
 import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 const router = express.Router();
 
@@ -287,7 +288,7 @@ router.put('/:id/schedule', protect, async (req, res) => {
     }
 
     // If user is a trainer, they can only schedule their own assigned sessions
-    if (userRole === 'trainer' && session.trainerId !== req.user.id) {
+    if (userRole === 'trainer' && !idEquals(session.trainerId, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'You can only schedule sessions assigned to you'
@@ -361,7 +362,7 @@ router.put('/:id/complete', protect, async (req, res) => {
     }
 
     // If user is a trainer, they can only complete their own assigned sessions
-    if (userRole === 'trainer' && session.trainerId !== req.user.id) {
+    if (userRole === 'trainer' && !idEquals(session.trainerId, req.user.id)) {
       return res.status(403).json({
         success: false,
         message: 'You can only complete sessions assigned to you'

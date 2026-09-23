@@ -29,7 +29,11 @@ describe('client-admin command dispatcher extraction locks', () => {
     );
     expect(commandDispatcherSource).not.toContain('const dispatchViewClientProfile = async');
     expect(read(dispatcherPath)).toContain('export const dispatchViewClientProfile');
-    expect(read(dispatcherPath)).toContain("attributes: { exclude: ['password', 'refreshTokenHash'] }");
+    // §18: the credential deny-list is now the shared constant. Assert the
+    // *property* (imports it and applies it) rather than the old literal, so
+    // adding a credential column does not require editing this test.
+    expect(read(dispatcherPath)).toMatch(/from\s+['"][^'"]*userSerialization\.mjs['"]/);
+    expect(read(dispatcherPath)).toContain('attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }');
   });
 
   test('assign_trainer lives outside the central command dispatcher', () => {

@@ -1,5 +1,6 @@
 // backend/routes/adminRoutes.mjs
 import express from 'express';
+import { USER_CREDENTIAL_FIELDS } from '../utils/userSerialization.mjs';
 import sequelize from '../database.mjs';
 import { Op } from 'sequelize';
 import { authenticateToken, authorizeAdmin } from '../middleware/auth.mjs';
@@ -48,7 +49,7 @@ router.get('/trainers', async (req, res) => {
     const trainers = await sequelize.models.User.findAll({
       where: { role: ['trainer', 'admin'] },
       order: [['createdAt', 'DESC']],
-      attributes: { exclude: ['password', 'refreshTokenHash'] }
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS] }
     });
 
     console.log(`Found ${trainers.length} trainers`);

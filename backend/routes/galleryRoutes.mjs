@@ -43,6 +43,7 @@ import LeadActivity from '../models/LeadActivity.mjs';
 import PrintOrder from '../models/PrintOrder.mjs';
 import { analyzeForm } from '../services/formAnalysisService.mjs';
 import { getUser } from '../models/index.mjs';
+import { verifyAccessToken } from '../middleware/authMiddleware.mjs';
 import { createAdminNotification } from '../controllers/notificationController.mjs';
 import { getClientIp, lookupGeo } from '../services/geoIpService.mjs';
 import { Op, fn, col, literal } from 'sequelize';
@@ -63,6 +64,7 @@ import {
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 
+import { moneyPathInputGuard } from '../middleware/moneyPathInputGuard.mjs';
 const router = express.Router();
 
 const GALLERY_TOKEN_TTL = '24h';
@@ -107,7 +109,14 @@ const downloadAllLimiter = rateLimit({
  */
 function requireGalleryAccess(req, res, next) {
   const authHeader = req.headers.authorization;
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.query.token;
+  // E-02 fix (hostile review seat 3): ?token= exists ONLY because <img>/<a>
+  // tags cannot set an Authorization header. A URL token leaks into access
+  // logs, browser history, proxy logs and Referer headers (see U-06 scrubbing,
+  // which exists partly because of this channel). Scope it to the GET routes
+  // that genuinely need it; every mutating route must use the header.
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice(7)
+    : (req.method === 'GET' ? req.query.token : null);
 
   if (!token) {
     return res.status(401).json({ success: false, error: 'Gallery access required. Please enter your email and event password.' });
@@ -1419,7 +1428,7 @@ router.post('/vip-signup', vipSignupLimiter, requireGalleryAccess, async (req, r
  * Create a Stripe Checkout session for the $175 VIP PT Session package.
  * Body: { userId, token }
  */
-router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
+router.post('/vip-checkout', requireGalleryAccess, moneyPathInputGuard('gallery-vip-checkout'), async (req, res) => {
   try {
     let { userId, userToken } = req.body;
     const visitorId = req.galleryAccess.visitorId;
@@ -1428,12 +1437,23 @@ router.post('/vip-checkout', requireGalleryAccess, async (req, res) => {
     // Extract userId from userToken if not provided directly
     if (!userId && userToken) {
       try {
-        const decoded = jwt.verify(userToken, getJwtSecret());
+        // E-02 fix (hostile review seat 3) / U-05: gallery_access tokens,
+        // refresh tokens and force-password-change tokens are all signed
+        // with the SAME secret as user access tokens, so jwt.verify() alone
+        // proves only "some token we issued" — not "this user is logged in".
+        // verifyAccessToken is the shared boundary (authMiddleware.mjs):
+        // signature + access-family check + revocation registry.
+        const decoded = await verifyAccessToken(userToken);
         userId = decoded.id;
       } catch (tokenErr) {
         if (isJwtSecretConfigurationError(tokenErr)) {
           logger.error('[Gallery VIP] JWT secret is not configured for checkout token verification');
           return res.status(500).json({ success: false, error: 'Authentication is not configured' });
+        }
+
+        if (tokenErr?.name === 'TokenFamilyError' || tokenErr?.name === 'TokenRevokedError') {
+          logger.warn('[Gallery VIP] Rejected token in checkout:', tokenErr.name);
+          return res.status(401).json({ success: false, error: 'Invalid user token — please log in again' });
         }
 
         logger.warn('[Gallery VIP] Invalid userToken in checkout:', tokenErr.message);

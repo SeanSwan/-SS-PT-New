@@ -13,7 +13,7 @@ export default defineConfig({
     globals: true,
 
     // Test file patterns
-    include: ['__tests__/**/*.test.{js,mjs}', 'tests/**/*.test.{js,mjs}'],
+    include: ['__tests__/**/*.test.{js,mjs}', 'tests/**/*.test.{js,mjs}', 'scripts/**/seed-shadow-db.test.mjs'],
     // tests/mutation/** mutates source and spawns child vitest runs. It is
     // opt-in (`npm run test:mutation`) and must never run inside the normal
     // suite, where it would be slow and would race other readers.

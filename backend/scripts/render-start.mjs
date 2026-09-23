@@ -41,6 +41,19 @@ async function start() {
   // Run pending migrations (safe — auto-skips already-applied)
   if (process.env.DATABASE_URL) {
     console.log('\nRunning safe database migrations...');
+    // H-03 (hostile review of the review): SWAN_MIGRATE_STRICT is deliberately
+    // NOT set here, and setting it would be a regression.
+    //
+    // safe-migrate.mjs now exits non-zero on a genuine failure and leaves that
+    // migration PENDING (so it can be fixed and re-run) — which is the part of
+    // the H-03 remedy that actually mattered. STRICT additionally disables the
+    // "already exists" reclassification entirely, and production's populated
+    // tables legitimately produce those on idempotent re-runs; switching it on
+    // would leave a permanent list of migrations failing on every deploy.
+    //
+    // The catch block below keeps a migration failure non-fatal, so the deploy
+    // still boots — it just no longer logs "Migrations completed successfully"
+    // over migrations that did not run.
     try {
       await run('node', ['scripts/safe-migrate.mjs', 'production']);
       console.log('Migrations completed successfully');

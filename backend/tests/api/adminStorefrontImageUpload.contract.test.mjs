@@ -22,9 +22,9 @@ describe('admin storefront API — product image upload', () => {
     expect(routes).toContain("import { uploadPhoto } from '../services/photoStorageService.mjs'");
     expect(routes).toMatch(/router\.post\(\s*'\/upload-image'/);
     expect(routes).toContain("category: 'products'");
-    // whole router is protect + requireAdmin (declared once at top)
+    // whole router is protect + adminOnly (declared once at top)
     expect(routes).toContain('router.use(protect)');
-    expect(routes).toContain('router.use(requireAdmin)');
+    expect(routes).toContain('router.use(adminOnly)'); // S0 2026-07-23: shared adminOnly replaced route-local requireAdmin
   });
 
   it('validates image type/size before storing', () => {

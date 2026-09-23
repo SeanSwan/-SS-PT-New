@@ -101,6 +101,7 @@
 import express from 'express';
 import gamificationController from '../controllers/gamificationController.mjs';
 import { protect, adminOnly, trainerOnly, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
+import { idEquals } from '../utils/idUtils.mjs';
 
 const router = express.Router();
 
@@ -135,11 +136,30 @@ const authorizeOwnerOrAdmin = (req, res, next) => {
   if (role === 'admin') return next();
 
   // Trainers can access their assigned clients' data
-  // TODO: In future sprint, verify trainer-client assignment from DB
+  //
+  // ⚠️ SECURITY (2026-09-18 hostile pass G-02) — OPEN, NEEDS A POLICY CALL.
+  // This branch admits EVERY trainer for EVERY :userId, with no
+  // ClientTrainerAssignment lookup. 18 routes below use this middleware,
+  // including writes (POST .../rewards/:rewardId/redeem, PUT .../job-class,
+  // POST .../pet/adopt|interact, PUT .../pet/rename, DELETE .../pet), so any
+  // trainer can spend or mutate any user's gamification state by editing the
+  // :userId param. The file's own design note at "WHY Separate
+  // authorizeClientOrTrainer Middleware?" says "trainer can view any", so this
+  // is DOCUMENTED INTENT rather than an accident — which is why it was NOT
+  // silently tightened in this pass. The assignment check already exists in
+  // two places if the decision is to close it:
+  //   - middleware/authMiddleware.mjs  checkTrainerClientRelationship
+  //   - utils/clientAccess.mjs         ensureClientAccess
   if (role === 'trainer') return next();
 
-  // Clients can only access their own data
-  if (targetUserId === requesterId) return next();
+  // Clients can only access their own data.
+  //
+  // 2026-09-18 hostile pass G-01 — was `targetUserId === requesterId`, which
+  // could never be true: targetUserId is parseInt(...) (a NUMBER) while
+  // requesterId is req.user?.id (a STRING set by `protect` via toStringId), and
+  // `42 === '42'` is false. Every client was therefore 403'd on all 18 routes
+  // this guard protects, including GET /users/:userId/profile.
+  if (idEquals(targetUserId, requesterId)) return next();
 
   return res.status(403).json({
     success: false,

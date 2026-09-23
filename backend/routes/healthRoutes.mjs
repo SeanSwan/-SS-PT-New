@@ -161,4 +161,64 @@ router.get('/store', async (req, res) => {
   }
 });
 
+// ── U-07: readiness probe (distinct from liveness) ─────────────────────────
+// /health above is a LIVENESS probe: it answers 200 the instant the process is
+// listening, deliberately without touching Postgres. That is correct for
+// liveness but wrong for traffic routing — Render sees 200 and starts sending
+// requests to an instance whose models cache is still cold, which surfaces as a
+// burst of 500s on every deploy.
+//
+// /ready is the readiness probe: 503 until the things a request actually needs
+// are answering. Point Render's health check at this one.
+router.get('/ready', async (req, res) => {
+  const checks = {};
+
+  const withTimeout = (promise, ms, label) => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timeout`)), ms)),
+  ]);
+
+  // Postgres — gates readiness
+  try {
+    const { default: sequelize } = await import('../database.mjs');
+    await withTimeout(sequelize.authenticate(), 3000, 'database');
+    checks.database = 'ok';
+  } catch (err) {
+    checks.database = `fail: ${err.message}`;
+  }
+
+  // Redis — gates readiness only when sessions are actually configured on it
+  if (process.env.USE_REDIS_SESSIONS === 'true' || process.env.REDIS_URL) {
+    const redisClient = req.app?.locals?.redisClient;
+    if (redisClient && typeof redisClient.ping === 'function') {
+      try {
+        await withTimeout(redisClient.ping(), 2000, 'redis');
+        checks.redis = 'ok';
+      } catch (err) {
+        checks.redis = `fail: ${err.message}`;
+      }
+    } else {
+      checks.redis = 'not-initialized';
+    }
+  } else {
+    checks.redis = 'not-configured';
+  }
+
+  // Stripe — reported but deliberately NOT gating readiness: a third-party
+  // blip must not mark every instance unready and take the whole site down.
+  checks.stripe = process.env.STRIPE_SECRET_KEY ? 'configured' : 'not-configured';
+
+  const failures = Object.entries(checks)
+    .filter(([, value]) => typeof value === 'string' && value.startsWith('fail:'))
+    .map(([name]) => name);
+
+  const ready = failures.length === 0;
+  return res.status(ready ? 200 : 503).json({
+    status: ready ? 'ready' : 'not-ready',
+    timestamp: new Date().toISOString(),
+    failing: failures,
+    checks,
+  });
+});
+
 export default router;

@@ -1,5 +1,6 @@
 import { Op } from 'sequelize';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { USER_CREDENTIAL_FIELDS } from '../../utils/userSerialization.mjs';
 
 async function loadDispatcher({
   clientRecord = null,
@@ -125,7 +126,7 @@ describe('Swan Coach client command dispatchers', () => {
 
     expect(findOne).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: 42, role: 'client' },
-      attributes: { exclude: ['password', 'refreshTokenHash'] },
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS] },
     }));
     expect(result).toEqual({
       clientId: 42,
@@ -195,7 +196,7 @@ describe('Swan Coach client command dispatchers', () => {
           where: { trainerId: 7, status: 'active' },
         }),
       ]),
-      attributes: { exclude: ['password', 'refreshTokenHash', 'masterPromptJson'] },
+      attributes: { exclude: [...USER_CREDENTIAL_FIELDS, 'masterPromptJson'] },
     }));
     expect(result).toEqual({
       totalCount: 2,

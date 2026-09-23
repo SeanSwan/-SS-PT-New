@@ -33,6 +33,57 @@ import { fileURLToPath } from 'url';
 import { existsSync, unlinkSync, readFileSync, writeFileSync, chmodSync, statSync, mkdtempSync, rmSync } from 'fs';
 import { execFileSync } from 'child_process';
 
+// E-05 fix (hostile review seat 3). Gallery uploads are presigned PUTs issued to
+// an ADMIN's browser, then copied to a PUBLIC key served from our own R2 domain.
+// The presign used to put 'content-type' in unhoistableHeaders, which UNSIGNS
+// it: the browser could PUT literally any Content-Type (text/html, image/svg+xml)
+// and R2 would store and later serve it as that type — stored XSS on a public
+// gallery URL. Now the declared type is mapped through this allowlist and the
+// header stays SIGNED, so the browser must send exactly what we permitted.
+// Anything unrecognized (including SVG and RAW camera formats) becomes
+// application/octet-stream, which browsers download rather than execute.
+const SAFE_PRESIGN_CONTENT_TYPES = Object.freeze({
+  'image/jpeg': 'image/jpeg',
+  'image/jpg': 'image/jpeg',
+  'image/pjpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+  'image/gif': 'image/gif',
+  'image/tiff': 'image/tiff',
+});
+const SAFE_CONTENT_TYPE_FALLBACK = 'application/octet-stream';
+
+/**
+ * E-09 fix (hostile review seat 3): reserve `count` consecutive photo numbers.
+ *
+ * Three call sites used to do `max(photoNumber) + 1` outside any transaction.
+ * The batch path is worse than a plain race: it reads the max ONCE and hands
+ * out max+1 .. max+N, so two admins uploading to the same event get identical
+ * numbers. The unique index on (event_id, photo_number) then converts the
+ * loser into a raw 500 mid-batch — after the bytes are already in R2.
+ *
+ * Taking a row lock on the parent event serializes the read-modify-write, so
+ * the second caller waits for the first to commit and then sees the new max.
+ *
+ * @param {number|string} eventId
+ * @param {number} count - how many numbers to reserve (batch size)
+ * @returns {Promise<number[]>} ascending, gap-free numbers
+ */
+async function allocatePhotoNumbers(eventId, count) {
+  const safeCount = Math.max(1, Number(count) || 1);
+  const transaction = await sequelize.transaction();
+  try {
+    await GalleryEvent.findByPk(eventId, { transaction, lock: transaction.LOCK.UPDATE });
+    const maxPhoto = await GalleryPhoto.max('photoNumber', { where: { eventId }, transaction });
+    const start = (Number(maxPhoto) || 0) + 1;
+    await transaction.commit();
+    return Array.from({ length: safeCount }, (_, i) => start + i);
+  } catch (err) {
+    await transaction.rollback();
+    throw err;
+  }
+}
+
 const router = express.Router();
 
 // All admin gallery routes require auth + admin
@@ -332,9 +383,8 @@ router.post('/events/:id/upload-single', (req, res, next) => {
     const enableWatermark = req.body.watermark !== 'false';
     // sourceType removed — JPEG only workflow
 
-    // Get next photo number
-    const maxPhoto = await GalleryPhoto.max('photoNumber', { where: { eventId: event.id } });
-    const photoNumber = (maxPhoto || 0) + 1;
+    // Get next photo number (E-09: reserved under a row lock on the event)
+    const [photoNumber] = await allocatePhotoNumbers(event.id, 1);
     // Use original filename (without extension) so owner can look up source files
     const originalBaseName = file.originalname
       ? file.originalname.replace(/\.[^.]+$/, '')
@@ -586,9 +636,8 @@ router.post('/events/:id/upload', (req, res, next) => {
     // "watermark" param: "true" (default) or "false"
     const enableWatermark = req.body.watermark !== 'false';
 
-    // Get current max photo number for this event
-    const maxPhoto = await GalleryPhoto.max('photoNumber', { where: { eventId: event.id } });
-    let nextNumber = (maxPhoto || 0) + 1;
+    // Get current max photo number for this event (E-09: locked allocation)
+    let nextNumber = (await allocatePhotoNumbers(event.id, 1))[0];
 
     const R2_BUCKET = process.env.R2_BUCKET_NAME;
     const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
@@ -806,14 +855,15 @@ router.post('/events/:id/presign-upload', async (req, res) => {
       return res.status(503).json({ success: false, error: 'R2 storage not configured — use legacy upload endpoint' });
     }
 
-    // Get current max photo number
-    const maxPhoto = await GalleryPhoto.max('photoNumber', { where: { eventId: event.id } });
-    let nextNumber = (maxPhoto || 0) + 1;
+    // E-09: reserve the entire batch up front under one lock, so a concurrent
+    // upload cannot be handed the same numbers.
+    const reservedNumbers = await allocatePhotoNumbers(event.id, files.length);
 
     const uploads = [];
 
-    for (const file of files) {
-      const photoNumber = nextNumber++;
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const photoNumber = reservedNumbers[i];
       // Use original filename (without extension) so owner can look up source files
       const originalBaseName = file.name
         ? file.name.replace(/\.[^.]+$/, '')
@@ -823,9 +873,10 @@ router.post('/events/:id/presign-upload', async (req, res) => {
       const rawKey = `gallery-raw/${event.slug}/${photoNumber}-${Date.now()}.jpg`;
       const finalKey = `gallery/${event.slug}/${photoNumber}.jpg`;
 
-      // Use the browser's content type (application/octet-stream for RAW files)
-      // Don't force image/jpeg — it must match what the browser sends in the PUT
-      const contentType = file.type || 'application/octet-stream';
+      // E-05: allowlist the declared type instead of trusting it. RAW camera
+      // formats and anything unexpected collapse to application/octet-stream,
+      // which is safe to store and safe to serve (download, never render).
+      const contentType = SAFE_PRESIGN_CONTENT_TYPES[file.type] || SAFE_CONTENT_TYPE_FALLBACK;
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET,
         Key: rawKey,
@@ -834,7 +885,9 @@ router.post('/events/:id/presign-upload', async (req, res) => {
 
       const uploadUrl = await getSignedUrl(r2Client, command, {
         expiresIn: 600, // 10 min TTL
-        unhoistableHeaders: new Set(['content-type']), // Don't sign Content-Type — let browser set it freely
+        // NOTE: 'content-type' is deliberately NOT in unhoistableHeaders here.
+        // It stays signed, so the browser must send exactly the allowlisted
+        // value above; a client sending text/html gets SignatureDoesNotMatch.
       });
 
       uploads.push({
@@ -1082,11 +1135,30 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
         if (isRawFormat || isLargeFile) {
           logger.info(`[AdminGallery] Large/RAW file (${(fileSizeBytes / 1024 / 1024).toFixed(1)}MB) — copy now, process in background`);
 
+          // E-05: CopyObject inherits the SOURCE object's metadata by default,
+          // which is exactly how a client-declared Content-Type used to reach
+          // the public final key. Read back what actually landed on the staged
+          // object and copy with a server-chosen type instead.
+          let copyContentType = SAFE_CONTENT_TYPE_FALLBACK;
+          try {
+            const head = await r2Client.send(new HeadObjectCommand({ Bucket: R2_BUCKET, Key: photo.rawKey }));
+            if (head.ContentType && !SAFE_PRESIGN_CONTENT_TYPES[head.ContentType]) {
+              logger.warn('[AdminGallery] Staged object Content-Type %s is not allowlisted — copying as octet-stream', head.ContentType);
+            }
+            copyContentType = SAFE_PRESIGN_CONTENT_TYPES[head.ContentType] || SAFE_CONTENT_TYPE_FALLBACK;
+          } catch (headErr) {
+            // Fail closed: an unverifiable type is stored as octet-stream
+            // (downloaded, never rendered) rather than trusted.
+            logger.warn('[AdminGallery] Could not verify staged object metadata (%s) — defaulting to octet-stream', headErr.message);
+          }
+
           // Copy from staging key to final key within R2 (instant, no download)
           await r2Client.send(new CopyObjectCommand({
             Bucket: R2_BUCKET,
             CopySource: `${R2_BUCKET}/${photo.rawKey}`,
             Key: photo.finalKey,
+            MetadataDirective: 'REPLACE',
+            ContentType: copyContentType,
           }));
 
           // Delete staging file (best-effort)

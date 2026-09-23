@@ -13,6 +13,7 @@ function readBackendFile(path) {
 const classifierSource = readBackendFile('services/ai/coachActionProposalClassifier.mjs');
 const dispatcherSource = readBackendFile('services/ai/dispatchers/clientOnboardingProposalDispatcher.mjs');
 const approvalSource = readBackendFile('services/coachClientOnboardingApprovalService.mjs');
+const normalizerSource = readBackendFile('services/coachClientOnboardingDraftNormalizer.mjs');
 const directOnboardRouteSource = readBackendFile('routes/clientOnboardRoutes.mjs');
 const publicRegistrationSource = readBackendFile('controllers/authController.mjs');
 
@@ -31,10 +32,21 @@ describe('Swan Coach onboarding clientSource policy boundary', () => {
   });
 
   it('keeps approved Coach onboarding drafts on the central source allowlist', () => {
-    expect(approvalSource).toContain('CLIENT_SOURCES,');
-    expect(approvalSource).toContain('isNonDeductingClientSource,');
-    expect(approvalSource).toContain("from './sessionBillingPolicy.mjs';");
+    // The allowlist gate moved one layer down: the approval service no longer
+    // imports CLIENT_SOURCES itself, it delegates normalization to
+    // coachClientOnboardingDraftNormalizer, which owns the CLIENT_SOURCES.has()
+    // rejection. Pin the property where it is actually enforced, plus the
+    // delegation edge — otherwise a future change could drop the normalizer
+    // call and no test would notice.
+    expect(approvalSource).toContain("import { isNonDeductingClientSource } from './sessionBillingPolicy.mjs';");
+    expect(approvalSource).toContain('normalizeCoachOnboardingDraft,');
+    expect(approvalSource).toContain('from \'./coachClientOnboardingDraftNormalizer.mjs\';');
     expect(approvalSource).not.toContain("const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external'])");
+
+    expect(normalizerSource).toContain('CLIENT_SOURCES,');
+    expect(normalizerSource).toContain("from './sessionBillingPolicy.mjs';");
+    expect(normalizerSource).toContain('if (!CLIENT_SOURCES.has(clientSource)) {');
+    expect(normalizerSource).not.toContain("const CLIENT_SOURCES = new Set(['swanstudios', 'move_fitness', 'external'])");
   });
 
   it('keeps the direct client onboarding route on the same central source allowlist', () => {

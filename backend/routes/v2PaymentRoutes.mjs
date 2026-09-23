@@ -74,6 +74,7 @@ import { getCheckoutReceiptSummary } from '../services/checkoutReceiptSummarySer
 import { captureLeadFromCheckout } from '../services/leadCaptureService.mjs';
 import { deriveChannel } from '../services/leadCaptureShared.mjs';
 
+import { moneyPathInputGuard } from '../middleware/moneyPathInputGuard.mjs';
 const router = express.Router();
 const CHECKOUT_CREATION_FAILED_CODE = 'CHECKOUT_CREATION_FAILED';
 const STRIPE_TAX_NOT_CONFIGURED_CODE = 'STRIPE_TAX_NOT_CONFIGURED';
@@ -264,7 +265,7 @@ async function captureVerifiedCheckoutLead({ user, session, cart = null, session
  * - Order data available for analytics
  * - Financial transaction tracking
  */
-router.post('/create-checkout-session', protect, checkStripeAvailability, async (req, res) => {
+router.post('/create-checkout-session', protect, checkStripeAvailability, moneyPathInputGuard('create-checkout-session'), async (req, res) => {
   try {
     const userId = req.user.id;
     const { cartId, customerInfo, fulfillmentIntent } = req.body;
@@ -611,7 +612,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
  * - Updates user sessions
  * - Provides data for analytics
  */
-router.post('/verify-session', protect, checkStripeAvailability, async (req, res) => {
+router.post('/verify-session', protect, checkStripeAvailability, moneyPathInputGuard('verify-session'), async (req, res) => {
   try {
     const sessionValidation = validateCheckoutSessionId(req.body?.sessionId);
     if (!sessionValidation.ok) {
@@ -652,8 +653,13 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
     }
 
     if (isSessionPackageCheckoutSession(session)) {
+      // E-01 fix (hostile review seat 3): req.user.id is ALWAYS a string
+      // (protect -> toStringId), while Number(client_reference_id) is an
+      // integer. The old strict Number-vs-String comparison was always
+      // true, so every session-package buyer got a 404 here. Normalize
+      // both sides to strings before comparing.
       const packageUserId = Number(session.client_reference_id);
-      if (!Number.isInteger(packageUserId) || packageUserId !== userId) {
+      if (!Number.isInteger(packageUserId) || String(packageUserId) !== String(userId)) {
         return res.status(404).json({
           success: false,
           message: 'Order not found',
