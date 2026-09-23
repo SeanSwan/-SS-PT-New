@@ -1211,6 +1211,9 @@ export function useAIChat(
 
   const newChat = useCallback(() => {
     if (!canUseRenderScope()) return;
+    // A created-thread adoption bound the staff snapshot to that thread; New chat
+    // must return to the thread-less admitted scope or every later send is refused.
+    bindingRef.current?.releaseAdoptedThread?.();
     selectedConversationRef.current = null;
     conversationEpochRef.current += 1;
     scopeGenerationRef.current += 1;

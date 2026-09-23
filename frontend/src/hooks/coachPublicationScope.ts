@@ -26,6 +26,13 @@ export type PublicationBinding = {
   adoptCreatedThread?: (
     args: CreatedThreadAdoptionArgs,
   ) => Promise<PublicationSnapshot | null>;
+  /**
+   * Brain-v4 hostile review #2: undo ONLY a created-thread adoption, returning
+   * the snapshot to the admitted thread-less scope it was adopted from, so
+   * "New chat" can start a second conversation. False (and no change) when the
+   * live snapshot is not that adoption — a fresh admission is never undone.
+   */
+  releaseAdoptedThread?: () => boolean;
 };
 
 const POSITIVE_ID_PATTERN = /^[1-9]\d*$/;

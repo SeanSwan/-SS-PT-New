@@ -4,6 +4,9 @@
  * New chat, search, threads grouped by recency, and a short footer of the
  * places a coach jumps to from a conversation (Review, Schedule, Logger).
  * Docked in operator-grid ≥768px; a left sheet everywhere else.
+ * It takes NO controller rail ref: the legacy drawer effect treats a ref'd rail
+ * with no data-drawer as a closed dialog and makes it aria-hidden + inert
+ * (brain-v4 hostile review #1). The workspace panels own this sheet.
  */
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
@@ -32,7 +35,7 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
   };
 
   return (
-    <SidebarRoot className="ws-sidebar" id="ws-sidebar" aria-label="Coach conversations" ref={controller.leftRailRef}>
+    <SidebarRoot className="ws-sidebar" id="ws-sidebar" aria-label="Coach conversations">
       <div className="ws-side-head">
         <button type="button" className="ws-new-chat" onClick={startNew}>
           <MessageSquarePlus size={17} aria-hidden="true" />

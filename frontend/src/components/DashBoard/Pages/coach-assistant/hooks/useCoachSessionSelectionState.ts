@@ -81,8 +81,11 @@ export function useCoachSessionSelectionState(params: {
   const snapshotRef = useRef<PublicationSnapshot | null>(null);
   /** The actor epoch that minted `snapshotRef`. A-B-A cannot revive it. */
   const snapshotActorKeyRef = useRef<string>('');
+  /** The thread-less snapshot a created-thread adoption replaced (cleared by any publish). */
+  const adoptedFromRef = useRef<PublicationSnapshot | null>(null);
 
   const publish = useCallback((admission: CoachAcceptedAdmission | null) => {
+    adoptedFromRef.current = null;
     snapshotActorKeyRef.current = admission ? actorRef.current.actorKey : '';
     snapshotRef.current = admission
       ? freezePublicationSnapshot({
@@ -154,8 +157,21 @@ export function useCoachSessionSelectionState(params: {
         captured, thread, aborted: signal.aborted,
       });
       if (!decision.ok) return null;
+      adoptedFromRef.current = snapshotRef.current;
       snapshotRef.current = decision.snapshot;
       return decision.snapshot;
+    },
+    releaseAdoptedThread: () => {
+      const from = adoptedFromRef.current;
+      const live = snapshotRef.current;
+      adoptedFromRef.current = null;
+      if (!from || !live || snapshotActorKeyRef.current !== actorRef.current.actorKey) return false;
+      const same = from.actorId === live.actorId && from.rawRole === live.rawRole
+        && from.audienceRole === live.audienceRole && from.generation === live.generation
+        && from.targetUserId === live.targetUserId && from.threadId === null && live.threadId !== null;
+      if (!same) return false;
+      snapshotRef.current = from;
+      return true;
     },
   }), []);
 

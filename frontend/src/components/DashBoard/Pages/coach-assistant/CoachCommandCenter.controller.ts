@@ -108,9 +108,10 @@ export function useCoachCommandCenterController({
     : rawRouteIntent;
   const routeSource = searchParams.get('source');
   const routeDraftKey = searchParams.get('draftKey');
+  // Bound staff land on a new chat: an auto-picked thread is highlighted but refused (brain-v4 #3).
   const autoSelectedThread = useMemo(
-    () => autoSelectSuppressed ? null : pickAutoSelectedThread(allCoachThreads, routeIntent, effectiveClientId, activeThreadId),
-    [activeThreadId, allCoachThreads, autoSelectSuppressed, effectiveClientId, routeIntent],
+    () => autoSelectSuppressed || binding ? null : pickAutoSelectedThread(allCoachThreads, routeIntent, effectiveClientId, activeThreadId),
+    [activeThreadId, allCoachThreads, autoSelectSuppressed, binding, effectiveClientId, routeIntent],
   );
   const workflowReturnTo = useMemo(
     () => normalizeCommandCenterReturnTo(searchParams.get('returnTo') || searchParams.get('sourcePath'), userRole),

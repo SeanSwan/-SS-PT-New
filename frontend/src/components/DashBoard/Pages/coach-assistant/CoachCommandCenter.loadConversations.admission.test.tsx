@@ -34,6 +34,49 @@ describe('useLoadCoachConversations × admission', () => {
     expect(listConversations).toHaveBeenCalledTimes(2);
   });
 
+  it('re-lists after New chat empties the history (hostile review #2: the sidebar went blank)', () => {
+    const listConversations = vi.fn();
+    const one = [{ id: 501 }];
+    const { rerender } = renderHook(({ list }) => useLoadCoachConversations({ listConversations, conversations: list }, 'ready'), {
+      initialProps: { list: [] as unknown[] },
+    });
+    expect(listConversations).toHaveBeenCalledTimes(1);
+    rerender({ list: one });
+    rerender({ list: [] }); // useAIChat.newChat() does setConversations([])
+    expect(listConversations).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-admission re-lists even when the history is already populated', () => {
+    const listConversations = vi.fn();
+    const list = [{ id: 501 }];
+    const { rerender } = renderHook(({ phase }) => useLoadCoachConversations({ listConversations, conversations: list }, phase), {
+      initialProps: { phase: 'ready' },
+    });
+    rerender({ phase: 'checking' });
+    rerender({ phase: 'ready' });
+    expect(listConversations).toHaveBeenCalledTimes(2);
+  });
+
+  it('waits for the chat scope to commit: ready + not-yet-visible, then visible → one list', () => {
+    const listConversations = vi.fn();
+    const { rerender } = renderHook(({ visible }) => useLoadCoachConversations({ listConversations, conversations: [], publicationVisible: visible }, 'ready'), {
+      initialProps: { visible: false },
+    });
+    expect(listConversations, 'a list before the scope commits is refused, so it must not be the only one').not.toHaveBeenCalled();
+    rerender({ visible: true });
+    expect(listConversations).toHaveBeenCalledTimes(1);
+  });
+
+  it('CONTROL: an empty answer does not loop (a coach with no threads lists once)', () => {
+    const listConversations = vi.fn();
+    const { rerender } = renderHook(({ list }) => useLoadCoachConversations({ listConversations, conversations: list }, 'ready'), {
+      initialProps: { list: [] as unknown[] },
+    });
+    rerender({ list: [] });
+    rerender({ list: [] });
+    expect(listConversations).toHaveBeenCalledTimes(1);
+  });
+
   it('CONTROL: a non-staff surface (no admission step) lists once at mount', () => {
     const listConversations = vi.fn();
     const { rerender } = renderHook(() => useLoadCoachConversations({ listConversations }, 'retired'));

@@ -178,19 +178,19 @@ describe('CoachCommandCenterPage shell', () => {
 
   it('submits the command dock through the real coach conversation API', async () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
-
     fireEvent.change(composerInput(), { target: { value: 'Prepare today intake review.' } });
     fireEvent.click(sendButton());
-
+    // Staff land on a NEW chat (brain-v4 #3): the title is the message, never another thread's.
     await waitFor(() => {
       expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
         'Prepare today intake review.',
         'coach_assistant',
-        'Friday intake cleanup',
+        'Prepare today intake review.',
         null,
         'both',
       );
     });
+    expect(loadConversationMock, 'no thread is auto-loaded for staff').not.toHaveBeenCalled();
   });
 
   it('routes command-like admin prompts through the AI command lane before chat fallback', async () => {

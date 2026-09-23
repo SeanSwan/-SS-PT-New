@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  loadConversationMock,
   renderPage,
   resetCoachCommandCenterMocks,
   sendMessageWithConversationMock,
@@ -23,11 +24,13 @@ describe('CoachCommandCenterPage keyboard submit', () => {
       expect(sendMessageWithConversationMock).toHaveBeenCalledWith(
         'Chaz',
         'coach_assistant',
-        'Friday intake cleanup',
+        // Staff land on a NEW chat (brain-v4 #3): the title is the message, never another thread's.
+        'Chaz',
         null,
         'both',
       );
     });
+    expect(loadConversationMock, 'no thread is auto-loaded for staff').not.toHaveBeenCalled();
   });
 
   it('keeps Shift+Enter available for multiline dock drafting', () => {

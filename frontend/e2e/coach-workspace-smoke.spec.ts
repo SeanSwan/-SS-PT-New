@@ -28,14 +28,24 @@ function todayAt(hour: number): string {
   return d.toISOString();
 }
 
-async function mockApi(page: Page) {
+const SEED_THREAD = { id: 777, title: 'Leg day review', context: 'coach_assistant', role: 'admin', targetUserId: null, status: 'active', messageCount: 2, createdAt: todayAt(7), lastMessageAt: todayAt(8) };
+const SEED_MESSAGES = [
+  { role: 'user', content: 'How did the squat session go?', timestamp: todayAt(8) },
+  { role: 'assistant', content: 'Squat top set moved well; keep the load and add one back-off set.', timestamp: todayAt(8) },
+];
+
+async function mockApi(page: Page, opts: { history?: boolean } = {}) {
+  const threads: Array<Record<string, unknown>> = opts.history ? [SEED_THREAD] : [];
+  let nextId = 501;
   await page.route('**/health**', (route) => json(route, { status: 'ok' }));
   await page.route('**/api/**', async (route) => {
-    const path = new URL(route.request().url()).pathname;
+    const url = new URL(route.request().url());
+    const path = url.pathname;
     const method = route.request().method();
     if (path === '/api/auth/me' || path === '/api/profile') return json(route, { success: true, user: admin });
     if (path === '/api/ai-chat/target-access') {
-      return json(route, { success: true, access: { scope: 'coach_target_read', actorUserId: 1, actorRole: 'admin', targetUserId: null, conversationId: null } });
+      const id = (key: string) => (url.searchParams.get(key) ? Number(url.searchParams.get(key)) : null);
+      return json(route, { success: true, access: { scope: 'coach_target_read', actorUserId: 1, actorRole: 'admin', targetUserId: id('targetUserId'), conversationId: id('conversationId') } });
     }
     if (path === '/api/subscriptions/status') {
       return json(route, { success: true, subscription: { tier: 'pro', status: 'active', hasFullAIAccess: true }, usage: {} });
@@ -54,14 +64,23 @@ async function mockApi(page: Page) {
         { id: 'open', sessionDate: todayAt(18), duration: 60, userId: null, trainerId: '1', status: 'available', createdAt: '', updatedAt: '' },
       ]);
     }
-    if (path === '/api/ai-chat/conversations' && method === 'GET') return json(route, { success: true, conversations: [] });
+    if (path === '/api/ai-chat/conversations' && method === 'GET') return json(route, { success: true, conversations: threads });
     if (path === '/api/ai-chat/conversations' && method === 'POST') {
       const now = new Date().toISOString();
-      return json(route, { success: true, conversation: { id: 501, title: 'QA thread', context: 'coach_assistant', role: 'admin', targetUserId: null, status: 'active', messageCount: 0, createdAt: now, lastMessageAt: now } });
+      const conversation = { id: nextId++, title: `QA thread ${nextId - 501}`, context: 'coach_assistant', role: 'admin', targetUserId: null, status: 'active', messageCount: 0, createdAt: now, lastMessageAt: now };
+      threads.unshift(conversation);
+      return json(route, { success: true, conversation });
     }
-    if (/^\/api\/ai-chat\/conversations\/\d+\/messages$/.test(path) && method === 'POST') {
+    const one = /^\/api\/ai-chat\/conversations\/(\d+)$/.exec(path);
+    if (one && method === 'GET') {
+      const found = threads.find((t) => t.id === Number(one[1]));
+      return found ? json(route, { success: true, conversation: { ...found, messages: found.id === 777 ? SEED_MESSAGES : [], metadata: {} } }) : json(route, { success: false, error: 'not found' }, 404);
+    }
+    const msg = /^\/api\/ai-chat\/conversations\/(\d+)\/messages$/.exec(path);
+    if (msg && method === 'POST') {
       const now = new Date().toISOString();
-      return json(route, { success: true, userMessage: { role: 'user', content: 'hello', timestamp: now }, assistantMessage: { role: 'assistant', content: REPLY, timestamp: now }, conversationId: 501, messageCount: 2 });
+      const text = String((route.request().postDataJSON() as { message?: string })?.message ?? '');
+      return json(route, { success: true, userMessage: { role: 'user', content: text, timestamp: now }, assistantMessage: { role: 'assistant', content: `${REPLY} (#${msg[1]})`, timestamp: now }, conversationId: Number(msg[1]), messageCount: 2 });
     }
     return json(route, { success: true, data: [], items: [], summary: {}, notifications: [], conversations: [] });
   });
@@ -82,8 +101,8 @@ async function seed(page: Page, opts: { lens?: string; theme?: string } = {}) {
   }, { token: jwt(), user: admin, lens: opts.lens, theme: opts.theme });
 }
 
-async function open(page: Page, width: number, height: number, opts: { lens?: string; theme?: string } = {}) {
-  await mockApi(page);
+async function open(page: Page, width: number, height: number, opts: { lens?: string; theme?: string; history?: boolean } = {}) {
+  await mockApi(page, { history: opts.history });
   await seed(page, opts);
   await page.setViewportSize({ width, height });
   await page.goto('/dashboard/admin/coach-assistant', { waitUntil: 'domcontentloaded' });
@@ -134,7 +153,7 @@ for (const vp of [
 
     await composer.fill('hello');
     await composer.press('Enter');
-    await expect(page.getByTestId('ws-transcript').getByText(REPLY)).toBeVisible();
+    await expect(page.getByTestId('ws-transcript').getByText(REPLY, { exact: false })).toBeVisible();
     await expect(page.getByTestId('ws-transcript').getByText('message not sent')).toHaveCount(0);
     await page.screenshot({ path: info.outputPath(`ws-${vp.name}.png`) });
   });
@@ -183,9 +202,42 @@ test('header theme changer repaints the workspace (no hardcoded colour survives)
 
 test('the thread list is a sheet on phones and closes with Escape', async ({ page }) => {
   await open(page, 414, 896);
-  await page.getByRole('button', { name: 'Conversations' }).click();
+  // exact: the sheet's own "Close conversations" is a real, exposed control now (review #1).
+  const toggle = page.getByRole('button', { name: 'Conversations', exact: true });
+  await toggle.click();
   await expect.poll(async () => (await layoutOf(page)).sidebarVisible).toBe(true);
   await page.keyboard.press('Escape');
   await expect.poll(async () => (await layoutOf(page)).sidebarVisible).toBe(false);
-  await expect(page.getByRole('button', { name: 'Conversations' })).toBeFocused();
+  await expect(toggle).toBeFocused();
+});
+
+test('threads: history on landing, pick a thread, New chat, and a SECOND chat still sends', async ({ page }) => {
+  const composer = await open(page, 1440, 900, { history: true });
+  const sidebar = page.getByRole('navigation', { name: 'Coach conversations' });
+  // Landing with history: the admitted list renders without sending anything first.
+  await expect(sidebar.getByRole('button', { name: /Leg day review/ })).toBeVisible();
+  // Hostile review #3: staff land on a NEW chat. A highlighted thread whose history
+  // the admission refuses to load is a lie; nothing is marked current until picked.
+  await page.waitForTimeout(800);
+  await expect(sidebar.getByRole('button', { name: /Leg day review/ })).not.toHaveAttribute('aria-current', 'true');
+  await expect(page.getByRole('heading', { name: /What do you need/ })).toBeVisible();
+
+  await sidebar.getByRole('button', { name: /Leg day review/ }).click();
+  const transcript = page.getByTestId('ws-transcript');
+  await expect(transcript.getByText('Squat top set moved well', { exact: false })).toBeVisible();
+  await expect(sidebar.getByRole('button', { name: /Leg day review/ })).toHaveAttribute('aria-current', 'true');
+
+  await sidebar.getByRole('button', { name: 'New chat' }).click();
+  await expect(transcript.getByText('Squat top set moved well', { exact: false })).toHaveCount(0);
+  await expect(sidebar.getByRole('button', { name: /Leg day review/ }), 'New chat keeps the history listed').toBeVisible();
+
+  await composer.fill('first');
+  await composer.press('Enter');
+  await expect(transcript.getByText(`${REPLY} (#501)`)).toBeVisible();
+
+  await sidebar.getByRole('button', { name: 'New chat' }).click();
+  await composer.fill('second');
+  await composer.press('Enter');
+  await expect(transcript.getByText(`${REPLY} (#502)`), 'the second chat is not refused').toBeVisible();
+  await expect(transcript.getByText('message not sent')).toHaveCount(0);
 });
