@@ -2,7 +2,7 @@
 
 Owner: Codex / Astra. Status: LOCAL REPAIRS VERIFIED; RELEASE REVIEW BLOCKED. Baseline: `92c7e21da992f66ba22a912fec134156c569ad4d`. Supplements `11-v4-review-log.md`; preserves historical findings. Canonical package remains this directory.
 
-Archive successor: `Z:/HostileReviews/2026-09-23-021253-swan-coach-v4-workspace-repair-and-delivery.md`, verdict **PARTIAL**. This builder audit is not independent Claude approval.
+Archive successor: `Z:/HostileReviews/2026-09-23-022514-swan-coach-v4-privacy-safe-branch-publication.md`, verdict **PARTIAL**. This builder audit is not independent Claude approval. The unchanged repair tree is preserved in publishable commit `fb1e4d9e6f9a4d344b54462ee2cd107e7b18634e`; the first local commit was rejected before publication because its author email was private. It remains reachable at local backup ref `refs/backup/coach-v4-hostile-private-email-blocked`.
 
 Entry point: `frontend/src/components/DashBoard/Pages/coach-workspace/CoachWorkspacePage.tsx` → `useCoachWorkspaceModel.ts` → shared `CoachCommandCenter.controller.ts` / `CoachCommandCenter.submit.ts` / `useAIChat.ts`.
 
@@ -63,7 +63,7 @@ Run from this clone's `frontend` directory:
 
 Browser coverage includes admin/trainer/client, widths 375/414/768/1440/2560/3840, all four lens variants, theme changes, conversations, unpin, Ask, denied access, note refusal/save errors, focus and sends. Phone and 4K screenshots inspected. All browser API responses are synthetic; no real database or provider was used.
 
-Raw logs/snapshots: `tmp/hostile-review-20260923/`. Committed `evidence/20260923-repair-verification.json` records command results and hashes. Caller argument tests now explicitly check the additional receipt argument. A 302-line controller size failure was corrected by shortening its explanatory comment; the enforced 300-line test passes. The prior author's publication-card flake did not reproduce in the final run, which cannot prove it never recurs.
+Raw logs/snapshots: `tmp/hostile-review-20260923/`. Committed `evidence/20260923-repair-verification.json` records command results and hashes. Caller argument tests now explicitly check the additional receipt argument. A 302-line controller size failure was corrected by shortening its explanatory comment; the enforced 300-line test passes. The prior author's publication-card flake did not reproduce in the final run, which cannot prove it never recurs. The publication commit preserves the exact reviewed source tree; only Git author/committer metadata changed after the host rejected the private-email commit.
 
 ## Remaining delivery finding and unproven boundaries
 

@@ -4,7 +4,11 @@
   "status": "LOCAL_FRONTEND_VERIFIED_RELEASE_BLOCKED",
   "baseline": "92c7e21da992f66ba22a912fec134156c569ad4d",
   "branch": "codex/coach-v4-hostile-20260923",
-  "archiveReviewId": "2026-09-23-021253-swan-coach-v4-workspace-repair-and-delivery",
+  "archiveReviewId": "2026-09-23-022514-swan-coach-v4-privacy-safe-branch-publication",
+  "previousArchiveReviewId": "2026-09-23-021253-swan-coach-v4-workspace-repair-and-delivery",
+  "reviewedSourceTree": "66f1cd2c36a4d09c163e10d5e488aba26c2cc630",
+  "publicationCommit": "fb1e4d9e6f9a4d344b54462ee2cd107e7b18634e",
+  "historyRepair": "First local commit was rejected before publication due to private author email; exact reviewed tree was preserved in a replacement commit using the verified GitHub account no-reply address. Original remains reachable under a local backup ref.",
   "tests": [
     {
       "id": "R1-R6-unit",
