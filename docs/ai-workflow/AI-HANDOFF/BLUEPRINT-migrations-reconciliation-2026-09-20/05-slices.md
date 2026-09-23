@@ -33,6 +33,27 @@ Required: the gate reports `12 passed`, matching the declared 12; applicable sub
 
 Mutation requirement: restore completion-by-text and demonstrate the partial-migration assertion fails.
 
+> **CORRECTED 2026-09-20 (D1 — a dependency, not an omission).** S1's scope names the
+> *connection adapter* and the *compatibility entry point*. Neither is buildable from
+> S1's own inputs, and saying so is the correction: a reader who finds them unbuilt
+> should not conclude the builder skipped them.
+>
+> - **Connection adapter (A1-03).** Requires the single resolved configuration that S4
+>   supplies — S4's own acceptance requires confirming the installed CLI's
+>   metadata-table/schema configuration *through an actual fixture run*. §4 forbids a
+>   builder from inferring it, so S1 cannot satisfy this by working harder.
+>   **Inbound dependency: S4.**
+> - **Compatibility entry point (A1-05).** Requires "the tested platform adapter".
+>   Measured: **zero** hits for `taskkill` / `treeKill` / `killTree` / `process.kill`
+>   across `scripts/`, `utils/`, `core/` and `tests/helpers/`. The F5 harness cannot
+>   supply the testing either — it stubs `child_process`, so it cannot exercise a real
+>   bounded lifecycle. **Inbound dependency: S5's real-process fixtures.**
+>
+> Until those land, S1's acceptance is met by what it *can* prove — the runner's truth
+> and lifecycle logic, 12/12 through the gate including the empty-run negative control
+> — and the two dependent items are **BLOCKED**, which this slice must report rather
+> than silently pass. This does not relax the STOP below.
+
 **STOP: do not deploy this slice independently of catalog reconciliation.**
 
 **S2 — Inventory and legacy preservation**
@@ -58,6 +79,19 @@ Required: the gate reports `7 passed`, matching the declared seven. Unknown file
 
 **STOP: do not convert or relocate the 38 inert files as a bulk operation.**
 
+> **ADDED 2026-09-20 (Astra D6 — the destructive-action rule).** History is keyed on
+> **filename**: `pending = executable.filter(f => !executed.has(f))`. A renamed file is
+> therefore a *new* metadata key, so renaming a recorded repair **re-runs it in
+> production**. The natural instinct when fixing the sort-order tail — rename the three
+> files that sort last — is the single most destructive available action in this
+> workstream: it replays a repair against a schema it was written to fix once.
+>
+> **Rule: preserve historical filenames and bytes.** Never rename, replay, or delete a
+> historical repair as a shortcut to correcting order. Introduce a separately tracked
+> migration epoch with explicit fresh-create and existing-database adoption paths, and
+> correct order there. This is a correction of the package, not a new preference.
+> It reinforces the STOP above and does not replace it.
+
 **S3 — Observe and decide**
 
 Scope: observer, authorized observation receipt, owner decisions.
@@ -71,6 +105,14 @@ Acceptance:
 - A missing production authorization leaves observation NOT RUN.
 
 Exact observation command is in `03-contracts.md`; it is not executed by this review.
+
+> **UPDATED 2026-09-22.** The observation artifact now exists:
+> `backend/scripts/migrations/observe-schema.sql`, authored from the D1 core in
+> `03-contracts.md` §3 and carried verbatim (verified line by line). It is read-only,
+> bounded, and catalog-only — no client record contents are selected. It has **not been
+> executed** and its SQL is **not parser-validated**, so it is *authored*, not *proven*.
+> S3's state is unchanged: NOT RUN, now on B2 (no private service definition) and on the
+> missing production-read authorization. See `S3-OBSERVATION-STATUS.md` §2.
 
 **STOP: no dependent schema implementation while D2/D3 remain null.**
 

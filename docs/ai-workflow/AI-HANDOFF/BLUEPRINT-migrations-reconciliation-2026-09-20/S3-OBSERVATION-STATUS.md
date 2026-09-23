@@ -2,6 +2,13 @@
 
 **Status: OBSERVATION NOT RUN (BLOCKED).** D1 remains unresolved. D2/D3 remain null.
 
+**Updated 2026-09-22:** blocker **B1 is closed** — the observation artifact now exists at
+`backend/scripts/migrations/observe-schema.sql`, authored from the contract's D1 core and
+carried verbatim (see §2). The observation remains NOT RUN on **B2** (no private service
+definition) and on the standing absence of production-read authorization. Two blockers
+became one; the slice's state did not change, because the one that remains is the one the
+repository cannot close.
+
 Recorded 2026-09-20 18:17 PDT by the WorkBuddy agent session, from fresh read-only
 measurements against this repository and this machine. No production connection was
 attempted, opened, or considered permitted.
@@ -26,10 +33,10 @@ psql -X -w --dbname=service=swan_schema_observer --set=ON_ERROR_STOP=1 --file=ba
 These are not opinions about authorization. Either one alone stops the command before any
 credential question is reached.
 
-### B1 — the SQL artifact does not exist
+### B1 — the SQL artifact did not exist — **CLOSED 2026-09-22**
 
-`03-contracts.md` §3 calls it a *"Proposed file: `backend/scripts/migrations/observe-schema.sql`"*.
-It was never built. Measured:
+When this document was first written, `03-contracts.md` §3 called it a *"Proposed file:
+`backend/scripts/migrations/observe-schema.sql`"* and it had never been built. Measured then:
 
 ```text
 $ ls -la backend/scripts/migrations/observe-schema.sql
@@ -40,12 +47,31 @@ $ find backend -maxdepth 4 -name "observe*.sql"
 ```
 
 `--file=` on a nonexistent path fails before the database is contacted. So even with a
-perfectly provisioned service definition and full authorization, there is nothing to run.
+perfectly provisioned service definition and full authorization, there was nothing to run.
 
-**This is the first thing to build, and it is buildable now** — the D1 core SQL is written
-out in full in `03-contracts.md` §3 and needs no production access to author, only to run.
+**Now built.** `backend/scripts/migrations/observe-schema.sql` was authored 2026-09-22
+(WorkBuddy session), from the D1 core in `03-contracts.md` §3. Verification performed:
 
-### B2 — the private service definition does not exist
+- The contract's D1 core SQL block is carried **verbatim** — every substantive line of
+  `03-contracts.md` lines 44–124 is present byte-for-byte (checked line by line with
+  `grep -Fqx`; 0 missing).
+- It is **READ ONLY**: `BEGIN … REPEATABLE READ READ ONLY`, `statement_timeout 10s`,
+  `lock_timeout 1s`, no DML or DDL anywhere.
+- It reads **catalog metadata only** plus migration *names* from the metadata relations.
+  No client record contents are selected.
+- It reports relation **presence explicitly** (section 1), so an absent relation appears
+  as a row reading `(absent)` rather than as silence — which is how the contract's
+  "distinguish absent relations from query failure" is satisfied.
+- It adds constraints, indexes, owned sequences, the metadata-relation shape, and a
+  `\gexec`-driven listing of recorded migration names using `%I`-quoted catalog
+  identifiers.
+
+**NOT RUN, and not executable from here.** The file is authored and statically checked;
+it has never been executed against any database. Its SQL has not been validated by a
+PostgreSQL parser, because that requires a connection this session is not permitted to
+make. Treat the file as *authored*, not as *proven*.
+
+### B2 — the private service definition does not exist — **STILL OPEN**
 
 The command connects via `--dbname=service=swan_schema_observer`, which requires a
 `[swan_schema_observer]` entry in a `pg_service.conf`. Measured:
@@ -117,8 +143,10 @@ for: the authorization is missing, and the observation is NOT RUN.
 
 In order. Each is an owner action; none is derivable from the repository.
 
-1. **Build `backend/scripts/migrations/observe-schema.sql`** from the D1 core in
-   `03-contracts.md` §3. Needs no production access. Until it exists, nothing else matters.
+1. ~~**Build `backend/scripts/migrations/observe-schema.sql`** from the D1 core in
+   `03-contracts.md` §3.~~ — **DONE 2026-09-22.** Authored, D1 core carried verbatim,
+   read-only, catalog-only. Statically checked; not executed, and its SQL is not
+   parser-validated (see §2, B1).
 2. **Provision the observer role and the private service definition.** The role must lack
    schema and data write privileges (`03-contracts.md` §3); the `pg_service.conf` entry stays
    off-repository.

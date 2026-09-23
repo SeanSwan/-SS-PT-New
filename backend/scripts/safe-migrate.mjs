@@ -527,10 +527,25 @@ async function main() {
 // executed against intercepted boundaries. That requires the file to be
 // importable, which requires this guard.
 //
-// The check is EXACT (`pathToFileURL`, not a suffix match) so a differently
-// cased or symlinked invocation path cannot silently disable migrations. The
-// direction of the risk matters: a false negative here would stop migrations
-// running in production, which is the very drift class H-07 is about.
+// The check is an EXACT comparison of two URL STRINGS
+// (`import.meta.url` vs `pathToFileURL(process.argv[1]).href`), not a suffix
+// match. Stated precisely, because the previous wording of this comment
+// overclaimed and a reader who trusted it would not test the case:
+//
+//   IT REJECTS a path that differs as a string — a different directory, a
+//   different filename.
+//   IT DOES NOT case-fold. `pathToFileURL` performs no case normalisation, so
+//   a case-varied invocation path (`Scripts` vs `scripts`) compares as written.
+//   IT DOES NOT resolve symlinks or Windows 8.3 short names.
+//
+// So this is equality of two URL strings, NOT identity of the underlying file.
+// Do not read it as proof that the same file was invoked.
+//
+// The direction of the risk matters: a false negative here stops migrations
+// running in production, which is the very drift class H-07 is about. The fix
+// is to compare resolved filesystem identities (realpath) for the entry point;
+// that is deliberately NOT done here, and this comment must not be read as
+// claiming it is. Recorded as Astra D9, MEDIUM, open.
 const invokedDirectly = Boolean(process.argv[1])
   && import.meta.url === pathToFileURL(process.argv[1]).href;
 
