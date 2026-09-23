@@ -24,6 +24,7 @@ import WorkspaceOpsDrawer from './WorkspaceOpsDrawer';
 import CoachSelectionDecisionGate from '../coach-assistant/CoachSelectionDecision';
 import { useCoachWorkspaceModel } from './useCoachWorkspaceModel';
 import { CoachClientNamesProvider } from '../coach-assistant/coachClientNames';
+import CoachProgressPdf from './CoachProgressPdf';
 
 const CoachWorkspacePage: React.FC = () => {
   const model = useCoachWorkspaceModel();
@@ -43,6 +44,8 @@ const CoachWorkspacePage: React.FC = () => {
         <button type="button" className="ws-scrim" aria-label="Close panel" tabIndex={-1} onClick={panels.closeSheets} />
       </WorkspaceShell>
       <WorkspaceOpsDrawer model={model} />
+      {/* "Make me a PDF": built here from first-party records; nothing goes to the coach. */}
+      <CoachProgressPdf key={model.pdfRequest?.nonce ?? 0} request={model.pdfRequest} onClose={model.closePdf} onStatus={model.notify} />
       </CoachClientNamesProvider>
       {/* Plan 55 §3 C3 — the dirty cross-target decision; the private surface stays masked until acknowledged. */}
       <CoachSelectionDecisionGate selection={controller.selection} currentLabel={controller.selectedClientLabel} />

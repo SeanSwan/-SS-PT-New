@@ -224,3 +224,26 @@ test('names on screen, IDs to the coach: a reply about Client #12 reads "Avery S
   expect(sent[0]).toContain("Avery's last workout");
 });
 
+
+test('"make a PDF" by name is built on this device: her charts load, the preview opens, nothing reaches the coach', async ({ page }) => {
+  const composer = await open(page, 1440, 900);
+  const sent: string[] = [];
+  const charts: string[] = [];
+  await page.route(/\/api\/ai-chat\/conversations\/\d+\/messages$/, (route) => {
+    sent.push(String((route.request().postDataJSON() as { message?: string })?.message ?? ''));
+    return route.abort();
+  });
+  await page.route(/\/api\/analytics\/\d+\/chart-/, (route) => {
+    charts.push(new URL(route.request().url()).pathname);
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, data: [] }) });
+  });
+  await composer.fill("Make a PDF of Avery Stone's progress");
+  await composer.press('Enter');
+  const vault = page.getByRole('dialog', { name: 'Review and approve progress report PDF' });
+  await expect(vault).toBeVisible();
+  await expect(vault.getByRole('button', { name: 'Approve and download the progress report PDF' })).toBeVisible();
+  expect(charts.length).toBeGreaterThan(0);
+  expect(charts.every((path) => path.startsWith('/api/analytics/12/'))).toBe(true); // Avery is client 12 — resolved by name
+  expect(sent).toEqual([]); // the ask, and the name in it, never went to Swan Coach
+  await expect(composer).toHaveValue('');
+});

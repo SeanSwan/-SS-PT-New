@@ -31,6 +31,8 @@ import { resolveCoachWorkspaceLayout } from './coachWorkspaceLayout';
 import { useWorkspacePanels } from './useWorkspacePanels';
 import { scheduleRoleForUser, useTodaySchedule } from './useTodaySchedule';
 import type { WorkspaceActionId } from './slashCommands';
+import type { CoachPdfRequest } from './CoachProgressPdf';
+import { pdfTarget } from './coachPdfRequest';
 
 export type WorkspaceView = 'chat' | 'review';
 
@@ -171,6 +173,27 @@ export function useCoachWorkspaceModel() {
     closeSheets: panels.closeSheets, notify: setScheduleAskStatus,
   });
 
+  // ── "Make me a PDF": built on this device, never sent to Swan Coach ───
+  const [pdfRequest, setPdfRequest] = useState<CoachPdfRequest | null>(null);
+  const pdfNonce = useRef(0);
+  const closePdf = useCallback(() => setPdfRequest(null), []);
+  const requestPdf = useCallback((text = ''): boolean => {
+    pdfNonce.current += 1;
+    if (isClientMode) {
+      const self = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'My progress';
+      setPdfRequest({ nonce: pdfNonce.current, kind: 'self', clientName: self, clientSource: user?.clientSource ?? null });
+      return true;
+    }
+    const pin = controller.clientPin;
+    const target = pdfTarget(text, pin.clients, pin.selectedClientId);
+    if (!target) {
+      setScheduleAskStatus('Pick the client with @ (or name them) — the PDF is built from their records on this device.');
+      return false;
+    }
+    setPdfRequest({ nonce: pdfNonce.current, kind: 'client', clientId: target.id, clientName: target.label });
+    return true;
+  }, [controller.clientPin, isClientMode, user]);
+
   const runAction = useCallback((id: WorkspaceActionId) => {
     controller.setCommandText('');
     switch (id) {
@@ -182,9 +205,10 @@ export function useCoachWorkspaceModel() {
       case 'note': controller.notebook?.onToggle(); break;
       case 'draft-from-notes': controller.notebook?.onDraftWorkouts(); break;
       case 'catalog': setCatalogOpen(true); break;
+      case 'pdf': requestPdf(); break;
       default: break;
     }
-  }, [controller, navigate, openReview, panels, workoutLoggerRoute, workoutPlannerRoute]);
+  }, [controller, navigate, openReview, panels, requestPdf, workoutLoggerRoute, workoutPlannerRoute]);
 
   return {
     user, userRole, scheduleRole, isClientMode, controller, catalog, layout, panels,
@@ -194,6 +218,7 @@ export function useCoachWorkspaceModel() {
     counts, reviewTotal, scheduleRoute, clientPickerRoute,
     schedule, prefill, writeUnderDraft, sendCommand, askAboutSession, scheduleAskStatus,
     runAction, catalogOpen, setCatalogOpen,
+    pdfRequest, requestPdf, closePdf, notify: setScheduleAskStatus,
   };
 }
 

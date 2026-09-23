@@ -19,6 +19,7 @@ import { ComposerDock } from './CoachWorkspace.conversation.styles';
 import { buildSlashItems, pickableExample, slashQuery, type SlashItem } from './slashCommands';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 import { workspaceStatus } from './workspaceStatus';
+import { isPdfRequest } from './coachPdfRequest';
 
 type Props = { model: CoachWorkspaceModel };
 
@@ -80,6 +81,13 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
       void controller.handleIntentSubmit(text, type);
       return;
     }
+    // "Make me a PDF of …" is answered on this device from first-party records; the
+    // text (and the name in it) never goes to Swan Coach (coachPdfRequest.ts).
+    if (!noteMode && isPdfRequest(text)) {
+      event.preventDefault();
+      if (model.requestPdf(text)) controller.setCommandText('');
+      return;
+    }
     void controller.handleSubmit(event);
   };
 
@@ -130,7 +138,7 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
           onChange={(event) => controller.setCommandText(event.target.value)}
           onKeyDown={onKeyDown}
           readOnly={Boolean(notebook?.saving)}
-          placeholder={noteMode ? 'Dictate or type a client note…' : isClientMode ? 'Ask your coach…' : 'Ask, log, or plan…'}
+          placeholder={noteMode ? 'Dictate or type a client note…' : isClientMode ? 'Ask your coach…' : 'Ask, log, plan, or “make a PDF”…'}
           aria-label={noteMode ? 'Client note' : 'Message Swan Coach'}
           role="combobox"
           aria-expanded={menuOpen}

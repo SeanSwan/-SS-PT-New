@@ -12,7 +12,7 @@
 import type { CoachCommandCatalogEntry } from '../../../../hooks/coachCommandCatalog';
 
 export type WorkspaceActionId =
-  | 'new-chat' | 'review' | 'schedule' | 'logger' | 'planner' | 'note' | 'draft-from-notes' | 'catalog' | 'context';
+  | 'new-chat' | 'review' | 'schedule' | 'logger' | 'planner' | 'note' | 'draft-from-notes' | 'catalog' | 'context' | 'pdf';
 
 export type SlashItem =
   | { kind: 'action'; id: WorkspaceActionId; trigger: string; label: string; group: 'Workspace' }
@@ -29,6 +29,7 @@ const ACTIONS: Array<Extract<SlashItem, { kind: 'action' }> & { staffOnly?: bool
   { kind: 'action', id: 'note', trigger: 'note', label: 'Capture a client note', group: 'Workspace', staffOnly: true, notebook: true },
   { kind: 'action', id: 'draft-from-notes', trigger: 'draft', label: 'Draft workouts from saved notes', group: 'Workspace', staffOnly: true, notebook: true },
   { kind: 'action', id: 'context', trigger: 'context', label: 'Show client context', group: 'Workspace' },
+  { kind: 'action', id: 'pdf', trigger: 'pdf', label: 'Progress report PDF — built on this device', group: 'Workspace' },
   { kind: 'action', id: 'catalog', trigger: 'commands', label: 'Browse every coach command', group: 'Workspace' },
 ];
 
