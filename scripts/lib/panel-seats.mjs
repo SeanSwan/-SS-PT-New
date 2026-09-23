@@ -59,9 +59,9 @@ export function buildSeats(remit) {
       note: '20k output ceiling; $0.40 hard cap; ONE review per topic',
     },
     glm: {
-      label: 'GLM 5.3', script: 'consult-glm.mjs', paid: false,
+      label: 'GLM 5.3', model: 'glm-5.3', script: 'consult-glm.mjs', paid: false,
       inPerM: 0, outPerM: 0, out: 'GLM-PANEL-REVIEW.md',
-      args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--model', 'glm-5.3'],
+      args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--model', 'glm-5.3', '--max-tokens', '34000'],
       note: 'Z.ai subscription — no per-token cost, burns coding-plan credit',
     },
     qwen: {
@@ -104,26 +104,24 @@ export function buildSeats(remit) {
       env: { SWAN_GROK_MODEL: 'deepseek/deepseek-v4-pro' },
       note: 'deepseek/deepseek-v4-pro via consult-grok transport',
     },
+    glmflash: {
+      label: 'GLM 5.3 Flash', model: 'glm-5.3-flash', script: 'consult-ox.mjs', paid: false,
+      inPerM: 0, outPerM: 0, out: 'GLM-5.3-FLASH-PANEL-REVIEW.md',
+      args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--max-tokens', '34000'],
+      // Canonical free/subscription route for the Public-Creative-Lab packet.
+      // consult-ox.mjs is retained as a compatibility transport name, but pins
+      // the revealed Z.ai model and cannot be redirected through the environment.
+      // The seat-specific ceiling bounds plan-credit consumption for repeated
+      // hostile-review rounds while leaving enough room for the required verdict.
+      note: 'Z.ai subscription — GLM 5.3 Flash; 34k response ceiling; same lineage as glm; no OpenAI credits',
+    },
     ox: {
-      label: 'Ox Alpha', script: 'consult-grok.mjs', paid: false, premium: true,
+      label: 'Deprecated alias — GLM 5.3 Flash', script: 'consult-ox.mjs', paid: false,
       inPerM: 0, outPerM: 0, out: 'OX-ALPHA-PANEL-REVIEW.md',
       args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high'],
-      env: { SWAN_GROK_MODEL: 'stealth/ox-alpha' },
-      // premium:true despite paid:false — the gate axis here is DATA, not money.
-      // Two panel seats independently flagged 2026-08-23 that ox shipped in the
-      // DEFAULT roster while its own note says prompts are RETAINED by an
-      // undisclosed provider. Fable and Sol require deliberate opt-in because they
-      // cost dollars; ox costs disclosure to an unidentified party, which is the
-      // less reversible of the two — and it was the one defaulted ON. Money got
-      // opt-in, data got opt-out. `premium` removes it from the default roster, so
-      // reaching a stealth provider now takes an explicit `--seats ...,ox`.
-      // Free BECAUSE it is a stealth listing: an unnamed lab is evaluating the
-      // model and OpenRouter's stealth terms mean prompts are retained and seen
-      // by that provider. Zero dollars, NON-zero privacy cost. Only send it
-      // packets that are already scrubbed to the standard we would use for any
-      // vendor — never raw config, transcripts, or anything with PII.
-      // 1.05M ctx / 131k max output, added 2026-08-22 by Sean's directive.
-      note: 'stealth/ox-alpha — $0 but prompts are RETAINED by an undisclosed provider',
+      // Backward-compatible key only. New workflows must use `glmflash`; Ox is
+      // not an independent provider and must not appear in current packet policy.
+      note: 'deprecated compatibility alias for GLM 5.3 Flash; use glmflash',
     },
     fable: {
       label: 'Fable 5', script: 'consult-fable.mjs', paid: true, premium: true,

@@ -27,6 +27,13 @@ paid seat** — a typical ~20k-in / 6k-out review packet costs ~$0.076, vs
 ~$0.14 for Sol Pro and ~$0.15 for Kimi. If PR #54 is ever reverted, retire
 `scripts/consult-grok.mjs` and this seat with it.
 
+**Subscription ≠ panel seat (2026-09-11).** Sean's everyday stack adds a
+*subscription* Grok lane — SuperGrok via Kilo Code/OpenCode with local repo
+access — for informal second opinions. It never routes through OpenRouter and
+never sets `SWAN_GROK_MODEL`; this panel's `grok` seat stays OpenRouter API +
+`--confirm-spend`. Everyday-stack table, caps, and watchlist:
+`PROVIDER-SUBSCRIPTION-ROUTING.md`.
+
 ```bash
 # plan + cost estimate only, nothing sent
 node scripts/consult-panel.mjs --document <packet.md> --dry-run

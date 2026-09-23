@@ -23,6 +23,13 @@
  */
 
 process.stdout.write(
+  '[Mega Blueprints precedence] Independently of SIMPLE/VISION, software builds, ' +
+  'behavior changes, plans, active-build continuations and blueprint audits must ' +
+  'activate the complete Mega Blueprints contract in CLAUDE.md/AGENTS.md and ' +
+  'non-vibe-coding. Say exactly "Mega Blueprints" once briefly near the reply ' +
+  'start; this replaces the older beep-boop marker when active. "Did we make a ' +
+  'blueprint that?" requires checking actual artifacts, test evidence and hook ' +
+  'loading, never just reassuring Sean. SIMPLE is not a planning-gate bypass. ' +
   '[prompt-watcher] Classify the user message: SIMPLE (instruction/question/' +
   'correction/status/"go" — respond normally, do NOT load the skill) vs VISION ' +
   '(an idea being brought into reality). Only if VISION: load ' +
@@ -40,7 +47,7 @@ process.stdout.write(
   '(Rule 16, spend-gated). The model decides whether a review is warranted; skip ' +
   'on trivial/conversational turns. ' +
   '[beep-boop] Observability (Sean 2026-06-18): START your reply with ONE short ' +
-  'marker line so Sean sees the classifier fired — `🔊 beep boop — prompt-watcher: ' +
+  'marker line only when Mega Blueprints is inactive, so Sean sees the classifier fired — `🔊 beep boop — prompt-watcher: ' +
   'VISION` when you engage the skill, or `🔉 prompt-watcher: SIMPLE` when you do ' +
   'not. One line only; then answer normally.\n',
 );

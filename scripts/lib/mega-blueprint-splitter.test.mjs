@@ -15,7 +15,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -105,4 +105,62 @@ test('a reply with NO headings at all is rejected', () => {
   const result = runSplitter('# nothing\n\njust prose, no sections');
   assert.notEqual(result.code, 0);
   assert.match(result.out, /missing top-level sections/);
+});
+
+// --------------------------------------------------------- manifest identity
+
+/**
+ * Regression, 2026-09-20. The manifest title and packet path were constants left over
+ * from the FIRST package this splitter wrote. Every later package inherited them, so
+ * `BLUEPRINT-cinematic-frontend-2026-09-19/` shipped a manifest titled "Social Bridge
+ * Completion Blueprint" pointing at a directory that does not exist, and the previous
+ * session had to hand-write a correction into it. A manifest is read as provenance,
+ * so a false one is worse than a missing one.
+ */
+test('MANIFEST names the package it actually describes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mb-manifest-'));
+  const inPath = join(dir, 'REPLY.md');
+  writeFileSync(inPath, syntheticReply(), 'utf8');
+  const outDir = join(dir, 'BLUEPRINT-theme-lens-2026-09-20');
+  execFileSync(process.execPath, [SPLITTER, '--in', inPath, '--out-dir', outDir, '--mega-blueprint'], { encoding: 'utf8' });
+
+  const manifest = readFileSync(join(outDir, 'MANIFEST.md'), 'utf8');
+  assert.match(manifest, /^# Package Manifest — Theme Lens Blueprint$/m);
+  assert.ok(!/Social Bridge/.test(manifest), 'must not name a different package');
+  assert.ok(!/social-bridge-completion/.test(manifest), 'must not point at a non-existent directory');
+  // No packet was written into outDir, so it must be reported absent, not invented.
+  assert.match(manifest, /\*\*Packet:\*\* not filed in this directory/);
+});
+
+test('MANIFEST finds the packet when one IS present in the package', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mb-manifest-pkt-'));
+  const inPath = join(dir, 'REPLY.md');
+  writeFileSync(inPath, syntheticReply(), 'utf8');
+  const outDir = join(dir, 'BLUEPRINT-thing-2026-01-01');
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(join(outDir, 'CONSULT-PACKET.md'), '# packet\n', 'utf8');
+  execFileSync(process.execPath, [SPLITTER, '--in', inPath, '--out-dir', outDir, '--mega-blueprint'], { encoding: 'utf8' });
+
+  const manifest = readFileSync(join(outDir, 'MANIFEST.md'), 'utf8');
+  assert.match(manifest, /^# Package Manifest — Thing Blueprint$/m);
+  assert.match(manifest, /CONSULT-PACKET\.md/, 'packet path must be the one inside the package');
+  // The packet path is built with join() (backslashes on Windows) while the source-reply
+  // line comes from the caller's argument (forward slashes), so the two lines of one
+  // manifest disagreed. A reader on WSL/macOS copies a broken path.
+  assert.ok(!manifest.includes('\\'), 'manifest paths must be POSIX-normalised');
+});
+
+test('--title and --packet override the derivation', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mb-manifest-override-'));
+  const inPath = join(dir, 'REPLY.md');
+  writeFileSync(inPath, syntheticReply(), 'utf8');
+  const outDir = join(dir, 'out');
+  execFileSync(process.execPath, [
+    SPLITTER, '--in', inPath, '--out-dir', outDir, '--mega-blueprint',
+    '--title', 'Explicit Name', '--packet', 'somewhere/ELSE.md',
+  ], { encoding: 'utf8' });
+
+  const manifest = readFileSync(join(outDir, 'MANIFEST.md'), 'utf8');
+  assert.match(manifest, /^# Package Manifest — Explicit Name Blueprint$/m);
+  assert.match(manifest, /somewhere\/ELSE\.md/);
 });

@@ -68,3 +68,14 @@ which **18,889 (73%) were reasoning**. Budget accordingly — the coding plan me
 
 Subscription-billed, so no per-token charge — but the weekly credit cap is the real
 constraint, not dollars. Once exhausted, more money does not help until reset.
+
+## The GLM lane is an agentic harness, not the web chat (2026-09-11)
+
+Sean's GLM usage is **ZCode with the coding-plan login** (filesystem + terminal)
+for review work, plus `consult-glm.mjs` for scripted seats. The z.ai **web chat
+cannot read the repo** — it asked Sean to copy/paste files (2026-09-10), and
+copy/paste routing is banned for coding work. If a GLM web session can't see
+files, that is the wrong surface, not a broken plan. GLM is a primary-class
+builder + hostile-review seat in the everyday stack — see
+`PROVIDER-SUBSCRIPTION-ROUTING.md` for the seat table, caps, and the chosen
+plan (Pro $80/mo, 6x usage — Sean's call 2026-09-11).
