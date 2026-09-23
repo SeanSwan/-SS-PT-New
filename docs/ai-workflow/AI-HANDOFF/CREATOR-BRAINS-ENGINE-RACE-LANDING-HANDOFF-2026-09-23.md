@@ -115,10 +115,28 @@ landing files, run the console suite; then run the **same** suite on the byte-id
 | `HEAD` + landing files overlaid (`C:/tmp/lp3`) | 313 | 300 | 13 |
 | `HEAD` alone, no overlay (`C:/tmp/lp-control`) | 307 | 293 | 14 |
 
-`comm -23` on the failure sets is **empty**: the landing adds 6 tests, all passing, and introduces
-**zero** new failures. The 13 are pre-existing HEAD artifacts — HEAD's `contract-parse.mjs` regex
-`` /```ts\n([\s\S]*?)\n```/ `` cannot match HEAD's own `05-contracts.md`; the four dirty test files
-in the worktree are what reconcile them.
+`comm -23` on the failure sets was **empty** in that run: the landing added 6 tests, all passing,
+and introduced **zero** new failures. The 13 are pre-existing HEAD artifacts — HEAD's
+`contract-parse.mjs` regex `` /```ts\n([\s\S]*?)\n```/ `` cannot match HEAD's own
+`05-contracts.md`; the four dirty test files in the worktree are what reconcile them.
+
+> **⚠ THAT PROOF COULD NOT BE RE-RUN, AND THAT IS A DEFECT IN THE PROOF — NOT A PASS.**
+>
+> A later attempt to rebuild the overlay, to bring the **complete 17-file** landing set under it,
+> **aborted**. The sandbox refused to overwrite the overlaid files:
+> `cp: cannot create regular file '<tree>/scripts/creator-brains/lib/registry.mjs': Permission
+> denied`, persisting across 20 retries with a 1 s backoff, while the destination stayed at the
+> archive's own md5 and mtime. `sed -i` and `cp` into the same tree failed the same way.
+>
+> A partial overlay is worse than none. One run with **8 of 13** files copied reported four "new"
+> failures that were nothing but my own tests correctly detecting *un-overlaid* dependencies — a
+> result that reads exactly like "the fix does not work". That is the failure mode this document
+> exists to prevent, and it is why the copy step now aborts rather than continuing.
+>
+> So the table above is a **single, unrepeated run** and should be treated as **unverified** until
+> someone reproduces it outside this sandbox. The load-bearing evidence for this landing is the
+> **isolated worktree suite (354/354)** and the **mutation proofs** below — neither of which
+> requires building a second tree.
 
 **Worktree, isolated and sequential:**
 
