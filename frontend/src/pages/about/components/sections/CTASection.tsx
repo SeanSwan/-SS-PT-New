@@ -9,9 +9,10 @@ import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { SectionEl, Container, AccentLine } from '../shared/AboutStyles';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface CTASectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const CTABlock = styled.div`
@@ -58,7 +59,7 @@ const CTAButtons = styled.div`
 
 const CTASection: React.FC<CTASectionProps> = ({ tier }) => {
   const navigate = useNavigate();
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const isFull = tier === 'full';
 
   return (

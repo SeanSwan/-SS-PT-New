@@ -6,6 +6,11 @@ const PRIMARY_GRADIENT = 'var(--gradient-primary, linear-gradient(135deg, var(--
 const TEXT_SECONDARY = 'var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 72%, transparent))';
 const TEXT_MUTED = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0ECF4) 54%, transparent))';
 
+export const AdminDashboardMotionShell = styled(motion.div)`
+  width: 100%;
+  min-height: 100%;
+`;
+
 export const MetricCommandCard = styled(CommandCard)`
   position: relative;
   overflow: hidden;
@@ -29,6 +34,22 @@ export const CommandHeader = styled(motion.div)`
   margin-bottom: 2rem;
   border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 24%, transparent);
 
+  .command-kicker {
+    color: var(--accent-gold, #C6A84B);
+    display: block;
+    font: 800 0.72rem/1 'Fira Code', monospace;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .command-heading-row {
+    align-items: end;
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
   h1 {
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
@@ -41,6 +62,36 @@ export const CommandHeader = styled(motion.div)`
   p {
     color: ${TEXT_SECONDARY};
     font-size: 1.1rem;
+    line-height: 1.5;
+    margin: 0;
+    max-width: 68ch;
+  }
+
+  .command-coach-link {
+    align-items: center;
+    background: var(--accent-secondary, #8B5CF6);
+    border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 42%, transparent);
+    border-radius: 12px;
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+    color: var(--text-primary, #E0ECF4);
+    display: inline-flex;
+    font-size: 0.82rem;
+    font-weight: 800;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .command-coach-link:hover {
+    box-shadow: 0 14px 32px color-mix(in srgb, var(--accent-primary, #60C0F0) 32%, transparent);
+    transform: translateY(-1px);
+  }
+
+  .command-coach-link:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 3px;
   }
 
   @media (max-width: 768px) {
@@ -50,6 +101,8 @@ export const CommandHeader = styled(motion.div)`
 
     h1 { font-size: 1.5rem; }
     p { font-size: 0.875rem; }
+    .command-heading-row { align-items: start; grid-template-columns: 1fr; }
+    .command-coach-link { justify-self: start; }
   }
 
   @media (max-width: 430px) {

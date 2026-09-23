@@ -29,6 +29,7 @@ const MarketingCommandOverview = lazy(() => import('./marketing/MarketingCommand
 const SocialPostGenerator = lazy(() => import('./marketing/SocialPostGenerator'));
 const MarketingCalendar = lazy(() => import('./marketing/MarketingCalendar'));
 const LeadPipelinePanel = lazy(() => import('./marketing/LeadPipelinePanel'));
+const SpeedToLeadStatusCard = lazy(() => import('./marketing/SpeedToLeadStatusCard'));
 const SocialAnalyticsDashboard = lazy(() => import('./marketing/SocialAnalyticsDashboard'));
 
 type TabId = 'overview' | 'queue' | 'calendar' | 'leads' | 'analytics';
@@ -167,7 +168,12 @@ const MarketingWorkspace: React.FC = () => {
       case 'calendar':
         return <MarketingCalendar />;
       case 'leads':
-        return <LeadPipelinePanel filter={leadsFilter} />;
+        return (
+          <>
+            <SpeedToLeadStatusCard />
+            <LeadPipelinePanel filter={leadsFilter} />
+          </>
+        );
       case 'analytics':
         return <SocialAnalyticsDashboard />;
       default:

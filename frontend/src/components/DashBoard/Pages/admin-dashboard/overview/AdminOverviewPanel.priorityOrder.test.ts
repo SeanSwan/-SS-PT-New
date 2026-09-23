@@ -8,6 +8,7 @@ const __dirname = dirname(__filename);
 
 const source = readFileSync(resolve(__dirname, './AdminOverviewPanel.tsx'), 'utf8');
 const signalSource = readFileSync(resolve(__dirname, './AdminSignalBar.tsx'), 'utf8');
+const dashboardSource = readFileSync(resolve(__dirname, '../admin-dashboard-view.tsx'), 'utf8');
 
 const indexOfRequired = (needle: string) => {
   const index = source.indexOf(needle);
@@ -60,5 +61,13 @@ describe('AdminOverviewPanel action priority', () => {
   it('seeds the admin assistant with one-tap operator prompts', () => {
     expect(source).toContain('ADMIN_OVERVIEW_ASSISTANT_PROMPTS');
     expect(source).toContain('quickPrompts={ADMIN_OVERVIEW_ASSISTANT_PROMPTS}');
+  });
+
+  it('makes the admin entry a briefing surface and defers appearance controls', () => {
+    expect(dashboardSource).toContain('What needs a decision first?');
+    expect(dashboardSource).toContain('Open Coach Command Center');
+    expect(dashboardSource.indexOf('<AdminOverviewPanel />')).toBeLessThan(
+      dashboardSource.indexOf('<DashboardBackgroundSettingsPanel'),
+    );
   });
 });

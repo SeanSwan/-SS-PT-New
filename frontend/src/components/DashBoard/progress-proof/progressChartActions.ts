@@ -1,5 +1,6 @@
 import type { ChartPoint } from '../../../hooks/analytics/useClientProgressCharts';
 import { downloadBlob } from './progressFileDownload';
+import { escapeCsvValue } from '@/utils/csvEscape';
 
 export const PROGRESS_CHART_TIME_RANGES = [
   { id: 'recent', label: 'Recent', pointLimit: 6 },
@@ -29,10 +30,11 @@ export type ProgressChartCsvRow = Record<string, string | number | null | undefi
 export { buildProgressChartPulse } from './progressChartPulse';
 export type { ProgressChartPulse, ProgressChartPulseTone } from './progressChartPulse';
 
-const csvEscape = (value: string | number | null | undefined) => {
-  const text = value === null || value === undefined ? '' : String(value);
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
+// Delegates to the shared escaper. The private version quoted correctly but had no
+// formula guard, so a note beginning `=`, `+`, `-` or `@` reached the spreadsheet
+// live. NOTE: the row join below stays `\n` on purpose — progressChartActions.test.ts
+// asserts that exact byte sequence, so only the ESCAPER moved.
+const csvEscape = (value: string | number | null | undefined) => escapeCsvValue(value);
 
 export function sliceChartPointsByRange<T extends ChartPoint>(
   points: T[],

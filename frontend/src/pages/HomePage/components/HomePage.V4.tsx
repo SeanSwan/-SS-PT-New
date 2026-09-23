@@ -48,7 +48,7 @@ const NoiseOverlay = styled.div`
 
 const HomePageV4: React.FC = () => {
   const tier = useAnimationTier();
-  const { isFull, showGlow } = useTierFlags(tier);
+  const { isFull, isReduced, showGlow } = useTierFlags(tier);
   const [showOrientation, setShowOrientation] = useState(false);
 
   return (
@@ -65,7 +65,7 @@ const HomePageV4: React.FC = () => {
 
         <HeroSection
           tier={tier}
-          prefersReduced={tier === 'essential'}
+          prefersReduced={isReduced}
           onOpenOrientation={() => setShowOrientation(true)}
         />
         <SectionTransition animate={isFull} showGlow={showGlow} />

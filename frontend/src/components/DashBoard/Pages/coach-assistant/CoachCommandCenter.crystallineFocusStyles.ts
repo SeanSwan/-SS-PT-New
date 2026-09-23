@@ -130,6 +130,8 @@ export const coachCommandCrystallineFocusStyles = css`
     border: 1px solid var(--coach-focus-line);
     border-radius: 18px;
     box-shadow: 0 18px 54px color-mix(in srgb, var(--coach-focus-canvas) 58%, transparent);
+    min-height: 0;
+    overflow: hidden;
     padding: 10px;
   }
 
@@ -197,7 +199,12 @@ export const coachCommandCrystallineFocusStyles = css`
     .client-action-strip { grid-column: 1 / -1; }
     .new-client-button { align-self: end; grid-column: 2; grid-row: 2; }
     .tab-bar { grid-area: tabs; }
-    .tab-content { grid-area: content; }
+    .tab-content {
+      grid-area: content;
+      max-height: calc(100dvh - 420px);
+      min-height: 0;
+      overflow: hidden;
+    }
     .console-dock { grid-area: dock; }
     .drawer-scrim,
     .ops-button,
@@ -216,7 +223,13 @@ export const coachCommandCrystallineFocusStyles = css`
       width: auto;
       z-index: 1;
     }
-    .transcript-stream { min-height: clamp(360px, calc(100dvh - 560px), 660px); }
+    .chat-panel,
+    .chat-transcript { min-height: 0; overflow: hidden; }
+    .transcript-stream {
+      height: min(660px, calc(100dvh - 520px));
+      max-height: calc(100dvh - 520px);
+      min-height: 280px;
+    }
   }
 
   @media (max-width: 1279px) {

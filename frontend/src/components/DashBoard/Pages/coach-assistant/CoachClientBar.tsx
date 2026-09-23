@@ -8,11 +8,14 @@
 import React from 'react';
 import { MoreHorizontal, Plus } from 'lucide-react';
 
+const CoachFocusLens = React.lazy(() => import('./CoachFocusLens'));
+
 type CoachClientBarProps = {
   selectedClientLabel: string;
   opsOpen: boolean;
   showOps?: boolean;
   contextLabel?: string;
+  focusLabel?: string;
   newConversationLabel?: string;
   onNewConversation: () => void;
   onOpenOps: (event: React.MouseEvent<HTMLButtonElement>) => void;
@@ -23,6 +26,7 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
   opsOpen,
   showOps = true,
   contextLabel = 'Now coaching',
+  focusLabel,
   newConversationLabel = 'New chat',
   onNewConversation,
   onOpenOps,
@@ -34,6 +38,11 @@ const CoachClientBar: React.FC<CoachClientBarProps> = ({
     </div>
 
     <div className="client-bar-tools">
+      {focusLabel ? (
+        <React.Suspense fallback={<span className="coach-focus-lens-fallback" aria-hidden="true" />}>
+          <CoachFocusLens label={focusLabel} />
+        </React.Suspense>
+      ) : null}
       <button type="button" className="new-client-button" onClick={onNewConversation} aria-label={newConversationLabel}>
         <Plus size={18} aria-hidden="true" />
         <span>New</span>

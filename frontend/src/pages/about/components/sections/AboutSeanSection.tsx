@@ -11,9 +11,10 @@ import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { SectionEl, Container, SectionTitle, AccentLine, SectionSubtitle } from '../shared/AboutStyles';
 import { certifications, featureList } from '../shared/AboutData';
 import logoImg from '../../../../assets/Logo.png';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface AboutSeanSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const pulseGlow = keyframes`
@@ -145,7 +146,7 @@ const BadgeFull = styled.span`
 `;
 
 const AboutSeanSection: React.FC<AboutSeanSectionProps> = ({ tier }) => {
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const isFull = tier === 'full';
 
   return (

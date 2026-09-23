@@ -11,9 +11,10 @@ import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { SectionEl, Container, SectionTitle, AccentLine, SectionSubtitle } from '../shared/AboutStyles';
 import { statsData } from '../shared/AboutData';
 import { staggerContainer, getReveal } from '../shared/AboutAnimations';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface StatsSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const StatsGrid = styled(motion.div)`
@@ -74,7 +75,7 @@ const StatLabel = styled.div`
 const StatsSection: React.FC<StatsSectionProps> = ({ tier }) => {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const isFull = tier === 'full';
   const reveal = getReveal(isEssential);
 

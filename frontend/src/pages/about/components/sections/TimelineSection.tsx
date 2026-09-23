@@ -8,9 +8,10 @@ import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { SectionEl, Container, SectionTitle, AccentLine, SectionSubtitle } from '../shared/AboutStyles';
 import { milestones } from '../shared/AboutData';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface TimelineSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const TimelineWrapper = styled.div`
@@ -107,7 +108,7 @@ const TimelineDescription = styled.p`
 `;
 
 const TimelineSection: React.FC<TimelineSectionProps> = ({ tier }) => {
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const isFull = tier === 'full';
 
   return (

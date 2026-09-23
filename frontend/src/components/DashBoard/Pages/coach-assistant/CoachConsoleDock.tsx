@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   ArrowUp,
   ClipboardList,
+  ChevronDown,
   Dumbbell,
   FileAudio,
   Mic,
@@ -20,6 +21,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import VoiceRecordingOverlay from './VoiceRecordingOverlay';
+import CoachFreestyleControl from './CoachFreestyleControl';
 
 type VoiceOverlayProps = {
   isOpen: boolean;
@@ -40,6 +42,14 @@ type CoachConsoleDockProps = {
   voiceReplyEnabled?: boolean;
   voiceReplySpeaking?: boolean;
   voiceSupported: boolean;
+  /**
+   * Long-form hands-free dictation, distinct from the short-command Mic.
+   * Opt-in: defaults off so surfaces that have not reviewed the draft-handoff
+   * behaviour keep their current dock exactly as it is.
+   */
+  showFreestyle?: boolean;
+  /** Account owning the freestyle buffer; a change purges it. */
+  freestyleAccountKey?: string | number | null;
   workoutLoggerRoute?: string | null;
   workoutLoggerLabel?: string;
   workoutLoggerAriaLabel?: string;
@@ -70,6 +80,8 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   voiceReplyEnabled = false,
   voiceReplySpeaking = false,
   voiceSupported,
+  showFreestyle = false,
+  freestyleAccountKey = null,
   workoutLoggerRoute,
   workoutLoggerLabel = 'Logger',
   workoutLoggerAriaLabel = 'Open workout logger',
@@ -88,6 +100,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   onVoice,
 }) => {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const menuId = useId();
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const voiceTitle = voiceSupported
@@ -99,6 +112,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
 
   const closeMoreMenu = () => {
     setMoreOpen(false);
+    setAdvancedOpen(false);
     moreButtonRef.current?.focus();
   };
 
@@ -111,6 +125,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
 
   const runMoreAction = (action: () => void) => {
     setMoreOpen(false);
+    setAdvancedOpen(false);
     action();
   };
 
@@ -171,32 +186,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
                   <MoreHorizontal size={20} aria-hidden="true" />
                 </button>
                 {moreOpen ? (
-                  <div className="dock-more-menu" id={menuId} role="menu" aria-label="More command tools" onKeyDown={handleMoreMenuKeyDown}>
-                    <button type="button" role="menuitem" onClick={() => runMoreAction(onAttach)}>
-                      <Paperclip size={17} aria-hidden="true" />
-                      <span>Attach</span>
-                    </button>
-                    {showPlaudAction ? (
-                      <button type="button" role="menuitem" onClick={() => runMoreAction(onStartPlaudUpload)}>
-                        <FileAudio size={17} aria-hidden="true" />
-                        <span>Audio</span>
-                      </button>
-                    ) : null}
-                    <button type="button" role="menuitem" onClick={() => runMoreAction(onReadback)}>
-                      <Volume2 size={17} aria-hidden="true" />
-                      <span>Readback</span>
-                    </button>
-                    {onToggleVoiceReplies ? (
-                      <button
-                        type="button"
-                        role="menuitemcheckbox"
-                        aria-checked={voiceReplyEnabled}
-                        onClick={() => runMoreAction(onToggleVoiceReplies)}
-                      >
-                        <Volume2 size={17} aria-hidden="true" />
-                        <span>{voiceReplyEnabled ? 'Voice replies on' : 'Voice replies off'}</span>
-                      </button>
-                    ) : null}
+                  <div className="dock-more-menu" id={menuId} role="menu" tabIndex={-1} aria-label="More command tools" onKeyDown={handleMoreMenuKeyDown}>
                     {workoutLoggerRoute ? (
                       <Link role="menuitem" to={workoutLoggerRoute} aria-label={workoutLoggerAriaLabel} onClick={() => setMoreOpen(false)}>
                         <Dumbbell size={17} aria-hidden="true" />
@@ -209,9 +199,58 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
                         <span>{workoutPlannerLabel}</span>
                       </Link>
                     ) : null}
+                    {showPlaudAction ? (
+                      <button type="button" role="menuitem" onClick={() => runMoreAction(onStartPlaudUpload)}>
+                        <FileAudio size={17} aria-hidden="true" />
+                        <span>Audio</span>
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      aria-controls={`${menuId}-advanced`}
+                      aria-expanded={advancedOpen}
+                      aria-label="Show advanced coach tools"
+                      onClick={() => setAdvancedOpen((open) => !open)}
+                    >
+                      <ChevronDown size={17} aria-hidden="true" />
+                      <span>Advanced tools</span>
+                    </button>
+                    {advancedOpen ? (
+                      <div className="dock-advanced-tools" id={`${menuId}-advanced`} role="group" aria-label="Advanced coach tools">
+                        <button type="button" role="menuitem" onClick={() => runMoreAction(onAttach)}>
+                          <Paperclip size={17} aria-hidden="true" />
+                          <span>Attach</span>
+                        </button>
+                        <button type="button" role="menuitem" onClick={() => runMoreAction(onReadback)}>
+                          <Volume2 size={17} aria-hidden="true" />
+                          <span>Readback</span>
+                        </button>
+                        {onToggleVoiceReplies ? (
+                          <button
+                            type="button"
+                            role="menuitemcheckbox"
+                            aria-checked={voiceReplyEnabled}
+                            onClick={() => runMoreAction(onToggleVoiceReplies)}
+                          >
+                            <Volume2 size={17} aria-hidden="true" />
+                            <span>{voiceReplyEnabled ? 'Voice replies on' : 'Voice replies off'}</span>
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
+
+              {showFreestyle ? (
+                <CoachFreestyleControl
+                  accountKey={freestyleAccountKey}
+                  commandText={commandText}
+                  onCommandTextChange={onCommandTextChange}
+                  composerRef={commandTextRef}
+                />
+              ) : null}
 
               <button
                 type="button"

@@ -13,8 +13,9 @@ import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../../../../components/ui-kit/cinematic/TypewriterText';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
-interface Props { tier: 'full' | 'balanced' | 'essential' }
+interface Props { tier: SectionAnimationTier }
 
 const TestimonialGrid = styled(motion.div)`
   display: grid;
@@ -49,13 +50,13 @@ const TestimonialsSection: React.FC<Props> = ({ tier }) => {
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start end', 'end start'] });
   const parallaxY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
-  const animate = tier !== 'essential';
+  const animate = tier !== 'reduced';
   const useBlur = tier === 'full';
   const reveal = getReveal(false);
 
   const title = tier === 'full'
     ? <TextSplitter text="Client Success Stories" />
-    : tier === 'balanced'
+    : tier === 'lean'
       ? <TypewriterText text="Client Success Stories" />
       : <>Client Success Stories</>;
 
@@ -65,7 +66,7 @@ const TestimonialsSection: React.FC<Props> = ({ tier }) => {
   };
 
   const cards = TESTIMONIALS.map((t, i) => (
-    <GlassCard key={i} variant="cyan" padding="1.75rem" disableBlur={tier === 'essential'}
+    <GlassCard key={i} variant="cyan" padding="1.75rem" disableBlur={tier === 'reduced'}
       variants={animate ? cardVariant : undefined} style={{ display: 'flex', flexDirection: 'column' }}>
       <StarsRow>{STARS}</StarsRow>
       <Quote>&ldquo;{t.quote}&rdquo;</Quote>

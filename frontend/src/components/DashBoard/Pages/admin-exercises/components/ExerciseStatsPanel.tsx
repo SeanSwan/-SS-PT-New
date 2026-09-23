@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
+import { escapeCsvValue as escapeCsvValueShared } from '@/utils/csvEscape';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import { 
@@ -555,10 +556,10 @@ const formatNumber = (num: number): string => {
   return num.toString();
 };
 
-const escapeCsvValue = (value: unknown): string => {
-  const stringValue = String(value ?? '');
-  return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
-};
+// Delegates to the shared escaper. The private version quoted correctly but had no
+// formula guard, so an activity title/description beginning `=`, `+`, `-` or `@`
+// reached the admin's spreadsheet live.
+const escapeCsvValue = (value: unknown): string => escapeCsvValueShared(value);
 
 const formatRelativeTime = (timestamp: string): string => {
   const now = new Date();

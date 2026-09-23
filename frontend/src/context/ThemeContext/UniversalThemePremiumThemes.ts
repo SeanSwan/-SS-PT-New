@@ -7,12 +7,7 @@
  * the same CSS variable bridge without per-surface palette branches.
  */
 
-const fonts = {
-  heading: '"Plus Jakarta Sans", "Sora", sans-serif',
-  drama: '"Cormorant Garamond", Georgia, serif',
-  data: '"Fira Code", "Cascadia Code", monospace',
-  ui: '"Sora", "Plus Jakarta Sans", sans-serif',
-};
+import { fonts } from './palettes/fonts';
 
 type PremiumThemeSpec = {
   id: string;

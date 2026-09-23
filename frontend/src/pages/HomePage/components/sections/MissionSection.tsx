@@ -5,12 +5,13 @@
 import React from 'react';
 import styled from 'styled-components';
 import { SectionEl, Container, SectionHeader, SectionTitle } from '../shared/HomeStyles';
-import { getReveal, cinematicReveal } from '../shared/HomeAnimations';
+import { getReveal, cinematicReveal, HOME_TEXT_SPLIT_ENABLED } from '../shared/HomeAnimations';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface MissionSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const MissionBg = styled(SectionEl)`
@@ -63,10 +64,11 @@ const CLOSING = 'Built by a trainer. Owned by the community. Powered by all of u
 
 const MissionSection: React.FC<MissionSectionProps> = ({ tier }) => {
   const useBlur = tier === 'full';
-  const animate = tier !== 'essential';
+  const animate = tier !== 'reduced';
   const reveal = getReveal(false);
 
-  const title = tier === 'full'
+  // A10: char splitting gated off on Home. See HOME_TEXT_SPLIT_ENABLED.
+  const title = tier === 'full' && HOME_TEXT_SPLIT_ENABLED
     ? <TextSplitter text="Why We Built This" />
     : <>Why We Built This</>;
 

@@ -18,6 +18,7 @@ import {
   type WaiverVersionInfo,
   type WaiverSubmitResponse,
 } from '../services/publicWaiverService';
+import { sanitizeRichText } from '../utils/sanitizeHtml';
 
 // ── Activity display names ───────────────────────────────────
 const ACTIVITY_OPTIONS: { value: ActivityType; label: string }[] = [
@@ -471,7 +472,7 @@ export default function PublicWaiverPage() {
                   <WaiverVersionTitle>{v.title}</WaiverVersionTitle>
                   {v.displayText ? (
                     containsHtmlTags(v.displayText) ? (
-                      <div dangerouslySetInnerHTML={{ __html: v.displayText }} />
+                      <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(v.displayText) }} />
                     ) : (
                       <PreText>{v.displayText}</PreText>
                     )

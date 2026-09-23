@@ -9,9 +9,10 @@ import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { SectionEl, Container } from '../shared/AboutStyles';
 import { getReveal } from '../shared/AboutAnimations';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface FounderQuoteSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const QuoteCard = styled(motion.div)`
@@ -48,7 +49,7 @@ const QuoteAuthor = styled.p`
 `;
 
 const FounderQuoteSection: React.FC<FounderQuoteSectionProps> = ({ tier }) => {
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const isFull = tier === 'full';
 
   return (

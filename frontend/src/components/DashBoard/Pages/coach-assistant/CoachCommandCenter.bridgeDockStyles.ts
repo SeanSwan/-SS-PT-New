@@ -170,6 +170,7 @@ export const coachCommandDockStyles = css`
     position: relative;
   }
   .dock-more,
+  .dock-freestyle,
   .dock-mic,
   .dock-send {
     align-items: center;
@@ -226,9 +227,28 @@ export const coachCommandDockStyles = css`
     background: color-mix(in srgb, var(--coach-danger) 18%, transparent);
     border-color: color-mix(in srgb, var(--coach-danger) 44%, transparent);
   }
+  .dock-freestyle:disabled,
   .dock-mic:disabled {
     cursor: not-allowed;
     opacity: 0.5;
+  }
+  /*
+   * A DIFFERENT MODE from the mic, not a second mic: the mic is one short
+   * command, this is hands-free long-form dictation. Plain fallback first —
+   * an unsupported color-mix() invalidates the whole declaration (iOS < 16.2).
+   */
+  .dock-freestyle {
+    background: rgba(56, 189, 248, 0.12);
+    background: color-mix(in srgb, var(--coach-cyan) 14%, var(--coach-soft));
+    border: 1px solid rgba(56, 189, 248, 0.38);
+    border: 1px solid color-mix(in srgb, var(--coach-cyan) 38%, transparent);
+    color: var(--coach-text);
+  }
+  .dock-freestyle.is-live {
+    background: rgba(56, 189, 248, 0.3);
+    background: color-mix(in srgb, var(--coach-cyan) 30%, transparent);
+    border-color: rgba(56, 189, 248, 0.64);
+    border-color: color-mix(in srgb, var(--coach-cyan) 64%, transparent);
   }
   .dock-send {
     background: linear-gradient(135deg, var(--coach-purple), color-mix(in srgb, var(--coach-purple) 64%, var(--coach-cyan)));

@@ -12,9 +12,10 @@ import { PROGRAMS } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface ProgramsSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 /* ─── Local Styled Components ─────────────────────────────────────────── */
@@ -114,7 +115,7 @@ const CtaWrap = styled.div`
 
 const ProgramsSection: React.FC<ProgramsSectionProps> = ({ tier }) => {
   const navigate = useNavigate();
-  const animate = tier !== 'essential';
+  const animate = tier !== 'reduced';
   const useBlur = tier === 'full';
 
   return (

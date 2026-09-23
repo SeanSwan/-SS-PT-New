@@ -2,21 +2,46 @@
 
 import { useContext } from 'react';
 import { PerformanceTierContext } from '../core/perf/PerformanceTierContext';
+import {
+  toLegacyProviderTier,
+  type CapabilityState,
+  type LegacyProviderTier,
+} from '../core/perf/performanceTierPolicy';
 
 /**
- * Performance Tier Hook
+ * Canonical capability state hook.
  *
- * Detects device capabilities and returns appropriate tier for feature delivery.
- * Used by components like LivingConstellation to gracefully degrade on low-end devices.
+ * Prefer this over `usePerformanceTier()` — it exposes `phase`, which is what
+ * lets a caller distinguish "not measured yet" from "measured as restricted".
+ * Reading only a tier string is what caused Astra's F05 bootstrap-latch defect.
  *
- * @returns {PerformanceTier} 'enhanced' | 'standard' | 'minimal'
+ * @example
+ * ```tsx
+ * const { phase, tier } = useCapabilityState();
+ * if (phase === 'pending') return <Poster />;   // not a latch
+ * if (tier !== 'full') return <Poster />;
+ * ```
+ */
+export function useCapabilityState(): CapabilityState {
+  return useContext(PerformanceTierContext);
+}
+
+/**
+ * Performance Tier Hook (legacy vocabulary)
+ *
+ * Returns `'enhanced' | 'standard' | 'minimal'`. Retained for existing consumers
+ * such as `LivingConstellation`, which switches its rendering strategy on these
+ * three strings.
+ *
+ * This is a *projection* of canonical state and contains no capability checks of
+ * its own. New code should use `useCapabilityState()`.
  *
  * Tiers:
  * - enhanced: High-end devices (WebGL, 500+ particles, 60 FPS)
  * - standard: Mid-range devices (Canvas 2D, 200 particles, 30 FPS)
  * - minimal: Low-end devices (Static gradient, no animations)
  *
- * Detection factors:
+ * Detection factors (now owned by the provider, not this hook):
  * 1. User preference (prefers-reduced-motion)
  * 2. Hardware (CPU cores, memory)
  * 3. Network (connection speed, save-data)
@@ -34,15 +59,6 @@ import { PerformanceTierContext } from '../core/perf/PerformanceTierContext';
  * }
  * ```
  */
-export function usePerformanceTier() {
-  const context = useContext(PerformanceTierContext);
-
-  if (context === undefined) {
-    throw new Error(
-      'usePerformanceTier must be used within a PerformanceTierProvider. ' +
-      'Wrap your app with <PerformanceTierProvider> in App.tsx or index.tsx.'
-    );
-  }
-
-  return context;
+export function usePerformanceTier(): LegacyProviderTier {
+  return toLegacyProviderTier(useContext(PerformanceTierContext).tier);
 }

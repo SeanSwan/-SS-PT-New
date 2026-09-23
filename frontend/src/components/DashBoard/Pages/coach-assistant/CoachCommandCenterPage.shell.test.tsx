@@ -53,18 +53,36 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.getByText(/Confirm before save/i)).toBeInTheDocument();
   }, COACH_COMMAND_CENTER_TEST_TIMEOUT);
 
-  it('keeps secondary tools inside the dock More menu', () => {
+  it('keeps only the next three priority tools visible and advanced tools one tap deeper', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');
 
     const menu = openCommandTools();
 
-    expect(within(menu).getByRole('menuitem', { name: /^Attach$/i })).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: /^Audio$/i })).toBeInTheDocument();
-    expect(within(menu).queryByText(/PLAUD/i)).not.toBeInTheDocument();
-    expect(within(menu).getByRole('menuitem', { name: /^Readback$/i })).toBeInTheDocument();
-    expect(within(menu).getByRole('menuitemcheckbox', { name: /Voice replies off/i })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: /Open workout logger/i })).toBeInTheDocument();
     expect(within(menu).getByRole('menuitem', { name: /Open workout planner/i })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: /^Audio$/i })).toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: /^Attach$/i })).not.toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitem', { name: /^Readback$/i })).not.toBeInTheDocument();
+    expect(within(menu).queryByRole('menuitemcheckbox', { name: /Voice replies off/i })).not.toBeInTheDocument();
+
+    fireEvent.click(within(menu).getByRole('menuitem', { name: /show advanced coach tools/i }));
+    expect(within(menu).getByRole('menuitem', { name: /^Attach$/i })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitem', { name: /^Readback$/i })).toBeInTheDocument();
+    expect(within(menu).getByRole('menuitemcheckbox', { name: /Voice replies off/i })).toBeInTheDocument();
+  });
+
+  it('labels the shared command center as assigned coaching for trainers', () => {
+    renderPage('/dashboard/trainer/coach-assistant?workspace=chat', 'trainer');
+
+    expect(screen.getByText(/Assigned coaching/i)).toBeInTheDocument();
+  });
+
+  it('keeps the focus lens decorative and gives it an honest accessible fallback', async () => {
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+
+    const lens = await screen.findByRole('img', { name: /Admin command focus lens/i });
+    expect(lens).toHaveAttribute('data-purpose', 'visual-only');
+    expect(lens).toHaveAttribute('aria-label', expect.stringMatching(/coaching facts remain in text/i));
   });
   it('closes the dock More menu with Escape and returns focus to the trigger', () => {
     renderPage('/dashboard/admin/coach-assistant?workspace=chat');

@@ -11,9 +11,10 @@ import ParallaxHero from '../../../../components/ui-kit/cinematic/ParallaxHero';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import logoImg from '../../../../assets/Logo.png';
 import { VIDEO } from '../../../../config/videoAssets';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface HeroSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const pulseGlow = keyframes`

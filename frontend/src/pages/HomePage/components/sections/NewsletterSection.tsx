@@ -9,8 +9,9 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { Send, ShieldCheck, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useNewsletterSubscribe } from '../../../../hooks/useNewsletterSubscribe';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
-type AnimationTier = 'full' | 'balanced' | 'essential';
+type AnimationTier = SectionAnimationTier;
 interface Props { tier?: AnimationTier }
 
 const Section = styled.section`
@@ -177,7 +178,7 @@ const NewsletterSection: React.FC<Props> = ({ tier = 'full' }) => {
   const [submittedOnce, setSubmittedOnce] = useState(false);
   const { status, message, subscribe } = useNewsletterSubscribe('homepage');
   const isWarning = status === 'warning';
-  const animate = tier !== 'essential';
+  const animate = tier !== 'reduced';
 
   // Stay on the success screen across a resend (status briefly flips to 'loading').
   useEffect(() => { if (status === 'success' || status === 'warning') setSubmittedOnce(true); }, [status]);

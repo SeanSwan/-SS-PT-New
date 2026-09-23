@@ -16,6 +16,7 @@ import {
   type WaiverVersionInfo,
   type WaiverSubmitResponse,
 } from '../services/publicWaiverService';
+import { sanitizeRichText } from '../utils/sanitizeHtml';
 import ParallaxHero from '../components/ui-kit/cinematic/ParallaxHero';
 import { VIDEO } from '../config/videoAssets';
 import ScrollReveal from '../components/ui-kit/cinematic/ScrollReveal';
@@ -540,7 +541,7 @@ export default function PublicWaiverPageV2() {
                       <WaiverVersionTitle>{v.title}</WaiverVersionTitle>
                       {v.displayText ? (
                         containsHtmlTags(v.displayText) ? (
-                          <div dangerouslySetInnerHTML={{ __html: v.displayText }} />
+                          <div dangerouslySetInnerHTML={{ __html: sanitizeRichText(v.displayText) }} />
                         ) : (
                           <PreText>{v.displayText}</PreText>
                         )

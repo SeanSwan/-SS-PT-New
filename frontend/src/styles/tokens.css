@@ -104,6 +104,21 @@
   /* ── Touch Targets ── */
   --min-touch-target: 44px;
 
+  /* ── Canonical Motion Tokens (A4) ──────────────────────────────
+   * AUTHORITY: frontend/src/core/perf/motionTokens.ts
+   * These are projected from MOTION_DURATION_MS / MOTION_EASING.
+   * Do NOT hand-edit values here — change the TypeScript module and
+   * re-project. Asserted by motionTokens.test.ts ("CSS values derive
+   * from numeric values").
+   * ────────────────────────────────────────────────────────────── */
+  --motion-ambient: 12000ms;
+  --motion-response-fast: 120ms;
+  --motion-response: 200ms;
+  --motion-response-slow: 320ms;
+  --motion-narrative: 720ms;
+  --ease-out-quint: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-quad: cubic-bezier(0.55, 0.085, 0.68, 0.53);
+
   /* ── Accessible Animation Tokens (DESIGN-1) ── */
   --color-swan-lavender-base: #50A0D0;   /* Lighter variant for animation peaks */
   --color-ice-wing-peak: #80E0FF;        /* Bright peak for shimmer highlights */

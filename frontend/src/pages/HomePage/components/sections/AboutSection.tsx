@@ -21,10 +21,11 @@ import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import logoImg from '../../../../assets/Logo.png';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 /* ---------- types ---------- */
 interface AboutSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 /* ---------- local styled ---------- */
@@ -121,7 +122,7 @@ const APPROACH_CARDS = [
 const AboutSection: React.FC<AboutSectionProps> = ({ tier }) => {
   const navigate = useNavigate();
   const isFull = tier === 'full';
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const prefersReduced = isEssential;
 
   const reveal = getReveal(prefersReduced);

@@ -18,6 +18,7 @@
  */
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { escapeCsvValue as escapeCsvValueShared } from '@/utils/csvEscape';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import {
@@ -649,10 +650,11 @@ const formatDate = (dateString: string): string => {
   return date.toLocaleDateString();
 };
 
-const escapeCsvValue = (value: unknown): string => {
-  const stringValue = Array.isArray(value) ? value.join('; ') : String(value ?? '');
-  return /[",\n]/.test(stringValue) ? `"${stringValue.replace(/"/g, '""')}"` : stringValue;
-};
+// Delegates to the shared escaper; the array→'; ' join is this site's own contract.
+// The private version quoted correctly but had no formula guard, so an exercise name
+// beginning `=`, `+`, `-` or `@` reached the admin's spreadsheet live.
+const escapeCsvValue = (value: unknown): string =>
+  escapeCsvValueShared(Array.isArray(value) ? value.join('; ') : value);
 
 const getDifficultyLabel = (difficulty: number): string => {
   if (difficulty <= 200) return 'Beginner';

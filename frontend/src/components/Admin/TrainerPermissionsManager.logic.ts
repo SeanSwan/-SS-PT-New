@@ -14,6 +14,7 @@ import type {
   TrainerSeed,
   TrainerWithPermissions
 } from './TrainerPermissionsManager.types';
+import { escapeCsvValue } from '@/utils/csvEscape';
 
 export const PERMISSION_TEMPLATES = {
   senior_trainer: {
@@ -112,11 +113,10 @@ export const buildTrainer = (
   permissionLoadFailed
 });
 
-export const escapeCsvCell = (value: string | number | null | undefined): string => {
-  const raw = String(value ?? '');
-  if (/[",\n\r]/.test(raw)) return `"${raw.replace(/"/g, '""')}"`;
-  return raw;
-};
+// Kept exported for API compatibility, but the body now delegates. The private
+// version was an RFC 4180 quoter with no formula guard — trainer names and emails
+// are user-controlled and land in an admin's spreadsheet.
+export const escapeCsvCell = (value: string | number | null | undefined): string => escapeCsvValue(value);
 
 export const getPermissionStatus = (permissionData: PermissionData): PermissionStatus => {
   if (!permissionData.hasPermission) return 'inactive';

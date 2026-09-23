@@ -1,47 +1,109 @@
 // frontend/src/core/perf/PerformanceTierProvider.tsx
 
-import React, { ReactNode, useEffect, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { logger } from '../../utils/logger';
-import { PerformanceTier, PerformanceTierContext } from './PerformanceTierContext';
+import { PerformanceTierContext } from './PerformanceTierContext';
+import {
+  applyOverride,
+  INITIAL_CAPABILITY_STATE,
+  resolveCapability,
+  toLegacyProviderTier,
+  type CanonicalTier,
+  type CapabilitySnapshot,
+  type CapabilityState,
+} from './performanceTierPolicy';
 
 interface PerformanceTierProviderProps {
   children: ReactNode;
   /**
-   * Force a specific tier (useful for testing/debugging)
-   * If not provided, tier is auto-detected
+   * Force a specific canonical tier (useful for testing/debugging).
+   *
+   * Applies the *lower* of requested and detected — it can only restrict, never
+   * elevate. See `applyOverride`.
    */
-  forceTier?: PerformanceTier;
+  forceTier?: CanonicalTier;
+}
+
+/** Minimal shapes for the non-standard APIs this provider reads. */
+interface ConnectionLike {
+  saveData?: boolean;
+  effectiveType?: string;
+  addEventListener?: (type: string, listener: () => void) => void;
+  removeEventListener?: (type: string, listener: () => void) => void;
+}
+
+type NavigatorWithCapabilities = Navigator & {
+  deviceMemory?: number;
+  connection?: ConnectionLike;
+};
+
+/**
+ * Read current device/network capability.
+ *
+ * Pure with respect to React state: it reads live browser globals and returns a
+ * plain snapshot. Missing APIs are neutral (`undefined`), never "low".
+ */
+function readSnapshot(): CapabilitySnapshot {
+  const nav = navigator as NavigatorWithCapabilities;
+
+  return {
+    reducedMotion:
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    cores: nav.hardwareConcurrency,
+    memoryGiB: nav.deviceMemory,
+    saveData: nav.connection?.saveData,
+    effectiveType: nav.connection?.effectiveType,
+  };
+}
+
+/** Subscribe to a media query; returns an unsubscribe fn. Handles legacy Safari. */
+function subscribeMediaQuery(query: string, onChange: () => void): () => void {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return () => {};
+  }
+
+  const mql = window.matchMedia(query);
+
+  if (typeof mql.addEventListener === 'function') {
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }
+
+  // Legacy addListener path (older Safari). Still shipped in the wild.
+  const legacy = mql as MediaQueryList & {
+    addListener?: (listener: () => void) => void;
+    removeListener?: (listener: () => void) => void;
+  };
+
+  if (typeof legacy.addListener === 'function') {
+    legacy.addListener(onChange);
+    return () => legacy.removeListener?.(onChange);
+  }
+
+  return () => {};
 }
 
 /**
  * Performance Tier Provider
  *
- * Automatically detects device capabilities and provides appropriate tier
- * for graceful feature degradation across the application.
+ * Owns capability detection and the *single* set of subscriptions for the app.
  *
- * Detection Strategy:
- * 1. Check user preferences (prefers-reduced-motion) -> minimal
- * 2. Check hardware (CPU cores < 4 OR memory < 4GB) -> minimal
- * 3. Check network (2G OR save-data enabled) -> standard
- * 4. Default -> enhanced
- *
- * Performance Tiers:
- * - **enhanced**: WebGL animations, 500+ particles, 60 FPS target
- * - **standard**: Canvas 2D, 200 particles, 30 FPS target
- * - **minimal**: Static gradients, no animations
+ * Fixes over the previous implementation (packet defect §6.2, effect churn):
+ *   1. The detection effect no longer depends on resolved tier state. The old
+ *      `[forceTier, tier]` dependency tore down and re-added the connection
+ *      listener on every tier change — the listener churned precisely when the
+ *      network was unstable, which is when it matters most.
+ *   2. A single effect now subscribes to both reduced-motion AND connection, and
+ *      re-resolves from a fresh snapshot on either signal.
+ *   3. Re-resolution uses a functional updater, so it never reads stale state.
+ *   4. `phase` starts `pending` and resolves on the first effect pass, so a
+ *      pre-detection `reduced` can no longer latch the signature off (F05).
  *
  * @example
  * ```tsx
- * import { PerformanceTierProvider } from './core/perf/PerformanceTierProvider';
- *
  * <PerformanceTierProvider>
- *   <App />
- * </PerformanceTierProvider>
- * ```
- *
- * @example
- * ```tsx
- * <PerformanceTierProvider forceTier="minimal">
  *   <App />
  * </PerformanceTierProvider>
  * ```
@@ -50,85 +112,76 @@ export const PerformanceTierProvider: React.FC<PerformanceTierProviderProps> = (
   children,
   forceTier,
 }) => {
-  const [tier, setTier] = useState<PerformanceTier>('standard');
+  const [state, setState] = useState<CapabilityState>(INITIAL_CAPABILITY_STATE);
 
+  // Keep the latest override in a ref so the detection effect never needs to
+  // re-subscribe when `forceTier` changes.
+  const overrideRef = useRef<CanonicalTier | undefined>(forceTier);
+  overrideRef.current = forceTier;
+
+  // Re-resolve from a fresh snapshot. Stable across renders.
+  const recompute = useCallback(() => {
+    setState((previous) => {
+      const next = applyOverride(resolveCapability(readSnapshot()), overrideRef.current);
+
+      if (previous.phase === next.phase && previous.tier === next.tier) {
+        return previous; // no-op update; avoids a needless render
+      }
+
+      logger.log(`[PerformanceTier] ${previous.phase}/${previous.tier} -> ${next.phase}/${next.tier}`);
+      return next;
+    });
+  }, []);
+
+  // Single effect: resolve once, then keep exactly two subscriptions alive.
   useEffect(() => {
-    if (forceTier) {
-      setTier(forceTier);
-      return;
-    }
+    recompute();
 
-    const detectTier = (): PerformanceTier => {
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        logger.log('[PerformanceTier] User prefers reduced motion -> minimal');
-        return 'minimal';
-      }
+    const unsubscribeMotion = subscribeMediaQuery('(prefers-reduced-motion: reduce)', recompute);
 
-      const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
-      const cores = navigator.hardwareConcurrency;
+    // Narrow once, into a local, so both the subscribe and unsubscribe paths
+    // agree on the same binding (and TypeScript can prove it is callable).
+    const connection = (navigator as NavigatorWithCapabilities).connection;
+    const addConnectionListener =
+      typeof connection?.addEventListener === 'function'
+        ? connection.addEventListener.bind(connection)
+        : undefined;
+    const removeConnectionListener =
+      typeof connection?.removeEventListener === 'function'
+        ? connection.removeEventListener.bind(connection)
+        : undefined;
 
-      if (cores !== undefined && cores < 4) {
-        logger.log(`[PerformanceTier] Low CPU cores (${cores}) -> minimal`);
-        return 'minimal';
-      }
+    addConnectionListener?.('change', recompute);
 
-      if (memory !== undefined && memory < 4) {
-        logger.log(`[PerformanceTier] Low memory (${memory}GB) -> minimal`);
-        return 'minimal';
-      }
-
-      const connection = (navigator as Navigator & {
-        connection?: {
-          saveData?: boolean;
-          effectiveType?: string;
-          addEventListener?: (type: string, listener: () => void) => void;
-          removeEventListener?: (type: string, listener: () => void) => void;
-        };
-      }).connection;
-
-      if (connection) {
-        if (connection.saveData) {
-          logger.log('[PerformanceTier] Save-data mode enabled -> standard');
-          return 'standard';
-        }
-
-        if (connection.effectiveType === '2g' || connection.effectiveType === 'slow-2g') {
-          logger.log(`[PerformanceTier] Slow network (${connection.effectiveType}) -> standard`);
-          return 'standard';
-        }
-      }
-
-      logger.log('[PerformanceTier] Device capable -> enhanced');
-      return 'enhanced';
+    return () => {
+      unsubscribeMotion();
+      removeConnectionListener?.('change', recompute);
     };
+  }, [recompute]);
 
-    const detectedTier = detectTier();
-    setTier(detectedTier);
+  // A changed override must re-apply immediately, without touching the
+  // subscriptions above.
+  useEffect(() => {
+    recompute();
+  }, [forceTier, recompute]);
 
-    const connection = (navigator as Navigator & {
-      connection?: {
-        addEventListener?: (type: string, listener: () => void) => void;
-        removeEventListener?: (type: string, listener: () => void) => void;
-      };
-    }).connection;
-
-    if (connection?.addEventListener && connection?.removeEventListener) {
-      const handleConnectionChange = () => {
-        const newTier = detectTier();
-        if (newTier !== tier) {
-          logger.log(`[PerformanceTier] Network changed, tier updated: ${tier} -> ${newTier}`);
-          setTier(newTier);
-        }
-      };
-
-      connection.addEventListener('change', handleConnectionChange);
-      return () => connection.removeEventListener?.('change', handleConnectionChange);
-    }
-  }, [forceTier, tier]);
+  /**
+   * Legacy string view, kept so `usePerformanceTier()` consumers are unaffected.
+   * The context value is memoised so consumers do not re-render needlessly.
+   */
+  const value = useMemo(() => state, [state.phase, state.tier]);
 
   return (
-    <PerformanceTierContext.Provider value={tier}>
+    <PerformanceTierContext.Provider value={value}>
       {children}
     </PerformanceTierContext.Provider>
   );
 };
+
+/**
+ * Human-readable legacy tier for logging/diagnostics.
+ * @deprecated Prefer reading canonical state.
+ */
+export function legacyTierOf(state: CapabilityState) {
+  return toLegacyProviderTier(state.tier);
+}

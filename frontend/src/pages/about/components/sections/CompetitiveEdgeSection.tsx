@@ -21,9 +21,10 @@ import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { SectionEl, Container, SectionTitle, AccentLine, SectionSubtitle } from '../shared/AboutStyles';
 import { competitiveEdgeCards } from '../shared/AboutData';
 import { staggerContainer, getReveal } from '../shared/AboutAnimations';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface CompetitiveEdgeSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const ICONS = [Dumbbell, TrendingUp, MessageCircle, BookOpen, Trophy, Heart];
@@ -188,7 +189,7 @@ const ORB_COLORS = {
 };
 
 const CompetitiveEdgeSection: React.FC<CompetitiveEdgeSectionProps> = ({ tier }) => {
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const isFull = tier === 'full';
   const reveal = getReveal(isEssential);
 

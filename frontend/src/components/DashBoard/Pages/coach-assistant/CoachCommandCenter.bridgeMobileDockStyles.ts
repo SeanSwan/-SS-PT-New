@@ -140,6 +140,7 @@ export const coachCommandBridgeMobileDockStyles = css`
     }
 
     .dock-more,
+    .dock-freestyle,
     .dock-mic,
     .dock-send {
       height: 54px;
@@ -165,6 +166,7 @@ export const coachCommandBridgeMobileDockStyles = css`
     }
 
     .dock-more,
+    .dock-freestyle,
     .dock-mic,
     .dock-send {
       height: 52px;

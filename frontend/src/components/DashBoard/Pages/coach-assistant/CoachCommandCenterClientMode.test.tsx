@@ -41,6 +41,7 @@ describe('CoachCommandCenterPage client mode', () => {
       .toHaveAttribute('href', '/dashboard/client/log-workout?loadPlan=today');
     expect(within(tools).getByRole('menuitem', { name: /^Open workout planner$/i }))
       .toHaveAttribute('href', '/dashboard/client/workouts');
+    fireEvent.click(within(tools).getByRole('menuitem', { name: /Show advanced coach tools/i }));
     expect(within(tools).getByRole('menuitemcheckbox', { name: /Voice replies off/i })).toBeInTheDocument();
     expect(screen.getByText(/Next: Log today or choose the next safe move/i)).toBeInTheDocument();
   });

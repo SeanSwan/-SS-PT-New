@@ -13,15 +13,16 @@ import {
   SectionEl, Container, SectionHeader, SectionTitle,
   SectionSubtitle, ParallaxBg, IconWrapper, FeatureTitle, FeatureDesc,
 } from '../shared/HomeStyles';
-import { getReveal, staggerContainer } from '../shared/HomeAnimations';
+import { getReveal, staggerContainer, HOME_TEXT_SPLIT_ENABLED } from '../shared/HomeAnimations';
 import { FEATURES } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 /* ── Props ────────────────────────────────────────────── */
 interface ArsenalSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 /* ── Local styled grid ────────────────────────────────── */
@@ -48,7 +49,7 @@ const PulseIcon = styled(IconWrapper)<{ $pulse: boolean }>`
 const ArsenalSection: React.FC<ArsenalSectionProps> = ({ tier }) => {
   const sectionRef = useRef<HTMLElement>(null);
   const isFull = tier === 'full';
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const prefersReduced = isEssential;
   const reveal = getReveal(prefersReduced);
 
@@ -73,7 +74,8 @@ const ArsenalSection: React.FC<ArsenalSectionProps> = ({ tier }) => {
       <Container>
         <SectionHeader variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }}>
           <SectionTitle>
-            {isFull ? (
+            {/* A10: gated off on Home — see HOME_TEXT_SPLIT_ENABLED. */}
+            {isFull && HOME_TEXT_SPLIT_ENABLED ? (
               <TextSplitter text="The Arsenal" mode="chars" />
             ) : (
               'The Arsenal'

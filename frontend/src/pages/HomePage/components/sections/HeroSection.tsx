@@ -9,16 +9,18 @@ import { Helmet } from 'react-helmet-async';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
 import { UserCircle, Camera, FileSignature, LayoutDashboard, Award } from 'lucide-react';
-import { getReveal, staggerContainer, cinematicReveal } from '../shared/HomeAnimations';
+import { getReveal, staggerContainer, cinematicReveal, HOME_TEXT_SPLIT_ENABLED } from '../shared/HomeAnimations';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { VIDEO } from '../../../../config/videoAssets';
 import logoImg from '../../../../assets/Logo.png';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
+import HeroSignature from './HeroSignature';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
 interface HeroProps {
   prefersReduced: boolean;
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
   onOpenOrientation: () => void;
 }
 
@@ -50,6 +52,10 @@ const VideoBg = styled(motion.video)`position:absolute;inset:0;width:100%;height
 const Overlay = styled.div`position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,7,18,0.5) 0%,rgba(3,7,18,0.85) 100%);`;
 const Content = styled(motion.div)`position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;text-align:center;gap:1.5rem;padding:2rem 1rem;max-width:800px;`;
 const Logo = styled.img<{ $animate: boolean }>`width:120px;height:120px;filter:drop-shadow(0 0 24px rgba(96,192,240,0.4));animation:${({ $animate }) => ($animate ? floatLogo : 'none')} 4s ease-in-out infinite;`;
+/* A9: the signature's host. Carries the glow and the float that the plain <img> carried, so the
+   poster state is pixel-identical to the shipped hero — the enhancement is additive, and its
+   fallback IS the current design rather than a substitute for it. */
+const SignatureHost = styled.span<{ $animate: boolean }>`display:inline-block;line-height:0;filter:drop-shadow(0 0 24px rgba(96,192,240,0.4));animation:${({ $animate }) => ($animate ? floatLogo : 'none')} 4s ease-in-out infinite;`;
 const Headline = styled.h1`font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(2rem,5vw,3.5rem);font-weight:800;color:var(--text-primary,#E0ECF4);line-height:1.15;`;
 const Sub = styled.p`font-family:'Cormorant Garamond',serif;font-style:italic;font-size:clamp(1rem,2.5vw,1.35rem);color:var(--text-secondary,rgba(224,236,244,0.7));max-width:600px;`;
 const BtnRow = styled.div`display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;`;
@@ -88,7 +94,7 @@ const HeroSection: React.FC<HeroProps> = ({ prefersReduced, tier, onOpenOrientat
   const contentY = useTransform(scrollYProgress, [0, 1], [0, -80]);
   const reveal = getReveal(prefersReduced);
   const isFull = tier === 'full';
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const HEADLINE = 'Health First. Community Always.';
 
   return (
@@ -117,12 +123,25 @@ const HeroSection: React.FC<HeroProps> = ({ prefersReduced, tier, onOpenOrientat
         viewport={{ once: true, amount: 0.3 }}
       >
         <motion.div variants={isEssential ? undefined : reveal}>
-          <Logo src={logoImg} alt="SwanStudios logo" $animate={isFull} width={120} height={120} />
+          <SignatureHost $animate={isFull}>
+            {/* The poster is `logoImg` at the same 120px, so a device that never earns the
+                `full` tier sees exactly what shipped. HeroSignature only ever replaces it once
+                a real WebGL frame has been presented. */}
+            <HeroSignature posterSrc={logoImg} alt="SwanStudios logo" size={120} />
+          </SignatureHost>
         </motion.div>
 
         <motion.div variants={isEssential ? undefined : reveal}>
           <Headline>
-            {isFull ? <TextSplitter text={HEADLINE} /> : isEssential ? HEADLINE : <TypewriterText text={HEADLINE} />}
+            {/* A10: per-character splitting is gated off on Home — 31 animating glyphs blew the
+                three-target cap. The wrapper above still reveals. */}
+            {isFull && HOME_TEXT_SPLIT_ENABLED ? (
+              <TextSplitter text={HEADLINE} />
+            ) : isEssential || isFull ? (
+              HEADLINE
+            ) : (
+              <TypewriterText text={HEADLINE} />
+            )}
           </Headline>
         </motion.div>
 

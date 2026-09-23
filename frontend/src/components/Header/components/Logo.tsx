@@ -1,11 +1,20 @@
 /**
  * Logo.tsx - Extracted Logo Component
- * Galaxy-themed SwanStudios logo with cosmic animations
+ *
+ * The mark is now the live 3-D object (SwanMark3D) rather than the flat PNG.
+ * SwanMark3D is a drop-in replacement for the <img>: it fills whatever box it is
+ * given, so the whole existing size ladder below is unchanged and drives the
+ * object through CSS exactly as it drove the image. It also falls back to the
+ * original PNG on its own if WebGL is unavailable, so nothing here needs to
+ * handle that case.
+ *
+ * The one structural change: the size ladder used to select on `img`, and now
+ * selects on `.logo-mark`, the element that hosts the object.
  */
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-import logoImage from '../../../assets/Logo.png';
+import { SwanMark3D } from '../../SwanMark3D';
 
 // Theme-aware colors via CSS variables
 
@@ -65,6 +74,12 @@ const LogoElement = styled.div`
   align-items: center;
   position: relative;
   animation: ${galaxyFloat} 8s ease-in-out infinite;
+
+  /* The float is decorative and infinite; the 3-D object already honours this
+     preference for its own drift, so the wrapper should too. */
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
   
   .logo-text {
     font-size: 1.25rem;
@@ -86,14 +101,21 @@ const LogoElement = styled.div`
     background-size: 200% 200%;
   }
   
-  img {
+  /* Host for the 3-D mark. Sized exactly as the <img> it replaced was. */
+  .logo-mark {
     height: 36px;
     width: 36px;
+    flex: 0 0 auto;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     margin-right: 12px;
+    /* Ice Wing (#60C0F0) — the established "mark highlight" role.
+       Was raw rgba(0,217,255), which is not a Crystalline Swan token at all.
+       Fixed under the §12 ruling 3 order (no non-token colour on an interactive
+       surface). Kept as rgb() here rather than a var() because this filter
+       needs channel values for the alpha blend. */
     filter: 
-      drop-shadow(0 0 10px rgba(0, 217, 255, 0.5))
-      drop-shadow(0 0 20px rgba(0, 217, 255, 0.25));
+      drop-shadow(0 0 10px rgba(96, 192, 240, 0.5))
+      drop-shadow(0 0 20px rgba(96, 192, 240, 0.25));
     border-radius: 50%;
   }
   
@@ -103,11 +125,11 @@ const LogoElement = styled.div`
       background-position: 100% 100%;
     }
     
-    img {
+    .logo-mark {
       filter: 
-        drop-shadow(0 0 16px rgba(0, 217, 255, 0.9))
-        drop-shadow(0 0 32px rgba(0, 217, 255, 0.5))
-        drop-shadow(0 0 48px rgba(0, 217, 255, 0.25));
+        drop-shadow(0 0 16px rgba(96, 192, 240, 0.9))
+        drop-shadow(0 0 32px rgba(96, 192, 240, 0.5))
+        drop-shadow(0 0 48px rgba(96, 192, 240, 0.25));
       transform: scale(1.1) rotate(5deg);
     }
   }
@@ -116,7 +138,7 @@ const LogoElement = styled.div`
     .logo-text {
       font-size: 1.15rem;
     }
-    img {
+    .logo-mark {
       height: 32px;
       width: 32px;
       margin-right: 10px;
@@ -127,7 +149,7 @@ const LogoElement = styled.div`
     .logo-text {
       font-size: 1.1rem;
     }
-    img {
+    .logo-mark {
       height: 28px;
       width: 28px;
       margin-right: 8px;
@@ -138,7 +160,7 @@ const LogoElement = styled.div`
     .logo-text {
       display: none;
     }
-    img {
+    .logo-mark {
       margin-right: 0;
     }
   }
@@ -147,7 +169,7 @@ const LogoElement = styled.div`
     .logo-text {
       display: none;
     }
-    img {
+    .logo-mark {
       height: 28px;
       width: 28px;
       margin-right: 0;
@@ -159,7 +181,7 @@ const LogoElement = styled.div`
       font-size: 1.5rem;
       letter-spacing: 1.2px;
     }
-    img {
+    .logo-mark {
       height: 44px;
       width: 44px;
       margin-right: 16px;
@@ -171,7 +193,7 @@ const LogoElement = styled.div`
       font-size: 1.75rem;
       letter-spacing: 1.5px;
     }
-    img {
+    .logo-mark {
       height: 52px;
       width: 52px;
       margin-right: 20px;
@@ -203,7 +225,9 @@ const Logo: React.FC<LogoProps> = ({ onLogoClick, variants }) => {
       }}
     >
       <LogoElement>
-        <img src={logoImage} alt="SwanStudios Logo" />
+        {/* decorative: the LogoContainer above already carries role="button" and
+            aria-label="Go to homepage", so a second label here would be noise. */}
+        <SwanMark3D className="logo-mark" decorative alt="SwanStudios Logo" />
         <span className="logo-text">SwanStudios</span>
       </LogoElement>
     </LogoContainer>

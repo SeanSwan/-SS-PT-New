@@ -18,6 +18,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../../../../context/AuthContext';
 import { addAutoTable } from '../../../../../services/pdfAutoTable';
+import { escapeCsvValue } from '@/utils/csvEscape';
 
 // === INTERFACES ===
 
@@ -392,7 +393,7 @@ export const useExerciseStats = (): UseExerciseStatsReturn => {
               ex.completionRate.toString()
             ])
           ];
-          content = csvRows.map(row => row.join(',')).join('\n');
+          content = csvRows.map(row => row.map(escapeCsvValue).join(',')).join('\n');
           mimeType = 'text/csv';
           filename = `exercise-stats-${new Date().toISOString().split('T')[0]}.csv`;
           break;

@@ -61,7 +61,11 @@ const VideoStructuredData: React.FC<VideoStructuredDataProps> = ({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+      // title/description are content-managed strings. JSON.stringify does
+      // NOT escape "</script>", so a value containing it would break out of
+      // this tag and inject markup. Escape every "<" as < — valid JSON,
+      // identical after JSON.parse, impossible to terminate the element.
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, '\\u003c') }}
     />
   );
 };

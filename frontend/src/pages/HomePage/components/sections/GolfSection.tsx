@@ -13,9 +13,10 @@ import { GOLF_FEATURES } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface GolfSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 /* ── Local styled components ───────────────────────────── */
@@ -118,7 +119,7 @@ const GolfSection: React.FC<GolfSectionProps> = ({ tier }) => {
   const navigate = useNavigate();
   const sectionRef = React.useRef<HTMLElement>(null);
   const isFull = tier === 'full';
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,

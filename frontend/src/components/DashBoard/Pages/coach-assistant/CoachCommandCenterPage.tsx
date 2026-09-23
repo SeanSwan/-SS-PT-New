@@ -160,7 +160,8 @@ const CoachCommandCenterPage: React.FC = () => {
           selectedClientLabel={selectedDisplayLabel}
           opsOpen={commandCenter.drawer === 'right'}
           showOps={!isClientMode}
-          contextLabel={isClientMode ? 'Your coach terminal' : 'Now coaching'}
+          contextLabel={isClientMode ? 'Your coach terminal' : userRole === 'trainer' ? 'Assigned coaching' : 'Now coaching'}
+          focusLabel={isClientMode ? undefined : userRole === 'trainer' ? 'Trainer command focus lens' : 'Admin command focus lens'}
           newConversationLabel={isClientMode ? 'New coach chat' : 'New chat'}
           onNewConversation={commandCenter.handleNewThread}
           onOpenOps={(event) => commandCenter.openDrawer('right', event)}
@@ -236,6 +237,8 @@ const CoachCommandCenterPage: React.FC = () => {
             voiceReplyEnabled={commandCenter.voiceReplyEnabled}
             voiceReplySpeaking={commandCenter.voiceReplySpeaking}
             voiceSupported={commandCenter.voiceSupported}
+            showFreestyle
+            freestyleAccountKey={authUser?.id ?? null}
             workoutLoggerRoute={workoutLoggerRoute}
             workoutLoggerLabel={workoutLoggerLabel}
             workoutLoggerAriaLabel="Open workout logger"

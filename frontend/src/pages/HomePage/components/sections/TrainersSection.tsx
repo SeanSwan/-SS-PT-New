@@ -20,10 +20,11 @@ import { TRAINER_FEATURES } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 /* ── Props ─────────────────────────────────────────────── */
 interface TrainersSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 /* ── Styled ────────────────────────────────────────────── */
@@ -67,7 +68,7 @@ const CTARow = styled.div`
 const TrainersSection: React.FC<TrainersSectionProps> = ({ tier }) => {
   const navigate = useNavigate();
   const isFull = tier === 'full';
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const prefersReduced = isEssential;
   const reveal = getReveal(prefersReduced);
 

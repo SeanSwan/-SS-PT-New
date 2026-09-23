@@ -21,6 +21,7 @@ import {
 } from '../Charts';
 import type { Session, Client, Trainer } from '../types';
 import { logger } from '@/utils/logger';
+import { escapeCsvValue } from '@/utils/csvEscape';
 import { addAutoTable } from '../../../services/pdfAutoTable';
 // Removed circular dependencies - data will be passed as parameters
 
@@ -143,7 +144,13 @@ export interface BusinessIntelligenceActions {
 
 type BusinessReportRow = [section: string, metric: string, value: string];
 
-const escapeBusinessReportValue = (value: string): string => `"${value.replace(/"/g, '""')}"`;
+// Always-quoted by contract: every cell in this report is emitted inside quotes.
+// The shared escaper supplies RFC 4180 doubling AND formula neutralisation; this
+// wrapper only re-adds the unconditional quotes this report's output pins.
+const escapeBusinessReportValue = (value: string): string => {
+  const escaped = escapeCsvValue(value);
+  return escaped.startsWith('"') ? escaped : `"${escaped}"`;
+};
 
 const escapeBusinessReportHtml = (value: string): string => value
   .replace(/&/g, '&amp;')

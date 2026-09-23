@@ -15,9 +15,10 @@ import { SOCIAL_CATEGORIES } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface SocialSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 /* -- Local styled components ---------------------------------------- */
@@ -75,7 +76,7 @@ const SocialSection: React.FC<SocialSectionProps> = ({ tier }) => {
   const navigate = useNavigate();
   const sectionRef = useRef<HTMLElement>(null);
   const isFull = tier === 'full';
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,

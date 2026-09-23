@@ -1,4 +1,5 @@
 import { getClientSessionSignal } from '../../DashBoard/workspaces/clients-team/clientSessionSignal';
+import { escapeCsvValue } from '@/utils/csvEscape';
 
 export interface TrainerClientReportAssignment {
   assignedAt?: string;
@@ -33,9 +34,16 @@ const HEADERS = [
   'Assignment Active',
 ];
 
+// This report's contract is that EVERY field is quoted, and its test asserts that
+// exact shape (`"Ava","Move",...`). That contract is preserved here — the shared
+// escaper supplies the RFC 4180 doubling AND the formula neutralisation, and the
+// wrapper only re-applies quoting when the escaper chose not to quote.
+//
+// The private version quoted correctly but neutralised nothing: a client named
+// `=1+1` or `=cmd|'/c calc'!A0` reached the trainer's spreadsheet as a live formula.
 const csvCell = (value: unknown): string => {
-  const text = value === undefined || value === null ? '' : String(value);
-  return `"${text.replace(/"/g, '""')}"`;
+  const escaped = escapeCsvValue(value);
+  return escaped.startsWith('"') ? escaped : `"${escaped}"`;
 };
 
 export const buildTrainerClientReportCsv = (

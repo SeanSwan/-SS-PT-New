@@ -12,9 +12,10 @@ import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { SectionEl, Container, SectionTitle, AccentLine } from '../shared/AboutStyles';
 import { promiseCards } from '../shared/AboutData';
 import { staggerContainer, getReveal } from '../shared/AboutAnimations';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface PromiseSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const ICONS = [Shield, Heart, Users];
@@ -55,7 +56,7 @@ const CardBody = styled.p`
 `;
 
 const PromiseSection: React.FC<PromiseSectionProps> = ({ tier }) => {
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const isFull = tier === 'full';
   const reveal = getReveal(isEssential);
 

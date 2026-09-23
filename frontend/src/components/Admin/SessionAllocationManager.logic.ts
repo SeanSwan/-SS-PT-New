@@ -1,3 +1,4 @@
+import { escapeCsvValue } from '@/utils/csvEscape';
 import { getClientSessionSignal, isNonDeductingClientSource } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import type {
   Client,
@@ -34,10 +35,10 @@ const textOrFallback = (value: string | null | undefined, fallback: string): str
 
 const getCurrentIsoTimestamp = (): string => new Date().toISOString();
 
-const escapeCsvCell = (value: string | number | undefined): string => {
-  const text = String(value ?? '');
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
+// Delegates to the shared escaper so the formula guard is not re-derived here.
+// The private version quoted correctly but neutralised nothing: client and trainer
+// names are user-controlled and this export is built in the admin's browser.
+const escapeCsvCell = (value: string | number | undefined): string => escapeCsvValue(value);
 
 const emptySummary = (clientId: number): SessionSummary => ({
   userId: clientId,

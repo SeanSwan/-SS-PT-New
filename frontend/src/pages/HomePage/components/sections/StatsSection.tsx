@@ -10,14 +10,15 @@ import React, { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import styled from 'styled-components';
 import { SectionEl, Container, SectionHeader, SectionTitle } from '../shared/HomeStyles';
-import { getReveal, staggerContainer } from '../shared/HomeAnimations';
+import { getReveal, staggerContainer, HOME_TEXT_SPLIT_ENABLED } from '../shared/HomeAnimations';
 import { STATS } from '../shared/HomeData';
 import AnimatedCounter from '../../../../components/ui/animations/AnimatedCounter';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface StatsSectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const BorderedSection = styled(SectionEl)`
@@ -72,7 +73,7 @@ const StatLabel = styled.div`
 const StatsSection: React.FC<StatsSectionProps> = ({ tier }) => {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.3 });
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const isFull = tier === 'full';
   const reveal = getReveal(isEssential);
 
@@ -81,7 +82,8 @@ const StatsSection: React.FC<StatsSectionProps> = ({ tier }) => {
       <Container>
         <SectionHeader variants={reveal} initial="hidden" whileInView="visible" viewport={{ once: true }}>
           <SectionTitle>
-            {isFull ? (
+            {/* A10: gated off on Home — see HOME_TEXT_SPLIT_ENABLED. */}
+            {isFull && HOME_TEXT_SPLIT_ENABLED ? (
               <TextSplitter text="By the Numbers" as="span" />
             ) : (
               'By the Numbers'

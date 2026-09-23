@@ -10,9 +10,10 @@ import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { SectionEl, Container, SectionTitle, AccentLine, SectionSubtitle } from '../shared/AboutStyles';
 import { philosophies } from '../shared/AboutData';
 import { staggerContainer, getReveal } from '../shared/AboutAnimations';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface PhilosophySectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const breathe = keyframes`
@@ -86,7 +87,7 @@ const CardBody = styled.p`
 `;
 
 const PhilosophySection: React.FC<PhilosophySectionProps> = ({ tier }) => {
-  const isEssential = tier === 'essential';
+  const isEssential = tier === 'reduced';
   const isFull = tier === 'full';
   const reveal = getReveal(isEssential);
 

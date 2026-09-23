@@ -130,6 +130,7 @@ import {
 import MoveFitLogo3D from '../../../../assets/MoveFitLogo-transparent.png';
 import SwanStudiosLogo from '../../../../assets/Logo.png';
 import { logger } from '@/utils/logger';
+import { escapeCsvValue } from '@/utils/csvEscape';
 
 // ─── Animations ───────────────────────────────────────────────────
 const fadeIn = keyframes`
@@ -2067,7 +2068,19 @@ const EnhancedAdminClientManagementView: React.FC = () => {
               const csvHeaders = 'Name,Email,Phone,Session Policy,Billing Note,Created\n';
               const csvRows = filteredClients.map(c => {
                 const csvSessionSignal = getClientSessionSignal(c);
-                return `"${c.firstName || ''} ${c.lastName || ''}","${c.email || ''}","${c.phone || ''}","${csvSessionSignal.label}","${csvSessionSignal.note}","${c.createdAt || ''}"`;
+                // Every field here is client-controlled (name/email/phone) or derived
+                // from client state, so it must go through the shared escaper: the
+                // previous template wrapped each field in quotes but never doubled an
+                // embedded quote, so a client named `a"b` collapsed three columns into
+                // one. It was also formula-blind.
+                return [
+                  `${c.firstName || ''} ${c.lastName || ''}`,
+                  c.email || '',
+                  c.phone || '',
+                  csvSessionSignal.label,
+                  csvSessionSignal.note,
+                  c.createdAt || '',
+                ].map(escapeCsvValue).join(',');
               }).join('\n');
               const blob = new Blob([csvHeaders + csvRows], { type: 'text/csv' });
               const url = URL.createObjectURL(blob);

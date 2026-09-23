@@ -28,6 +28,7 @@ import {
   CustomSelect
 } from '../UniversalMasterSchedule/ui';
 import { useSMSLogs, SmsLog } from '../../hooks/useSMSLogs';
+import { escapeCsvValue } from '@/utils/csvEscape';
 import apiService from '../../services/api.service';
 
 const Table = styled.table`
@@ -123,12 +124,12 @@ const SMSLogsPanel: React.FC = () => {
       log.status,
       log.recipient || '',
       log.templateName || '',
-      (log.message || '').replace(/\\s+/g, ' ').trim(),
+      (log.message || '').replace(/\s+/g, ' ').trim(),
       log.scheduledFor || '',
       log.sentAt || ''
     ]);
 
-    const csv = [headers, ...rows].map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\\n');
+    const csv = [headers, ...rows].map((row) => row.map(escapeCsvValue).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
 

@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { SectionTitle, SectionSubtitle } from '../shared/HomeStyles';
+import { HOME_TEXT_SPLIT_ENABLED } from '../shared/HomeAnimations';
 import GlowButton from '../../../../components/ui/buttons/GlowButton';
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
+import type { SectionAnimationTier } from '../../../../core/perf/performanceTierPolicy';
 
 interface CTASectionProps {
-  tier: 'full' | 'balanced' | 'essential';
+  tier: SectionAnimationTier;
 }
 
 const CTASectionEl = styled.section`
@@ -52,7 +54,12 @@ const SUBTITLE =
 const CTASection: React.FC<CTASectionProps> = ({ tier }) => {
   const navigate = useNavigate();
 
-  const title = tier === 'full'
+  /*
+   * A10: gated off on Home. Word mode is not exempt — TITLE is seven words against
+   * 03-contracts.md's "Maximum stagger group | 5 children", and 0.08s sits exactly on the 80ms
+   * ban threshold with no headroom.
+   */
+  const title = tier === 'full' && HOME_TEXT_SPLIT_ENABLED
     ? <SectionTitle><TextSplitter text={TITLE} mode="words" staggerDelay={0.08} /></SectionTitle>
     : <SectionTitle>{TITLE}</SectionTitle>;
 
@@ -83,7 +90,7 @@ const CTASection: React.FC<CTASectionProps> = ({ tier }) => {
     );
   }
 
-  if (tier === 'balanced') {
+  if (tier === 'lean') {
     return (
       <CTASectionEl>
         <ScrollReveal once>{inner}</ScrollReveal>

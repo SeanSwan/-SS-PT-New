@@ -19,6 +19,7 @@
  */
 
 import { ThemeId, themes } from '../../context/ThemeContext/UniversalThemeContext';
+import { isLightBackground } from '../../context/ThemeContext/themeColorMath';
 
 const DARK_TEXT_ON_ACCENT = '#030712';
 const LIGHT_TEXT_ON_ACCENT = '#FFFFFF';
@@ -169,10 +170,32 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
     --text-primary: ${theme.text.primary};
     --text-secondary: ${theme.text.secondary};
     --text-muted: ${theme.text.muted};
-    --text-inverse: ${themeId === 'crystalline-light' ? '#E0ECF4' : themeId === 'crystalline-mono' ? '#000000' : '#0F172A'};
+    /* DERIVED, not hand-listed. This was the last theme-id ternary in the emitter:
+     *
+     *   themeId === 'crystalline-light' ? '#E0ECF4'
+     *     : themeId === 'crystalline-mono' ? '#000000' : '#0F172A'
+     *
+     * --text-inverse is text painted on an ACCENT surface — the call sites pair it
+     * with a background of linear-gradient(135deg, var(--accent-primary),
+     * var(--accent-secondary)) (BootcampBuilderStyles.ts:155-158,
+     * HomeTabVisionCards.styles.ts:52-56). So the
+     * question it answers is exactly the one --text-on-accent already answers, and the
+     * palette already carries that answer. Two tokens, one question, and the
+     * hand-written one was wrong in three themes (measured against --accent-primary):
+     *
+     *   obsidian-black    1.17:1  (#0F172A on #002060 — effectively invisible)
+     *   nebula-crown      3.32:1  (#0F172A on #9333EA)
+     *   crystalline-light 3.41:1  (#E0ECF4 on #0284C7 — the light branch, inverted)
+     *
+     * Same defect, same fix, as ThemeLensPopover.styles.ts:225-238 applied to
+     * --bg-base on SelectedMark. Sharing getReadableAccentText makes the two tokens
+     * agree by construction rather than by coincidence, and themeTokens.test.ts
+     * asserts both the derivation and the agreement. */
+    --text-inverse: ${getReadableAccentText(theme.colors.primary)};
     --border-soft: ${theme.borders.subtle};
     --border-strong: ${theme.borders.prominent};
     --accent-primary: ${theme.colors.primary};
+    --accent-primary-10: color-mix(in srgb, ${theme.colors.primary} 10%, transparent);
     --accent-secondary: ${theme.colors.secondary};
     --accent-gold: ${theme.colors.accent};
     --accent-luxury: ${theme.colors.accent};
@@ -257,25 +280,42 @@ export const generateCSSVariables = (themeId: ThemeId): string => {
 export const injectThemeVariables = (themeId: ThemeId): void => {
   const cssVariables = generateCSSVariables(themeId);
 
-  // Remove existing theme variables
-  let themeStyleElement = document.getElementById('theme-variables');
-  if (themeStyleElement) {
-    themeStyleElement.remove();
+  // Update the existing node IN PLACE. This used to remove the <style> element and
+  // append a fresh one, which invalidated the whole document's style on every
+  // switch for no benefit.
+  let themeStyleElement = document.getElementById('theme-variables') as HTMLStyleElement | null;
+  if (!themeStyleElement) {
+    themeStyleElement = document.createElement('style');
+    themeStyleElement.id = 'theme-variables';
+    document.head.appendChild(themeStyleElement);
   }
-
-  // Create new style element with theme variables
-  themeStyleElement = document.createElement('style');
-  themeStyleElement.id = 'theme-variables';
   themeStyleElement.textContent = `
     :root {
       ${cssVariables}
     }
   `;
 
-  document.head.appendChild(themeStyleElement);
+  // Retire the pre-paint seed from index.html. It exists only so the first paint
+  // is not themeless; once this stylesheet is live it is redundant, and leaving
+  // two authorities on the same custom properties is how a theme switch ends up
+  // half-applied.
+  document.getElementById('swan-theme-prepaint')?.remove();
 
   // Also set data attribute for theme-aware CSS selectors
   document.documentElement.setAttribute('data-theme', themeId);
+
+  // Theme-aware browser chrome. `index.css` hardcodes `color-scheme: dark light`
+  // on <html>, so native scrollbars, form controls and autofill stayed wrong on the
+  // light themes. An inline style outranks that stylesheet rule.
+  const isLight = isLightBackground(themes[themeId].background.primary);
+  document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+
+  // The mobile address bar / PWA title bar followed a static #002060 for every
+  // theme. Track the active theme's page background instead.
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeColorMeta) {
+    themeColorMeta.setAttribute('content', themes[themeId].background.primary);
+  }
 };
 
 // === STYLED-COMPONENTS HELPERS ===

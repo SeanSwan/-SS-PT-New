@@ -53,4 +53,18 @@ describe('dev tools production gate', () => {
     expect(clearCacheSource).toContain("if (import.meta.env.DEV && typeof window !== 'undefined')");
     expect(paymentDiagnosticsSource).toContain("if (import.meta.env.DEV && typeof window !== 'undefined')");
   });
+
+  // D-03: the barrel itself must not statically re-export the ungated debug
+  // components — a named import of DevToolsProvider would otherwise pull
+  // DevTools.tsx (and its static DevLogin import) into the prod graph.
+  it('keeps the DevTools barrel free of ungated static re-exports (D-03)', () => {
+    const source = read('src/components/DevTools/index.ts');
+
+    expect(source).not.toContain("from './DevTools'");
+    expect(source).not.toContain("from './DevLoginPanel'");
+    expect(source).not.toContain("from './ApiDebugger'");
+    expect(source).not.toContain("from './DevLogin'");
+    expect(source).not.toContain("from './CrossDashboardDebugger'");
+    expect(source).toContain("from './DevToolsProvider'");
+  });
 });

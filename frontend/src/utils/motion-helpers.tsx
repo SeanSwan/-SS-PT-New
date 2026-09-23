@@ -5,6 +5,7 @@
 import React from 'react';
 import { motion, MotionProps } from 'framer-motion';
 import { defaultShouldForwardProp } from './styled-component-helpers';
+import { MOTION_SECONDS, STAGGER_CHILDREN_SECONDS } from '../core/perf/motionTokens';
 
 /**
  * Creates a properly configured motion component for use with styled-components
@@ -55,7 +56,15 @@ export const createMotionComponent = <C extends React.ElementType>(
 
 /**
  * Common animation variants that can be reused across components
+ *
+ * A4: all durations and the stagger interval are now derived from
+ * `core/perf/motionTokens` (the single authority). Before this change these
+ * literals were independent duplicates: every `duration` here was 0.5 while the
+ * contract specifies the 200ms response value, and `staggerChildren` was 0.1
+ * while the contract specifies 0.06.
  */
+const RESPONSE = MOTION_SECONDS.response;
+
 export const animationVariants = {
   // Fade in animation
   fadeIn: {
@@ -63,7 +72,7 @@ export const animationVariants = {
     visible: {
       opacity: 1,
       transition: {
-        duration: 0.5
+        duration: RESPONSE
       }
     }
   },
@@ -75,7 +84,7 @@ export const animationVariants = {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.5
+        duration: RESPONSE
       }
     }
   },
@@ -87,7 +96,7 @@ export const animationVariants = {
       opacity: 1,
       x: 0,
       transition: {
-        duration: 0.5
+        duration: RESPONSE
       }
     }
   },
@@ -99,7 +108,7 @@ export const animationVariants = {
       opacity: 1,
       x: 0,
       transition: {
-        duration: 0.5
+        duration: RESPONSE
       }
     }
   },
@@ -111,7 +120,7 @@ export const animationVariants = {
       opacity: 1,
       scale: 1,
       transition: {
-        duration: 0.5
+        duration: RESPONSE
       }
     }
   },
@@ -122,8 +131,8 @@ export const animationVariants = {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.3
+        staggerChildren: STAGGER_CHILDREN_SECONDS,
+        delayChildren: 0
       }
     }
   },
@@ -135,7 +144,7 @@ export const animationVariants = {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.3
+        duration: RESPONSE
       }
     }
   }
