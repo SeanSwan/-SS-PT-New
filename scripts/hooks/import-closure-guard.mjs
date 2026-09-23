@@ -82,37 +82,58 @@
  * gate that fires on work you did not break is a gate people learn to wave
  * through. `--all` reports the whole backlog instead.
  *
- * WHAT THIS FOUND, MEASURED 2026-09-22 (HEAD b1ab001bd, 7,848 live code files):
- *   177 unresolved relative imports in a fresh clone, in two populations:
- *     13  the module EXISTS on this machine but is NOT in git. This is M1, and
- *         HEAD genuinely cannot load it. Examples: a tracked test,
+ * WHAT THIS FOUND, MEASURED 2026-09-22 (HEAD 24ab9159a, 7,850 live code files —
+ * 7,848 at b1ab001bd plus this guard and its test):
+ *   177 unresolved relative imports in a fresh clone, in THREE populations.
+ *   Three, because "exists on disk but not in git" conflates two situations that
+ *   a reader acts on differently, and acting on the wrong one wastes a morning:
+ *     11  M1: a real FILE on disk, absent from git, NOT ignored — a forgotten
+ *         `git add`. HEAD genuinely cannot load it. 9 distinct modules.
+ *         Examples: a tracked test,
  *         backend/tests/unit/userSerializationCredentialLeak.test.mjs, importing
- *         backend/utils/userSerialization.mjs, which is in no branch's history;
- *         and six modules under packages/creator-brains-console/.
- *    164  the module exists NOWHERE — a stale reference, e.g.
- *         backend/routes/trainingSessionRoutes.mjs importing
- *         ../services/TrainingSessionService.mjs. Different bug, different owner.
+ *         backend/utils/userSerialization.mjs, which is in no branch's history
+ *         (`git log --all -- <path>` returns 0 commits); and four modules under
+ *         packages/creator-brains-console/web/src/components/.
+ *      1  BY DESIGN: a real file on disk, absent from git, IS ignored —
+ *         frontend/node_modules/playwright/index.mjs, reached by relative path.
+ *         Correct by the letter of the rule and useless in practice; the
+ *         allow-marker is the answer, and the hint below prints it.
+ *    165  STALE: no such file anywhere — a dead reference, a different bug with a
+ *         different owner. Includes a specifier naming a TRACKED DIRECTORY that
+ *         holds no index module (frontend/src/components/Checkout).
  *
- * TWO CORRECTIONS, RECORDED SO THEY ARE NOT REDISCOVERED.
+ * THREE CORRECTIONS, RECORDED SO THEY ARE NOT REDISCOVERED.
  * (1) An earlier pass reported 3,968 findings, then 1,530. Both were this guard's
  *     OWN bugs, not the repo's. The first resolver treated any trailing
  *     dot-segment as a file extension, so './x.helpers' never got '.ts' appended
  *     and every *.helpers.ts / *.fixture.ts / *.sectionFilter.ts import was
  *     reported — 2,430 false positives in frontend/ alone. The fix is
  *     FILE_EXTENSIONS: only a KNOWN extension means "this names a file".
- * (2) An earlier pass also reported the M1 population as 123. It is 13. The other
- *     110 were imports present only in the WORKING TREE, not in HEAD — a
+ * (2) An earlier pass reported the M1 population as 123. It was never 123. The
+ *     other 110 were imports present only in the WORKING TREE, not in HEAD — a
  *     measurement artefact of reading content from disk instead of from the
  *     commit. The corrected figure compares HEAD's blob against HEAD's tree.
- *     A guard whose author's first two numbers were wrong by 300x and 9x is a
- *     guard whose numbers are measured, and these are: see C:/tmp/icg-head-truth.mjs.
+ * (3) The M1 population was then reported as 13, and then 12. It is 11. Both
+ *     earlier figures came from the CLASSIFIER, not from this guard: it used
+ *     fs.existsSync() to decide "this module is on disk", and existsSync is TRUE
+ *     FOR A DIRECTORY. Because candidates() includes the bare specifier path, a
+ *     specifier naming a tracked directory that holds no index module counted as
+ *     a module git had forgotten. Only statSync(p).isFile() is a module test.
+ *     This guard never calls existsSync — it is pure path logic against the
+ *     tracked set — so no finding it reports was affected. The error was in the
+ *     instrument that split its output into populations.
+ *     A guard whose author's first four numbers were wrong by 300x, then 9x, then
+ *     2x, and whose population split was wrong twice, is a guard whose numbers are
+ *     measured. These are: see C:/tmp/icg-classify-final.mjs.
  *
  * FAIL-OPEN on its own errors, loudly. A pre-commit hook that bricks committing
  * gets deleted within a day, and a deleted gate protects nothing.
  *
  * Usage:
  *   node scripts/hooks/import-closure-guard.mjs --staged   (pre-commit)
- *   node scripts/hooks/import-closure-guard.mjs --all      (baseline audit)
+ *   node scripts/hooks/import-closure-guard.mjs --all      (baseline audit; scans the
+ *                                                           WORKING TREE, so its total is
+ *                                                           NOT comparable to the HEAD figure)
  *   node scripts/hooks/import-closure-guard.mjs <file>...
  * Exit: 0 clean · 1 violations found · anything else = its own bug (fail open)
  */
