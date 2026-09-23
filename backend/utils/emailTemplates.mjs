@@ -6,16 +6,7 @@
  * All colors use Galaxy-Swan design tokens.
  */
 
-/** HTML-escape user input to prevent XSS in email templates */
-function esc(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
+import { escapeHtml } from './htmlEscape.mjs';
 
 const COLORS = {
   deepSpace: '#0a0a1a',
@@ -90,7 +81,7 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden">${preheade
       <td class="inner-pad" style="padding:32px 32px 24px">
         <!-- Heading -->
         <h1 style="margin:0 0 4px;font-size:22px;font-weight:600;
-                   color:${COLORS.stellarWhite}">${heading}</h1>
+                   color:${COLORS.stellarWhite}">${escapeHtml(heading)}</h1>
         <div style="width:48px;height:3px;background:${accent};
                     border-radius:2px;margin-bottom:24px"></div>
 
@@ -138,10 +129,16 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden">${preheade
 
 /**
  * Info card block (date/location/trainer)
+ *
+ * `label` is escaped here so the helper cannot be misused by a caller that passes
+ * a user-supplied string. `value` is deliberately NOT escaped: every caller passes
+ * an already-escaped value (`cn` / `sd` / `tn` / `loc` are `escapeHtml(...)` at the
+ * call site), so escaping it again would double-encode `&` into `&amp;amp;`.
+ * Asymmetry is intentional — do not "tidy" it.
  */
 function infoRow(label, value, icon) {
   return `<tr>
-    <td style="padding:6px 0;font-size:13px;color:${COLORS.mutedText};width:100px;vertical-align:top">${label}</td>
+    <td style="padding:6px 0;font-size:13px;color:${COLORS.mutedText};width:100px;vertical-align:top">${escapeHtml(label)}</td>
     <td style="padding:6px 0;font-size:14px;color:${COLORS.stellarWhite};font-weight:500">${value}</td>
   </tr>`;
 }
@@ -172,7 +169,7 @@ function alertBox(text, type = 'info') {
 
 export function sessionBookedEmail({ clientName, trainerName, sessionDate, duration, location }) {
   const siteUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com';
-  const cn = esc(clientName), tn = esc(trainerName), sd = esc(sessionDate), loc = esc(location);
+  const cn = escapeHtml(clientName), tn = escapeHtml(trainerName), sd = escapeHtml(sessionDate), loc = escapeHtml(location);
   const fields = [
     { label: 'Date', value: sd },
     { label: 'Duration', value: `${duration || 60} minutes` },
@@ -196,11 +193,11 @@ export function sessionBookedEmail({ clientName, trainerName, sessionDate, durat
 }
 
 export function sessionCancelledEmail({ clientName, sessionDate, reason, chargeType, chargeAmount, creditRestored }) {
-  const cn = esc(clientName), sd = esc(sessionDate), r = esc(reason);
+  const cn = escapeHtml(clientName), sd = escapeHtml(sessionDate), r = escapeHtml(reason);
   let chargeBlock = '';
   if (chargeType && chargeType !== 'none' && chargeAmount > 0) {
     const labels = { full: 'Full session charge', partial: 'Partial charge', late_fee: 'Late cancellation fee' };
-    chargeBlock = alertBox(`<strong>${esc(labels[chargeType]) || 'Charge'}:</strong> $${Number(chargeAmount).toFixed(2)}`, 'danger');
+    chargeBlock = alertBox(`<strong>${escapeHtml(labels[chargeType]) || 'Charge'}:</strong> $${Number(chargeAmount).toFixed(2)}`, 'danger');
   } else if (creditRestored) {
     chargeBlock = alertBox('Your session credit has been restored to your account.', 'success');
   }
@@ -221,7 +218,7 @@ export function sessionCancelledEmail({ clientName, sessionDate, reason, chargeT
 
 export function sessionRescheduledEmail({ clientName, oldDate, newDate, location, sessionDeducted }) {
   const siteUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com';
-  const cn = esc(clientName), nd = esc(newDate), loc = esc(location);
+  const cn = escapeHtml(clientName), nd = escapeHtml(newDate), loc = escapeHtml(location);
   return galaxySwanEmail({
     preheader: `Your session has been rescheduled to ${nd}`,
     heading: 'Session Rescheduled',
@@ -242,8 +239,8 @@ export function sessionRescheduledEmail({ clientName, oldDate, newDate, location
 
 export function recurringBookedEmail({ clientName, trainerName, sessionDates, count, location }) {
   const siteUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com';
-  const cn = esc(clientName), tn = esc(trainerName), loc = esc(location);
-  const dateList = sessionDates.map(d => `<li style="padding:4px 0;color:${COLORS.stellarWhite}">${esc(d)}</li>`).join('');
+  const cn = escapeHtml(clientName), tn = escapeHtml(trainerName), loc = escapeHtml(location);
+  const dateList = sessionDates.map(d => `<li style="padding:4px 0;color:${COLORS.stellarWhite}">${escapeHtml(d)}</li>`).join('');
 
   return galaxySwanEmail({
     preheader: `${count} recurring sessions booked`,
@@ -266,7 +263,7 @@ export function recurringBookedEmail({ clientName, trainerName, sessionDates, co
 
 export function sessionReminderEmail({ clientName, trainerName, sessionDate, duration, location, hoursUntil }) {
   const siteUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com';
-  const cn = esc(clientName), tn = esc(trainerName), sd = esc(sessionDate), loc = esc(location);
+  const cn = escapeHtml(clientName), tn = escapeHtml(trainerName), sd = escapeHtml(sessionDate), loc = escapeHtml(location);
   const urgency = hoursUntil <= 1 ? 'Starting Soon' : `In ${hoursUntil} Hours`;
 
   return galaxySwanEmail({
@@ -290,7 +287,7 @@ export function sessionReminderEmail({ clientName, trainerName, sessionDate, dur
 
 export function trainerSessionNotificationEmail({ trainerName, clientName, sessionDate, duration, location, eventType }) {
   const siteUrl = process.env.FRONTEND_URL || 'https://sswanstudios.com';
-  const tn = esc(trainerName), cn = esc(clientName), sd = esc(sessionDate), loc = esc(location);
+  const tn = escapeHtml(trainerName), cn = escapeHtml(clientName), sd = escapeHtml(sessionDate), loc = escapeHtml(location);
   const headings = {
     booked: 'New Session Assigned',
     cancelled: 'Session Cancelled',
@@ -302,7 +299,7 @@ export function trainerSessionNotificationEmail({ trainerName, clientName, sessi
     heading: headings[eventType] || 'Session Update',
     body: `
       <p style="color:${COLORS.stellarWhite};margin:0 0 8px">Hi ${tn},</p>
-      <p>A session with <strong style="color:${COLORS.stellarWhite}">${cn}</strong> has been ${esc(eventType)}.</p>
+      <p>A session with <strong style="color:${COLORS.stellarWhite}">${cn}</strong> has been ${escapeHtml(eventType)}.</p>
       ${sessionInfoCard([
         { label: 'Client', value: cn },
         { label: 'Date', value: sd },
