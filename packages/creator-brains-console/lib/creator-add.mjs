@@ -64,10 +64,27 @@
  * shutting down mid-write would lose the very result the operator is waiting on —
  * and it is bounded by CREATE_TIMEOUT_MS.
  *
+ * ── WHY THE DEADLINE COVERS THE RESOLVE AND NOT THE COMMIT (F04) ────────────
+ *
+ * The deadline exists to stop a worker wedged in a 180 s subprocess. It must NOT
+ * be able to stop a worker that owns the store. Astra r1 found the first version
+ * of this module doing exactly that: the worker called `addCreator`, which takes
+ * the store lock, and `finish()` terminates the worker — so a `terminate()` that
+ * landed between acquire and release left the lock on disk under this process's
+ * OWN pid (worker threads share it), which `acquireLock` will never reclaim.
+ * Permanent wedge, not contention.
+ *
+ * The split is therefore drawn at OWNERSHIP: the worker resolves and owns
+ * nothing, and the commit runs here on the main thread where no timer can
+ * preempt it. Killing the worker at any instant is now safe, and a timed-out add
+ * commits nothing — so a 500 means "nothing happened", which is the only
+ * honest reading of that status.
+ *
  * @module creator-brains-console/lib/creator-add
  */
 
 import { MessageChannel, Worker } from 'node:worker_threads';
+import { commitResolvedCreator } from '../../../scripts/creator-brains/lib/registry.mjs';
 
 /**
  * How long a started create-worker may stay silent before it is declared failed.
@@ -91,13 +108,35 @@ export function __resetCreateWorkerUrl() { workerUrl = new URL('./creator-add.wo
 let epoch = 0;
 
 /**
- * Run `addCreator` on a worker and resolve with its structured result.
+ * Turn the worker's RESOLVE envelope into the engine's add result, by committing
+ * it here on the main thread (F04).
+ *
+ * The worker answers with `{ok:true, ref, resolved}` or a refusal. A refusal is
+ * already the engine's own shape and passes through untouched; a success is
+ * handed to `commitResolvedCreator`, which validates the payload again — it
+ * arrived over a thread boundary, so its shape is re-established rather than
+ * trusted — and takes the store lock.
+ *
+ * The two-step shape is the whole point: a worker killed by the deadline has
+ * resolved at most, so a timed-out add commits NOTHING. Before this, the worker
+ * held the lock and a timeout could strand it.
+ */
+function settleCreate(value, r) {
+  if (!value || value.ok !== true) {
+    return value || { ok: false, reason: 'the resolver worker answered with no result' };
+  }
+  return commitResolvedCreator({ r, ref: value.ref, resolved: value.resolved });
+}
+
+/**
+ * Run the engine's RESOLUTION on a worker, then commit on the main thread.
  *
  * RESOLVES with `{ ok: true, creator }` or `{ ok: false, reason }` — the engine's
- * own shapes, passed through unchanged so `addCreatorRow` needs no translation.
- * REJECTS only when the WORKER failed (start/exit/timeout), because that is a
- * different fact from "the engine refused this ref": the first is a 500, the
- * second is a 422 carrying the engine's sentence.
+ * own shapes, so `addCreatorRow` needs no translation. REJECTS only when the
+ * WORKER failed (start/exit/timeout), because that is a different fact from "the
+ * engine refused this ref": the first is a 500, the second is a 422 carrying the
+ * engine's sentence. A rejection means nothing was committed, which is why the
+ * commit is not the worker's to do.
  *
  * @param {string} ref  the raw ref, already validated by the caller
  * @param {string} r    the store root
@@ -179,7 +218,21 @@ export function addCreatorOffLoop(ref, r, { timeoutMs = CREATE_TIMEOUT_MS } = {}
     // adding one would be dead code that looks like a second delivery route.
     port1.on('message', (msg) => {
       if (!msg || msg.epoch !== myEpoch) return; // a retired epoch's answer
-      finish(resolve, msg.value);
+      // THE COMMIT HAPPENS HERE, ON A THREAD NOTHING TERMINATES (F04).
+      //
+      // `finish()` terminates the worker, so a lock taken on the worker could be
+      // stranded mid-acquire by the deadline — permanently, since worker threads
+      // share this process's pid and a live-looking owner is never reclaimed.
+      // The worker therefore only resolves; the store is taken here, after the
+      // terminable thread is done, in a synchronous critical section the timer
+      // cannot interrupt (JS cannot preempt it mid-call, and `finish` below
+      // clears the timer on the same tick).
+      //
+      // THIS IS A SYNCHRONOUS WRITE ON THE BRIDGE, which is a real cost and a
+      // deliberate one: it is a read plus an atomic write of a small JSON file —
+      // not the 1577 ms `execFileSync` this module exists to get off the loop —
+      // and the PATCH path already pays exactly the same cost via `setEnabled`.
+      finish(resolve, settleCreate(msg.value, r));
     });
 
     // Send the request AFTER the handlers are attached. The worker cannot answer

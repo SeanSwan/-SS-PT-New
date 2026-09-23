@@ -36,8 +36,14 @@ import {
 } from './oauth.mjs';
 import { listSubscriptionsWithRefresh } from './subscriptions.mjs';
 import {
-  readRegistry, registryOrDefault, isDamaged, describeRead, saveRegistry, upsertCreator,
+  readRegistry, isDamaged, describeRead,
 } from './store.mjs';
+// F01: the catalog write moved to `subs-apply.mjs` (a Rule 4 seam extraction —
+// this file hit 303 lines and Rule 4 says extract, not line-golf). The commit
+// there takes the store lock and re-reads under it. `applySnapshot` is
+// re-exported so its existing importers do not have to move.
+import { commitSnapshot } from './subs-apply.mjs';
+export { applySnapshot } from './subs-apply.mjs';
 
 export { defaultCredentialPath, defaultTokenPath, oauthDir };
 
@@ -77,48 +83,9 @@ export function inspectCredential(path) {
   }
 }
 
-/**
- * Apply a subscription snapshot to the registry.
- *
- * THE COMPLETENESS GATE: `snapshot.complete` must be true before any creator is
- * marked unsubscribed. A partial snapshot updates what it has and leaves
- * lifecycle alone.
- */
-export function applySnapshot(reg, snapshot, { now = Date.now() } = {}) {
-  const subs = Array.isArray(snapshot.rows) ? snapshot.rows : [];
-  const seen = new Set();
-  let added = 0;
-  let refreshed = 0;
-
-  for (const s of subs) {
-    if (!s || !/^UC[A-Za-z0-9_-]{22}$/.test(String(s.channelId || ''))) continue;
-    seen.add(s.channelId);
-    const existing = reg.creators[s.channelId];
-    const creator = upsertCreator(reg, {
-      channelId: s.channelId,
-      title: s.title || s.channelId,
-      lifecycle: 'subscribed',
-      lastSyncAt: new Date(now).toISOString(),
-    }, { now });
-    // Never auto-enable, and never resurrect a channel the owner disabled.
-    if (!existing) creator.enabled = false;
-    if (existing) refreshed += 1; else added += 1;
-  }
-
-  let markedUnsubscribed = 0;
-  if (snapshot.complete === true) {
-    for (const c of Object.values(reg.creators)) {
-      if (c.lifecycle === 'subscribed' && !seen.has(c.channelId)) {
-        c.lifecycle = 'unsubscribed'; // marked, NOT deleted
-        markedUnsubscribed += 1;
-      }
-    }
-  }
-
-  return {
-    added, refreshed, markedUnsubscribed, complete: snapshot.complete === true,
-  };
-}
+// `applySnapshot` moved to `subs-apply.mjs` and is re-exported above. It lives
+// beside `commitSnapshot` because the two are one idea: a snapshot is applied to
+// the catalog, and it is applied under the store lock.
 
 /** A blocked result, so the shape is identical on every refusal path. */
 function blocked(reason, message, extra = {}) {
@@ -249,10 +216,13 @@ export async function syncSubscriptions({
     },
   });
 
-  const reg = registryOrDefault(registryRead);
-  const applied = applySnapshot(reg, snapshot, { now: clock() });
-  // Even a partial snapshot's ROWS are worth keeping; only lifecycle is gated.
-  saveRegistry(reg, r);
+  // THE COMMIT — the lock, the fresh re-read and the write live in
+  // `subs-apply.mjs`. The pre-flight `registryRead` above is deliberately NOT
+  // reused: reusing it would leave the lost update in place while appearing to
+  // hold a lock, which is the defect F01 reported.
+  const commit = await commitSnapshot({ r, snapshot, now: clock() });
+  if (!commit.ok) return blocked(commit.reason, commit.message);
+  const { applied } = commit;
 
   return {
     ok: snapshot.complete === true,

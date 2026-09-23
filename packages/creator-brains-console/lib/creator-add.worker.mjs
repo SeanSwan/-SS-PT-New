@@ -1,16 +1,15 @@
 /**
  * ============================================================================
  * FILE: packages/creator-brains-console/lib/creator-add.worker.mjs
- * PURPOSE: Run the engine's BLOCKING add-creator resolution OFF the bridge's
- *          event loop (S1-H12).
+ * PURPOSE: Run the engine's BLOCKING add-creator RESOLUTION off the bridge's
+ *          event loop (S1-H12), and nothing else (F04).
  * PART OF: Creator Brains Console (S1-H12; unblocks slice S2)
  * ============================================================================
  *
  * WHY THIS THREAD EXISTS. `POST /api/creators` resolves a ref to a channel id
  * through the engine, and the engine's resolution path is SYNCHRONOUS:
- * `lib/registry.mjs:112` calls the resolver without awaiting, and the default
- * resolver runs `execFileSync` via `runCaptured` (`lib/ytdlp.mjs:184`). The
- * engine's own timeout ceiling is 180 s.
+ * `registry-resolve.mjs`'s `defaultResolveCreator` runs `execFileSync` via
+ * `runCaptured` (`lib/ytdlp.mjs:184`). The engine's own timeout ceiling is 180 s.
  *
  * MEASURED 2026-09-20 on the S1 build (16-s1-hostile-review.md, S1-H12), with a
  * 10 ms tick counter against an idle baseline of ~64 ticks/s:
@@ -24,6 +23,23 @@
  * as "the console is broken". That is why this is the S2 gate rather than a
  * known cost: the Roster's add button cannot ship on top of it.
  *
+ * ── WHY THIS THREAD RESOLVES ONLY, AND DOES NOT COMMIT (F04, Astra r1) ──────
+ *
+ * This thread is TERMINABLE. `creator-add.mjs` kills it when a 60 s deadline
+ * expires, which is correct for a thread stuck in a subprocess — but it makes
+ * anything this thread OWNS unsafe to hold. The F01/F03 fix had it call
+ * `addCreator`, which takes the store lock, and that was a defect: if
+ * `terminate()` landed in the millisecond between acquire and release, the lock
+ * stayed on disk. Worker threads share `process.pid`, so the surviving bridge
+ * looks like a LIVE owner and `acquireLock` refuses to reclaim it — the store
+ * wedges for every later writer, the daily run included.
+ *
+ * So the split is by KILLABILITY, not by speed: the slow half (this one) holds
+ * nothing, and the half that owns the store runs on the main thread, which
+ * nothing terminates. `resolveCreatorRef` takes no lock and writes no file, so
+ * killing this thread at ANY instant is safe — and a timed-out add now commits
+ * nothing at all, which is the only honest reading of a 500.
+ *
  * ── WHY A WORKER RATHER THAN AN ENGINE PATCH ────────────────────────────────
  *
  * The engine is ADDITIVE-ONLY; `addCreator` must keep its current synchronous
@@ -34,21 +50,22 @@
  *
  * ── WHAT THIS WORKER IS GIVEN, AND WHAT IT IS NOT ───────────────────────────
  *
- * The worker receives a REF and a STORE ROOT, and calls `addCreator` itself. It
- * does NOT receive `deps`, so it always uses the engine's real resolver. That is
- * deliberate: the `deps` seam exists so the TEST SUITE can inject a resolver, and
- * a worker that honoured an injected `deps` would let a caller supply arbitrary
- * code to execute on a thread — a seam that is harmless in-process becomes an
- * execution path once it crosses a thread boundary with serialised payloads.
- * The main thread therefore uses this worker ONLY when no `deps` is supplied, and
- * falls back to in-process `addCreator` when one is (a test seam, where blocking
- * is not a concern because the injected resolver does not shell out).
+ * The worker receives a REF and a STORE ROOT, and calls `resolveCreatorRef`
+ * itself. It does NOT receive `deps`, so it always uses the engine's real
+ * resolver. That is deliberate: the `deps` seam exists so the TEST SUITE can
+ * inject a resolver, and a worker that honoured an injected `deps` would let a
+ * caller supply arbitrary code to execute on a thread — a seam that is harmless
+ * in-process becomes an execution path once it crosses a thread boundary with
+ * serialised payloads. The main thread therefore uses this worker ONLY when no
+ * `deps` is supplied, and falls back to in-process `addCreator` when one is (a
+ * test seam, where blocking is not a concern because the injected resolver does
+ * not shell out).
  *
  * @module creator-brains-console/lib/creator-add.worker
  */
 
 import { workerData } from 'node:worker_threads';
-import { addCreator } from '../../../scripts/creator-brains/lib/registry.mjs';
+import { resolveCreatorRef } from '../../../scripts/creator-brains/lib/registry-resolve.mjs';
 
 const port = workerData.port;
 
@@ -56,12 +73,12 @@ port.on('message', async (msg) => {
   if (!msg || msg.go !== true) return;
 
   // A STRUCTURED RESULT, NEVER A THROW (the same discipline the engine's own
-  // `addCreator` uses). The main thread is awaiting this message; a throw here
-  // would arrive as a worker 'error' event and lose the reason string that the
-  // console is supposed to surface verbatim as its 422.
+  // `resolveCreatorRef` uses). The main thread is awaiting this message; a throw
+  // here would arrive as a worker 'error' event and lose the reason string that
+  // the console is supposed to surface verbatim as its 422.
   let value;
   try {
-    value = await addCreator({ ref: msg.ref, r: msg.r });
+    value = resolveCreatorRef({ ref: msg.ref, r: msg.r });
   } catch (e) {
     value = { ok: false, reason: `the resolver threw: ${e.message}` };
   }

@@ -136,7 +136,13 @@ export async function addCreatorRow(ref, { r, deps = {} } = {}) {
     res = await addCreator({ ref: value, r, deps });
   }
 
-  if (!res.ok) throw new ApiError(CODE.REFUSED, res.reason);
+  if (!res.ok) {
+    // `locked` is the engine saying it NEVER ATTEMPTED the write because another
+    // writer owns the store. That is a 409, not a 422: a 422 would tell the
+    // operator the engine considered this ref and declined it, which would send
+    // them looking at their ref when the truth is that the store was busy.
+    throw new ApiError(res.locked ? CODE.RUN_LOCKED : CODE.REFUSED, res.reason);
+  }
   const c = res.creator;
 
   // The registry write has already committed by this line. Everything below must
@@ -187,7 +193,9 @@ export function setCreatorEnabled(channelId, enabled, { r }) {
   try {
     c = setEnabled(r, id, enabled === true);
   } catch (e) {
-    throw new ApiError(CODE.REFUSED, e.message);
+    // Same distinction as `addCreatorRow`: a held store means the write was
+    // never attempted, so 409 — not the 422 that means "the engine declined".
+    throw new ApiError(e && e.locked ? CODE.RUN_LOCKED : CODE.REFUSED, e.message);
   }
 
   // THE WRITE HAS ALREADY COMMITTED AT THIS LINE (S1-H9). Every statement below
