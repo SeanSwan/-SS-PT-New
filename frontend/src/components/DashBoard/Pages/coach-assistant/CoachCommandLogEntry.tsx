@@ -7,6 +7,7 @@
  * raw packet available for audit without turning the console into one text blob.
  */
 import { useState } from 'react';
+import { nameClientTokens, useCoachClientNames } from './coachClientNames';
 import CoachActionProposalCard from './CoachActionProposalCard';
 import { ExecutionResultCard } from './CoachCommandCards';
 import ConfirmationSheet from '../../../CoachConfirm/ConfirmationSheet';
@@ -79,19 +80,24 @@ function CoachCommandLogEntry({
 }: CoachCommandLogEntryProps) {
   const [copied, setCopied] = useState(false);
   const [acknowledgedConfirmationId, setAcknowledgedConfirmationId] = useState<string | null>(null);
+  const clientNames = useCoachClientNames();
   const handleCopy = () => {
-    void navigator.clipboard?.writeText(entry.body).then(() => {
+    void navigator.clipboard?.writeText(nameClientTokens(entry.body, clientNames)).then(() => {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     }).catch(() => undefined);
   };
-  const formatted = formatCommandLogBody(entry.body);
+  // Names on screen only: the ID-only body is what the logger hand-off and
+  // read-aloud receive, because both can leave the browser (coachClientNames.tsx).
+  const formatted = formatCommandLogBody(nameClientTokens(entry.body, clientNames));
+  const rawFormatted = formatCommandLogBody(entry.body);
   const [activeVariant, setActiveVariant] = useState<LogStyleVariantKey>('science');
   const selectedVariant = formatted.variants?.find((variant) => variant.key === activeVariant) || formatted.variants?.[0];
   const visibleBody = selectedVariant?.body || formatted;
+  const rawVariant = rawFormatted.variants?.find((variant) => variant.key === selectedVariant?.key) || rawFormatted.variants?.[0];
   const loggerRoute = workoutLoggerRoute || null;
   const loggerHandoff = entry.actor === 'coach' && loggerRoute
-    ? buildCoachWorkoutLoggerHandoff(visibleBody)
+    ? buildCoachWorkoutLoggerHandoff(rawVariant?.body || rawFormatted)
     : null;
   const confirmation = entry.commandConfirmation;
   const accessHandoff = entry.accessHandoff ?? buildCommandResultAccessHandoff(entry.commandResult);

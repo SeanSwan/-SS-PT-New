@@ -202,3 +202,25 @@ test('More coach tools is a real modal: focus stays in, the workspace behind is 
   await expect(more).toBeFocused();
   expect(await page.evaluate(() => (document.querySelector('[data-coach-workspace="v4"]') as HTMLElement & { inert?: boolean }).inert)).toBe(false);
 });
+
+test('names on screen, IDs to the coach: a reply about Client #12 reads "Avery Stone"', async ({ page }) => {
+  const composer = await open(page, 1440, 900);
+  const sent: string[] = [];
+  await page.route(/\/api\/ai-chat\/conversations\/\d+\/messages$/, (route) => {
+    const body = route.request().postDataJSON() as { message?: string };
+    sent.push(String(body?.message ?? ''));
+    const now = new Date().toISOString();
+    const id = Number(/conversations\/(\d+)\/messages/.exec(route.request().url())?.[1]);
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, conversationId: id, messageCount: 2,
+      userMessage: { role: 'user', content: 'x', timestamp: now },
+      assistantMessage: { role: 'assistant', content: "Client #12's last workout was Tuesday: squat 155 × 5.", timestamp: now } }) });
+  });
+  await composer.fill("What was Avery's last workout?");
+  await composer.press('Enter');
+  const transcript = page.getByTestId('ws-transcript');
+  await expect(transcript.getByText("Avery Stone's last workout was Tuesday", { exact: false })).toBeVisible();
+  await expect(transcript.getByText('Client #12')).toHaveCount(0);
+  // The browser sends what the trainer typed; the SERVER swaps names for IDs before any model call.
+  expect(sent[0]).toContain("Avery's last workout");
+});
+

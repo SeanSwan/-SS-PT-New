@@ -11,6 +11,7 @@ import { ArrowDown, CalendarClock, Dumbbell, Feather, Sparkles, UserRound } from
 import { ConversationRoot, EmptyState, Thinking } from './CoachWorkspace.conversation.styles';
 import { dayDividerIds } from '../coach-assistant/coachTranscriptDays';
 import TurnEntry from './TurnEntry';
+import { nameClientTokens, useCoachClientNames } from '../coach-assistant/coachClientNames';
 import WorkspaceComposer from './WorkspaceComposer';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 
@@ -32,6 +33,7 @@ const CLIENT_STARTERS: Starter[] = [
 ];
 
 const ConversationColumn: React.FC<Props> = ({ model }) => {
+  const clientNames = useCoachClientNames();
   const { controller, isClientMode } = model;
   const scrollRef = useRef<HTMLDivElement>(null);
   const nearBottomRef = useRef(true);
@@ -96,7 +98,7 @@ const ConversationColumn: React.FC<Props> = ({ model }) => {
     <ConversationRoot aria-label="Conversation with Swan Coach">
       {latest ? (
         <div className="ws-live" aria-live="polite" aria-atomic="true">
-          {`${latest.actor === 'coach' ? 'Swan Coach' : latest.actor === 'operator' ? 'You' : latest.label}: ${latest.body.replace(/\s+/g, ' ').slice(0, 320)}`}
+          {`${latest.actor === 'coach' ? 'Swan Coach' : latest.actor === 'operator' ? 'You' : latest.label}: ${nameClientTokens(latest.body, clientNames).replace(/\s+/g, ' ').slice(0, 320)}`}
         </div>
       ) : null}
       <div className="ws-scroll" ref={scrollRef} onScroll={onScroll} data-testid="ws-transcript">

@@ -23,6 +23,7 @@ import InspectorPanel from './InspectorPanel';
 import WorkspaceOpsDrawer from './WorkspaceOpsDrawer';
 import CoachSelectionDecisionGate from '../coach-assistant/CoachSelectionDecision';
 import { useCoachWorkspaceModel } from './useCoachWorkspaceModel';
+import { CoachClientNamesProvider } from '../coach-assistant/coachClientNames';
 
 const CoachWorkspacePage: React.FC = () => {
   const model = useCoachWorkspaceModel();
@@ -30,6 +31,8 @@ const CoachWorkspacePage: React.FC = () => {
 
   return (
     <CoachWorkspaceLensFrame>
+      {/* Names on screen, IDs to the coach: the roster joins names back on (coachClientNames.tsx). */}
+      <CoachClientNamesProvider clients={controller.clientPin.clients}>
       <WorkspaceShell ref={controller.shellRef} data-coach-workspace="v4" {...panels.shellAttributes}>
         <WorkspaceHeader model={model} />
         <ThreadSidebar model={model} />
@@ -40,6 +43,7 @@ const CoachWorkspacePage: React.FC = () => {
         <button type="button" className="ws-scrim" aria-label="Close panel" tabIndex={-1} onClick={panels.closeSheets} />
       </WorkspaceShell>
       <WorkspaceOpsDrawer model={model} />
+      </CoachClientNamesProvider>
       {/* Plan 55 §3 C3 — the dirty cross-target decision; the private surface stays masked until acknowledged. */}
       <CoachSelectionDecisionGate selection={controller.selection} currentLabel={controller.selectedClientLabel} />
     </CoachWorkspaceLensFrame>

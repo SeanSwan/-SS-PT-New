@@ -16,6 +16,7 @@ import CoachCommandLogEntry from '../coach-assistant/CoachCommandLogEntry';
 import type { CommandLogEntry } from '../coach-assistant/CoachCommandCenter.data';
 import type { CoachCommandLogEntryProps } from '../coach-assistant/CoachCommandLogEntry.types';
 import { Notice, Turn } from './CoachWorkspace.conversation.styles';
+import { nameClientTokens, useCoachClientNames } from '../coach-assistant/coachClientNames';
 
 type Handlers = Omit<CoachCommandLogEntryProps, 'entry' | 'presentation'>;
 type Props = Handlers & { entry: CommandLogEntry };
@@ -39,6 +40,7 @@ function timeOf(at?: string): string | null {
 
 const TurnEntry: React.FC<Props> = ({ entry, ...handlers }) => {
   const kind = turnKind(entry);
+  const clientNames = useCoachClientNames();
   const time = timeOf(entry.at);
 
   if (kind === 'user') {
@@ -58,7 +60,7 @@ const TurnEntry: React.FC<Props> = ({ entry, ...handlers }) => {
         {warn ? <AlertTriangle size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}
         <div className="ws-notice-body">
           <span className="ws-notice-title">{entry.label}</span>
-          {entry.body ? <span>{entry.body}</span> : null}
+          {entry.body ? <span>{nameClientTokens(entry.body, clientNames)}</span> : null}
           {entry.attachments?.length ? (
             <span className="ws-chips">
               {entry.attachments.map((chip) => <span className="ws-chip" key={chip}>{chip}</span>)}

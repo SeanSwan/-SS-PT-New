@@ -10,6 +10,7 @@ import CoachCommandLeftRail from './CoachCommandLeftRail';
 import CoachCommandOpsSurface from './CoachCommandOpsSurface';
 import CoachCommandTabBar, { type CoachTab } from './CoachCommandTabBar';
 import CoachSelectionDecisionGate from './CoachSelectionDecision';
+import { CoachClientNamesProvider } from './coachClientNames';
 import CoachCommandCenterReviewPanel from './CoachCommandCenterReviewPanelLazy';
 import CoachConsoleDock from './CoachConsoleDock';
 import CoachIntentBar from '../../../CoachIntentBar/CoachIntentBar';
@@ -137,7 +138,7 @@ const CoachCommandCenterPage: React.FC = () => {
       data-console-root
       data-voice-state={resolveCoachPresenceState(commandCenter)}
     >
-      <ConsoleAtmosphere />
+      <CoachClientNamesProvider clients={commandCenter.clientPin.clients}><ConsoleAtmosphere />
       <div className={`bridge-shell ${activeTab === 'talk' ? 'is-chat-tab' : 'is-workspace-tab'}`}>
         <CoachClientBar
           selectedClientLabel={selectedDisplayLabel}
@@ -290,7 +291,7 @@ const CoachCommandCenterPage: React.FC = () => {
       </div>
       {/* Plan 55 §3 C3 — the dirty cross-target decision. The private surface
           behind it stays masked until the admitted commit is acknowledged. */}
-      <CoachSelectionDecisionGate selection={commandCenter.selection} currentLabel={commandCenter.selectedClientLabel} />
+      <CoachSelectionDecisionGate selection={commandCenter.selection} currentLabel={commandCenter.selectedClientLabel} /></CoachClientNamesProvider>
     </CommandBridgeShell>
   );
 };
