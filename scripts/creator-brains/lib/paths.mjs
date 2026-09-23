@@ -130,15 +130,80 @@ export function readJsonStrict(p) {
  * to separate two writers sharing a temp path. pid + random keeps them apart;
  * the rename stays the atomic publication step.
  *
+ * E1 (2026-09-22), THE HALF THIS HR14 COMMENT DID NOT COVER: atomic FOR READERS
+ * is not atomic FOR WRITERS. On Windows the second cross-process `renameSync`
+ * onto one destination can fail EPERM while the first is landing — measured
+ * 7-14% at 4x150, serialized control 0/1800, and the shipped journal hit it at
+ * ~1-in-120 real runs (captured at this file's renameSync <- run.mjs:118).
+ * "The rename stays the atomic publication step" was true and insufficient:
+ * publication now RETRIES a momentarily-held destination for a bounded ~92 ms
+ * (renameWithRetry below) and still fails loudly after the budget. The reader
+ * guarantee is untouched: every attempt is one atomic rename, so a reader sees
+ * the old file or the new one, never a missing or mixed one.
+ *
  * The temp file is also removed on failure, so a full disk or a throw does not
  * litter the store with half-written candidates.
  */
+/** Retryable TRANSIENT fs failures: the target is MOMENTARILY held by another
+ *  process (Windows cross-process contention, E1) — shared by the rename
+ *  publish below and by `lock.mjs`'s release unlink. Anything else (ENOENT,
+ *  EIO, …) is a real error and must surface at once. */
+const TRANSIENT_RETRYABLE = new Set(['EPERM', 'EBUSY', 'EACCES']);
+const TRANSIENT_BACKOFF_MS = [2, 5, 10, 25, 50]; // 6 attempts, ~92 ms worst case
+
+/** Park the thread without a child process. The API is synchronous, so a retry
+ *  cannot yield to the event loop; Atomics.wait is the stdlib way to sleep
+ *  synchronously (works on Node's main thread). */
+export function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * Run `op` until it succeeds, retrying only TRANSIENT codes (E1's lesson).
+ *
+ * Shared deliberately: two sites that used to swallow a transient Windows
+ * contention failure — the rename publish (below) and the lock release — now
+ * read ONE policy, so a third site cannot quietly reinvent a narrower one.
+ * After the budget the failure is REAL and is rethrown: the retry adds
+ * tolerance, never a lie.
+ */
+export function retryTransientSync(op, { backoffMs = TRANSIENT_BACKOFF_MS, retryable = TRANSIENT_RETRYABLE } = {}) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return op();
+    } catch (e) {
+      const code = e && e.code;
+      if (!retryable.has(code) || attempt >= backoffMs.length) throw e;
+      sleepSync(backoffMs[attempt]);
+    }
+  }
+}
+
+/**
+ * `renameSync` with a BOUNDED retry on transient contention (E1).
+ *
+ * MEASURED (2026-09-22): two processes renaming onto ONE destination on
+ * Windows is not atomic — 4 processes x 150 publishes lost 7-14% of renames
+ * to EPERM with a serialized control at 0/1800, and the shipped path was
+ * reached at ~1-in-120 real runs (`EPERM at paths.mjs:141 <- run.mjs:118`).
+ * The destination is held only for the microseconds of the winning process's
+ * own rename, so a short backoff clears it.
+ *
+ * WHY A RETRY AND NOT unlink-then-rename: every attempt is still one atomic
+ * rename, so a reader sees the old file or the new file and NEVER a missing
+ * one. Unlink-first would open a window with no destination at all — weaker
+ * crash-safety to fix a liveness bug, which is the wrong trade for a journal.
+ */
+function renameWithRetry(tmp, p) {
+  return retryTransientSync(() => renameSync(tmp, p));
+}
+
 export function writeTextAtomic(p, text) {
   ensureDir(dirname(p));
   const tmp = `${p}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
   try {
     writeFileSync(tmp, text, 'utf-8');
-    renameSync(tmp, p);
+    renameWithRetry(tmp, p);
   } catch (e) {
     try { rmSync(tmp, { force: true }); } catch { /* best effort */ }
     throw e;
