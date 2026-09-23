@@ -202,9 +202,15 @@ export function useRequestCoachRouteSelection(
   const target = candidate.targetUserId;
   const thread = candidate.conversationId;
   useEffect(() => {
-    if (lastKeyRef.current === observationKey) return;
+    if (lastKeyRef.current === observationKey) return undefined;
     lastKeyRef.current = observationKey;
     void requestRef.current({ targetUserId: target, conversationId: thread, origin: 'route' });
+    // The adapter ABORTS its in-flight admission on unmount (useCoachSessionSelectionState).
+    // A remount of the same instance — React StrictMode's dev replay, a Suspense
+    // re-show, a fast-refresh — therefore needs a FRESH request. Without this reset
+    // the replayed effect saw the same key, issued nothing, and the aborted first
+    // request left the staff surface 'unavailable' with sends silently dropped (C2).
+    return () => { lastKeyRef.current = null; };
   }, [observationKey, target, thread]);
 }
 

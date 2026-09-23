@@ -44,6 +44,15 @@ async function mockCoachApi(page: Page) {
       return fulfillJson(route, { success: true, user: adminUser });
     }
     if (endpoint === '/api/auth/clients') return fulfillJson(route, { success: true, clients: [] });
+    // Plan 55 admission receipt (the real server contract, aiChatRoutes.mjs GET /target-access):
+    // the staff surface stays masked until this read admits the unscoped scope. The mock
+    // predated plan 55, which is why this spec went red on the coach lineage.
+    if (endpoint === '/api/ai-chat/target-access') {
+      return fulfillJson(route, {
+        success: true,
+        access: { scope: 'coach_target_read', actorUserId: adminUser.id, actorRole: adminUser.role, targetUserId: null, conversationId: null },
+      });
+    }
     if (endpoint === '/api/subscriptions/status') {
       return fulfillJson(route, {
         success: true,
@@ -62,6 +71,7 @@ async function mockCoachApi(page: Page) {
           title: 'QA thread',
           context: 'coach_assistant',
           role: 'admin',
+          targetUserId: null,
           status: 'active',
           messageCount: 0,
           createdAt: new Date().toISOString(),
@@ -75,6 +85,7 @@ async function mockCoachApi(page: Page) {
         success: true,
         userMessage: { role: 'user', content: 'hello', timestamp: now },
         assistantMessage: { role: 'assistant', content: COACH_REPLY, timestamp: now },
+        conversationId: 501, // the real route returns it (aiChatRoutes.mjs); useAIChat.validExchange requires it
         messageCount: 2,
       });
     }

@@ -23,6 +23,7 @@ import type {
   CoachSelectionPhase,
   CoachSelectionReason,
 } from './coachSelectionContract';
+import { decideCreatedThreadAdoption } from './coachCreatedThreadAdoption';
 
 export type AdapterState = {
   /** The actor epoch that produced every other field. A change MASKS at once. */
@@ -143,6 +144,18 @@ export function useCoachSessionSelectionState(params: {
       if (snapshotActorKeyRef.current !== actor.actorKey) return null;
       if (snapshot.actorId !== actor.actorNumber || snapshot.rawRole !== actor.rawRole) return null;
       return snapshot;
+    },
+    // Brain-v4 P0.2 (C2): without an adopter `useAIChat` refuses every NEW bound
+    // conversation, so a staff operator could not start a chat. The decision is
+    // pure (coachCreatedThreadAdoption.ts); only an exact-scope match publishes.
+    adoptCreatedThread: async ({ captured, thread, signal }) => {
+      const decision = decideCreatedThreadAdoption({
+        live: snapshotRef.current, liveActorKey: snapshotActorKeyRef.current, actor: actorRef.current,
+        captured, thread, aborted: signal.aborted,
+      });
+      if (!decision.ok) return null;
+      snapshotRef.current = decision.snapshot;
+      return decision.snapshot;
     },
   }), []);
 
