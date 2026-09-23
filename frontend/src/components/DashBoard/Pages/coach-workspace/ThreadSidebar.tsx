@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { CalendarDays, Dumbbell, Inbox, MessageSquarePlus, Search, X } from 'lucide-react';
 import { SidebarRoot } from './CoachWorkspace.panels.styles';
 import { groupThreads, threadWhen } from './threadGroups';
+import { useStableThreadList } from './useStableThreadList';
 import { getConversationTitle } from '../coach-assistant/CoachCommandCenter.logic';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 
@@ -20,8 +21,11 @@ type Props = { model: CoachWorkspaceModel };
 
 const ThreadSidebar: React.FC<Props> = ({ model }) => {
   const { controller, panels, isClientMode } = model;
-  const groups = useMemo(() => groupThreads(controller.coachThreads), [controller.coachThreads]);
   const searching = controller.threadSearch.trim().length > 0;
+  const actorKey = model.user ? `${model.user.id}:${model.user.role}` : null;
+  const list = useStableThreadList(controller.coachThreads, actorKey, searching);
+  const groups = useMemo(() => groupThreads(list.threads), [list.threads]);
+  const settling = !['ready', 'retired'].includes(controller.selectionPhase);
 
   const pick = (thread: (typeof controller.coachThreads)[number]) => {
     controller.handleThreadSelect(thread);
@@ -55,7 +59,7 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
           aria-label="Search conversations"
         />
       </label>
-      <div className="ws-thread-list">
+      <div className="ws-thread-list" aria-busy={list.refreshing || undefined} data-refreshing={list.refreshing || undefined}>
         {groups.length ? groups.map((group) => (
           <section key={group.label} aria-label={group.label}>
             <h3 className="ws-group-label">{group.label}</h3>
@@ -79,7 +83,7 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
           </section>
         )) : (
           <p className="ws-side-empty">
-            {searching ? 'No conversation matches that search.' : 'No conversations yet. Anything you ask starts one.'}
+            {searching ? 'No conversation matches that search.' : settling ? 'Loading conversations…' : 'No conversations yet. Anything you ask starts one.'}
           </p>
         )}
       </div>
@@ -91,7 +95,7 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
           </button>
         ) : null}
         <Link className="ws-side-link" to={model.scheduleRoute}>
-          <CalendarDays size={16} aria-hidden="true" /> {model.userRole === 'admin' ? 'Master schedule' : 'Schedule'}
+          <CalendarDays size={16} aria-hidden="true" /> {model.scheduleRole === 'admin' ? 'Master schedule' : 'Schedule'}
         </Link>
         {model.workoutLoggerRoute ? (
           <Link className="ws-side-link" to={model.workoutLoggerRoute}>

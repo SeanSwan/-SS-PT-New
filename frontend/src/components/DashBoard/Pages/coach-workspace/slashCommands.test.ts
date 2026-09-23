@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSlashItems, commandAliases, pickedPrefix, slashQuery } from './slashCommands';
+import { buildSlashItems, commandAliases, pickableExample, slashQuery } from './slashCommands';
 
 const catalog = [
   { type: 'brief_my_day', description: 'Day sheet', group: 'G' },
@@ -46,16 +46,18 @@ describe('slash commands', () => {
   });
 });
 
-describe('pickedPrefix (review #11)', () => {
-  it('cuts a templated prompt at its first slot', () => {
-    expect(pickedPrefix('Log {client} workout: {exercise}')).toBe('Log');
-    expect(pickedPrefix('Brief me on {client} before today')).toBe('Brief me on');
+// RE-ANCHORED (round-2 review #1): the pickedPrefix tests asserted that a
+// templated pick survives the operator filling its slot — which runs the
+// command on the PINNED client, whatever name was typed.
+describe('pickableExample', () => {
+  it('a slot-free example keeps its type only as the exact prompt', () => {
+    expect(pickableExample("  Day sheet — today's sessions ")).toBe("Day sheet — today's sessions");
   });
-  it('keeps the first 16 characters of a fixed prompt', () => {
-    expect(pickedPrefix("Day sheet — today's sessions")).toBe("Day sheet — toda");
+  it('a templated example never carries its type (the classifier must read the slot)', () => {
+    expect(pickableExample("show {client}'s billing")).toBeNull();
+    expect(pickableExample('Log {client} workout: {exercise}')).toBeNull();
   });
-  it('CONTROL: a prompt that starts with a slot has no usable prefix', () => {
-    expect(pickedPrefix('{client} progress')).toBeNull();
-    expect(pickedPrefix('Go {x}')).toBeNull();
+  it('CONTROL: an empty prompt has nothing to pick', () => {
+    expect(pickableExample('   ')).toBeNull();
   });
 });

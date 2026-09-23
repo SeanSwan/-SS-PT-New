@@ -109,11 +109,11 @@ const ConversationColumn: React.FC<Props> = ({ model }) => {
               </React.Fragment>
             ))}
             {busy ? (
-              <Thinking role="status"><i /><i /><i /> Swan Coach is thinking…</Thinking>
+              <Thinking><i /><i /><i /> Swan Coach is thinking…</Thinking>
             ) : null}
           </div>
         ) : controller.chatLoading ? (
-          <div className="ws-thread"><Thinking role="status"><i /><i /><i /> Loading conversation…</Thinking></div>
+          <div className="ws-thread"><Thinking><i /><i /><i /> Loading conversation…</Thinking></div>
         ) : (
           <EmptyState>
             <span className="ws-empty-mark"><Feather size={24} aria-hidden="true" /></span>
@@ -133,7 +133,7 @@ const ConversationColumn: React.FC<Props> = ({ model }) => {
                 </button>
               ))}
             </div>
-            {model.nextActionLabel ? <span className="ws-safe" role="status">Next: {model.nextActionLabel}</span> : null}
+            {model.nextActionLabel ? <span className="ws-safe">Next: {model.nextActionLabel}</span> : null}
             <span className="ws-safe">Chats are saved. Some actions ask you to approve them first.</span>
           </EmptyState>
         )}

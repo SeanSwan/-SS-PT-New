@@ -7,6 +7,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  loadConversationMock,
   newChatMock,
   renderPage,
   resetCoachCommandCenterMocks,
@@ -48,6 +49,24 @@ describe('CoachCommandCenter pinned client', () => {
         'both',
       );
     });
+  });
+
+  it("switching client clears the previous client's conversation from the screen (round-2 review #2)", async () => {
+    sendMessageWithConversationMock.mockResolvedValueOnce({ role: 'assistant', content: 'Ava squat notes: keep the load.', timestamp: '2026-09-22T08:00:00.000Z' });
+    renderPage('/dashboard/admin/coach-assistant?clientId=41');
+    const composer = screen.getByPlaceholderText(/talk or type to swan coach/i);
+    fireEvent.change(composer, { target: { value: 'How did Ava squat this week?' } });
+    fireEvent.click(screen.getByRole('button', { name: /send to swan coach/i }));
+    await waitFor(() => expect(screen.getAllByText(/Ava squat notes: keep the load\./).length).toBeGreaterThan(0));
+
+    fireEvent.change(screen.getByRole('combobox', { name: /main client/i }), { target: { value: '52' } });
+    await waitFor(() => expect(screen.queryAllByText(/Ava squat notes: keep the load\./)).toHaveLength(0));
+    expect(screen.queryAllByText('How did Ava squat this week?')).toHaveLength(0);
+  });
+
+  it('a client (unbound surface) still lands on their newest thread — auto-select stays for clients (round-2 review)', async () => {
+    renderPage('/dashboard/client/coach-assistant', 'client');
+    await waitFor(() => expect(loadConversationMock).toHaveBeenCalledWith(101));
   });
 
   it('does not expose main-client controls in client self-service mode', () => {

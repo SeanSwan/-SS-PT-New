@@ -62,6 +62,23 @@ test('"No client (general)" really unpins a staff chat (the stale pin was restor
   await expect(scope).toHaveValue('');
 });
 
+test('a REFUSED "No client" leaves the chat usable on the old client (round-2 review #3)', async ({ page }) => {
+  const composer = await open(page, 1440, 900);
+  const scope = page.getByRole('combobox', { name: 'Client this chat is about' });
+  await scope.selectOption('12');
+  await expect.poll(() => new URL(page.url()).searchParams.get('clientId')).toBe('12');
+  await page.route('**/api/ai-chat/target-access**', (route) => (new URL(route.request().url()).searchParams.get('targetUserId')
+    ? route.fallback()
+    : route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ success: false, code: 'TARGET_ACCESS_DENIED', error: 'denied' }) })));
+  await scope.selectOption('');
+  // The clear is refused: the pin restore resumes instead of leaving a chat every send refuses.
+  await expect.poll(() => new URL(page.url()).searchParams.get('clientId'), { timeout: 10_000 }).toBe('12');
+  await expect(scope).toHaveValue('12');
+  await composer.fill('hello');
+  await composer.press('Enter');
+  await expect(page.getByTestId('ws-transcript').getByText(REPLY, { exact: false })).toBeVisible();
+});
+
 test('Ask on a slot whose client is not pinnable never preps inside another client\'s chat (review #8)', async ({ page }) => {
   const composer = await open(page, 1440, 900);
   const scope = page.getByRole('combobox', { name: 'Client this chat is about' });
@@ -126,6 +143,10 @@ test('threads: history on landing, pick a thread, New chat, and a SECOND chat st
   await expect(page.getByRole('heading', { name: /What do you need/ })).toBeVisible();
 
   await sidebar.getByRole('button', { name: /Leg day review/ }).click();
+  // Round-2 #5: re-admission must not blank the list or drop keyboard focus to <body>.
+  await page.waitForTimeout(250);
+  await expect(page.locator('.ws-side-empty')).toHaveCount(0);
+  await expect(sidebar.getByRole('button', { name: /Leg day review/ })).toBeFocused();
   const transcript = page.getByTestId('ws-transcript');
   await expect(transcript.getByText('Squat top set moved well', { exact: false })).toBeVisible();
   await expect(sidebar.getByRole('button', { name: /Leg day review/ })).toHaveAttribute('aria-current', 'true');

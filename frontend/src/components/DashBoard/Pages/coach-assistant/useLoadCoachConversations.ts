@@ -27,6 +27,9 @@ export function useLoadCoachConversations(chat: {
   // empty ANSWER leaves this true, so a coach with no threads does not loop.
   const empty = (chat.conversations?.length ?? 0) === 0;
   const previous = useRef({ readable: false, empty: true });
+  // Unmount (and StrictMode's simulated unmount) forgets what was seen: useAIChat's
+  // own cleanup aborts the list in flight, so the remount must list again.
+  useEffect(() => () => { previous.current = { readable: false, empty: true }; }, []);
   useEffect(() => {
     const was = previous.current;
     previous.current = { readable, empty };

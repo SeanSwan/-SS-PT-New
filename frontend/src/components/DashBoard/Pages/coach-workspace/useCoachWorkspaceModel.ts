@@ -144,11 +144,10 @@ export function useCoachWorkspaceModel() {
   /** One-tap send of an exact registry command (read-only Quick aliases, starters). */
   const sendCommand = useCallback((text: string, commandType: string) => {
     if (view !== 'chat') setView('chat');
-    controller.setCommandText('');
+    // No clear here: the send clears only what it sent, so a starter keeps a draft.
     void controller.handleIntentSubmit(text, commandType);
   }, [controller, view]);
-  /** "Ask coach" from a schedule row: scope by client ID, prompt by time — never by name (rule 8). */
-  /** Adds to a draft instead of replacing it (schedule Ask). */
+  /** Adds to a draft instead of replacing it (schedule Ask, the command catalog). */
   const writeUnderDraft = useCallback((text: string) => {
     controller.setCommandText((current: string) => (current.trim() ? `${current.trimEnd()}\n${text}` : text));
     if (view !== 'chat') setView('chat');
@@ -177,7 +176,7 @@ export function useCoachWorkspaceModel() {
     searchParams, setSearchParams,
     workoutLoggerRoute, workoutPlannerRoute, scopeLabel, loggerScopeLabel, nextActionLabel,
     counts, reviewTotal, scheduleRoute, clientPickerRoute,
-    schedule, prefill, sendCommand, askAboutSession, runAction, catalogOpen, setCatalogOpen,
+    schedule, prefill, writeUnderDraft, sendCommand, askAboutSession, runAction, catalogOpen, setCatalogOpen,
   };
 }
 

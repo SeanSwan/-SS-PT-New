@@ -34,6 +34,10 @@ type UseCoachPinnedClientParams = {
   setAutoSelectSuppressed: Dispatch<SetStateAction<boolean>>;
   setSearchParams: SearchParamSetter;
   setSelectedStatus: Dispatch<SetStateAction<string>>;
+  /** Round-2 review #2: a client switch clears the on-screen session too. */
+  resetSessionLog?: () => void;
+  /** The staff selection phase: a clear that fails must let the pin restore resume. */
+  selectionPhase?: string;
   userRole: CoachCommandRole;
 };
 
@@ -49,6 +53,8 @@ function clientName(client?: ActiveClient | null): string | null {
   return [client.firstName, client.lastName].filter(Boolean).join(' ').trim() || `Client #${client.id}`;
 }
 
+const CLEAR_FAILED = new Set(['denied', 'invalid', 'unavailable', 'blocked-return']);
+
 export function useCoachPinnedClient({
   activeThreadClientId,
   chat,
@@ -59,6 +65,8 @@ export function useCoachPinnedClient({
   setAutoSelectSuppressed,
   setSearchParams,
   setSelectedStatus,
+  resetSessionLog,
+  selectionPhase,
   userRole,
 }: UseCoachPinnedClientParams) {
   const {
@@ -84,7 +92,9 @@ export function useCoachPinnedClient({
   // back into the URL — it did, so "No client (general)" never took (brain-v4).
   const clearingRef = useRef(false);
   useEffect(() => {
-    if (!storedClientId) clearingRef.current = false;
+    // Round-2 review #3: a clear that is refused (or returned) never commits, so the
+    // stored pin stays — the restore must resume or every send is refused.
+    if (!storedClientId || (selectionPhase && CLEAR_FAILED.has(selectionPhase))) clearingRef.current = false;
     if (clearingRef.current) return;
     if (!operatorEnabled || routeClientId || routeThreadId || activeThreadClientId || !storedClientId) return;
     setSearchParams(
@@ -93,6 +103,7 @@ export function useCoachPinnedClient({
     );
   }, [
     activeThreadClientId,
+    selectionPhase,
     operatorEnabled,
     routeClientId,
     routeThreadId,
@@ -118,6 +129,8 @@ export function useCoachPinnedClient({
     if (client) setActiveClient(client);
     else clearActiveClient();
     chat.newChat();
+    // The previous client's questions and replies never stay on screen under the new one.
+    resetSessionLog?.();
     setActiveThreadId(null);
     setAutoSelectSuppressed(true);
     setSearchParams(
@@ -129,6 +142,7 @@ export function useCoachPinnedClient({
       : 'Main client cleared - new unscoped Coach thread ready');
   }, [
     chat,
+    resetSessionLog,
     clearActiveClient,
     clientList,
     operatorEnabled,

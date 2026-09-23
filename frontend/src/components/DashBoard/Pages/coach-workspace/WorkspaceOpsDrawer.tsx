@@ -39,6 +39,9 @@ const WorkspaceOpsDrawer: React.FC<Props> = ({ model }) => {
   const { controller } = model;
   const [accountControlsOpen, setAccountControlsOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  // NOT controller.rightRailRef: the legacy drawer effect would stamp a second
+  // role=dialog/aria-modal onto the rail inside this modal (round-2 review #8).
+  const opsRailRef = useRef<HTMLElement>(null);
   const open = !model.isClientMode && controller.drawer === 'right';
   // A real modal (review #7): focus moves in, Tab stays in, and everything behind
   // the sheet — the whole workspace — is inert and hidden from assistive tech.
@@ -85,7 +88,7 @@ const WorkspaceOpsDrawer: React.FC<Props> = ({ model }) => {
         quickClientName={controller.quickClientName}
         quickClientSource={controller.quickClientSource}
         queueHealthRows={controller.queueHealthRows}
-        railRef={controller.rightRailRef}
+        railRef={opsRailRef}
         rightRailItems={controller.rightRailItems}
         selectedClientLabel={model.scopeLabel}
         showAccountControls={model.userRole === 'admin'}

@@ -67,7 +67,9 @@ export async function mockApi(page: Page, opts: { history?: boolean; user?: Sess
     if (path === '/api/ai-chat/conversations' && method === 'GET') return json(route, { success: true, conversations: threads });
     if (path === '/api/ai-chat/conversations' && method === 'POST') {
       const now = new Date().toISOString();
-      const conversation = { id: nextId++, title: `QA thread ${nextId - 501}`, context: 'coach_assistant', role: user.role, targetUserId: null, status: 'active', messageCount: 0, createdAt: now, lastMessageAt: now };
+      // Echo the audience role and target the way the real endpoint does.
+      const body = (route.request().postDataJSON() ?? {}) as { targetUserId?: number };
+      const conversation = { id: nextId++, title: `QA thread ${nextId - 501}`, context: 'coach_assistant', role: user.role, targetUserId: body.targetUserId ?? null, status: 'active', messageCount: 0, createdAt: now, lastMessageAt: now };
       threads.unshift(conversation);
       return json(route, { success: true, conversation });
     }

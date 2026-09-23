@@ -91,4 +91,16 @@ describe('staff can start a SECOND chat after the first one adopted its thread',
     await act(async () => { await result.current.chat.sendMessageWithConversation('hi', 'coach_assistant', 'A', null, 'both'); });
     expect(result.current.chat.lastSendReachedNetwork()).toBe(true);
   });
+
+  it('a refusal after the thread is created but BEFORE the message POST still reports "not sent"', async () => {
+    const snap = Object.freeze({ actorId: 7, rawRole: 'trainer', audienceRole: 'trainer', generation: 1, targetUserId: null, threadId: null, enabled: true });
+    const binding = { getSnapshot: () => snap, adoptCreatedThread: async () => null };
+    const { result } = renderHook(() => (useAIChat as unknown as (role: string, b: unknown) => ReturnType<typeof useAIChat>)('trainer', binding));
+    let sent: unknown;
+    await act(async () => { sent = await result.current.sendMessageWithConversation('hi', 'coach_assistant', 'A', null, 'both'); });
+    expect(sent).toBeNull();
+    expect(postMock.mock.calls.map(([url]) => url)).toEqual(['/api/ai-chat/conversations']);
+    expect(result.current.lastSendReachedNetwork(), 'the words never reached the coach').toBe(false);
+  });
 });
+

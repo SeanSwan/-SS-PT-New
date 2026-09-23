@@ -1045,8 +1045,9 @@ export function useAIChat(
     validateOperationAndAuth,
   ]);
 
-  // Brain-v4 review #4: a null send is either refused before any request (nothing
-  // sent) or after one (the message may be saved). Callers read which, once.
+  // Brain-v4 review #4: a null send was refused either before the MESSAGE POST (the
+  // words were not sent; a created thread may exist, empty) or after it (the message
+  // may be saved). Callers read which, once, right after their own send resolves.
   const sendReachedNetworkRef = useRef(false);
   const lastSendReachedNetwork = useCallback(() => sendReachedNetworkRef.current, []);
 
@@ -1104,7 +1105,6 @@ export function useAIChat(
         const payload: Record<string, unknown> = { context, title, responseStyle };
         if (audienceRole) payload.audienceRole = audienceRole;
         if (requestedTarget !== null) payload.targetUserId = requestedTarget;
-        sendReachedNetworkRef.current = true;
         const createRes = await apiService.post('/api/ai-chat/conversations', payload, {
           signal: operation.controller.signal,
           _isBackgroundRequest: true,

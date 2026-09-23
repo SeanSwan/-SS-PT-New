@@ -97,7 +97,7 @@ describe('CoachCommandCenter actions — chat truth (no fake replies)', () => {
     expect(h.getLogs()).toHaveLength(2);
     expect(h.getLogs()[0]).toMatchObject({ actor: 'system', label: 'message not sent' });
     expect(h.getLogs()[0].retryMessage, 'the composer holds the words; no second resend path').toBeUndefined();
-    expect(h.getLogs()[0].body).toMatch(/Nothing was sent/);
+    expect(h.getLogs()[0].body).toMatch(/Your message was not sent/);
     expect(h.getLogs()[0].body).not.toMatch(/Swan Coach says|reply:/i);
     expect(h.setSelectedStatus).toHaveBeenLastCalledWith('Message not sent');
     const calls = h.setCommandText.mock.calls;
@@ -111,11 +111,11 @@ describe('CoachCommandCenter actions — chat truth (no fake replies)', () => {
     await h.actions.handleSubmit(submitEvent());
     expect(h.getLogs()[0]).toMatchObject({ actor: 'system', label: 'reply not shown' });
     expect(h.getLogs()[0].body).toMatch(/may already be saved/);
-    expect(h.getLogs()[0].body).not.toMatch(/Nothing was (sent|saved)/);
+    expect(h.getLogs()[0].body).not.toMatch(/Nothing was (sent|saved)|was not sent/);
     expect(h.getLogs()[0].retryMessage).toBeUndefined();
     // The send-time clear is functional now (it keeps unrelated drafts); what must not
     // happen is any update that puts the sent words back into an empty composer.
-    expect(h.setCommandText.mock.calls.every(([value]) => typeof value !== 'function' || value('') === ''), 'no restore that would invite a duplicate post').toBe(true);
+    expect(h.setCommandText.mock.calls.every(([value]) => (typeof value === 'function' ? value('') === '' : value === '')), 'no restore that would invite a duplicate post').toBe(true);
     expect(h.setSelectedStatus).toHaveBeenLastCalledWith('Reply not shown');
   });
 

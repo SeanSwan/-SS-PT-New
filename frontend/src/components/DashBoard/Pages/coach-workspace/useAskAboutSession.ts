@@ -14,6 +14,8 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 
+const PENDING_TTL_MS = 8_000;
+
 export type AskPin = { kind: 'keep' } | { kind: 'pin'; clientId: number | null };
 
 export function planSessionAsk(args: {
@@ -36,12 +38,20 @@ export function useAskAboutSession(args: {
 }) {
   const { clientPin, isClientMode, write, closeSheets } = args;
   const pinned = clientPin.selectedClientId ?? null;
-  const [pending, setPending] = useState<{ clientId: number | null; text: string } | null>(null);
+  const [pending, setPending] = useState<{ clientId: number | null; text: string; at: number } | null>(null);
+
+  // A pin that never lands (denied, returned) must not append its prompt later,
+  // whenever the scope happens to match again (round-2 review #3).
+  useEffect(() => {
+    if (!pending) return undefined;
+    const expire = window.setTimeout(() => setPending(null), PENDING_TTL_MS);
+    return () => window.clearTimeout(expire);
+  }, [pending]);
 
   useEffect(() => {
     if (!pending || pinned !== pending.clientId) return;
     setPending(null);
-    write(pending.text);
+    if (Date.now() - pending.at <= PENDING_TTL_MS) write(pending.text);
   }, [pending, pinned, write]);
 
   return useCallback((slot: { clientId: number | null; startsAt: Date }) => {
@@ -52,7 +62,7 @@ export function useAskAboutSession(args: {
       ? `Help me get ready for my ${time} session today.`
       : `Prep me for today's ${time} session: recent workouts, what changed, and one thing to watch.`;
     if (plan.kind === 'pin') clientPin.onSelectClient(plan.clientId);
-    setPending({ clientId: plan.kind === 'pin' ? plan.clientId : pinned, text });
+    setPending({ clientId: plan.kind === 'pin' ? plan.clientId : pinned, text, at: Date.now() });
     closeSheets();
   }, [clientPin, closeSheets, isClientMode, pinned]);
 }

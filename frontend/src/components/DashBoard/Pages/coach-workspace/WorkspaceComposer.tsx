@@ -16,7 +16,7 @@ import VoiceRecordingOverlay from '../coach-assistant/VoiceRecordingOverlay';
 import CoachCommandCatalogSheet from '../coach-assistant/CoachCommandCatalogSheet';
 import SlashMenu, { slashOptionId } from './SlashMenu';
 import { ComposerDock } from './CoachWorkspace.conversation.styles';
-import { buildSlashItems, pickedPrefix, slashQuery, type SlashItem } from './slashCommands';
+import { buildSlashItems, pickableExample, slashQuery, type SlashItem } from './slashCommands';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 import { workspaceStatus } from './workspaceStatus';
 
@@ -37,13 +37,13 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
   const busy = controller.commandBusy || Boolean(notebook?.saving);
   const status = workspaceStatus(controller.selectedStatus);
   const text = controller.commandText;
-  // The exact registry type the operator picked, kept only while the text still
-  // begins with what was picked — rewriting the message drops back to the classifier.
-  const [picked, setPicked] = useState<{ type: string; prefix: string } | null>(null);
-  const pickedType = picked && text.trimStart().startsWith(picked.prefix) ? picked.type : null;
+  // The exact registry type the operator picked travels ONLY with the unedited,
+  // slot-free example; any edit drops the pick for good (pickableExample).
+  const [picked, setPicked] = useState<{ type: string; exact: string } | null>(null);
+  const pickedType = picked && text.trim() === picked.exact ? picked.type : null;
   const setPickedType = (type: string | null, prompt = '') => {
-    const prefix = type ? pickedPrefix(prompt) : null;
-    setPicked(type && prefix ? { type, prefix } : null);
+    const exact = type ? pickableExample(prompt) : null;
+    setPicked(type && exact ? { type, exact } : null);
   };
   const [activeIndex, setActiveIndex] = useState(0);
   const [menuDismissed, setMenuDismissed] = useState(false);
@@ -57,12 +57,13 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
 
   useEffect(() => { setActiveIndex(0); }, [query]);
   useEffect(() => { if (query === null) setMenuDismissed(false); }, [query]);
-  useEffect(() => { if (!text.trim()) setPicked(null); }, [text]);
+  useEffect(() => { if (picked && text.trim() !== picked.exact) setPicked(null); }, [picked, text]);
   useEffect(() => { autogrow(controller.commandTextRef.current, Boolean(text)); }, [controller.commandTextRef, text]);
 
   const pick = (item: SlashItem) => {
     if (item.kind === 'action') { setPickedType(null); model.runAction(item.id); return; }
-    if (item.instant) { setPickedType(null); model.sendCommand(item.prompt, item.commandType); return; }
+    // The composer holds only the "/query" here, so it is cleared before the instant send.
+    if (item.instant) { setPickedType(null); controller.setCommandText(''); model.sendCommand(item.prompt, item.commandType); return; }
     setPickedType(item.commandType, item.prompt);
     model.prefill(item.prompt);
   };
@@ -207,7 +208,7 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
           model.setCatalogOpen(false);
           window.setTimeout(() => controller.commandTextRef.current?.focus({ preventScroll: true }), 0);
         }}
-        onUsePrompt={(prompt) => model.prefill(prompt)}
+        onUsePrompt={(prompt) => model.writeUnderDraft(prompt)}
       />
       {controller.voiceOverlay?.isOpen ? (
         <VoiceRecordingOverlay

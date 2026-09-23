@@ -7,6 +7,7 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import { StrictMode, createElement, type ReactNode } from 'react';
 import { useLoadCoachConversations } from './CoachCommandCenter.controllerEffects';
 
 describe('useLoadCoachConversations × admission', () => {
@@ -65,6 +66,13 @@ describe('useLoadCoachConversations × admission', () => {
     expect(listConversations, 'a list before the scope commits is refused, so it must not be the only one').not.toHaveBeenCalled();
     rerender({ visible: true });
     expect(listConversations).toHaveBeenCalledTimes(1);
+  });
+
+  it('StrictMode replay lists again (the first list is aborted by the chat hook\'s replayed cleanup)', () => {
+    const listConversations = vi.fn();
+    const wrapper = ({ children }: { children: ReactNode }) => createElement(StrictMode, null, children);
+    renderHook(() => useLoadCoachConversations({ listConversations, conversations: [] }, 'retired'), { wrapper });
+    expect(listConversations).toHaveBeenCalledTimes(2);
   });
 
   it('CONTROL: an empty answer does not loop (a coach with no threads lists once)', () => {

@@ -90,13 +90,17 @@ export function buildSlashItems(query: string, commands: CoachCommandCatalogEntr
 }
 
 /**
- * The part of a picked command's prompt that must still lead the text for the
- * picked type to apply (review #11). A templated example ("Log {client}'s
- * workout") is cut at its first "{" — the operator replaces the slot, so the
- * whole-prompt prefix never matched and the pick silently fell back to the
- * classifier. Null when nothing fixed precedes the slot.
+ * When a picked command's exact type may travel with the send (round-2 review #1).
+ *
+ * A picked `commandType` is an OVERRIDE, not a hint: the backend then skips its
+ * classifier (commandExecutor stepClassify → params {}, clientRef null) and
+ * fills the client from the pinned id. So a prompt the operator edits — above
+ * all a templated one ("show {client}'s billing" → "show Jordan's billing") —
+ * must go to the classifier, which extracts the params and the client the
+ * operator actually named (and runs the wrong-client check). Only an UNEDITED,
+ * slot-free example keeps its picked type.
  */
-export function pickedPrefix(prompt: string): string | null {
-  const fixed = prompt.split('{')[0].trim().slice(0, 16).trimEnd();
-  return fixed.length >= 3 ? fixed : null;
+export function pickableExample(prompt: string): string | null {
+  const exact = prompt.trim();
+  return exact && !exact.includes('{') ? exact : null;
 }

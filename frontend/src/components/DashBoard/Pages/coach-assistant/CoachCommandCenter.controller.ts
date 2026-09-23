@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
 import { isAllowedRawRole } from '../../../../hooks/coachPublicationScope';
@@ -66,7 +66,7 @@ export function useCoachCommandCenterController({
   const [commandText, setCommandText] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('No coach thread selected');
   const [threadSearch, setThreadSearch] = useState('');
-  const [logs, setLogs] = useState<CommandLogEntry[]>(INITIAL_COMMAND_LOGS);
+  const [logs, setLogs] = useState<CommandLogEntry[]>(INITIAL_COMMAND_LOGS); const resetSessionLog = useCallback(() => setLogs(INITIAL_COMMAND_LOGS), []);
   const [teachMode, setTeachMode] = useState(false);
   const [drawer, setDrawer] = useState<DrawerSide | null>(null);
   const [quickClientName, setQuickClientName] = useState('');
@@ -101,7 +101,7 @@ export function useCoachCommandCenterController({
     [activeThread?.targetUserId],
   );
   const clientPin = useCoachPinnedClient({ activeThreadClientId, chat, routeClientId, routeThreadId, searchParams,
-    setActiveThreadId, setAutoSelectSuppressed, setSearchParams, setSelectedStatus, userRole });
+    setActiveThreadId, setAutoSelectSuppressed, setSearchParams, setSelectedStatus, userRole, resetSessionLog, selectionPhase: selection.phase });
   const effectiveClientId = clientPin.effectiveClientId;
   const rawRouteIntent = searchParams.get('intent');
   const routeIntent = rawRouteIntent === 'client_onboarding' && routeClientId

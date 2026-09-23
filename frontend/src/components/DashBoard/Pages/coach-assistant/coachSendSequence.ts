@@ -53,11 +53,11 @@ export function useSupersedeCoachSendsOnScope(key: SequenceKey, scopeKey: string
   }, [key, scopeKey]);
 }
 
-/** Refused BEFORE any request: nothing left the browser, so the words go back. */
+/** Refused BEFORE the message POST: the words never reached the coach, so they go back. */
 export const REFUSED_SEND_NOTICE = {
   actor: 'system' as const,
   label: 'message not sent',
-  body: 'Swan Coach did not send this message: the conversation was not ready for it (scope, client, or sign-in check). Nothing was sent. Your words are back in the composer — send again, or start a new chat.',
+  body: 'Swan Coach did not send this message: the conversation was not ready for it (scope, client, or sign-in check). Your message was not sent, and your words are back in the composer — send again, or start a new chat.',
   attachments: ['not sent'],
 };
 
@@ -65,6 +65,6 @@ export const REFUSED_SEND_NOTICE = {
 export const UNCONFIRMED_SEND_NOTICE = {
   actor: 'system' as const,
   label: 'reply not shown',
-  body: 'The conversation changed while Swan Coach was answering, so the reply is not shown here. Your message may already be saved in the thread — open it from Conversations before sending it again.',
+  body: 'Swan Coach could not show the reply here: the conversation\'s scope or sign-in check changed while it was answering. Your message may already be saved in the thread — open it from Conversations before sending it again.',
   attachments: ['may already be saved'],
 };

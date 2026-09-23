@@ -35,6 +35,7 @@ export const SidebarRoot = styled.nav`
   .ws-search input::placeholder { color: var(--ws-muted); }
   .ws-thread-list { flex: 1 1 auto; overflow-y: auto; padding: 4px 6px 12px; overscroll-behavior: contain; }
   .ws-thread-list ul { list-style: none; margin: 0; padding: 0; }
+  .ws-thread-list[data-refreshing] { opacity: 0.72; }
   .ws-group-label {
     margin: 12px 8px 4px; font: 600 10.5px var(--ws-mono); letter-spacing: 0.08em;
     text-transform: uppercase; color: var(--ws-muted);
