@@ -1,5 +1,6 @@
 /** Metered OpenRouter adapter. Calls are sequential and fail closed on spend. */
 import { DEFAULT_REASONING_TOKENS_PER_TURN, MODEL_CONFIG } from './constants.mjs';
+import { fetchForEgress } from '../../lib/redact-egress.mjs';
 
 function cost(brain, inputTokens, outputTokens) {
   const cfg = MODEL_CONFIG[brain];
@@ -19,7 +20,7 @@ export function createOpenRouterCaller({
   capUsd,
   maxTokens,
   reasoningTokens = DEFAULT_REASONING_TOKENS_PER_TURN,
-  fetchImpl = fetch,
+  fetchImpl = fetchForEgress,
   timeoutMs = 600_000,
 } = {}) {
   if (!apiKey) throw new Error('OPENROUTER_API_KEY is required for a confirmed run');

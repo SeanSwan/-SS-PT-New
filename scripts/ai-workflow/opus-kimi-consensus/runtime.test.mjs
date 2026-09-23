@@ -36,6 +36,35 @@ test('provider sends the selected model, keeps API key out of the body, and mete
   assert.equal(caller.receipt().calls.length, 1);
 });
 
+test('provider default transport passes the body through the egress gate', async () => {
+  const originalFetch = globalThis.fetch;
+  let request;
+  globalThis.fetch = async (_url, options) => {
+    request = options;
+    return {
+      ok: true,
+      json: async () => ({
+        model: 'moonshotai/kimi-k3',
+        choices: [{ message: { content: 'answer' } }],
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      }),
+    };
+  };
+  try {
+    const caller = createOpenRouterCaller({
+      apiKey: 'sk-or-v1-test-secret-123456',
+      capUsd: 3,
+      maxTokens: 500,
+    });
+    await caller.call('kimi', 'prompt includes sk-abcdef0123456789 and must be redacted');
+    assert.ok(request);
+    assert.doesNotMatch(request.body, /sk-abcdef0123456789/);
+    assert.match(request.body, /<REDACTED-KEY>/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('provider rejects retired Opus before fetch', async () => {
   let fetched = false;
   const caller = createOpenRouterCaller({

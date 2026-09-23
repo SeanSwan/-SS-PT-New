@@ -4,9 +4,8 @@
  * Shared, side-effect-light helpers that let a live Claude session call the
  * OTHER brains (Codex, Kimi, Fable) mid-conversation without paste-relay.
  *
- * Design (Sean 2026-07-22): one MCP server, per-tool backend, cost-ordered
- * fallback. Codex/Fable prefer their CLI (subscription, $0) and fall back to
- * OpenRouter only when the CLI is absent/fails; Kimi is OpenRouter-only.
+ * Design (Sean 2026-07-22): one MCP server, per-tool backend. Subscription
+ * CLIs are preferred; metered OpenRouter use requires an explicit caller opt-in.
  * Every PAID call is logged (per-call cost + running session total) AND a hard
  * $3/session cap refuses further paid calls once hit. Both, combined, per Sean.
  *
@@ -23,9 +22,9 @@
  * @module swan-council-lib
  */
 
-import { fetchForEgress } from '../lib/redact-egress.mjs';
+import { fetchForEgress, readForEgress, redactForEgress } from '../lib/redact-egress.mjs';
 import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join, relative, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 
 // Registry + spend ledger live in sibling modules (Rule 4: <300 lines each).
@@ -72,7 +71,7 @@ export function redactKey(str, key) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Backend selection: subscription CLI (preferred, $0) → OpenRouter (fallback, paid)
+// Backend selection: subscription CLI (preferred, $0) → explicit metered opt-in
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Is a brain's subscription CLI present on PATH? Injectable probe for tests. */
@@ -101,14 +100,14 @@ function defaultProbe(cmd, args) {
 /**
  * Decide which backend a call should use.
  *   - 'cli'        → subscription CLI present, use it ($0)
- *   - 'openrouter' → CLI absent/unavailable, use the paid API
- * Kimi has no CLI → always 'openrouter'. A brain with no key AND no CLI → 'none'.
+ *   - 'openrouter' → only when the caller explicitly allows metered use
+ * A brain with no CLI AND no explicit metered opt-in → 'none'.
  */
-export async function selectBackend(brainKey, { probe, hasKey } = {}) {
+export async function selectBackend(brainKey, { probe, hasKey, allowMeteredFallback = false } = {}) {
   const b = BRAINS[brainKey];
   if (!b) return 'none';
   if (b.cli && (await cliAvailable(brainKey, { probe }))) return 'cli';
-  if (hasKey) return 'openrouter';
+  if (hasKey && allowMeteredFallback === true) return 'openrouter';
   return 'none';
 }
 
@@ -171,7 +170,7 @@ export async function callOpenRouter(brainKey, prompt, {
 // Prompt builders (remits mirror the consult-*.mjs scripts)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CODEX_REMIT = `You are Codex (GPT-5.5), the hostile reviewer in the SwanStudios 3-brain pipeline.
+const CODEX_REMIT = `You are the authenticated Codex subscription reviewer in the SwanStudios review pipeline.
 Rigorous, anti-sycophantic review. Be direct. Cite file:line evidence.
 For a problem: "FINDING [SEVERITY]: ..." with concrete reproduction steps.
 If something is correct, say so plainly without padding.
@@ -194,10 +193,17 @@ export const REMITS = { codex: CODEX_REMIT, fable: FABLE_REMIT, kimi: KIMI_REMIT
 
 /** Read up to `max` chars of a repo file for review context; safe on missing files. */
 export function readFileSafe(root, rel, max = 60_000) {
+  if (typeof rel !== 'string' || !rel.trim() || isAbsolute(rel)) return '(rejected path: repository-relative file required)';
+  const repoRoot = resolve(root);
+  const absolute = resolve(repoRoot, rel);
+  const outside = relative(repoRoot, absolute);
+  if (!outside || outside === '..' || outside.startsWith('..\\') || outside.startsWith('../') || isAbsolute(outside)) {
+    return '(rejected path: file escapes repository root)';
+  }
   try {
-    return readFileSync(join(root, rel), 'utf-8').slice(0, max);
+    return readForEgress(absolute, { label: rel }).slice(0, max);
   } catch (e) {
-    return `(failed to read ${rel}: ${e.message})`;
+    return `(failed to read ${redactForEgress(e.message).text})`;
   }
 }
 

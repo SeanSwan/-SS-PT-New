@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "busyGate": {
+    "gpuUtilizationPercent": 45,
+    "cpuUtilizationPercent": 70,
+    "gameProcesses": [
+      "overwatch",
+      "valorant-win64-shipping",
+      "fortniteclient-win64-shipping",
+      "cod",
+      "cod22-cod",
+      "start_protected_game",
+      "easyanticheat"
+    ],
+    "renderProcesses": [
+      "comfyui",
+      "blender",
+      "resolve",
+      "adobe premiere pro",
+      "afterfx",
+      "encoder",
+      "handbrake.worker",
+      "ffmpeg"
+    ]
+  },
+  "orphanPolicy": {
+    "enabled": true,
+    "minimumAgeMinutes": 240,
+    "allowedProcessNames": ["tail"]
+  },
+  "glm": {
+    "maxOutputTokens": 34000,
+    "preferredModels": ["glm-5.3-flash", "glm-5.3"],
+    "reviewRoundLimit": 15,
+    "singleFlight": true,
+    "automaticRetries": 0,
+    "stopOnHttpStatus": [401, 403, 429]
+  }
+}

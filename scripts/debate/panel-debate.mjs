@@ -185,10 +185,29 @@ const loadState = () => {
 };
 const saveState = (st) => writeFileSync(statePath, JSON.stringify(st, null, 2), 'utf8');
 
-/** Frame shared by ALL seats for a round (seat-neutral). */
+/** Frame shared by ALL seats for a round (seat-neutral).
+ *
+ * WHOLE-PACKET REMIT (2026-09-22). Until now the first line said "hold THAT lens,
+ * do not drift to the other seats'". That made each seat's stance a PROHIBITION:
+ * a seat that spotted a real defect through another seat's lens was instructed to
+ * suppress it. That is backwards for a hostile debate — the defect you can only
+ * see through two lenses at once is the one a single-lens review misses, which is
+ * the entire reason there is more than one seat.
+ *
+ * Astra re-raised this as R2-A1-06 (earlier: A1-09), MEDIUM:
+ *   "Replace that instruction with a common whole-packet remit. Optional
+ *    specialties may guide emphasis but cannot prohibit findings elsewhere."
+ *
+ * So the stance is now EMPHASIS, not a fence. Every seat is accountable for the
+ * whole packet; its lens tells it where to look FIRST and how to weigh, never what
+ * it is forbidden to report. The regression test for this lives in
+ * panel-debate.parse.test.mjs (T-ROUND-01) and asserts on the CONSTRUCTED prompt,
+ * because the defect was in the constructor and reading this comment proves nothing. */
 function sharedFrame(round, state) {
   const lines = [
-    `You are ONE seat in a MULTI-ROUND HOSTILE DEBATE (round ${round} of up to ${maxRounds}) over the packaged SS-PT subject titled "${packetTitle}" below. Your seat stance is stated in the remit above the document; hold THAT lens, do not drift to the other seats'.`,
+    `You are ONE seat in a MULTI-ROUND HOSTILE DEBATE (round ${round} of up to ${maxRounds}) over the packaged SS-PT subject titled "${packetTitle}" below. Your seat stance is stated in the remit above the document. It tells you where to look FIRST and which defects you are most likely to catch — it is EMPHASIS, not a restriction.`,
+    '',
+    'COVERAGE (binding): Every seat is accountable for the WHOLE packet. Report any defect you can evidence, wherever it falls — including one you noticed only because another seat\'s lens made you look. A finding from outside your specialty is not "drift"; suppressing it is the failure this debate exists to prevent.',
     '',
     'RULES OF THIS DEBATE (binding):',
     '1. Every finding needs file + line (or workflow step) evidence FROM THE PACKET. Unlocatable claims will be cut by other seats — make yours locatable.',
@@ -216,9 +235,13 @@ function sharedFrame(round, state) {
   return lines.join('\n');
 }
 
-/** Per-seat remit injected via each child's --remit (this is where the stance lives). */
+/** Per-seat remit injected via each child's --remit (this is where the stance lives).
+ *
+ * The stance is an EMPHASIS, not a fence — see the coverage note in sharedFrame().
+ * This line used to say "Apply your stance to it", which read as a filter. It now
+ * says plainly that the lens orders the work and does not bound it. */
 function seatRemit(name, round, state) {
-  return `SEAT REMIT — you are ${SEATS[name].label}: ${SEATS[name].stance}\n\nThe document that follows is the shared round frame plus the full code packet. Apply your stance to it.` + '\n\n' + sharedFrame(round, state);
+  return `SEAT REMIT — you are ${SEATS[name].label}: ${SEATS[name].stance}\n\nUse this lens to decide what to examine FIRST and how to weigh severity. It does not limit what you may report: any defect you can evidence anywhere in the packet is in scope. The document that follows is the shared round frame plus the full code packet.` + '\n\n' + sharedFrame(round, state);
 }
 
 /** Parse the strict verdict block. Returns object or null (malformed = dropped). */

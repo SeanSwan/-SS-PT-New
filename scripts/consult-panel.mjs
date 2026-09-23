@@ -1,32 +1,23 @@
 #!/usr/bin/env node
 /**
- * consult-panel.mjs — ONE command that fans a document out to the whole
- * SwanStudios hostile-review panel, in parallel, then hands the replies back
- * for Fable synthesis.
+ * consult-panel.mjs — ONE command that fans a document out to the registered
+ * hostile-review seats in deterministic order, then hands the replies back for an
+ * explicit adjudicator. The current Public-Creative-Lab default is the two
+ * zero-dollar GLM seats; the active GPT builder supplies the third pass.
  * =====================================================================
- * Sean's directive 2026-08-18: "I wanna be able to call them with K3 and
- * GLM 5.3 ... so it should be all three of them, as well as you."
+ * Current packet directive: GLM 5.3 Flash, GLM 5.3, and whichever GPT agent
+ * is actively building/orchestrating. No paid seat is part of this topology.
  *
- * SEATS (Fable is the FINAL seat and does NOT run here — the Final
- * Decider reads the replies and arbitrates, per CLAUDE.md Co-Orchestrator
- * Hierarchy + Rule 46):
+ * EXTERNAL SEATS (the active GPT adjudicator is not spawned here; it runs
+ * locally after both replies are verified):
  *
  *   seat  script              billing                       gate
  *   ----  ------------------  ----------------------------  ------------------
- *   sol   consult-sol.mjs     OpenRouter $2.50/M $15/M      --confirm-spend
- *   kimi  consult-kimi.mjs    OpenRouter $3/M   $15/M       --confirm-spend + own $3 cap
- *   glm   consult-glm.mjs     Z.ai coding-plan subscription free-at-margin (burns plan credit)
- *   qwen  consult-qwen.mjs    local Ollama on the 5090      free, private, always on
- *   grok  consult-grok.mjs    OpenRouter $2/M   $6/M        --confirm-spend
- *   dspro consult-grok.mjs    OpenRouter $0.48/M $0.96/M     --confirm-spend
- *   dsflsh consult-grok.mjs   OpenRouter $0.07/M $0.15/M     --confirm-spend
+ *   glmflash consult-ox.mjs  GLM 5.3 Flash via Z.ai subscription, $0
+ *   glm      consult-glm.mjs  GLM 5.3 via Z.ai subscription, $0
  *
- * dspro/dsflash added 2026-08-21 by Sean's directive (7-seat trainer-dashboard
- * audit review). Both ride the consult-grok transport via SWAN_GROK_MODEL.
- *
- * grok added 2026-08-20 by Sean's directive after the rule-12 repeal
- * (constitution PR #54). It was the cheapest paid seat until the DeepSeek
- * V4 seats landed 2026-08-21; dsflash is now the floor.
+ * The registry retains legacy seats for other explicitly authorized packet
+ * types, but they are never implied by this default or silently substituted.
  *
  * WHY NOT ":batch" (the half-price GPT-5.6 Sol Pro listing Sean spotted):
  * `openai/gpt-5.6-sol-pro:batch` IS the same model at exactly 50% off
@@ -40,36 +31,36 @@
  *
  * Usage:
  *   node scripts/consult-panel.mjs --document <path> [--seed <path>]
- *        [--out-dir docs/ai-workflow/AI-HANDOFF/panel-<date>]
- *        [--seats kimi,glm,qwen,gemini,grok,dspro,dsflash] [+opt-in: ox,fable,sol] [--remit "<override>"]
+ *        [--out-dir docs/ai-workflow/AI-HANDOFF/panel-<date>-<document-slug>[-N]]
+ *        [--seats glmflash,glm] [--adjudicator "<owner>"] [--remit "<override>"]
  *        [--dry-run] [--confirm-spend]
  *
- * Safety: TWO INDEPENDENT AXES. Conflating them is how ox shipped default-on.
- *   MONEY  (`paid`)    -> --confirm-spend. Protects OpenRouter credits.
- *   OPT-IN (`premium`) -> must be named in --seats; excluded from the default
- *                         roster. Covers seats too expensive (fable, sol) AND
- *                         seats whose cost is DATA rather than dollars (ox:
- *                         $0, but an undisclosed provider RETAINS the prompt).
- *
- *   default            -> free non-premium seats RUN and DO send the document
- *                         (glm, qwen, gemini). Paid seats are SKIPPED with a
- *                         notice and the INDEX is marked INCOMPLETE.
+ * Safety: paid or legacy seats are never inferred from this default.
+ *   default            -> only glmflash and glm run and send the document.
+ *   explicit roster    -> other registry seats require their own policy and,
+ *                         where applicable, --confirm-spend.
  *   --confirm-spend    -> all requested seats run, including paid ones.
  *   --dry-run          -> nothing runs at all; prints the plan + cost estimate.
  *                         This is the ONLY flag that guarantees no egress.
- * Rule 16 spend gate applies; the Kimi standing rule (ONE review per topic,
- * fresh yes for a second) still governs on top of this.
+ * Rule 16 spend gate applies to paid seats. The Public-Creative-Lab policy
+ * uses only `glm,glmflash`; its third pass is the active builder's local
+ * hostile review and is not a model seat. See the current packet policy doc.
  *
  * Privacy (Rule 8/44/59): this script never reads or prints API keys; each
  * seat script loads its own. Keep the document to IDs + roles, no PII.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createHash, randomUUID } from 'node:crypto';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { dirname, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 import { DEFAULT_REMIT } from './lib/panel-remit.mjs';
+import { validateEvidenceMarkers, validateVerdictContract } from './lib/panel-artifact.mjs';
 import { buildSeats } from './lib/panel-seats.mjs';
+import { validateLiveWindowNarration } from './lib/panel-window.mjs';
+import { redactForEgress, selfTest as selfTestRedactor } from './lib/redact-egress.mjs';
 
 // Resolve sibling seat scripts from THIS file, not from cwd — the panel must
 // work when invoked from a subdirectory or by a hook.
@@ -85,28 +76,42 @@ const documentPath = arg('--document');
 const seedPath = arg('--seed');
 const confirmSpend = argv.includes('--confirm-spend');
 const dryRun = argv.includes('--dry-run');
+const adjudicator = arg('--adjudicator', 'active GPT builder/orchestrator');
+const reviewRoundId = `panel_${randomUUID()}`;
 const stamp = new Date().toISOString().slice(0, 10);
 // COLLISION SAFETY (2026-08-23). The default used to be `panel-<date>`, which every
 // run on that date shared. Three panels on three DIFFERENT documents landed in one
 // directory and overwrote each other by filename: five of seven replies to a
 // forensics report were destroyed, including the strongest seat's, with no error and
 // no warning. Paid output, gone. The slug gives each document its own directory by
-// default; the guard below covers the explicit --out-dir case.
+// default; the allocator below also gives each same-document run a fresh directory.
 const docSlug = (documentPath.split(/[\\/]/).pop() || 'document')
   .replace(/\.md$/i, '')
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '')
   .slice(0, 48);
-const outDir = arg('--out-dir', `docs/ai-workflow/AI-HANDOFF/panel-${stamp}-${docSlug}`);
+const requestedOutDir = arg('--out-dir', null);
+const baseOutDir = requestedOutDir ?? `docs/ai-workflow/AI-HANDOFF/panel-${stamp}-${docSlug}`;
+let outDir = baseOutDir;
+if (!requestedOutDir) {
+  // A same-document rerun must not replace a prior provider report or receipt.
+  // Keep the first directory readable, then allocate deterministic numeric suffixes
+  // for later runs. Explicit --out-dir remains governed by the guard below.
+  let collisionIndex = 1;
+  while (existsSync(outDir)) {
+    outDir = `${baseOutDir}-${collisionIndex}`;
+    collisionIndex += 1;
+  }
+}
 // Dedupe: `--seats kimi,kimi` is a typo, but without this it would fire a PAID
 // seat twice and bill twice for one review.
 const requested = [...new Set(
-  arg('--seats', 'kimi,glm,qwen,gemini,grok,dspro,dsflash').split(',').map((s) => s.trim()).filter(Boolean),
+  arg('--seats', 'glmflash,glm').split(',').map((s) => s.trim()).filter(Boolean),
 )];
 
 if (!documentPath) {
-  console.error('usage: node scripts/consult-panel.mjs --document <path> [--seed <path>] [--seats kimi,glm,qwen,gemini,grok,dspro,dsflash] [+opt-in: ox,fable,sol] [--confirm-spend]');
+  console.error('usage: node scripts/consult-panel.mjs --document <path> [--seed <path>] [--seats glmflash,glm] [--adjudicator "<owner>"] [--remit "<override>"] [--confirm-spend]');
   process.exit(1);
 }
 if (!existsSync(documentPath)) {
@@ -139,10 +144,89 @@ if (unknown.length) {
 
 const document = readFileSync(documentPath, 'utf-8');
 const seed = seedPath && existsSync(seedPath) ? readFileSync(seedPath, 'utf-8') : '';
+// The Public-Creative-Lab packet claims its live-window prose is generated from
+// the checked-in annex. Enforce that claim before any provider child is spawned;
+// a stale §J/§K projection must never reach an external seat or earn evidence.
+const normalizedDocumentPath = documentPath.replace(/\\/g, '/');
+if (normalizedDocumentPath.endsWith('/PUBLIC-CREATIVE-LAB-HOSTILE-REVIEW-AND-BUILD-BLUEPRINT-2026-08-25.md')) {
+  const annexPath = join(SCRIPT_DIR, '..', 'docs', 'ai-workflow', 'AI-HANDOFF', 'PANEL-LEDGER-ANNEX-V1.json');
+  try {
+    const annex = JSON.parse(readFileSync(annexPath, 'utf8'));
+    const liveWindowError = validateLiveWindowNarration(document, annex.map((entry) => entry.roundId));
+    if (liveWindowError) {
+      console.error(`[panel] live-window narration gate FAILED — refusing provider dispatch: ${liveWindowError}`);
+      process.exit(1);
+    }
+    console.log('[panel] live-window narration gate: passed');
+  } catch (err) {
+    console.error(`[panel] live-window narration gate FAILED — refusing provider dispatch: ${err.message}`);
+    process.exit(1);
+  }
+}
+try {
+  selfTestRedactor();
+  console.log('[panel] review-packet-scrub-canary: passed');
+} catch (err) {
+  console.error(`[panel] review-packet-scrub-canary: FAILED — refusing provider dispatch: ${err.message}`);
+  process.exit(1);
+}
 // Rough token estimate: ~4 chars/token. Used ONLY for the pre-spend estimate,
 // never for billing truth — each seat reports its own real usage.
 const promptTok = Math.round((remit.length + document.length + seed.length) / 4);
 const ASSUMED_OUT_TOK = 6000;
+const REQUIRED_REPLY_HEADINGS = ['## VERDICT', '## BLOCKERS', '## ATTACKS', '## HIGHEST RISK', '## CONFIDENCE'];
+const MIN_REPLY_BYTES = 2048;
+const MAX_REPLY_BYTES = 262144;
+// Provider transport failures are machine-marker lines, not ordinary words in a
+// review. Mask Markdown code and blockquotes before scanning so a reviewer can
+// quote the contract or a prior void without making its own artifact invalid.
+const INVALID_ARTIFACT_MARKER = /^\s*(?:INCOMPLETE|finish:error|upstream error|socket closed)\s*$/im;
+
+function maskQuotedMarkdown(text) {
+  return text
+    .replace(/```[\s\S]*?```/g, (block) => block.replace(/[^\r\n]/g, ' '))
+    .replace(/`[^`\r\n]*`/g, (span) => span.replace(/[^\r\n]/g, ' '))
+    .replace(/^\s*>[^\r\n]*$/gm, (quote) => quote.replace(/[^\r\n]/g, ' '));
+}
+
+function sha256Hex(value) {
+  return createHash('sha256').update(value, 'utf8').digest('hex');
+}
+
+// A seat process can exit 0 after writing an empty/truncated file. That is an
+// invalid review artifact, not a clean seat. Every required section must have
+// non-whitespace content, and the whole round is void if any requested seat is
+// invalid; this prevents a missing lens from being mistaken for dry evidence.
+function validateReplyArtifact(replyText) {
+  const byteLength = Buffer.byteLength(replyText, 'utf8');
+  if (byteLength < MIN_REPLY_BYTES) return `artifact below ${MIN_REPLY_BYTES}-byte minimum`;
+  if (byteLength > MAX_REPLY_BYTES) return `artifact exceeds ${MAX_REPLY_BYTES}-byte maximum`;
+  if (INVALID_ARTIFACT_MARKER.test(maskQuotedMarkdown(replyText))) {
+    return 'artifact contains an incomplete/provider-error marker';
+  }
+  try {
+    const { hits } = redactForEgress(replyText);
+    if (hits.length) {
+      return `reply egress scan found ${hits.reduce((n, hit) => n + hit.count, 0)} secret/identity-shaped value(s)`;
+    }
+  } catch (err) {
+    return `reply egress scan failed closed: ${err.message}`;
+  }
+  const missing = REQUIRED_REPLY_HEADINGS.filter((heading) => !replyText.includes(heading));
+  if (missing.length) return `missing required headings: ${missing.join(', ')}`;
+  const evidenceError = validateEvidenceMarkers(replyText);
+  if (evidenceError) return evidenceError;
+  const empty = REQUIRED_REPLY_HEADINGS.filter((heading, index) => {
+    const start = replyText.indexOf(heading) + heading.length;
+    const next = REQUIRED_REPLY_HEADINGS.slice(index + 1)
+      .map((candidate) => replyText.indexOf(candidate, start))
+      .filter((position) => position >= 0)
+      .sort((a, b) => a - b)[0] ?? replyText.length;
+    return !replyText.slice(start, next).trim();
+  });
+  if (empty.length) return `required headings have empty sections: ${empty.join(', ')}`;
+  return validateVerdictContract(replyText);
+}
 
 console.log(`[panel] document=${documentPath} (${document.length} chars, ~${promptTok} tok)`);
 console.log(`[panel] seats=${requested.join(', ')}  out-dir=${outDir}`);
@@ -269,8 +353,22 @@ if (existsSync(priorIndexPath)) {
 
 mkdirSync(outDir, { recursive: true });
 
-// Per-seat hard wall-clock cap. WHY: Promise.all below waits for EVERY seat, so a
-// single seat that never exits means INDEX.md — the artifact recording which seats
+// Snapshot the exact bytes once before any provider child starts. Seat scripts
+// receive this private per-run copy rather than reopening a mutable working-tree
+// path, so every seat is bound to one dispatch hash even if the source file changes
+// while a long GLM response is streaming.
+const dispatchSnapshotDir = mkdtempSync(join(tmpdir(), 'swan-public-creative-panel-'));
+const dispatchDocumentPath = join(dispatchSnapshotDir, 'packet.md');
+writeFileSync(dispatchDocumentPath, document, 'utf8');
+const dispatchDocumentSha256 = sha256Hex(document);
+if (sha256Hex(readFileSync(dispatchDocumentPath, 'utf8')) !== dispatchDocumentSha256) {
+  rmSync(dispatchSnapshotDir, { recursive: true, force: true });
+  console.error('[panel] dispatch snapshot hash mismatch - refusing provider dispatch.');
+  process.exit(17);
+}
+
+// Per-seat hard wall-clock cap. WHY: the ordered run waits for EVERY seat, so a
+// single seat that never exits would prevent INDEX.md — the artifact recording which seats
 // actually ran, and therefore whether this panel is COMPLETE — is never written at
 // all. The operator is then left guessing coverage, which is precisely the
 // "silence looks like success" failure the INDEX exists to prevent.
@@ -289,8 +387,9 @@ const SEAT_WALL_MS = Number(process.env.SWAN_PANEL_SEAT_WALL_MS || 1_800_000);
 function runSeat(name) {
   const s = SEATS[name];
   const outPath = join(outDir, s.out);
-  const args = [join(SCRIPT_DIR, s.script), ...s.args(documentPath, outPath)];
-  if (seedPath && s.script !== 'consult-qwen.mjs' && s.script !== 'consult-glm.mjs') args.push('--seed', seedPath);
+  // Every seat receives the same immutable, pre-hashed snapshot.
+  const args = [join(SCRIPT_DIR, s.script), ...s.args(dispatchDocumentPath, outPath)];
+  if (seedPath && s.script !== 'consult-qwen.mjs' && s.script !== 'consult-glm.mjs' && s.script !== 'consult-ox.mjs') args.push('--seed', seedPath);
 
   return new Promise((settle) => {
     const t0 = Date.now();
@@ -300,7 +399,11 @@ function runSeat(name) {
     const child = spawn(process.execPath, args, {
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: false,
-      env: { ...process.env, ...(s.env || {}) },
+      env: {
+        ...process.env,
+        ...(s.env || {}),
+        SWAN_GLM_REVIEW_ROUND_ID: reviewRoundId,
+      },
     });
     let settled = false;
     const finish = (result) => {
@@ -328,6 +431,9 @@ function runSeat(name) {
     child.on('close', (code) => {
       const wall = ((Date.now() - t0) / 1000).toFixed(1);
       const wrote = existsSync(outPath);
+      const replyText = wrote ? readFileSync(outPath, 'utf-8') : '';
+      const artifactError = code === 0 && wrote ? validateReplyArtifact(replyText) : null;
+      const invalidReply = Boolean(artifactError);
       // A seat can exit non-zero AND still have written a truncated reply
       // (exit 2 = hit max_tokens). Surface that rather than silently dropping it.
       // `ok` already requires BOTH exit 0 and a written file, but the error message
@@ -344,10 +450,12 @@ function runSeat(name) {
       const silentNoOp = code === 0 && !wrote;
       finish({
         name, label: s.label, outPath, wall,
-        ok: code === 0 && wrote,
+        ok: code === 0 && wrote && !invalidReply,
         truncated: code === 2 && wrote,
-        error: code === 0 && wrote
+        error: code === 0 && wrote && !invalidReply
           ? null
+          : invalidReply
+            ? `exited 0 but wrote an invalid review artifact — ${artifactError}`
           : silentNoOp
             ? `exited 0 but wrote NO reply — the seat believes it succeeded while reviewing nothing. Check whether its script needs a flag the seat args omit (e.g. its own --confirm-spend): ${stderr.trim().slice(-300)}`
             : `exit ${code}${wrote ? ' (partial reply written)' : ' (no output)'}: ${stderr.trim().slice(-300)}`,
@@ -356,7 +464,11 @@ function runSeat(name) {
   });
 }
 
-const results = await Promise.all(seatsToRun.map(runSeat));
+const results = [];
+for (const seatName of seatsToRun) {
+  results.push(await runSeat(seatName));
+}
+rmSync(dispatchSnapshotDir, { recursive: true, force: true });
 
 // Only the seats that actually ran can have cost anything. Reporting the
 // full requested-set estimate here would overstate spend whenever paid seats
@@ -366,25 +478,56 @@ const spentEstimate = seatsToRun.reduce((sum, n) => {
   return sum + (promptTok / 1e6) * s.inPerM + (ASSUMED_OUT_TOK / 1e6) * s.outPerM;
 }, 0);
 
+// Payload-free evidence receipt: hashes, sizes, served model identity, and the
+// exact transport script hash prove which reply bytes were reviewed without
+// copying provider text into the index or another artifact.
+const artifactReceipt = {
+  schemaVersion: 'panel-artifact-v1',
+  documentSha256: dispatchDocumentSha256,
+  generatedAt: new Date().toISOString(),
+  seats: results.map((r) => {
+    const reply = existsSync(r.outPath) ? readFileSync(r.outPath, 'utf8') : '';
+    const seat = SEATS[r.name];
+    const scriptPath = join(SCRIPT_DIR, seat.script);
+    const scriptText = existsSync(scriptPath) ? readFileSync(scriptPath, 'utf8') : '';
+    return {
+      seat: r.name,
+      model: seat.model ?? seat.label,
+      scriptSha256: scriptText ? sha256Hex(scriptText) : null,
+      status: r.ok ? 'valid' : r.truncated ? 'truncated' : 'invalid',
+      byteLength: Buffer.byteLength(reply, 'utf8'),
+      replySha256: reply ? sha256Hex(reply) : null,
+      wallSeconds: r.wall,
+    };
+  }),
+};
+const artifactReceiptPath = join(outDir, 'PANEL-ARTIFACT-RECEIPT.json');
+writeFileSync(artifactReceiptPath, `${JSON.stringify(artifactReceipt, null, 2)}\n`, 'utf8');
+
+const validSeatCount = results.filter((r) => r.ok).length;
+const failedBeforeArtifactCount = results.filter((r) => !r.ok && !r.truncated).length;
+
 const index = [
   `# Hostile Review Panel — ${stamp}`,
   '',
   `**Document under review:** \`${documentPath}\``,
   seedPath ? `**Seed context:** \`${seedPath}\`` : '**Seed context:** (none)',
-  `**Seats run:** ${seatsToRun.join(', ')} · **Estimated spend:** ~$${spentEstimate.toFixed(4)}`,
+      `**Seats run:** ${seatsToRun.join(', ')} · **Estimated spend:** ~$${spentEstimate.toFixed(4)}`,
+      `**Active GPT pass:** ${adjudicator} (the third local adjudication pass; not an external seat)`,
+  `**Artifact contract:** panel-artifact-v1 · minimum ${MIN_REPLY_BYTES} UTF-8 bytes · invalid seat voids the round · [digest receipt](./PANEL-ARTIFACT-RECEIPT.json)`,
   // Never say "full panel" unless every seat actually ran. A partial panel
   // that reads as complete is how a missing perspective turns into false
   // confidence downstream (Rule 75 — copy describes what the run ACTUALLY did).
-  skipped.length
-    ? `**Seats SKIPPED (unconfirmed spend):** ${skipped.join(', ')} — this panel is INCOMPLETE; their perspective is missing from the synthesis below.`
-    : seatsToRun.length === Object.keys(SEATS).length
-      ? `**Coverage:** full panel — all ${Object.keys(SEATS).length} seats ran.`
-      : `**Coverage:** PARTIAL — ${seatsToRun.length} of ${Object.keys(SEATS).length} seats ran (${Object.keys(SEATS).filter((n) => !seatsToRun.includes(n)).join(', ')} not requested).`,
+      skipped.length
+        ? `**Seats SKIPPED (unconfirmed spend):** ${skipped.join(', ')} — this panel is INCOMPLETE; ${validSeatCount} of ${requested.length} requested external seats returned valid artifacts; ${failedBeforeArtifactCount} attempted seat(s) failed before artifact; the active GPT pass is the third local adjudication pass.`
+        : failedBeforeArtifactCount
+          ? `**Coverage:** ${validSeatCount} of ${requested.length} requested external seats returned valid artifacts; ${failedBeforeArtifactCount} failed before artifact; the active GPT pass is the third local adjudication pass.`
+          : `**Coverage:** all ${requested.length} requested external seats returned valid artifacts; the active GPT pass is the third local adjudication pass.`,
   '',
-  '> Fable 5 is the FINAL SEAT and the Final Decider (CLAUDE.md Co-Orchestrator',
-  '> Hierarchy, Rule 46). These seat replies are ADVISORY INPUT. Fable reads all',
-  '> of them, arbitrates contradictions against the house rules, and owns the',
-  '> verdict. A seat reply is a HYPOTHESIS until verified (Rule 30) — findings',
+  `> **Adjudication owner:** ${adjudicator}. Seat replies are ADVISORY INPUT. The owner`,
+  '> arbitrates contradictions against the house rules and owns the packet verdict.',
+  '> This does not replace any repo-level owner or Rule 46 commit gate. A seat reply',
+  '> is a HYPOTHESIS until verified (Rule 30) — findings',
   '> must be checked against the real code before any of them is acted on.',
   '',
   '| Seat | Model | Status | Wall | Reply |',
@@ -400,9 +543,9 @@ const index = [
     ? results.filter((r) => !r.ok).map((r) => `- **${r.name}** — ${r.error}`)
     : ['- none — all seats returned.']),
   '',
-  '## Fable synthesis',
+  `## Adjudication — ${adjudicator}`,
   '',
-  '_Pending — Fable fills this in after reading every reply above._',
+  `_Pending — ${adjudicator} fills this in after reading every reply above._`,
   '',
   '1. **Consensus** — what two or more seats independently flagged (highest signal).',
   '2. **Contradictions** — where seats disagree, and which is right on the evidence.',
@@ -418,8 +561,10 @@ writeFileSync(indexPath, index, 'utf-8');
 const okCount = results.filter((r) => r.ok).length;
 console.log(`\n[panel] ${okCount}/${results.length} seats returned cleanly -> ${indexPath}`);
 for (const r of results.filter((x) => !x.ok)) console.error(`[panel] ⚠ ${r.name}: ${r.error}`);
-// Exit non-zero if EVERY seat failed — that is a config problem, not a review.
-if (okCount === 0) {
-  console.error('[panel] every seat failed — check API keys, Ollama, and network before re-running.');
-  process.exit(1);
+// Any invalid requested seat voids the round. A partial panel is not admissible
+// evidence for the two-consecutive-clean-round gate; rerun after the cause is
+// corrected. Keep a distinct code from all-seat infrastructure failure.
+if (results.some((r) => !r.ok)) {
+  console.error('[panel] one or more seat artifacts are invalid — this round is VOID; repair/rerun before adjudication.');
+  process.exit(okCount === 0 ? 1 : 2);
 }

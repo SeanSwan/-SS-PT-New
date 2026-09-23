@@ -1,60 +1,40 @@
 #!/usr/bin/env node
 /**
- * consult-ox.mjs — the Ox Alpha seat, and nothing else.
+ * consult-ox.mjs — compatibility transport for GLM 5.3 Flash.
  *
  * WHY THIS FILE EXISTS
  * --------------------
- * Ox Alpha has no transport of its own: it rides `consult-grok.mjs`, selected by
- * the `SWAN_GROK_MODEL` env var. That is a footgun, and it has now fired twice.
+ * The historical Ox label has no current workflow meaning. The revealed route
+ * is Z.ai's GLM 5.3 Flash, and this file remains only so old callers cannot
+ * silently select a different model. New packet policy calls this route
+ * `glmflash` and documents it as the second GLM pass.
  *
- *   2026-08-24  `--model stealth/ox-alpha` passed as a FLAG. Silently ignored
- *               (the script reads the env, not argv). Grok 4.6 was served.
- *               Written up in memory: "fire Ox as SWAN_GROK_MODEL=..., and check
- *               the output header's `Served:` line before attributing anything."
- *
- *   2026-08-25  Ran `SWAN_GROK_MODEL="${SWAN_GROK_MODEL:-}" node consult-grok.mjs`
- *               — which sets the variable to the EMPTY STRING, so MODEL fell back
- *               to the x-ai/grok-4.6 default. The report correctly said
- *               `Grok 4.6 — Hostile Gate Review` / `Served: x-ai/grok-4.6`.
- *               It was relayed to Sean as "Ox Alpha" anyway. Sean caught it.
- *
- * The 2026-08-24 write-up did not prevent the 2026-08-25 repeat, because a
- * lesson that depends on remembering to read a header is not a control. The
- * control is this file: there is no env var to forget, and no default to fall
- * back to. `node scripts/consult-ox.mjs ...` runs Ox or it exits non-zero.
+ * The wrapper pins the model and refuses a model flag. The child output's
+ * `Served:` line remains the final identity evidence. The current route is the
+ * direct Z.ai coding-plan API, not the historical OpenRouter compatibility path.
  *
  * PRIVACY — READ BEFORE USE
  * -------------------------
- * RESOLVED 2026-08-26: the stealth period ENDED and OpenRouter revealed the model —
- * `stealth/ox-alpha` WAS ZAI's GLM-5.3 Flash, and the slug now 404s with a pointer to
- * `z-ai/glm-5.3-flash`. This wrapper follows it there (Sean's call, 2026-08-26: it is
- * on roughly a 3x discount, so call it freely).
+ * RESOLVED 2026-08-26: the historical stealth listing was identified as Z.ai's
+ * GLM-5.3 Flash, and the route is now pinned to the direct Z.ai model
+ * `glm-5.3-flash`.
  *
  * TWO CONSEQUENCES WORTH KEEPING:
- *   1. The data-egress caution is CLOSED — the undisclosed lab was Z.AI.
- *   2. Ox and the glm-5.3 seat were never independent. Every "both seats independently
- *      converged" conclusion recorded while Ox sat on the panel was ONE FAMILY answering
- *      twice. Use this seat as a cheap, fast WORKER; for genuine review corroboration the
- *      seats must come from different LABS (Anthropic / OpenAI / Google / Moonshot /
- *      Alibaba), not two tiers of one.
+ * GLM 5.3 and GLM 5.3 Flash share one Z.ai lineage. Their agreement is useful
+ * tiered input but is not independent-provider corroboration. The packet still
+ * requires scrubbing and the egress gate; subscription billing does not waive
+ * privacy, secrets, PII, or classroom/private-derived-data rules.
  *
- * Historical note — Ox was $0 because it was an OpenRouter *stealth* listing: an
- * undisclosed lab was evaluating the model and RETAINED the prompts sent. Sean has standingly
- * accepted this for design briefs and code-review packets (2026-08-23), and that
- * acceptance explicitly does NOT extend to client PII, credentials, medical or
- * immigration data, secrets, or raw config. Scrub the packet; do not drop the
- * seat. Rules 8 / 44 / 59 are untouched by the standing yes.
- *
- * USAGE — identical to consult-grok.mjs, minus --model:
- *   node scripts/consult-ox.mjs --document <path> --out <path> --remit "..." [--effort high]
+ * USAGE — identical to consult-glm.mjs, with the model pinned:
+ *   node scripts/consult-ox.mjs --document <path> --out <path> --remit "..." --max-tokens 8000
  */
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-const OX_MODEL = 'z-ai/glm-5.3-flash';
+const OX_MODEL = 'glm-5.3-flash';
 const here = path.dirname(fileURLToPath(import.meta.url));
-const transport = path.join(here, 'consult-grok.mjs');
+const transport = path.join(here, 'consult-glm.mjs');
 
 const argv = process.argv.slice(2);
 
@@ -62,19 +42,25 @@ const argv = process.argv.slice(2);
 // 2026-08-24 misfire happened: the caller believed it had selected a seat.
 const modelFlag = argv.findIndex((a) => a === '--model' || a.startsWith('--model='));
 if (modelFlag !== -1) {
-  console.error('[consult-ox] --model is not accepted here. This wrapper IS the Ox seat.');
-  console.error('[consult-ox] For a different model use consult-grok.mjs with SWAN_GROK_MODEL.');
+  console.error('[consult-ox] --model is not accepted: this wrapper is pinned to glm-5.3-flash.');
   process.exit(2);
 }
 
-console.error(`[consult-ox] seat=Ox (now GLM-5.3 Flash) model=${OX_MODEL}`);
-console.error('[consult-ox] NOTE: same lab and lineage as the glm-5.3 seat. Cheap and fast —');
-console.error('[consult-ox] but agreement between this and glm-5.3 is NOT independent corroboration.');
+console.error(`[consult-ox] compatibility=glmflash model=${OX_MODEL} route=direct-zai`);
+console.error('[consult-ox] NOTE: same Z.ai lineage as glm-5.3; not independent-provider corroboration.');
 
-const child = spawn(process.execPath, [transport, ...argv], {
+const child = spawn(process.execPath, [transport, '--model', OX_MODEL, ...argv], {
   stdio: 'inherit',
-  // Overwrite rather than default: an inherited SWAN_GROK_MODEL from the parent
-  // shell must not be able to silently redirect this seat somewhere else.
-  env: { ...process.env, SWAN_GROK_MODEL: OX_MODEL },
+  env: { ...process.env },
+  windowsHide: true,
 });
-child.on('exit', (code, signal) => process.exit(signal ? 1 : (code ?? 1)));
+child.on('error', () => {
+  console.error('[consult-ox] child-start-failed; provider was not dispatched by this wrapper.');
+  process.exitCode = 2;
+});
+// On POSIX allow the direct runner to abort and retain its unresolved guard.
+// Windows may terminate immediately; the direct runner persists the guard before fetch.
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => {
+  if (child.exitCode === null && child.signalCode === null) child.kill(signal);
+});
+child.on('close', (code, signal) => { process.exitCode = signal ? 2 : (code ?? 2); });

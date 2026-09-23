@@ -24,6 +24,9 @@ import {
   fetchTranscript, searchTranscript, pruneCache, estimateTokens, fmtTimestamp, effectivePruneDays,
 } from '../swan-scout/yt-scout-transcript.mjs';
 
+// ai-egress-audit: allow — this integration sends only user-selected YouTube
+// URLs to the transcript service; it does not read or upload repository files.
+
 /**
  * Repo root, injected by the server so this module never guesses it. Derived
  * from the server file's own location rather than process.cwd(), because an MCP

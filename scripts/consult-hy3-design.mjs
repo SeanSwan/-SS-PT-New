@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Tencent Hy3 design-only review via OpenRouter.
+ * Tencent Hy3 / HY4 design-only review via OpenRouter. The seat is derived from the
+ * model (`SWAN_HY3_MODEL`) and names both the remit and the output H1.
  *
  * Dry-run is the default. A live call requires --confirm-spend and is blocked
  * before network access when its conservative worst-case estimate exceeds the
@@ -8,13 +9,35 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { readForEgress, redactForEgress, fetchForEgress } from './lib/redact-egress.mjs';
+import { readForEgress, redactForEgress } from './lib/redact-egress.mjs';
+import { streamChatCompletion } from './lib/openrouter-stream.mjs';
 
 const ROOT = process.cwd();
 const DEFAULT_MODEL = 'tencent/hy3';
+
+// STALE-POLICY FIX (2026-09-18). This script used to hard-block every model but
+// `tencent/hy3`, so a HY4 review routed through here was silently answered by HY3
+// — and filed under HY4's name. That is the exact misattribution failure the
+// consult-grok sibling documents in its own header (three seats filing under one
+// name makes per-model calibration impossible). HY4 is a real, distinct preview
+// seat with no other transport in this repo, so the allowlist now names the
+// Tencent family explicitly and pricing is resolved per model.
+//
+// PRICING IS NOW LIVE-VERIFIED (2026-09-18) from
+//   GET https://openrouter.ai/api/v1/models  -> find id === 'tencent/hy4-preview'
+// The first version of this fix copied Hy3's rate for hy4-preview as a
+// placeholder; that was WRONG by ~6.5x on input and ~4.7x on output. This is a
+// fresh preview model whose rate is ~6x Hy3's, so a placeholder inherited from
+// the sibling silently under-estimated every worst-case guard by an order of
+// magnitude — the exact class of error that lets a call sail past its cap.
+// Rates below are USD per 1M tokens, taken from the provider catalog.
+const MODEL_PRICING = {
+  'tencent/hy3': { in: 0.1288, out: 0.5336 },        // hy3: 0.000000132 / 0.000000528 per token
+  'tencent/hy4-preview': { in: 0.834, out: 2.501 },  // hy4: 0.000000834 / 0.000002501 per token
+};
+/** Models this transport is permitted to call (Tencent family only). */
+const ALLOWED_MODEL = /^tencent\/(hy3|hy4-preview)$/i;
 const DEFAULT_CAP_USD = 3;
-const PRICE_IN_PER_MILLION = 0.1288;
-const PRICE_OUT_PER_MILLION = 0.5336;
 
 function parseArgs(argv) {
   const options = {
@@ -87,13 +110,26 @@ function sanitizeOutboundText(value) {
   return redactForEgress(String(value ?? '')).text;
 }
 
-function estimateWorstCaseUsd(prompt, maxTokens) {
+function estimateWorstCaseUsd(prompt, maxTokens, pricing) {
   const conservativeInputTokens = Buffer.byteLength(prompt, 'utf8');
-  return (conservativeInputTokens / 1_000_000) * PRICE_IN_PER_MILLION
-    + (maxTokens / 1_000_000) * PRICE_OUT_PER_MILLION;
+  return (conservativeInputTokens / 1_000_000) * pricing.in
+    + (maxTokens / 1_000_000) * pricing.out;
 }
 
-const defaultRemit = `You are Tencent Hy3, the SwanStudios design-inspiration reviewer. Give only UI/UX and interaction suggestions.
+/**
+ * The remit names the SEAT, not a fixed model.
+ *
+ * It used to hardcode "You are Tencent Hy3" regardless of `SWAN_HY3_MODEL`, so a
+ * hy4-preview run instructed the model it was HY3 — and HY4's own reply opened
+ * "HY3 hostile review — Swan theme lens" while the derived H1 correctly said HY4.
+ * A review that misnames its own seat is the same class of defect this script's
+ * header documents for the model allowlist: the artefact files under one name and
+ * was produced by another.
+ *
+ * The label is derived once from the model and read by BOTH the remit and the H1,
+ * so they cannot disagree.
+ */
+const defaultRemitFor = (seat) => `You are Tencent ${seat}, the SwanStudios design-inspiration reviewer. Give only UI/UX and interaction suggestions.
 Give a rigorous hostile design and implementation review. Rank weaknesses by severity,
 identify the single highest-impact improvement, and give builder-exact corrections.
 Enforce Crystalline Swan dark-first design, styled-components, Victory charts, tokenized
@@ -102,7 +138,7 @@ at 320/375/414/768/1024/1440/2560/3840, and reduced-motion safety. Be concrete.`
 
 function usage() {
   return [
-    'Hy3 design review (dry-run by default)',
+    'Hy3/HY4 design review (dry-run by default)',
     'node scripts/consult-hy3-design.mjs --document <path> [--seed <path>] [--out <path>]',
     '  [--remit "<text>"] [--effort low|medium|high] [--max-tokens 60000]',
     '  [--cap-usd 3] [--confirm-spend]',
@@ -116,15 +152,23 @@ async function main() {
   assertSafeInputPath(options.seed, 'seed');
 
   const model = process.env.SWAN_HY3_MODEL || DEFAULT_MODEL;
-  if (!/^tencent\/hy3$/i.test(model)) throw new Error(`Hy3 design policy blocks non-Hy3 model override: ${model}`);
+  if (!ALLOWED_MODEL.test(model)) {
+    throw new Error(
+      `Hy3/HY4 design policy blocks non-Tencent model override: ${model}`
+      + ` (allowed: ${Object.keys(MODEL_PRICING).join(', ')})`,
+    );
+  }
+  const pricing = MODEL_PRICING[model.toLowerCase()];
+  /** The seat, derived from the model. Single source for the remit AND the H1. */
+  const seatLabel = model.toLowerCase().includes('hy4') ? 'HY4' : 'HY3';
 
   const document = sanitizeOutboundText(readFileSync(options.document, 'utf8'));
   const seed = options.seed ? sanitizeOutboundText(readFileSync(options.seed, 'utf8')) : '(no seed provided)';
-  const remit = sanitizeOutboundText(options.remit || defaultRemit);
+  const remit = sanitizeOutboundText(options.remit || defaultRemitFor(seatLabel));
   const prompt = `${remit}\n\n=== DOCUMENT UNDER REVIEW ===\n\n${document}\n\n=== SEED CONTEXT ===\n\n${seed}\n\n=== END CONTEXT ===`;
-  const estimateUsd = estimateWorstCaseUsd(prompt, options.maxTokens);
+  const estimateUsd = estimateWorstCaseUsd(prompt, options.maxTokens, pricing);
 
-  console.log(`[consult-hy3-design] status=preflight model_calls=0 model=${model}`);
+  console.log(`[consult-hy3-design] status=preflight model_calls=0 model=${model} seat=${seatLabel}`);
   console.log(`[consult-hy3-design] prompt_chars=${prompt.length} max_tokens=${options.maxTokens}`);
   console.log(`[consult-hy3-design] worst_case_usd=$${estimateUsd.toFixed(4)} cap_usd=$${options.capUsd.toFixed(2)}`);
   if (!options.confirmSpend) {
@@ -137,32 +181,34 @@ async function main() {
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not found for confirmed run');
   console.log('[consult-hy3-design] status=running model_calls=1');
   const started = Date.now();
-  const response = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': 'https://sswanstudios.com', 'X-Title': 'SwanStudios HY3 Design Review',
-    },
-    body: JSON.stringify({
-      model, messages: [{ role: 'user', content: prompt }],
-      max_tokens: options.maxTokens, temperature: 0.3, reasoning: { effort: options.effort },
-    }),
-    signal: AbortSignal.timeout(Number(process.env.SWAN_HY3_TIMEOUT_MS) || 900_000),
-  });
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`OpenRouter ${response.status}: ${body.slice(0, 800).replace(apiKey, '<REDACTED_KEY>')}`);
-  }
-  const data = await response.json();
-  if (data.error) throw new Error(`OpenRouter error: ${data.error.message || 'unknown error'}`);
-  // Truncation is checked before the empty-text guard: a reasoning model can burn
-  // the whole budget on hidden reasoning and return no content, which is a cap
-  // problem, not an empty response. Reporting it as "no visible response" sends the
-  // operator hunting the wrong bug.
-  const finish = data.choices?.[0]?.finish_reason ?? data.choices?.[0]?.native_finish_reason ?? null;
-  const truncated = finish === 'length' || finish === 'max_tokens';
 
-  const text = data.choices?.[0]?.message?.content;
+  // STREAMING IS REQUIRED, NOT OPTIONAL (fixed 2026-09-18).
+  //
+  // This block used to be a plain `await fetch(...)` + `await response.json()` behind a
+  // 900s AbortSignal.timeout. On a REASONING seat that is a silent money-burner: OpenRouter
+  // does not send response HEADERS until the model starts emitting, so a model that reasons
+  // for many minutes parks the request in "waiting for headers" while the billed output
+  // accumulates server-side and NOTHING reaches the wire. Three live hy4-preview attempts on
+  // 2026-09-18 billed ~$0.106 and wrote zero bytes of output, for exactly this reason.
+  //
+  // This is the failure class scripts/lib/openrouter-stream.mjs was written for on
+  // 2026-08-21 — "three sibling consult scripts each did a non-streaming POST behind a 600s
+  // timeout… its ENTIRE paid reply is lost" — and this script was the one that never got the
+  // fix. Using the shared helper rather than inlining a fourth copy is the point: the reason
+  // the bug survived here is that each sibling carried its own private implementation.
+  const result = await streamChatCompletion({
+    apiKey,
+    model,
+    prompt,
+    maxTokens: options.maxTokens,
+    temperature: 0.3,
+    effort: options.effort,
+    title: `SwanStudios ${model} Design Review`,
+    idleMs: Number(process.env.SWAN_HY3_IDLE_MS) || 300_000,
+    label: 'consult-hy3-design',
+  });
+
+  const { text, finish, usage, truncated } = result;
   if (!text?.trim()) {
     if (truncated) {
       throw new Error(
@@ -170,13 +216,17 @@ async function main() {
         + ` (reasoning consumed the budget). Re-run with a higher --max-tokens or --effort low.`,
       );
     }
-    throw new Error('OpenRouter returned no visible Hy3 response');
+    throw new Error(`OpenRouter returned no visible response for ${model}`);
   }
 
-  const inputTokens = Number(data.usage?.prompt_tokens) || 0;
-  const outputTokens = Number(data.usage?.completion_tokens) || 0;
-  const actualUsd = (inputTokens / 1_000_000) * PRICE_IN_PER_MILLION
-    + (outputTokens / 1_000_000) * PRICE_OUT_PER_MILLION;
+  // Usage comes from the final SSE frame (`usage: { include: true }`), the
+  // provider-authoritative count. A reasoning-only reply is therefore a DISTINCT,
+  // named diagnosis from a transport failure — previously the two were
+  // indistinguishable because neither wrote a file.
+  const inputTokens = Number(usage?.prompt_tokens) || 0;
+  const outputTokens = Number(usage?.completion_tokens) || 0;
+  const actualUsd = (inputTokens / 1_000_000) * pricing.in
+    + (outputTokens / 1_000_000) * pricing.out;
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
 
   // Truncation guard: a reply cut off at max_tokens must never be read as finished.
@@ -197,7 +247,10 @@ async function main() {
   let subject = (document.replace(/^```[\s\S]*?^```/gm, '').match(/^#\s+(.+?)\s*$/m)?.[1] ?? '')
     .replace(/\s+/g, ' ').trim();
   if (subject.length > SUBJECT_MAX) subject = `${subject.slice(0, SUBJECT_MAX - 1).trimEnd()}…`;
-  const h1 = subject ? `${subject} — reviewed by HY3 (${model})` : 'Tencent Hy3 - Design Inspiration';
+  // `seatLabel` is derived once, next to the model resolution — the remit and this
+  // H1 both read it, so a review cannot be addressed to one seat and filed under
+  // another.
+  const h1 = subject ? `${subject} — reviewed by ${seatLabel} (${model})` : `Tencent ${seatLabel} - Design Inspiration`;
 
   const output = `# ${h1}\n\n**Reviewer:** \`${model}\` (${options.effort})\n`
     + `**Document:** ${options.document}\n**Seed:** ${options.seed || '(none)'}\n`

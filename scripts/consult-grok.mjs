@@ -168,6 +168,7 @@ if (!res.ok) {
 
 let text = '';
 let finish = null;
+let streamError = null;
 let usage = {};
 // The model the provider says it ACTUALLY served. Distinct from MODEL, which is
 // only what we asked for. Reporting the request as though it were the response
@@ -192,7 +193,10 @@ try {
       if (payload === '[DONE]') continue;
       try {
         const j = JSON.parse(payload);
-        if (j.error) { console.error('API error mid-stream:', JSON.stringify(j.error).slice(0, 500)); }
+        if (j.error) {
+          streamError = JSON.stringify(j.error).slice(0, 500);
+          console.error('API error mid-stream:', streamError);
+        }
         const choice = j.choices?.[0];
         if (choice?.delta?.content) text += choice.delta.content;
         if (choice?.finish_reason) finish = choice.finish_reason;
@@ -211,9 +215,12 @@ try {
 
 if (!text) text = '(empty response)';
 
-// Truncation guard (lesson from the 2026-07-30 Sol incident: a reply that hit
-// max_tokens was reported as success). Exit 2 = partial reply written.
+// Incompleteness guard (lesson from the 2026-07-30 Sol incident: a reply that
+// hit max_tokens was reported as success). Provider errors are equally invalid:
+// a partial answer after a mid-stream 5xx must never become a clean panel seat.
+// Exit 2 = incomplete reply written.
 const truncated = finish === 'length' || finish === 'max_tokens';
+const incomplete = truncated || Boolean(streamError);
 
 const inTok = usage?.prompt_tokens || 0;
 const outTok = usage?.completion_tokens || 0;
@@ -273,8 +280,10 @@ try {
 }
 
 const outPath = arg('out', 'docs/ai-workflow/AI-HANDOFF/GROK-GATE-REVIEW.md');
-const banner = truncated
-  ? `> ⚠ **TRUNCATED** — the model hit max_tokens (${MAX_TOKENS}) and this reply is INCOMPLETE.\n\n`
+const banner = incomplete
+  ? truncated
+    ? `> ⚠ **TRUNCATED** — the model hit max_tokens (${MAX_TOKENS}) and this reply is INCOMPLETE.\n\n`
+    : `> ⚠ **INCOMPLETE** — the provider stream failed before a complete reply${streamError ? `: ${streamError}` : ''}.\n\n`
   : '';
 // `Reviewer` is what we REQUESTED; `Served` is what the provider says it RAN.
 // A downstream gate must key on Served — Reviewer is our own input echoed back,
@@ -284,7 +293,7 @@ const servedLine = `**Served:** \`${servedModel || 'unreported'}\`${servedModel 
 const outContent = `# ${MODEL_LABEL} — Hostile Gate Review\n\n**Reviewer:** OpenRouter \`${MODEL}\` (effort: ${EFFORT})\n${servedLine}**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ${costLabel} · **Wall:** ${wallSec}s · **finish:** ${finish ?? '?'}\n\n---\n\n${banner}${text}\n`;
 writeFileSync(outPath, outContent, 'utf-8');
 console.log(`[consult-grok] saved -> ${outPath}`);
-if (truncated) {
-  console.error('[consult-grok] ⚠ TRUNCATED at max_tokens — reply is incomplete.');
+if (incomplete) {
+  console.error(`[consult-grok] ⚠ ${truncated ? 'TRUNCATED at max_tokens' : 'PROVIDER STREAM ERROR'} — reply is incomplete.`);
   process.exit(2);
 }

@@ -24,7 +24,10 @@ import { readForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 const ROOT = process.cwd();
 for (const envPath of [join(ROOT, '.env'), join(ROOT, 'backend', '.env')]) {
   if (existsSync(envPath)) {
-    for (const rawLine of readFileSync(envPath, 'utf-8').split('\n')) {
+    // Split on /\r?\n/, not '\n': this repo's .env is CRLF, and a '\n' split leaves a
+    // trailing '\r' on every line, which `/^KEY=(.*)$/` cannot match — so the whole file
+    // silently loads 1 of 137 vars. Rule-20 sibling fix; consult-sol/grok/fable already carry it.
+    for (const rawLine of readFileSync(envPath, 'utf-8').split(/\r?\n/)) {
       // CRLF guard: JS '.' does not match '\r', so '(.*)$' fails on
       // Windows-edited .env lines unless the trailing '\r' is stripped.
       const line = rawLine.replace(/\r$/, '');

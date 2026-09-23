@@ -7,22 +7,20 @@
  * npm dependencies to the production repo. Node built-ins only.
  *
  * Tools (Sean 2026-07-22):
- *   - codex_review  — daily hostile reviewer. Subscription CLI → OpenRouter
- *                     fallback. Fires freely.
+ *   - codex_review  — daily hostile reviewer. ChatGPT subscription CLI only.
  *   - ask_kimi      — cheap "more brainpower" brain ($0.08–0.16/call).
- *                     OpenRouter only. Fires freely (Sean pre-authorized).
+ *                     OpenRouter only when explicitly enabled.
  *   - ask_grok      — cheapest council brain (Grok 4.6, ~$0.04–0.10/call).
- *                     OpenRouter only. Added 2026-08-20 on the rule-12 repeal.
- *   - fable_rule    — the king, expensive. Subscription CLI → OpenRouter
- *                     fallback. SPEND-GATED: refuses to spend unless the caller
+ *                     OpenRouter only when explicitly enabled.
+ *   - fable_rule    — the king, expensive. Metered use is disabled by default.
+ *                     SPEND-GATED: refuses to spend unless the caller
  *                     passes confirm:true, so it can NEVER fire silently.
  *
  * Spend control: every paid call logs cost + running session total AND a hard
  * $3/session cap (SWAN_COUNCIL_CAP_USD to override) refuses further paid calls.
  *
- * Backends absent today: Codex/Fable CLIs are not installed, so both currently
- * route through OpenRouter. Installing the CLI auto-flips them to $0 — no code
- * change (selectBackend prefers the CLI whenever present).
+ * Codex uses the local subscription CLI runner. Other provider routes remain
+ * available only when SWAN_COUNCIL_ENABLE_METERED_FALLBACK=1 is explicitly set.
  *
  * Privacy (Rule 8/44/59): OPENROUTER_API_KEY only ever in the Authorization
  * header; redactKey() scrubs anything that leaves. Keep tool inputs to IDs/roles.
@@ -32,6 +30,8 @@
 
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
+import { runCodexSubscription } from './swan-council-subscription.mjs';
+import { runClaudeSubscription } from './swan-claude-subscription.mjs';
 import {
   BRAINS, DEFAULT_SESSION_CAP_USD, loadOpenRouterKey, redactKey, computeCost,
   checkCap, reserveSpend, settleReservation, selectBackend, callOpenRouter, REMITS, buildReviewPrompt,
@@ -40,7 +40,8 @@ import {
 const ROOT = process.env.SWAN_COUNCIL_ROOT || process.cwd();
 const LEDGER = process.env.SWAN_COUNCIL_LEDGER || join(ROOT, 'scripts', 'mcp', 'swan-council.spend.json');
 const CAP = Number(process.env.SWAN_COUNCIL_CAP_USD) || DEFAULT_SESSION_CAP_USD;
-const KEY = loadOpenRouterKey(ROOT);
+const METERED_FALLBACK_ENABLED = process.env.SWAN_COUNCIL_ENABLE_METERED_FALLBACK === '1';
+const KEY = METERED_FALLBACK_ENABLED ? loadOpenRouterKey(ROOT) : null;
 
 // stderr is safe for diagnostics (not part of the MCP protocol stream); stdout
 // is RESERVED for JSON-RPC. Never write anything but framed JSON to stdout.
@@ -61,7 +62,7 @@ export function isSafeDiffRange(range) {
   return typeof range === 'string' && SAFE_RANGE.test(range);
 }
 
-function gitDiff(range = 'HEAD~1..HEAD') {
+function gitDiff(range = 'HEAD') {
   if (!isSafeDiffRange(range)) {
     return `(rejected diff range ${JSON.stringify(range)}: only refs/SHAs and .. ... ranges are allowed — no shell metacharacters)`;
   }
@@ -86,9 +87,57 @@ function worstCaseEstimate(brain, prompt) {
   return computeCost(brain, inTok, outTok);
 }
 
-/** Run a brain via OpenRouter with ATOMIC cap reserve→settle + spend logging. */
+/** Run Codex through the local subscription CLI; never fall back to metered use.
+ *
+ * `prompt` reaches this function RAW — REDACT is a *key* scrubber (see the module
+ * header), not a content redactor, and it is not applied here. The prompt is
+ * therefore handed to `runCodexSubscription` as a raw `prompt` so the transport's
+ * egress boundary redacts it. Until 2026-09-22 this call site sent the prompt
+ * verbatim (Astra R2-A1-02).
+ *
+ * `egressMode` is surfaced in the footer so a council receipt records WHICH branch
+ * of the admission ran. A call that fell through to `redaction-failed` should be
+ * visible on the receipt, not inferred from a missing line. */
+async function runCodex(prompt) {
+  const result = await runCodexSubscription({
+    prompt,
+    root: ROOT,
+    model: process.env.SWAN_CODEX_MODEL || null,
+  });
+  if (result.status !== 'complete') {
+    return { ok: false, text: `codex: ${result.errorCode || 'blocked'} — ${result.error}` };
+  }
+  const footer = [
+    '', '', '---',
+    `_via Codex CLI \`${result.billing}\` · auth \`${result.authMode}\` · egress \`${result.egressMode || 'unknown'}\` · requested model \`${result.requestedModel || 'unspecified'}\` · served model \`${result.servedModel || 'unknown'}\` · tokens in:${result.inputTokens ?? 'unknown'} out:${result.outputTokens ?? 'unknown'}_`,
+  ].join('\n');
+  return { ok: true, text: result.text + footer };
+}
+
+/** Run Claude Code through its first-party subscription CLI; no API fallback. */
+async function runClaude(prompt) {
+  const result = await runClaudeSubscription({
+    prompt,
+    root: ROOT,
+    model: process.env.SWAN_CLAUDE_MODEL || null,
+  });
+  if (result.status !== 'complete') {
+    return { ok: false, text: `claude: ${result.errorCode || 'blocked'} — ${result.error}` };
+  }
+  const footer = [
+    '', '', '---',
+    `_via Claude CLI \`${result.billing}\` · auth \`${result.authMode}\` · requested model \`${result.requestedModel || 'unspecified'}\` · served model \`${result.servedModel || 'unknown'}\` · tokens in:${result.inputTokens ?? 'unknown'} out:${result.outputTokens ?? 'unknown'}_`,
+  ].join('\n');
+  return { ok: true, text: result.text + footer };
+}
+
+/** Run a non-Codex brain via OpenRouter only with explicit policy opt-in. */
 async function runPaid(brain, prompt, { reasoningEffort } = {}) {
-  const backend = await selectBackend(brain, { hasKey: !!KEY });
+  if (brain === 'codex') return runCodex(prompt);
+  if (!METERED_FALLBACK_ENABLED) {
+    return { ok: false, text: `${brain}: metered fallback disabled by policy; no provider call attempted.` };
+  }
+  const backend = await selectBackend(brain, { hasKey: !!KEY, allowMeteredFallback: true });
   if (backend === 'none') {
     return { ok: false, text: `${brain}: no backend available (CLI absent and no OpenRouter key).` };
   }
@@ -126,24 +175,46 @@ async function runPaid(brain, prompt, { reasoningEffort } = {}) {
 
 const TOOLS = {
   codex_review: {
-    description: 'Hostile code review by Codex (GPT-5.5) — the daily bug-catcher, stronger than Opus 4.8 at finding defects. Pass files and/or the current git diff. Fires freely. Inputs: IDs/roles only, no PII.',
+    description: 'Hostile code review by the authenticated Codex subscription CLI. Pass files and/or the current tracked git diff. No metered fallback. Inputs: repo-relative paths and a focused question.',
     inputSchema: {
       type: 'object',
       properties: {
         files: { type: 'array', items: { type: 'string' }, description: 'Repo-relative file paths to review.' },
-        diff: { type: 'boolean', description: 'Include git diff HEAD~1..HEAD.' },
+        diff: { type: 'boolean', description: 'Include the tracked working-tree diff (git diff HEAD). Untracked files require explicit files.' },
         diff_range: { type: 'string', description: 'Custom git diff range (e.g. "main..HEAD"). Implies diff.' },
         question: { type: 'string', description: 'Specific question or focus for the review.' },
       },
     },
     async run(a = {}) {
       const files = Array.isArray(a.files) ? a.files : [];
-      const diffText = (a.diff || a.diff_range) ? gitDiff(a.diff_range || 'HEAD~1..HEAD') : '';
+      const diffText = (a.diff || a.diff_range) ? gitDiff(a.diff_range || 'HEAD') : '';
       if (!files.length && !diffText && !a.question) {
         return { ok: false, text: 'codex_review needs at least one of: files, diff, or question.' };
       }
       const prompt = buildReviewPrompt({ remit: REMITS.codex, files, diffText, question: a.question || '', root: ROOT });
       return runPaid('codex', prompt);
+    },
+  },
+
+  claude_review: {
+    description: 'Hostile code review by the authenticated Claude Code subscription CLI. Tools, persistence, and custom MCP are disabled; there is no metered fallback.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        files: { type: 'array', items: { type: 'string' }, description: 'Repo-relative file paths to review.' },
+        diff: { type: 'boolean', description: 'Include the tracked working-tree diff (git diff HEAD). Untracked files require explicit files.' },
+        diff_range: { type: 'string', description: 'Custom git diff range (e.g. "main..HEAD"). Implies diff.' },
+        question: { type: 'string', description: 'Specific question or focus for the review.' },
+      },
+    },
+    async run(a = {}) {
+      const files = Array.isArray(a.files) ? a.files : [];
+      const diffText = (a.diff || a.diff_range) ? gitDiff(a.diff_range || 'HEAD') : '';
+      if (!files.length && !diffText && !a.question) {
+        return { ok: false, text: 'claude_review needs at least one of: files, diff, or question.' };
+      }
+      const prompt = buildReviewPrompt({ remit: REMITS.codex, files, diffText, question: a.question || '', root: ROOT });
+      return runClaude(prompt);
     },
   },
 
@@ -186,7 +257,7 @@ const TOOLS = {
   },
 
   fable_rule: {
-    description: 'Final-Decider ruling by Fable 5 — the king, EXPENSIVE. SPEND-GATED: does nothing unless you pass confirm:true. Reserve for last-minute / must-be-right calls. Call once with confirm omitted to see the cost estimate first.',
+    description: 'Final-Decider ruling by Fable 5 — the king, EXPENSIVE, and disabled by default. SPEND-GATED: does nothing unless metered policy is explicitly enabled and you pass confirm:true.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -197,6 +268,9 @@ const TOOLS = {
     },
     async run(a = {}) {
       if (!a.document) return { ok: false, text: 'fable_rule requires a document to rule on.' };
+      if (!METERED_FALLBACK_ENABLED) {
+        return { ok: false, text: 'fable: metered fallback disabled by policy; no provider call attempted.' };
+      }
       // WORST-CASE estimate (input + Fable's FULL max_tokens output), not a
       // hopeful 2500-token guess — so the number Sean confirms is the ceiling he
       // could actually be charged, and the pre-check can't wave through an
@@ -271,7 +345,7 @@ async function handle(msg) {
 }
 
 function main() {
-  logErr(`ready — cap $${CAP}/session · ledger ${LEDGER} · key ${KEY ? 'loaded' : 'MISSING'}`);
+  logErr(`ready — cap $${CAP}/session · ledger ${LEDGER} · metered fallback ${METERED_FALLBACK_ENABLED ? (KEY ? 'enabled/key-loaded' : 'enabled/key-missing') : 'disabled'}`);
   let buf = '';
   process.stdin.setEncoding('utf-8');
   process.stdin.on('data', (chunk) => {

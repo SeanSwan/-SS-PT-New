@@ -26,6 +26,17 @@ function Ensure-Directory {
   New-Item -ItemType Directory -Force -Path $Path | Out-Null
 }
 
+function Get-RetiredLauncherRoot {
+  # Disabled Startup entries must leave the Startup folder; a renamed unknown
+  # extension is still handed to ShellExecute and produces an app-picker loop.
+  $desktop = [Environment]::GetFolderPath("Desktop")
+  $existingArchive = if ($desktop) { Join-Path $desktop "_retired-launchers-20260825" } else { "" }
+  if ($existingArchive -and (Test-Path -LiteralPath $existingArchive -PathType Container)) {
+    return $existingArchive
+  }
+  return (Join-Path $env:LOCALAPPDATA "SwanStudios\retired-launchers")
+}
+
 function Write-Utf8NoBom {
   param([string]$Path, [string]$Value)
   $encoding = New-Object System.Text.UTF8Encoding($false)
@@ -106,9 +117,11 @@ function Disable-LegacyStartupShortcut {
   if (-not (Test-Path -LiteralPath $legacy)) { return }
 
   $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-  $disabled = Join-Path $startup "Start-Swan-Applaud-Sync.disabled-$stamp.lnk"
+  $retiredRoot = Get-RetiredLauncherRoot
+  Ensure-Directory -Path $retiredRoot
+  $disabled = Join-Path $retiredRoot "Start-Swan-Applaud-Sync.disabled-$stamp.lnk"
   Move-Item -LiteralPath $legacy -Destination $disabled
-  Write-Step "Disabled old prompt-blocking Startup shortcut: $disabled"
+  Write-Step "Retired old prompt-blocking Startup shortcut outside Startup: $disabled"
 }
 
 function Stop-LegacySyncProcesses {

@@ -24,6 +24,17 @@ function Ensure-Directory {
   New-Item -ItemType Directory -Force -Path $Path | Out-Null
 }
 
+function Get-RetiredLauncherRoot {
+  # Disabled Startup entries must leave the Startup folder; a renamed unknown
+  # extension is still handed to ShellExecute and produces an app-picker loop.
+  $desktop = [Environment]::GetFolderPath("Desktop")
+  $existingArchive = if ($desktop) { Join-Path $desktop "_retired-launchers-20260825" } else { "" }
+  if ($existingArchive -and (Test-Path -LiteralPath $existingArchive -PathType Container)) {
+    return $existingArchive
+  }
+  return (Join-Path $env:LOCALAPPDATA "SwanStudios\retired-launchers")
+}
+
 function Write-Utf8NoBom {
   param([string]$Path, [string]$Value)
   $encoding = New-Object System.Text.UTF8Encoding($false)
@@ -74,13 +85,15 @@ function Disable-ApplaudFallbackStartup {
   }
   $startup = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Startup"
   $names = @("Start-Swan-Applaud-Automation.cmd", "Start-Swan-Applaud-Sync.lnk")
+  $retiredRoot = Get-RetiredLauncherRoot
+  Ensure-Directory -Path $retiredRoot
   foreach ($name in $names) {
     $path = Join-Path $startup $name
     if (-not (Test-Path -LiteralPath $path)) { continue }
     $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-    $disabled = Join-Path $startup "$name.disabled-$stamp"
+    $disabled = Join-Path $retiredRoot "$name.disabled-$stamp"
     Move-Item -LiteralPath $path -Destination $disabled
-    Write-Step "Disabled Applaud fallback Startup entry: $disabled"
+    Write-Step "Retired Applaud fallback Startup entry outside Startup: $disabled"
   }
 }
 

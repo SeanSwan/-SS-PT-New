@@ -13,7 +13,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   BRAINS, DEFAULT_SESSION_CAP_USD, computeCost, redactKey, checkCap, recordSpend,
-  readSpend, selectBackend, callOpenRouter, buildReviewPrompt, REMITS, loadOpenRouterKey,
+  readSpend, selectBackend, callOpenRouter, buildReviewPrompt, readFileSafe, REMITS, loadOpenRouterKey,
   reserveSpend, settleReservation,
 } from './swan-council-lib.mjs';
 import { TOOLS, isSafeDiffRange } from './swan-council-server.mjs';
@@ -74,14 +74,16 @@ test('recordSpend accumulates a running total', () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('selectBackend: CLI present → cli; absent+key → openrouter; neither → none', async () => {
+test('selectBackend: CLI present → cli; metered fallback requires explicit opt-in', async () => {
   const probeYes = async () => true;
   const probeNo = async () => false;
   assert.equal(await selectBackend('codex', { probe: probeYes, hasKey: true }), 'cli');
-  assert.equal(await selectBackend('codex', { probe: probeNo, hasKey: true }), 'openrouter');
+  assert.equal(await selectBackend('codex', { probe: probeNo, hasKey: true }), 'none');
+  assert.equal(await selectBackend('codex', { probe: probeNo, hasKey: true, allowMeteredFallback: true }), 'openrouter');
   assert.equal(await selectBackend('codex', { probe: probeNo, hasKey: false }), 'none');
-  // Kimi has no CLI → openrouter when key present, none otherwise
-  assert.equal(await selectBackend('kimi', { hasKey: true }), 'openrouter');
+  // Kimi has no CLI → none unless the caller explicitly opts into metered use.
+  assert.equal(await selectBackend('kimi', { hasKey: true }), 'none');
+  assert.equal(await selectBackend('kimi', { hasKey: true, allowMeteredFallback: true }), 'openrouter');
   assert.equal(await selectBackend('kimi', { hasKey: false }), 'none');
 });
 
@@ -116,14 +118,24 @@ test('buildReviewPrompt includes remit, diff, and question', () => {
   assert.ok(p.includes('is it safe?'));
 });
 
-test('fable_rule WITHOUT confirm returns an estimate and does NOT spend', async () => {
+test('readFileSafe rejects absolute and traversal paths', () => {
+  assert.match(readFileSafe('C:\\repo', '../outside.txt'), /rejected path/);
+  assert.match(readFileSafe('C:\\repo', 'C:\\outside.txt'), /rejected path/);
+});
+
+test('claude_review validates scope before any subscription process call', async () => {
+  const out = await TOOLS.claude_review.run({});
+  assert.equal(out.ok, false);
+  assert.match(out.text, /needs at least one/);
+});
+
+test('fable_rule is blocked when metered fallback is disabled', async () => {
   const { path, dir } = tmpLedger();
   process.env.SWAN_COUNCIL_LEDGER = path;
   try {
     const out = await TOOLS.fable_rule.run({ document: 'a small plan' });
-    assert.equal(out.ok, true);
-    assert.match(out.text, /estimated ~\$/);
-    assert.match(out.text, /confirm:true/);
+    assert.equal(out.ok, false);
+    assert.match(out.text, /metered fallback disabled by policy/);
     assert.equal(readSpend(path).totalUsd, 0, 'no spend without confirm');
   } finally { delete process.env.SWAN_COUNCIL_LEDGER; rmSync(dir, { recursive: true, force: true }); }
 });

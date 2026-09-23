@@ -1,0 +1,51 @@
+{
+ "schemaVersion": 1,
+ "phase": "implementation",
+ "ui": false,
+ "scope": "Installed local policy files and isolated adapters only; universal runtime activation is not certified.",
+ "blockers": [],
+ "nextSlice": "Refresh Hermes gateway and coding sessions; configure Cursor global User Rules; verify other hosts separately.",
+ "remainingRuntimeActivation": ["Existing Hermes gateway plugin cache", "Cursor global User Rules", "Fresh native sessions on other editors and WSL hook trust", "Remote or cloud host installation"],
+ "sections": {
+  "baseline": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "requirements": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "blueprint": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "flowchart": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "contracts": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "tests": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "traceability": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "slices": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "review": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "preservation": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "state": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "sequence": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "permissions": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "privacy": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "operations": {"status": "COMPLETE", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}]},
+  "wireframes": {"status": "N/A", "reason": "Headless instruction and native hook installation; no product UI."},
+  "erd": {"status": "N/A", "reason": "No application database or schema changes."}
+ },
+ "requirements": [
+  {"id": "R01", "acceptance": "Loaded policy requires the whole applicable checklist for build/change intent and continuation", "tests": ["T01", "T03", "T04"]},
+  {"id": "R02", "acceptance": "Plan-only/review-only remain bounded; authorized build proceeds after readiness", "tests": ["T01", "T03"]},
+  {"id": "R03", "acceptance": "Every core category is accounted for; conditional N/A needs a reason", "tests": ["T02"]},
+  {"id": "R04", "acceptance": "Runtime evidence stays distinct from planned/unrun/mocked evidence", "tests": ["T02"]},
+  {"id": "R05", "acceptance": "Existing config, privacy, model routing, and source instructions survive installation", "tests": ["T02", "T05", "T06", "T07"]},
+  {"id": "R06", "acceptance": "Active Hermes loader receives the context and skill without paid calls", "tests": ["T03"]},
+  {"id": "R07", "acceptance": "Global hooks emit valid native formats without echoing user content", "tests": ["T01"]},
+  {"id": "R08", "acceptance": "Repo mirror stays exact and new instructions occur before truncation", "tests": ["T04", "T06"]},
+  {"id": "R09", "acceptance": "Global discoverability is measured per surface; unsupported paths are explicit", "tests": ["T03", "T04", "T05", "T06", "T08"]},
+  {"id": "R10", "acceptance": "Backups are verified through isolated restore, not file existence", "tests": ["T05", "T07"]},
+  {"id": "R11", "acceptance": "Exact marker is Mega Blueprints; the audit phrase requires artifact and hook inspection", "tests": ["T01", "T03", "T04", "T05"]}
+ ],
+ "tests": [
+  {"id": "T01", "command": "`node --test scripts/build-protocol/activation.test.mjs` with `MAKEER_TEST_HOOK` set to the installed hook", "status": "PASS", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}], "requirements": ["R01", "R02", "R07", "R11"]},
+  {"id": "T02", "command": "`node --test scripts/build-protocol/readiness.test.mjs scripts/build-protocol/install.test.mjs`", "status": "PASS", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}], "requirements": ["R03", "R04", "R05"]},
+  {"id": "T03", "command": "Active venv Python executes `scripts/build-protocol/verify-hermes.py`", "status": "PASS", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}], "requirements": ["R01", "R02", "R06", "R09", "R11"]},
+  {"id": "T04", "command": "`codex debug prompt-input 'Did we make a blueprint that?'` and `node scripts/build-protocol/codex-hooks-inspect.mjs <installed-codex.exe>`", "status": "PASS", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}], "requirements": ["R01", "R08", "R09", "R11"]},
+  {"id": "T05", "command": "`node scripts/build-protocol/verify-installation.mjs <original-manifest> <correction-manifest>` on each OS", "status": "PASS", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}], "requirements": ["R05", "R09", "R10", "R11"]},
+  {"id": "T06", "command": "Both installers without `--apply`; `node scripts/sync-agents-mirror.mjs --check`", "status": "PASS", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}], "requirements": ["R05", "R08", "R09"]},
+  {"id": "T07", "command": "`node --test <installed-non-vibe-coding>/scripts/planning-artifacts.test.mjs`", "status": "PASS", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}], "requirements": ["R05", "R10"]},
+  {"id": "T08", "command": "Skill creator `quick_validate.py <installed-non-vibe-coding>`; run `node scripts/hooks/prompt-watcher.mjs`", "status": "PASS", "evidence": [{"path": "docs/ai-workflow/AI-HANDOFF/AUTOMATIC-BUILD-PROTOCOL-2026-09-06.md", "sha256": "ea831ddb86119c13cb1eac1b5da9ad8fc06839afd68c3b84ca8cad62ee6098a7"}], "requirements": ["R09"]}
+ ]
+}

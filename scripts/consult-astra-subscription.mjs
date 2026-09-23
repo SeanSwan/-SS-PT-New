@@ -223,8 +223,22 @@ export async function main(argv = process.argv.slice(2)) {
   }
 
   const started = Date.now();
+  // `prompt` here is ALREADY redacted — it is assembled at line ~177/187 from
+  // `readForEgress(document)` and `redactOutbound(remit)`. So it is passed as
+  // `redactedPrompt`, which the transport sends verbatim.
+  //
+  // Why not `promptRedacted: true` with a raw `prompt`? Because that would claim
+  // this leg decided not to redact, when in fact it redacted earlier and by hand.
+  // `redactedPrompt` is the honest description, and it keeps the two entry points
+  // distinguishable in a receipt: a `caller-supplied-redacted` run and a
+  // `redacted-at-boundary` run are different provenance.
+  //
+  // Do NOT "simplify" this back to `prompt:` expecting the boundary to handle it.
+  // It would work, but it would redact a second time — and re-redacting already
+  // redacted text makes the hit counts on the second pass read as if the document
+  // contained fresh secrets. The counts are evidence; they must not lie.
   const result = await runCodexSubscription({
-    prompt,
+    redactedPrompt: prompt,
     root: process.cwd(),
     model: options.model,
     effort: options.effort,

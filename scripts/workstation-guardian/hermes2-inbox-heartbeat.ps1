@@ -1,45 +1,450 @@
-# Hermes inbox heartbeat. Scheduled every four hours through a hidden VBS host.
-# No memo means no WSL or model work. Gaming/rendering/high-load states defer.
+# Hermes inbox heartbeat v8 (Z:\HermesInbox canonical root). Scheduled every four hours
+# through a hidden VBS host.
+#
+# WHY v8 EXISTS -- THE ROOT IS SETTLED BY THE OPERATOR, AND THIS IS THE SETTLEMENT
+# -------------------------------------------------------------------------------
+# On 2026-09-19 two agent sessions repaired this pipeline within minutes of each other and
+# picked CONTRADICTORY canonical roots. Both roots received memos; neither held a superset
+# of the other. Each component passed its own test and the system as a whole was incoherent.
+# The root moved three times in one night: C: -> Z: (01:28) -> C: (01:34) -> Z: (01:47).
+#
+# It stopped because it was put back to the operator, and only because of that. Both
+# sessions had independently recorded an operator instruction and the two records named
+# OPPOSITE roots; neither could be dated against the other, and a conversation-history
+# search returned nothing for either. Recording a decision is not receiving one, and a
+# memory file citing "the operator said" is not authority.
+# If you are reading this because you are about to move the root again: DO NOT. Ask.
+#
+# THE RULING (operator, 2026-09-19 01:47): the inbox lives on Z:\HermesInbox.
+#   * The counter-argument was real and is recorded here rather than buried: the ENTIRE
+#     inbox is under a megabyte, so C: being 99% full is NOT remedied by relocating it.
+#     That argument was correct, and it lost on a different ground -- the operator named Z:.
+#   * The C: @Everything root is now a WATCHED LEGACY ROOT. Every memo aimed there is
+#     adopted, so nothing is lost by this change and reversing it later costs one copy.
+#
+# What actually made this decision cheap, and what must be preserved:
+#   BOTH consumers watch the OTHER root, and adoption MOVES rather than copies. So a memo
+#   written to the losing root is still delivered exactly once. That property -- not the
+#   drive letter -- is what kept a contested root survivable for an hour. Do not remove it.
+#
+# v7 KEEPS EVERYTHING GOOD FROM BOTH LINES -- this is a merge, not a rollback.
+#
+#   Kept from the C: line (v3/v4/v5):
+#     * Get-LegacyPendingDirs globs 'pending' AND 'RETIRED-*-pending'. v3 watched only
+#       '<legacy>\pending'; the migration had renamed those children to
+#       'RETIRED-20260919-pending', so v3's adoption net matched NOTHING at all three
+#       retired roots. A safety net that cannot see what it protects is worse than none,
+#       because it is trusted.
+#     * Get-Health falls back to the out-of-root health record when the in-root one is
+#       absent. Without this the failure counter is 0 on EVERY run while the root is
+#       unreachable -- the in-root file is exactly what cannot be written -- so
+#       consecutive_failures could only ever reach 1 and the alert threshold of 2 was
+#       UNREACHABLE BY CONSTRUCTION. PROVEN from the log: 30 consecutive failures,
+#       2026-09-14T00:05 through 2026-09-18T20:05, and not one alert.
+#     * A stray that is BYTE-IDENTICAL to a memo already in pending/ is dropped, not
+#       adopted under a synthetic GUID name -- otherwise a memo copied into both roots is
+#       re-delivered under a name that hides the duplication.
+#
+#   Kept from the Z: line (v6) -- good findings, wrong root:
+#     * NO '-File' OR '-Directory' ANYWHERE. These are FileSystem-provider DYNAMIC
+#       parameters. When a path's drive cannot be resolved they are absent from the
+#       parameter set, so binding fails with ParameterBindingException -- and -ErrorAction
+#       CANNOT suppress that, because binding happens before the cmdlet runs. Filter on
+#       PSIsContainer instead.
+#     * An enumeration failure is COUNTED (legacy_scan_faults), never rendered as an empty
+#       result. A bare 'catch { }' or 'SilentlyContinue' around a directory scan converts
+#       "I could not look" into "there was nothing there" -- the exact conflation that let
+#       this pipeline die unnoticed for twelve days.
+#     * legacy_duplicate is actually threaded through and reported. v5 computed it and then
+#       dropped it: it was passed as a ninth positional argument to an eight-parameter
+#       function, and PowerShell discards extra positional arguments SILENTLY, so the key
+#       was always null.
+#
+# Preserved from v1..v6: single-instance mutex, no-memo short circuit, workstation busy
+# deferral, local-only privacy contract, structured provider gate that fails CLOSED,
+# prompt-file cleanup, append-only log, UNREACHABLE as its own outcome, a fallback health
+# record outside the root, alerting after consecutive failures.
+#
+# Keep this file ASCII-only. PowerShell 5.1 reads BOM-less files as ANSI; non-ASCII bytes
+# in a .ps1 break parsing on this machine (hit repeatedly in the v4.7 campaign).
 
 $ErrorActionPreference = 'Stop'
-$Distro = 'Ubuntu-22.04'
-# The inbox lives in the CANONICAL checkout. This previously pointed at the docs-only
-# mirror tree under the user profile (Desktop\<user>\quick-pt\SS-PT), which has no
-# .ai-workflow directory, so Get-ChildItem -ErrorAction Stop threw on every scheduled run
-# and the heartbeat never reached the memo scan. Log evidence: every 4 hours from at
-# least 2026-09-11 to 2026-09-13 logged "Cannot find path ... because it does not exist";
-# canonical consumed\2026-09 was last written 2026-09-03, i.e. absorption had already
-# stopped. Fixed 2026-09-13.
-# Derived from the user profile rather than hardcoded, so the path is machine-portable
-# and the script carries no operator-identity literal of its own.
-$InboxRoot = Join-Path $env:USERPROFILE 'Desktop\@Everything\quick-pt\SS-PT\.ai-workflow\hermes-inbox'
-$Pending = Join-Path $InboxRoot 'pending'
-$Runner = '/mnt/c/tmp/hermes2-local-prompt-runner.py'
+
+$Distro       = 'Ubuntu-22.04'
+$Runner       = '/mnt/c/tmp/hermes2-local-prompt-runner.py'
+$Probe        = '/mnt/c/tmp/hermes2-inbox-provider-probe.sh'
 $HermesPython = '/home/bigotsmasher/hermes2/hermes-agent/venv/bin/python'
 $GuardianRoot = 'C:\tmp\SwanWorkstationGuardian'
-$Log = 'C:\tmp\hermes2-inbox-heartbeat.log'
+$Log          = 'C:\tmp\hermes2-inbox-heartbeat.log'
+$AlertFile    = 'C:\tmp\hermes2-inbox-heartbeat.ALERT'
+$FallbackHealth = 'C:\tmp\hermes2-inbox-heartbeat.HEALTH.json'
+$AlertAfter   = 2
+
+# THE inbox. One root, declared once. Nothing else is ever read or written.
+# Z:, operator ruling 2026-09-19 01:47. See the header for the full history and for why
+# the capacity argument, though factually right, was not what decided it.
+$InboxRoot    = 'Z:\HermesInbox'
+
+# Roots the pipeline USED to live at. Never used for reading or writing; only watched, so
+# a memo aimed at a retired path is adopted instead of lost. Each entry is a PARENT whose
+# 'pending' child may carry either its original name or a RETIRED-* rename.
+# Add a line here whenever a root is retired -- a retired root nobody watches is how
+# memos disappear.
+$LegacyRoots = @(
+  'C:\Users\BigotSmasher\Desktop\@Everything\quick-pt\SS-PT\.ai-workflow\hermes-inbox',
+  'C:\tmp\.ai-workflow\hermes-inbox',
+  'C:\tmp\.ai-workflow\RETIRED-20260919-hermes-inbox',
+  'C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\.ai-workflow\hermes-inbox'
+)
+
+# Incremented whenever a legacy scan cannot be performed. Reported in HEALTH.json so that
+# "no strays found" can never be confused with "could not look for strays".
+$script:LegacyScanFaults = 0
 
 function Write-HeartbeatLog([string]$Message) {
   "$(Get-Date -Format o) $Message" | Add-Content -LiteralPath $Log
 }
 
+function Resolve-InboxRoot {
+  # HERMES_INBOX_ROOT is AUTHORITATIVE when set (tests, relocation). It is never a
+  # "prefer it if it happens to exist" hint: naming one inbox and quietly reading
+  # another is the silent-substitution bug that started this whole failure chain.
+  if ($env:HERMES_INBOX_ROOT -and $env:HERMES_INBOX_ROOT.Trim() -ne '') {
+    return $env:HERMES_INBOX_ROOT.Trim()
+  }
+  return $InboxRoot
+}
+
+function Initialize-InboxRoot([string]$Root) {
+  # Returns $true only if the canonical root is actually usable. A failure here is
+  # UNREACHABLE, not EMPTY, and the caller must not fall back to another root.
+  try {
+    foreach ($d in @('pending', 'consumed', 'outbox\pending', 'outbox\consumed')) {
+      New-Item -ItemType Directory -Force -Path (Join-Path $Root $d) -ErrorAction Stop | Out-Null
+    }
+    $probe = Join-Path $Root '.write-probe'
+    [IO.File]::WriteAllText($probe, 'ok')
+    # The TEST is whether the write succeeded -- so the probe is left in place and is
+    # NEVER deleted.
+    #
+    # MEASURED, 2026-09-19T01:36:23, not theorised. A host-level 'safe-delete' guard
+    # vetoes Remove-Item with a terminating error:
+    #     [safe-delete][SAFE_DELETE_BULK_GUARD_ERROR] bulk delete guard blocked deletion
+    # That error escaped BOTH -ErrorAction SilentlyContinue AND a surrounding try/catch,
+    # because it is raised outside the cmdlet's own error handling. The consequence was
+    # HEALTH.json recording last_outcome=unreachable for a root that had just accepted a
+    # successful write -- the health signal not matching reality, which is the exact bug
+    # this function exists to prevent.
+    #
+    # The fix is to remove the failure mode, not to catch it: no delete, no veto. The
+    # probe is a dot-file, so every memo filter skips it, and it is overwritten each run.
+    return $true
+  } catch {
+    Write-HeartbeatLog "unreachable: canonical inbox root $Root is not usable: $($_.Exception.Message)"
+    return $false
+  }
+}
+
+function Get-MemoFiles([string]$Dir, [switch]$Strict) {
+  # Memos in a directory. Deliberately does NOT use -File: that is a FileSystem-provider
+  # dynamic parameter and is ABSENT from the parameter set when the drive cannot be
+  # resolved, so it raises ParameterBindingException that -ErrorAction cannot suppress.
+  # Filtering on PSIsContainer leaves the enumeration as the only failure mode, which
+  # -ErrorAction does govern. Verified: -Strict throws DriveNotFoundException on a
+  # vanished drive, so a mid-run drive loss is loud rather than an empty result.
+  $ea = 'Continue'
+  if ($Strict) { $ea = 'Stop' }
+  return @(Get-ChildItem -LiteralPath $Dir -Filter *.md -ErrorAction $ea |
+    Where-Object {
+      -not $_.PSIsContainer -and
+      $_.Name -ne 'ENTRY-TEMPLATE.md' -and
+      -not $_.Name.StartsWith('.')
+    })
+}
+
+function Get-LegacyPendingDirs([string]$LegacyRoot) {
+  # A retired root's pending dir may carry its original name OR a RETIRED-* rename.
+  # v3 watched only 'pending' and so matched nothing after the migration renamed it.
+  $dirs = @()
+  $plain = Join-Path $LegacyRoot 'pending'
+  if (Test-Path -LiteralPath $plain -PathType Container) { $dirs += $plain }
+  try {
+    $dirs += @(Get-ChildItem -LiteralPath $LegacyRoot -ErrorAction Stop |
+      Where-Object { $_.PSIsContainer -and $_.Name -like 'RETIRED-*-pending' } |
+      ForEach-Object { $_.FullName })
+  } catch {
+    $script:LegacyScanFaults = $script:LegacyScanFaults + 1
+    Write-HeartbeatLog "fault: cannot enumerate legacy root $LegacyRoot : $($_.Exception.Message)"
+  }
+  return $dirs
+}
+
+function Adopt-LegacyMemos([string]$PendingDir) {
+  # Move strays from retired roots into the canonical pending/. Logged per memo, and
+  # counted in HEALTH.json -- visible repair, never a silent substitution.
+  # Returns @{ Found; Adopted; Duplicate; Pending; Faults }.
+  $adopted = 0
+  $found = 0
+  $duplicate = 0
+  foreach ($legacy in $LegacyRoots) {
+    if (-not (Test-Path -LiteralPath $legacy -PathType Container)) { continue }
+    foreach ($lp in (Get-LegacyPendingDirs $legacy)) {
+      $strays = @()
+      try {
+        $strays = @(Get-MemoFiles -Dir $lp -Strict)
+      } catch {
+        # "could not look" is NOT "there was nothing there".
+        $script:LegacyScanFaults = $script:LegacyScanFaults + 1
+        Write-HeartbeatLog "fault: cannot list strays in $lp : $($_.Exception.Message)"
+        continue
+      }
+      foreach ($s in $strays) {
+        $found = $found + 1
+        try {
+          $target = Join-Path $PendingDir $s.Name
+          if (Test-Path -LiteralPath $target) {
+            # A stray that is BYTE-IDENTICAL to one already in pending/ is the same memo
+            # seen twice (copied into both roots, not a new packet). Adopting it under a
+            # synthetic name would inflate pending_count with junk and re-deliver a memo
+            # Hermes already has. Identical -> drop the stray (zero information loss).
+            # Different -> keep BOTH, under a distinct name: a same-named memo with
+            # different content is two claims, and discarding one would lose a packet.
+            $identical = $false
+            try {
+              $h1 = (Get-FileHash -LiteralPath $s.FullName -Algorithm SHA256).Hash
+              $h2 = (Get-FileHash -LiteralPath $target   -Algorithm SHA256).Hash
+              $identical = ($h1 -eq $h2)
+            } catch { $identical = $false }
+            if ($identical) {
+              # Do NOT delete. A host-level 'safe-delete' guard vetoes Remove-Item with a
+              # terminating error that escapes BOTH -ErrorAction and try/catch (measured
+              # 2026-09-19T01:36:23). A veto here would abort the entire adoption net --
+              # the one mechanism that keeps a memo from being lost while the root is
+              # contested. Move the stray aside instead: a rename is not a deletion, the
+              # bytes survive for audit, and the stray still leaves the legacy pending dir.
+              $dupeDir = Join-Path (Split-Path $PendingDir -Parent) '.dupes'
+              if (-not (Test-Path -LiteralPath $dupeDir -PathType Container)) {
+                New-Item -ItemType Directory -Force -Path $dupeDir | Out-Null
+              }
+              Move-Item -LiteralPath $s.FullName -Destination (Join-Path $dupeDir $s.Name) -Force -ErrorAction Stop
+              $duplicate = $duplicate + 1
+              Write-HeartbeatLog "legacy stray is a byte-identical copy of a pending memo; stray moved to .dupes: $($s.Name)"
+              continue
+            }
+            $target = Join-Path $PendingDir ("{0}-{1}" -f [guid]::NewGuid().ToString('N').Substring(0, 8), $s.Name)
+            Write-HeartbeatLog "WARN legacy stray differs from same-named pending memo; adopting BOTH: $($s.Name)"
+          }
+          Move-Item -LiteralPath $s.FullName -Destination $target -Force -ErrorAction Stop
+          $adopted = $adopted + 1
+          Write-HeartbeatLog "WARN legacy memo adopted from $lp : $($s.Name)"
+        } catch {
+          Write-HeartbeatLog "WARN could not adopt legacy memo $($s.FullName): $($_.Exception.Message)"
+        }
+      }
+    }
+  }
+  # Anything still sitting in a retired root after the move attempt. Non-zero is a fault.
+  $leftover = 0
+  foreach ($legacy in $LegacyRoots) {
+    if (-not (Test-Path -LiteralPath $legacy -PathType Container)) { continue }
+    foreach ($lp in (Get-LegacyPendingDirs $legacy)) {
+      try {
+        $leftover += @(Get-MemoFiles -Dir $lp -Strict).Count
+      } catch {
+        $script:LegacyScanFaults = $script:LegacyScanFaults + 1
+        Write-HeartbeatLog "fault: cannot recount strays in $lp : $($_.Exception.Message)"
+      }
+    }
+  }
+  if ($leftover -gt 0) {
+    Write-HeartbeatLog "WARN legacy_pending=$leftover memo(s) still in retired roots after adoption"
+  }
+  return @{
+    Found     = $found
+    Adopted   = $adopted
+    Duplicate = $duplicate
+    Pending   = $leftover
+    Faults    = $script:LegacyScanFaults
+  }
+}
+
+function Get-Health([string]$Root) {
+  $f = Join-Path $Root 'HEALTH.json'
+  $prev = $null
+  if (Test-Path -LiteralPath $f) {
+    try { $prev = Get-Content -Raw -LiteralPath $f | ConvertFrom-Json } catch { $prev = $null }
+  }
+  # The counter must outlive the failure it is counting.
+  # When the canonical root is the thing that is UNREACHABLE, the in-root HEALTH.json
+  # cannot be written at all -- so a counter that only reads from the root is 0 on every
+  # single run, and the alert threshold (>= 2) is unreachable by construction. This is not
+  # hypothetical: the heartbeat failed 30 consecutive runs (2026-09-14 00:05 through
+  # 2026-09-18 20:05, every four hours) against a stale root and never once alerted,
+  # because Complete-Run could only ever compute fails = 0 + 1 = 1.
+  # A fallback copy outside the root is the record of the failure the primary record could
+  # not survive. Read it.
+  if (-not $prev) {
+    if (Test-Path -LiteralPath $FallbackHealth) {
+      try { $prev = Get-Content -Raw -LiteralPath $FallbackHealth | ConvertFrom-Json } catch { $prev = $null }
+    }
+  }
+  return $prev
+}
+
+function Write-Health([string]$Root, [hashtable]$Data) {
+  $f = Join-Path $Root 'HEALTH.json'
+  try {
+    $json = $Data | ConvertTo-Json -Depth 4
+    [IO.File]::WriteAllText($f, $json, [Text.UTF8Encoding]::new($false))
+  } catch {
+    Write-HeartbeatLog "warn: could not write HEALTH.json: $($_.Exception.Message)"
+  }
+}
+
+# Emit the terminal state of this run: log line, health record, alert bookkeeping.
+function Complete-Run([string]$Root, [string]$Outcome, [string]$Detail, [int]$Pending, [int]$ExitCode, [int]$LegacyAdopted, [int]$LegacyFound = 0, [int]$LegacyLeft = 0, [int]$LegacyDuplicate = 0, [int]$LegacyScanFaults = 0) {
+  $prev = Get-Health $Root
+  $priorFails = 0
+  if ($prev -and ($prev.PSObject.Properties.Name -contains 'consecutive_failures')) {
+    $priorFails = [int]$prev.consecutive_failures
+  }
+  # deferred/no_memos/ok are all HEALTHY: the pipeline ran and the inbox is genuinely
+  # empty. Only failed and unreachable mean the pipeline did not do its job.
+  $healthy = ($Outcome -eq 'ok' -or $Outcome -eq 'no_memos' -or $Outcome -eq 'deferred')
+
+  # 'blocked' is a THIRD state, and it is neither healthy nor failed. It means the
+  # environment refused to let this run verify anything -- wsl.exe denied, a non-local
+  # provider, no local model. The pipeline state is UNKNOWN.
+  #   * It must NOT count as a failure. MEASURED 2026-09-19T01:38:56: three agent-driven
+  #     runs reported 'blocked' (wsl.exe: Access is denied, blocked by the agent sandbox)
+  #     and tripped an "INBOX HEARTBEAT FAILING (3 consecutive)" alert while the pipeline
+  #     was fine. The alert misattributed an environment limitation to the pipeline.
+  #   * It must NOT count as health either. Nothing was verified, so resetting the counter
+  #     would let an unverifiable pipeline render as recovered.
+  # Held open, counted separately, surfaced as its own field. Same rule as the rest of this
+  # file: "could not look" is never rendered as "nothing was there" -- and it is not
+  # rendered as "it is broken" either.
+  $blocked = ($Outcome -eq 'blocked')
+  $priorBlocked = 0
+  if ($prev -and ($prev.PSObject.Properties.Name -contains 'blocked_runs')) {
+    $priorBlocked = [int]$prev.blocked_runs
+  }
+  if ($healthy)     { $fails = 0 }
+  elseif ($blocked) { $fails = $priorFails }
+  else              { $fails = $priorFails + 1 }
+  $blockedRuns = 0
+  if ($blocked) { $blockedRuns = $priorBlocked + 1 }
+
+  $now = (Get-Date).ToString('o')
+
+  # Carry forward the previous good/bad timestamps; overwrite only the one this run proves.
+  $lastOk = $null
+  $lastErr = $null
+  $lastBlocked = $null
+  if ($prev) {
+    if ($prev.PSObject.Properties.Name -contains 'last_ok')      { $lastOk      = $prev.last_ok }
+    if ($prev.PSObject.Properties.Name -contains 'last_error')   { $lastErr     = $prev.last_error }
+    if ($prev.PSObject.Properties.Name -contains 'last_blocked') { $lastBlocked = $prev.last_blocked }
+  }
+  # A blocked run proves nothing about the pipeline, so it writes neither timestamp: it is
+  # not a success, and its detail is not an error either.
+  if ($healthy)          { $lastOk  = $now }
+  elseif (-not $blocked) { $lastErr = $Detail }
+  if ($blocked)          { $lastBlocked = $now }
+
+  $health = @{
+    last_run             = $now
+    last_ok              = $lastOk
+    last_error           = $lastErr
+    last_outcome         = $Outcome
+    last_detail          = $Detail
+    pending_count        = $Pending
+    legacy_found         = $LegacyFound
+    legacy_adopted       = $LegacyAdopted
+    legacy_duplicate     = $LegacyDuplicate
+    legacy_pending       = $LegacyLeft
+    legacy_scan_faults   = $LegacyScanFaults
+    consecutive_failures = $fails
+    blocked_runs         = $blockedRuns
+    last_blocked         = $lastBlocked
+    inbox_root           = $Root
+    script_version       = 'v8'
+  }
+
+  Write-Health $Root $health
+
+  # Fallback health record. If the canonical root is the thing that failed, the primary
+  # HEALTH.json cannot be written there -- so the ONE state we most need recorded would be
+  # the only one with no machine-readable record. Keep a copy outside the root, always.
+  # Get-Health reads this back, which is what makes the failure counter survive.
+  try {
+    [IO.File]::WriteAllText(
+      $FallbackHealth,
+      ($health | ConvertTo-Json -Depth 4),
+      [Text.UTF8Encoding]::new($false)
+    )
+  } catch { }
+
+  # A blocked run must never write the FAILING message: it would misattribute an
+  # environment limitation to the pipeline. It gets its own wording, and it is tested
+  # FIRST, so that a counter inherited from a blocked streak cannot fire the wrong alert.
+  if ($blocked) {
+    if ($blockedRuns -ge $AlertAfter) {
+      $msg = "INBOX HEARTBEAT UNVERIFIED ($blockedRuns consecutive blocked, outcome=$Outcome): $Detail"
+      try { [IO.File]::WriteAllText($AlertFile, "$now`n$msg`n", [Text.UTF8Encoding]::new($false)) } catch { }
+      Write-HeartbeatLog "ALERT $msg"
+    }
+  } elseif ($fails -ge $AlertAfter) {
+    $msg = "INBOX HEARTBEAT FAILING ($fails consecutive, outcome=$Outcome): $Detail"
+    try { [IO.File]::WriteAllText($AlertFile, "$now`n$msg`n", [Text.UTF8Encoding]::new($false)) } catch { }
+    Write-HeartbeatLog "ALERT $msg"
+  } elseif ($fails -eq 0 -and (Test-Path -LiteralPath $AlertFile) -and ((Get-Item -LiteralPath $AlertFile).Length -gt 0)) {
+    # Blank the alert IN PLACE; do not delete it. A host-level 'safe-delete' guard vetoes
+    # Remove-Item with a terminating error that escapes -ErrorAction and try/catch
+    # (measured 2026-09-19T01:36:23), and an alert that cannot be cleared is worse than no
+    # alert at all -- it becomes permanent noise that hides the next real one.
+    try { [IO.File]::WriteAllText($AlertFile, '', [Text.UTF8Encoding]::new($false)) } catch { }
+    Write-HeartbeatLog 'alert cleared; heartbeat healthy again'
+  }
+
+  exit $ExitCode
+}
+
 $mutex = [Threading.Mutex]::new($false, 'Local\Hermes2InboxHeartbeat')
 $ownsMutex = $false
+$root = $null
+# -1 means "we do not know how many memos are waiting". It must NOT default to 0: the
+# outer catch fires precisely when we could not determine the inbox state, and 0 means
+# "I looked and it was empty". Reporting 0 told a reader the inbox was empty while 30
+# memos sat waiting -- the exact conflation this pipeline exists to prevent.
+$memoCount = -1
 try {
   $ownsMutex = $mutex.WaitOne(0)
   if (-not $ownsMutex) { exit 0 }
 
-  # A missing inbox is a configuration fault, not a reason to abort the heartbeat:
-  # report it explicitly and exit non-zero so it stays visible in the log.
-  if (-not (Test-Path -LiteralPath $Pending)) {
-    Write-HeartbeatLog "error=inbox pending directory not found: $Pending"
-    exit 1
+  $root = Resolve-InboxRoot
+
+  # UNREACHABLE is its own outcome. A pipeline that cannot read its inbox must never
+  # report "0 pending" -- that is the bug this whole family exists to kill.
+  if (-not (Initialize-InboxRoot $root)) {
+    Complete-Run $root 'unreachable' "canonical inbox root not usable: $root" -1 1 0
   }
-  $memos = @(Get-ChildItem -LiteralPath $Pending -Filter *.md -File -ErrorAction Stop |
-    Where-Object { $_.Name -ne 'ENTRY-TEMPLATE.md' -and -not $_.Name.StartsWith('.') })
+
+  $pendingDir = Join-Path $root 'pending'
+  $legacy = Adopt-LegacyMemos $pendingDir
+  $adopted   = $legacy.Adopted
+  $legacyFound = $legacy.Found
+  $legacyLeft  = $legacy.Pending
+  $legacyDup   = $legacy.Duplicate
+  $legacyFaults = $legacy.Faults
+
+  # -Strict: if the canonical pending dir cannot be enumerated, that is a failure, not an
+  # empty inbox.
+  $memos = @(Get-MemoFiles -Dir $pendingDir -Strict)
+  $memoCount = $memos.Count
   if ($memos.Count -eq 0) {
-    Write-HeartbeatLog 'no pending memos; skipped'
-    exit 0
+    Write-HeartbeatLog "no pending memos; skipped (root=$root adopted=$adopted faults=$legacyFaults)"
+    Complete-Run $root 'no_memos' 'no pending memos' 0 0 $adopted $legacyFound $legacyLeft $legacyDup $legacyFaults
   }
 
   Import-Module (Join-Path $GuardianRoot 'WorkstationGuardian.psm1') -Force
@@ -47,13 +452,40 @@ try {
   $busyState = Get-CurrentGuardianBusyState -Config $config
   if ($busyState.Busy) {
     Write-HeartbeatLog "pending=$($memos.Count); deferred reasons=$($busyState.Reasons -join ',')"
-    exit 0
+    Complete-Run $root 'deferred' "busy: $($busyState.Reasons -join ',')" $memos.Count 0 $adopted $legacyFound $legacyLeft $legacyDup $legacyFaults
   }
 
-  $providerProbe = & wsl.exe -d $Distro -- bash /mnt/c/tmp/hermes2-config-inspect-safe.sh 2>&1
-  if ($LASTEXITCODE -ne 0 -or ($providerProbe -join "`n") -notmatch 'provider:\s*local-ollama') {
-    Write-HeartbeatLog 'pending memos; blocked because Hermes provider is not verified local-ollama'
-    exit 0
+  # Provider gate. Structured, and it fails CLOSED on anything it cannot classify.
+  # A probe that cannot even START is not a probe that ran and failed. It means we could
+  # not determine the provider, so we refuse to drain -- 'blocked', not 'failed'. Letting
+  # it escape to the outer catch yields outcome=failed with pending_count=0, which reads
+  # as "the drain ran and broke, and the inbox was empty" when the truth is "we never
+  # looked, and N memos are waiting". Being unable to classify is not the same as failing.
+  try {
+    $probeOut = & wsl.exe -d $Distro -- bash $Probe 2>&1
+    $probeRc = $LASTEXITCODE
+  } catch {
+    Write-HeartbeatLog "pending memos; blocked: provider probe could not run: $($_.Exception.Message)"
+    Complete-Run $root 'blocked' "provider probe could not run: $($_.Exception.Message)" $memos.Count 0 $adopted $legacyFound $legacyLeft $legacyDup $legacyFaults
+  }
+  $provider = ''
+  $model = ''
+  foreach ($line in @($probeOut)) {
+    $s = "$line".Trim()
+    if ($s -match '^PROVIDER=(.*)$') { $provider = $Matches[1].Trim() }
+    if ($s -match '^MODEL=(.*)$')    { $model    = $Matches[1].Trim() }
+  }
+  if ($probeRc -ne 0 -or $provider -eq '') {
+    Write-HeartbeatLog "pending memos; blocked: provider probe failed rc=$probeRc"
+    Complete-Run $root 'blocked' "provider probe failed rc=$probeRc" $memos.Count 0 $adopted $legacyFound $legacyLeft $legacyDup $legacyFaults
+  }
+  if ($provider -notmatch '^local') {
+    Write-HeartbeatLog "pending memos; blocked: effective provider '$provider' is not local (cloud guard)"
+    Complete-Run $root 'blocked' "provider '$provider' is not local" $memos.Count 0 $adopted $legacyFound $legacyLeft $legacyDup $legacyFaults
+  }
+  if ($model -eq '' -or $model -eq 'UNKNOWN') {
+    Write-HeartbeatLog "pending memos; blocked: could not resolve a local model (provider=$provider)"
+    Complete-Run $root 'blocked' 'local model unresolved' $memos.Count 0 $adopted $legacyFound $legacyLeft $legacyDup $legacyFaults
   }
 
   $promptName = "hermes2-inbox-heartbeat-$PID-$([guid]::NewGuid().ToString('N')).txt"
@@ -64,21 +496,28 @@ try {
     $priorPreference = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-      & wsl.exe -d $Distro -- $HermesPython $Runner "/mnt/c/tmp/$promptName" 2>&1 |
+      # HERMES2_LOCAL_MODEL is passed INLINE: cmd -> wsl.exe drops host env vars.
+      & wsl.exe -d $Distro -- env "HERMES2_LOCAL_MODEL=$model" $HermesPython $Runner "/mnt/c/tmp/$promptName" 2>&1 |
         ForEach-Object { Write-HeartbeatLog "runner: $_" }
     } finally {
       $ErrorActionPreference = $priorPreference
     }
     if ($LASTEXITCODE -ne 0) {
-      Write-HeartbeatLog "runner failed exit=$LASTEXITCODE; no automatic retry"
-      exit 1
+      Write-HeartbeatLog "runner failed exit=$LASTEXITCODE model=$model; no automatic retry"
+      Complete-Run $root 'failed' "runner exit=$LASTEXITCODE model=$model" $memos.Count 1 $adopted $legacyFound $legacyLeft $legacyDup $legacyFaults
     }
-    Write-HeartbeatLog "heartbeat complete pendingBefore=$($memos.Count)"
+    Write-HeartbeatLog "heartbeat complete pendingBefore=$($memos.Count) provider=$provider model=$model root=$root adopted=$adopted"
+    Complete-Run $root 'ok' "drained $($memos.Count) memo(s)" $memos.Count 0 $adopted $legacyFound $legacyLeft $legacyDup $legacyFaults
   } finally {
     Remove-Item -LiteralPath $promptFile -Force -ErrorAction SilentlyContinue
   }
 } catch {
-  Write-HeartbeatLog "error=$($_.Exception.Message)"
+  $msg = $_.Exception.Message
+  Write-HeartbeatLog "error=$msg"
+  # $memoCount, not 0. This catch fires precisely when the run could not complete, and 0
+  # reads as "I looked and the inbox was empty". A real run reported outcome=failed with
+  # pending_count=0 while 30 memos were waiting. -1 means "unknown".
+  if ($root) { Complete-Run $root 'failed' $msg $memoCount 1 0 }
   exit 1
 } finally {
   if ($ownsMutex) { $mutex.ReleaseMutex() }

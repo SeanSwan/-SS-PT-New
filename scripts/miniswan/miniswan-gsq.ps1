@@ -33,7 +33,12 @@ stop   - close the tunnel, stop the model on MiniSwan, let the box sleep again
 Local forward port. Default 18082, which is what the Hermes miniswan-gsq provider expects.
 
 .PARAMETER SshTarget
-SSH host alias. Defaults to miniswan-net (tailnet, stable) per MINISWAN-ACCESS-2026-09-02.md.
+SSH host alias. Defaults to miniswan (LAN) as of 2026-09-18. The tailnet alias
+miniswan-net was the default and is the fragile link: on 2026-09-18 the tailnet
+route to MiniSwan went offline (tailscale showed the peer offline, relayed via lax,
+tx 1404 rx 0) while the LAN path answered SSH the whole time. ssh's keepalive then
+gave up, the forward died, and 172.26.128.1:18082 stayed dark for hours. Prefer the
+LAN when both boxes are on 192.168.50.x; use -SshTarget miniswan-net when remote.
 
 .PARAMETER Mac
 Adapter MAC for Wake-on-LAN. Default is MiniSwan's recorded MAC.
@@ -60,16 +65,29 @@ param(
   [string]$BindAddress = 'auto',
 
   [ValidateNotNullOrEmpty()]
-  [string]$SshTarget = 'miniswan-net',
+  [string]$SshTarget = 'miniswan',
 
   [ValidateNotNullOrEmpty()]
-  [string]$FallbackTarget = 'miniswan',
+  [string]$FallbackTarget = 'miniswan-net',
 
   [ValidateNotNullOrEmpty()]
   [string]$Mac = '10-FF-E0-85-27-89',
 
   [ValidateNotNullOrEmpty()]
   [string]$BroadcastAddress = '192.168.50.255',
+
+  # What the wake helper probes for readiness after sending the packet. Must be an
+  # address that resolves the SAME WAY $SshTarget does - and the bare name
+  # 'miniswan' does not. Measured 2026-09-19: C:\Windows\...\etc\hosts maps
+  # 'miniswan' to 100.72.20.72 (the TAILNET) while ~/.ssh/config maps Host
+  # miniswan to 192.168.50.92 (the LAN). So the old '-ProbeHost $SshTarget' waited
+  # on the tailnet and then this script verified the LAN with ssh - two different
+  # links. Harmless while both are up; if the tailnet is down (the documented
+  # fragile link) the helper reports SSH_NOT_READY and this script would throw
+  # MINISWAN_UNREACHABLE even though the box woke and answered on the LAN.
+  # Pass -WakeProbeHost 100.72.20.72 alongside -SshTarget miniswan-net when remote.
+  [ValidateNotNullOrEmpty()]
+  [string]$WakeProbeHost = '192.168.50.92',
 
   [ValidateNotNullOrEmpty()]
   [string]$RemoteController = 'C:\swan\hermes-profiles\gsq\MiniSwan-GSQ.ps1',
@@ -110,7 +128,16 @@ function Resolve-BindAddress {
   }
 
   if ($ip) { return $ip }
-  Write-Step 'WARNING: no WSL vNIC found; falling back to 127.0.0.1 (Hermes will NOT reach this)'
+
+  # Fail closed on the START path. Returning 127.0.0.1 here binds a forward Hermes
+  # (inside WSL) can never reach: it reads as "online" on this host while every
+  # WSL-side call fails - the same silent-mismatch class as the missing -Bind at
+  # the Start-Tunnel call site. status and stop still run, so a half-open forward
+  # can always be diagnosed and torn down.
+  if ($Mode -eq 'start') {
+    throw 'MINISWAN_BIND_UNRESOLVED: no vEthernet (WSL) IPv4 address found, so the forward cannot be bound where Hermes can reach it. Bring the WSL adapter up, or pass -BindAddress <wsl-vnic-ip> explicitly.'
+  }
+  Write-Step 'WARNING: no WSL vNIC found; reporting status against 127.0.0.1 (start will refuse)'
   return '127.0.0.1'
 }
 
@@ -123,8 +150,24 @@ function Test-SshReady {
 function Resolve-ReachableTarget {
   if (Test-SshReady -Target $SshTarget) { return $SshTarget }
   Write-Step "waking MiniSwan (WoL $Mac -> $BroadcastAddress)"
-  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $WakeHelper `
-    -Mac $Mac -BroadcastAddress $BroadcastAddress -ProbeHost $SshTarget -WaitSeconds 60 | ForEach-Object { Write-Step $_ }
+  # NOT piped. `& powershell.exe ... | <anything>` throws
+  # "Cannot run a document in the middle of a pipeline" on PS 5.1 - reproduced
+  # 2026-09-19 for both `| Out-Null` and `| ForEach-Object`, which is the form this
+  # call used to use. With $ErrorActionPreference = 'Stop' set at the top of this
+  # script that throw was TERMINATING, so this function died before a single wake
+  # packet was sent: `MiniSwan Qwen - LOAD.cmd` could not wake a sleeping box at
+  # all, which is the one case the wake exists for. The path only ever runs when
+  # MiniSwan is already asleep, which is why it went unnoticed - a reachable box
+  # short-circuits on the Test-SshReady above.
+  # Capture unpiped, and assert on WOL_SENT: a wake that did not happen must not
+  # read as one that did.
+  $wakeOut  = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $WakeHelper `
+    -Mac $Mac -BroadcastAddress $BroadcastAddress -ProbeHost $WakeProbeHost -WaitSeconds 60 2>&1
+  $wakeCode = $LASTEXITCODE
+  foreach ($line in @($wakeOut)) { Write-Step ([string]$line) }
+  if (-not (@($wakeOut) -match 'WOL_SENT')) {
+    Write-Step "WARNING: wake helper reported no WOL_SENT (exit=$wakeCode) - the packet may not have been sent"
+  }
   if (Test-SshReady -Target $SshTarget) { return $SshTarget }
   Write-Step "tailnet target did not answer; trying LAN fallback $FallbackTarget"
   if (Test-SshReady -Target $FallbackTarget) { return $FallbackTarget }
@@ -250,6 +293,21 @@ Write-Step "controller phase: $(if ($phase) { $phase } else { $status.Text })"
 if ($phase -eq 'RUNNING' -and -not $Force) {
   Write-Step 'model already running (use -Force to restart)'
 } else {
+  if ($phase -eq 'RUNNING') {
+    # -Force used to fall straight through to -Mode Start, which the remote
+    # controller REFUSES while its state says READY - so "use -Force to restart"
+    # was a no-op that could never restart anything. A restart is Stop -> Start;
+    # there is no reload verb, and a changed profile is only read at load time.
+    # This is the only path that applies a profile change to a running model, so
+    # it has to actually stop first. Found 2026-09-19 while a ctx bump sat
+    # unapplied with the guard reporting CTX_BELOW_PINNED and no way to act on it.
+    Write-Step 'restarting: stopping first (a profile change only takes effect at load time)'
+    $stopped = Get-RemoteController -Target $target -Mode 'Stop'
+    Write-Step ("stop result     : " + $(if ($stopped.Json) { ($stopped.Json | ConvertTo-Json -Compress) } else { $stopped.Text }))
+    # The controller needs a moment to release port 18081 and rewrite state.json;
+    # an immediate Start can land on a still-READY state and be refused.
+    Start-Sleep -Seconds 3
+  }
   Write-Step 'starting model via MiniSwan-GSQ.ps1 -Mode Start'
   $started = Get-RemoteController -Target $target -Mode 'Start'
   Write-Step ("start result    : " + $(if ($started.Json) { ($started.Json | ConvertTo-Json -Compress) } else { $started.Text }))
@@ -258,7 +316,12 @@ if ($phase -eq 'RUNNING' -and -not $Force) {
   }
 }
 
-$proc = Start-Tunnel -Target $target -Port $LocalPort
+# -Bind is REQUIRED here. Start-Tunnel's $Bind parameter defaults to empty, and an
+# empty bind makes OpenSSH read "-L :18082:..." as "all interfaces" - silently
+# widening the forward past the WSL vNIC to every NIC on the box. The status line
+# prints $script:Bind, so it reported 172.26.128.1 while the live forward bound
+# 0.0.0.0 (report/behaviour mismatch, found 2026-09-18).
+$proc = Start-Tunnel -Target $target -Port $LocalPort -Bind $script:Bind
 
 Write-Step 'waiting for health through the tunnel'
 $deadline = (Get-Date).AddSeconds($HealthTimeoutSeconds)
@@ -280,7 +343,22 @@ Write-Host ''
 Write-Host '  MiniSwan GSQ is ONLINE.'
 Write-Step "endpoint        : http://$($script:Bind):$LocalPort/v1"
 Write-Step "hermes provider : miniswan-gsq   (aliases: mini-gsq, miniswan-gsq)"
-Write-Step "model           : qwen3.8-gsq-rco-mini (64K ctx, tools on, ~46 tok/s)"
+# This banner used to hardcode "64K ctx" and was still saying 64K after the
+# profile moved to 81920 (found 2026-09-19). A stale number on the success path is
+# worse than no number: it is the line an operator reads to decide the load
+# worked. Read the pin instead of restating it, and label it PINNED - the guard
+# reports the served value, and this script must not imply it has verified it.
+$pinnedCtx = $null
+try {
+  $pinPath = 'Z:\AI-Runtimes\context-guard\miniswan-profile.json'
+  if (Test-Path -LiteralPath $pinPath) {
+    $pin = Get-Content -LiteralPath $pinPath -Raw | ConvertFrom-Json
+    if ($pin.contextPerSlot) { $pinnedCtx = [int]$pin.contextPerSlot }
+  }
+} catch { }
+Write-Step ("model           : qwen3.8-gsq-rco-mini (pinned ctx " + $(if ($pinnedCtx) { $pinnedCtx } else { 'unknown - profile pin unreadable' }) + ", tools on)")
+Write-Step 'ctx note        : pinned value above is what the NEXT load will use; the guard'
+Write-Step '                  reports what the running server actually serves.'
 Write-Host ''
 Write-Host '  Keep this shell open, or the forward closes with it.'
 Write-Host '  When finished:  .\scripts\miniswan\miniswan-gsq.ps1 -Mode stop'
