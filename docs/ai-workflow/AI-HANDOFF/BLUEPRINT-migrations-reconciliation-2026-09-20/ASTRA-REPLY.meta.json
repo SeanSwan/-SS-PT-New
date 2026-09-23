@@ -1,0 +1,21 @@
+{
+  "model": "gpt-6-astra",
+  "servedModel": null,
+  "effort": "xhigh",
+  "identityVerified": false,
+  "identityUnverifiableReason": "codex exec --json emits no model field: measured 2026-09-19 on codex-cli 0.154.0, event set = thread.started, turn.started, item.completed, turn.completed; the substring \"model\" does not occur in the raw JSONL. Requested model is provable; served model is not.",
+  "provider": "openai-codex",
+  "billing": "chatgpt-subscription",
+  "authMode": "chatgpt_subscription",
+  "transport": "codex-cli",
+  "document": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-migrations-reconciliation-2026-09-20/CONSULT-PACKET.md",
+  "wallSeconds": 732.3,
+  "generatedAt": "2026-09-21T00:12:17.333Z",
+  "megaBlueprint": true,
+  "megaBlueprintArmedBy": [
+    "document"
+  ],
+  "inputTokens": 54417,
+  "outputTokens": 23948,
+  "reasoningOutputTokens": 9399
+}
