@@ -18,6 +18,7 @@ import { useOptionalStyleLensAppearance } from '../../../../core/style-lens-os/S
 import { useCoachCommandCenterController } from '../coach-assistant/CoachCommandCenter.controller';
 import { useCoachCommandCenterDrawerEffects } from '../coach-assistant/useCoachCommandCenterDrawerEffects';
 import { useCoachKeyboardInset } from '../coach-assistant/hooks/useCoachKeyboardInset';
+import { useAskAboutSession } from './useAskAboutSession';
 import { useSwanCoachPendingFoodQuery } from '../coach-assistant/hooks/useSwanCoachPendingFoodQuery';
 import { buildSwanCoachWorkoutLoggerRoute } from '../coach-assistant/SwanCoachWorkoutLoggerRoute';
 import { buildSwanCoachWorkoutPlannerRoute } from '../coach-assistant/SwanCoachWorkoutPlannerRoute';
@@ -147,17 +148,13 @@ export function useCoachWorkspaceModel() {
     void controller.handleIntentSubmit(text, commandType);
   }, [controller, view]);
   /** "Ask coach" from a schedule row: scope by client ID, prompt by time — never by name (rule 8). */
-  const askAboutSession = useCallback((slot: { clientId: number | null; startsAt: Date }) => {
-    const known = slot.clientId !== null && controller.clientPin.clients.some((client) => client.id === slot.clientId);
-    if (!isClientMode && known && controller.clientPin.selectedClientId !== slot.clientId) {
-      controller.clientPin.onSelectClient(slot.clientId as number);
-    }
-    const time = slot.startsAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    prefill(isClientMode
-      ? `Help me get ready for my ${time} session today.`
-      : `Prep me for today's ${time} session: recent workouts, what changed, and one thing to watch.`);
-    panels.closeSheets();
-  }, [controller.clientPin, isClientMode, panels, prefill]);
+  /** Adds to a draft instead of replacing it (schedule Ask). */
+  const writeUnderDraft = useCallback((text: string) => {
+    controller.setCommandText((current: string) => (current.trim() ? `${current.trimEnd()}\n${text}` : text));
+    if (view !== 'chat') setView('chat');
+    window.setTimeout(() => controller.commandTextRef.current?.focus({ preventScroll: true }), 0);
+  }, [controller, view]);
+  const askAboutSession = useAskAboutSession({ clientPin: controller.clientPin, isClientMode, write: writeUnderDraft, closeSheets: panels.closeSheets });
 
   const runAction = useCallback((id: WorkspaceActionId) => {
     controller.setCommandText('');

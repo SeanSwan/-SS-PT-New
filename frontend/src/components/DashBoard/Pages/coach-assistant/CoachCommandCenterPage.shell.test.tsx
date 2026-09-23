@@ -39,7 +39,7 @@ describe('CoachCommandCenterPage shell', () => {
     expect(screen.queryByRole('tab', { name: /^Workbench/i })).not.toBeInTheDocument();
     expect(screen.getByText(/Talk to Swan Coach/i)).toBeInTheDocument();
     expect(screen.getByText(/Log today's workout: bench 4x8 at 185/i)).toBeInTheDocument();
-    expect(screen.getByText(/Nothing saves until you confirm/i)).toBeInTheDocument();
+    expect(screen.getByText(/Chats are saved\. Some actions ask you to confirm first/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Use suggestion: Log workout/i })).toBeInTheDocument();
     expect(screen.queryByText(/Ready when you are/i)).not.toBeInTheDocument();
     expect(composerInput()).toBeInTheDocument();

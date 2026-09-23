@@ -78,4 +78,17 @@ describe('staff can start a SECOND chat after the first one adopted its thread',
     act(() => { result.current.chat.newChat(); });
     expect(result.current.selection.publicationBinding.getSnapshot()).toMatchObject({ generation: 2, targetUserId: 88, threadId: null });
   });
+
+  it('reports whether a refused send reached the network (review #4: "nothing was saved" must be true)', async () => {
+    const { result, rerender } = renderHook(() => useStaffChat());
+    let refused: unknown;
+    await act(async () => { refused = await result.current.chat.sendMessageWithConversation('hi', 'coach_assistant', 'A', null, 'both'); });
+    expect(refused).toBeNull();
+    expect(postMock).not.toHaveBeenCalled();
+    expect(result.current.chat.lastSendReachedNetwork()).toBe(false);
+    act(() => { result.current.selection.publish({ actorId: 7, rawRole: 'trainer', audienceRole: 'trainer', generation: 1, targetUserId: null, threadId: null } as never); });
+    rerender();
+    await act(async () => { await result.current.chat.sendMessageWithConversation('hi', 'coach_assistant', 'A', null, 'both'); });
+    expect(result.current.chat.lastSendReachedNetwork()).toBe(true);
+  });
 });

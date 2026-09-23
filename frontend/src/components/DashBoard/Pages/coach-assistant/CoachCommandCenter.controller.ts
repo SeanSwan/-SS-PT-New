@@ -8,6 +8,7 @@ import { useCoachCommand } from '../../../../hooks/useCoachCommand';
 import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import { parsePlaudMergeRequestId } from '../../../../utils/plaudRouteGuards';
 import { createCoachCommandCenterActions } from './CoachCommandCenter.actions';
+import { useSupersedeCoachSendsOnScope } from './coachSendSequence';
 import { useApplyRouteContextPrompt, useAutoSelectCoachThread, useCoachGuidePrompt, useCoachWorkoutPlannerRoute, useLoadCoachConversations, useLoadRoutedCoachThread, usePlaudReviewScroll } from './CoachCommandCenter.controllerEffects';
 import { useCoachCommandCenterSelection } from './hooks/useCoachCommandCenterSelection';
 import { INITIAL_COMMAND_LOGS, type CommandLogEntry } from './CoachCommandCenter.data';
@@ -217,11 +218,9 @@ export function useCoachCommandCenterController({
   useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus, selection, selection.accepted?.threadId ?? null);
   useAutoSelectCoachThread(autoSelectedThread, chat, setActiveThreadId, setSelectedStatus);
   useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setTrackedCommandText);
-  usePlaudReviewScroll(
-    shouldScrollPlaudReview(plaudWorkspaceRequested, rawMergeRequestId, reviewNextRequested),
-    searchKey,
-    plaudReviewRef,
-  );
+  usePlaudReviewScroll(shouldScrollPlaudReview(plaudWorkspaceRequested, rawMergeRequestId, reviewNextRequested), searchKey, plaudReviewRef);
+  // Review #4: a client switch or re-admission supersedes a send still in flight.
+  useSupersedeCoachSendsOnScope(commandTextRef, `${effectiveClientId ?? ''}:${selection.accepted?.generation ?? ''}`);
   return {
     activeIntakeId: searchParams.get('intake'),
     activeThread,

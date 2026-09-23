@@ -4,10 +4,11 @@
  * then chat lane), extracted from CoachCommandCenter.actions.ts (rule 4).
  *
  * Truth rules (SWAN-COACH-V1-SPEC non-negotiable #6): every outcome is visible.
- * A null chat result is only silent when a NEWER send or a thread switch really
- * superseded it (coachSendSequence.ts). A null with nothing newer is a refusal:
- * the operator sees "message not sent" and gets their words back, instead of the
- * message silently vanishing (brain-v4 hostile review C2).
+ * A null chat result is only silent when a NEWER send, a thread switch, or a
+ * scope change really superseded it (coachSendSequence.ts). A null with nothing
+ * newer is a refusal (brain-v4 C2): refused before any request → "message not
+ * sent" and the words go back; refused after one → "reply not shown", the message
+ * may be saved, and nothing is handed back to resend (review #4).
  */
 import { buildCoachCommandTitle } from './CoachCommandCenter.commandTitle';
 import { buildRouteScopedCoachPrompt } from './CoachCommandCenter.logic';
@@ -20,7 +21,7 @@ import {
   shouldRouteToCommandLane,
 } from './CoachCommandCenter.commandLane';
 import { interpretCoachChatResponse } from './CoachCommandCenter.chatResponse';
-import { beginCoachSend, isLatestCoachSend, REFUSED_SEND_NOTICE } from './coachSendSequence';
+import { beginCoachSend, isLatestCoachSend, REFUSED_SEND_NOTICE, UNCONFIRMED_SEND_NOTICE } from './coachSendSequence';
 import type { AddCoachLog, CoachCommandActionProps } from './CoachCommandCenter.actions';
 
 export function createCoachSubmit(props: CoachCommandActionProps, addLog: AddCoachLog) {
@@ -79,7 +80,13 @@ export function createCoachSubmit(props: CoachCommandActionProps, addLog: AddCoa
     if (outcome.kind === 'superseded') {
       // Really superseded → the newer work speaks. Nothing newer → it was refused.
       if (!isLatestCoachSend(props.commandTextRef, sendToken)) return;
-      addLog({ ...REFUSED_SEND_NOTICE, retryMessage: trimmed });
+      // Unknown stage counts as "reached the network": never claim nothing was sent.
+      if (props.chat.lastSendReachedNetwork?.() ?? true) {
+        addLog(UNCONFIRMED_SEND_NOTICE);
+        props.setSelectedStatus('Reply not shown');
+        return;
+      }
+      addLog(REFUSED_SEND_NOTICE);
       props.setSelectedStatus('Message not sent');
       restoreText(trimmed);
       return;

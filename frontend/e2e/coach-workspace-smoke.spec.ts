@@ -50,6 +50,10 @@ async function mockApi(page: Page, opts: { history?: boolean } = {}) {
     if (path === '/api/subscriptions/status') {
       return json(route, { success: true, subscription: { tier: 'pro', status: 'active', hasFullAIAccess: true }, usage: {} });
     }
+    if (path === '/api/admin/clients') {
+      return json(route, { success: true, data: { clients: [{ id: 12, firstName: 'Avery', lastName: 'Stone', email: '', role: 'client' }] } });
+    }
+    if (path === '/api/notes/12' && method === 'POST') return json(route, { success: false, message: 'Notes service down' }, 500);
     if (path === '/api/ai-command/commands') {
       return json(route, { success: true, commands: [
         { type: 'brief_my_day', description: "Day sheet — today's sessions with per-client attention flags", category: 'G' },
@@ -166,8 +170,31 @@ test('Universal Master Schedule: today renders in the inspector, open slots excl
   await expect(today.getByText('Jordan L.')).toBeVisible();
   await expect(today.locator('li')).toHaveCount(2);
   await today.getByRole('button', { name: /ask swan coach about the/i }).first().click();
+  // Avery (id 12) is in the pin list: the chat is scoped to her, then the prompt lands (it used to be wiped).
+  await expect(page.getByRole('combobox', { name: 'Client this chat is about' })).toHaveValue('12');
   await expect(page.getByRole('combobox', { name: /message swan coach/i })).toHaveValue(/Prep me for today's .* session/);
   await expect(page.getByRole('combobox', { name: /message swan coach/i })).not.toHaveValue(/Avery|Stone/);
+});
+
+test('"No client (general)" really unpins a staff chat (the stale pin was restored into the URL)', async ({ page }) => {
+  await open(page, 1440, 900);
+  const scope = page.getByRole('combobox', { name: 'Client this chat is about' });
+  await scope.selectOption('12');
+  await expect.poll(() => new URL(page.url()).searchParams.get('clientId')).toBe('12');
+  await scope.selectOption('');
+  await expect.poll(() => new URL(page.url()).searchParams.get('clientId')).toBeNull();
+  await expect(scope).toHaveValue('');
+});
+
+test('Ask on a slot whose client is not pinnable never preps inside another client\'s chat (review #8)', async ({ page }) => {
+  const composer = await open(page, 1440, 900);
+  const scope = page.getByRole('combobox', { name: 'Client this chat is about' });
+  await scope.selectOption('12');
+  const today = page.getByRole('list', { name: "Today's sessions" });
+  await today.getByRole('button', { name: /ask swan coach about the/i }).nth(1).click(); // Jordan (14): not in the pin list
+  await expect(scope).toHaveValue('');
+  await expect(composer).toHaveValue(/Prep me for today's .* session/);
+  await expect(composer).not.toHaveValue(/Jordan|Lee/);
 });
 
 for (const lens of [
@@ -240,4 +267,19 @@ test('threads: history on landing, pick a thread, New chat, and a SECOND chat st
   await composer.press('Enter');
   await expect(transcript.getByText(`${REPLY} (#502)`), 'the second chat is not refused').toBeVisible();
   await expect(transcript.getByText('message not sent')).toHaveCount(0);
+});
+
+test('a failed client-note save is visible in the workspace (review #5)', async ({ page }) => {
+  const composer = await open(page, 1440, 900);
+  await page.getByRole('combobox', { name: 'Client this chat is about' }).selectOption('12');
+  await composer.fill('/note');
+  await composer.press('Enter');
+  const note = page.getByRole('combobox', { name: 'Client note' });
+  await expect(note).toBeVisible();
+  await note.fill('Left knee felt fine on split squats.');
+  await note.press('Enter');
+  const status = page.locator('.ws-status');
+  await expect(status).toContainText('Client note was not saved');
+  await expect(status).toHaveAttribute('data-tone', 'warn');
+  await expect(note, 'the draft stays in the composer').toHaveValue('Left knee felt fine on split squats.');
 });

@@ -29,7 +29,7 @@ export function turnKind(entry: CommandLogEntry): TurnKind {
   return rich ? 'card' : 'notice';
 }
 
-const WARN = /(fail|not sent|limit|required|expired|unavailable|error|blocked)/i;
+const WARN = /(fail|not sent|not shown|limit|required|expired|unavailable|error|blocked)/i;
 
 function timeOf(at?: string): string | null {
   if (!at) return null;

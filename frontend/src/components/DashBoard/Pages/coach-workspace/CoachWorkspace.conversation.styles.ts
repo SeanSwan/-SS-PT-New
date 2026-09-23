@@ -172,6 +172,9 @@ export const ComposerDock = styled.div`
   .ws-send { background: var(--ws-accent); color: var(--ws-bg); }
   .ws-send:disabled { background: color-mix(in srgb, var(--ws-text) 12%, transparent); color: var(--ws-muted); cursor: default; }
   .ws-hint { margin: 6px auto 0; max-width: 820px; font: 500 11px var(--ws-mono); color: var(--ws-muted); text-align: center; }
+  .ws-status { margin: 6px auto 0; max-width: 820px; font-size: 12px; font-weight: 600; color: var(--ws-muted); text-align: center; overflow-wrap: anywhere; }
+  .ws-status:empty { display: none; }
+  .ws-status[data-tone='warn'] { color: var(--ws-warn); }
   @media (max-width: 767px) {
     .ws-hint { display: none; }
     textarea { font-size: 16px; }

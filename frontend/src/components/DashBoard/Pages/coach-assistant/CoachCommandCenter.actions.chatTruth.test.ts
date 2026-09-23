@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createCoachCommandCenterActions } from './CoachCommandCenter.actions';
 import type { CommandLogEntry } from './CoachCommandCenter.data';
 
-function buildHarness(sendResult: unknown, options: { commandText?: string; executeCommandResult?: unknown } = {}) {
+function buildHarness(sendResult: unknown, options: { commandText?: string; executeCommandResult?: unknown; reachedNetwork?: boolean } = {}) {
   let logs: CommandLogEntry[] = [];
   const setLogs = vi.fn((updater: unknown) => {
     logs = typeof updater === 'function'
@@ -21,6 +21,7 @@ function buildHarness(sendResult: unknown, options: { commandText?: string; exec
       loadConversation: vi.fn(),
       newChat: vi.fn(),
       sendMessageWithConversation,
+      ...(options.reachedNetwork === undefined ? {} : { lastSendReachedNetwork: () => options.reachedNetwork as boolean }),
     },
     coachQueue: { refresh: vi.fn() },
     clientFacing: false,
@@ -86,21 +87,40 @@ describe('CoachCommandCenter actions — chat truth (no fake replies)', () => {
     expect(h.getLogs()[0]).toMatchObject({ actor: 'system', label: 'upgrade required' });
   });
 
-  // RE-ANCHORED (brain-v4 C2, rule 79/81): this test used to assert that a lone
-  // null send logs NOTHING. Nothing newer had been sent, so that null was a
-  // refusal, and the assertion locked in the silent drop. Only a null that a
-  // newer send really superseded may stay silent (next test).
-  it('a null with no newer send is a refusal: visible notice, words restored, retry offered', async () => {
-    const h = buildHarness(null);
+  // RE-ANCHORED twice (rule 79/81). C2: a lone null used to log NOTHING — a
+  // refusal, silently dropped. Hostile review #4/#15: "Nothing was saved" is only
+  // true when the refusal came BEFORE any network call, and a Retry button next to
+  // the restored words gave one refused message two resend paths (a double post).
+  it('a refusal before any network call: "message not sent", nothing sent, words restored once', async () => {
+    const h = buildHarness(null, { reachedNetwork: false });
     await h.actions.handleSubmit(submitEvent());
     expect(h.getLogs()).toHaveLength(2);
-    expect(h.getLogs()[0]).toMatchObject({ actor: 'system', label: 'message not sent', retryMessage: 'hello coach, how is Ava trending?' });
-    expect(h.getLogs()[0].body).toMatch(/Nothing was saved/);
+    expect(h.getLogs()[0]).toMatchObject({ actor: 'system', label: 'message not sent' });
+    expect(h.getLogs()[0].retryMessage, 'the composer holds the words; no second resend path').toBeUndefined();
+    expect(h.getLogs()[0].body).toMatch(/Nothing was sent/);
     expect(h.getLogs()[0].body).not.toMatch(/Swan Coach says|reply:/i);
     expect(h.setSelectedStatus).toHaveBeenLastCalledWith('Message not sent');
-    const restore = h.setCommandText.mock.calls.at(-1)?.[0] as (current: string) => string;
+    const calls = h.setCommandText.mock.calls;
+    const restore = calls[calls.length - 1]?.[0] as (current: string) => string;
     expect(restore('')).toBe('hello coach, how is Ava trending?');
     expect(restore('typed since')).toBe('typed since');
+  });
+
+  it('a refusal AFTER the network: the reply is not shown, the message may be saved, words are not handed back', async () => {
+    const h = buildHarness(null, { reachedNetwork: true });
+    await h.actions.handleSubmit(submitEvent());
+    expect(h.getLogs()[0]).toMatchObject({ actor: 'system', label: 'reply not shown' });
+    expect(h.getLogs()[0].body).toMatch(/may already be saved/);
+    expect(h.getLogs()[0].body).not.toMatch(/Nothing was (sent|saved)/);
+    expect(h.getLogs()[0].retryMessage).toBeUndefined();
+    expect(h.setCommandText.mock.calls.every(([value]) => typeof value !== 'function'), 'no restore that would invite a duplicate post').toBe(true);
+    expect(h.setSelectedStatus).toHaveBeenLastCalledWith('Reply not shown');
+  });
+
+  it('with no stage signal (older chat hook) the notice never claims nothing was sent', async () => {
+    const h = buildHarness(null);
+    await h.actions.handleSubmit(submitEvent());
+    expect(h.getLogs()[0]).toMatchObject({ label: 'reply not shown' });
   });
 
   it('a null that a NEWER send superseded stays silent; the newer send reports', async () => {

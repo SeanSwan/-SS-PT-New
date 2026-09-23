@@ -4,8 +4,10 @@
  * an intent bar and a dock). Enter sends, Shift+Enter breaks a line, "/" opens
  * the command menu, the chip scopes the chat to a client BY ID, the mic dictates
  * or records, the speaker toggles spoken replies. Client-note mode (the
- * notebook) reuses the same field and says so. Nothing here writes data: sends
- * go through the controller, and any write still stops at the approval sheet.
+ * notebook) reuses the same field and says so. Sends go through the controller:
+ * chats are saved to the thread, a note saves to the client profile, and a
+ * command that needs approval stops at the approval sheet. One live status line
+ * carries what the controller reports (note saved / not saved, voice, busy).
  */
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -16,6 +18,7 @@ import SlashMenu, { slashOptionId } from './SlashMenu';
 import { ComposerDock } from './CoachWorkspace.conversation.styles';
 import { buildSlashItems, slashQuery, type SlashItem } from './slashCommands';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
+import { workspaceStatus } from './workspaceStatus';
 
 type Props = { model: CoachWorkspaceModel };
 
@@ -32,6 +35,7 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
   const notebook = controller.notebook;
   const noteMode = Boolean(notebook?.active);
   const busy = controller.commandBusy || Boolean(notebook?.saving);
+  const status = workspaceStatus(controller.selectedStatus);
   const text = controller.commandText;
   // The exact registry type the operator picked, kept only while the text still
   // begins with what was picked — rewriting the message drops back to the classifier.
@@ -180,8 +184,11 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
           </button>
         </div>
       </form>
+      <p className="ws-status" role="status" aria-live="polite" data-tone={status?.tone}>{status?.text ?? ''}</p>
       <p className="ws-hint" id="ws-composer-hint">
-        Enter to send · Shift+Enter for a new line · / for commands · Nothing saves until you approve it.
+        {noteMode
+          ? 'Enter saves this note to the client profile · Shift+Enter for a new line'
+          : 'Enter to send · Shift+Enter for a new line · / for commands · Chats are saved; some actions ask you to approve first'}
       </p>
       <CoachCommandCatalogSheet
         open={model.catalogOpen}

@@ -134,7 +134,7 @@ const ConversationColumn: React.FC<Props> = ({ model }) => {
               ))}
             </div>
             {model.nextActionLabel ? <span className="ws-safe" role="status">Next: {model.nextActionLabel}</span> : null}
-            <span className="ws-safe">Nothing saves until you approve it.</span>
+            <span className="ws-safe">Chats are saved. Some actions ask you to approve them first.</span>
           </EmptyState>
         )}
         {unseen ? (

@@ -62,7 +62,8 @@ const WorkspaceHeader: React.FC<Props> = ({ model }) => {
       <span className="ws-divider" aria-hidden="true" />
       <span className="ws-thread-title" title={title}>{title}</span>
       <span className="ws-spacer" />
-      <span className="ws-brain" data-state={brain.state} role="status" aria-label={`Swan Coach: ${brain.label}`}>
+      {/* Not a live region: the composer's status line is the one place that announces. */}
+      <span className="ws-brain" data-state={brain.state} role="img" aria-label={`Swan Coach: ${brain.label}`}>
         <span className="ws-brain-dot" aria-hidden="true" />
         <span className="ws-brain-label">{brain.label}</span>
       </span>

@@ -1045,6 +1045,11 @@ export function useAIChat(
     validateOperationAndAuth,
   ]);
 
+  // Brain-v4 review #4: a null send is either refused before any request (nothing
+  // sent) or after one (the message may be saved). Callers read which, once.
+  const sendReachedNetworkRef = useRef(false);
+  const lastSendReachedNetwork = useCallback(() => sendReachedNetworkRef.current, []);
+
   const sendMessageWithConversation = useCallback(async (
     message: string,
     context: AIContext = 'general',
@@ -1054,6 +1059,7 @@ export function useAIChat(
     foodContext?: Record<string, unknown> | null,
     requestContext?: AIRequestContext | null,
   ) => {
+    sendReachedNetworkRef.current = false;
     if (!canUseRenderScope() || renderedConversationEpoch !== conversationEpochRef.current) return null;
     if (isChatMessageTooLong(message)) {
       const msg = buildChatMessageTooLongError(message.length);
@@ -1098,6 +1104,7 @@ export function useAIChat(
         const payload: Record<string, unknown> = { context, title, responseStyle };
         if (audienceRole) payload.audienceRole = audienceRole;
         if (requestedTarget !== null) payload.targetUserId = requestedTarget;
+        sendReachedNetworkRef.current = true;
         const createRes = await apiService.post('/api/ai-chat/conversations', payload, {
           signal: operation.controller.signal,
           _isBackgroundRequest: true,
@@ -1137,6 +1144,7 @@ export function useAIChat(
 
       const safeRequestContext = buildSafeRequestContext(requestContext);
       if (!validateOperationAndAuth(operation, publication, source)) return null;
+      sendReachedNetworkRef.current = true;
       const res = await apiService.post(
         `/api/ai-chat/conversations/${convId}/messages`,
         {
@@ -1390,6 +1398,7 @@ export function useAIChat(
     loadConversation,
     sendMessage,
     sendMessageWithConversation,
+    lastSendReachedNetwork,
     deleteConversation,
     renameConversation,
     archiveConversation,

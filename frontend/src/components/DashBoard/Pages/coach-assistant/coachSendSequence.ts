@@ -17,6 +17,8 @@
  * an unmounted surface's counter is collected with it (WeakMap).
  */
 
+import { useEffect, useRef } from 'react';
+
 type SequenceKey = object;
 
 const sequences = new WeakMap<SequenceKey, number>();
@@ -38,9 +40,31 @@ export function isLatestCoachSend(key: SequenceKey, token: number): boolean {
   return (sequences.get(key) ?? 0) === token;
 }
 
+/**
+ * Any change of the conversation's SCOPE (client switch, re-admission) outranks a
+ * send still in flight: its null must not surface in the new scope as a notice
+ * that carries — and would restore or retry — the previous scope's words.
+ */
+export function useSupersedeCoachSendsOnScope(key: SequenceKey, scopeKey: string): void {
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    supersedeCoachSends(key);
+  }, [key, scopeKey]);
+}
+
+/** Refused BEFORE any request: nothing left the browser, so the words go back. */
 export const REFUSED_SEND_NOTICE = {
   actor: 'system' as const,
   label: 'message not sent',
-  body: 'Swan Coach did not send this message: the conversation was not ready for it (scope, client, or sign-in check). Nothing was saved. Your words are back in the composer — send again, or start a new chat.',
-  attachments: ['not sent', 'nothing saved'],
+  body: 'Swan Coach did not send this message: the conversation was not ready for it (scope, client, or sign-in check). Nothing was sent. Your words are back in the composer — send again, or start a new chat.',
+  attachments: ['not sent'],
+};
+
+/** Refused AFTER a request: the message may be in the thread, so nothing is handed back to resend. */
+export const UNCONFIRMED_SEND_NOTICE = {
+  actor: 'system' as const,
+  label: 'reply not shown',
+  body: 'The conversation changed while Swan Coach was answering, so the reply is not shown here. Your message may already be saved in the thread — open it from Conversations before sending it again.',
+  attachments: ['may already be saved'],
 };

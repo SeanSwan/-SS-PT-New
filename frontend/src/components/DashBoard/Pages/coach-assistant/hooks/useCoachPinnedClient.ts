@@ -6,7 +6,7 @@
  * Client changes always start a fresh conversation state. Existing threads are
  * immutable records and are never rebound to a different client.
  */
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import {
   useGlobalClient,
@@ -79,7 +79,13 @@ export function useCoachPinnedClient({
     [activeClient, clientList, effectiveClientId],
   );
 
+  // An explicit "No client" is a REQUEST for staff (plan 61): the stored pin only
+  // clears once admitted. Until then this restore must not put the old client
+  // back into the URL — it did, so "No client (general)" never took (brain-v4).
+  const clearingRef = useRef(false);
   useEffect(() => {
+    if (!storedClientId) clearingRef.current = false;
+    if (clearingRef.current) return;
     if (!operatorEnabled || routeClientId || routeThreadId || activeThreadClientId || !storedClientId) return;
     setSearchParams(
       buildThreadSelectionSearchParams(searchParams, storedClientId, null),
@@ -108,6 +114,7 @@ export function useCoachPinnedClient({
       : clientList.find((candidate) => candidate.id === clientId) || null;
     if (clientId != null && !client) return;
 
+    clearingRef.current = !client;
     if (client) setActiveClient(client);
     else clearActiveClient();
     chat.newChat();

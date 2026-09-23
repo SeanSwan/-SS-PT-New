@@ -209,7 +209,8 @@ export function useCoachClientNotebook({
       const message = (error as { response?: { data?: { message?: string } }; message?: string })
         ?.response?.data?.message;
       if (currentClientIdRef.current === requestClientId && saveOperationRef.current === operationId) {
-        setSelectedStatus(message || 'Client note was not saved - your draft is still in the composer');
+        // The failure is always named as one: a bare server message read like a success.
+        setSelectedStatus(`Client note was not saved${message ? ` (${message})` : ''} - your draft is still in the composer`);
       }
     } finally {
       if (saveOperationRef.current === operationId) setSaving(false);
