@@ -47,7 +47,7 @@
 
 ### 3. ExerciseDB API (Open Source v1) -- SELF-HOSTABLE
 - **URL:** https://github.com/ExerciseDB/exercisedb-api
-- **Docs:** https://www.exercisedb.dev/docs
+- **Docs:** https://oss.exercisedb.dev/docs
 - **Exercise Count:** 1,300+ exercises (open source version), 11,000+ (commercial version)
 - **License:** MIT License (open source version)
 - **Data Format:** JSON with bodyPart, equipment, gifUrl, id, name, target, secondaryMuscles, instructions

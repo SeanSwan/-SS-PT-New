@@ -4,7 +4,7 @@
  * LAST VALIDATED: 2026-06-09 via SuccessPage theme contract and checkout tests.
  */
 import { motion } from 'framer-motion';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 
 const paymentPulse = keyframes`
   0%, 100% {
@@ -80,7 +80,7 @@ export const SuccessHeader = styled.div`
   }
 `;
 
-export const SuccessIcon = styled(motion.div)`
+export const SuccessIcon = styled(motion.div)<{ $reducedMotion?: boolean }>`
   background: linear-gradient(135deg, var(--success, #10B981), var(--accent-primary, #60C0F0));
   border-radius: 50%;
   width: 100px;
@@ -90,7 +90,7 @@ export const SuccessIcon = styled(motion.div)`
   justify-content: center;
   margin: 0 auto 2rem;
   color: var(--text-on-accent, #FFFFFF);
-  animation: ${swanSeal} 4s ease-in-out infinite;
+  ${({ $reducedMotion }) => !$reducedMotion && css`animation: ${swanSeal} 4s ease-in-out infinite;`}
 
   @media (max-width: 768px) {
     width: 80px;

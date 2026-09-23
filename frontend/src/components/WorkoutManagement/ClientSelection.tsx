@@ -240,7 +240,7 @@ const NativeSelect = styled.select`
   }
 
   option {
-    background: #1e293b;
+    background: #1e293b; /* swan-guard-allow-hex legacy-pre-5431519a4 */
     color: ${T.text};
   }
 `;
@@ -299,7 +299,15 @@ const CardGrid = styled.div`
   }
 `;
 
-const ClientCard = styled.div<{ $selected?: boolean }>`
+const ClientCard = styled.button<{ $selected?: boolean }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   background: ${T.bgCard};
   border: ${({ $selected }) => ($selected ? `2px solid ${T.borderSelected}` : `1px solid ${T.border}`)};
   border-radius: ${T.radius};
@@ -496,7 +504,7 @@ const BtnPrimary = styled.button`
   background: linear-gradient(135deg, ${T.accent}, ${T.accentPurple});
   border: none;
   border-radius: ${T.radiusSm};
-  color: #fff;
+  color: #fff; /* swan-guard-allow-hex legacy-pre-5431519a4 */
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
@@ -931,9 +939,7 @@ const ClientSelection: React.FC<ClientSelectionProps> = ({
     <ClientCard
       key={client.id}
       $selected={isClientSelected(client.id)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.currentTarget.click(); } }}
+      type="button"
       onClick={() => handleClientClick(client)}
     >
       <CardBody>

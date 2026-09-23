@@ -4,8 +4,10 @@ import {
   advanceRunnerState,
   buildBootcampRunnerSegments,
   createRunnerState,
+  getRunnerProjectedEndsAt,
   getRunnerTotalDurationMs,
   pauseRunnerState,
+  restartRunnerSegment,
   resumeRunnerState,
   skipRunnerSegment,
 } from './BootcampRunner.logic';
@@ -161,5 +163,72 @@ describe('Bootcamp Runner absolute-deadline engine', () => {
       },
     ]);
     expect(state.status).toBe('complete');
+  });
+
+  // Contract 14 §7: skip/restart act on the COMMAND, not on the play state.
+  // Both used to force status:'running', so a paused class silently started
+  // its clock again the moment the coach skipped or restarted a command.
+  it('keeps a paused run paused when the coach skips a command', () => {
+    const segments = buildBootcampRunnerSegments(plan({ stretches: [] }));
+    const paused = pauseRunnerState(createRunnerState(segments, 1_000), 5_000);
+    const skipped = skipRunnerSegment(paused, segments, 9_000);
+
+    expect(skipped.status).toBe('paused');
+    expect(skipped.segmentEndsAt).toBeNull();
+    expect(skipped.segmentIndex).toBe(1);
+    expect(skipped.remainingMs).toBe(segments[1].durationSec * 1_000);
+  });
+
+  it('keeps a paused run paused when the coach restarts a command', () => {
+    const segments = buildBootcampRunnerSegments(plan({ stretches: [] }));
+    const paused = pauseRunnerState(createRunnerState(segments, 1_000), 5_000);
+    const restarted = restartRunnerSegment(paused, segments, 9_000);
+
+    expect(restarted.status).toBe('paused');
+    expect(restarted.segmentEndsAt).toBeNull();
+    expect(restarted.segmentIndex).toBe(paused.segmentIndex);
+    expect(restarted.remainingMs).toBe(segments[paused.segmentIndex].durationSec * 1_000);
+  });
+
+  it('still advances the clock when a running class skips', () => {
+    const segments = buildBootcampRunnerSegments(plan({ stretches: [] }));
+    const running = createRunnerState(segments, 1_000);
+    const skipped = skipRunnerSegment(running, segments, 9_000);
+
+    expect(skipped.status).toBe('running');
+    expect(skipped.segmentEndsAt).toBe(9_000 + segments[1].durationSec * 1_000);
+  });
+});
+
+describe('projected end while on schedule (lane C claim probe)', () => {
+  it('keeps projectedEndsAt CONSTANT across ticks for an on-schedule running class', () => {
+    const segments = buildBootcampRunnerSegments(plan());
+    const t0 = 1_000_000;
+    let state = createRunnerState(segments, t0);
+    const plannedEnd = t0 + getRunnerTotalDurationMs(segments);
+
+    const projections: number[] = [];
+    for (let tick = 0; tick <= 12; tick++) {
+      const nowMs = t0 + tick * 5_000; // advance 5s per tick, no pause
+      state = advanceRunnerState(state, segments, nowMs);
+      if (state.status === 'complete') break;
+      projections.push(getRunnerProjectedEndsAt(state, segments, nowMs));
+    }
+
+    expect(projections.length).toBeGreaterThan(2);
+    for (const projected of projections) expect(projected).toBe(plannedEnd);
+  });
+
+  it('keeps the projection STABLE between ticks (no per-render inflation)', () => {
+    const segments = buildBootcampRunnerSegments(plan());
+    const t0 = 2_000_000;
+    let state = createRunnerState(segments, t0);
+    state = advanceRunnerState(state, segments, t0 + 10_000);
+
+    // Two reads within the same segment at different read-times: the projection
+    // is anchored on absolute deadlines, so a later read must not push the end.
+    const first = getRunnerProjectedEndsAt(state, segments, t0 + 11_000);
+    const second = getRunnerProjectedEndsAt(state, segments, t0 + 11_400);
+    expect(second).toBe(first);
   });
 });

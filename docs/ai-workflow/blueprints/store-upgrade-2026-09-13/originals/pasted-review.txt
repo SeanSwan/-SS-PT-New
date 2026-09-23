@@ -1,0 +1,73 @@
+Plain-English Summary
+Your instinct is correct — the store is "really simple," and the reason is precise: it's a menu with a video on top. The bones are actually good (real products from the real database, working Stripe checkout, honest loading/error states, solid accessibility), but the page jumps straight from a pretty hero to a price list. The Swan Design Brain requires every selling page to run a four-act story — Hook → Proof → Momentum → Conversion — and the store is missing Act 2 (proof: credentials, real client progress, method) and Act 3 (momentum: transformation, results, desire) entirely. Visitors hit pricing before they feel anything, which is why it reads as simple.
+
+Better news: several expensive features are already built but switched off. Promo badges exist in the backend and admin panel, but a frontend mapping bug means customers never see them. A checkout success animation exists but is dead code. Guests get a "login to view pricing" wall instead of an invitation. These are small fixes with real revenue impact.
+
+There's also a full "STORE V4 Crystal Case" design trilogy from Kimi K3 (July 2026) sitting unbuilt in the docs — that should be re-grounded and used as the design base rather than starting from scratch.
+
+For your MiniMax H3 videos: below is a taste-cut field of 8 hero concepts (per the Design Brain's breadth-first ideation method — you pick, I develop), plus a section-by-section shot list of ~10 more videos, all written in the house brief format so you can paste them straight into H3.
+
+Technical Summary
+A. Canonical surface receipt (verified this session)
+Surface	Evidence
+Store route	main-routes.tsx:484-490 → SwanStudiosStore (StoreV3, StoreV2 fallback)
+Store page	frontend/src/pages/shop/StoreV3.tsx (995 lines): NoiseOverlay → AuthBanner → ParallaxHero (Swans.mp4) → MembershipsSection → Packages grid (3 sub-sections over swan-golden.mp4) → Consultation CTA → StoreCartDock
+Catalog truth	GET /api/storefront (StoreV3.tsx:649, storeFrontRoutes.mjs:268); 8 seeded packages, $175 → $29,120; no fake fallback catalog [VERIFIED]
+Checkout	NewCheckout/CheckoutView.tsx → POST /api/v2/payments/create-checkout-session → Stripe Checkout → SuccessPage.tsx verify/activation flow [VERIFIED end-to-end at code level]
+Buttons	Store surfaces use GlowButton in this tree [VERIFIED]; ForgeButton/SheenCard exist only in the Atelier worktree (C:\tmp\sspt-atelier-studio), not frontend/src here
+Design Brain docs loaded and applied: design.md, website-archetypes.md (#12 e-commerce, #10 pricing, #3 luxury, #4 fitness-coaching), cinematic-pages.md, SWAN-ASSET-STORYBOARDING.md. One honesty note: this is a code + doctrine review — I could not render the live SPA for a pixel pass, so visual-quality claims below are framed as doctrine gaps, not pixel judgments.
+
+B. What's already right (don't break these)
+Honest error/loading states with retry and zero fake catalog (StoreV3.tsx:791-813), real reduced-motion support (StoreV3.tsx:69-74, PackagesGrid.tsx:195), 44px targets + focus-visible + aria labels on cards and grid, real video hero with poster fallback via videoAssets.ts/R2, GlowButton on all purchase CTAs, per-session price math shown, and a genuinely good seeded product ladder (Silver Swan Wing → Rhodium Swan Royalty — that naming ladder is a luxury brand asset).
+
+C. Doctrine gap analysis (why it feels simple)
+The story arc is Hook → Conversion with no middle. Missing: credentials block ("26+ years", "NASM workshop-trained" — never "NASM-certified"), real progress proof (C11 chart environments from real logs, IDs only), method cards, transformation story, impact numbers (C9), FAQ, guarantee/terms. Archetype #12/#10 list these as the pre-purchase objection answers.
+Emotional-job monotony. The store runs Awe (hero) then pricing. No Aspiration, Trust, Curiosity, or Celebration beats — storyboarding §B requires one primary job per section with rhythm contrast.
+Two split-brain purchase experiences. Memberships (hardcoded copy, MembershipsSection.tsx:24-46 → /ascension) vs packages (backend-driven) vs a second header cart UI (ShoppingCart.tsx + AdvancedCartInteractions.tsx) coexisting with the store's StoreCartDock. Archetype #10 says build the pricing/shelf module once, mount it in both places.
+No luxury differentiation on the shelf. Cards rotate themes by displayOrder (ruby/emerald/cosmic/purple) but the flagship tiers (Diamond/Ruby/Rhodium at $15.6k–$29k) get the same geometry as the $175 tier. Doctrine #3: flagship SKUs earn the Gilded Fern luxury treatment — one gold-bordered surface per viewport, gold inflation cheapens.
+Dead/dormant surfaces (all verified unmounted or broken): SpecialBadge never renders because storeCatalog.ts:96-125 never maps activeSpecial — admins can create specials customers never see; CheckoutSuccessAnimation.jsx + pages/checkout/CheckoutSuccess.tsx dead; OptimizedGalaxyStoreFront.tsx, HeroSection.tsx, FloatingCart.tsx dead; no empty-cart visual state (surfaces as a checkout error message, CheckoutView.tsx:124-130).
+Guest friction: AuthBanner "login to view pricing" (StoreV3.tsx:286-304) — [UNKNOWN] whether /api/storefront actually gates prices; either way the copy is a wall, and archetype #10 treats pricing transparency as trust.
+SEO: sitemap lists /store but omits /shop/product/:id, /ascension, /collections/:slug (yesterday's audit A-item).
+D. Upgrade plan
+Stage 0 — Wire-ups (P0, small, no new assets needed): fix the activeSpecial mapper + add a regression test (and the /api/admin/specials vs special-offers mismatch from yesterday's audit, so specials are manageable end-to-end); resolve guest pricing (make prices public with login only at checkout — recommended — or reframe the gate as an invitation); revive a premium checkout success moment as a celebration response beat (reduced-motion → static badge) and delete the two dead success components in the same slice; add a designed empty-cart state; fold in the open CART-500 boot-race blueprint.
+
+Stage 1 — The missing acts (P1, this is the real "make it better"): Act 2 proof section (credentials + real-data chart environments + method + FAQ + guarantee); Act 3 momentum (consented transformation story C2, impact numbers C9); rebuild the packages section as a C5 tier shelf — recommended tier physically elevated, comparison expander, flagship tiers get the luxury variant; unify membership/packages into one archetype-#10 module mounted at /store Act 4 and /ascension; single cart UI; ProductDetail gets the #12 stage treatment (sticky add-to-cart, price never scrolls away); split StoreV3.tsx (995 lines) under the 300-line rule while touching it. Re-ground the Kimi K3 STORE V4 Crystal Case trio as the design starting point — supersede or adopt explicitly.
+
+Stage 2 — Cinematic layer (P2, lands with your H3 videos): new hero from your taste-cut below; SheenCard-class chrome built from the Design Brain recipes + the Atelier's recovered button mechanism; C10 dividers with generated motifs; palette temperature arc across scroll (cold → sapphire → gold-rising → intimate at the final CTA); optionally a scroll-scrubbed Act-1 hook using the §8.1 damped-scroll physics — but not a whole-page C13 scroll-film; the store offers multiple actions, and the doctrine's default answer there is NO. og:image/first-frame discipline + sitemap expansion.
+
+E. MiniMax H3 video plan
+House preamble — paste at the top of every H3 brief: Palette: Crystalline Swan — sapphire #002060 base, ice-wing cyan #60C0F0 rim light, wing purple #8B5CF6 accents, gilded gold #C6A84B reserved for luxury beats, obsidian #0A0A0F dark ground (never pure black, never #0a0a1a). Grade toward cyan/sapphire. Negatives (every brief): no text overlays, no watermarks, no stock-corporate look, no logo apparel, no plastic AI skin, no hand close-ups, no #00FFFF, no #7851A9. All loops seamless and silent; generate a poster still from the strongest composed frame of every clip.
+
+Hero — taste-cut field (8 concepts, breadth-first per cinematic-pages §18; pick 2-3 and I'll develop full scene ledgers):
+
+Feather Cathedral (macro) — start inside a single white feather's barbs at extreme macro → push through the vane into light → travel across a dawn lake with swans in flight → arrive at the storefront threshold. My top pick: the swan IS the brand; no fitness site on earth has this hero.
+Fiber & Frost (macro) — between two muscle fibers at extreme macro → through the fascia membrane → across a rim-lit athlete training in sapphire dark → the athlete stands in the vault. Product-true.
+The Vault Door (non-macro, threshold POV) — first-person walk through a frozen enchanted forest toward a glowing vault; the door opens into light. Human-scale, scrubs beautifully.
+Gilded Ascent (macro) — inside molten gold swirl → through the surface meniscus → across marble veining → gold sets into a tier seal. Flagship-tier luxury.
+Surface Tension (macro, reverse membrane) — a swan dives; follow into dark sapphire water → up through the water surface → across golden-hour mist. The membrane is the surface itself.
+The Training Year (non-macro, reverse time) — start on the finished athlete at rest; one continuous shot rewinds a year of seasonal work; ends at the first session door.
+Crystal Orbit (non-macro, object) — slow orbit around a crystalline swan sculpture in a dark vault; refractions shift Ice Wing → Wing Purple → Gilded Fern as it turns. Doubles as the tier-shelf anchor.
+Glacier Breath (non-macro, calm time-lapse) — hours of glacier light compressed; an aurora band rises; a single swan silhouette crosses. Strongest static poster of the field.
+Hero production: 6–8s seamless loop, 21:9, breathing zoom ~1.02x, poster = arrival frame, <4MB after optimization.
+
+Section shot list (house brief format, one-liners):
+
+#	Section (pattern · emotional job)	H3 brief
+1	Hero (C1 · Awe)	Chosen concept above
+2	Membership tiers (C5 · Curiosity)	3 tier anchors, 4s loops or stills, 1:1 — dawn-mist lake (Starter); a protective wing's shadow over water with one gold glint (Guardian, $1-donation semantics); the crystal swan sculpture (Crystalline). Gold rim only on Crystalline
+3	Premium packages shelf (C5 · Aspiration)	Keep swan-golden.mp4 as section bg; add 8 cover stills — each tier's namesake material in macro on obsidian (silver feather, gold bar sheen, sapphire crystal, platinum sheen, emerald geode, diamond facet, ruby interior, rhodium mirror), cyan rim, 21:9
+4	Long-Term Excellence (C2 · Transformation)	8s loop 21:9: cygnet-to-swan metamorphosis in one continuous drift — the long-term-program metaphor made literal; alt: glacier time-lapse
+5	Recovery products (#12 stage · Intimacy)	Macro product loop 1:1 — obsidian surface, ice-water droplets rolling, cyan rim light, shallow DOF
+6	NEW Proof act (C9 · Trust)	3 anchors, 4s each: chalk-dust macro burst; a Victory-chart glow in purple light; sunrise runner silhouette. Numbers stay in the DOM — never in the video
+7	Act dividers (C10 · Momentum)	2× 4s loops: ink-in-water in the house palette; ice crystal forming edge-to-frame. Low-key, 2-5% grain
+8	Checkout success (Celebration)	2–3s response beat: swan landing on still water, one gold rim ripple. Reduced-motion → static badge
+9	ProductDetail stage (#12, later)	Per-flagship-product macro loop, 4:5
+Production discipline from the storyboarding doc: 3–5 variants per brief, keep the best (never accept generation one); <2MB for 4s / <4MB for 8s loops after an ffmpeg faststart pass; assets go to R2 and load through frontend/src/config/videoAssets.ts — never committed binaries and never hardcoded paths; every video ships with its poster still; 0.5s keyframes if a clip will ever be scroll-scrubbed.
+
+F. Store-adjacent risks to fold into the fix lane (from yesterday's audits)
+/api/session-packages/add-sessions router never mounted (404 on a money path); storefront/admin-package contract tests failing (mock drift — these guard the money path); five checkout privacy gaps (1 high / 8 medium, sealed in the Planner v2 review) — reconcile before widening checkout surfaces; and the branch is heavily diverged from origin/main, so the fix lane re-bases on main first.
+
+G. Hygiene + next slice
+This task created no temp artifacts — only the ORIENT ledger file in its designed location (.ai-workflow/orientation/). Nothing was moved, edited, committed, or deployed.
+
+Next slice: Stage 0 wire-ups — the activeSpecial mapper fix and the guest-pricing resolution are the two smallest slices that unlock real revenue display and need no new assets; the moment you say go, the Mega Blueprints packet opens there, with your hero taste-cut feeding the Stage 2 cinematic slice.

@@ -66,7 +66,16 @@ export const mobileOptimizations = css`
   }
 `;
 
-export const CardContainer = styled.div<{ $status: string; $isPast?: boolean; $liteMode?: boolean }>`
+// Native button (role=button census): real semantics replace the div + shim.
+export const CardContainer = styled.button<{ $status: string; $isPast?: boolean; $liteMode?: boolean }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 12px;
   background: ${({ $isPast }) => ($isPast ? scheduleCardTheme.pastBackground : scheduleCardTheme.background)};
   border-radius: 12px;
   border: 1px solid ${({ $isPast }) => ($isPast ? scheduleCardTheme.pastBorder : scheduleCardTheme.border)};

@@ -35,7 +35,17 @@ const cosmicGlow = keyframes`
 `;
 
 // Styled components (extracted from header.tsx)
-const LogoContainer = styled(motion.div)`
+// Native button: the logo used to be a motion.div with role="button" + a
+// hand-rolled Enter/Space shim (it flashed as a fake button during hydration).
+// UA button chrome is reset so the visuals and the motion whileHover/whileTap
+// are unchanged.
+const LogoContainer = styled(motion.button)`
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  padding: 0;
+  border: none;
+  background: transparent;
   display: flex;
   align-items: center;
   font-weight: 600;
@@ -198,19 +208,13 @@ interface LogoProps {
 const Logo: React.FC<LogoProps> = ({ onLogoClick, variants }) => {
   return (
     <StyledBox as={LogoContainer}
+      type="button"
       onClick={onLogoClick}
+      aria-label="Go to homepage"
       variants={variants}
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      role="button"
-      aria-label="Go to homepage"
-      tabIndex={0}
       $style={{ minWidth: 44, minHeight: 44 }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          onLogoClick();
-        }
-      }}
     >
       <LogoElement>
         <img src={logoImage} alt="SwanStudios Logo" />

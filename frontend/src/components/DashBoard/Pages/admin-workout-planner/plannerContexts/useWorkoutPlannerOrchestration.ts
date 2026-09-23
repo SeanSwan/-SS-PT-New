@@ -8,7 +8,7 @@
  * pre-S15 page wiring — no logic changes in this slice (S13 fence holds).
  */
 
-import { useState, useCallback, useLayoutEffect, useMemo } from 'react';
+import { useState, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
@@ -69,6 +69,7 @@ export const useWorkoutPlannerOrchestration = () => {
   const [plannerActiveTab, setPlannerActiveTab] = useState<'program' | 'builder' | 'exercises'>('builder');
   const phase = useMemo(() => selectPlannerPhase(phaseNumber), [phaseNumber]);
   const trainingStyle = useWorkoutPlannerTrainingStyleState();
+  const selectedClientRef = useRef<number | null>(null);
 
   // P58: selected-day / phase / duration intents retire accepted add-swap work
   // BEFORE their setter — a day or phase A-B-A inside one tick therefore still
@@ -121,6 +122,7 @@ export const useWorkoutPlannerOrchestration = () => {
     setStatusMsg,
     resetLoadedPlanState: planContent.resetLoadedPlanState,
     onBeforeDraftReplacement: draftMutation.beginReplacement,
+    getCurrentClientId: () => selectedClientRef.current,
   });
 
   const clientState = useWorkoutPlannerClientState({
@@ -135,6 +137,7 @@ export const useWorkoutPlannerOrchestration = () => {
     onBeforeSelectedClientChange: draftMutation.retire,
   });
   const { selectedClientId, selectedClient } = clientState;
+  selectedClientRef.current = selectedClientId;
 
   // P58-R1: bind the committed scope at the committed boundary (raw actor id
   // and raw role from AuthContext, actual target and selected day). A committed
@@ -183,7 +186,7 @@ export const useWorkoutPlannerOrchestration = () => {
     selectedClientId,
     planExercisesLength: planExercises.length,
     hasGeneratedHorizonPlan: planContent.hasGeneratedHorizonPlan,
-    loadedPlanId: planContent.loadedPlanId, loadedPlanRevision: savedPlansState.savedPlans.find((plan) => plan.id === planContent.loadedPlanId)?.contentRevision ?? 1,
+    loadedPlanId: planContent.loadedPlanId, loadedPlanRevision: planContent.loadedPlanRevision,
     planDuration,
     userRole: user?.role,
     phaseName: phase.name,
@@ -197,6 +200,7 @@ export const useWorkoutPlannerOrchestration = () => {
     setSavedSnapshot: planContent.setSavedSnapshot,
     setLoadedPlanId: planContent.setLoadedPlanId,
     setLoadedPlanName: planContent.setLoadedPlanName,
+    setLoadedPlanRevision: planContent.setLoadedPlanRevision,
     setStatusMsg,
   });
 
@@ -217,6 +221,7 @@ export const useWorkoutPlannerOrchestration = () => {
     setCategory,
     setLoadedPlanId: planContent.setLoadedPlanId,
     setLoadedPlanName: planContent.setLoadedPlanName,
+    setLoadedPlanRevision: planContent.setLoadedPlanRevision,
     setSavedSnapshot: planContent.setSavedSnapshot,
     setStatusMsg,
     onBeforeDraftReplacement: draftMutation.beginReplacement,

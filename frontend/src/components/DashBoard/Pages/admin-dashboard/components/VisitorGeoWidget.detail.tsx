@@ -107,14 +107,14 @@ export const VisitorFullModal: React.FC<ModalProps> = ({
     if (event.currentTarget === event.target) onClose();
   };
   const handleOverlayKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
+    if (event.key === 'Escape') {
       event.preventDefault();
       onClose();
     }
   };
 
   return createPortal(
-    <ModalOverlay role="button" tabIndex={0} aria-label="Close visitor intelligence modal" onClick={handleOverlayClick} onKeyDown={handleOverlayKeyDown}>
+    <ModalOverlay onClick={handleOverlayClick} onKeyDown={handleOverlayKeyDown}>
       <ModalContent role="dialog" aria-modal="true" aria-labelledby="visitor-intelligence-title" tabIndex={-1}>
         <ModalHeader>
           <ModalTitle id="visitor-intelligence-title"><Globe size={20} />Visitor Intelligence - Full View</ModalTitle>

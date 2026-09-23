@@ -1,0 +1,89 @@
+{
+  "planReceipt": {
+    "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/readiness.json",
+    "sha256": "0a2209e89076a9d3401e9c5370d42e5de2a172d774d4d3859e86a2536c08d100"
+  },
+  "profile": "sequential-astra",
+  "plannerReceipt": {
+    "path": "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/evidence/planner.json",
+    "sha256": "3e7ece97d78b713561a8590fcba4fa3777d9dfec3e40db9317755e03985d991b"
+  },
+  "sessionId": "01a098a4-1c60-7fe2-bdd0-0fa6a5673993",
+  "slices": [
+    {
+      "files": [
+        "backend/routes/storeFrontRoutes.mjs",
+        "backend/services/store/storefrontDisplayService.mjs",
+        "backend/tests/api/storefrontDisplayTruth.test.mjs",
+        "backend/tests/api/storefrontDisplayRoutes.test.mjs",
+        "backend/tests/api/storefrontPriceGating.test.mjs",
+        "backend/tests/api/storefrontRoutesSecurity.test.mjs",
+        "backend/tests/api/storefrontCommerceFields.contract.test.mjs",
+        "backend/tests/api/storefrontSpecialMoneyPath.test.mjs"
+      ],
+      "id": "S1",
+      "builder": {
+        "model": "gpt-5.6-luna",
+        "provider": "openai-codex",
+        "billing": "subscription",
+        "effort": "xhigh"
+      }
+    },
+    {
+      "files": [
+        "frontend/src/pages/shop/StoreV3.tsx",
+        "frontend/src/pages/shop/StoreV3.styles.ts",
+        "frontend/src/pages/shop/useStorefrontCatalog.ts",
+        "frontend/src/pages/shop/useStorefrontCatalog.test.tsx",
+        "frontend/src/pages/shop/StoreV3.experience.test.tsx",
+        "frontend/src/pages/shop/components/storeCatalog.ts",
+        "frontend/src/pages/shop/components/storeCatalog.types.ts",
+        "frontend/src/pages/shop/components/storeCatalog.test.ts",
+        "frontend/src/pages/shop/components/PackageCard.tsx",
+        "frontend/src/pages/shop/components/PackageCard.styles.ts",
+        "frontend/src/pages/shop/components/PackageCard.truth.test.tsx",
+        "frontend/src/pages/shop/components/PackagesGrid.tsx",
+        "frontend/src/pages/shop/components/PackagesGrid.styles.ts",
+        "frontend/src/pages/shop/components/ProductCard.tsx",
+        "frontend/src/pages/shop/components/ProductCard.test.tsx",
+        "frontend/src/pages/shop/components/StoreStory.tsx",
+        "frontend/src/pages/shop/components/StoreSpotlight.tsx",
+        "frontend/src/pages/shop/components/StoreComparison.tsx",
+        "frontend/src/pages/shop/components/StoreExperience.styles.ts",
+        "frontend/src/pages/shop/components/MembershipsSection.tsx",
+        "frontend/src/pages/shop/components/MembershipsSection.test.tsx",
+        "frontend/src/pages/shop/components/MembershipSummary.tsx",
+        "frontend/src/pages/AscensionPage/AscensionPage.tsx",
+        "frontend/src/pages/AscensionPage/VaultCard.tsx",
+        "frontend/src/pages/AscensionPage/AscensionPage.purchase.test.tsx",
+        "frontend/src/hooks/useSubscription.ts",
+        "frontend/src/hooks/useSubscription.test.tsx",
+        "frontend/src/components/Shop/ProductDetail.tsx",
+        "frontend/src/components/Shop/ProductDetail.styles.ts",
+        "frontend/src/components/Shop/ProductDetailContent.tsx",
+        "frontend/src/components/Shop/ProductDetail.truth.test.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.sections.tsx",
+        "frontend/src/components/NewCheckout/CheckoutView.empty.test.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.tsx",
+        "frontend/src/components/NewCheckout/SuccessPage.styles.ts",
+        "frontend/src/components/NewCheckout/SuccessPage.celebration.test.tsx",
+        "frontend/src/components/NewCheckout/checkoutDiagnostics.ts",
+        "frontend/src/components/NewCheckout/checkoutDiagnostics.test.ts"
+      ],
+      "id": "S2",
+      "builder": {
+        "model": "gpt-5.6-luna",
+        "provider": "openai-codex",
+        "billing": "subscription",
+        "effort": "xhigh"
+      }
+    }
+  ],
+  "taskId": "store-upgrade-20260913",
+  "planFiles": [
+    "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/README.md",
+    "docs/ai-workflow/blueprints/store-upgrade-2026-09-13/flow.mmd"
+  ],
+  "repoRoot": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\store-upgrade-20260913"
+}

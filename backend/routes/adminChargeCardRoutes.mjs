@@ -13,7 +13,6 @@
  */
 
 import express from 'express';
-import Stripe from 'stripe';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import { adminChargeLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { applyPackagePayment } from '../services/sessionDeductionService.mjs';
@@ -22,6 +21,7 @@ import { isValidUUID } from '../utils/paymentRecovery.constants.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import logger from '../utils/logger.mjs';
 import sequelize from '../database.mjs';
+import { getStripeClient } from '../utils/stripeClient.mjs';
 
 const router = express.Router();
 
@@ -29,9 +29,7 @@ const router = express.Router();
 let stripe = null;
 if (isStripeEnabled()) {
   try {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16'
-    });
+    stripe = getStripeClient();
   } catch (err) {
     logger.error(`[AdminChargeCard] Failed to init Stripe: ${err.message}`);
   }

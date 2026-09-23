@@ -29,15 +29,13 @@ const PhotoGalleryCard: React.FC<PhotoGalleryCardProps> = ({ photo, index, onOpe
 
   return (
     <PhotoCard
-      role="button"
-      tabIndex={0}
+      type="button"
       aria-label={`Open photo: ${photo.title}`}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
       onClick={openPhoto}
-      onKeyDown={handleKeyDown}
     >
       <PhotoImage $image={photo.url} />
       <PhotoActions>

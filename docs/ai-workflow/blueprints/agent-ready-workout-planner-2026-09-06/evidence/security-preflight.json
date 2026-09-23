@@ -1,0 +1,63 @@
+{
+  "config_discovery": {
+    "cwd": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT",
+    "project_layers_loaded": false,
+    "project_root": "C:\\Users\\BigotSmasher\\Desktop\\@Everything\\quick-pt\\SS-PT",
+    "project_trust_level": null
+  },
+  "config_paths": [
+    "C:\\ProgramData\\OpenAI\\Codex\\config.toml",
+    "C:\\Users\\BigotSmasher\\.codex\\config.toml"
+  ],
+  "config_profile": null,
+  "config_profile_path": null,
+  "config_resolution": "cwd-discovery",
+  "description": "Capabilities for repository-wide or scoped-path Codex Security scans.",
+  "failed": [],
+  "multi_agent_context": {
+    "agent_max_threads": null,
+    "agent_max_threads_configured": false,
+    "agent_max_threads_source": null,
+    "config_v2_enabled": false,
+    "mode": "unknown",
+    "owner": "unknown",
+    "owner_source": null,
+    "runtime_provenance": null,
+    "version": "unknown",
+    "version_source": null
+  },
+  "multi_agent_mode": "unknown",
+  "profile": "security_scan",
+  "remediation": {
+    "multi_agent_mode": "unknown"
+  },
+  "results": [
+    {
+      "actual": true,
+      "capability": "delegated_workers",
+      "check": "delegation_available",
+      "reason": "Standard scans use an independent baseline auditor and focused investigation workers when delegation is available.",
+      "severity": "warn",
+      "status": "pass"
+    },
+    {
+      "capability": "usable_worker_slots_6",
+      "check": "active_multi_agent_mode",
+      "reason": "A six-thread cap provides room for an independent baseline and parallel investigators; it does not require six running workers.",
+      "severity": "warn",
+      "status": "unknown"
+    }
+  ],
+  "status": "ready",
+  "unknown": [
+    {
+      "capability": "usable_worker_slots_6",
+      "check": "active_multi_agent_mode",
+      "reason": "A six-thread cap provides room for an independent baseline and parallel investigators; it does not require six running workers.",
+      "severity": "warn",
+      "status": "unknown"
+    }
+  ],
+  "user_config_path": "C:\\Users\\BigotSmasher\\.codex\\config.toml",
+  "version": 1
+}

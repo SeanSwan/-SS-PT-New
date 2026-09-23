@@ -97,7 +97,15 @@ export const NotificationsList = styled.div`
   overflow: visible;
 `;
 
-export const NotificationItemShell = styled(motion.div)<{ $priorityColor?: string }>`
+export const NotificationItemShell = styled(motion.button)<{ $priorityColor?: string }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   background: color-mix(in srgb, ${TEXT_PRIMARY} 5%, transparent);
   border: 1px solid color-mix(in srgb, ${TEXT_PRIMARY} 10%, transparent);
   border-left: 4px solid ${props => props.$priorityColor || PRIORITY_MEDIUM};

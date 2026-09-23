@@ -1,0 +1,21 @@
+{
+  "name": "@swan/schemas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Validation schemas and workflow vocabulary shared by the SwanStudios backend and frontend. One definition, both ends.",
+  "type": "module",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "supportIssue.mjs"
+  ],
+  "peerDependencies": {
+    "zod": "^3.22.4"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  }
+}

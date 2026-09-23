@@ -8,7 +8,15 @@ export const ExerciseGrid = styled.div`
   padding: 4px 6px;
 `;
 
-export const ExerciseCard = styled.div<{ $selected: boolean }>`
+export const ExerciseCard = styled.button<{ $selected: boolean }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   display: flex;
   flex-direction: column;
   flex: 1;

@@ -45,6 +45,7 @@ export interface SprintWeek {
 }
 
 export interface BootcampSprint {
+  generationVersion: number;
   id: number;
   trainerId: number;
   name: string;
@@ -190,19 +191,40 @@ export function useSprintAPI() {
   const generateSprint = useCallback((
     sprintId: number,
     onProgress: (evt: GenerationProgress) => void,
+    expectedGenerationVersion?: number,
   ): (() => void) => {
     const token = ProductionTokenManager.getToken();
     const controller = new AbortController();
     let lastEventId = 0;
     let cancelled = false;
+    let terminal = false;
+    let reconnectAttempted = false;
+
+    const emit = (evt: GenerationProgress) => {
+      if (cancelled || terminal) return;
+      if (evt.type === 'complete' || evt.type === 'error') terminal = true;
+      onProgress(evt);
+    };
+
+    const emitError = (message: string) => {
+      if (!terminal && !cancelled) {
+        terminal = true;
+        setError(message);
+        onProgress({ type: 'error', error: message });
+      }
+    };
 
     // Parse SSE stream, tracking event IDs for reconnection (ARCH-2)
     const readStream = async (response: Response) => {
+      if (!response.ok) {
+        throw new Error(`Sprint request failed (${response.status})`);
+      }
       const reader = response.body?.getReader();
-      if (!reader) return;
+      if (!reader) throw new Error('Sprint stream returned no readable body');
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let currentId: number | null = null;
 
       for (;;) {
         const { done, value } = await reader.read();
@@ -212,16 +234,18 @@ export function useSprintAPI() {
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
-        let currentId: number | null = null;
         for (const line of lines) {
           if (line.startsWith('id: ')) {
             currentId = parseInt(line.slice(4), 10);
-            if (!isNaN(currentId)) lastEventId = currentId;
           } else if (line.startsWith('data: ')) {
             try {
               const evt = JSON.parse(line.slice(6));
-              onProgress(evt);
-            } catch { /* skip malformed */ }
+              if (currentId !== null && Number.isSafeInteger(currentId)) lastEventId = currentId;
+              emit(evt);
+            } catch {
+              // Ignore a malformed event frame but keep the stream alive; the
+              // terminal event still controls completion/error state.
+            }
           }
         }
       }
@@ -229,24 +253,36 @@ export function useSprintAPI() {
 
     // Reconnect via GET stream with Last-Event-ID
     const reconnect = async () => {
-      if (cancelled) return;
+      if (cancelled || terminal || reconnectAttempted) return;
+      reconnectAttempted = true;
       try {
         const res = await fetch(`/api/bootcamp/sprints/${sprintId}/generate/stream`, {
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Last-Event-ID': String(lastEventId),
           },
+          // Reconnect is now the primary recovery path; a cached 404/502 must
+          // never be replayed as a "Reconnect failed" verdict on a live class.
+          cache: 'no-store',
           signal: controller.signal,
         });
         if (res.ok) {
           await readStream(res);
+          if (!terminal && !cancelled) emitError('Sprint stream ended before completion');
         } else {
           // Surface non-OK reconnect as error (Codex R18 fix — 404/401/etc)
-          onProgress({ type: 'error', error: `Reconnect failed (${res.status})` });
+          emitError(`Reconnect failed (${res.status})`);
         }
+        // The reconnect stream reached a terminal or cancelled state: stop the
+        // in-flight request. The previous code called `reader.cancel()`, but
+        // `reader` is scoped to readStream and is not visible here, and the
+        // trailing `break` sat outside any loop — which esbuild rejects, so the
+        // production bundle could not be built at all. `controller` is the
+        // correct handle for this fetch and abort() is a no-op once it settled.
+        if (terminal || cancelled) controller.abort();
       } catch (err: unknown) {
         if (err instanceof Error && err.name !== 'AbortError') {
-          onProgress({ type: 'error', error: err.message });
+          emitError(err.message);
         }
       }
     };
@@ -255,14 +291,19 @@ export function useSprintAPI() {
       try {
         const res = await fetch(`/api/bootcamp/sprints/${sprintId}/generate`, {
           method: 'POST',
+          body: JSON.stringify({ expectedGenerationVersion, operationId: crypto.randomUUID() }),
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           signal: controller.signal,
         });
-
+        if (!res.ok) {
+          emitError(`Sprint generation request failed (${res.status})`);
+          return;
+        }
         await readStream(res);
+        if (!terminal && !cancelled) await reconnect();
       } catch (err: unknown) {
         if (err instanceof Error && err.name !== 'AbortError') {
           // Connection lost mid-generation — try reconnecting to GET stream
@@ -271,7 +312,10 @@ export function useSprintAPI() {
       }
     })();
 
-    return () => { cancelled = true; controller.abort(); };
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, []);
 
   const confirmSlot = useCallback(async (
@@ -293,12 +337,14 @@ export function useSprintAPI() {
   }, []);
 
   const regenerateSlot = useCallback(async (
-    sprintId: number, slotId: number,
+    sprintId: number, slotId: number, expectedGenerationVersion?: number,
   ): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
-      const response = await apiService.post(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/regenerate`);
+      const response = await apiService.post(`/api/bootcamp/sprints/${sprintId}/slots/${slotId}/regenerate`, {
+        expectedGenerationVersion, operationId: crypto.randomUUID(),
+      });
       const data = response.data;
       return !!data.success;
     } catch (err: any) {

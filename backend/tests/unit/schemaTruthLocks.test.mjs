@@ -38,7 +38,10 @@ describe('id-type truths (live DB: integer serial, not UUID)', () => {
   });
 
   it('Contact.userId is INTEGER with a real FK — UUID could never hold a Users.id', () => {
-    const src = read('models/Contact.mjs');
+    // Tracked name is lowercase `contact.mjs`. The capital-C read was green on
+    // Windows (case-insensitive) for weeks and ENOENT'd on the FIRST Linux CI
+    // run - the gate's first catch (SWA-231, PR #108).
+    const src = read('models/contact.mjs');
     expect(src).toMatch(/userId:\s*\{[\s\S]{0,300}?type:\s*DataTypes\.INTEGER/);
     expect(src).not.toMatch(/userId:\s*\{[\s\S]{0,120}?type:\s*DataTypes\.UUID/);
   });

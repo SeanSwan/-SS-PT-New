@@ -24,7 +24,12 @@ export const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 
 let timer = null;
 
-async function runSweep() {
+/**
+ * Exported for the durable BullMQ path (SWA-225 EX-3): the queue processor runs
+ * this EXACT function, so the sweep's behaviour is identical whichever scheduler
+ * invokes it. Only the timing mechanism differs.
+ */
+export async function runSweep() {
   // reconcileStalePendingCarts never throws — it reports { released, failed } — so the
   // interval cannot be killed by a transient DB error.
   await reconcileStalePendingCarts({ ShoppingCart });

@@ -1,0 +1,22 @@
+flowchart LR
+  subgraph DEVICE[User-controlled device]
+    E[Hermes or supported companion]
+    M[Local model and local auxiliary models]
+    E <--> M
+  end
+  subgraph SWAN[Swan hosted application]
+    UI[Human UI and consent]
+    G[New authenticated gateway]
+    P[Policy and minimized context]
+    D[(Canonical training data)]
+    W[Existing guarded writer]
+    UI --> G
+    G --> P
+    P -->|Authorized selected fields| D
+    P -->|Human-bound reviewed change| W
+    W --> D
+  end
+  E -->|Outbound HTTPS scoped tools| G
+  P -->|Pseudonymous typed response| E
+  E -. Managed local profile blocks .-> CLOUD[Cloud inference destinations]
+  PRIVATE[Private operator Wiki and infrastructure] -. No customer capability .-> G

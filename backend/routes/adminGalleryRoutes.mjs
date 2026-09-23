@@ -33,6 +33,7 @@ import { join, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, unlinkSync, readFileSync, writeFileSync, chmodSync, statSync, mkdtempSync, rmSync } from 'fs';
 import { execFileSync } from 'child_process';
+import { getLegacyDefaultStripeClient } from '../utils/stripeClient.mjs';
 
 const router = express.Router();
 
@@ -1573,8 +1574,10 @@ router.post('/print-orders/:orderId/refund', galleryAdminOnly, async (req, res) 
 
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) return res.status(503).json({ success: false, error: 'Payment processing not configured' });
-    const { default: Stripe } = await import('stripe');
-    const stripe = new Stripe(stripeKey);
+    const stripe = getLegacyDefaultStripeClient();
+    if (!stripe) {
+      return res.status(503).json({ success: false, error: 'Payment processing not configured' });
+    }
 
     // Resolve the PaymentIntent from the Checkout Session server-side (never trust client).
     const session = await stripe.checkout.sessions.retrieve(order.stripeSessionId);

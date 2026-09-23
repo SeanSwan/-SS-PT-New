@@ -57,6 +57,10 @@ export const forgeTheme = {
   sheenSkyStops: "#1C6FD6, #3FA0EE, #8FD0F7, #D8EFFB", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   sheenDriftA: "radial-gradient(38px 20px at 12% 40%, #FFFFFF 60%, transparent 72%),\r\n    radial-gradient(52px 26px at 30% 46%, #FFFFFF 62%, transparent 74%),\r\n    radial-gradient(60px 28px at 58% 52%, #FFFFFF 60%, transparent 73%),\r\n    radial-gradient(44px 24px at 84% 44%, #FFFFFF 60%, transparent 73%)", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   sheenDriftB: "radial-gradient(70px 30px at 8% 55%, #FFFFFF 60%, transparent 74%),\r\n    radial-gradient(90px 36px at 44% 48%, #FFFFFF 60%, transparent 74%)", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
+  sheenBand: "linear-gradient(\r\n    180deg,\r\n    rgba(255, 255, 255, 0.5) 0%,\r\n    rgba(255, 255, 255, 0) 26%,\r\n    rgba(0, 0, 0, 0.45) 48%,\r\n    rgba(255, 255, 255, 0.28) 62%,\r\n    rgba(0, 0, 0, 0.3) 100%\r\n  )",
+  sheenShim: "conic-gradient(\r\n    from 0deg,\r\n    rgba(255, 255, 255, 0) 0deg,\r\n    rgba(255, 255, 255, 0.95) 9deg,\r\n    rgba(255, 255, 255, 0) 20deg,\r\n    rgba(255, 255, 255, 0) 120deg,\r\n    rgba(0, 0, 0, 0.34) 138deg,\r\n    rgba(255, 255, 255, 0) 156deg,\r\n    rgba(255, 255, 255, 0) 208deg,\r\n    rgba(255, 255, 255, 0.78) 220deg,\r\n    rgba(255, 255, 255, 0) 234deg,\r\n    rgba(255, 255, 255, 0) 360deg\r\n  )",
+  sheenRimShadow: "inset 0 0 0 0.75px rgba(255, 255, 255, 0.42),\r\n    inset 0 0 0 1.6px rgba(0, 0, 0, 0.5)",
+  sheenRingFilter: "saturate(1.25) brightness(1.08)",
   btnGhostGlowB: "#60C0F0", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   btnHeight: "48px",
   btnRadius: "12px",

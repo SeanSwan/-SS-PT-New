@@ -8,7 +8,7 @@
     "build": "vite build",
     "build:check": "npm run type-check && vite build",
     "preview": "vite preview",
-    "type-check": "node --max-old-space-size=12288 ./node_modules/typescript/bin/tsc --noEmit --pretty false",
+    "type-check": "node --max-old-space-size=16384 ./node_modules/typescript/bin/tsc --noEmit --pretty false",
     "test": "vitest",
     "test:run": "node ./scripts/run-vitest-shards.mjs",
     "test:coach-plaud-flow": "vitest run src/components/DashBoard/Pages/coach-assistant src/components/PlaudClipMerge/PlaudMergeReviewFocus.test.tsx src/components/PlaudClipMerge/PlaudMergeWorkspaceOutcome.test.tsx src/pages/dashboard/PlaudIntelligenceWorkspacePage.test.tsx --reporter verbose --testTimeout 10000",
@@ -31,9 +31,13 @@
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
     "@mediapipe/tasks-vision": "^0.10.32",
+    "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-toast": "^1.2.15",
     "@reduxjs/toolkit": "^2.0.1",
+    "@sentry/react": "^10.73.0",
     "@stripe/stripe-js": "^8.9.0",
+    "@swan/forge": "file:../packages/swan-forge",
+    "@swan/schemas": "file:../packages/swan-schemas",
     "@tanstack/react-query": "^5.15.5",
     "@types/react-simple-maps": "^3.0.6",
     "@types/react-window": "^1.8.8",
@@ -73,7 +77,7 @@
     "uuid": "^13.0.0",
     "victory": "^37.3.6",
     "vite": "^6.4.3",
-    "@swan/forge": "file:../packages/swan-forge"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

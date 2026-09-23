@@ -28,7 +28,7 @@ const Bar = styled.div`
   gap: 4px 10px;
   min-height: 44px;
   padding: 6px 12px;
-  background: color-mix(in srgb, var(--world-panel, #1a1a24) 96%, transparent);
+  background: color-mix(in srgb, var(--world-panel, #141419) 96%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid color-mix(in srgb, var(--world-text, #e0ecf4) 10%, transparent);
@@ -51,7 +51,7 @@ const Client = styled.span`
 `;
 
 const Meta = styled.span`
-  color: var(--world-muted, #94a3b8);
+  color: var(--world-muted, #9fb0c8);
   font-size: 0.75rem;
   white-space: nowrap;
 `;
@@ -65,7 +65,7 @@ const SignalPill = styled.span<{ $tone: 'warning' | 'gold' | 'neutral' }>`
   color: ${({ $tone }) =>
     $tone === 'warning' ? 'var(--warning, #f59e0b)'
     : $tone === 'gold' ? 'var(--accent-gold, #c6a84b)'
-    : 'var(--world-muted, #94a3b8)'};
+    : 'var(--world-muted, #9fb0c8)'};
   border: 1px solid currentColor;
 `;
 
@@ -74,7 +74,7 @@ const Numbers = styled.span`
   font-family: 'Fira Code', monospace;
   font-variant-numeric: tabular-nums;
   font-size: 0.75rem;
-  color: var(--world-muted, #94a3b8);
+  color: var(--world-muted, #9fb0c8);
   white-space: nowrap;
 `;
 
@@ -116,7 +116,9 @@ export interface ContextBarProps {
   formattedVolume?: string;
   clientFirstName: string;
   clientLastName: string;
-  availableSessions: number;
+  availableSessions: number | null;
+  /** Distinguishes an unavailable balance from a confirmed zero balance. */
+  clientInfoUnavailable?: boolean;
   clientSource?: string | null;
   workoutDate?: string | null;
   totalSets: number;
@@ -143,6 +145,7 @@ const ContextBar: React.FC<ContextBarProps> = React.memo(({
   clientFirstName,
   clientLastName,
   availableSessions,
+  clientInfoUnavailable = false,
   clientSource,
   workoutDate,
   totalSets,
@@ -160,7 +163,9 @@ const ContextBar: React.FC<ContextBarProps> = React.memo(({
     const id = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(id);
   }, [sessionStartedAt]);
-  const signal = getClientSessionSignal({ clientSource: clientSource || undefined, availableSessions });
+  const signal = clientInfoUnavailable
+    ? { label: 'information unavailable', note: 'client information could not be loaded', tone: 'neutral' as const }
+    : getClientSessionSignal({ clientSource: clientSource || undefined, availableSessions });
   const parsed = workoutDate ? new Date(`${workoutDate}T00:00:00`) : null;
   const displayDate = parsed && !Number.isNaN(parsed.getTime())
     ? parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })

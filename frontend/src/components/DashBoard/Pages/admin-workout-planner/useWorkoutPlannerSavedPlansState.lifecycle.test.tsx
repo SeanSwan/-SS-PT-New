@@ -6,6 +6,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { useWorkoutPlannerSavedPlansState } from './useWorkoutPlannerSavedPlansState';
+import { derivePlanDataKnown } from './plannerLogic/planDataKnown';
 
 const makeHookInput = (authAxios: any, overrides: Record<string, unknown> = {}) => ({
   authAxios,
@@ -33,6 +34,13 @@ const revisionPlanResponse = {
 };
 
 describe('useWorkoutPlannerSavedPlansState lifecycle writes', () => {
+  it('activation does not mark unsaved edits as saved', async () => {
+    const authAxios = { get: vi.fn().mockResolvedValue(revisionPlanResponse), post: vi.fn().mockResolvedValue({ data: { success: true } }), put: vi.fn(), delete: vi.fn() };
+    const input = makeHookInput(authAxios, { loadedPlanId: 'revision-plan', currentExercisesSig: 'unsaved-edits' });
+    const { result } = renderHook(() => useWorkoutPlannerSavedPlansState(input));
+    await act(async () => result.current.handleCardActivate('revision-plan', 'Revision Plan'));
+    expect(input.setSavedSnapshot).not.toHaveBeenCalled();
+  });
   it('renames with the list revision so stale staff edits conflict safely', async () => {
     const authAxios = {
       get: vi.fn().mockResolvedValue(revisionPlanResponse),
@@ -96,5 +104,77 @@ describe('useWorkoutPlannerSavedPlansState lifecycle writes', () => {
       action: 'archive',
     });
     expect(authAxios.delete).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * H22 across the HOOK boundary, not just the pure resolver.
+ *
+ * The first H22 repair was tested only by handing `planDataKnown: false` into
+ * resolveNextBestAction, which cannot catch a wrong derivation. `fetchSavedPlans`
+ * sets `savedPlansClientId` in a finally block, so a rejected GET (or a 2xx
+ * failure payload) previously produced exactly the state the caller read as
+ * "known and empty" — and the chip announced that the client has no active plan.
+ * These tests evaluate the caller's REAL predicate — the shared
+ * `derivePlanDataKnown` the mounted panel imports — against real hook state, so
+ * neither copy can drift from the other.
+ */
+const derivedPlanDataKnown = (
+  state: { savedPlansClientId: number | null; savedPlansLoading: boolean; savedPlansError: boolean },
+  selectedClientId: number | null,
+) => derivePlanDataKnown(state, selectedClientId);
+
+describe('useWorkoutPlannerSavedPlansState H22 plan-data knowledge', () => {
+  it('reports plan data as UNKNOWN when the saved-plan load rejects', async () => {
+    const authAxios = {
+      get: vi.fn().mockRejectedValue(new Error('offline')),
+      post: vi.fn(), put: vi.fn(), delete: vi.fn(),
+    };
+    const { result } = renderHook(() => useWorkoutPlannerSavedPlansState(makeHookInput(authAxios)));
+
+    await waitFor(() => expect(result.current.savedPlansLoading).toBe(false));
+
+    // The settle markers are exactly what made the old derivation look "known".
+    expect(result.current.savedPlansClientId).toBe(42);
+    expect(result.current.savedPlans).toHaveLength(0);
+    expect(result.current.savedPlansError).toBe(true);
+    expect(derivedPlanDataKnown(result.current, 42)).toBe(false);
+  });
+
+  it('reports plan data as UNKNOWN when the load returns a 2xx failure payload', async () => {
+    const authAxios = {
+      get: vi.fn().mockResolvedValue({ data: { success: false } }),
+      post: vi.fn(), put: vi.fn(), delete: vi.fn(),
+    };
+    const { result } = renderHook(() => useWorkoutPlannerSavedPlansState(makeHookInput(authAxios)));
+
+    await waitFor(() => expect(result.current.savedPlansLoading).toBe(false));
+
+    expect(result.current.savedPlansError).toBe(true);
+    expect(derivedPlanDataKnown(result.current, 42)).toBe(false);
+  });
+
+  it('reports plan data as KNOWN once a successful load returns an empty list', async () => {
+    const authAxios = {
+      get: vi.fn().mockResolvedValue({ data: { success: true, plans: [] } }),
+      post: vi.fn(), put: vi.fn(), delete: vi.fn(),
+    };
+    const { result } = renderHook(() => useWorkoutPlannerSavedPlansState(makeHookInput(authAxios)));
+
+    await waitFor(() => expect(result.current.savedPlansLoading).toBe(false));
+
+    expect(result.current.savedPlansError).toBe(false);
+    expect(derivedPlanDataKnown(result.current, 42)).toBe(true);
+  });
+
+  it('reports plan data as UNKNOWN before the fetch settles', () => {
+    const authAxios = {
+      get: vi.fn().mockReturnValue(new Promise(() => {})),
+      post: vi.fn(), put: vi.fn(), delete: vi.fn(),
+    };
+    const { result } = renderHook(() => useWorkoutPlannerSavedPlansState(makeHookInput(authAxios)));
+
+    expect(result.current.savedPlansLoading).toBe(true);
+    expect(derivedPlanDataKnown(result.current, 42)).toBe(false);
   });
 });

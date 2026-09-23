@@ -14,8 +14,9 @@ describe('schedule client credits source policy wiring', () => {
 
     expect(hookSource).toContain("clientSource?: 'swanstudios' | 'move_fitness' | 'external' | string | null;");
     expect(hookSource).toContain('normalizeSessionCreditsPayload');
-    expect(hookSource).toContain('sessionsRemaining: normalizeAvailableSessions(payload?.sessionsRemaining)');
-    expect(hookSource).toContain('clientSource: payload?.clientSource ?? null');
+    expect(hookSource).toContain('const raw = payload?.sessionsRemaining;');
+    expect(hookSource).toContain('!Number.isSafeInteger(count)');
+    expect(hookSource).toContain('return { sessionsRemaining: count, clientSource: payload.clientSource ?? null');
     expect(scheduleSource).toContain('const clientSource = credits?.clientSource ?? user?.clientSource ?? null;');
     expect(scheduleSource).toContain('sessionsRemaining={sessionsRemaining}');
     expect(scheduleSource).toContain('clientSource={clientSource}');

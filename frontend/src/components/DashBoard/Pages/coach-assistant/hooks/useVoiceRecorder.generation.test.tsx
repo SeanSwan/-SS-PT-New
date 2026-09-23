@@ -53,3 +53,26 @@ it('a queued stop callback after abort cannot publish an old blob',async()=>{
   act(()=>{result.current.stop();result.current.abort();queuedStop?.();});
   expect(result.current.state).toBe('idle');expect(result.current.audioBlob).toBeNull();
 });
+
+it('normal stop publishes the collected blob, releases tracks and allows a fresh retry',async()=>{
+  const first=deferred(),second=deferred();mic(first,second);const a=stream(),b=stream();
+  const {result}=renderHook(()=>useVoiceRecorder());let started!:Promise<void>;
+  act(()=>{started=result.current.start();});await act(async()=>{first.resolve(a.value);await started;});
+  const recorder=Recorder.instances[0];
+  act(()=>{recorder.ondataavailable?.({data:new Blob(['voice'])});result.current.stop();recorder.onstop?.();});
+  expect(result.current.state).toBe('stopped');expect(result.current.audioBlob?.size).toBe(5);
+  expect(a.stop).toHaveBeenCalledTimes(1);expect(recorder.onstop).toBeNull();
+  act(()=>{result.current.reset();started=result.current.start();});
+  await act(async()=>{second.resolve(b.value);await started;});
+  expect(result.current.state).toBe('recording');expect(result.current.audioBlob).toBeNull();
+  act(()=>result.current.abort());expect(b.stop).toHaveBeenCalledTimes(1);
+});
+it('unmount during an active recording releases tracks and cannot publish a queued blob',async()=>{
+  const request=deferred();mic(request);const audio=stream();
+  const {result,unmount}=renderHook(()=>useVoiceRecorder());let started!:Promise<void>;
+  act(()=>{started=result.current.start();});await act(async()=>{request.resolve(audio.value);await started;});
+  const recorder=Recorder.instances[0],queued=recorder.onstop;unmount();
+  expect(audio.stop).toHaveBeenCalledTimes(1);expect(recorder.stop).toHaveBeenCalledTimes(1);
+  expect(recorder.ondataavailable).toBeNull();expect(recorder.onstop).toBeNull();
+  act(()=>queued?.());expect(result.current.audioBlob).toBeNull();
+});

@@ -245,6 +245,7 @@ class ProductionApiService {
       ProductionTokenManager.setToken(token);
       this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } else {
+      ProductionTokenManager.clearAuthData();
       delete this.client.defaults.headers.common['Authorization'];
     }
   }

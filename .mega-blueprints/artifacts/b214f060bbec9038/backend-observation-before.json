@@ -1,0 +1,49 @@
+{
+  "kind": "backend-observation-before",
+  "generatedAt": "2026-09-12T23:12:29.9558514-07:00",
+  "worktree": "C:\\Users\\BigotSmasher\\Desktop\\quick-pt\\SS-PT\\tmp\\worktrees\\rolodex-bootcamp-planner-20260913",
+  "files": [
+    {
+      "path": "backend/services/bootcamp/bootcampCrud.mjs",
+      "sha256": "673889bee6f5f926694a6bf04d0f0e1c298d0d32afd888a6f0958c10a08d3e31",
+      "length": 12899,
+      "lastWriteTime": "2026-09-12T23:06:59.5861579-07:00"
+    },
+    {
+      "path": "backend/services/bootcamp/bootcampTemplateContract.mjs",
+      "sha256": "2baab1be9e6f15fdee7eed5b30a4c8a8d99100e6c27308f3c79caa0f6cf16793",
+      "length": 9182,
+      "lastWriteTime": "2026-09-12T22:50:08.2165657-07:00"
+    },
+    {
+      "path": "backend/routes/bootcampRoutes.mjs",
+      "sha256": "9fd1b48f0cae2649fe2ab906f4be775ec6bd97ef20e7a4ee6727448f43ff2ac2",
+      "length": 18592,
+      "lastWriteTime": "2026-09-12T23:06:26.0221241-07:00"
+    },
+    {
+      "path": "tmp/rolodex-audit-evidence/server-red/bootcamp-template-postgres.red.integration.test.mjs",
+      "sha256": "e308a40202759481770febb0cea4e5e548405637b66c4f01aa81c1265209df28",
+      "length": 13542,
+      "lastWriteTime": "2026-09-12T21:51:34.5354185-07:00"
+    },
+    {
+      "path": "tmp/rolodex-audit-evidence/server-red/bootcamp-template-save.red.test.mjs",
+      "sha256": "6a9423340233eaac697d0cddbc403e9c79adaf58f04a3c9c5160ce5e741f1040",
+      "length": 7575,
+      "lastWriteTime": "2026-09-12T21:44:03.4632161-07:00"
+    },
+    {
+      "path": "tmp/rolodex-audit-evidence/server-red/bootcamp-template-read.red.test.mjs",
+      "sha256": "063c96e99f0dd1b42d31ea03c6b1357fe809b0a7499e7912cd9a012b878b6406",
+      "length": 2363,
+      "lastWriteTime": "2026-09-12T21:39:28.8889142-07:00"
+    },
+    {
+      "path": "tmp/rolodex-audit-evidence/server-red/bootcamp-template-route.red.test.mjs",
+      "sha256": "c29e20e86c71be4f37cdd12f835a7740a83ee44f38d7ebeab60afaf26eb30ad2",
+      "length": 3234,
+      "lastWriteTime": "2026-09-12T21:44:03.7467373-07:00"
+    }
+  ]
+}

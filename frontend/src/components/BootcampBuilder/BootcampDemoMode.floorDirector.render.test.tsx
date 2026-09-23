@@ -86,6 +86,17 @@ describe('BootcampDemoMode floor director rendering', () => {
     expect(screen.getByText('Preview could not load. Update this loop from the SwanStudios Rolodex.')).toBeInTheDocument();
   });
 
+  it('announces auto-swapped movements to the coach running the class (U1)', () => {
+    const bc = bootcamp();
+    bc.exercises[0].painSwap = { from: 'Jump Squat', region: 'left_knee', severity: 8 };
+    render(<BootcampDemoMode bootcamp={bc} onSelectExercise={vi.fn()} />);
+
+    const badge = screen.getByLabelText('This movement replaced Jump Squat because of left knee pain');
+    expect(badge).toHaveTextContent('Swapped from Jump Squat');
+    // The untouched movement carries no swap badge.
+    expect(screen.getAllByLabelText(/This movement replaced /i)).toHaveLength(1);
+  });
+
   it('renders station controls for exercise assignments beyond saved station metadata', () => {
     const expanded = {
       ...bootcamp(),

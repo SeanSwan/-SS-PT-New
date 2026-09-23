@@ -38,7 +38,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { Op } from 'sequelize';
-import Stripe from 'stripe';
 
 import { authenticateToken, authorizeAdmin } from '../../middleware/auth.mjs';
 import sequelize from '../../database.mjs';
@@ -47,6 +46,7 @@ import StorefrontItem from '../../models/StorefrontItem.mjs';
 import SessionPackage from '../../models/SessionPackage.mjs';
 import Order from '../../models/Order.mjs';
 import OrderItem from '../../models/OrderItem.mjs';
+import { getStripeClient } from '../../utils/stripeClient.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'internal_error';
@@ -66,9 +66,7 @@ router.use(analyticsRateLimit);
 
 let stripeClient = null;
 if (process.env.STRIPE_SECRET_KEY) {
-  stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2023-10-16',
-  });
+  stripeClient = getStripeClient();
 }
 
 const getDateRangeFromTimeRange = (timeRange) => {

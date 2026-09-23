@@ -593,8 +593,14 @@ export async function getClientContext(clientId, trainerId) {
     }),
 
     // 13. Active nutrition plan
+    // 2026-09-12 schema fix (rule 58): the real column is status
+    // ENUM('active','completed','archived') — see the model file. The prior
+    // query filtered on isActive, which does not exist on
+    // ClientNutritionPlan; the throw was swallowed by the catch below and
+    // trainer client-detail nutrition context was always null. Same
+    // rule-58 bug class as the ClientTrainerAssignment fix above.
     (safeGetModel('ClientNutritionPlan')?.findOne({
-      where: { clientId, isActive: true },
+      where: { clientId, status: 'active' },
       order: [['createdAt', 'DESC']],
     }) ?? Promise.resolve(null)).catch(err => {
       logger.warn(

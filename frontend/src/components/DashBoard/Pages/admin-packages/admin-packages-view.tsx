@@ -2,6 +2,7 @@
 // Migrated from MUI to styled-components + lucide-react (Crystalline Swan theme)
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 import GlowButton from '../../../ui/buttons/GlowButton';
@@ -18,7 +19,6 @@ import {
   Trash2,
   CheckCircle,
   RefreshCw,
-  Send,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -71,28 +71,13 @@ import {
   Heading5,
   Heading6,
   InfoPanel,
-  OfferHeaderRow,
   SearchIconSpan,
   SearchInput,
   SearchInputWrapper,
   SubtitleText
 } from './admin-packages-view.layoutStyles';
 import {
-  AvatarCircle,
-  ClientCheckItem,
-  ClientListContainer,
-  DiscountInput,
-  DiscountInputWrapper,
-  DiscountSuffix,
-  FormField,
-  FormGrid,
-  FormGridFull,
-  FormGroupLabel,
-  FormInputAccent,
-  FormLabel,
-  FormTextarea,
   HiddenCheckbox,
-  SelectedClientIcon,
   SwitchLabel,
   SwitchThumb,
   SwitchTrack
@@ -152,15 +137,6 @@ const FULFILLMENT_LABELS: Record<string, string> = {
 };
 const isPhysicalProduct = (pkg: { itemKind?: string }) => pkg.itemKind === 'physical_product';
 
-// Interface for client data (simplified)
-interface Client {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  photo?: string;
-}
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object';
 
@@ -184,9 +160,10 @@ const getErrorMessage = (err: unknown, fallback: string): string => {
  * - View all available packages
  * - Edit existing packages
  * - Create new packages
- * - Send special offers to clients
+ * - Start the existing per-client special workflow
  */
 const AdminPackagesView: React.FC = () => {
+  const navigate = useNavigate();
   const { authAxios } = useAuth();
   const { toast } = useToast();
 
@@ -194,8 +171,6 @@ const AdminPackagesView: React.FC = () => {
   const [packages, setPackages] = useState<SessionPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [, setLoadingClients] = useState(false);
 
   // State for UI controls
   const [page, setPage] = useState(0);
@@ -209,7 +184,6 @@ const AdminPackagesView: React.FC = () => {
   const [selectedPackage, setSelectedPackage] = useState<SessionPackage | null>(null);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openNewDialog, setOpenNewDialog] = useState(false);
-  const [openSendOfferDialog, setOpenSendOfferDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
   // Form state for edit package
@@ -248,11 +222,6 @@ const AdminPackagesView: React.FC = () => {
   const [newStockQuantity, setNewStockQuantity] = useState<string>('');
   const [newProductPrice, setNewProductPrice] = useState<number>(20);
   const [newImageUrl, setNewImageUrl] = useState<string>('');
-
-  // State for sending special offer
-  const [selectedClients, setSelectedClients] = useState<string[]>([]);
-  const [offerDiscount, setOfferDiscount] = useState<number>(10);
-  const [offerMessage, setOfferMessage] = useState<string>('');
 
   // Stats summary data
   const [statsData, setStatsData] = useState({
@@ -315,40 +284,9 @@ const AdminPackagesView: React.FC = () => {
     }
   };
 
-  // Fetch clients for sending offers
-  const fetchClients = async () => {
-    setLoadingClients(true);
-    try {
-      const response = await authAxios.get('/api/auth/clients');
-
-      const clientsData = response.data?.clients || response.data;
-      if (clientsData && Array.isArray(clientsData)) {
-        setClients(clientsData);
-      } else {
-        logger.warn('Received unexpected data structure for clients:', response.data);
-        toast({
-          title: "Warning",
-          description: "Failed to load clients (invalid format)",
-          variant: "destructive",
-        });
-      }
-    } catch (err: unknown) {
-      console.error('Error fetching clients:', err);
-      const errorMsg = getErrorMessage(err, 'Could not load clients');
-      toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingClients(false);
-    }
-  };
-
   // Load data on component mount
   useEffect(() => {
     fetchPackages();
-    fetchClients();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -614,63 +552,6 @@ const AdminPackagesView: React.FC = () => {
     }
   };
 
-  // Handle send special offer
-  const handleSendSpecialOffer = async () => {
-    if (!selectedPackage) return;
-    if (selectedClients.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please select at least one client to send the offer to",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Calculate discounted price
-      const originalPrice = selectedPackage.price || calculateTotalPrice(selectedPackage);
-      const discountAmount = (originalPrice * offerDiscount) / 100;
-      const discountedPrice = originalPrice - discountAmount;
-
-      const offerData = {
-        packageId: selectedPackage.id,
-        clientIds: selectedClients,
-        discountPercentage: offerDiscount,
-        originalPrice: originalPrice,
-        discountedPrice: discountedPrice,
-        message: offerMessage,
-        expirationDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
-      };
-
-      const response = await authAxios.post('/api/admin/special-offers', offerData);
-
-      if (response.status === 201 || response.status === 200) {
-        toast({
-          title: "Success",
-          description: `Offer sent to ${selectedClients.length} client(s)`,
-        });
-        setOpenSendOfferDialog(false);
-        setSelectedClients([]);
-        setOfferDiscount(10);
-        setOfferMessage('');
-      } else {
-        toast({
-          title: "Warning",
-          description: `Unexpected response when sending offer: ${response.status}`,
-          variant: "default",
-        });
-      }
-    } catch (err: unknown) {
-      console.error('Error sending special offer:', err);
-      const errorMsg = getErrorMessage(err, 'Server error sending offer');
-      toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive",
-      });
-    }
-  };
-
   // Handle delete package confirmation
   const handleDeletePackage = async () => {
     if (!selectedPackage) return;
@@ -746,16 +627,6 @@ const AdminPackagesView: React.FC = () => {
   const handleRefreshData = () => {
     toast({ title: "Refreshing...", description: "Fetching latest package data." });
     fetchPackages();
-    fetchClients();
-  };
-
-  // Toggle client selection for offers
-  const toggleClientSelection = (clientId: string) => {
-    setSelectedClients(prev =>
-      prev.includes(clientId)
-        ? prev.filter(id => id !== clientId)
-        : [...prev, clientId]
-    );
   };
 
   // Pagination computed values
@@ -1038,13 +909,14 @@ const AdminPackagesView: React.FC = () => {
                                     btncolor="success"
                                     onClick={() => {
                                       setSelectedPackage(pkg);
-                                      setOpenSendOfferDialog(true);
+                                      navigate('/dashboard/admin/admin-specials');
                                     }}
-                                    title="Send Special Offer"
+                                    title="Create client special"
+                                    aria-label="Create client special"
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.95 }}
                                   >
-                                    <Send size={16} />
+                                    <Plus size={16} />
                                   </StyledIconButton>
                                   <StyledIconButton
                                     btncolor="error"
@@ -1187,134 +1059,6 @@ const AdminPackagesView: React.FC = () => {
         productPrice={newProductPrice} setProductPrice={setNewProductPrice}
         imageUrl={newImageUrl} setImageUrl={setNewImageUrl}
       />
-
-      {/* Send Special Offer Dialog */}
-      <StyledDialog $open={openSendOfferDialog} onClick={() => setOpenSendOfferDialog(false)}>
-        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-          <DialogTitleBar>
-            <FlexRow $gap="0.75rem">
-              <Send size={20} />
-              <Heading6>Send Special Offer</Heading6>
-            </FlexRow>
-          </DialogTitleBar>
-          <DialogContentArea>
-            <DialogHintText>
-              Create a special promotional offer for the selected package and send it to specific clients.
-            </DialogHintText>
-
-            {selectedPackage && (
-              <InfoPanel>
-                <OfferHeaderRow $gap="0.5rem">
-                  <Package size={20} />
-                  <SubtitleText>{selectedPackage.name}</SubtitleText>
-                </OfferHeaderRow>
-                <BodyText $color="var(--text-secondary, rgba(224, 236, 244, 0.68))" $block $bottom="0.5rem">
-                  {selectedPackage.packageType === 'fixed'
-                    ? `${selectedPackage.sessions} sessions at ${formatCurrency(selectedPackage.pricePerSession)} per session`
-                    : `${selectedPackage.months} months, ${selectedPackage.sessionsPerWeek} sessions/week at ${formatCurrency(selectedPackage.pricePerSession)} per session`
-                  }
-                </BodyText>
-                <BodyText $weight={500} $color="var(--accent-primary, #60C0F0)">
-                  Regular Price: {formatCurrency(selectedPackage.totalCost || selectedPackage.price || calculateTotalPrice(selectedPackage))}
-                </BodyText>
-              </InfoPanel>
-            )}
-
-            <FormGrid>
-              {/* Client Selection */}
-              <FormGridFull>
-                <FormField>
-                  <FormGroupLabel id="special-offer-client-list-label">Select Clients ({selectedClients.length} selected)</FormGroupLabel>
-                  <ClientListContainer role="group" aria-labelledby="special-offer-client-list-label">
-                    {clients.map((client) => (
-                      <ClientCheckItem
-                        key={client.id}
-                        $selected={selectedClients.includes(client.id)}
-                      >
-                        <HiddenCheckbox
-                          type="checkbox"
-                          checked={selectedClients.includes(client.id)}
-                          onChange={() => toggleClientSelection(client.id)}
-                        />
-                        <AvatarCircle $src={client.photo || undefined}>
-                          {!client.photo && `${client.firstName?.[0] || ''}${client.lastName?.[0] || ''}`}
-                        </AvatarCircle>
-                        <span>{client.firstName} {client.lastName}</span>
-                        {selectedClients.includes(client.id) && (
-                          <SelectedClientIcon size={14} />
-                        )}
-                      </ClientCheckItem>
-                    ))}
-                  </ClientListContainer>
-                </FormField>
-              </FormGridFull>
-
-              {/* Discount Percentage */}
-              <FormField>
-                <FormLabel htmlFor="special-offer-discount">Discount (%) *</FormLabel>
-                <DiscountInputWrapper>
-                  <DiscountInput
-                    id="special-offer-discount"
-                    type="number"
-                    value={offerDiscount}
-                    onChange={(e) => setOfferDiscount(Math.min(Math.max(0, Number(e.target.value)), 100))}
-                    required
-                    min={0}
-                    max={100}
-                  />
-                  <DiscountSuffix>%</DiscountSuffix>
-                </DiscountInputWrapper>
-              </FormField>
-
-              {/* Discounted Price Preview */}
-              <FormField>
-                {selectedPackage && (
-                  <>
-                    <FormLabel htmlFor="special-offer-price">Special Offer Price</FormLabel>
-                    <FormInputAccent
-                      id="special-offer-price"
-                      readOnly
-                      value={formatCurrency(
-                        (selectedPackage.totalCost || selectedPackage.price || calculateTotalPrice(selectedPackage)) * (1 - offerDiscount / 100)
-                      )}
-                    />
-                  </>
-                )}
-              </FormField>
-
-              {/* Personal Message */}
-              <FormGridFull>
-                <FormField>
-                  <FormLabel htmlFor="special-offer-message">Personal Message</FormLabel>
-                  <FormTextarea
-                    id="special-offer-message"
-                    value={offerMessage}
-                    onChange={(e) => setOfferMessage(e.target.value)}
-                    rows={3}
-                    placeholder="Add a personal message to go with your offer..."
-                  />
-                </FormField>
-              </FormGridFull>
-            </FormGrid>
-          </DialogContentArea>
-          <DialogActionsBar>
-            <GlowButton
-              text="Cancel"
-              theme="cosmic"
-              size="small"
-              onClick={() => setOpenSendOfferDialog(false)}
-            />
-            <GlowButton
-              text="Send Offer"
-              theme="emerald"
-              size="small"
-              leftIcon={<Send size={16} />}
-              onClick={handleSendSpecialOffer}
-              disabled={selectedClients.length === 0}
-            />
-          </DialogActionsBar>
-        </DialogPanel>
-      </StyledDialog>
 
       {/* Delete Confirmation Dialog */}
       <StyledDialog $open={openDeleteDialog} onClick={() => setOpenDeleteDialog(false)}>

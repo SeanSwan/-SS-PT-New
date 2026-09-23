@@ -251,3 +251,19 @@ export const DemoVideoLink = styled.a`
     outline-offset: 2px;
   }
 `;
+
+// U1: floor-board marker for pain-aware auto-swaps — passive badge, not an
+// interactive control, so the 44px target rule does not apply to it.
+export const DemoSwapBadge = styled.span<{ $region?: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(139, 92, 246, 0.16);
+  color: var(--accent-glow, #8B5CF6);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+`;

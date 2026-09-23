@@ -19,7 +19,13 @@ const shimmer = keyframes`
   100% { background-position: 200% 0; }
 `;
 
-export const Container = styled.div<{ $uploading?: boolean }>`
+export const Container = styled.button<{ $uploading?: boolean }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: none;
   background: ${withAlpha(CS.text, 0.03)};
   border: 2px dashed ${withAlpha(VOICE_MEMO_ACCENT, 0.25)};
   border-radius: 12px;

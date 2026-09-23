@@ -29,6 +29,7 @@ export interface ExerciseSlim {
   difficulty: number;
   equipment?: string[];
   equipmentNeeded?: string[];
+  equipmentRequirementsKnown?: boolean;
   source?: string;
   description?: string;
   videoUrl?: string | null;
@@ -96,7 +97,7 @@ const WORKER_CODE = `
     return qi === q.length ? score : 0;
   }
 
-  function search(query, category) {
+  function search(query, category, sequence) {
     let pool = exercises;
 
     // Filter by category first (fast)
@@ -111,7 +112,7 @@ const WORKER_CODE = `
 
     // No query — return all in category (alphabetical), no artificial cap
     if (!query || query.trim().length < 1) {
-      self.postMessage({ type: 'RESULTS', exercises: pool, query: query || '' });
+      self.postMessage({ type: 'RESULTS', exercises: pool, query: query || '', category, sequence });
       return;
     }
 
@@ -134,7 +135,7 @@ const WORKER_CODE = `
     }
 
     scored.sort((a, b) => b.score - a.score);
-    self.postMessage({ type: 'RESULTS', exercises: scored.slice(0, 100).map(s => s.ex), query: q });
+    self.postMessage({ type: 'RESULTS', exercises: scored.slice(0, 100).map(s => s.ex), query: q, category, sequence });
   }
 
   self.onmessage = function(e) {
@@ -144,10 +145,13 @@ const WORKER_CODE = `
       return;
     }
     if (msg.type === 'SEARCH') {
-      search(msg.query, msg.category);
+      search(msg.query, msg.category, msg.sequence);
     }
   };
 `;
+
+/** Test surface: the real worker source, for worker/fallback parity locks. */
+export const __testing__ = { WORKER_CODE };
 
 /**
  * Create and return a Web Worker for exercise search.
@@ -168,6 +172,12 @@ export function createExerciseSearchWorker(): Worker | null {
 
 /**
  * Main-thread fallback: same fuzzy search logic for when Worker fails.
+ *
+ * MUST stay behaviorally identical to the WORKER_CODE scorer above (the blob
+ * worker cannot import modules, so this is a hand mirror) — enforced by
+ * exerciseSearchWorker.parity.test.ts, which runs the real worker source and
+ * locks identical result ordering for name, type, muscle, initials and fuzzy
+ * queries.
  */
 export function searchExercisesSync(
   exercises: ExerciseSlim[],
@@ -186,48 +196,40 @@ export function searchExercisesSync(
     return pool;
   }
 
-  const q = query.trim().toLowerCase();
-
+  const q = query.trim();
   const scored: { ex: ExerciseSlim; score: number }[] = [];
-  for (const ex of pool) {
-    let best = 0;
-    const name = ex.name.toLowerCase();
 
-    // Exact substring
-    if (name.includes(q)) {
-      best = 1000 - name.indexOf(q);
-    } else {
-      // Word-start initials
-      const initials = name.split(/[\s\-_/]+/).map(w => w[0] || '').join('');
-      if (initials.includes(q)) {
-        best = 500;
-      } else {
-        // Fuzzy walk
-        let qi = 0;
-        let score = 0;
-        let prevMatch = -1;
-        for (let ti = 0; ti < name.length && qi < q.length; ti++) {
-          if (name[ti] === q[qi]) {
-            score += (prevMatch === ti - 1) ? 10 : 1;
-            prevMatch = ti;
-            qi++;
-          }
-        }
-        if (qi === q.length) best = score;
+  const fuzzyScoreSync = (rawQuery: string, target: string): number => {
+    const qt = rawQuery.toLowerCase();
+    const tt = target.toLowerCase();
+    if (tt.includes(qt)) return 1000 - tt.indexOf(qt);
+    const words = tt.split(/[\s\-_/]+/);
+    const initials = words.map(w => w[0] || '').join('');
+    if (initials.includes(qt)) return 500;
+    let qi = 0;
+    let score = 0;
+    let prevMatch = -1;
+    for (let ti = 0; ti < tt.length && qi < qt.length; ti++) {
+      if (tt[ti] === qt[qi]) {
+        score += (prevMatch === ti - 1) ? 10 : 1;
+        prevMatch = ti;
+        qi++;
       }
     }
+    return qi === qt.length ? score : 0;
+  };
 
-    // Also check exerciseType and muscles
-    if (best === 0) {
-      const et = ex.exerciseType.toLowerCase();
-      if (et.includes(q)) best = 300;
-    }
+  for (const ex of pool) {
+    // Mirror the worker exactly: name first, then type *0.5, then the best
+    // primary muscle *0.7 (same comparison order, same quirk, by intent).
+    let best = fuzzyScoreSync(q, ex.name);
+    if (best === 0) best = fuzzyScoreSync(q, ex.exerciseType ?? '') * 0.5;
     if (best === 0 && ex.primaryMuscles) {
       for (const m of ex.primaryMuscles) {
-        if (m.toLowerCase().includes(q)) { best = 200; break; }
+        const ms = fuzzyScoreSync(q, m);
+        if (ms > best) best = ms * 0.7;
       }
     }
-
     if (best > 0) scored.push({ ex, score: best });
   }
 

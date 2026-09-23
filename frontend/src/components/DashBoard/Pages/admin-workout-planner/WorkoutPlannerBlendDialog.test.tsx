@@ -25,6 +25,19 @@ const savedPlans: SavedPlanSummary[] = [
   { id: '22', name: 'Backup - General Fitness', status: 'draft', createdAt: '', goal: 'general_fitness' },
 ];
 
+const UUID_CASES = [
+  {
+    label: 'digit-start and letter-start IDs',
+    planAId: '550e8400-e29b-41d4-a716-446655440000',
+    planBId: 'a6ba7b81-9dad-41d1-80b4-00c04fd430c8',
+  },
+  {
+    label: 'letter-start IDs',
+    planAId: 'a50e8400-e29b-41d4-a716-446655440000',
+    planBId: 'b6ba7b81-9dad-41d1-80b4-00c04fd430c8',
+  },
+] as const;
+
 const planWeeks = (count: number) => ({
   data: { success: true, plan: { planData: { weeks: Array.from({ length: count }, (_, i) => ({ weekNumber: i + 1 })) } } },
 });
@@ -66,8 +79,8 @@ describe('WorkoutPlannerBlendDialog', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create blended plan' }));
 
     await waitFor(() => expect(mockPost).toHaveBeenCalledWith('/api/workout-plans/blend', {
-      planAId: 11,
-      planBId: 22,
+      planAId: '11',
+      planBId: '22',
       picks: [
         { source: 'A', weekNumber: 1 },
         { source: 'B', weekNumber: 2 },
@@ -76,6 +89,44 @@ describe('WorkoutPlannerBlendDialog', () => {
     }));
     expect(onBlended).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(UUID_CASES)('preserves canonical opaque IDs for $label', async ({ planAId, planBId }) => {
+    mockGet.mockResolvedValue(planWeeks(1));
+    const uuidPlans: SavedPlanSummary[] = [
+      { id: planAId, name: 'Primary UUID Plan', status: 'active', createdAt: '', goal: 'strength', isPrimary: true },
+      { id: planBId, name: 'Backup UUID Plan', status: 'draft', createdAt: '', goal: 'general_fitness' },
+    ];
+
+    render(<WorkoutPlannerBlendDialog open savedPlans={uuidPlans} onClose={vi.fn()} onBlended={vi.fn()} />);
+
+    await screen.findByText('Week 1');
+    await userEvent.click(screen.getByRole('button', { name: 'Create blended plan' }));
+
+    await waitFor(() => expect(mockPost).toHaveBeenCalledWith('/api/workout-plans/blend', {
+      planAId,
+      planBId,
+      picks: [{ source: 'A', weekNumber: 1 }],
+    }));
+  });
+
+  it('trims an optional title before submitting the blend', async () => {
+    render(<WorkoutPlannerBlendDialog open savedPlans={savedPlans} onClose={vi.fn()} onBlended={vi.fn()} />);
+
+    await screen.findByText('Week 3');
+    await userEvent.type(screen.getByLabelText('Blended plan title'), '  Spring hybrid  ');
+    await userEvent.click(screen.getByRole('button', { name: 'Create blended plan' }));
+
+    await waitFor(() => expect(mockPost).toHaveBeenCalledWith('/api/workout-plans/blend', {
+      planAId: '11',
+      planBId: '22',
+      picks: [
+        { source: 'A', weekNumber: 1 },
+        { source: 'A', weekNumber: 2 },
+        { source: 'A', weekNumber: 3 },
+      ],
+      title: 'Spring hybrid',
+    }));
   });
 
   it('surfaces the backend message when the blend is rejected', async () => {

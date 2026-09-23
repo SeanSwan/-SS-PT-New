@@ -50,6 +50,16 @@ describe('production API authentication handoff', () => {
 });
 
 describe('EnhancedLoginProviders', () => {
+  it('keeps optional methods hidden when discovery rejects a malformed response', async () => {
+    getAuthMethodsMock.mockRejectedValue(new Error('Invalid authentication methods response'));
+
+    render(<EnhancedLoginProviders returnUrl="/user-dashboard" onAuthenticated={vi.fn()} onError={vi.fn()} />);
+
+    await waitFor(() => expect(getAuthMethodsMock).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('region', { name: 'Other sign-in options' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /continue with/i })).not.toBeInTheDocument();
+  });
+
   it('renders only server-enabled provider choices and no Instagram placeholder', async () => {
     render(<EnhancedLoginProviders returnUrl="/user-dashboard" onAuthenticated={vi.fn()} onError={vi.fn()} />);
     expect(await screen.findByRole('button', { name: /continue with google/i })).toBeInTheDocument();

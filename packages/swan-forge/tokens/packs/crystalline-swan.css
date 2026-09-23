@@ -87,6 +87,35 @@
   --sw-sheen-drift-b:
     radial-gradient(70px 30px at 8% 55%, #FFFFFF 60%, transparent 74%),
     radial-gradient(90px 36px at 44% 48%, #FFFFFF 60%, transparent 74%);
+  /* Specular character — TASTE, not structure (GLM 5.3 H2 / Flash S2.8, 2026-09-01).
+     These lived as rgba() literals inside css/sheen.css, where the header claimed
+     "no literal below" and the drift linter could not see them because R1 only
+     matched hex. Both were true at once: the doc lied and the gate green-lit it. */
+  --sw-sheen-band: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0) 26%,
+    rgba(0, 0, 0, 0.45) 48%,
+    rgba(255, 255, 255, 0.28) 62%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+  --sw-sheen-shim: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 255, 255, 0.95) 9deg,
+    rgba(255, 255, 255, 0) 20deg,
+    rgba(255, 255, 255, 0) 120deg,
+    rgba(0, 0, 0, 0.34) 138deg,
+    rgba(255, 255, 255, 0) 156deg,
+    rgba(255, 255, 255, 0) 208deg,
+    rgba(255, 255, 255, 0.78) 220deg,
+    rgba(255, 255, 255, 0) 234deg,
+    rgba(255, 255, 255, 0) 360deg
+  );
+  --sw-sheen-rim-shadow:
+    inset 0 0 0 0.75px rgba(255, 255, 255, 0.42),
+    inset 0 0 0 1.6px rgba(0, 0, 0, 0.5);
+  --sw-sheen-ring-filter: saturate(1.25) brightness(1.08);
   --sw-btn-ghost-glow-b: #60C0F0;   /* Ice Wing */
   /* Button geometry = the ORIGINAL GlowButton BUTTON_SIZES table (Sean's taste anchor).
      This is PACK taste, not a catalog default — core stays on primitives (PR #2 review).

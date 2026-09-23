@@ -1,0 +1,107 @@
+{
+  "at": "2026-09-13T08:05:55.516Z",
+  "changes": [
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "line": 386,
+      "before": "| Trainer | trainer@test.com | [secure] | Active, has clients |",
+      "after": "| Trainer | `trainer@test.com` | [secure] | Active, has clients |"
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "line": 387,
+      "before": "| Client (with credits) | client-paid@test.com | [secure] | 10 sessions |",
+      "after": "| Client (with credits) | `client-paid@test.com` | [secure] | 10 sessions |"
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "line": 388,
+      "before": "| Client (no credits) | client-free@test.com | [secure] | 0 sessions |",
+      "after": "| Client (no credits) | `client-free@test.com` | [secure] | 0 sessions |"
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "line": 567,
+      "before": "| Admin | admin@swanstudios.dev | AdminTest123! |",
+      "after": "| Admin | `admin@swanstudios.dev` | AdminTest123! |"
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "line": 568,
+      "before": "| Trainer | trainer@swanstudios.dev | TrainerTest123! |",
+      "after": "| Trainer | `trainer@swanstudios.dev` | TrainerTest123! |"
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "line": 569,
+      "before": "| Client (paid) | client-paid@test.dev | ClientTest123! |",
+      "after": "| Client (paid) | `client-paid@test.dev` | ClientTest123! |"
+    },
+    {
+      "file": "docs/ai-workflow/blueprints/OPERATIONS-READY-TESTPLAN-AND-GAPS.md",
+      "line": 570,
+      "before": "| Client (free) | client-free@test.dev | ClientTest123! |",
+      "after": "| Client (free) | `client-free@test.dev` | ClientTest123! |"
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-CLEANUP-PLAN.md",
+      "line": 30,
+      "before": "| 28 | client | client@test.com | client | Test client (1 required, 5 sessions) |",
+      "after": "| 28 | client | `client@test.com` | client | Test client (1 required, 5 sessions) |"
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-CLEANUP-PLAN.md",
+      "line": 31,
+      "before": "| 29 | user | user@test.com | user | Test user (1 required) |",
+      "after": "| 29 | user | `user@test.com` | user | Test user (1 required) |"
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "line": 20,
+      "before": "| 28 | client | client@test.com | client | 5 | Dev seed |",
+      "after": "| 28 | client | `client@test.com` | client | 5 | Dev seed |"
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "line": 21,
+      "before": "| 29 | user | user@test.com | user | 0 | Dev seed |",
+      "after": "| 29 | user | `user@test.com` | user | 0 | Dev seed |"
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "line": 22,
+      "before": "| 30 | smoketest_1770850875607 | smoketest_...@test.com | user | 0 | Smoke test |",
+      "after": "| 30 | smoketest_1770850875607 | `smoketest_...@test.com` | user | 0 | Smoke test |"
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "line": 23,
+      "before": "| 31 | phase2test_1770850989514 | phase2test_...@test.com | user | 0 | Phase 2 test |",
+      "after": "| 31 | phase2test_1770850989514 | `phase2test_...@test.com` | user | 0 | Phase 2 test |"
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "line": 24,
+      "before": "| 32 | pwtest_1770851002738 | pwtest_...@test.com | user | 0 | Playwright test |",
+      "after": "| 32 | pwtest_1770851002738 | `pwtest_...@test.com` | user | 0 | Playwright test |"
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "line": 38,
+      "before": "| 28 | client | client@test.com | client | 5 | **ACTIVE** (Test client) |",
+      "after": "| 28 | client | `client@test.com` | client | 5 | **ACTIVE** (Test client) |"
+    },
+    {
+      "file": "docs/ai-workflow/launch-readiness/ACCOUNT-INVENTORY-BEFORE-AFTER.md",
+      "line": 39,
+      "before": "| 29 | user | user@test.com | user | 0 | **ACTIVE** (Test user) |",
+      "after": "| 29 | user | `user@test.com` | user | 0 | **ACTIVE** (Test user) |"
+    },
+    {
+      "file": "docs/archive/MASTER_PROMPT_V26_API.md",
+      "line": 421,
+      "before": "- **Privacy Email**: privacy@company.com",
+      "after": "- **Privacy Email**: `privacy@company.com`"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "baseline": "c0cbe538d8ed2ca519bb494cdf3282bf43b76699",
+  "capturedAt": "2026-09-13T04:11:01.809Z",
+  "files": [
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-audit.md",
+      "source": "tmp/rolodex-audit-evidence/backend-audit.md",
+      "sha256": "6eb60dd076bd47bbace5962c2f4b29f1acad94b23a9539e7cb862ee948bc6415"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-boundaries.md",
+      "source": "tmp/rolodex-audit-evidence/backend-boundaries.md",
+      "sha256": "53b4089803ef4eeb5ef6f7a630cd38d42194dbc2e385ddfc2007a9cd260fe321"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/frontend-audit.md",
+      "source": "tmp/rolodex-audit-evidence/frontend-audit.md",
+      "sha256": "c0e9db2617f0f0c70c04f782d501cf7074f3ee8aaab6ea3826f71b907c270b33"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/frontend-boundaries.md",
+      "source": "tmp/rolodex-audit-evidence/frontend-boundaries.md",
+      "sha256": "b25b610b872a5168577c8cbb6e8e26f7f05faff4112f1ff6626a04d8a4b7b8ef"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-probes.mjs",
+      "source": "tmp/rolodex-audit-evidence/backend-probes.mjs",
+      "sha256": "95f4e87031415b40248d8d60bd8c44b8f8f5cc6c9b16506acb318d52c5a157a7"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-probes-output.json",
+      "source": "tmp/rolodex-audit-evidence/backend-probes-output.json",
+      "sha256": "81f9e0f7d5789bcd3d25e4f058db3edea975da28bf16cb8f9b0a20aed547a92b"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-boundary-probes.mjs",
+      "source": "tmp/rolodex-audit-evidence/backend-boundary-probes.mjs",
+      "sha256": "9ba89cc0c221c69d17bd14ed6f44ac1ed758d39c55f191f3d695654f8e550442"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-boundary-probes-output.json",
+      "source": "tmp/rolodex-audit-evidence/backend-boundary-probes-output.json",
+      "sha256": "9be5e44548500975305a0b1adf8d996d526a78f3f804eb41c23995e66164e59e"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/backend-baseline.log",
+      "source": "tmp/rolodex-audit-evidence/backend-baseline.log",
+      "sha256": "b47600e0ad3e5c86ffdc6056c6f7b5ed87d953c41c2ac113c9ff9709548f51e6"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/frontend-baseline-native.log",
+      "source": "tmp/rolodex-audit-evidence/frontend-baseline-native.log",
+      "sha256": "a13f0214dfda7f1d4df0371c74a2202d76df0aea9ea1bcb45603f3a2a3a4b685"
+    },
+    {
+      "path": "docs/ai-workflow/blueprints/agent-ready-workout-planner-2026-09-06/evidence/hostile-20260913/preservation.json",
+      "source": "tmp/rolodex-audit-evidence/preservation.json",
+      "sha256": "60acec1fb4f4ad7bb4579e9073aa31dfabed474f115f402d4544682484a54eaf"
+    }
+  ]
+}

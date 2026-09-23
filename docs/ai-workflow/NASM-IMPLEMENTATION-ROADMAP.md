@@ -79,12 +79,12 @@ This roadmap provides a detailed, phase-by-phase implementation plan for integra
 - [x] **Admin Video Library System** (MAJOR MILESTONE - 2025-11-13):
   - [x] Complete wireframes and architecture (~22,000 lines of documentation)
   - [x] Frontend components (6 files, 950+ lines):
-    - [AdminVideoLibrary.tsx](../../frontend/src/pages/admin/AdminVideoLibrary.tsx) - Main video library page
-    - [VideoCard.tsx](../../frontend/src/components/admin/VideoCard.tsx) - Video display component
-    - [CreateExerciseWizard.tsx](../../frontend/src/components/admin/CreateExerciseWizard.tsx) - Exercise creation wizard placeholder
-    - [VideoPlayerModal.tsx](../../frontend/src/components/admin/VideoPlayerModal.tsx) - Video player placeholder
+    - `AdminVideoLibrary.tsx` - Main video library page (retired; now under `archive/pending-deletion/`)
+    - `VideoCard.tsx` - Video display component (retired; now under `archive/pending-deletion/`)
+    - [CreateExerciseWizard.tsx](../../frontend/src/components/Admin/CreateExerciseWizard.tsx) - Exercise creation wizard placeholder
+    - `VideoPlayerModal.tsx` - Video player placeholder (retired; now under `archive/pending-deletion/`)
     - [useDebounce.ts](../../frontend/src/hooks/useDebounce.ts) - Custom debounce hook
-    - [VideoLibraryTest.tsx](../../frontend/src/pages/admin/VideoLibraryTest.tsx) - Standalone test wrapper
+    - `VideoLibraryTest.tsx` - Standalone test wrapper (retired; now under `archive/pending-deletion/`)
   - [x] Comprehensive documentation:
     - [ADMIN-VIDEO-LIBRARY-WIREFRAMES.md](ADMIN-VIDEO-LIBRARY-WIREFRAMES.md) (~15,000 lines)
     - [ADMIN-VIDEO-LIBRARY-ARCHITECTURE.mermaid.md](ADMIN-VIDEO-LIBRARY-ARCHITECTURE.mermaid.md) (~7,000 lines)

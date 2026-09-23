@@ -1,8 +1,9 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { resolvePriceVisibility, stripItemPrices, isPriceGatedItem } from '../services/store/priceVisibilityService.mjs';
+import { mapStorefrontItem } from '../services/store/storefrontDisplayService.mjs';
 // 🚀 ENHANCED: Coordinated model imports with associations
-import { getStorefrontItem, getAdminSpecial, getProductVariant } from '../models/index.mjs';
+import { getStorefrontItem, getProductVariant } from '../models/index.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading model to prevent initialization race condition
 // StorefrontItem model will be retrieved via getStorefrontItem() inside each route handler when needed
@@ -25,12 +26,8 @@ const PRODUCT_VARIANT_ATTRIBUTES = [
   'isActive'
 ];
 let cachedVariantTableAvailable = null;
-const EMPTY_MONEY_VALUES = new Set([null, undefined, '']);
-const TRAINING_ITEM_TYPES = {
-  fixed: 'TRAINING_PACKAGE_FIXED',
-  monthly: 'TRAINING_PACKAGE_SUBSCRIPTION',
-  custom: 'TRAINING_PACKAGE_SUBSCRIPTION'
-};
+let variantProbeRetryAt = 0;
+const VARIANT_PROBE_RETRY_MS = 10_000;
 
 function sendInternalError(res, message) {
   return res.status(500).json({
@@ -128,58 +125,13 @@ const sanitizeStorefrontPayload = (payload = {}) => {
   return sanitized;
 };
 
-const parseMoney = (value) => {
-  if (EMPTY_MONEY_VALUES.has(value)) return null;
-  const parsed = Number.parseFloat(String(value));
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
-const firstMoney = (...values) => {
-  for (const value of values) {
-    const parsed = parseMoney(value);
-    if (parsed !== null) return parsed;
-  }
-
-  return 0;
-};
-
-const mapProductVariant = ({
-  id,
-  storefrontItemId,
-  label,
-  sku = null,
-  price,
-  stockQuantity = null,
-  attributes = null,
-  displayOrder = 0,
-  isActive = true
-}) => ({
-  id,
-  storefrontItemId,
-  label,
-  sku,
-  price: parseMoney(price),
-  stockQuantity,
-  attributes,
-  displayOrder,
-  isActive: isActive !== false
-});
-
-const getMappedProductVariants = (item) => {
-  if (!Array.isArray(item.variants)) return [];
-
-  return item.variants
-    .map(mapProductVariant)
-    .sort((left, right) => (left.displayOrder - right.displayOrder) || (left.id - right.id));
-};
-
 const resolveProductVariantInclude = async () => {
-  if (cachedVariantTableAvailable === false) return [];
+  if (cachedVariantTableAvailable === false && Date.now() < variantProbeRetryAt) return [];
 
   try {
     const ProductVariant = getProductVariant();
 
-    if (cachedVariantTableAvailable === null) {
+    if (cachedVariantTableAvailable !== true) {
       const queryInterface = ProductVariant.sequelize.getQueryInterface();
       await queryInterface.describeTable(ProductVariant.getTableName());
       cachedVariantTableAvailable = true;
@@ -194,63 +146,12 @@ const resolveProductVariantInclude = async () => {
     }];
   } catch (error) {
     cachedVariantTableAvailable = false;
+    variantProbeRetryAt = Date.now() + VARIANT_PROBE_RETRY_MS;
     logger.warn('Product variants unavailable for storefront payload.', {
       code: 'storefront_variants_unavailable'
     });
     return [];
   }
-};
-
-const resolveStorefrontItemType = (itemKind, packageType) => {
-  if (itemKind === 'physical_product') return 'PHYSICAL_PRODUCT';
-  return TRAINING_ITEM_TYPES[packageType] || TRAINING_ITEM_TYPES.monthly;
-};
-
-const valueOrFallback = (value, fallback) => value || fallback;
-
-const nullishOrFallback = (value, fallback) => value ?? fallback;
-
-const getStorefrontItemKind = (item) => valueOrFallback(item.itemKind, 'training_package');
-
-const getStorefrontPriceDetails = (item) => (
-  item.packageType === 'monthly'
-    ? `${item.months} months, ${item.sessionsPerWeek} sessions/week`
-    : null
-);
-
-const mapStorefrontItem = (item) => {
-  const itemKind = getStorefrontItemKind(item);
-  const itemType = resolveStorefrontItemType(itemKind, item.packageType);
-
-  return {
-    id: item.id,
-    name: item.name,
-    description: sanitizeStorefrontDescription(item.description),
-    totalCost: firstMoney(item.totalCost, item.price),
-    displayPrice: firstMoney(item.price, item.totalCost),
-    pricePerSession: firstMoney(item.pricePerSession),
-    price: firstMoney(item.price, item.totalCost),
-    priceDetails: getStorefrontPriceDetails(item),
-    imageUrl: item.imageUrl,
-    theme: valueOrFallback(item.theme, 'cosmic'),
-    sessions: item.sessions,
-    months: item.months,
-    sessionsPerWeek: item.sessionsPerWeek,
-    totalSessions: item.totalSessions,
-    category: null,
-    itemType,
-    includedFeatures: valueOrFallback(item.includedFeatures, null),
-    packageType: item.packageType,
-    isActive: item.isActive,
-    displayOrder: nullishOrFallback(item.displayOrder, 0),
-    // Phase 0 commerce fields - let the storefront distinguish training packages
-    // from physical products (supplements/merch) and render the right card + tax note.
-    itemKind,
-    isTaxable: item.isTaxable === true,
-    fulfillmentType: valueOrFallback(item.fulfillmentType, 'none'),
-    stockQuantity: nullishOrFallback(item.stockQuantity, null),
-    variants: getMappedProductVariants(item)
-  };
 };
 
 /**
@@ -270,7 +171,6 @@ router.get('/', async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
     const StorefrontItem = getStorefrontItem();
-    const AdminSpecial = getAdminSpecial();
     // Launch P1-1: prices are invitation-only — resolve per-request visibility
     const pricesVisible = await resolvePriceVisibility(req);
 
@@ -290,6 +190,16 @@ router.get('/', async (req, res) => {
     const requestedOffset = parseOptionalInteger(offset, 0);
     const requestedIsActive = parseOptionalBoolean(isActive, true);
     const requestedPackageType = typeof packageType === 'string' ? packageType.trim() : packageType;
+
+    // Raw money columns do not describe canonical display/charge precedence.
+    // Reject before pagination instead of returning a misleading partial sort.
+    if (['price', 'totalCost', 'displayPrice', 'pricePerSession'].includes(sortBy)) {
+      return res.status(400).json({
+        success: false,
+        code: 'UNSUPPORTED_PRICE_SORT',
+        message: 'Price sorting is unavailable. Sort by displayOrder or name.',
+      });
+    }
 
     if (requestedLimit === null || requestedOffset === null) {
       return res.status(400).json({
@@ -350,14 +260,6 @@ router.get('/', async (req, res) => {
     });
 
     // Transform data to meet frontend expectations
-    // Gracefully handle missing admin_specials table (may not exist in all environments)
-    let activeSpecials = [];
-    try {
-      activeSpecials = await AdminSpecial.getActiveSpecials();
-    } catch (specialsErr) {
-      logger.warn('Could not fetch active specials (table may not exist):', specialsErr.message);
-    }
-
     const transformedItems = items.map((item) => {
       const mapped = mapStorefrontItem(item);
       return pricesVisible || !isPriceGatedItem(mapped) ? mapped : stripItemPrices(mapped);
@@ -398,43 +300,14 @@ router.get('/', async (req, res) => {
       logger.info(`Retrieved ${items.length} storefront items`);
     }
 
-    const packagesWithSpecials = transformedItems.map((pkg) => {
-      const applicableSpecial = activeSpecials.find(
-        (special) =>
-          !special.applicablePackageIds?.length ||
-          special.applicablePackageIds.includes(pkg.id)
-      );
-
-      if (applicableSpecial) {
-        return {
-          ...pkg,
-          activeSpecial: {
-            id: applicableSpecial.id,
-            name: applicableSpecial.name,
-            bonusSessions: applicableSpecial.bonusSessions,
-            bonusDuration: applicableSpecial.bonusDuration,
-            endsAt: applicableSpecial.endDate
-          }
-        };
-      }
-
-      return pkg;
-    });
-
     // Return success response with data structure frontend expects
     res.json({
       success: true,
       pricesVisible,
-      items: packagesWithSpecials,
+      items: transformedItems,
       data: {
-        packages: packagesWithSpecials,
-        activeSpecials: activeSpecials.map((special) => ({
-          id: special.id,
-          name: special.name,
-          bonusSessions: special.bonusSessions,
-          applicablePackageIds: special.applicablePackageIds,
-          endsAt: special.endDate
-        }))
+        packages: transformedItems,
+        activeSpecials: []
       }
     });
   } catch (error) {

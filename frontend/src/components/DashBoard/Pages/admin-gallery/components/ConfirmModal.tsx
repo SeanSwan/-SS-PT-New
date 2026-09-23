@@ -1,13 +1,32 @@
 /**
  * ConfirmModal — themed replacement for window.confirm
  * ====================================================
- * Accessible confirm dialog (Escape + backdrop close, focus on cancel).
- * Driven by a `request` object; the parent owns the open/close state.
+ * Now a thin adapter over the shared <SwanDialog> primitive (SWA-225 EX-6),
+ * consumer #1 of 93. Its public surface is unchanged — `ConfirmRequest` and the
+ * `{ request, onClose }` props — so AdminGalleryStudio did not move.
+ *
+ * WHAT THE REWRITE BOUGHT, none of which the hand-rolled version had:
+ *   - a real focus TRAP (Tab could previously walk out of the dialog into the
+ *     page behind it)
+ *   - background inerting via aria-hidden, so a screen reader cannot wander out
+ *   - body scroll lock
+ *   - a portal, so an ancestor's overflow/transform can never clip the dialog
+ *   - focus RETURN to whatever opened it — supplied manually by SwanDialog,
+ *     because this component is `request`-controlled and therefore has no Radix
+ *     Trigger for Radix's own restore to aim at
+ *
+ * WHAT DELIBERATELY DID NOT CHANGE: Escape and backdrop still dismiss, even for
+ * `tone: 'danger'`. Dismissing a confirm is the SAFE outcome and the WAI-ARIA
+ * dialog pattern requires Escape to work; blueprint v3 proposed disabling both
+ * on destructive dialogs and that was rejected as a keyboard trap.
+ *
+ * The behaviour contract is pinned by ConfirmModal.behaviour.test.tsx, written
+ * against the ORIGINAL implementation before this rewrite and passing unchanged
+ * against it after.
  */
 
-import React, { useEffect, useRef } from 'react';
-import styled from 'styled-components';
-import { AlertTriangle } from 'lucide-react';
+import React from 'react';
+import { SwanDialog } from '../../../../ui/SwanDialog';
 import { DangerButton, GhostButton, PrimaryButton } from '../styles';
 
 export interface ConfirmRequest {
@@ -25,91 +44,27 @@ interface Props {
 }
 
 const ConfirmModal: React.FC<Props> = ({ request, onClose }) => {
-  const cancelRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!request) return undefined;
-    cancelRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [request, onClose]);
-
-  if (!request) return null;
-
-  const confirmAndClose = () => {
-    request.onConfirm();
-    onClose();
-  };
-
-  const Confirm = request.tone === 'danger' ? DangerButton : PrimaryButton;
+  const destructive = request?.tone === 'danger';
+  const Confirm = destructive ? DangerButton : PrimaryButton;
 
   return (
-    <Backdrop onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <Dialog role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-        <TitleRow $danger={request.tone === 'danger'}>
-          <AlertTriangle size={18} aria-hidden="true" />
-          <span id="confirm-title">{request.title}</span>
-        </TitleRow>
-        <Message>{request.message}</Message>
-        <Actions>
-          <GhostButton ref={cancelRef} type="button" onClick={onClose}>
-            {request.cancelLabel || 'Cancel'}
-          </GhostButton>
-          <Confirm type="button" onClick={confirmAndClose}>
-            {request.confirmLabel}
-          </Confirm>
-        </Actions>
-      </Dialog>
-    </Backdrop>
+    <SwanDialog
+      open={request !== null}
+      onOpenChange={(open) => { if (!open) onClose(); }}
+      title={request?.title ?? ''}
+      description={request?.message}
+      destructive={destructive}
+      confirmLabel={request?.confirmLabel ?? 'Confirm'}
+      cancelLabel={request?.cancelLabel ?? 'Cancel'}
+      onConfirm={request?.onConfirm}
+      renderCancel={({ onClick, children, type, ref }) => (
+        <GhostButton ref={ref} type={type} onClick={onClick}>{children}</GhostButton>
+      )}
+      renderConfirm={({ onClick, children, type }) => (
+        <Confirm type={type} onClick={onClick}>{children}</Confirm>
+      )}
+    />
   );
 };
-
-const Backdrop = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 2400;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: rgba(3, 7, 18, 0.66);
-  backdrop-filter: blur(3px);
-`;
-
-const Dialog = styled.div`
-  width: 100%;
-  max-width: 420px;
-  background: var(--card-bg, #141419);
-  border: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.2));
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-`;
-
-const TitleRow = styled.h3<{ $danger?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0 0 0.75rem;
-  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
-  font-size: 1.1rem;
-  color: ${({ $danger }) => ($danger ? 'var(--danger, #e5484d)' : 'var(--text-primary, #e0ecf4)')};
-`;
-
-const Message = styled.p`
-  margin: 0 0 1.25rem;
-  font-size: 0.92rem;
-  line-height: 1.5;
-  color: var(--text-muted, #8fa3b8);
-`;
-
-const Actions = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.6rem;
-`;
 
 export default ConfirmModal;

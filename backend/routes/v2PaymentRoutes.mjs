@@ -29,7 +29,6 @@
  */
 
 import express from 'express';
-import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { checkoutSessionLimiter, paymentVerifyLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
@@ -79,6 +78,7 @@ import {
 import { getCheckoutReceiptSummary } from '../services/checkoutReceiptSummaryService.mjs';
 import { captureLeadFromCheckout } from '../services/leadCaptureService.mjs';
 import { deriveChannel } from '../services/leadCaptureShared.mjs';
+import { getStripeClient } from '../utils/stripeClient.mjs';
 
 const router = express.Router();
 const CHECKOUT_CREATION_FAILED_CODE = 'CHECKOUT_CREATION_FAILED';
@@ -209,9 +209,7 @@ try {
     };
     logger.error('[v2 Payment] Live Stripe key blocked in local development');
   } else {
-    stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2023-10-16'
-    });
+    stripe = getStripeClient();
     logger.info(`[v2 Payment] Stripe client initialized successfully (${getStripeSecretKeyMode(stripeSecretKey)} mode)`);
   }
 } catch (error) {

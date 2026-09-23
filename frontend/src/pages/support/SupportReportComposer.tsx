@@ -18,6 +18,7 @@ import {
   ErrorText, Field, FieldGrid, HelpText, InlineAlert, Input, Label,
   Panel, PanelHeading, PanelIntro, Select, SubmitButton, SubmitRow, TextArea,
 } from './SupportReportRoom.styles';
+import { supportIssueComposerSchema } from '@swan/schemas';
 import SupportReportGuidance from './SupportReportGuidance';
 import { initialSupportDraft, type GuidedField, type SupportDraft } from './supportReportDraft';
 import SupportVoiceCapture from './SupportVoiceCapture';
@@ -51,13 +52,49 @@ function diagnostics(context?: SupportErrorContext | null): Record<string, unkno
     },
   };
 }
+/**
+ * Validate the draft against the SAME schema the API enforces.
+ *
+ * These four rules used to be hand-written here — `length < 4`, `length < 10`,
+ * `> 12` steps, `> 500` chars per step — a second copy of rules that
+ * routes/supportIssueRoutes.mjs already declared in zod. Two copies of one
+ * contract, in two languages, kept in step by nothing but memory: raise the
+ * server minimum and this form would go on accepting what the API had begun
+ * rejecting, handing the user a 400 the UI never predicted (CLAUDE.md Rule 58,
+ * drift class #6/#7). SWA-225 EX-5 makes @swan/schemas the single definition.
+ *
+ * The messages stay human and stay OURS — zod supplies the rule, not the
+ * wording. A user should read "at least 4 characters", never "String must
+ * contain at least 4 character(s)".
+ */
 function validate(draft: SupportDraft): Errors {
-  const errors: Errors = {};
-  if (draft.title.trim().length < 4) errors.title = 'Add a short title with at least 4 characters.';
-  if (draft.description.trim().length < 10) errors.description = 'Tell us what happened in at least 10 characters.';
   const steps = draft.steps.split(/\r?\n/).map((step) => step.trim()).filter(Boolean);
-  if (steps.length > 12) errors.steps = 'Keep the report to 12 repeatable steps or fewer.';
-  else if (steps.some((step) => step.length > 500)) errors.steps = 'Keep each step to 500 characters or fewer.';
+  const result = supportIssueComposerSchema.safeParse({
+    category: draft.category,
+    severity: draft.severity,
+    title: draft.title,
+    description: draft.description,
+    expectedBehavior: draft.expectedBehavior,
+    impact: draft.impact,
+    reproductionSteps: steps,
+  });
+  if (result.success) return {};
+
+  const errors: Errors = {};
+  for (const issue of result.error.issues) {
+    const field = issue.path[0];
+    if (field === 'title' && !errors.title) {
+      errors.title = 'Add a short title with at least 4 characters.';
+    } else if (field === 'description' && !errors.description) {
+      errors.description = 'Tell us what happened in at least 10 characters.';
+    } else if (field === 'reproductionSteps' && !errors.steps) {
+      // Two distinct rules land on this field: too many steps, or one step too
+      // long. `path.length > 1` means the issue is on an ELEMENT, not the array.
+      errors.steps = issue.path.length > 1
+        ? 'Keep each step to 500 characters or fewer.'
+        : 'Keep the report to 12 repeatable steps or fewer.';
+    }
+  }
   return errors;
 }
 

@@ -36,7 +36,24 @@ you touch, first ask whether the failure can be made architecturally impossible;
 whether a deterministic check can catch it; and only then whether it must stay as prose.
 A slice that adds three rules and removes none has failed even if every rule is correct.
 
-Two things are Sean's call, not yours — surface them, do not decide them:
+Sean added an explicit instruction: **put the spec-driven conflict and the values question
+to the seats directly** — he wants their reasoning on the record before he arbitrates, not a
+parked "Sean's call" bullet. Every seat must answer, with a verdict and its reasoning:
+
+- Which of Rules 15 / 64 / 68 genuinely fall to Bob Martin's "spec-maxing is the waterfall
+  trap," and which survive — and why?
+- Attack the working resolution: *keep the interview, kill the blueprint, keep the checks* —
+  grill-me survives because it extracts **values** (which transfer to agents) rather than
+  implementation steps; Rule 15 becomes plan-depth proportional to reversibility; Rule 68
+  inverts so the expensive model produces **the acceptance check, not the plan.**
+- `grill-me` is now domain-independent with a seven-tier values ladder and a durable output
+  at `docs/ai-workflow/references/SWAN-VALUES-CORPUS.md`. Is a values corpus the right
+  Direction layer, or just the next write-only artifact nobody drains? What makes it get
+  READ? What is the cap and the eviction rule?
+- Which of our rule *classes* are values (keep, compress, front-load) and which are
+  disciplines (retire into gates, or delete)?
+
+Sean still arbitrates the final call on all of it. These remain his, not yours:
 1. The spec-driven conflict (Slice F): our recursive-planning and plan-then-build rules
    against Uncle Bob's finding that spec-maxing is the waterfall trap returning.
 2. Any deletion of the orphan Hermes tree.

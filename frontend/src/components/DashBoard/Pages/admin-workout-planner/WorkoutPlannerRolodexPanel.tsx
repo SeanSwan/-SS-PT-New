@@ -35,6 +35,7 @@ import {
   FiltersPane,
   ResultsCount,
 } from './WorkoutPlannerPage.styles';
+import { PlannerError } from './PlannerStateViews';
 
 const WORKOUT_PLANNER_ROW_HEIGHT = 156;
 const VIRTUAL_LIST_STYLE = { overflowX: 'hidden' as const };
@@ -53,6 +54,8 @@ interface WorkoutPlannerRolodexPanelProps {
   filteredExerciseCount: number;
   activeFilterCount: number;
   exercisesLoading: boolean;
+  exercisesLoadError: string | null;
+  refreshExercises: () => void;
   searchQuery: string;
   filterCategory: string | null;
   sourceFilter: string | null;
@@ -73,6 +76,8 @@ const WorkoutPlannerRolodexPanel: React.FC<WorkoutPlannerRolodexPanelProps> = ({
   filteredExerciseCount,
   activeFilterCount,
   exercisesLoading,
+  exercisesLoadError,
+  refreshExercises,
   searchQuery,
   filterCategory,
   sourceFilter,
@@ -184,6 +189,8 @@ const WorkoutPlannerRolodexPanel: React.FC<WorkoutPlannerRolodexPanelProps> = ({
       <ExerciseListPane>
         {exercisesLoading ? (
           Array.from({ length: 6 }, (_, index) => <SkeletonBlock key={index} />)
+        ) : exercisesLoadError ? (
+          <PlannerError message={exercisesLoadError} onRetry={refreshExercises} />
         ) : filteredExerciseCount === 0 ? (
           <EmptyMessage>
             {hasActiveFilters ? 'No exercises match this training stack.' : 'No exercises available yet.'}

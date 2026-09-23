@@ -21,7 +21,7 @@ interface Props {
 const normalize = (value: string) => value.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 
 const BootcampVoiceProposalTray: React.FC<Props> = ({ proposal, onApplyExercise, onDismiss }) => {
-  const { allExercises, isLoading, loadError } = useExerciseSearch();
+  const { allExercises, isLoading, loadError, refresh } = useExerciseSearch();
   const match = useMemo(
     () => allExercises.find((exercise) => normalize(exercise.name) === normalize(proposal.exerciseName)),
     [allExercises, proposal.exerciseName],
@@ -41,6 +41,7 @@ const BootcampVoiceProposalTray: React.FC<Props> = ({ proposal, onApplyExercise,
         <Action type="button" onClick={() => match && onApplyExercise(match, proposal.stationIndex)} disabled={!match || isLoading}>
           Apply {proposal.exerciseName}
         </Action>
+        {loadError && <Action type="button" onClick={refresh}>Retry Rolodex</Action>}
         <Dismiss type="button" onClick={onDismiss}>Dismiss</Dismiss>
       </Actions>
     </Tray>

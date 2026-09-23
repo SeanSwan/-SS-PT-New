@@ -27,22 +27,34 @@ import { optimizeStationFlow } from './flowOptimizer.mjs';
 import {
   generateBoard2, applyClassStyle, generateStretches,
 } from './classStyleModifiers.mjs';
-import { applyPainAwareGating } from './painAwareGating.mjs';
+import { applyPainAwareGating, severePainReviewRequired, collectPainSwaps } from './painAwareGating.mjs';
 import { applyDayTypeContract, budgetGate } from './dayTypeContract.mjs';
 import { pickFinishers } from './bootcampFinishers.mjs';
 import { orderPoolWithBrain } from './bootcampBrain.mjs';
 import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
+import {
+  estimateClassWorkoutSeconds,
+  poolSlotsForClass,
+  prescribedWorkSec,
+  rankExercisesForBootcamp,
+  resolveBootcampStructure,
+  scoreExerciseForIntensity,
+} from './bootcampGenerator.pure.mjs';
+// Back-compat re-export: existing importers keep working (Fable D-10 lineage).
+export { estimateClassWorkoutSeconds, poolSlotsForClass, prescribedWorkSec, rankExercisesForBootcamp, resolveBootcampStructure };
 import {
   buildAvailableEquipmentList, buildEquipmentCountMap,
   collapseStationCountForParticipants, assessEquipmentFeasibility,
 } from './bootcampCapacity.mjs';
 import { chipsForExercise } from './bootcampChips.mjs';
 import { summarizeRelaxations } from '../../../shared/bootcamp-core/relaxation.mjs';
+import { matchesEquipmentRequirements } from '../exerciseConstraintContract.mjs';
 
 // Preserved named-export surface after the move to bootcampCapacity.mjs.
 export { buildAvailableEquipmentList };
 
 const PROFILE_ACCESS_DENIED_CODE = 'BOOTCAMP_PROFILE_ACCESS_DENIED';
+const PROFILE_UNAVAILABLE_CODE = 'BOOTCAMP_PROFILE_UNAVAILABLE';
 
 function assertProfileAccess(profile, { trainerId, requesterRole, requireActive = false }) {
   const ownsProfile = !!profile
@@ -240,6 +252,7 @@ function buildExerciseRecord(ex, opts) {
   const selectionChips = chipsForExercise(ex, { setupTimeSec: setupTime });
 
   return {
+    exerciseKey: ex.key ?? null,
     selectionRung,
     selectionChips,
     stationIndex: opts.stationIndex ?? undefined,
@@ -303,7 +316,10 @@ async function getEquipmentInventoryForBootcamp(equipmentProfileId, requester) {
 
     assertProfileAccess(profile, { ...requester, requireActive: true });
     if (!models.EquipmentItem) {
-      return { availableEquipment: buildAvailableEquipmentList([]), equipmentCounts: null };
+      const error = new Error('Equipment profile inventory is unavailable');
+      error.statusCode = 503;
+      error.code = PROFILE_UNAVAILABLE_CODE;
+      throw error;
     }
 
     const equipmentItems = await models.EquipmentItem.findAll({
@@ -320,141 +336,43 @@ async function getEquipmentInventoryForBootcamp(equipmentProfileId, requester) {
       equipmentCounts: buildEquipmentCountMap(equipmentItems),
     };
   } catch (eqErr) {
-    if (isProfileAccessDenied(eqErr)) throw eqErr;
+    if (isProfileAccessDenied(eqErr) || eqErr?.code === PROFILE_UNAVAILABLE_CODE) throw eqErr;
     const { default: logger } = await import('../../utils/logger.mjs');
-    logger.warn('[BootcampGen] Equipment profile query failed, using Rolodex without equipment filter:', eqErr.message);
-    return { availableEquipment: buildAvailableEquipmentList([]), equipmentCounts: null };
+    logger.error('[BootcampGen] Equipment profile query failed; generation is blocked closed:', eqErr.message);
+    const error = new Error('Equipment profile could not be loaded');
+    error.statusCode = 503;
+    error.code = PROFILE_UNAVAILABLE_CODE;
+    throw error;
   }
 }
 
-function exerciseSearchText(exercise) {
-  return [
-    exercise.name,
-    exercise.key,
-    exercise.exerciseType,
-    exercise.bodyPartCategory,
-    ...(Array.isArray(exercise.muscles) ? exercise.muscles : [exercise.muscles]),
-    ...(Array.isArray(exercise.equipment) ? exercise.equipment : [exercise.equipment]),
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-}
 
-function hasAny(text, words) {
-  return words.some(word => text.includes(word));
-}
 
-function scoreExerciseForIntensity(exercise, intensityCategory) {
-  if (!intensityCategory) return 0;
 
-  const text = exerciseSearchText(exercise);
-  const difficulty = Number(exercise.difficulty ?? 500);
-  const hasEquipment = !hasAny(text, ['bodyweight', 'none']) && hasAny(text, [
-    'barbell', 'dumbbell', 'kettlebell', 'machine', 'cable', 'bench',
-  ]);
-
-  switch (intensityCategory) {
-    case 'high_impact':
-      return (hasAny(text, ['jump', 'burpee', 'sprint', 'plyo', 'hop', 'bound']) ? 70 : 0)
-        + (hasAny(text, ['mobility', 'stretch', 'recovery']) ? -35 : 0)
-        + Math.min(20, difficulty / 50);
-    case 'medium_impact':
-      return (hasAny(text, ['compound', 'squat', 'row', 'press', 'lunge', 'hinge']) ? 45 : 0)
-        + (hasAny(text, ['jump', 'burpee', 'sprint', 'plyo']) ? -40 : 0)
-        + (difficulty >= 250 && difficulty <= 700 ? 15 : 0);
-    case 'calisthenics':
-      return (hasAny(text, ['bodyweight', 'push up', 'pull up', 'plank', 'squat', 'lunge']) ? 70 : 0)
-        + (hasEquipment ? -35 : 0);
-    case 'stability':
-      return (hasAny(text, ['core', 'balance', 'stability', 'bosu', 'single', 'unilateral', 'plank']) ? 70 : 0)
-        + (hasAny(text, ['jump', 'sprint']) ? -30 : 0);
-    case 'flexibility':
-      return (hasAny(text, ['stretch', 'mobility', 'flexibility', 'recovery', 'flow']) ? 80 : 0)
-        + Math.max(0, 500 - difficulty) / 20;
-    case 'cardio':
-      return (hasAny(text, ['cardio', 'conditioning', 'jump', 'jack', 'sprint', 'burpee', 'climber']) ? 70 : 0)
-        + (hasAny(text, ['mobility', 'stretch']) ? -35 : 0);
-    default:
-      return 0;
-  }
-}
-
-export function rankExercisesForBootcamp(exercises, { intensityCategory } = {}) {
-  if (!intensityCategory || !Array.isArray(exercises)) return exercises;
-
-  return [...exercises]
-    .map((exercise, index) => ({
-      exercise,
-      index,
-      score: scoreExerciseForIntensity(exercise, intensityCategory),
-    }))
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .map(item => item.exercise);
-}
 
 // ── Main Generation Function ──────────────────────────────────────────
 
-function clampInt(value, fallback, min, max) {
-  const parsed = Number.parseInt(value, 10);
-  const safe = Number.isFinite(parsed) ? parsed : fallback;
-  return Math.min(Math.max(safe, min), max);
-}
 
-export function resolveBootcampStructure({
-  classFormat = '4x4_r2',
-  stationCount,
-  exercisesPerStation,
-  targetDuration = 50,
-} = {}) {
-  const baseFormat = FORMAT_CONFIG[classFormat] ?? FORMAT_CONFIG['4x4_r2'];
-  const hasCustomStructure = classFormat === 'custom' || stationCount != null || exercisesPerStation != null;
 
-  if (!hasCustomStructure) {
-    let resolvedStationCount;
-    if (classFormat === 'full_group') {
-      resolvedStationCount = 0;
-    } else if (baseFormat.fixedStations) {
-      resolvedStationCount = baseFormat.fixedStations;
-    } else {
-      const exerciseTimeSec = baseFormat.exercisesPerStation * baseFormat.durationSec;
-      const stationTimeSec = exerciseTimeSec + (baseFormat.exercisesPerStation - 1) * TRANSITION_TIME_SEC + STATION_TRANSITION_SEC;
-      resolvedStationCount = Math.max(4, Math.min(10, Math.floor((targetDuration * 60) / stationTimeSec)));
-    }
-    return { classFormat, format: baseFormat, stationCount: resolvedStationCount };
-  }
+// F04: the sprint week prescription (deload 0.7 … validated overload 1.5)
+// scales per-exercise WORK seconds. Rest, stations and structure are untouched:
+// a deload week is less work per interval, not fewer stations or longer rests.
+// UNIT CONTRACT: `durationSec`/return are SECONDS (validated ≥10; clamped 10–120).
+// Normalized to [0.5, 2] and the scaled interval clamped to [10, 120] so a bad
+// row can neither erase nor explode the class.
+/**
+ * D1: how many pool picks the class will ACTUALLY make. Mirrors
+ * buildStationWorkout: finishers (and their -1 reserve) exist only on
+ * explicit cardio/high-impact classes; full-group draws 10 from the pool.
+ */
 
-  const resolvedStationCount = clampInt(
-    stationCount,
-    baseFormat.fixedStations || 4,
-    CUSTOM_STRUCTURE_LIMITS.minStations,
-    CUSTOM_STRUCTURE_LIMITS.maxStations,
-  );
-  const resolvedExercisesPerStation = clampInt(
-    exercisesPerStation,
-    baseFormat.exercisesPerStation || 4,
-    CUSTOM_STRUCTURE_LIMITS.minExercisesPerStation,
-    CUSTOM_STRUCTURE_LIMITS.maxExercisesPerStation,
-  );
-  const rounds = baseFormat.rounds || 2;
-  const totalSlots = resolvedStationCount * resolvedExercisesPerStation * rounds;
-  const transitionSec = resolvedStationCount * Math.max(0, resolvedExercisesPerStation - 1) * rounds * TRANSITION_TIME_SEC;
-  const stationTransitionSec = Math.max(0, resolvedStationCount - 1) * STATION_TRANSITION_SEC;
-  const availableWorkSec = (targetDuration * 60) - transitionSec - stationTransitionSec;
-  const durationSec = Math.max(20, Math.min(60, Math.round(availableWorkSec / Math.max(1, totalSlots))));
+/**
+ * D2 (hive arithmetic probe): the built exercise list holds each movement
+ * ONCE, but a `rounds`-round class performs every movement `rounds` times —
+ * and resolveBootcampStructure already divided per-slot durationSec by the
+ * rounds-inclusive totalSlots. Timing must multiply the list back.
+ */
 
-  return {
-    classFormat: 'custom',
-    stationCount: resolvedStationCount,
-    format: {
-      ...baseFormat,
-      exercisesPerStation: resolvedExercisesPerStation,
-      durationSec,
-      fixedStations: resolvedStationCount,
-      rounds,
-    },
-  };
-}
 
 export async function generateBootcampClass(options) {
   const {
@@ -474,6 +392,7 @@ export async function generateBootcampClass(options) {
     includeStretch = true,
     stretchDurationMin = 3,
     exclusionKeys,
+    prescriptionIntensity,
   } = options;
 
   const structure = resolveBootcampStructure({
@@ -488,6 +407,20 @@ export async function generateBootcampClass(options) {
   const stations = [];
   const allExercises = [];
   const explanations = [];
+
+  // Step 1.5 (F04): apply the sprint week prescription to per-exercise work.
+  // One seam — every downstream durationSec read (full group, stations,
+  // finishers, the persisted exerciseDurationSec echo) inherits the scaled value.
+  const baseWorkSec = format.durationSec;
+  const prescribedSec = prescribedWorkSec(baseWorkSec, prescriptionIntensity);
+  if (Number.isFinite(prescribedSec) && prescribedSec !== baseWorkSec) {
+    format = { ...format, durationSec: prescribedSec };
+    explanations.push({
+      type: 'prescription',
+      message: `Week prescription applied: work intervals scaled to `
+        + `${Math.round((prescribedSec / baseWorkSec) * 100)}% (${prescribedSec}s per exercise).`,
+    });
+  }
 
   // Step 2: Load space profile constraints
   let spaceProfile = null;
@@ -533,6 +466,7 @@ export async function generateBootcampClass(options) {
 
   let availableExercises = [];
   let equipmentCounts = null;
+  let availableEquipment = ['bodyweight', 'none'];
 
   // Try Rolodex bridge first. Equipment profile narrows it; missing profile does not bypass it.
   try {
@@ -541,11 +475,12 @@ export async function generateBootcampClass(options) {
       requesterRole,
     });
     equipmentCounts = inventory.equipmentCounts;
+    availableEquipment = inventory.availableEquipment;
 
     const { queryExercisesForBootcamp } = await import('./exerciseRolodexBridge.mjs');
     const rolodexResults = await queryExercisesForBootcamp({
       muscleGroups: targetMuscles,
-      availableEquipment: inventory.availableEquipment,
+      availableEquipment,
       excludeNames: [...combinedExclusions],
       limit: 240,
     });
@@ -557,7 +492,7 @@ export async function generateBootcampClass(options) {
       }));
     }
   } catch (eqErr) {
-    if (isProfileAccessDenied(eqErr)) throw eqErr;
+    if (isProfileAccessDenied(eqErr) || eqErr?.code === PROFILE_UNAVAILABLE_CODE) throw eqErr;
     // Non-fatal - fall through to registry fallback
     const { default: logger } = await import('../../utils/logger.mjs');
     logger.warn('[BootcampGen] Rolodex query failed, using full registry:', eqErr.message);
@@ -575,6 +510,16 @@ export async function generateBootcampClass(options) {
       .map(([key, ex]) => ({ key, ...ex }));
   }
 
+  // The SQL bridge uses an intentionally broad text prefilter. Re-apply the
+  // shared source-aware contract after both SQL and registry fallback so a
+  // selected profile cannot admit a bench-only or barbell-only movement by
+  // matching just one item from a multi-implement requirement.
+  if (equipmentProfileId) {
+    availableExercises = availableExercises.filter((exercise) => (
+      matchesEquipmentRequirements(exercise, availableEquipment)
+    ));
+  }
+
   // Step 4a (SWA-105 Slice 1): the DAY-TYPE CONTRACT is the authoritative
   // legality gate — primary-region inclusion + explicit pattern exclusions
   // (shared/bootcamp-core). Replaces the `.some()` muscle filter that could not
@@ -583,16 +528,14 @@ export async function generateBootcampClass(options) {
   // class still always generates, but it can no longer generate a WRONG one —
   // the old tail returned the unfiltered pool and put squats back on upper day.
   // SWA-105 Slice 2: this must match what selection ACTUALLY consumes from the
-  // pool, or the ladder relaxes against a phantom need. Stations take
-  // `exercisesPerStation - 1` picks each (the last slot is a cardio finisher,
-  // appended from CARDIO_FINISHERS, not drawn from the pool); full-group takes
-  // 5 compound + 5 accessory, its 5 finishers likewise coming from elsewhere.
-  // Over-stating this made a healthy pool look starved and pulled bodyweight
-  // substitutes into classes that never needed them.
-  const requiredSlots = classFormat === 'full_group'
-    ? 10
-    : Math.max(1, stationCount * Math.max(1, (format.exercisesPerStation ?? 4) - 1));
-  const contract = applyDayTypeContract(availableExercises, dayType, requiredSlots);
+  // pool, or the ladder relaxes against a phantom need. D1 (hive probe): the
+  // -1 finisher reserve applies ONLY on explicit cardio/high-impact classes
+  // (buildStationWorkout gates finishers on allowHighImpactFinishers); a
+  // normal class consumes the FULL exercisesPerStation from the pool.
+  const plannedPoolSlots = poolSlotsForClass(
+    classFormat, stationCount, format.exercisesPerStation ?? 4, explicitHighImpactClass,
+  );
+  const contract = applyDayTypeContract(availableExercises, dayType, plannedPoolSlots);
   availableExercises = contract.pool;
   explanations.push({ type: 'day_type_contract', message: contract.explanation });
 
@@ -668,7 +611,7 @@ export async function generateBootcampClass(options) {
   // Step 5: Build stations or full-group workout
   const contractCtx = {
     dayTypeId: dayType,
-    totalSlots: requiredSlots,
+    totalSlots: plannedPoolSlots,
     highImpactAllowed: explicitHighImpactClass,
   };
   if (classFormat === 'full_group') {
@@ -678,7 +621,7 @@ export async function generateBootcampClass(options) {
       availableExercises, targetMuscles, stationCount, format, combinedExclusions,
       stations, allExercises, explanations,
       undefined, // rng default
-      { dayTypeId: dayType, totalSlots: requiredSlots, allowHighImpactFinishers: explicitHighImpactClass },
+      { dayTypeId: dayType, totalSlots: plannedPoolSlots, allowHighImpactFinishers: explicitHighImpactClass },
     );
   }
 
@@ -697,9 +640,12 @@ export async function generateBootcampClass(options) {
   }
 
   // Step 6: Calculate timing
-  const totalExerciseTime = allExercises.reduce((sum, ex) => sum + ex.durationSec + ex.restSec, 0);
-  const totalStationTransitions = Math.max(0, stationCount - 1) * STATION_TRANSITION_SEC;
-  const totalWorkoutSec = totalExerciseTime + totalStationTransitions;
+  // D2: multiply by rounds — the built list holds each movement once, but a
+  // rounds-round class performs every movement rounds times, and the
+  // per-slot durationSec was already divided by the rounds-inclusive count.
+  const totalWorkoutSec = estimateClassWorkoutSeconds(
+    allExercises, format.rounds ?? 1, stationCount, STATION_TRANSITION_SEC,
+  );
   const totalWorkoutMin = Math.round(totalWorkoutSec / 60);
 
   // Step 7: Generate overflow plan
@@ -740,7 +686,17 @@ export async function generateBootcampClass(options) {
   // drift: ClientPainEntry has `isActive`) and the wrong createdById roster
   // semantics, and swaps severe-pain Board-1 exercises to joint-friendly
   // alternatives instead of only decorating. See painAwareGating.mjs.
-  const painAlerts = await applyPainAwareGating({ trainerId, allExercises, explanations });
+  // U5: gating is pure — the caller applies the gated clones + explanations.
+  const gate = await applyPainAwareGating({ trainerId, allExercises, explanations });
+  gate.explanations.forEach(e => explanations.push(e));
+  allExercises.length = 0;
+  allExercises.push(...gate.exercises);
+  const painAlerts = gate.painAlerts;
+  if (severePainReviewRequired(painAlerts)) {
+    throw Object.assign(new Error('Severe pain constraints require verified alternatives and trainer review'), {
+      code: 'BOOTCAMP_PAIN_REVIEW_REQUIRED', statusCode: 422,
+    });
+  }
 
   // Step 10: Apply class style modifications
   applyClassStyle(classStyle, allExercises, explanations);
@@ -786,6 +742,16 @@ export async function generateBootcampClass(options) {
     totalClassMin: totalWorkoutMin + 10 + stretchTime,
     expectedParticipants,
     includeStretch,
+    // H02: echo the profiles this class was actually generated against. Without
+    // them the saved template stored NULL for both columns and reload lost the
+    // equipment/space provenance entirely; bootcampCrud's profile-authority
+    // check also short-circuits on a null id, so it could never run on the
+    // real generate -> save path.
+    equipmentProfileId: equipmentProfileId ?? null,
+    spaceProfileId: spaceProfileId ?? null,
+    // U1: the coach-facing swap ledger — which movements replaced which, and
+    // why, so a live class can be narrated without reading explanations JSON.
+    painSwaps: collectPainSwaps(allExercises),
     stations,
     exercises: allWithBoard2,
     stretches,
@@ -957,6 +923,9 @@ export const __testing__ = {
   buildExerciseRecord,
   buildStationWorkout,
   normalizeExerciseLibraryId,
+  estimateClassWorkoutSeconds,
+  poolSlotsForClass,
+  prescribedWorkSec,
   rankExercisesForBootcamp,
   resolveBootcampStructure,
   sampleFromWindow,

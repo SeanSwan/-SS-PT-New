@@ -60,6 +60,8 @@ export function useWorkoutPlannerRolodexState({
     results: exerciseResults,
     allExercises,
     isLoading: exercisesLoading,
+    loadError: exercisesLoadError,
+    refresh: refreshExercises,
     setQuery: setSearchQuery,
     setCategory: setFilterCategory,
     query: searchQuery,
@@ -196,11 +198,19 @@ export function useWorkoutPlannerRolodexState({
 
     setPlanExercises(prev => {
       if (prev.some(planExercise => planExercise.exerciseSlim.id === exercise.id)) return prev;
-      const defaultSets = parseInt(phase.sets.split('-')[0]) || 3;
+      const defaultSets = parseInt(phase.sets.split('-')[0], 10) || 3;
       const restStr = phase.rest.toLowerCase();
+      // H11: a rest of 0 and an intensity of 0 are legitimate values. `|| 60`
+      // and `|| 70` treat them as "missing" and silently rewrite them (a
+      // prescribed 0s rest became a full minute). Only a non-numeric reading
+      // falls back, so the zero survives.
+      const restMinutes = parseInt(restStr, 10);
+      const restSeconds = parseInt(restStr.replace(/[^0-9]/g, ''), 10);
       const restSec = restStr.includes('min')
-        ? (parseInt(restStr) || 3) * 60
-        : parseInt(restStr.replace(/[^0-9]/g, '')) || 60;
+        ? (Number.isFinite(restMinutes) ? restMinutes : 3) * 60
+        : Number.isFinite(restSeconds) ? restSeconds : 60;
+      const intensityRaw = parseInt(phase.intensity.split('-')[0], 10);
+      const intensityPercent = Number.isFinite(intensityRaw) ? intensityRaw : 70;
 
       return [...prev, {
         id: `${exercise.id}-${Date.now()}`,
@@ -209,7 +219,7 @@ export function useWorkoutPlannerRolodexState({
         reps: phase.reps,
         tempo: phase.tempo,
         restSeconds: restSec,
-        intensityPercent: parseInt(phase.intensity.split('-')[0]) || 70,
+        intensityPercent,
         notes: '',
       }];
     });
@@ -261,6 +271,8 @@ export function useWorkoutPlannerRolodexState({
     filteredExerciseCount: filteredExercises.length,
     activeFilterCount,
     exercisesLoading,
+    exercisesLoadError,
+    refreshExercises,
     searchQuery,
     filterCategory,
     sourceFilter,

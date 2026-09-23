@@ -15,6 +15,7 @@ import { MessageSquare, Trash2, Pencil, Check, X } from 'lucide-react';
 import type { ConversationSummary } from '../../../../hooks/useAIChat';
 import {
   ConvItemRow,
+  ThreadSelectButton,
   ConvItemContent,
   ConvItemTitle,
   ConvItemMeta,
@@ -69,14 +70,6 @@ const ConversationItem: React.FC<ConversationItemProps> = memo(({
     if (!isEditing) onSelect(conversation.id);
   }, [conversation.id, isEditing, onSelect]);
 
-  const handleRowKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.target !== e.currentTarget) return;
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleSelect();
-    }
-  }, [handleSelect]);
-
   const handleStartEdit = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setEditTitle(conversation.title || 'Untitled');
@@ -111,19 +104,26 @@ const ConversationItem: React.FC<ConversationItemProps> = memo(({
   }, [conversation.id, editTitle, onRename]);
 
   return (
-    <ConvItemRow
-      $active={isActive}
-      onClick={handleSelect}
-      onKeyDown={handleRowKeyDown}
-      role="button"
-      tabIndex={0}
-      aria-label={`Open ${conversation.title || 'Untitled'} coach thread`}
-    >
-      <ThreadIcon aria-hidden="true">
-        <MessageSquare size={16} />
-      </ThreadIcon>
-      <ConvItemContent>
-        {isEditing ? (
+    <ConvItemRow $active={isActive}>
+      <ThreadSelectButton
+        type="button"
+        onClick={handleSelect}
+        aria-label={`Open ${conversation.title || 'Untitled'} coach thread`}
+      >
+        <ThreadIcon aria-hidden="true">
+          <MessageSquare size={16} />
+        </ThreadIcon>
+        {!isEditing && (
+          <ConvItemContent>
+            <ConvItemTitle>{conversation.title || 'Untitled'}</ConvItemTitle>
+            <ConvItemMeta>
+              {conversation.messageCount} msgs · {formatRelativeTime(conversation.lastMessageAt || conversation.createdAt)}
+            </ConvItemMeta>
+          </ConvItemContent>
+        )}
+      </ThreadSelectButton>
+      {isEditing && (
+        <ConvItemContent>
           <InlineTitleInput
             ref={editInputRef}
             value={editTitle}
@@ -131,15 +131,8 @@ const ConversationItem: React.FC<ConversationItemProps> = memo(({
             onKeyDown={handleKeyDown}
             onClick={e => e.stopPropagation()}
           />
-        ) : (
-          <>
-            <ConvItemTitle>{conversation.title || 'Untitled'}</ConvItemTitle>
-            <ConvItemMeta>
-              {conversation.messageCount} msgs · {formatRelativeTime(conversation.lastMessageAt || conversation.createdAt)}
-            </ConvItemMeta>
-          </>
-        )}
-      </ConvItemContent>
+        </ConvItemContent>
+      )}
       <ConvItemActions>
         {isEditing ? (
           <>

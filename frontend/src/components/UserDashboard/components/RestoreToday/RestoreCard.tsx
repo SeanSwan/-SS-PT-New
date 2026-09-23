@@ -67,8 +67,8 @@ export interface RestoreCardProps {
   onNavigate?: (path: string) => void;
 }
 
-const RestoreCard: React.FC<RestoreCardProps> = ({ userId, onNavigate }) => {
-  const state = useRestoreToday(Boolean(userId));
+const RestoreCardForOwner: React.FC<RestoreCardProps> = ({ userId, onNavigate }) => {
+  const state = useRestoreToday(userId);
   const [expanded, setExpanded] = useState(false);
   const [sheetItem, setSheetItem] = useState<RestoreItem | null>(null);
   const { data, loading, error, completed, completeItem, retry } = state;
@@ -225,5 +225,10 @@ const RestoreCard: React.FC<RestoreCardProps> = ({ userId, onNavigate }) => {
     </Card>
   );
 };
+
+// Detail sheets and strip expansion must retire with their account too.
+const RestoreCard: React.FC<RestoreCardProps> = (props) => (
+  <RestoreCardForOwner key={String(props.userId ?? '')} {...props} />
+);
 
 export default RestoreCard;

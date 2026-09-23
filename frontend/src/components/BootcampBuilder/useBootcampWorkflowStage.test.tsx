@@ -50,3 +50,14 @@ describe('useBootcampWorkflowStage', () => {
     expect(result.current.floorMode).toBe(false);
   });
 });
+
+describe('H24: the run-surface result is not discarded', () => {
+  it('exposes the acquisition result as runSurfaceCapabilities', async () => {
+    const acquire = vi.fn(() => Promise.resolve({ fullscreen: true, wakeLock: false, audio: true }));
+    const { result } = renderHook(() => useBootcampWorkflowStage(acquire));
+
+    act(() => result.current.onStageChange('run'));
+    await act(async () => {});
+    expect(result.current.runSurfaceCapabilities).toEqual({ fullscreen: true, wakeLock: false, audio: true });
+  });
+});

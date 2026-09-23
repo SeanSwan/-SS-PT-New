@@ -5,8 +5,8 @@
  *          Vision arc) — the cross-dashboard keystone answering "what should
  *          I do next?" from the deterministic rules engine.
  * DATA: useProgressPulse (one round trip: pulse + nextBestAction + Phase 1.5a
- *       context enrichments). Truthful states — loading skeleton, honest
- *       cold-start fallback with a real CTA, never a silent hide on a home.
+ *       context enrichments). Truthful states — loading skeleton, explicit
+ *       unavailable/retry recovery, and no stale guidance after a failed load.
  * TRANSPARENCY: rule-based engine — the card always carries the disclosure
  *       line (not medical advice; FDA general-wellness posture).
  * ============================================================================
@@ -16,6 +16,46 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { Compass } from 'lucide-react';
 import useProgressPulse from '../../hooks/analytics/useProgressPulse';
+
+interface RenderableAction {
+  code: string;
+  priority: number;
+  title: string;
+  message: string;
+  cta: { label: string; href: string } | null;
+}
+
+const isSafeInternalRoute = (value: unknown): value is string => (
+  typeof value === 'string'
+  && value.length > 1
+  && value.startsWith('/')
+  && !value.startsWith('//')
+  && Array.from(value).every((character) => {
+    const code = character.charCodeAt(0);
+    return character !== '\\' && code >= 0x20 && code !== 0x7f && !/\s/.test(character);
+  })
+);
+
+const isRenderableAction = (value: unknown): value is RenderableAction => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const action = value as Record<string, unknown>;
+  if (typeof action.code !== 'string' || !action.code.trim()
+    || typeof action.priority !== 'number' || !Number.isFinite(action.priority)
+    || typeof action.title !== 'string' || !action.title.trim()
+    || typeof action.message !== 'string' || !action.message.trim()) return false;
+  if (action.cta === null) return true;
+  if (!action.cta || typeof action.cta !== 'object' || Array.isArray(action.cta)) return false;
+  const cta = action.cta as Record<string, unknown>;
+  return typeof cta.label === 'string' && !!cta.label.trim() && isSafeInternalRoute(cta.href);
+};
+
+const isRenderableGuidance = (value: unknown): value is { primary: RenderableAction; secondary: RenderableAction[] } => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const guidance = value as Record<string, unknown>;
+  return isRenderableAction(guidance.primary)
+    && Array.isArray(guidance.secondary)
+    && guidance.secondary.every(isRenderableAction);
+};
 
 const Shell = styled.section<{ $bare?: boolean }>`
   ${({ $bare }) => !$bare && `
@@ -138,22 +178,25 @@ export interface NextBestActionCardProps {
 const LOG_CODES = new Set(['log_first_workout', 'return_after_gap', 'streak_at_risk', 'plan_next', 'keep_momentum']);
 
 const NextBestActionCard: React.FC<NextBestActionCardProps> = ({ bare, hideHeader, onLogWorkout }) => {
-  const { status, pulse, liteNba } = useProgressPulse();
+  const { status, pulse, liteNba, refetch } = useProgressPulse();
   const navigate = useNavigate();
 
   // D1: free tier renders the rungs-1-3 lite guidance; paid renders the
   // full context-enriched compass. Same card, honest either way.
-  const nba = pulse?.nextBestAction ?? liteNba ?? null;
+  const candidateNba = pulse?.nextBestAction ?? liteNba ?? null;
+  const nba = isRenderableGuidance(candidateNba) ? candidateNba : null;
   const primary = nba?.primary ?? null;
-  const secondary = (nba?.secondary ?? []).slice(0, 2);
+  const secondary = nba?.secondary.slice(0, 2) ?? [];
   // Constraints ride only the paid pulse (lite has none by design — D1).
-  const constraints = pulse?.nextBestAction?.constraints ?? null;
+  const constraints = pulse?.nextBestAction && typeof pulse.nextBestAction.constraints?.note === 'string'
+    ? pulse.nextBestAction.constraints
+    : null;
   const hasGuidance = (status === 'ready' || status === 'lite') && Boolean(primary);
+  const unavailable = status === 'error' || ((status === 'ready' || status === 'lite') && !hasGuidance);
 
   const handleCta = () => {
     if (primary?.cta && LOG_CODES.has(primary.code) && onLogWorkout) return onLogWorkout();
     if (primary?.cta?.href) return navigate(primary.cta.href);
-    if (onLogWorkout) return onLogWorkout();
     return navigate('/dashboard/client/workouts');
   };
 
@@ -181,11 +224,11 @@ const NextBestActionCard: React.FC<NextBestActionCardProps> = ({ bare, hideHeade
           )}
         </>
       )}
-      {status === 'error' && (
+      {unavailable && (
         <>
-          <Title>Your next move starts here</Title>
-          <Message>Log your workouts to power personalized, data-driven guidance on this card.</Message>
-          <CtaButton type="button" onClick={handleCta}>Log a workout</CtaButton>
+          <Title>Guidance unavailable</Title>
+          <Message>We could not load your next step. Try again.</Message>
+          <CtaButton type="button" onClick={refetch}>Retry</CtaButton>
         </>
       )}
       <Disclosure>{NBA_DISCLOSURE_COPY}</Disclosure>

@@ -26,7 +26,7 @@ describe('messaging routes security hardening', () => {
     expect(routeSource).toContain("router.post('/conversations/:id/messages'");
     expect(dashboardQueriesSource).toContain("authAxios.get('/api/messaging/conversations'");
     expect(messagingApiFetchSource).toContain("const API_BASE = '/api/messaging'");
-    expect(messagingHookSource).toContain("apiFetch<unknown>('/conversations')");
+    expect(messagingHookSource).toContain("apiFetch<unknown>('/conversations', { signal: controller.signal })");
     expect(messagingHookSource).toContain("apiFetch<unknown>('/conversations', {");
     expect(messagingHookSource).toContain('apiFetch<unknown>(`/conversations/${segment}/messages`, {');
   });

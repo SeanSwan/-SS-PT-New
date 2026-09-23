@@ -20,7 +20,6 @@ import {
   TinyText,
 } from './ClientDashboardHome.cardStyles';
 import { TagGrid, TagPill } from './ClientDashboardHome.feedStyles';
-import NextBestActionCard from '../../NextBestAction/NextBestActionCard';
 import RecoveryBoardPanel from '../../RecoveryBoard/RecoveryBoardPanel';
 import type { ClientDashboardHomeProps } from './ClientDashboardHome.types';
 
@@ -31,24 +30,19 @@ export function ClientRightRail({ activeChallenge, challengeLoading, badges, lea
   return (
     <>
       <PanelCard>
-        <PanelHeader><Kicker>Coach compass</Kicker></PanelHeader>
-        <CardBody><NextBestActionCard bare hideHeader /></CardBody>
-      </PanelCard>
-      <PanelCard>
         <PanelHeader><Kicker>Today&apos;s recovery</Kicker></PanelHeader>
         <CardBody><RecoveryBoardPanel /></CardBody>
       </PanelCard>
-      <RailChallenge activeChallenge={activeChallenge} challengeLoading={challengeLoading} onTarget={onTarget} />
-      <RailList
-        title="Recent unlocks"
-        empty="No recent unlocks yet."
-        items={badges.map((badge) => [badge.name, badge.icon])}
-      />
-      <RailList
-        title="Community rank"
-        empty="Leaderboard is not populated yet."
-        items={leaderboardRows.map((row, index) => [`${index + 1}. ${row.name}`, row.points.toLocaleString()])}
-      />
+      {(challengeLoading || activeChallenge) && <RailChallenge activeChallenge={activeChallenge} challengeLoading={challengeLoading} onTarget={onTarget} />}
+      {badges.length > 0 && (
+        <RailList title="Recent unlocks" items={badges.map((badge) => [badge.name, badge.icon])} />
+      )}
+      {leaderboardRows.length > 0 && (
+        <RailList
+          title="Community rank"
+          items={leaderboardRows.map((row, index) => [`${index + 1}. ${row.name}`, row.points.toLocaleString()])}
+        />
+      )}
       {/* Real tags or nothing — a fabricated fallback tag is mock-data-as-truth
           (doctrine violation) and would show SwanStudios branding to
           white-labeled clients. Empty/error → the whole card hides. Also
@@ -66,6 +60,17 @@ export function ClientRightRail({ activeChallenge, challengeLoading, badges, lea
 
 function RailChallenge({ activeChallenge, challengeLoading, onTarget }: Pick<ClientDashboardHomeProps,
   'activeChallenge' | 'challengeLoading' | 'onTarget'>) {
+  if (!activeChallenge && challengeLoading) {
+    return (
+      <PanelCard>
+        <PanelHeader><Kicker><Trophy size={13} /> Active challenge</Kicker><TinyText>Loading</TinyText></PanelHeader>
+        <CardBody><MutedText>Loading active challenges...</MutedText></CardBody>
+      </PanelCard>
+    );
+  }
+
+  if (!activeChallenge) return null;
+
   const progress = activeChallenge?.progress ?? 0;
   return (
     <PanelCard>
@@ -85,13 +90,13 @@ function RailChallenge({ activeChallenge, challengeLoading, onTarget }: Pick<Cli
   );
 }
 
-function RailList({ title, items, empty }: { title: string; items: string[][]; empty: string }) {
+function RailList({ title, items }: { title: string; items: string[][] }) {
   return (
     <PanelCard>
       <PanelHeader><Kicker>{title}</Kicker></PanelHeader>
       <CardBody>
         <ListStack>
-          {(items.length ? items : [[empty, '']]).map(([left, right]) => (
+          {items.map(([left, right]) => (
             <RowItem key={left}>
               <StatusDot />
               <span>{left}</span>

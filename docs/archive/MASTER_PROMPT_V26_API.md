@@ -418,7 +418,7 @@ All responses include:
 
 For accessibility support, privacy concerns, or technical issues:
 - **Accessibility Helpline**: +1-800-ACCESS
-- **Privacy Email**: privacy@company.com
+- **Privacy Email**: `privacy@company.com`
 - **Documentation**: `/accessibility-help`
 
 ---

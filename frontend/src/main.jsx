@@ -1,6 +1,10 @@
 // DISABLED - These utilities were causing infinite loops and have been disabled
 // import './utils/emergencyAdminFix';
 
+// Error reporting first: the SDK's global handlers must be installed before
+// any application code can throw. Inert without VITE_SENTRY_DSN (SWA-225 EX-4).
+import './instrument';
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { StyleSheetManager } from 'styled-components';

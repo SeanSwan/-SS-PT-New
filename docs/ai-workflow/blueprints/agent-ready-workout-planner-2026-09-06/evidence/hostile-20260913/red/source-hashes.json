@@ -1,0 +1,20 @@
+{
+  "worktree": "C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/rolodex-bootcamp-planner-20260913",
+  "commit": "c0cbe538d8ed2ca519bb494cdf3282bf43b76699",
+  "algorithm": "SHA256",
+  "applicationSources": {
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/planDataBuilder.ts": "206388B9C34B85F6EDDB3078728BD6B7C13601E9608351E5FB8A357E3DB01D70",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerLoadPlanHydration.ts": "C3EDB08678FAE8DE14EFE34AB5238FF2C8DE6880E59F680D1177E84CC35AFAC5",
+    "frontend/src/components/BootcampBuilder/BootcampEquipmentProfileFilter.ts": "3373073922842205C2B598271EB1B5225E4223DB0E9AAD3CB5E28EA86C863D9D",
+    "frontend/src/components/WorkoutLogger/useExerciseSearch.ts": "B66723CC0865D7FA490D5C679D723B282A681A9A1484B8BBE439DB1A2CDAF5CA",
+    "frontend/src/components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerBlendDialog.tsx": "E2942D9C742B15813A995FF4EE8EA5124BAEDB2415FF71EBAC7AFE29263C7E81"
+  },
+  "acceptanceArtifacts": {
+    "tmp/rolodex-audit-evidence/red/vitest.config.ts": "39DD0E055CA540E370AA2287E7298969D3E58D76F94292479A244F4FF828EE50",
+    "tmp/rolodex-audit-evidence/red/setup.ts": "B0AB5D884CE764281C81325260B9D44D8370E13B80FA875658CE36A6BABAB8A3",
+    "tmp/rolodex-audit-evidence/red/rolodex-planner-acceptance.red.test.tsx": "0C4028F85EC6B7CDA0A8B57C864EA80BD3AF545FF70DC828818F6B31B8FEB1F4",
+    "tmp/rolodex-audit-evidence/red/blend-dialog-uuid.red.test.tsx": "4720840CD62A02A66F73ECE7043183D14FC047062CBDA08EF6C6126CCB5564CF",
+    "tmp/rolodex-audit-evidence/red-vitest-root-native.log": "507A831936FF173DA12E65A03B118A0C099EB6D89808B27993103889AA815446",
+    "tmp/rolodex-audit-evidence/control-existing-filter.log": "1BE9C987329F4A7BE3712E7BE0699560B05B29D1E759529C59E4ADB07EE13899"
+  }
+}

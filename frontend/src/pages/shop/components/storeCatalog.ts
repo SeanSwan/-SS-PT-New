@@ -19,10 +19,10 @@ const EMPTY_NUMBER_VALUES: unknown[] = [null, undefined, ''];
 type CatalogRecord = Record<string, unknown>;
 
 export const formatStorePrice = (price: number | null | undefined): string => {
-  const normalizedPrice = typeof price === 'number' && Number.isFinite(price) ? price : 0;
-  const fractionDigits = Number.isInteger(normalizedPrice) ? 0 : 2;
+  if (typeof price !== 'number' || !Number.isFinite(price)) return 'Price unavailable';
+  const fractionDigits = Number.isInteger(price) ? 0 : 2;
 
-  return normalizedPrice.toLocaleString('en-US', {
+  return price.toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: fractionDigits,
@@ -31,13 +31,33 @@ export const formatStorePrice = (price: number | null | undefined): string => {
 };
 
 const toNumber = (value: unknown, fallback = 0): number => {
-  const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value ?? ''));
+  if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
+  if (typeof value !== 'string' || !/^[-+]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(value.trim())) return fallback;
+  const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const toPositiveInteger = (value: unknown): number => {
+  const parsed = toNumber(value, 0);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 0;
+};
+
+/** Parse money only when the complete value is finite and strictly positive. */
+export const parseStoreMoney = (value: unknown): number | null => {
+  if (EMPTY_NUMBER_VALUES.includes(value)) return null;
+  const parsed = typeof value === 'number'
+    ? value
+    : typeof value === 'string' && /^\+?(?:\d+(?:\.\d+)?|\.\d+)$/.test(value.trim())
+      ? Number(value)
+      : Number.NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
 const toNullableNumber = (value: unknown): number | null => {
   if (EMPTY_NUMBER_VALUES.includes(value)) return null;
-  const parsed = typeof value === 'number' ? value : Number.parseFloat(String(value));
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value !== 'string' || !/^[-+]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(value.trim())) return null;
+  const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 };
 
@@ -73,14 +93,14 @@ const mapVariant = (variant: unknown): ProductVariant => {
   const record = toRecord(variant);
 
   return {
-    id: toNumber(record.id),
-    storefrontItemId: toNumber(record.storefrontItemId),
+    id: toPositiveInteger(record.id),
+    storefrontItemId: toPositiveInteger(record.storefrontItemId),
     label: toStringValue(record.label, 'Variant'),
     sku: toNullableString(record.sku),
-    price: toNullableNumber(record.price),
+    price: parseStoreMoney(record.price),
     stockQuantity: toNullableNumber(record.stockQuantity),
     attributes: toAttributes(record.attributes),
-    displayOrder: toNumber(record.displayOrder),
+    displayOrder: Math.max(0, Math.trunc(toNumber(record.displayOrder))),
     isActive: record.isActive !== false,
   };
 };
@@ -94,12 +114,18 @@ const mapVariants = (variants: unknown): ProductVariant[] => (
 );
 
 export const mapStorefrontItemToStoreItem = (pkg: any, fallbackTheme = 'purple'): StoreItem => {
-  const price = toNumber(pkg?.totalCost ?? pkg?.price);
-  const displayPrice = toNumber(pkg?.displayPrice ?? pkg?.totalCost ?? pkg?.price);
+  const totalCost = parseStoreMoney(pkg?.totalCost);
+  const rawPrice = parseStoreMoney(pkg?.price);
+  const pricePerSession = parseStoreMoney(pkg?.pricePerSession);
+  const hasCanonicalDisplayPrice = Object.prototype.hasOwnProperty.call(pkg ?? {}, 'displayPrice');
+  const displayPrice = hasCanonicalDisplayPrice
+    ? parseStoreMoney(pkg?.displayPrice)
+    : totalCost ?? rawPrice;
+  const price = displayPrice;
   const displayOrder = toNumber(pkg?.displayOrder ?? pkg?.id);
 
   return {
-    id: toNumber(pkg?.id),
+    id: toPositiveInteger(pkg?.id),
     name: String(pkg?.name || 'Store item'),
     description: String(pkg?.description || ''),
     packageType: toPackageType(pkg?.packageType),
@@ -107,11 +133,11 @@ export const mapStorefrontItemToStoreItem = (pkg: any, fallbackTheme = 'purple')
     months: toNullableNumber(pkg?.months),
     sessionsPerWeek: toNullableNumber(pkg?.sessionsPerWeek),
     totalSessions: toNullableNumber(pkg?.totalSessions ?? pkg?.sessions),
-    pricePerSession: toNullableNumber(pkg?.pricePerSession),
+    pricePerSession,
     price,
-    totalCost: toNullableNumber(pkg?.totalCost),
+    totalCost,
     displayPrice,
-    imageUrl: pkg?.imageUrl || (pkg?.id ? `/assets/images/package-${pkg.id}.jpg` : null),
+    imageUrl: typeof pkg?.imageUrl === 'string' && pkg.imageUrl.trim() ? pkg.imageUrl : null,
     theme: pkg?.theme || fallbackTheme,
     isActive: pkg?.isActive !== false,
     displayOrder,

@@ -20,6 +20,7 @@ import { usePlannerActions } from './plannerContexts/PlannerActionsContext';
 import { OPT_PHASES, PLAN_GOALS, WORKOUT_CATEGORIES, PLAN_DURATIONS, type PlanDuration } from './WorkoutPlannerTypes';
 import type { PlannerScope } from './plannerLogic/endpointFor';
 import { resolveNextBestAction } from './plannerLogic/resolveNextBestAction';
+import { derivePlanDataKnown } from './plannerLogic/planDataKnown';
 import { resolveNbaPresentation } from './plannerLogic/resolveNbaPresentation';
 import { isWorkoutPlanActiveStatus } from './workoutPlanStatus';
 import WorkoutPlannerGenerationModeSection from './WorkoutPlannerGenerationModeSection';
@@ -129,16 +130,22 @@ const WorkoutPlannerCommandPanelV2: React.FC = () => {
 
   // S16-scope NBA: client-side over already-loaded data (no fetch, no PII —
   // initials only). S23 widens the inputs to schedule + pain flags.
+  const { savedPlans, savedPlansClientId, savedPlansLoading, savedPlansError } = data.savedPlansState;
   const nba = React.useMemo(() => resolveNextBestAction({
     // No client selected → force pick_client; roster-wide inputs land in S23.
     roster: selectedClientId === null ? [] : clients.map(c => ({ id: c.id, initials: `${c.firstName?.[0] ?? ''}${c.lastName?.[0] ?? ''}` })),
-    plans: data.savedPlansState.savedPlans.map(p => ({
+    plans: savedPlans.map(p => ({
       clientId: selectedClientId ?? -1,
       active: isWorkoutPlanActiveStatus(p.status),
     })),
     schedule: [],
     now: Date.now(),
-  }), [clients, data.savedPlansState.savedPlans, selectedClientId]);
+    // H22: the saved-plan list is authoritative only for the client it was
+    // fetched for, only once that fetch has settled, and only if it actually
+    // succeeded — derivePlanDataKnown is the shared predicate (the lifecycle
+    // test imports the same one, so neither copy can drift).
+    planDataKnown: derivePlanDataKnown(data.savedPlansState, selectedClientId),
+  }), [clients, savedPlans, savedPlansClientId, savedPlansLoading, savedPlansError, selectedClientId]);
 
   // S23: chip copy + tap action come from the pure 6-row table mapper.
   const initialsById = React.useMemo(() => new Map(clients.map(c => [c.id, `${c.firstName?.[0] ?? ''}${c.lastName?.[0] ?? ''}`])), [clients]);

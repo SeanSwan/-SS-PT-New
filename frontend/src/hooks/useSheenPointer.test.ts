@@ -218,6 +218,85 @@ describe('useSheenPointer — stale rects after late layout', () => {
   });
 });
 
+describe('useSheenPointer — H1: reduced motion must be LIVE, not frozen at construction', () => {
+  // The engine is a module singleton, so reading matchMedia once meant a user who
+  // enabled reduce mid-session kept getting eased orb motion for the rest of the
+  // session while the CSS layers froze. Found by GLM 5.3 + Flash, 2026-09-01.
+  it('switches to snap easing when the preference flips after construction', () => {
+    const frames = makeFrameDriver();
+    const target = makeTarget();
+    const listeners: Array<(e: { matches: boolean }) => void> = [];
+    const fakeMql = {
+      matches: false,
+      addEventListener: (_t: string, fn: (e: { matches: boolean }) => void) => listeners.push(fn),
+      removeEventListener: () => {},
+    };
+    const origMatchMedia = globalThis.matchMedia;
+    // @ts-expect-error test double
+    globalThis.matchMedia = () => fakeMql;
+
+    try {
+      // NOTE: prefersReducedMotion is deliberately NOT passed — passing it pins a
+      // static value, which is exactly why the old suite could not see this bug.
+      const engine = createSheenPointer({
+        target: target as unknown as Window,
+        raf: frames.raf,
+        caf: frames.caf,
+      });
+      const el = elementAt(0, 0);
+      engine.register(el);
+      frames.step();
+
+      // Eased: one frame gets ~22% of the way, not all of it.
+      target.emit('pointermove', { clientX: 50, clientY: 20 } as PointerEvent);
+      frames.step();
+      const easedOpac = Number(el.style.getPropertyValue('--opac'));
+      expect(easedOpac).toBeGreaterThan(0);
+      expect(easedOpac).toBeLessThan(0.9);
+
+      // User turns reduce ON mid-session.
+      expect(listeners.length).toBe(1);
+      listeners[0]({ matches: true });
+
+      // Now it must SNAP in a single frame instead of easing.
+      target.emit('pointermove', { clientX: 60, clientY: 20 } as PointerEvent);
+      frames.step();
+      expect(Number(el.style.getPropertyValue('--opac'))).toBe(1);
+      expect(el.style.getPropertyValue('--px')).toBe('60.00%');
+
+      engine.destroy();
+    } finally {
+      globalThis.matchMedia = origMatchMedia;
+    }
+  });
+});
+
+describe('useSheenPointer — M5: inner scrollers must invalidate rects', () => {
+  it('registers the scroll listener in the capture phase', () => {
+    const target = makeTarget();
+    const seen: Array<{ type: string; opts: unknown }> = [];
+    const spyTarget = {
+      addEventListener: (type: string, fn: EventListener, opts: unknown) => {
+        seen.push({ type, opts });
+        target.addEventListener(type, fn);
+      },
+      removeEventListener: () => {},
+    };
+    // `scroll` does not bubble, so a window listener without capture never hears
+    // a modal or carousel scroll and the cached rects go stale.
+    const engine = createSheenPointer({
+      target: spyTarget as unknown as Window,
+      raf: () => 0,
+      caf: () => {},
+      prefersReducedMotion: true,
+    });
+    const scrollReg = seen.find((s) => s.type === 'scroll');
+    expect(scrollReg, 'scroll listener must be registered').toBeDefined();
+    expect((scrollReg!.opts as AddEventListenerOptions).capture).toBe(true);
+    engine.destroy();
+  });
+});
+
 describe('useSheenPointer — custom property namespace', () => {
   it('writes namespaced properties when a prefix is given', () => {
     const frames = makeFrameDriver();

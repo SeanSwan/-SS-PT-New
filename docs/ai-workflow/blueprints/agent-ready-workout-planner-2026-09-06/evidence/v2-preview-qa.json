@@ -1,0 +1,114 @@
+{
+  "generatedAt": "2026-09-08T04:13:04.113Z",
+  "status": "PASS",
+  "tests": [
+    {
+      "name": "UI-01 exercise add and undo preserve session",
+      "status": "PASS"
+    },
+    {
+      "name": "UI-02 prescription persists across Program Map",
+      "status": "PASS"
+    },
+    {
+      "name": "UI-03 advanced settings persist and cancel discards",
+      "status": "PASS"
+    },
+    {
+      "name": "UI-04 personal owner and invalid limit ordering",
+      "status": "PASS"
+    },
+    {
+      "name": "UI-05 unknown allowance blocks before proposal",
+      "status": "PASS"
+    },
+    {
+      "name": "UI-06 loop demo rejects 104 of 105 and requires resume review",
+      "status": "PASS"
+    },
+    {
+      "name": "UI-07 built-in Coach draft proposal and stale rejection",
+      "status": "PASS"
+    },
+    {
+      "name": "UI-08 backup blend creates separate draft",
+      "status": "PASS"
+    },
+    {
+      "name": "DIAGRAM-01 eight Mermaid diagrams rendered locally",
+      "status": "PASS"
+    },
+    {
+      "name": "STATE-01 eight state wireframes and mobile reflow",
+      "status": "PASS"
+    }
+  ],
+  "responsive": [
+    {
+      "width": 320,
+      "height": 1000,
+      "status": "PASS"
+    },
+    {
+      "width": 375,
+      "height": 1000,
+      "status": "PASS"
+    },
+    {
+      "width": 390,
+      "height": 1000,
+      "status": "PASS"
+    },
+    {
+      "width": 414,
+      "height": 1000,
+      "status": "PASS"
+    },
+    {
+      "width": 768,
+      "height": 1000,
+      "status": "PASS"
+    },
+    {
+      "width": 1024,
+      "height": 1000,
+      "status": "PASS"
+    },
+    {
+      "width": 1280,
+      "height": 1000,
+      "status": "PASS"
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "status": "PASS"
+    },
+    {
+      "width": 1920,
+      "height": 1000,
+      "status": "PASS"
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "status": "PASS"
+    },
+    {
+      "width": 3440,
+      "height": 1440,
+      "status": "PASS"
+    },
+    {
+      "width": 3840,
+      "height": 2160,
+      "status": "PASS"
+    }
+  ],
+  "zoom": "CSS 200% reflow PASS; native browser zoom not tested",
+  "keyboard": "Native dialog Escape and focus return PASS; full screen-reader audit NOT RUN",
+  "motion": "Reduced motion and forced colors emulated",
+  "externalRequests": [],
+  "errors": [],
+  "limitations": "Synthetic preview only. No real auth, database, provider, device, payments or final app accessibility certification."
+}

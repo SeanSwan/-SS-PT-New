@@ -79,7 +79,10 @@ describe('MyClientsView — Phase 18.A admin-view-as source-text lock', () => {
   });
 
   it('admin adapter preserves workout proof from the global admin client list', () => {
-    expect(HOOK_SOURCE).toMatch(/totalSessionsCompleted:\s*client\.totalWorkouts\s*\?\?\s*0/);
+    // Slice 1 trainer-truth-feeds (A8): when the admin list lacks workout
+    // data the adapter marks it unknown (null → card renders "Logs
+    // unavailable") instead of fabricating a zero.
+    expect(HOOK_SOURCE).toMatch(/totalSessionsCompleted:\s*client\.totalWorkouts\s*\?\?\s*null/);
     expect(HOOK_SOURCE).toMatch(/lastSessionDate:\s*client\.lastWorkoutDate/);
     expect(HOOK_SOURCE).toMatch(/nextSessionDate:\s*client\.nextSessionDate/);
   });

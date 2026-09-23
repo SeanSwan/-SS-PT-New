@@ -16,18 +16,23 @@ import {
   getBootcampStretch,
   getExerciseTrend,
   getExercise,
+  getEquipmentProfile,
 } from '../../models/index.mjs';
+import sequelize from '../../database.mjs';
+import { REPLACEMENT_DETAIL_FIELDS, unverifiedReplacement } from './bootcampSubstitutionContract.mjs';
+import {
+  appendSelectionManifestEntries,
+  emptySelectionManifest,
+  exerciseRecord,
+  normalizeNonNegativeInteger,
+  normalizeExerciseLibraryId,
+  normalizePositiveInteger,
+  overflowRecord,
+  stationRecord,
+  stretchRecord,
+} from './bootcampTemplateContract.mjs';
 
 const LIVE_EXERCISE_FIELDS = ['videoUrl', 'previewVideoUrl', 'thumbnailUrl', 'imageUrl', 'description', 'instructions'];
-
-function normalizeExerciseLibraryId(value) {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)) {
-    return trimmed;
-  }
-  return null;
-}
 
 function nullableText(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
@@ -52,6 +57,48 @@ function arrayValue(record, key) {
   return Array.isArray(value) ? value : [];
 }
 
+function persistedId(record) {
+  return getRecordValue(record, 'id') ?? record?.id;
+}
+
+function stationInputIndex(station, index) {
+  if (station?.stationIndex != null) return Number(station.stationIndex);
+  if (station?.stationNumber != null) return Number(station.stationNumber) - 1;
+  return index;
+}
+
+function assertValidExerciseReferences(stations, exercises) {
+  const stationIndexes = new Set(stations.map((station, index) => stationInputIndex(station, index)));
+  for (const exercise of exercises) {
+    if (exercise?.stationIndex == null) continue;
+    const stationIndex = Number(exercise.stationIndex);
+    if (!Number.isInteger(stationIndex) || !stationIndexes.has(stationIndex)) {
+      throw new Error('Invalid bootcamp exercise station reference');
+    }
+  }
+}
+
+function dedupeTemplateExerciseCollections(templates) {
+  for (const template of templates ?? []) {
+    const stationExerciseIds = new Set(
+      arrayValue(template, 'stations')
+        .flatMap(station => arrayValue(station, 'exercises'))
+        .map(persistedId)
+        .filter(id => id != null)
+        .map(String)
+    );
+    const rootExercises = arrayValue(template, 'exercises');
+    if (stationExerciseIds.size > 0 && rootExercises.length > 0) {
+      setRecordValue(
+        template,
+        'exercises',
+        rootExercises.filter(exercise => !stationExerciseIds.has(String(persistedId(exercise))))
+      );
+    }
+  }
+  return templates;
+}
+
 function collectTemplateExerciseRows(templates) {
   const rows = [];
   for (const template of templates ?? []) {
@@ -74,6 +121,26 @@ async function loadLiveExercises(exerciseIds) {
 }
 
 export async function hydrateTemplateExerciseMedia(templates, exerciseLoader = loadLiveExercises) {
+  for (const template of templates ?? []) {
+    const entries = getRecordValue(template, 'metadata')?.selectionManifestV1?.entries ?? {};
+    for (const row of collectTemplateExerciseRows([template])) {
+      const entry = entries[String(persistedId(row))];
+      if (entry) {
+        setRecordValue(row, 'selectionProvenance', entry);
+        setRecordValue(row, 'exerciseKey', entry.canonicalExerciseKey ?? entry.source?.exerciseKey ?? null);
+        for (const [target, source] of [['selectionChips', 'chips'], ['selectionRung', 'selectionRung'], ['painSwap', 'painSwap'], ['painCaution', 'painCaution']]) {
+          if (entry[source] !== undefined) setRecordValue(row, target, entry[source]);
+        }
+      }
+      const sourceName = getRecordValue(row, 'sourceExerciseName');
+      if (entry?.resolution === 'unverified_replacement'
+        || (sourceName && sourceName !== getRecordValue(row, 'exerciseName') && entry?.resolution !== 'verified_replacement')) {
+        for (const field of REPLACEMENT_DETAIL_FIELDS) setRecordValue(row, field, null);
+        setRecordValue(row, 'detailsVerified', false);
+        setRecordValue(row, 'resolution', 'unverified_replacement');
+      }
+    }
+  }
   const exerciseRows = collectTemplateExerciseRows(templates);
   const exerciseIds = [...new Set(
     exerciseRows
@@ -106,112 +173,119 @@ export async function hydrateTemplateExerciseMedia(templates, exerciseLoader = l
 
 // ── Save Generated Class to Database ──────────────────────────────────
 
-export async function saveBootcampTemplate(generatedClass, trainerId) {
+export async function saveBootcampTemplate(generatedClass, trainerId, { transaction: callerTransaction, requesterRole } = {}) {
   const Template = getBootcampTemplate();
   const Station = getBootcampStation();
   const Exercise = getBootcampExercise();
   const Overflow = getBootcampOverflowPlan();
   const Stretch = getBootcampStretch();
 
-  const template = await Template.create({
-    trainerId,
-    name: generatedClass.name,
-    classFormat: generatedClass.classFormat,
-    dayType: generatedClass.dayType,
-    targetDurationMin: generatedClass.targetDuration,
-    maxParticipants: generatedClass.expectedParticipants + 8,
-    optimalParticipants: generatedClass.expectedParticipants,
-    aiGenerated: generatedClass.aiGenerated,
-    classStyle: generatedClass.classStyle ?? 'standard',
-    intensityCategory: generatedClass.intensityCategory ?? null,
-    rounds: generatedClass.rounds ?? null,
-    exerciseDurationSec: generatedClass.exerciseDurationSec ?? null,
-    includeStretch: generatedClass.includeStretch ?? true,
-    stretchDurationMin: generatedClass.stretchDurationMin ?? 3,
-    // SWA-105 Slice 2: the relaxation summary rides in metadata alongside the
-    // explanations. Per-exercise chips are NOT persisted — the exercise columns
-    // are an explicit whitelist and adding two more is a migration, deferred to
-    // the slice that needs them at rest. Losing the class-level record too
-    // would mean a template saved from a thin room reloads looking clean, so
-    // the summary is kept here where a JSON column already exists.
-    metadata: {
+  const save = async (transaction) => {
+    const stations = Array.isArray(generatedClass?.stations) ? generatedClass.stations : [];
+    const exercises = Array.isArray(generatedClass?.exercises) ? generatedClass.exercises : [];
+    const stretches = Array.isArray(generatedClass?.stretches) ? generatedClass.stretches : [];
+    assertValidExerciseReferences(stations, exercises);
+    for (const [key, Model] of [['equipmentProfileId', getEquipmentProfile], ['spaceProfileId', getBootcampSpaceProfile]]) {
+      if (generatedClass[key] == null) continue;
+      const id = normalizePositiveInteger(generatedClass[key]);
+      const profile = id && await Model().findOne({ where: { id }, transaction, lock: transaction.LOCK.UPDATE });
+      // Mirrors assertProfileAccess() in bootcampGenerator: ownership is
+      // required unless the requester is an admin, who retains the intentional
+      // cross-owner bypass the generate route already grants. Scoping the
+      // lookup to `trainerId` unconditionally made an admin's generate -> save
+      // round trip fail even though generate had accepted the same profile.
+      const authorized = !!profile
+        && (requesterRole === 'admin' || Number(profile.trainerId) === Number(trainerId))
+        && (key !== 'equipmentProfileId' || profile.isActive === true);
+      if (!authorized) {
+        throw Object.assign(new Error('Profile not found or not authorized'), { statusCode: 403 });
+      }
+    }
+    const normalizedExercises = exercises.map((input) => {
+      const ex = input.sourceExerciseName && input.sourceExerciseName !== input.exerciseName
+        ? unverifiedReplacement(input, input.exerciseName) : input;
+      return ({
+      ...ex,
+      sourceExerciseName: ex.sourceExerciseName ?? null,
+      elbowMod: ex.elbowMod,
+      footMod: ex.footMod,
+      hipMod: ex.hipMod,
+      description: ex.description ?? null,
+      instructions: ex.instructions ?? null,
+      videoUrl: ex.videoUrl ?? null,
+      previewVideoUrl: ex.previewVideoUrl ?? null,
+      imageUrl: ex.imageUrl ?? null,
+      thumbnailUrl: ex.thumbnailUrl ?? null,
+      exerciseLibraryId: normalizeExerciseLibraryId(ex.exerciseLibraryId),
+    }); });
+
+    const expectedParticipants = normalizePositiveInteger(generatedClass.expectedParticipants, 1);
+    const metadata = {
       explanations: generatedClass.explanations,
       relaxationSummary: generatedClass.relaxationSummary ?? null,
-    },
-  });
+      selectionManifestV1: emptySelectionManifest(),
+    };
+    const template = await Template.create({
+      trainerId,
+      name: generatedClass.name,
+      classFormat: generatedClass.classFormat,
+      dayType: generatedClass.dayType,
+      targetDurationMin: normalizeNonNegativeInteger(generatedClass.targetDuration),
+      maxParticipants: expectedParticipants + 8,
+      optimalParticipants: expectedParticipants,
+      aiGenerated: generatedClass.aiGenerated === true,
+      classStyle: generatedClass.classStyle ?? 'standard',
+      intensityCategory: generatedClass.intensityCategory ?? null,
+      rounds: normalizePositiveInteger(generatedClass.rounds),
+      exerciseDurationSec: normalizeNonNegativeInteger(generatedClass.exerciseDurationSec),
+      includeStretch: generatedClass.includeStretch !== false,
+      stretchDurationMin: normalizePositiveInteger(generatedClass.stretchDurationMin, 3),
+      equipmentProfileId: normalizePositiveInteger(generatedClass.equipmentProfileId),
+      spaceProfileId: normalizePositiveInteger(generatedClass.spaceProfileId),
+      metadata,
+    }, { transaction });
+    const templateId = persistedId(template);
 
-  // Create stations
-  const stationRecords = generatedClass.stations.map(s => ({
-    templateId: template.id,
-    ...s,
-  }));
-  const createdStations = stationRecords.length > 0
-    ? await Station.bulkCreate(stationRecords, { returning: true })
-    : [];
-
-  const stationMap = {};
-  createdStations.forEach((station, idx) => {
-    stationMap[idx] = station.id;
-  });
-
-  // Create exercises
-  const exerciseRecords = generatedClass.exercises.map(ex => ({
-    templateId: template.id,
-    stationId: ex.stationIndex != null ? stationMap[ex.stationIndex] : null,
-    exerciseName: ex.exerciseName,
-    sourceExerciseName: ex.sourceExerciseName ?? null,
-    durationSec: ex.durationSec,
-    restSec: ex.restSec,
-    sortOrder: ex.sortOrder,
-    isCardioFinisher: ex.isCardioFinisher,
-    muscleTargets: ex.muscleTargets,
-    easyVariation: ex.easyVariation,
-    mediumVariation: ex.mediumVariation,
-    hardVariation: ex.hardVariation,
-    kneeMod: ex.kneeMod,
-    shoulderMod: ex.shoulderMod,
-    ankleMod: ex.ankleMod,
-    wristMod: ex.wristMod,
-    elbowMod: ex.elbowMod,
-    footMod: ex.footMod,
-    hipMod: ex.hipMod,
-    backMod: ex.backMod,
-    equipmentRequired: ex.equipmentRequired,
-    description: ex.description ?? null,
-    instructions: ex.instructions ?? null,
-    videoUrl: ex.videoUrl ?? null,
-    previewVideoUrl: ex.previewVideoUrl ?? null,
-    imageUrl: ex.imageUrl ?? null,
-    thumbnailUrl: ex.thumbnailUrl ?? null,
-    board: ex.board ?? 'main',
-    setupTimeSec: ex.setupTimeSec ?? 0,
-    pyramidStartWeight: ex.pyramidStartWeight ?? null,
-    pyramidDrops: ex.pyramidDrops ?? null,
-    supersetOrder: ex.supersetOrder ?? null,
-    supersetGroupId: ex.supersetGroupId ?? null,
-    exerciseLibraryId: normalizeExerciseLibraryId(ex.exerciseLibraryId),
-  }));
-  if (exerciseRecords.length > 0) {
-    await Exercise.bulkCreate(exerciseRecords);
-  }
-
-  // Create stretches
-  if (generatedClass.stretches?.length > 0) {
-    await Stretch.bulkCreate(generatedClass.stretches.map(s => ({
-      templateId: template.id,
-      ...s,
-    })));
-  }
-
-  // Create overflow plan
-  if (generatedClass.overflowPlan) {
-    await Overflow.create({
-      templateId: template.id,
-      ...generatedClass.overflowPlan,
+    const stationRecords = stations.map((station, index) => stationRecord(station, index, templateId));
+    const createdStations = stationRecords.length > 0
+      ? await Station.bulkCreate(stationRecords, { returning: true, transaction })
+      : [];
+    const stationMap = new Map();
+    createdStations.forEach((station, index) => {
+      stationMap.set(stationInputIndex(stations[index], index), persistedId(station));
     });
-  }
 
-  return template;
+    const exerciseRecords = normalizedExercises.map(exercise => exerciseRecord(
+      exercise,
+      templateId,
+      exercise.stationIndex == null ? null : stationMap.get(Number(exercise.stationIndex)) ?? null
+    ));
+    const persistedExercises = exerciseRecords.length > 0
+      ? await Exercise.bulkCreate(exerciseRecords, { returning: true, transaction })
+      : [];
+    appendSelectionManifestEntries(metadata.selectionManifestV1, normalizedExercises, persistedExercises);
+
+    if (typeof template.update === 'function') {
+      await template.update({ metadata }, { transaction });
+    } else {
+      setRecordValue(template, 'metadata', metadata);
+    }
+
+    if (stretches.length > 0) {
+      await Stretch.bulkCreate(
+        stretches.map(stretch => stretchRecord(stretch, templateId)),
+        { returning: true, transaction }
+      );
+    }
+
+    if (generatedClass.overflowPlan) {
+      await Overflow.create(overflowRecord(generatedClass.overflowPlan, templateId), { transaction });
+    }
+
+    return template;
+  };
+
+  return callerTransaction ? save(callerTransaction) : sequelize.transaction(save);
 }
 
 // ── Log a Class ───────────────────────────────────────────────────────
@@ -249,13 +323,14 @@ export async function getTemplates(trainerId, { classFormat, dayType, limit = 20
     order: [['updatedAt', 'DESC']],
     limit,
     include: [
+      { model: getBootcampExercise(), as: 'exercises' },
       { model: getBootcampStation(), as: 'stations', include: [{ model: getBootcampExercise(), as: 'exercises' }] },
       { model: getBootcampOverflowPlan(), as: 'overflowPlans' },
       { model: getBootcampStretch(), as: 'stretches' },
     ],
   });
 
-  return hydrateTemplateExerciseMedia(templates);
+  return hydrateTemplateExerciseMedia(dedupeTemplateExerciseCollections(templates));
 }
 
 // ── Space Profile CRUD ────────────────────────────────────────────────

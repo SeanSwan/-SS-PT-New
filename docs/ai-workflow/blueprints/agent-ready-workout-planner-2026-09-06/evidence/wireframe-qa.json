@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-06",
+  "status": "PASS for synthetic artifact scope",
+  "surface": "http://127.0.0.1:8769/wireframes.html",
+  "method": "CUA in-app browser DOM reads, supported viewport override, UI clicks and screenshot inspection",
+  "views": ["Workbench", "Programming", "Saved plans", "My agents"],
+  "viewportMatrix": [[320,844],[390,844],[414,896],[768,1024],[1024,768],[1440,1000],[1920,1080],[2560,1440],[3840,2160]],
+  "viewWidthCombinations": 36,
+  "horizontalOverflow": 0,
+  "buttonsAndFields": "Minimum 44px observed after mobile Edit button correction",
+  "checkboxes": "20px native glyphs inside clickable labels observed at 44px minimum height; label is target",
+  "screenshotsInspected": ["Workbench desktop 1440", "Workbench phone 414", "Rendered workflow"],
+  "statesObserved": ["ready", "loading", "empty", "partial", "denied", "validation", "failure", "offline", "conflict", "saved"],
+  "emptyState": "Zero count, prescriptions hidden, Review disabled",
+  "loadingAndDenied": "Generate and Review disabled",
+  "offlineState": "Generate disabled; manual draft review remains available; no fallback action",
+  "reviewDialog": "Truthful synthetic review explanation; Escape closed modal and restored focus to review button",
+  "planFilter": "Backup selected; only backup card and section heading remain visible",
+  "rolodex": "Search band revealed Band row; add increased synthetic count 3 to 4 and appended the row",
+  "browserErrors": [],
+  "mermaid": {
+    "version": "11.12.0",
+    "rendererSource": "https://cdn.jsdelivr.net/npm/mermaid@11.12.0/dist/mermaid.min.js",
+    "renderingLocation": "Loopback page, local retained library, connect-src none",
+    "rendered": 5,
+    "total": 5,
+    "observedStatus": "Rendered 5 of 5 diagrams · Mermaid 11.12.0 · local renderer",
+    "correctedIssue": "Semicolon in sequence message parsed as a separator; removed before final render"
+  },
+  "notRun": ["Full screen-reader audit", "200 percent browser zoom", "Production mobile flows", "Application state implementation", "OAuth or actual local-agent calls", "Real database writes"],
+  "limitations": "This prototype demonstrates layout and proposed interactions. It is not application integration or training-policy validation. Informational text links were not certified as part of the button/field target measurement."
+}

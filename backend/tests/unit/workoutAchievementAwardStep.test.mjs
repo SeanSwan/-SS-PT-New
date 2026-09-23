@@ -38,7 +38,7 @@ describe('awardWorkoutAchievementsBestEffort', () => {
       points: 25,
       source: 'achievement_earned',
       idempotencyKey: 'workout-achievement:42:7',
-      metadata: { achievementId: 7, workoutId: 'workout-1' },
+      metadata: { achievementId: 7, achievementName: 'Five Workouts', workoutId: 'workout-1' },
       awardedBy: 9,
     }), transaction);
     expect(deps.sequelize.query).toHaveBeenLastCalledWith(

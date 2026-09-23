@@ -93,7 +93,7 @@ Component and module READMEs remain in their respective directories for contextu
 - [Admin Dashboard README](../frontend/src/components/DashBoard/Pages/admin-dashboard/README.md) - Admin dashboard architecture
 - [Schedule README](../frontend/src/components/Schedule/README.md) - Schedule component guide
 - [DevTools README](../frontend/src/components/DevTools/README.md) - Development tools documentation
-- [Workout Page README](../frontend/src/pages/workout/README.md) - Workout page implementation
+- Workout Page README (removed — the page and its README no longer exist in the repository)
 - [Retired MCP Services README](../frontend/src/services/mcp/README.md) - Compatibility adapters that now route through first-party REST APIs
 - [Retired MCP Types README](../frontend/src/types/mcp/README.md) - Legacy type names retained for compatibility only
 

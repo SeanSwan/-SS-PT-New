@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -81,16 +81,76 @@ describe('BusinessKPIDashboard truth handling', () => {
 
     render(<BusinessKPIDashboard />);
 
-    await waitFor(() => expect(screen.getByText('Business KPI data could not be loaded.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Business KPI data is temporarily unavailable.')).toBeInTheDocument());
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     expect(screen.queryByText('$8,750')).not.toBeInTheDocument();
     expect(screen.queryByText('$26,250')).not.toBeInTheDocument();
     expect(screen.queryByText('$2,840')).not.toBeInTheDocument();
   });
 
+  it('guards malformed successful KPI responses instead of rendering zero data', async () => {
+    mockAuthAxios.get.mockResolvedValueOnce({ data: { data: null } });
+
+    render(<BusinessKPIDashboard />);
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/temporarily unavailable/i));
+    expect(screen.queryByText('$0')).toBeNull();
+  });
+
+  it('ignores an older period response after a newer period request starts', async () => {
+    let resolveFirst: ((value: unknown) => void) | undefined;
+    mockAuthAxios.get
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+      .mockResolvedValueOnce({
+        data: {
+          data: {
+            mrr: 900,
+            totalRevenue: 900,
+            activeClients: 3,
+            newClients: 1,
+            churnedClients: 0,
+            churnRate: 0,
+            sessionUtilization: 50,
+            avgRevenuePerClient: 300,
+            sessionsThisMonth: 2,
+            sessionsLastMonth: 1,
+          },
+        },
+      });
+
+    render(<BusinessKPIDashboard />);
+    fireEvent.click(screen.getByRole('button', { name: '90 Days' }));
+    expect((await screen.findAllByText('$900')).length).toBeGreaterThan(0);
+
+    await act(async () => {
+      resolveFirst?.({
+        data: {
+          data: {
+            mrr: 100,
+            totalRevenue: 100,
+            activeClients: 1,
+            newClients: 0,
+            churnedClients: 0,
+            churnRate: 0,
+            sessionUtilization: 10,
+            avgRevenuePerClient: 100,
+            sessionsThisMonth: 1,
+            sessionsLastMonth: 1,
+          },
+        },
+      });
+    });
+    expect(screen.queryByText('$100')).toBeNull();
+  });
+
   it('does not retain demo business KPI data', () => {
     expect(SOURCE).not.toContain('buildDemoData');
     expect(SOURCE).not.toMatch(/8750|26250|2840|sessionUtilization:\s*78/);
+    expect(SOURCE).not.toContain('Monthly Revenue (gross)');
+    expect(SOURCE).not.toContain('Avg Client LTV');
+    expect(SOURCE).not.toContain('d.sessionUtilization - 75');
+    expect(SOURCE).not.toContain('Math.abs(kpi.change).toFixed(1)');
+    expect(SOURCE).toContain('Revenue / Current Client');
   });
 
   it('keeps behavior separate from extracted dashboard styling', () => {

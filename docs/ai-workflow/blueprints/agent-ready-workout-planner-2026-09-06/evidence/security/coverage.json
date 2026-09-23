@@ -1,0 +1,130 @@
+{
+  "completeness": "partial",
+  "deferred": [
+    {
+      "candidate": {
+        "CWE": "CWE-862",
+        "attacker": "A child operating an authenticated account, or an ordinary workflow involving a child account.",
+        "code": "if (targetUserId !== requesterId) { ... attributes: ['id', 'role'] ... } ... defaults: { aiEnabled: true, ... }",
+        "confidence": 0.97,
+        "counterevidence": "Guardian fields and a guardianAcknowledged flag exist in the waiver flow, but the requirement is caller-controlled and the AI eligibility helper does not consult them. No claim is made about a particular legal age threshold or actual deployed child accounts.",
+        "file": "backend/controllers/aiConsentController.mjs",
+        "id": "PRIV-09",
+        "impact": "When child accounts exist, the server treats self-consent like adult consent and can send their health/training data externally without verifying a guardian decision. Unknown-age accounts receive the same treatment.",
+        "invariant": "Child-sensitive AI processing requires an age-aware consent decision and the configured guardian authorization.",
+        "lines": "65-88",
+        "remediation": "Define the supported age bands and unknown-age policy, derive eligibility from authoritative age data, require verified guardian authorization where applicable, and enforce that decision at all provider boundaries. Self-grant must not bypass it.",
+        "rule": "Evaluate child eligibility before accepting consent or sending data",
+        "severity": "HIGH",
+        "source_to_sink": [
+          "User has nullable dateOfBirth: backend/models/User.mjs:131-134.",
+          "grantAiConsent can enable the caller's profile without loading age or guardian data: backend/controllers/aiConsentController.mjs:65-99.",
+          "Public waiver validates DOB as a calendar date but requires guardian fields only when submittedByGuardian is asserted by the caller: backend/controllers/publicWaiverController.mjs:126-132,199-210.",
+          "An authenticated waiver is linked immediately and stores guardianAcknowledged from that same boolean: lines 280-303,329-335.",
+          "checkAiEligibility accepts an enabled profile without age or guardian checks: backend/services/ai/aiEligibilityHelper.mjs:75-88.",
+          "Chat enrichment computes age for the prompt but does not gate on it: backend/services/aiChatService.mjs:1632-1655."
+        ],
+        "title": "Child accounts can self-grant AI consent without guardian eligibility"
+      },
+      "candidateId": "PRIV-09",
+      "id": "PRIV-09",
+      "reason": "Age/guardian policy and actual supported child workflows need authoritative definition and integrated tests; no legal threshold inferred."
+    },
+    {
+      "candidate": {
+        "CWE": "CWE-862",
+        "attacker": "An authenticated trainer who knows or guesses another client's numeric ID.",
+        "code": "FROM \"Users\" WHERE id = :clientId AND \"isActive\" = true LIMIT 1",
+        "confidence": 0.97,
+        "counterevidence": "The route requires trainer/admin role, the target must be active, the payload abstracts some data, and job result ownership is enforced. No client assignment or consent check exists in the traced path. Runtime reachability requires the database to support the route's selected age/fitnessGoals/nasmPhase columns; that was not verified and may currently block execution.",
+        "file": "backend/routes/aiDebateRoutes.mjs",
+        "id": "PRIV-10",
+        "impact": "A trainer can trigger external processing and obtain derived results for an unassigned or AI-opted-out client.",
+        "invariant": "Trainer role alone must not authorize reading or sending any client's health and training data.",
+        "lines": "85-98",
+        "remediation": "Run canonical checkClientAccess and the shared AI eligibility decision before any target query. Reuse the maintained context service and prove the actual schema contract before enabling this route.",
+        "rule": "Apply client authorization and AI eligibility before loading debate context",
+        "severity": "HIGH",
+        "source_to_sink": [
+          "POST /api/ai/debate/start is mounted at backend/core/routes.mjs:634 and gated only by protect/trainerOrAdminOnly: backend/routes/aiDebateRoutes.mjs:50.",
+          "body.clientId is used in the client and enrichment queries without assignment or consent authorization: lines 68-148.",
+          "startDebate receives the resulting client context: line 151.",
+          "The orchestrator builds a prompt from that context and calls sendChatMessage: backend/services/ai/debate/debateOrchestrator.mjs:398-411.",
+          "The created job belongs to the requesting trainer, so subsequent job-ownership middleware permits them to read its result."
+        ],
+        "title": "The direct debate route allows trainers to process arbitrary clients without assignment or consent"
+      },
+      "candidateId": "PRIV-10",
+      "id": "PRIV-10",
+      "reason": "Route missing guards is source-established, but query selects age/fitnessGoals/nasmPhase absent from User model; actual DB compatibility unresolved."
+    }
+  ],
+  "documentType": "codex-security.coverage",
+  "excludePaths": [],
+  "explicitExclusions": [],
+  "includePaths": [
+    "backend"
+  ],
+  "inventoryStrategy": "scoped_path",
+  "mode": "scoped_path",
+  "openQuestions": [
+    {
+      "question": "Live selected providers, privacy retention and network egress were not checked."
+    },
+    {
+      "question": "Newer main packet differs from this current working checkout; reconcile findings onto current main before repairs."
+    },
+    {
+      "question": "Speech, attachment, embeddings, memory, logs, all secondary enrichment services and all backend files are not exhaustively runtime-tested."
+    },
+    {
+      "question": "Child and unknown-age cloud processing must default deny in the proposed policy until verified guardian and age policy is approved."
+    }
+  ],
+  "scanId": "45443178-19e1-46bc-9ef8-1558c13b4060",
+  "schemaVersion": "1.0",
+  "surfaces": [
+    {
+      "disposition": "reported",
+      "files": [
+        "backend/middleware/aiConsent.mjs",
+        "backend/middleware/piiSanitizationMiddleware.mjs",
+        "backend/middleware/waiverGate.mjs",
+        "backend/middleware/optionalAuth.mjs",
+        "backend/middleware/aiCommandGuards.mjs",
+        "backend/controllers/aiConsentController.mjs",
+        "backend/controllers/publicWaiverController.mjs",
+        "backend/models/AiPrivacyProfile.mjs",
+        "backend/routes/aiRoutes.mjs",
+        "backend/routes/aiChatRoutes.mjs",
+        "backend/routes/aiCommandRoutes.mjs",
+        "backend/routes/publicWaiverRoutes.mjs",
+        "backend/services/aiPrivacyService.mjs",
+        "backend/services/voiceTranscriptionService.mjs",
+        "backend/services/deIdentificationService.mjs",
+        "backend/services/ai/aiEligibilityHelper.mjs",
+        "backend/services/ai/aiChatPromptPrivacy.mjs",
+        "backend/services/ai/phiScanner.mjs",
+        "backend/services/ai/deIdentifier.mjs",
+        "backend/services/ai/intentClassifier.mjs",
+        "backend/services/ai/providerRouter.mjs",
+        "backend/services/ai/contextEngine/clientAccess.mjs",
+        "backend/services/waivers/waiverVersionEligibilityService.mjs",
+        "backend/services/privacy/PIIManager.mjs",
+        "backend/tests/unit/aiChatPromptPrivacy.test.mjs",
+        "backend/utils/logger.mjs"
+      ],
+      "id": "coach-privacy-independent",
+      "label": "Current-source Coach privacy review",
+      "notes": "[{\"question\":\"Are these the mounted AI routes?\",\"answer\":\"Yes, statically: backend/core/routes.mjs mounts /api/ai, /api/ai-chat, /api/ai-command, and /api/ai/debate at lines 625-635. Deployment and actual traffic were not examined.\"},{\"question\":\"Does authentication provide an implicit affirmative AI-consent check?\",\"answer\":\"No. protect reloads account role/status, then requireLinkedWaiver checks that a linked waiver exists for client/user roles. It does not check aiConsentAccepted, age, or guardian eligibility. Trainers/admins bypass this waiver gate.\"},{\"question\":\"Does the privacy middleware remove all medical information?\",\"answer\":\"No, by explicit implementation: piiSanitizationMiddleware flags medical conditions/medications while retaining them for training context at lines 195-208. The identity-blind model intentionally retains medical data. Medical text preservation alone was not treated as a vulnerability.\"},{\"question\":\"Is there one provider/privacy router for every Coach path?\",\"answer\":\"No. Chat/classification/debate call sendChatMessage, whose configured-key order is Gemini, OpenAI, Anthropic, Venice. Workout/long-horizon use providerRouter with AI_PROVIDER_ORDER and a separate default order. Speech directly calls Gemini. Privacy/consent is not revalidated centrally at these sinks.\"},{\"question\":\"What protections were confirmed?\",\"answer\":\"Current-role authentication, active/locked-account checks, linked-waiver gating for ordinary account roles, normal trainer chat assignment checks, strict critical-PII handling on chat messages, several scrubbed clinical enrichment fields, identity-unavailable withholding for notes, conversation ownership, debate-job ownership, rate limits, upload bounds, transcription timeouts, header-based Gemini API keys, safe client-facing failover codes, and removal of raw transcription filenames from normal logs.\"},{\"question\":\"Do existing history tests prove real lookup failures fail closed?\",\"answer\":\"No. backend/tests/unit/aiChatPromptPrivacy.test.mjs:39-55 mocks a stripper that throws. The actual identity lookup catches its database error and returns null, so that test does not cover the real failure boundary.\"},{\"question\":\"Is logging fully privacy-scrubbed?\",\"answer\":\"No general PII/PHI scrub exists in logger.mjs; it redacts API keys/JWTs and known secret values. intentClassifier.mjs:215-219,248-251 logs the first 200 characters of malformed provider responses. Chat/TTS/transcription also log provider error text. Actual provider echo of sensitive content into logs was not demonstrated, so no separate log-exfiltration finding is asserted.\"},{\"question\":\"What remains unverified?\",\"answer\":\"Runtime deployment, configured providers/settings, real child accounts, database schema compatibility for debate, actual external disclosures, final outbound payloads under synthetic integration fixtures, and all provider-retention settings. No tests or application code were executed.\"}]",
+      "receiptRefs": []
+    },
+    {
+      "disposition": "reported",
+      "id": "parent-validation",
+      "label": "Parent source validation and synthetic reproductions",
+      "notes": "Nine source-validated findings. PRIV-01/04/05/07/08 reproduced with actual module code and dependency fakes. Debate (PRIV-10) deferred because selected User columns were not present in inspected model; live schema unknown. Child/guardian (PRIV-09) is a release-blocking product policy gap; age threshold/eligibility policy and actual child-account existence unverified, so not a calibrated vulnerability.",
+      "receiptRefs": []
+    }
+  ]
+}

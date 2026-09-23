@@ -1,0 +1,26 @@
+{
+  "scanId": "45443178-19e1-46bc-9ef8-1558c13b4060",
+  "status": "complete",
+  "findings": 9,
+  "severity": {
+    "high": 1,
+    "medium": 8
+  },
+  "sourceRevision": "a89cbf0f080644877ae8a45729d3f0a59d4cb8b8",
+  "warnings": [
+    "Working-tree contents changed while the scan was running; results were saved for the original snapshot."
+  ],
+  "usage": {
+    "cacheWriteInputTokens": 0,
+    "cachedInputTokens": 12628352,
+    "coverage": "complete",
+    "inputTokens": 13202059,
+    "outputTokens": 115601,
+    "reasoningOutputTokens": 13701,
+    "source": "codex_rollout",
+    "threadCount": 4,
+    "totalTokens": 13317660
+  },
+  "usageScope": "Codex rollout/thread aggregation includes the surrounding planning conversation and workers; not an isolated audit-only cost meter.",
+  "coverage": "Partial requested AI/privacy surfaces; not an exhaustive backend audit."
+}

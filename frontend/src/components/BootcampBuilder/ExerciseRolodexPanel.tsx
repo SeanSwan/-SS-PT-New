@@ -4,23 +4,13 @@ import { Dumbbell, Search, X } from 'lucide-react';
 import { useExerciseSearch, type ExerciseSlim } from '../WorkoutLogger/useExerciseSearch';
 import { useEquipmentAPI } from '../../hooks/useEquipmentAPI';
 import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
-import {
-  buildEquipmentProfileTokens,
-  filterExercisesByEquipmentProfile,
-} from './BootcampEquipmentProfileFilter';
-import {
-  BOOTCAMP_EXERCISES_PER_STATION_OPTIONS,
-  BOOTCAMP_STATION_COUNT_OPTIONS,
-} from './BootcampBuilderConstants';
+import { buildEquipmentProfileTokens, filterExercisesByEquipmentProfile } from './BootcampEquipmentProfileFilter';
+import { BOOTCAMP_EXERCISES_PER_STATION_OPTIONS, BOOTCAMP_STATION_COUNT_OPTIONS } from './BootcampBuilderConstants';
 import ExerciseRolodexList from './ExerciseRolodexList';
 import {
-  BODY_PARTS,
-  EQUIPMENT_FILTERS,
-  EXERCISE_TYPES,
+  BODY_PARTS, EQUIPMENT_FILTERS, EXERCISE_TYPES,
   getJointImpact,
-  IMPACT_LEVELS,
-  parseEquipment,
-  SOURCE_FILTERS,
+  IMPACT_LEVELS, parseEquipment, SOURCE_FILTERS,
 } from './ExerciseRolodexPanel.constants';
 import {
   Chip,
@@ -35,6 +25,8 @@ import {
   PanelHeader,
   PanelTitle,
   PanelWrap,
+  ProfileError,
+  ProfileRetryButton,
   ResultCount,
   SearchBox,
   StructureSelectGrid,
@@ -77,6 +69,8 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
   const {
     results: exerciseResults,
     isLoading,
+    loadError,
+    refresh,
     setQuery,
     setCategory,
     query: searchQuery,
@@ -89,29 +83,37 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [profileEquipmentTokens, setProfileEquipmentTokens] = useState<string[]>([]);
   const [profileEquipmentLoading, setProfileEquipmentLoading] = useState(false);
+  const [profileEquipmentError, setProfileEquipmentError] = useState(false);
+  const [profileLoadAttempt, setProfileLoadAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     if (!equipmentProfileId) {
       setProfileEquipmentTokens([]);
       setProfileEquipmentLoading(false);
+      setProfileEquipmentError(false);
       return () => { cancelled = true; };
     }
 
     setProfileEquipmentLoading(true);
+    setProfileEquipmentError(false);
+    setProfileEquipmentTokens([]);
     getProfile(equipmentProfileId)
       .then((data) => {
         if (!cancelled) setProfileEquipmentTokens(buildEquipmentProfileTokens(data.items || []));
       })
       .catch(() => {
-        if (!cancelled) setProfileEquipmentTokens([]);
+        if (!cancelled) {
+          setProfileEquipmentTokens([]);
+          setProfileEquipmentError(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setProfileEquipmentLoading(false);
       });
 
     return () => { cancelled = true; };
-  }, [equipmentProfileId, getProfile]);
+  }, [equipmentProfileId, getProfile, profileLoadAttempt]);
 
   const activeFilterCount = [
     sourceFilter,
@@ -123,7 +125,8 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
 
   const filteredExercises = useMemo(() => {
     let pool = exerciseResults;
-    if (equipmentProfileId && !profileEquipmentLoading) {
+    if (equipmentProfileId) {
+      if (profileEquipmentLoading || profileEquipmentError) return [];
       pool = filterExercisesByEquipmentProfile(pool, profileEquipmentTokens);
     }
     if (exerciseTypeFilter) {
@@ -148,12 +151,14 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
 
   const handleAddExercise = useCallback((exercise: ExerciseSlim, event: MouseEvent) => {
     event.stopPropagation();
+    if (equipmentProfileId && (profileEquipmentLoading || profileEquipmentError)) return;
     onAddExercise(exercise as RolodexExercise, targetStation);
-  }, [onAddExercise, targetStation]);
+  }, [equipmentProfileId, onAddExercise, profileEquipmentError, profileEquipmentLoading, targetStation]);
 
   const handleSelectExercise = useCallback((exercise: ExerciseSlim) => {
+    if (equipmentProfileId && (profileEquipmentLoading || profileEquipmentError)) return;
     onSelectExercise?.(exercise as RolodexExercise);
-  }, [onSelectExercise]);
+  }, [equipmentProfileId, onSelectExercise, profileEquipmentError, profileEquipmentLoading]);
 
   return (
     <PanelWrap>
@@ -203,6 +208,15 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
             label="Equipment Profile"
           />
         </EquipmentPickerWrap>
+      )}
+
+      {equipmentProfileId && profileEquipmentError && (
+        <ProfileError role="alert">
+          <span>Could not load this equipment profile. Exercises are hidden until it is verified.</span>
+          <ProfileRetryButton type="button" onClick={() => setProfileLoadAttempt((attempt) => attempt + 1)}>
+            Retry
+          </ProfileRetryButton>
+        </ProfileError>
       )}
 
       <SearchBox>
@@ -271,6 +285,8 @@ const ExerciseRolodexPanel: React.FC<ExerciseRolodexPanelProps> = ({
       <ExerciseRolodexList
         exercises={filteredExercises}
         isLoading={isLoading}
+        loadError={loadError}
+        onRetry={refresh}
         selectedId={selectedId}
         onAddExercise={handleAddExercise}
         onSelectExercise={handleSelectExercise}

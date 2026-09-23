@@ -285,7 +285,6 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
         onKeyDown={handleDialogKeyDown}
       >
         <DragHandle
-          role="button"
           tabIndex={-1}
           aria-hidden="true"
           onPointerDown={handleDragStart}
@@ -444,21 +443,21 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
               <SyndromeToggle>
                 <SyndromeBtn
                   $active={posturalSyndrome === 'none'}
-                  $color="#8B5CF6"
+                  $color="#8B5CF6" /* swan-guard-allow-hex legacy-pre-5431519a4 */
                   onClick={() => setPosturalSyndrome('none')}
                 >
                   None
                 </SyndromeBtn>
                 <SyndromeBtn
                   $active={posturalSyndrome === 'upper_crossed'}
-                  $color="#FFB833"
+                  $color="#FFB833" /* swan-guard-allow-hex legacy-pre-5431519a4 */
                   onClick={() => setPosturalSyndrome('upper_crossed')}
                 >
                   Upper Crossed
                 </SyndromeBtn>
                 <SyndromeBtn
                   $active={posturalSyndrome === 'lower_crossed'}
-                  $color="#FF5555"
+                  $color="#FF5555" /* swan-guard-allow-hex legacy-pre-5431519a4 */
                   onClick={() => setPosturalSyndrome('lower_crossed')}
                 >
                   Lower Crossed

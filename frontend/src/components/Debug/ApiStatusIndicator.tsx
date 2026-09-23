@@ -27,7 +27,15 @@ const pulse = keyframes`
   }
 `;
 
-const StatusContainer = styled.div<{ $isProd: boolean; $isDragging: boolean; $position: Position }>`
+const StatusContainer = styled.button<{ $isProd: boolean; $isDragging: boolean; $position: Position }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   position: fixed;
   bottom: ${props => props.$position.y}px;
   left: ${props => props.$position.x}px;
@@ -59,7 +67,7 @@ const StatusDot = styled.div<{ $isLive: boolean }>`
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: ${props => props.$isLive ? '#4caf50' : '#f44336'};
+  background-color: ${props => props.$isLive ? '#4caf50' : '#f44336'}; /* swan-guard-allow-hex legacy-pre-5431519a4 */
   animation: ${pulse} 2s infinite;
 `;
 
@@ -102,7 +110,7 @@ const DetailItem = styled.div`
   margin-bottom: 10px;
   
   strong {
-    color: #60C0F0;
+    color: #60C0F0; /* swan-guard-allow-hex legacy-pre-5431519a4 */
     display: block;
     margin-bottom: 5px;
   }
@@ -144,7 +152,7 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
     startPosX: 0,
     startPosY: 0
   });
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLButtonElement>(null);
   
   // Don't show in production if configured that way
   const isProd = import.meta.env.PROD;
@@ -257,10 +265,9 @@ const ApiStatusIndicator: React.FC<ApiStatusIndicatorProps> = ({ hideInProductio
       $isDragging={dragState.isDragging}
       $position={position}
       onMouseDown={handleMouseDown}
+      type="button"
       onClick={toggleDetails}
       onKeyDown={handleKeyDown}
-      role="button"
-      tabIndex={0}
       title="Drag to move • Click to expand details"
     >
       <DragHandle className="drag-handle">

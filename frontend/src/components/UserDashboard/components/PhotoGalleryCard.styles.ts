@@ -3,7 +3,15 @@ import { motion } from 'framer-motion';
 import { sanitizeImageUrl, cssUrlValue } from '../../../utils/imageUrl';
 import { visionCardCss, visionPanelCss } from './UserDashboardSectionChrome.styles';
 
-export const PhotoCard = styled(motion.article)`
+export const PhotoCard = styled(motion.button)`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   aspect-ratio: 1;
   ${visionCardCss}
   cursor: pointer;

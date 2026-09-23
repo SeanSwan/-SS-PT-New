@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "digest": "c64cc57cc0bff66d0a27ec4eda4cfb09f7f6ac8dfe7dec4d2a341129e771e0ed",
+  "command": "From frontend: node node_modules/vitest/vitest.mjs run --config vitest.config.ts --pool forks --maxWorkers 1 --reporter verbose --testTimeout 10000 <S02 focused prescription tests>; same command for compatibility8 files and planner directory87 files. Latest focused26 passed under pinned Vitest4.1.10; earlier compatibility63 and directory448 passed under original dependencies. Full normal node --max-old-space-size=12288 ./node_modules/typescript/bin/tsc --noEmit --pretty false passed via Luna dependency agent. Browser/layout and final combined review pending.",
+  "toolEvidence": {
+    "path": ".mega-blueprints/artifacts/b214f060bbec9038/s02-test-output.log",
+    "sha256": "4c913bc4cbff4ada09f63db5853502f36544d5639b5ba7eeb2bf657d1c790dc2"
+  }
+}

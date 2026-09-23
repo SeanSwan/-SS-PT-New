@@ -29,7 +29,8 @@ vi.mock('../../utils/logger.mjs', () => ({
   default: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: mocks.loggerWarn },
 }));
 
-const { applyPainAwareGating } = await import('../../services/bootcamp/painAwareGating.mjs');
+const { applyPainAwareGating, severePainReviewRequired } = await import('../../services/bootcamp/painAwareGating.mjs');
+const gatingModule = await import('../../services/bootcamp/painAwareGating.mjs');
 
 function mainExercise(overrides = {}) {
   return {
@@ -51,7 +52,7 @@ describe('bootcamp applyPainAwareGating (Cortex P0 §5.5)', () => {
   });
 
   it('queries isActive (NOT the nonexistent status column) scoped to the active-client roster', async () => {
-    await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations: [] });
+    const { painAlerts: alerts, explanations: localExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations: [] });
 
     const where = mocks.painFindAll.mock.calls[0][0].where;
     expect(where.isActive).toBe(true);
@@ -70,16 +71,19 @@ describe('bootcamp applyPainAwareGating (Cortex P0 §5.5)', () => {
     const ex = mainExercise();
     const explanations = [];
 
-    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations });
+    const { painAlerts: alerts, explanations: gateExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations });
 
-    expect(ex.exerciseName).toBe('Box Squat to Bench');
-    expect(ex.painSwap).toEqual(expect.objectContaining({ from: 'Jump Squat', region: 'left_knee', severity: 8 }));
+    expect(gated[0].exerciseName).toBe('Box Squat to Bench');
+    expect(gated[0].painSwap).toEqual(expect.objectContaining({ from: 'Jump Squat', region: 'left_knee', severity: 8 }));
+    // U5 purity: the INPUT row is untouched.
+    expect(ex.exerciseName).toBe('Jump Squat');
+    expect(ex.painSwap).toBeUndefined();
     expect(alerts[0]).toEqual(expect.objectContaining({
       region: 'left_knee',
       severity: 8,
       swappedExercises: ['Box Squat to Bench'],
     }));
-    expect(explanations.some(e => e.type === 'pain_alert')).toBe(true);
+    expect(gateExplanations.some(e => e.type === 'pain_alert')).toBe(true);
   });
 
   it('severe pain with NO available alternative marks the exercise CAUTION instead of leaving it silently unmodified', async () => {
@@ -87,10 +91,11 @@ describe('bootcamp applyPainAwareGating (Cortex P0 §5.5)', () => {
       { bodyRegion: 'left_knee', side: 'left', painLevel: 9, painType: 'sharp', userId: 101 },
     ]);
     const ex = mainExercise({ kneeMod: null, easyVariation: null });
-    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations: [] });
+    const { painAlerts: alerts, explanations: gateExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations: [] });
 
-    expect(ex.exerciseName).toBe('Jump Squat');
-    expect(ex.painCaution).toEqual(expect.objectContaining({ region: 'left_knee', severity: 9 }));
+    expect(gated[0].exerciseName).toBe('Jump Squat');
+    expect(gated[0].painCaution).toEqual(expect.objectContaining({ region: 'left_knee', severity: 9 }));
+    expect(ex.painCaution).toBeUndefined();
     expect(alerts[0].cautionExercises).toEqual(['Jump Squat']);
   });
 
@@ -99,11 +104,27 @@ describe('bootcamp applyPainAwareGating (Cortex P0 §5.5)', () => {
       { bodyRegion: 'left_knee', side: 'left', painLevel: 5, painType: 'aching', userId: 102 },
     ]);
     const ex = mainExercise();
-    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations: [] });
+    const { painAlerts: alerts, explanations: gateExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations: [] });
 
     expect(ex.exerciseName).toBe('Jump Squat');
     expect(ex.painSwap).toBeUndefined();
     expect(alerts[0].recommendation).toMatch(/Board 2|Board 3/);
+  });
+
+  it('matches canonical primary and secondary aliases, not only literal bootcamp prose', async () => {
+    mocks.painFindAll.mockResolvedValue([
+      { bodyRegion: 'mid_back_left', side: 'left', painLevel: 5, painType: 'aching', userId: 101 },
+    ]);
+    const ex = mainExercise({
+      muscleTargets: 'Pectoralis Major, Latissimus Dorsi',
+      kneeMod: null,
+      easyVariation: null,
+    });
+
+    const { painAlerts: alerts, explanations: gateExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations: [] });
+
+    expect(alerts[0]).toEqual(expect.objectContaining({ region: 'mid_back_left' }));
+    expect(alerts[0].flaggedExercises).toEqual(['Jump Squat']);
   });
 
   it('privacy: alerts never carry userId or participant identity', async () => {
@@ -111,7 +132,7 @@ describe('bootcamp applyPainAwareGating (Cortex P0 §5.5)', () => {
       { bodyRegion: 'left_knee', side: 'left', painLevel: 8, painType: 'sharp', userId: 101 },
     ]);
     const explanations = [];
-    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
+    const { painAlerts: alerts, explanations: gateExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
 
     const serialized = JSON.stringify({ alerts, explanations });
     expect(serialized).not.toMatch(/userId|101|102/);
@@ -121,10 +142,10 @@ describe('bootcamp applyPainAwareGating (Cortex P0 §5.5)', () => {
     mocks.painFindAll.mockRejectedValue(new Error('column does not exist'));
     const explanations = [];
 
-    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
+    const { painAlerts: alerts, explanations: gateExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
 
     expect(alerts).toEqual([]);
-    expect(explanations).toEqual([
+    expect(gateExplanations).toEqual([
       expect.objectContaining({ type: 'pain_alert_unavailable' }),
     ]);
     expect(mocks.loggerWarn).toHaveBeenCalled();
@@ -137,11 +158,11 @@ describe('bootcamp applyPainAwareGating (Cortex P0 §5.5)', () => {
     ]);
     const explanations = [];
 
-    await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
+    const { painAlerts: alerts, explanations: localExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
 
     const where = mocks.painFindAll.mock.calls[0][0].where;
     expect(where.createdById).toBe(7);
-    expect(explanations[0].message).toMatch(/roster unavailable/i);
+    expect(localExplanations[0].message).toMatch(/roster unavailable/i);
   });
 });
 
@@ -159,11 +180,11 @@ describe('LOW-sweep repairs (review-queue 2026-07-12)', () => {
     mocks.assignmentFindAll.mockResolvedValue([]);
     const explanations = [];
 
-    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
+    const { painAlerts: alerts, explanations: gateExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
 
     expect(alerts).toEqual([]);
     expect(mocks.painFindAll).not.toHaveBeenCalled();
-    expect(explanations).toEqual([
+    expect(gateExplanations).toEqual([
       expect.objectContaining({ type: 'pain_gate_roster_empty' }),
     ]);
   });
@@ -183,10 +204,10 @@ describe('LOW-sweep repairs (review-queue 2026-07-12)', () => {
     const ex = mainExercise({ muscleTargets: 'Quadriceps, Glutes', hipMod: 'Glute Bridge March' });
     const explanations = [];
 
-    await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations });
+    const { painAlerts: alerts, explanations: localExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations });
 
-    expect(ex.painSwap.from).toBe('Jump Squat'); // never the first alternative's name
-    expect(ex.painCaution).toEqual(expect.objectContaining({ region: expect.any(String) }));
+    expect(gated[0].painSwap.from).toBe('Jump Squat'); // never the first alternative's name
+    expect(gated[0].painCaution).toEqual(expect.objectContaining({ region: expect.any(String) }));
   });
 });
 
@@ -207,7 +228,7 @@ describe('unmapped-region fail-visible note (hostile-review HIGH-2, 2026-07-13)'
     ]);
     const explanations = [];
 
-    const alerts = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
+    const { painAlerts: alerts, explanations: gateExplanations, exercises: gated } = await applyPainAwareGating({ trainerId: 7, allExercises: [mainExercise()], explanations });
 
     expect(alerts).toEqual([
       expect.objectContaining({
@@ -217,5 +238,81 @@ describe('unmapped-region fail-visible note (hostile-review HIGH-2, 2026-07-13)'
       }),
     ]);
     expect(alerts[0].recommendation).toMatch(/manual/i);
+  });
+});
+
+describe('H07-B: the severe-pain 422 is a backstop, not a roster-wide block', () => {
+  it('does NOT require review when every flagged exercise was auto-routed to an alternative', () => {
+    const fullySwapped = {
+      region: 'left_knee', severity: 8, unmappedRegion: false,
+      flaggedExercises: ['Jump Squat'], swappedExercises: ['Goblet Squat'],
+      cautionExercises: [],
+    };
+    expect(severePainReviewRequired([fullySwapped])).toBe(false);
+  });
+
+  it('still requires review when a severe flagged exercise had NO alternative (caution)', () => {
+    const unswapped = {
+      region: 'left_knee', severity: 8, unmappedRegion: false,
+      flaggedExercises: ['Jump Squat'], swappedExercises: [],
+      cautionExercises: ['Jump Squat'],
+    };
+    expect(severePainReviewRequired([unswapped])).toBe(true);
+  });
+
+  it('still requires review for an unmapped severe region (cannot gate what cannot be mapped)', () => {
+    expect(severePainReviewRequired([
+      { region: 'left_achilles', severity: 9, unmappedRegion: true, flaggedExercises: [], cautionExercises: [] },
+    ])).toBe(true);
+  });
+
+  it('ignores sub-severity alerts entirely', () => {
+    expect(severePainReviewRequired([
+      { region: 'left_knee', severity: 6, flaggedExercises: ['X'], cautionExercises: ['X'] },
+      { region: 'back', severity: 5, unmappedRegion: true },
+    ])).toBe(false);
+  });
+
+  it('mixed regions block only when at least one severe case is unswapped or unmapped', () => {
+    expect(severePainReviewRequired([
+      { region: 'left_knee', severity: 8, flaggedExercises: ['A'], swappedExercises: ['B'], cautionExercises: [] },
+      { region: 'shoulder', severity: 9, flaggedExercises: ['C'], swappedExercises: [], cautionExercises: ['C'] },
+    ])).toBe(true);
+  });
+});
+
+describe('U1: pain swaps are projected onto the generated class', () => {
+  it('collects swap facts from gated exercises and skips ungated ones', () => {
+    const collectPainSwaps = gatingModule.collectPainSwaps;
+    const exercises = [
+      { exerciseName: 'Goblet Squat', painSwap: { from: 'Jump Squat', region: 'left_knee', severity: 8 } },
+      { exerciseName: 'Push Up' },
+      { exerciseName: 'Wall Sit', painSwap: { from: 'Lunge', region: 'right_knee', severity: 7 } },
+    ];
+    expect(collectPainSwaps(exercises)).toEqual([
+      { from: 'Jump Squat', to: 'Goblet Squat', region: 'left_knee', severity: 8 },
+      { from: 'Lunge', to: 'Wall Sit', region: 'right_knee', severity: 7 },
+    ]);
+    expect(collectPainSwaps([{ exerciseName: 'Plank' }])).toEqual([]);
+    expect(collectPainSwaps([])).toEqual([]);
+  });
+});
+
+describe('U5 purity proof: gating cannot mutate its inputs', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getModel.mockReturnValue({ findAll: mocks.assignmentFindAll });
+    mocks.assignmentFindAll.mockResolvedValue([{ clientId: 101 }]);
+    mocks.painFindAll.mockResolvedValue([
+      { bodyRegion: 'left_knee', side: 'left', painLevel: 9, painType: 'sharp', userId: 101 },
+    ]);
+  });
+
+  it('gates a DEEP-FROZEN input row without throwing and without touching it', async () => {
+    const ex = Object.freeze(mainExercise());
+    const gate = await applyPainAwareGating({ trainerId: 7, allExercises: [ex], explanations: [] });
+    expect(ex.painSwap).toBeUndefined();      // input untouched
+    expect(ex.exerciseName).toBe('Jump Squat');
+    expect(gate.exercises[0].exerciseName).not.toBe('Jump Squat');  // clone WAS gated
   });
 });

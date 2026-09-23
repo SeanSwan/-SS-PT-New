@@ -14,7 +14,6 @@
  */
 
 import express from 'express';
-import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { requireAdmin } from '../middleware/adminMiddleware.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
@@ -26,6 +25,7 @@ import ShoppingCart from '../models/ShoppingCart.mjs';
 import CartItem from '../models/CartItem.mjs';
 import User from '../models/User.mjs';
 import { Op, fn, col } from 'sequelize';
+import { getStripeClient } from '../utils/stripeClient.mjs';
 
 const router = express.Router();
 const INTERNAL_ERROR = 'internal_error';
@@ -49,9 +49,7 @@ const sendInternalError = (res, message) => res.status(500).json({
 // Initialize Stripe client
 let stripeClient = null;
 if (isStripeEnabled()) {
-  stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2023-10-16'
-  });
+  stripeClient = getStripeClient();
 }
 
 // Apply middleware

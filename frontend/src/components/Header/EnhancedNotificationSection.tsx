@@ -11,44 +11,44 @@ import {
   fetchNotifications,
   markAsRead,
   markAllAsRead,
-  removeNotification,
+  deleteNotification,
   addNotification,
   setUnreadCount,
+  isNotificationForOwner,
   Notification,
 } from '../../store/slices/notificationSlice';
-import api from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
 import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─── Design Tokens ───────────────────────────────────────────────
-const TOKENS = {
-  midnightSapphire: '#002060',
-  royalDepth: '#003080',
-  iceWing: '#60C0F0',
-  arcticCyan: '#50A0F0',
-  wingPurple: '#8B5CF6',
-  gildedFern: '#C6A84B',
-  frostWhite: '#E0ECF4',
-  swanLavender: '#4070C0',
-  frozenEmber: '#D97706',
+const CSS_TOKENS = {
+  midnightSapphire: 'var(--midnight-sapphire, #002060)',
+  royalDepth: 'var(--royal-depth, #003080)',
+  iceWing: 'var(--ice-wing, #60C0F0)',
+  arcticCyan: 'var(--arctic-cyan, #50A0F0)',
+  wingPurple: 'var(--wing-purple, #8B5CF6)',
+  gildedFern: 'var(--gilded-fern, #C6A84B)',
+  frostWhite: 'var(--frost-white, #E0ECF4)',
+  swanLavender: 'var(--swan-lavender, #4070C0)',
+  frozenEmber: 'var(--warning, #D97706)',
 } as const;
 
 // Notification type → accent color mapping
 const TYPE_COLORS: Record<string, string> = {
-  session: TOKENS.iceWing,
-  workout: TOKENS.iceWing,
-  client: TOKENS.iceWing,
-  social: TOKENS.wingPurple,
-  achievement: TOKENS.wingPurple,
-  orientation: TOKENS.wingPurple,
-  admin: TOKENS.frozenEmber,
-  system: TOKENS.frozenEmber,
-  order: TOKENS.gildedFern,
-  message: TOKENS.arcticCyan,
+  session: CSS_TOKENS.iceWing,
+  workout: CSS_TOKENS.iceWing,
+  client: CSS_TOKENS.iceWing,
+  social: CSS_TOKENS.wingPurple,
+  achievement: CSS_TOKENS.wingPurple,
+  orientation: CSS_TOKENS.wingPurple,
+  admin: CSS_TOKENS.frozenEmber,
+  system: CSS_TOKENS.frozenEmber,
+  order: CSS_TOKENS.gildedFern,
+  message: CSS_TOKENS.arcticCyan,
 };
 
 const getTypeColor = (type: string): string =>
-  TYPE_COLORS[type] ?? TOKENS.iceWing;
+  TYPE_COLORS[type] ?? CSS_TOKENS.iceWing;
 
 // ─── Keyframes ───────────────────────────────────────────────────
 
@@ -110,7 +110,7 @@ const BellButton = styled.button<{ $pulsing: boolean }>`
   border: none;
   border-radius: 12px;
   background: transparent;
-  color: ${TOKENS.frostWhite};
+  color: ${CSS_TOKENS.frostWhite};
   cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
 
@@ -127,7 +127,7 @@ const BellButton = styled.button<{ $pulsing: boolean }>`
   }
 
   &:focus-visible {
-    outline: 2px solid ${TOKENS.wingPurple};
+    outline: 2px solid ${CSS_TOKENS.wingPurple};
     outline-offset: 2px;
   }
 `;
@@ -143,8 +143,8 @@ const UnreadBadge = styled.span<{ $animate: boolean }>`
   align-items: center;
   justify-content: center;
   border-radius: 9px;
-  background: ${TOKENS.wingPurple};
-  color: #fff;
+  background: ${CSS_TOKENS.wingPurple};
+  color: var(--text-on-accent, #fff);
   font-family: 'Sora', sans-serif;
   font-size: 0.65rem;
   font-weight: 700;
@@ -267,7 +267,7 @@ const HeaderTitle = styled.h3`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 1rem;
   font-weight: 700;
-  color: ${TOKENS.frostWhite};
+  color: ${CSS_TOKENS.frostWhite};
   letter-spacing: -0.01em;
 `;
 
@@ -279,7 +279,7 @@ const MarkAllButton = styled.button`
   border: none;
   border-radius: 8px;
   background: rgba(139, 92, 246, 0.12);
-  color: ${TOKENS.wingPurple};
+  color: ${CSS_TOKENS.wingPurple};
   font-family: 'Sora', sans-serif;
   font-size: 0.75rem;
   font-weight: 600;
@@ -292,7 +292,7 @@ const MarkAllButton = styled.button`
   }
 
   &:focus-visible {
-    outline: 2px solid ${TOKENS.wingPurple};
+    outline: 2px solid ${CSS_TOKENS.wingPurple};
     outline-offset: 2px;
   }
 `;
@@ -303,7 +303,7 @@ const ScrollArea = styled.div`
   overscroll-behavior: contain;
 
   scrollbar-width: thin;
-  scrollbar-color: ${TOKENS.wingPurple} transparent;
+  scrollbar-color: ${CSS_TOKENS.wingPurple} transparent;
 
   &::-webkit-scrollbar {
     width: 4px;
@@ -312,12 +312,20 @@ const ScrollArea = styled.div`
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: ${TOKENS.wingPurple};
+    background: ${CSS_TOKENS.wingPurple};
     border-radius: 2px;
   }
 `;
 
-const NotificationRow = styled.div<{ $read: boolean; $accentColor: string }>`
+const NotificationRow = styled.button<{ $read: boolean; $accentColor: string }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -363,7 +371,7 @@ const IconCircle = styled.div<{ $color: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${({ $color }) => `${$color}18`};
+  background: ${({ $color }) => `color-mix(in srgb, ${$color} 9.4%, transparent)`};
   color: ${({ $color }) => $color};
 `;
 
@@ -377,7 +385,7 @@ const NotifTitle = styled.p<{ $read: boolean }>`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.85rem;
   font-weight: ${({ $read }) => ($read ? 500 : 650)};
-  color: ${({ $read }) => ($read ? TOKENS.frostWhite : '#fff')};
+  color: ${({ $read }) => ($read ? CSS_TOKENS.frostWhite : 'var(--text-primary, #E0ECF4)')};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -407,8 +415,8 @@ const DeleteBtn = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -419,8 +427,27 @@ const DeleteBtn = styled.button`
 
   &:hover {
     background: rgba(236, 72, 153, 0.15);
-    color: #ec4899;
+    color: var(--accent-error, #ec4899);
   }
+`;
+
+const RetryDeleteButton = styled.button`
+  min-width: 44px;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 6px 10px;
+  border: 1px solid rgba(236, 72, 153, 0.5);
+  border-radius: 7px;
+  background: rgba(236, 72, 153, 0.12);
+  color: color-mix(in srgb, var(--color-error, #ef4444) 55%, var(--text-primary, #E0ECF4));
+  cursor: pointer;
+`;
+
+const DeleteError = styled.p`
+  margin: 6px 0 0;
+  color: color-mix(in srgb, var(--color-error, #ef4444) 55%, var(--text-primary, #E0ECF4));
+  font-size: 0.72rem;
+  line-height: 1.35;
 `;
 
 const EmptyStateContainer = styled.div`
@@ -462,7 +489,7 @@ const Spinner = styled.div`
   width: 28px;
   height: 28px;
   border: 3px solid rgba(139, 92, 246, 0.2);
-  border-top-color: ${TOKENS.wingPurple};
+  border-top-color: ${CSS_TOKENS.wingPurple};
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 
@@ -529,9 +556,10 @@ const EnhancedNotificationSection: React.FC = () => {
   const dragStartRef = useRef<number | null>(null);
 
   // Redux state
-  const { notifications, unreadCount, loading } = useSelector(
+  const { notifications, unreadCount, loading, deletingById, deleteErrors } = useSelector(
     (state: RootState) => state.notifications
   );
+  const currentUserId = useSelector((state: RootState) => state.auth?.user?.id ?? null);
 
   // ── Swan Pulse: trigger when new unread arrives while dropdown is closed ──
   useEffect(() => {
@@ -552,10 +580,12 @@ const EnhancedNotificationSection: React.FC = () => {
     if (!socket) return;
 
     const handleNewNotification = (data: Notification) => {
+      if (!isNotificationForOwner(data, currentUserId)) return;
       dispatch(addNotification(data));
     };
 
-    const handleNotificationCount = (data: { count?: number; unreadCount?: number }) => {
+    const handleNotificationCount = (data: { count?: number; unreadCount?: number; userId?: string | number; recipientId?: string | number }) => {
+      if (!isNotificationForOwner(data, currentUserId)) return;
       dispatch(setUnreadCount(data.unreadCount ?? data.count ?? 0));
     };
 
@@ -566,7 +596,7 @@ const EnhancedNotificationSection: React.FC = () => {
       socket.off('notification:new', handleNewNotification);
       socket.off('notification:count', handleNotificationCount);
     };
-  }, [socket, dispatch]);
+  }, [socket, dispatch, currentUserId]);
 
   // ── Fetch notifications when dropdown opens ──
   useEffect(() => {
@@ -625,8 +655,15 @@ const EnhancedNotificationSection: React.FC = () => {
   const handleDelete = useCallback(
     (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      dispatch(removeNotification(id));
-      api.delete(`/api/notifications/${id}`).catch(() => {});
+      dispatch(deleteNotification(id));
+    },
+    [dispatch]
+  );
+
+  const handleRetryDelete = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      dispatch(deleteNotification(id));
     },
     [dispatch]
   );
@@ -692,15 +729,8 @@ const EnhancedNotificationSection: React.FC = () => {
                   key={notif.id}
                   $read={notif.read}
                   $accentColor={color}
+                  type="button"
                   onClick={() => handleNotificationClick(notif)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleNotificationClick(notif);
-                    }
-                  }}
                 >
                   <IconCircle $color={color}>
                     {getNotificationIcon(notif.type)}
@@ -710,10 +740,24 @@ const EnhancedNotificationSection: React.FC = () => {
                     <NotifTitle $read={notif.read}>{notif.title}</NotifTitle>
                     <NotifMessage>{notif.message}</NotifMessage>
                     <NotifTime>{formatRelativeTime(notif.createdAt)}</NotifTime>
+                    {deleteErrors[notif.id] && (
+                      <>
+                        <DeleteError role="alert">{deleteErrors[notif.id]}</DeleteError>
+                        <RetryDeleteButton
+                          type="button"
+                          onClick={(e) => handleRetryDelete(e, notif.id)}
+                          disabled={Boolean(deletingById[notif.id])}
+                        >
+                          Retry delete
+                        </RetryDeleteButton>
+                      </>
+                    )}
                   </NotifContent>
 
                   <DeleteBtn
+                    type="button"
                     onClick={(e) => handleDelete(e, notif.id)}
+                    disabled={Boolean(deletingById[notif.id])}
                     aria-label="Delete notification"
                   >
                     <Trash2 size={14} />

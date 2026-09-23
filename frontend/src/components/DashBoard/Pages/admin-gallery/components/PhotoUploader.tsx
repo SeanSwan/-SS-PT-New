@@ -102,10 +102,8 @@ const PhotoUploader: React.FC<Props> = ({
         onDragOver={(e) => { e.preventDefault(); if (!uploading) setDragging(true); }}
         onDragLeave={() => setDragging(false)}
         onDrop={(e) => { e.preventDefault(); setDragging(false); if (!uploading) pick(e.dataTransfer.files); }}
-        role="button"
-        tabIndex={0}
+        type="button"
         aria-disabled={uploading}
-        onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && !uploading) { e.preventDefault(); inputRef.current?.click(); } }}
       >
         <UploadCloud size={30} aria-hidden="true" />
         <strong>{dragging ? 'Drop to upload' : 'Drag photos here or click to browse'}</strong>
@@ -159,7 +157,15 @@ const TipsToggle = styled.button`
   font-size: 0.82rem; color: var(--accent-primary, #60c0f0);
 `;
 
-const DropZone = styled.div<{ $dragging: boolean; $disabled: boolean }>`
+const DropZone = styled.button<{ $dragging: boolean; $disabled: boolean }>`
+  appearance: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  background: none;
+  border: none;
+
   display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
   padding: 2rem 1rem; margin-top: 0.75rem;
   border: 1.5px dashed ${({ $dragging }) => ($dragging ? 'var(--accent-primary, #60c0f0)' : 'var(--border-subtle, rgba(96,192,240,0.3))')};

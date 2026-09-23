@@ -1,28 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
-/**
- * StoreV3 all-inclusive pricing trust note (2026-06-13).
- * ============================================================================
- * Community + trust is the #1 brand factor. Personal training is a service and
- * is NOT sales-taxed in California, so the storefront states plainly that
- * pricing is all-inclusive ("the price you see is the price you pay") instead of
- * surprising buyers with a "+ tax" line at checkout. This locks that promise in
- * and guards against surprise-charge copy creeping back onto the storefront.
- */
-const src = readFileSync(resolve(process.cwd(), 'src/pages/shop/StoreV3.tsx'), 'utf8');
+// A mixed physical/training catalog cannot promise all-inclusive totals.
+// Preserve the original trust intent at the current rendered copy boundaries.
+const read = (file: string) => readFileSync(resolve(process.cwd(), 'src', file), 'utf8');
+const storefront = read('pages/shop/StoreV3.tsx');
+const product = read('pages/shop/components/ProductCard.tsx');
+const story = read('pages/shop/components/StoreStory.tsx');
+const checkout = read('components/NewCheckout/CheckoutView.sections.tsx');
 
-describe('StoreV3 all-inclusive pricing trust note', () => {
-  it('renders an all-inclusive, no-surprise-charges pricing promise', () => {
-    expect(src).toContain('STORE_PRICING_NOTE');
-    expect(src).toContain('All-inclusive pricing');
-    expect(src).toContain('the price you see is the price you pay');
-    expect(src).toContain('<PricingTrustNote>{STORE_PRICING_NOTE}</PricingTrustNote>');
+describe('store pricing transparency for physical and training products', () => {
+  it('explains applicable checkout tax rather than promising a final catalog total', () => {
+    expect(product).toContain('Applicable tax is calculated at checkout.');
+    expect(story).toContain('applicable tax');
   });
-
-  it('does not surprise buyers with a plus-tax line on the storefront', () => {
-    expect(src).not.toMatch(/plus tax/i);
-    expect(src).not.toMatch(/\+\s*tax\b/i);
+  it('does not publish unsupported final-price or refund guarantees', () => {
+    expect([storefront, product, story, checkout].join('\n')).not.toMatch(/All-inclusive pricing|the price you see is the price you pay|Money Back Guarantee/i);
   });
 });

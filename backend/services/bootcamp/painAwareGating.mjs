@@ -27,7 +27,12 @@ import { Op } from 'sequelize';
 import { getClientPainEntry, getModel } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 import { deriveJointFriendlyAlternative } from './classStyleModifiers.mjs';
-import { bootcampTargetsForRegion } from '../training-cortex/ontology/regionMuscleMap.mjs';
+import { unverifiedReplacement } from './bootcampSubstitutionContract.mjs';
+import { canonicalizeMuscle, normalizeMuscleList } from './bootcampTaxonomy.mjs';
+import {
+  bootcampTargetsForRegion,
+  registryMusclesForRegion,
+} from '../training-cortex/ontology/regionMuscleMap.mjs';
 
 // Severity at which flagged Board-1 exercises are swapped, not just annotated.
 const PAIN_SWAP_SEVERITY = 7;
@@ -53,9 +58,16 @@ async function loadRosterClientIds(trainerId) {
  * Mutates flagged Board-1 exercise objects in place (painSwap / painCaution)
  * and appends explanations. Returns the painAlerts array.
  */
-export async function applyPainAwareGating({ trainerId, allExercises, explanations }) {
+export async function applyPainAwareGating({ trainerId, allExercises, explanations, rosterCache }) {
+  // U5 (purity ruling): gates CLONES, collects its own explanations, and
+  // returns { painAlerts, explanations, exercises } — inputs untouched.
+  const localExplanations = [];
   const painAlerts = [];
-  if (!trainerId) return painAlerts;
+  const workingSet = (Array.isArray(allExercises) ? allExercises : []).map(ex => ({ ...ex }));
+
+  if (!trainerId) {
+    return { painAlerts, explanations: localExplanations, exercises: workingSet };
+  }
 
   try {
     const PainEntry = getClientPainEntry();
@@ -63,7 +75,14 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
     // Roster semantics (§5.5b): aggregate across the trainer's ACTIVE CLIENTS.
     // Fall back to trainer-authored entries — honestly labeled — only when the
     // assignment model is unavailable.
-    const rosterClientIds = await loadRosterClientIds(trainerId);
+    // U6: per-call-scope cache — a 364-slot sprint calls this once per slot;
+    // the roster does not change mid-generation, so a scoped cache eliminates
+    // 363 redundant queries without risking a stale roster across sessions.
+    let rosterClientIds = rosterCache?.get(trainerId);
+    if (rosterClientIds === undefined) {
+      rosterClientIds = await loadRosterClientIds(trainerId);
+      if (rosterCache) rosterCache.set(trainerId, rosterClientIds);
+    }
     const painWhere = { isActive: true, painLevel: { [Op.gte]: PAIN_FLAG_SEVERITY } };
     let aggregationScope;
     if (Array.isArray(rosterClientIds)) {
@@ -72,11 +91,11 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
         // assignments, and other trainers' clients are invisible to this
         // gate — the trainer must know the check ran against nobody, not
         // read the absence of annotations as "no pain in the room".
-        explanations.push({
+        localExplanations.push({
           type: 'pain_gate_roster_empty',
           message: 'Pain-aware gating found no ACTIVE client assignments for this trainer — the class was not checked against any participant\'s pain report. Review Board 1 manually if drop-ins or unassigned clients are attending.',
         });
-        return painAlerts;
+        return { painAlerts, explanations: localExplanations, exercises: workingSet };
       }
       painWhere.userId = { [Op.in]: rosterClientIds };
       aggregationScope = `across ${rosterClientIds.length} active client(s)`;
@@ -89,11 +108,19 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
       where: painWhere,
       attributes: ['bodyRegion', 'side', 'painLevel', 'painType', 'userId'],
     });
-    if (activeEntries.length === 0) return painAlerts;
+    if (activeEntries.length === 0) return { painAlerts, explanations: localExplanations, exercises: workingSet };
 
     const painRegions = [...new Set(activeEntries.map(e => e.bodyRegion))];
     for (const region of painRegions) {
-      const relatedMuscles = bootcampTargetsForRegion(region);
+      // Keep the bootcamp target map in the call path for legacy
+      // `muscleTargets` prose, but compare canonical registry tags as well.
+      // A class record can contain primary and secondary muscles in either
+      // representation; substring-only matching missed aliases such as
+      // pectorals/pectoralis and could let a secondary pain target through.
+      const relatedMuscles = [...new Set([
+        ...registryMusclesForRegion(region),
+        ...bootcampTargetsForRegion(region),
+      ])];
       const severity = Math.max(
         ...activeEntries.filter(e => e.bodyRegion === region).map(e => e.painLevel || 0),
       );
@@ -116,10 +143,15 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
         continue;
       }
 
-      const flagged = allExercises.filter(ex => {
+      const flagged = workingSet.filter(ex => {
         if (ex.board && ex.board !== 'main') return false;
-        const exMuscles = ex.muscleTargets?.toLowerCase() || '';
-        return relatedMuscles.some(m => exMuscles.includes(m));
+        const rawMuscles = ex.muscleTargets ?? ex.muscles ?? '';
+        const exMuscles = normalizeMuscleList(rawMuscles);
+        const exMuscleText = String(rawMuscles).toLowerCase();
+        return relatedMuscles.some((muscle) => {
+          const canonical = canonicalizeMuscle(muscle);
+          return (canonical && exMuscles.includes(canonical)) || exMuscleText.includes(String(muscle).toLowerCase());
+        });
       });
       if (flagged.length === 0) continue;
 
@@ -144,8 +176,10 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
           }
           const alternative = deriveJointFriendlyAlternative(ex, region);
           if (alternative && alternative !== ex.exerciseName) {
-            ex.painSwap = { from: ex.exerciseName, region, severity };
-            ex.exerciseName = alternative;
+            const originalName = ex.exerciseName;
+            Object.assign(ex, unverifiedReplacement(ex, alternative));
+            ex.painSwap = { from: originalName, region, severity };
+            ex.painCaution = { region, severity, reason: 'replacement_unverified' };
             swappedExercises.push(alternative);
           } else {
             if (!ex.painCaution) ex.painCaution = { region, severity };
@@ -167,19 +201,56 @@ export async function applyPainAwareGating({ trainerId, allExercises, explanatio
     }
 
     if (painAlerts.length > 0) {
-      explanations.push({
+      localExplanations.push({
         type: 'pain_alert',
         message: `Pain-aware gating (${aggregationScope}): ${painAlerts.length} region group(s) flagged; severe regions auto-routed to joint-friendly alternatives. Class-level aggregation only — per-participant safety was NOT computed.`,
       });
     }
+    return { painAlerts, explanations: localExplanations, exercises: workingSet };
   } catch (err) {
     // Fail-VISIBLE (§5.5a): the old silent catch hid a dead query in production.
     logger.warn('[BootcampGenerator] Pain-aware gating unavailable:', err?.message);
-    explanations.push({
+    localExplanations.push({
       type: 'pain_alert_unavailable',
       message: 'Pain data could not be checked for this class — review Board 1 manually against known client injuries.',
     });
   }
 
-  return painAlerts;
+  return { painAlerts, explanations: localExplanations, exercises: workingSet };
+}
+
+/**
+ * H07-B (Sean-approved 2026-09-13): the severe-pain 422 is a BACKSTOP, not a
+ * roster-wide block. Severe regions with flagged exercises are gated first
+ * (auto-routed to joint-friendly alternatives); review is required only when
+ * gating could not make the class safe — an UNMAPPED severe region, or a
+ * flagged exercise left as CAUTION because no alternative existed. A region
+ * whose every flagged exercise was swapped no longer blocks the class: the
+ * swap trail (painSwap/painCaution + the pain_alert explanations) stays on
+ * the generated record.
+ */
+export function severePainReviewRequired(painAlerts) {
+  if (!Array.isArray(painAlerts)) return false;
+  return painAlerts.some(alert => {
+    if ((alert?.severity ?? 0) < 7) return false;
+    if (alert.unmappedRegion) return true;
+    return Array.isArray(alert.cautionExercises) && alert.cautionExercises.length > 0;
+  });
+}
+
+/**
+ * U1: project the swap facts onto the generated class so the trainer-facing
+ * surfaces (demo board, runner) can SAY 'this movement replaced X because of
+ * your knee' without parsing the explanation prose.
+ */
+export function collectPainSwaps(exercises) {
+  if (!Array.isArray(exercises)) return [];
+  return exercises
+    .filter(ex => ex?.painSwap?.from)
+    .map(ex => ({
+      from: ex.painSwap.from,
+      to: ex.exerciseName,
+      region: ex.painSwap.region,
+      severity: ex.painSwap.severity ?? null,
+    }));
 }

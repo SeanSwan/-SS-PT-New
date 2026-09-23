@@ -10,7 +10,7 @@
  *
  * The fix is a three-way lock, and this test IS the lock:
  *   (a) every *.test.{js,mjs} under tests/ + __tests__/ that imports node:test must
- *       be listed in vitest.config.mjs's exclude — or vitest reds on it again;
+ *       live in tests/node-runner/, which vitest.config.mjs excludes by glob;
  *   (b) every tests/**\/*.test.mjs entry in that exclude must actually BE a
  *       node:test file — so the exclude list cannot become a place to hide a
  *       broken vitest file;
@@ -64,33 +64,41 @@ const detected = [...walkTestFiles(path.join(BACKEND, 'tests')), ...walkTestFile
 
 const vitestConfigSrc = readFileSync(path.join(BACKEND, 'vitest.config.mjs'), 'utf8');
 const excludeBlock = vitestConfigSrc.match(/exclude:\s*\[([\s\S]*?)\]/)?.[1] ?? '';
-const excludedTestFiles = [...excludeBlock.matchAll(/['"]((?:tests|__tests__)\/[^'"]*\.test\.mjs)['"]/g)]
-  .map((m) => m[1])
-  .sort();
 
 const pkg = JSON.parse(readFileSync(path.join(BACKEND, 'package.json'), 'utf8'));
 const testNodeScript = pkg.scripts?.['test:node'] ?? '';
-const scriptFiles = [...testNodeScript.matchAll(/(?:tests|__tests__)\/\S+\.test\.mjs/g)]
-  .map((m) => m[0])
+
+// 2026-09-22 (coach P0 merge): origin/main moved node:test files into ONE directory,
+// tests/node-runner/, excluded by a single glob (SWA-231). The coach lineage used an
+// explicit per-file list. The merge adopts the directory convention and keeps this
+// guard's three guarantees, restated for a directory instead of a list:
+//   (a) every node:test-only file lives in tests/node-runner/ (so the glob excludes it);
+//   (b) every *.test.mjs in tests/node-runner/ really is node:test-only (no hiding place);
+//   (c) vitest excludes that directory, and test:node runs exactly that directory.
+const RUNNER_DIR = 'tests/node-runner';
+const runnerFiles = readdirSync(path.join(BACKEND, RUNNER_DIR))
+  .filter((f) => /\.test\.mjs$/.test(f))
+  .map((f) => `${RUNNER_DIR}/${f}`)
   .sort();
 
 describe('node:test / vitest runner separation', () => {
-  it('every node:test file is excluded from vitest (or vitest reds on it as "No test suite found")', () => {
-    const missing = detected.filter((f) => !excludedTestFiles.includes(f));
-    expect(missing, `node:test files vitest would load: ${missing.join(', ')} — add them to vitest.config.mjs exclude AND the test:node script`).toEqual([]);
+  it('every node:test file lives in tests/node-runner/ (or vitest reds on it as "No test suite found")', () => {
+    const outside = detected.filter((f) => !f.startsWith(`${RUNNER_DIR}/`));
+    expect(outside, `node:test files outside ${RUNNER_DIR}/: ${outside.join(', ')} — git mv them there`).toEqual([]);
   });
 
-  it('every vitest-excluded test file really is a node:test file — the exclude list is not a hiding place', () => {
-    const notNodeTest = excludedTestFiles.filter((f) => !detected.includes(f));
-    expect(notNodeTest, `excluded but NOT node:test files: ${notNodeTest.join(', ')} — a vitest file in the exclude list is a silently-skipped test`).toEqual([]);
+  it('every file in tests/node-runner/ really is a node:test file — the directory is not a hiding place', () => {
+    const notNodeTest = runnerFiles.filter((f) => !detected.includes(f));
+    expect(notNodeTest, `vitest files hidden in ${RUNNER_DIR}/: ${notNodeTest.join(', ')}`).toEqual([]);
   });
 
-  it('the test:node script runs exactly the node:test set — exclusion from vitest never means exclusion from CI', () => {
-    expect(scriptFiles).toEqual(detected);
+  it('vitest excludes the runner directory and test:node runs exactly that directory', () => {
+    expect(excludeBlock).toContain(`'${RUNNER_DIR}/**'`);
+    expect(testNodeScript).toContain(`node --test ${RUNNER_DIR}/*.test.mjs`);
   });
 
   it('the guard itself sees a sane world (non-empty set, script present)', () => {
     expect(detected.length).toBeGreaterThan(0);
-    expect(testNodeScript).toContain('node --test');
+    expect(runnerFiles).toEqual(detected);
   });
 });

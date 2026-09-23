@@ -14,10 +14,15 @@ export function useBootcampWorkflowStage(
   releaseRunSurface: ReleaseRunSurface = releaseBootcampWakeLock,
 ) {
   const [workflowStage, setWorkflowStage] = useState<BootcampWorkflowStage>('build');
+  // H24: the acquisition result is kept, not discarded — a future floor-mode
+  // banner can read it to tell the coach which capabilities actually unlocked.
+  const [runSurfaceCapabilities, setRunSurfaceCapabilities] = useState<BootcampRunAcquisitionResult | null>(null);
 
   const onStageChange = useCallback((nextStage: BootcampWorkflowStage) => {
     if (nextStage === 'run') {
-      void acquireRunSurface();
+      void acquireRunSurface()
+        .then(result => setRunSurfaceCapabilities(result))
+        .catch(() => setRunSurfaceCapabilities(null));
     } else {
       void releaseRunSurface();
     }
@@ -31,6 +36,7 @@ export function useBootcampWorkflowStage(
   return {
     workflowStage,
     floorMode: workflowStage === 'run',
+    runSurfaceCapabilities,
     onStageChange,
   };
 }

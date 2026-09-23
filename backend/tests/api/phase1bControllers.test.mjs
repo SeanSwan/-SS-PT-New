@@ -168,7 +168,9 @@ describe('onboardingController.mjs named exports', () => {
     const result = mod.transformQuestionnaireToMasterPrompt({ fullName: 'Test', primaryGoal: 'strength' }, 1);
     expect(result.version).toBe('3.0');
     expect(result.client).toBeDefined();
-    expect(result.goals.primary).toBe('strength');
+    // 2eb41a88d wraps client-reported values in <client_reported> tags (injection
+    // defence). Pin updated to the hardened output; the raw expectation predates it.
+    expect(result.goals.primary).toBe('<client_reported>strength</client_reported>');
   });
 
   test('13 — generateSpiritName is exported and returns a string', () => {

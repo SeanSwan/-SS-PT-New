@@ -8,6 +8,7 @@ import BootcampExercise from '../../models/BootcampExercise.mjs';
 import { FORMAT_CONFIG } from '../../services/bootcamp/bootcampConstants.mjs';
 import { __testing__ } from '../../services/bootcamp/bootcampGenerator.mjs';
 import { applyClassStyle, generateBoard2 } from '../../services/bootcamp/classStyleModifiers.mjs';
+import { selectionManifestEntry } from '../../services/bootcamp/bootcampTemplateContract.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const bootcampCrudSource = readFileSync(resolve(__dirname, '../../services/bootcamp/bootcampCrud.mjs'), 'utf8');
@@ -152,5 +153,33 @@ describe('bootcamp generation semantics', () => {
     expect(BootcampExercise.rawAttributes.exerciseLibraryId.type.key).toBe('UUID');
     expect(bootcampCrudSource).toContain('exerciseLibraryId: normalizeExerciseLibraryId(ex.exerciseLibraryId)');
     expect(bootcampGeneratorSource).toContain('const exerciseLibraryId = normalizeExerciseLibraryId(ex.exerciseLibraryId)');
+  });
+
+  it('records the generated exercise key in the original selection provenance', () => {
+    expect(selectionManifestEntry({ exerciseName: 'Goblet Squat', exerciseKey: 'goblet_squat' }).source)
+      .toEqual(expect.objectContaining({ exerciseKey: 'goblet_squat' }));
+  });
+
+  it('scales per-exercise work seconds by the week prescription (F04 deload volume)', () => {
+    const { prescribedWorkSec, poolSlotsForClass, estimateClassWorkoutSeconds } = __testing__;
+    expect(prescribedWorkSec(40, 1)).toBe(40);
+    expect(prescribedWorkSec(40, 0.7)).toBe(28);
+    expect(prescribedWorkSec(30, 1.5)).toBe(45);
+    expect(prescribedWorkSec(40, null)).toBe(40);
+    expect(prescribedWorkSec(40, undefined)).toBe(40);
+    expect(prescribedWorkSec(40, '0.7')).toBe(28);
+    // P1.1 unit lock (Fable D-4): the input is SECONDS. A rep-count-magnitude
+    // base (< 10s) is a caller bug — fail loudly instead of silently clamping.
+    expect(() => prescribedWorkSec(5, 0.7)).toThrow(/SECONDS/);
+    expect(prescribedWorkSec(100, 1.5)).toBe(120);
+    expect(prescribedWorkSec(40, 9)).toBe(80);
+    expect(prescribedWorkSec(40, -1)).toBe(40);
+
+    // D1/D2 (Astra hive findings, probe-confirmed)
+    expect(poolSlotsForClass('custom', 4, 4, false)).toBe(16);
+    expect(poolSlotsForClass('custom', 4, 4, true)).toBe(12);
+    expect(poolSlotsForClass('full_group', 9, 9, false)).toBe(10);
+    expect(estimateClassWorkoutSeconds([{ durationSec: 40, restSec: 10 }], 2, 4, 30)).toBe((50 * 2) + 90);
+    expect(estimateClassWorkoutSeconds([{ durationSec: 40, restSec: 10 }], 1, 1, 30)).toBe(50);
   });
 });

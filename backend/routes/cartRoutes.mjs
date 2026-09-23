@@ -17,7 +17,6 @@ import {
 // 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
 // Models will be retrieved via getter functions inside each route handler when needed
 
-import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 // MAX_CART_ITEM_QUANTITY is a NAMED import on purpose. It was previously
@@ -28,6 +27,7 @@ import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 // quietly disabling a money-path guard.
 import cartHelpers, { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
 import { resolveUnitPrice, UnpriceableItemError } from '../services/store/itemPricing.mjs';
+import { getStripeClient } from '../utils/stripeClient.mjs';
 import {
   normalizeAuthenticatedUserId,
   safeFindOrCreateActiveCart,
@@ -293,9 +293,7 @@ const validatePurchaseRole = (req, res, next) => {
 let stripeClient = null;
 if (isStripeEnabled()) {
   try {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16' // Use a fixed, recent API version
-    });
+    stripeClient = getStripeClient();
     logger.info('Stripe client initialized successfully.');
   } catch (error) {
       logger.error('[Cart] Failed to initialize Stripe client', {

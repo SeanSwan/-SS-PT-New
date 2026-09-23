@@ -5,7 +5,8 @@
  * Ships in the SAME slice as EXCEPTIONS.md (GLM C3) — suppressions are ledgered, never silent.
  *
  * Checks:
- *  R1 raw hex colors in Forge css/ (tokens/ is the only home for hex)
+ *  R1 raw colour literals in Forge css/ — hex OR functional notation
+ *     (tokens/ is the only home for a colour literal)
  *  R2 consumer CSS/JS overriding `.sw-` selectors or using !important against sw- classes
  *  R6 consumer styled(ForgeButton) wrapper that restyles instead of positioning (rule 84 standing law)
  *  R3 visual-reordering properties inside theme packs (§11.A2: packs must not fork tab order)
@@ -32,7 +33,12 @@ export const LEGACY_EXPORT_MAP = { GlowButton: 'Button (@swan/forge)', GlacialIn
 // `writing-mode`, `unicode-bidi`, and `transform: scaleX(-1)` visual reordering are out of
 // scope for v0. These are accepted gaps, not unknown ones.
 const REORDER_RE = /(?:^|[\s;{])(order\s*:|flex-direction\s*:\s*(?:row|column)-reverse|direction\s*:\s*(?:rtl|ltr)|grid-(?:row|column)\s*:\s*\d|grid-area\s*:\s*\d)/i;
-const HEX_RE = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/;
+// R1 was hex-only, which left the "structure has no colour" law enforceable one
+// notation wide: a functional-notation colour walked straight into a component file
+// and the gate passed. Found 2026-09-01 when css/sheen.css shipped 17 of them under
+// a header claiming there were none. Every other Forge css/ file had zero, so
+// widening this cost nothing and closed the hole.
+const HEX_RE = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\s*\(/;
 const SW_OVERRIDE_RE = /\.sw-[\w-]+[^{]*\{/;
 const SW_IMPORTANT_RE = /--sw-[\w-]+[^;]*!important|\.sw-[\w-]+[^}]*!important/;
 // R5: packs may never redefine primitive-tier tokens — the non-themeable floors
@@ -254,7 +260,7 @@ export function lintText(path, text, { isForgeCss = false, isPack = false, isCon
     // belt+braces: orphan comment-continuation lines (unclosed /* in a fragment) stay skipped
     const t = line.trimStart();
     if (t.startsWith('*') || t.startsWith('//') || t.startsWith('/*')) return;
-    if (isForgeCss && !isPack && HEX_RE.test(line)) findings.push({ rule: 'R1', line: at, detail: `raw hex outside tokens/: ${line.trim().slice(0, 80)}` });
+    if (isForgeCss && !isPack && HEX_RE.test(line)) findings.push({ rule: 'R1', line: at, detail: `raw colour literal outside tokens/: ${line.trim().slice(0, 80)}` });
     if (isPack && REORDER_RE.test(line)) findings.push({ rule: 'R3', line: at, detail: `visual-reordering property in pack: ${line.trim().slice(0, 80)}` });
     if (isPack && PRIMITIVE_IN_PACK_RE.test(line)) findings.push({ rule: 'R5', line: at, detail: `pack redefines primitive-tier token (non-themeable floor): ${line.trim().slice(0, 80)}` });
     if (isConsumer) {

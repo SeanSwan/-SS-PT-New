@@ -23,6 +23,15 @@ const createExercise = (overrides = {}) => {
 };
 
 describe('bootcamp template live media rejoin', () => {
+  it('does not rejoin the source identity of a legacy renamed replacement', async () => {
+    const exercise = createExercise({ sourceExerciseName: 'Original Squat', videoUrl: 'source-demo', instructions: 'source cues' });
+    let calls = 0;
+    await __testing__.hydrateTemplateExerciseMedia([{ exercises: [exercise] }], async () => { calls++; return []; });
+    expect(calls).toBe(0);
+    expect(exercise.exerciseLibraryId).toBeNull();
+    expect(exercise.videoUrl).toBeNull();
+    expect(exercise.instructions).toBeNull();
+  });
   it('hydrates saved bootcamp exercises from the current shared Exercise media record', async () => {
     const exercise = createExercise();
     const template = {
