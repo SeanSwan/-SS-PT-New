@@ -38,7 +38,9 @@ export function createCoachSubmit(props: CoachCommandActionProps, addLog: AddCoa
       routeClientLabel: props.routeClientLabel,
       routeIntent: props.routeIntent,
     });
-    if (props.commandLaneEnabled && shouldRouteToCommandLane(trimmed)) {
+    // A PICKED command type is the strongest routing signal there is (the operator
+    // chose the exact row). The verb heuristic only decides for free text.
+    if (props.commandLaneEnabled && (Boolean(commandType) || shouldRouteToCommandLane(trimmed))) {
       const commandResult = await props.executeCommand(trimmed, {
         selectedClientId: props.routeClientId,
         routeContext: props.routeCommandContext,

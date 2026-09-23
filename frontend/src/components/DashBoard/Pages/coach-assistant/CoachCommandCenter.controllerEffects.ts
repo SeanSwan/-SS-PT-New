@@ -42,14 +42,22 @@ export type CoachSelectionPort = {
  */
 const ROUTED_THREAD_LOAD_ATTEMPT_LIMIT = 3;
 
+/**
+ * Load thread history when the surface can actually read it. Staff are admitted
+ * asynchronously (plan 55: GET /api/ai-chat/target-access) and listConversations
+ * answers [] until then, so a mount-only load left a coach's history empty until
+ * their first send (brain-v4). Staff list on every admission; a surface with no
+ * admission step (phase 'retired' — clients) lists once at mount.
+ */
 export function useLoadCoachConversations(chat: {
   listConversations: (status: string, force?: boolean) => unknown;
-}) {
+}, selectionPhase?: string) {
+  const readable = selectionPhase === undefined || selectionPhase === 'ready' || selectionPhase === 'retired';
   useEffect(() => {
-    void chat.listConversations('active', true);
-    // Load once on route mount; the hook owns its cache afterward.
+    if (readable) void chat.listConversations('active', true);
+    // The trigger is "became readable"; the hook owns its cache afterward.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [readable]);
 }
 
 export function useAutoSelectCoachThread(

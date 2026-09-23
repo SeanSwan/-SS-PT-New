@@ -20,6 +20,47 @@ describe('CoachCommandCenter actions command errors', () => {
     expect(executeCommand).toHaveBeenCalledWith('Cancel a session', expect.objectContaining({ commandType: 'cancel_session' }));
   });
 
+  // brain-v4: the test above passes only because 'Cancel…' starts with a command
+  // verb. A picked row whose text does not ('Brief my day', 'Who are my at-risk
+  // clients') used to skip the lane, fall to chat, and silently drop its type.
+  it('routes ANY picked command type to the lane, even when the text has no command verb', async () => {
+    const executeCommand = vi.fn().mockResolvedValue({ type: 'executed', command: 'brief_my_day', result: { sessions: [] }, client: null });
+    const sendMessageWithConversation = vi.fn();
+    const actions = createCoachCommandCenterActions({
+      activeThread: null, activeThreadTitle: 'Today',
+      chat: { listConversations: vi.fn(), loadConversation: vi.fn(), newChat: vi.fn(), sendMessageWithConversation },
+      coachQueue: { refresh: vi.fn() }, clientFacing: false, commandLaneEnabled: true,
+      cancelCommand: vi.fn(), commandText: '', commandTextRef: { current: null }, confirmCommand: vi.fn(), executeCommand,
+      lastDrawerTriggerRef: { current: null }, plaudReviewRef: { current: null }, quickClientName: '', quickClientSource: 'swanstudios',
+      routeClientId: null, routeClientLabel: null, routeCommandContext: null, routeContextPrompt: null, routeIntent: null,
+      setActiveThreadId: vi.fn(), setCommandText: vi.fn(), setDrawer: vi.fn(), setLogs: vi.fn(), setQuickClientBusy: vi.fn(),
+      setQuickClientError: vi.fn(), setQuickClientMessage: vi.fn(), setQuickClientName: vi.fn(), setSelectedStatus: vi.fn(),
+    } as never);
+
+    await actions.handleIntentSubmit('Brief my day', 'brief_my_day');
+    expect(executeCommand).toHaveBeenCalledWith('Brief my day', expect.objectContaining({ commandType: 'brief_my_day' }));
+    expect(sendMessageWithConversation).not.toHaveBeenCalled();
+  });
+
+  it('CONTROL: free text with no command verb and no picked type still goes to chat', async () => {
+    const executeCommand = vi.fn();
+    const sendMessageWithConversation = vi.fn().mockResolvedValue({ role: 'assistant', content: 'ok' });
+    const actions = createCoachCommandCenterActions({
+      activeThread: null, activeThreadTitle: 'Today',
+      chat: { listConversations: vi.fn(), loadConversation: vi.fn(), newChat: vi.fn(), sendMessageWithConversation },
+      coachQueue: { refresh: vi.fn() }, clientFacing: false, commandLaneEnabled: true,
+      cancelCommand: vi.fn(), commandText: '', commandTextRef: { current: null }, confirmCommand: vi.fn(), executeCommand,
+      lastDrawerTriggerRef: { current: null }, plaudReviewRef: { current: null }, quickClientName: '', quickClientSource: 'swanstudios',
+      routeClientId: null, routeClientLabel: null, routeCommandContext: null, routeContextPrompt: null, routeIntent: null,
+      setActiveThreadId: vi.fn(), setCommandText: vi.fn(), setDrawer: vi.fn(), setLogs: vi.fn(), setQuickClientBusy: vi.fn(),
+      setQuickClientError: vi.fn(), setQuickClientMessage: vi.fn(), setQuickClientName: vi.fn(), setSelectedStatus: vi.fn(),
+    } as never);
+
+    await actions.handleIntentSubmit('how is my week looking');
+    expect(executeCommand).not.toHaveBeenCalled();
+    expect(sendMessageWithConversation).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps command-lane errors out of chat fallback', async () => {
     let logs: CommandLogEntry[] = [];
     const setLogs = vi.fn((updater: unknown) => {

@@ -212,7 +212,7 @@ export function useCoachCommandCenterController({
     setQuickClientName,
     setSelectedStatus,
   });
-  useLoadCoachConversations(chat);
+  useLoadCoachConversations(chat, selection.phase);
   useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus, selection, selection.accepted?.threadId ?? null);
   useAutoSelectCoachThread(autoSelectedThread, chat, setActiveThreadId, setSelectedStatus);
   useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setTrackedCommandText);
