@@ -84,8 +84,9 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // An IME is choosing text: its arrows and Enter are not ours (review #10).
-    if (event.nativeEvent.isComposing) return;
+    // An IME is choosing text: its arrows and Enter are not ours (review #10). Safari's
+    // final composition Enter arrives with isComposing=false but keyCode 229 (F-18/F-19).
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
     if (menuOpen && items.length) {
       if (event.key === 'ArrowDown') { event.preventDefault(); setActiveIndex((i) => (i + 1) % items.length); return; }
       if (event.key === 'ArrowUp') { event.preventDefault(); setActiveIndex((i) => (i - 1 + items.length) % items.length); return; }

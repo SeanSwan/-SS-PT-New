@@ -9,7 +9,7 @@
 /** The controller's initial value: true at mount, but nothing has happened yet. */
 const RESTING = new Set(['', 'No coach thread selected']);
 
-const WARN = /(not saved|not sent|not shown|fail|not available|too long|wait for|waiting for|choose a)/i;
+const WARN = /(not saved|not sent|not shown|fail|couldn't|not available|too long|wait for|waiting for|choose a)/i;
 
 export type WorkspaceStatus = { text: string; tone: 'warn' | 'info' };
 

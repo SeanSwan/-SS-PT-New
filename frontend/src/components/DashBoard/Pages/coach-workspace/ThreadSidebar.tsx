@@ -25,7 +25,8 @@ const ThreadSidebar: React.FC<Props> = ({ model }) => {
   const actorKey = model.user ? `${model.user.id}:${model.user.role}` : null;
   const list = useStableThreadList(controller.coachThreads, actorKey, searching);
   const groups = useMemo(() => groupThreads(list.threads), [list.threads]);
-  const settling = !['ready', 'retired'].includes(controller.selectionPhase);
+  // Only a selection still in flight is "loading"; a failed one is not (the header says so).
+  const settling = ['unadmitted', 'checking', 'committing'].includes(controller.selectionPhase);
 
   const pick = (thread: (typeof controller.coachThreads)[number]) => {
     controller.handleThreadSelect(thread);

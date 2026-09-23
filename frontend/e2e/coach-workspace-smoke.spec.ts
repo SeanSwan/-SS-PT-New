@@ -57,9 +57,11 @@ test('"No client (general)" really unpins a staff chat (the stale pin was restor
   const scope = page.getByRole('combobox', { name: 'Client this chat is about' });
   await scope.selectOption('12');
   await expect.poll(() => new URL(page.url()).searchParams.get('clientId')).toBe('12');
+  await expect(page.locator('.ws-status')).toContainText('pinned - new client-bound Coach thread ready');
   await scope.selectOption('');
   await expect.poll(() => new URL(page.url()).searchParams.get('clientId')).toBeNull();
   await expect(scope).toHaveValue('');
+  await expect(page.locator('.ws-status')).toContainText('Main client cleared');
 });
 
 test('a REFUSED "No client" leaves the chat usable on the old client (round-2 review #3)', async ({ page }) => {
@@ -74,6 +76,9 @@ test('a REFUSED "No client" leaves the chat usable on the old client (round-2 re
   // The clear is refused: the pin restore resumes instead of leaving a chat every send refuses.
   await expect.poll(() => new URL(page.url()).searchParams.get('clientId'), { timeout: 10_000 }).toBe('12');
   await expect(scope).toHaveValue('12');
+  // Round-3 #1: the status line says the clear was refused, not that it happened.
+  await expect(page.locator('.ws-status')).toContainText("Couldn't clear the main client");
+  await expect(page.locator('.ws-status')).toHaveAttribute('data-tone', 'warn');
   await composer.fill('hello');
   await composer.press('Enter');
   await expect(page.getByTestId('ws-transcript').getByText(REPLY, { exact: false })).toBeVisible();

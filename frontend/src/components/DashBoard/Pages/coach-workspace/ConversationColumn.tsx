@@ -89,7 +89,7 @@ const ConversationColumn: React.FC<Props> = ({ model }) => {
   const runStarter = (starter: Starter) => {
     // Only a type the role-scoped catalog really carries is sent directly.
     if (starter.commandType && available.has(starter.commandType)) model.sendCommand(starter.prompt, starter.commandType);
-    else model.prefill(starter.prompt);
+    else model.writeUnderDraft(starter.prompt); // a restored draft is never replaced (round-3 #3)
   };
 
   return (

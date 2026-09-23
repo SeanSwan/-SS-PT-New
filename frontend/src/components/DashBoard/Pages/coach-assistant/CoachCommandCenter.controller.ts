@@ -101,7 +101,7 @@ export function useCoachCommandCenterController({
     [activeThread?.targetUserId],
   );
   const clientPin = useCoachPinnedClient({ activeThreadClientId, chat, routeClientId, routeThreadId, searchParams,
-    setActiveThreadId, setAutoSelectSuppressed, setSearchParams, setSelectedStatus, userRole, resetSessionLog, selectionPhase: selection.phase });
+    setActiveThreadId, setAutoSelectSuppressed, setSearchParams, setSelectedStatus, userRole, resetSessionLog, selectionPhase: selection.phase, admittedTargetUserId: selection.accepted?.targetUserId });
   const effectiveClientId = clientPin.effectiveClientId;
   const rawRouteIntent = searchParams.get('intent');
   const routeIntent = rawRouteIntent === 'client_onboarding' && routeClientId
