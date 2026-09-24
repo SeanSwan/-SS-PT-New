@@ -52,6 +52,8 @@ describe('CoachCommandCenter section split', () => {
     expect(pageSource).toContain('<CoachClientBar');
     expect(pageSource).toContain('<CoachCommandTabBar');
     expect(pageSource).toContain('<CoachCommandCenterReviewPanel');
+    const controllerSource = readCoachFile('CoachCommandCenter.controller.ts');
+    expect(controllerSource).toContain('handleIntentSubmit: actions.handleIntentSubmit');
     expect(pageSource).toContain('<CoachChatTranscript');
     expect(pageSource).toContain('<CoachConsoleDock');
     expect(pageSource).toContain('<CoachCommandLeftRail');

@@ -170,7 +170,7 @@ const CoachChatTranscript: React.FC<CoachChatTranscriptProps> = ({
             <Sparkles size={22} aria-hidden="true" />
             <strong>Talk to Swan Coach</strong>
             <p>Example: Log today&apos;s workout: bench 4x8 at 185.</p>
-            <span className="transcript-empty-safe">Nothing saves until you confirm.</span>
+            <span className="transcript-empty-safe">Chats are saved. Some actions ask you to confirm first.</span>
             {nextActionLabel ? (
               <span className="transcript-empty-next" role="status" aria-label="Recommended coach action">
                 Next: {nextActionLabel}

@@ -1,0 +1,327 @@
+import express from 'express';
+import request from 'supertest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const {
+  mockGetModel,
+  mockAssignment,
+  mockListAssignments,
+  mockReadCoachIntent,
+  mockExecutePipeline,
+  mockContextEnvelope,
+  mockQuery,
+} = vi.hoisted(() => ({
+  mockGetModel: vi.fn(),
+  mockAssignment: vi.fn(),
+  mockListAssignments: vi.fn(),
+  mockReadCoachIntent: vi.fn(),
+  mockExecutePipeline: vi.fn(),
+  mockContextEnvelope: vi.fn(),
+  mockQuery: vi.fn(),
+}));
+
+let actingUser = { id: 7, role: 'trainer' };
+const rows = [
+  {
+    id: '11111111-1111-4111-8111-111111111111', actorId: 7, targetClientId: 44,
+    commandType: 'log_workout', status: 'completed', operationId: 'op-1', proposalId: 'proposal-1',
+    result: {
+      schemaVersion: 1, recordRefs: [{ kind: 'daily_workout_form', id: 91, version: 3 }],
+      realAffectedCount: 1, reversibility: 'none', undoAvailable: false,
+      providerError: 'do not expose', transcript: 'do not expose',
+    },
+    createdAt: new Date('2026-09-04T20:00:00.000Z'), updatedAt: new Date('2026-09-04T20:01:00.000Z'),
+    completedAt: new Date('2026-09-04T20:01:00.000Z'), expiresAt: null,
+  },
+  {
+    id: '22222222-2222-4222-8222-222222222222', actorId: 7, targetClientId: null,
+    commandType: 'read_progress', status: 'unknown', operationId: null, proposalId: null,
+    result: { state: 'unknown', reasonCode: 'CLIENT_TIMEOUT' },
+    createdAt: new Date('2026-09-04T19:00:00.000Z'), updatedAt: new Date('2026-09-04T19:00:00.000Z'),
+    completedAt: null, expiresAt: null,
+  },
+  {
+    id: '33333333-3333-4333-8333-333333333333', actorId: 7, targetClientId: null,
+    commandType: 'list_sessions', status: 'failed', operationId: null, proposalId: null,
+    result: null, createdAt: new Date('2026-09-04T18:00:00.000Z'),
+    updatedAt: new Date('2026-09-04T18:00:00.000Z'), completedAt: null, expiresAt: null,
+  },
+];
+
+vi.mock('../../middleware/authMiddleware.mjs', () => ({
+  protect: (req, _res, next) => { req.user = { ...actingUser }; next(); },
+}));
+vi.mock('../../middleware/aiCommandGuards.mjs', () => ({
+  aiCommandLaneKillSwitch: (_req, res, next) => {
+    if (process.env.AI_COMMANDS_ENABLED === 'false') return res.status(503).json({ code: 'AI_COMMANDS_DISABLED' });
+    return next();
+  },
+  aiCommandRateLimiter: (_req, _res, next) => next(),
+}));
+vi.mock('../../middleware/verifyClientAccess.mjs', () => ({
+  assertAssignmentOrAdmin: mockAssignment,
+  listAssignedClientIds: mockListAssignments,
+}));
+vi.mock('../../database.mjs', () => ({
+  default: { QueryTypes: { SELECT: 'SELECT' }, query: mockQuery },
+  Op: { lt: Symbol('lt'), or: Symbol('or') },
+}));
+vi.mock('../../models/index.mjs', () => ({ getModel: mockGetModel }));
+vi.mock('../../services/ai/coachIntentService.mjs', async (importOriginal) => ({
+  ...(await importOriginal()),
+  readCoachIntent: mockReadCoachIntent,
+}));
+vi.mock('../../services/ai/commandAudit.mjs', () => ({ recordCommandAudit: vi.fn() }));
+vi.mock('../../services/ai/unhandledUtteranceAudit.mjs', () => ({ recordUnhandledUtterance: vi.fn() }));
+vi.mock('../../services/ai/commandExecutor.mjs', () => ({
+  executeCommandPipeline: mockExecutePipeline, executeConfirmedOperation: vi.fn(), checkForConfirmation: vi.fn(),
+}));
+vi.mock('../../services/ai/commandContextEnvelope.mjs', () => ({ buildCommandContextEnvelope: mockContextEnvelope }));
+vi.mock('../../services/ai/commandDispatchEligibility.mjs', () => ({
+  gateCommandFrontendDispatch: vi.fn(async () => ({ allowed: true, refusals: [] })),
+  buildDispatchRefusalResponse: vi.fn(),
+}));
+vi.mock('../../services/ai/commandExecutionLane.mjs', () => ({ getCommandExecutionLane: vi.fn() }));
+vi.mock('../../services/ai/commandRegistry/index.mjs', () => ({
+  getCommandsForRole: vi.fn(() => []), getAllCommandTypes: vi.fn(() => []), initializeRegistry: vi.fn(),
+}));
+vi.mock('../../services/ai/pendingOperationStore.mjs', () => ({
+  getPendingOperationStore: vi.fn(() => ({ kind: 'test', durable: false })),
+}));
+vi.mock('../../services/ai/approvalEvents.mjs', () => ({
+  recordApprovalEvent: vi.fn(), APPROVAL_EVENTS: {},
+}));
+vi.mock('../../services/ai/destructiveOperations.mjs', () => ({
+  cancelOperation: vi.fn(), getPendingCount: vi.fn(async () => 0), peekOperation: vi.fn(),
+}));
+
+const aiCommandRoutes = (await import('../../routes/aiCommandRoutes.mjs')).default;
+// The shared setup mock captures route logger calls so a privacy assertion can
+// inspect what the route actually logged, not console text or file contents.
+const { default: logger } = await import('../../utils/logger.mjs');
+
+function makeApp() {
+  const app = express();
+  app.use(express.json());
+  app.use('/api/ai-command', aiCommandRoutes);
+  return app;
+}
+
+beforeEach(() => {
+  actingUser = { id: 7, role: 'trainer' };
+  mockAssignment.mockReset();
+  mockAssignment.mockResolvedValue(true);
+  mockListAssignments.mockReset();
+  mockListAssignments.mockResolvedValue([44, 55]);
+  mockReadCoachIntent.mockReset();
+  mockGetModel.mockReset();
+  mockGetModel.mockReturnValue({ findByPk: vi.fn(), findAll: vi.fn() });
+  mockExecutePipeline.mockReset();
+  mockContextEnvelope.mockReset();
+  mockContextEnvelope.mockResolvedValue({ schemaVersion: 1, actor: { id: 7, role: 'trainer' } });
+  mockQuery.mockReset();
+  mockQuery.mockResolvedValue([]);
+  logger.error.mockClear();
+});
+
+describe('CoachIntent receipt reads', () => {
+  it('does not reuse a cursor under a different actor or filter', async () => {
+    mockGetModel.mockReturnValue({ findAll: vi.fn(async () => rows) });
+    const page = await request(makeApp()).get('/api/ai-command/intents?limit=1').expect(200);
+    actingUser = { id: 8, role: 'trainer' };
+    await request(makeApp()).get('/api/ai-command/intents').query({ cursor: page.body.nextCursor }).expect(400);
+    actingUser = { id: 7, role: 'trainer' };
+    await request(makeApp()).get('/api/ai-command/intents').query({ cursor: page.body.nextCursor, targetClientId: 44 }).expect(400);
+  });
+
+  it('bounds denied-row scanning and preserves a private empty-page continuation', async () => {
+    let ordinal = 0;
+    const model = { findAll: vi.fn(async ({ limit }) => Array.from({ length: Math.min(limit, 600 - ordinal) }, () => {
+      ordinal += 1;
+      return { ...rows[0], id: `00000000-0000-4000-8000-${String(ordinal).padStart(12, '0')}`,
+        createdAt: new Date(Date.parse('2026-09-04T20:00:00Z') - ordinal * 1000) };
+    })) };
+    mockGetModel.mockReturnValue(model);
+    mockAssignment.mockResolvedValue(false);
+    mockListAssignments.mockResolvedValue([]);
+    const res = await request(makeApp()).get('/api/ai-command/intents?limit=1').expect(200);
+    expect(res.body.intents).toEqual([]);
+    expect(model.findAll.mock.calls.length).toBeLessThanOrEqual(10);
+    expect(ordinal).toBeLessThanOrEqual(500);
+    expect(res.body.nextCursor).toBeTruthy();
+    expect(Buffer.from(res.body.nextCursor, 'base64url').toString()).not.toMatch(/createdAt|00000000-0000-4000/);
+  });
+
+  it('denies unsupported roles even for an actor-owned receipt', async () => {
+    actingUser = { id: 7, role: 'unregistered' };
+    mockGetModel.mockReturnValue({ findAll: vi.fn(async () => [rows[1]]) });
+    await request(makeApp()).get('/api/ai-command/intents').expect(404);
+  });
+
+  it('returns a redacted semantic receipt to its actor without raw result payloads', async () => {
+    mockReadCoachIntent.mockResolvedValue(rows[0]);
+
+    const res = await request(makeApp()).get(`/api/ai-command/intents/${rows[0].id}`);
+    expect(res.status).toBe(200);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.intent).toMatchObject({
+      id: rows[0].id, commandType: 'log_workout', targetUserId: 44, status: 'completed',
+    });
+    expect(res.body.intent.result.recordRefs).toEqual([{ kind: 'daily_workout_form', id: '91', version: 3 }]);
+    expect(JSON.stringify(res.body)).not.toMatch(/do not expose|transcript|providerError/i);
+  });
+
+  it('uses the same 404 response for a missing intent and an unauthorized target read', async () => {
+    actingUser = { id: 8, role: 'trainer' };
+    mockReadCoachIntent.mockResolvedValueOnce(rows[0]).mockResolvedValueOnce(null);
+    mockAssignment.mockResolvedValue(false);
+
+    const denied = await request(makeApp())
+      .get(`/api/ai-command/intents/${rows[0].id}`)
+      .expect(404);
+    const missing = await request(makeApp())
+      .get('/api/ai-command/intents/44444444-4444-4444-8444-444444444444')
+      .expect(404);
+
+    expect(denied.body).toEqual(missing.body);
+  });
+
+  it('rechecks current target assignment even when the requester created the receipt', async () => {
+    mockReadCoachIntent.mockResolvedValue(rows[0]);
+    mockAssignment.mockResolvedValue(false);
+
+    await request(makeApp())
+      .get(`/api/ai-command/intents/${rows[0].id}`)
+      .expect(404);
+    expect(mockAssignment).toHaveBeenCalledWith(7, 'trainer', 44);
+  });
+
+  it('lists only the actor scope with an opaque next cursor and bounded result shape', async () => {
+    const model = { findAll: vi.fn(async () => rows) };
+    mockGetModel.mockReturnValue(model);
+
+    const res = await request(makeApp()).get('/api/ai-command/intents?limit=2');
+    expect(res.status).toBe(200);
+
+    expect(model.findAll).toHaveBeenCalledWith(expect.objectContaining({ limit: 50 }));
+    expect(res.body.intents).toHaveLength(2);
+    expect(res.body.nextCursor).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(res.body.intents[0]).not.toHaveProperty('actorId');
+    expect(JSON.stringify(res.body)).not.toMatch(/do not expose|transcript|providerError/i);
+  });
+
+  it('uses the cursor id as a tie-breaker for equal createdAt rows', async () => {
+    const model = { findAll: vi.fn()
+      .mockResolvedValueOnce([rows[0], { ...rows[1], createdAt: rows[0].createdAt, id: '00000000-0000-4000-8000-000000000000' }])
+      .mockResolvedValueOnce([]) };
+    mockGetModel.mockReturnValue(model);
+
+    const first = await request(makeApp()).get('/api/ai-command/intents?limit=1').expect(200);
+    await request(makeApp()).get(`/api/ai-command/intents?limit=1&cursor=${first.body.nextCursor}`).expect(200);
+    const secondWhere = model.findAll.mock.calls[1][0].where;
+    expect(Object.getOwnPropertySymbols(secondWhere).length).toBeGreaterThan(0);
+  });
+
+  it('keeps receipt reads available while command writes are paused', async () => {
+    process.env.AI_COMMANDS_ENABLED = 'false';
+    mockReadCoachIntent.mockResolvedValue(rows[1]);
+    await request(makeApp()).get(`/api/ai-command/intents/${rows[1].id}`).expect(200);
+    delete process.env.AI_COMMANDS_ENABLED;
+  });
+
+  it('continues past revoked recent rows so older authorized receipts remain visible', async () => {
+    const revoked = { ...rows[0], createdAt: new Date('2026-09-04T21:00:00.000Z'), targetClientId: 44 };
+    const authorized = { ...rows[1], createdAt: new Date('2026-09-04T20:00:00.000Z'), targetClientId: 55 };
+    const model = { findAll: vi.fn()
+      .mockResolvedValueOnce([revoked, authorized])
+      .mockResolvedValueOnce([]) };
+    mockGetModel.mockReturnValue(model);
+    mockAssignment.mockImplementation(async (_actorId, _role, targetId) => targetId === 55);
+    mockListAssignments.mockResolvedValue([55]);
+
+    const res = await request(makeApp()).get('/api/ai-command/intents?limit=1').expect(200);
+    expect(res.body.intents).toHaveLength(1);
+    expect(res.body.intents[0].targetUserId).toBe(55);
+    expect(model.findAll).toHaveBeenCalledTimes(1); // The short 50-row batch proves exhaustion.
+  });
+});
+
+// Behavioural replacement for the obsolete aiCommandRoutes source guard
+// ("keeps route-level command failures off raw exception messages and stacks").
+// It ran the real router with injected failures, so a route that started
+// reflecting exception text — or trusted a forged error name as a typed public
+// message — fails here. The former guard could not see either.
+const PRIVATE_DETAIL = 'SYNTHETIC_PRIVATE_PROVIDER_DETAIL';
+
+// Deliberately carries the private sentinel in message/stack/cause/sql, and a
+// FORGED class name + status. `err.name` is a ClassName, not private text, so it
+// is allowed to appear as the route log's errorName — the current logger
+// contract records name/code only.
+function forgedRouteError() {
+  const err = new Error(`${PRIVATE_DETAIL} while reading coach intents`);
+  err.name = 'CoachIntentListError';
+  err.status = 400;
+  err.stack = `Error: ${PRIVATE_DETAIL}\n    at SYNTHETIC_PRIVATE_FRAME (route.mjs:1:1)`;
+  err.cause = new Error('SYNTHETIC_PRIVATE_CAUSE');
+  err.sql = 'SELECT SYNTHETIC_PRIVATE_SQL';
+  return err;
+}
+
+function expectNoPrivateDetail(value) {
+  const json = JSON.stringify(value);
+  expect(json).not.toContain(PRIVATE_DETAIL);
+  expect(json).not.toMatch(/SYNTHETIC_PRIVATE_(FRAME|CAUSE|SQL)/);
+}
+
+describe('CoachIntent fixed public errors and exception privacy (actual routes)', () => {
+  it('answers typed receipt failures with their fixed public messages', async () => {
+    const badCursor = await request(makeApp()).get('/api/ai-command/intents?cursor=not-a-cursor');
+    expect(badCursor.status).toBe(400);
+    expect(badCursor.body).toEqual({ success: false, error: 'cursor is invalid.' });
+
+    mockListAssignments.mockResolvedValue([]);
+    const denied = await request(makeApp()).get('/api/ai-command/intents?targetClientId=99');
+    expect(denied.status).toBe(404);
+    expect(denied.body).toEqual({ success: false, error: 'Intent not found or unavailable.' });
+  });
+
+  it('fails the whole list when current assignment cannot be verified', async () => {
+    mockListAssignments.mockRejectedValue(forgedRouteError());
+    const res = await request(makeApp()).get('/api/ai-command/intents?targetClientId=44');
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({ success: false, error: 'Coach intent history is unavailable.' });
+    expectNoPrivateDetail(res.body);
+    expectNoPrivateDetail(logger.error.mock.calls);
+  });
+
+  it('withholds a forged-name list exception from response and route log', async () => {
+    mockGetModel.mockReturnValue({ findAll: vi.fn(async () => { throw forgedRouteError(); }) });
+    const res = await request(makeApp()).get('/api/ai-command/intents');
+    expect(res.status).toBe(503);
+    expect(res.body).toEqual({ success: false, error: 'Failed to read coach intents.' });
+    expectNoPrivateDetail(res.body);
+    expectNoPrivateDetail(logger.error.mock.calls);
+  });
+
+  it('withholds a forged-name detail exception from response and route log', async () => {
+    mockReadCoachIntent.mockRejectedValue(forgedRouteError());
+    const res = await request(makeApp()).get(`/api/ai-command/intents/${rows[0].id}`);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ success: false, error: 'Failed to read coach intent.' });
+    expectNoPrivateDetail(res.body);
+    expectNoPrivateDetail(logger.error.mock.calls);
+  });
+
+  it('reaches the command executor and still withholds its exception detail', async () => {
+    mockExecutePipeline.mockRejectedValue(forgedRouteError());
+    const res = await request(makeApp()).post('/api/ai-command/execute')
+      .send({ message: 'log my squat session' });
+
+    expect(mockExecutePipeline).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(500);
+    expect(res.body).toEqual({ success: false, error: 'Internal server error processing your command' });
+    expectNoPrivateDetail(res.body);
+    expectNoPrivateDetail(logger.error.mock.calls);
+  });
+});

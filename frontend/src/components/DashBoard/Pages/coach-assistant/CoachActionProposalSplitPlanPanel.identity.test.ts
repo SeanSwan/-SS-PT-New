@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
+import { expectCoachSurfaceMount } from './coachSurfaceMount.testUtil';
 
 import { splitCandidateItems, splitCandidateKey } from './CoachActionProposalSplitPlanPanel';
 
@@ -24,12 +25,13 @@ describe('CoachActionProposalSplitPlanPanel identity contract', () => {
       'utf8',
     );
 
-    expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
-    expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    // RE-ANCHORED (brain-v4): the route now mounts CoachSurfaceRoute (v4 workspace
+    // by default, this legacy page behind the flag); the helper checks both chains.
+    expectCoachSurfaceMount(routeComponentsSource, routesSource);
     expect(pageSource).toContain('<SwanCoachMessagesPanel');
     expect(messagesSource).toContain('<CoachMessage');
     expect(messageSource).toContain('<CoachActionProposalCard key={proposal.id}');
-    expect(proposalCardSource).toContain('<CoachActionProposalSplitPlanPanel detail={detail} />');
+    expect(proposalCardSource).toContain('<CoachActionProposalSplitPlanPanel detail={detailHidden ? null : detail} />');
     expect(proposalServiceSource).toContain('/api/coach/proposals/');
   });
 

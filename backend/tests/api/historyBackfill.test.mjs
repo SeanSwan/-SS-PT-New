@@ -116,8 +116,9 @@ describe('integrity rails', () => {
   });
 
   it('the adapter PR step honors suppression (records, never awards)', () => {
-    const adapter = read('../../services/workout/aiWorkoutDailyFormService.mjs');
-    expect(adapter).toMatch(/awardPoints: !sourcePolicy\.suppressEngagementSideEffects/);
+    // Post-commit extraction: the PR step now lives in aiWorkoutPostCommitService.
+    const postCommit = read('../../services/workout/aiWorkoutPostCommitService.mjs');
+    expect(postCommit).toMatch(/awardPoints: !sourcePolicy\.suppressEngagementSideEffects/);
     const pr = read('../../services/workout/workoutPrDetectionService.mjs');
     expect(pr).toMatch(/awardPoints/);
     expect(pr).toMatch(/achievedAt/);
@@ -127,8 +128,9 @@ describe('integrity rails', () => {
     // Challenge events stamp submittedAt (today), not the backdated workout
     // date — an ungated 60-session backfill would instantly complete active
     // challenges. AD-2 review catch.
-    const adapter = read('../../services/workout/aiWorkoutDailyFormService.mjs');
-    expect(adapter).toMatch(/sourcePolicy\.suppressEngagementSideEffects\s*\n?\s*\?\s*\{ status: 'suppressed_historical'/);
+    // Post-commit extraction: the challenge gate now lives in aiWorkoutPostCommitService.
+    const postCommit = read('../../services/workout/aiWorkoutPostCommitService.mjs');
+    expect(postCommit).toMatch(/sourcePolicy\.suppressEngagementSideEffects\s*\n?\s*\?\s*\{ status: 'suppressed_historical'/);
   });
 
   it('commit requires attestation and undo deletes in FK-safe order', () => {

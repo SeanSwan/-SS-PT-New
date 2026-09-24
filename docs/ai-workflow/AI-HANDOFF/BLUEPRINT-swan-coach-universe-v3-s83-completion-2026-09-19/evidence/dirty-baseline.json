@@ -1,0 +1,151 @@
+{
+  "generatedAt": "2026-09-21T18:21:40.997Z",
+  "baseHead": "53005a6da965f5ca9e9c8d5ead86c6e19e081095",
+  "headAtPreservation": "53005a6da965f5ca9e9c8d5ead86c6e19e081095",
+  "paths": [
+    {
+      "status": "M",
+      "path": "backend/package.json",
+      "bytes": 10505,
+      "sha256": "922fcf67591895d7d3d85f2a3cf954f161f47c178de5c1659d0f8ab1bde8732b"
+    },
+    {
+      "status": "M",
+      "path": "backend/run-coach-postgres.mjs",
+      "bytes": 15032,
+      "sha256": "987724a13fc97b0240cd106831eab6579d8471e001c34fe524e9afeb1958f55c"
+    },
+    {
+      "status": "M",
+      "path": "backend/tests/helpers/coachDatabaseLease.mjs",
+      "bytes": 13097,
+      "sha256": "ce25b6839acc87ac7cce71f3b525e50859f278057c29478a7500d496a49b9369"
+    },
+    {
+      "status": "M",
+      "path": "backend/tests/unit/coachDatabaseLease.test.mjs",
+      "bytes": 11163,
+      "sha256": "50a11c0468d93285ae892255c144d91b9e7ff8cf1054298c4b43479d57136c09"
+    },
+    {
+      "status": "M",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/01-architecture.md",
+      "bytes": 12250,
+      "sha256": "68a3d2df5a64346f4b2c33003623fa76a934388d7237b84571aba6fecfc8de2a"
+    },
+    {
+      "status": "M",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/03-contracts.md",
+      "bytes": 14407,
+      "sha256": "c04fa8f72b84d65a85052fa0294f640f5e552bfa2060635a414d68a6659cda27"
+    },
+    {
+      "status": "M",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/07-checkpoints.md",
+      "bytes": 15046,
+      "sha256": "ba8e005d5920f1efd4e8bb4b1f4422f6ac0749fdff5d009aba3b87bf40b9aeb7"
+    },
+    {
+      "status": "M",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/RUNNER-HARDENING-NOTES.md",
+      "bytes": 20840,
+      "sha256": "0686160474da89a0548836afb9eaa61f33a9c7f14bf0fcf80d74b4b354b04c47"
+    },
+    {
+      "status": "M",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/VERIFICATION-NOTES-REVIEW-3.md",
+      "bytes": 28658,
+      "sha256": "d18ede8832966483ebf588980d110e12a03ddb10d15f15095f85bba4bd6b7820"
+    },
+    {
+      "status": "??",
+      "path": "backend/tests/helpers/coachRunnerReport.mjs",
+      "bytes": 5779,
+      "sha256": "fa3242dd8088a9c896e3c92c9db2e267b9822d64f44d751e599fcdde50e01159"
+    },
+    {
+      "status": "??",
+      "path": "backend/tests/helpers/coachRunnerVerdict.mjs",
+      "bytes": 7810,
+      "sha256": "058732cebdd0311846176bbd5be4d26ae35e1cd3be729bdf37523868b984ebe9"
+    },
+    {
+      "status": "??",
+      "path": "backend/tests/unit/coachRunnerVerdict.test.mjs",
+      "bytes": 11321,
+      "sha256": "d0cc0b5467558023f4b85f184126f51b1d77d1b4dc3a7f6c55c83a13cdc88550"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-4-xhigh.md",
+      "bytes": 100821,
+      "sha256": "de7f058602cc051e02ad99e2beb5fea00e9eb3be49d61115bc251ab3e7715f79"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-4-xhigh.meta.json",
+      "bytes": 998,
+      "sha256": "bea919ccd19dd9b0a70f922d9d6a5928af6e427772f2a8af94f8d7d683d57179"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-4.md",
+      "bytes": 90834,
+      "sha256": "3639f8b352e606cebb3325f4e46bc4cd2c7742af3e1ef40ca7eb8fe45da05d6d"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-4.meta.json",
+      "bytes": 990,
+      "sha256": "443bb9eca5d885b2a7852f9d75a16b2000b576a59b2de640b73a0f85b07fa85d"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-5.md",
+      "bytes": 86964,
+      "sha256": "0b7184da3d772aeeb73052637d953a7413cbf2569c07d0757b365a0344f34f22"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/ASTRA-REPLY-REVIEW-5.meta.json",
+      "bytes": 941,
+      "sha256": "029c74af8ebcf748cf4dc6e2a21c3fd624a74ab705178080544c96369ccb6e32"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-4-PREAMBLE.md",
+      "bytes": 12825,
+      "sha256": "be99eb4075659e615e2340e902a3c477d518cab46d2bddf5101b31c17f28982f"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-4.md",
+      "bytes": 130255,
+      "sha256": "84931bb697616037926e1342286b0851848b05be8f1b4299eea75c9b4fdd98d8"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-5-PREAMBLE.md",
+      "bytes": 18077,
+      "sha256": "48f4c05f341cd3f941a1980cc1045aaafbaead565d7cdc2daef70e5fab336c7c"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-5.md",
+      "bytes": 97679,
+      "sha256": "9211cb46800c830d4a9e3f639cbb8c1d718fb9b23ab261f4cc88fa1809aef781"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/VERIFICATION-NOTES-REVIEW-4.md",
+      "bytes": 37532,
+      "sha256": "eb82f2d9bc0deca071059b67a61f78a045db4ea564575d00cb5266d995ec6636"
+    },
+    {
+      "status": "??",
+      "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/VERIFICATION-NOTES-REVIEW-5.md",
+      "bytes": 12165,
+      "sha256": "0244f9963520c21c129c2fc40e7e9c464b146511f74f634339ef7d5ef41fbe4c"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "tests": { "path": "tmp/coach-g07-20260911/g07-tests-receipt.json", "sha256": "e17072bb3f0e7766ada67d14e2de1d4dbb84863cc394b21aac973c1263f1d728" },
+  "build": { "path": "tmp/coach-g07-20260911/g07-build-receipt.json", "sha256": "2d5d2de58d80a17ead7fa042c3f8a7bcc20179e7b84abe8a510c64f7fd4a35cf" }
+}

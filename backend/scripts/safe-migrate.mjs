@@ -38,6 +38,27 @@ const migrationsDir = path.join(backendDir, 'migrations');
 // Flags (e.g. --retry-quarantined) must not be mistaken for the env positional.
 const env = (process.argv[2] && !process.argv[2].startsWith('--')) ? process.argv[2] : 'production';
 
+/**
+ * SSL options for the production connection.
+ *
+ * TLS is REQUIRED against Render's Postgres, and that stays the default here —
+ * nothing in this change relaxes it. The migration shadow check
+ * (.github/workflows/migration-shadow-check.yml) runs against an empty
+ * throwaway container that has no TLS at all, and until now it died at connect
+ * time with "The server does not support SSL connections" BEFORE a single
+ * migration ran — so the job never tested the migrations it exists to test, and
+ * five new migrations reached production unexercised.
+ *
+ * That job opts out explicitly with PGSSLMODE=disable. It is the only caller
+ * that sets it, and it is not production. PGSSLMODE is the libpq-standard
+ * spelling, so this needs no bespoke variable.
+ */
+function productionDialectOptions() {
+  const mode = String(process.env.PGSSLMODE || '').trim().toLowerCase();
+  if (['disable', 'false', '0', 'off'].includes(mode)) return { ssl: false };
+  return { ssl: { require: true, rejectUnauthorized: false } };
+}
+
 export {
   isAlreadyAppliedError,
   isStructuralAlreadyExistsError,
@@ -54,7 +75,7 @@ async function getSequelize() {
   if (env === 'production' && process.env.DATABASE_URL) {
     return new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
-      dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+      dialectOptions: productionDialectOptions(),
       logging: false,
     });
   }
@@ -300,7 +321,7 @@ async function main() {
     if (env === 'production' && process.env.DATABASE_URL) {
       seq = new Sequelize(process.env.DATABASE_URL, {
         dialect: 'postgres',
-        dialectOptions: { ssl: { require: true, rejectUnauthorized: false } },
+        dialectOptions: productionDialectOptions(),
         logging: false,
       });
     } else {

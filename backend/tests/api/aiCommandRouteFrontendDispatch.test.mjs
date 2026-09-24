@@ -2,7 +2,10 @@ import express from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockBuildCommandContextEnvelope, mockExecuteCommandPipeline, mockGetCommandExecutionLane, mockQuery } = vi.hoisted(() => ({
+const { mockBuildCommandContextEnvelope, mockExecuteCommandPipeline, mockGetCommandExecutionLane, mockQuery, mockGateDispatch, mockExecuteConfirmed, mockRecordAudit } = vi.hoisted(() => ({
+  mockGateDispatch: vi.fn(),
+  mockExecuteConfirmed: vi.fn(),
+  mockRecordAudit: vi.fn(),
   mockBuildCommandContextEnvelope: vi.fn(),
   mockExecuteCommandPipeline: vi.fn(),
   mockGetCommandExecutionLane: vi.fn(),
@@ -25,9 +28,18 @@ vi.mock('../../database.mjs', () => ({
   default: { query: mockQuery },
 }));
 
+// H6: the chat lane's eligibility gate is now applied to command-lane dispatches.
+// Default ALLOW so the pre-existing dispatch tests keep their meaning; the H6
+// cases below flip it.
+vi.mock('../../services/ai/commandDispatchEligibility.mjs', async () => {
+  const actual = await vi.importActual('../../services/ai/commandDispatchEligibility.mjs');
+  return { ...actual, gateCommandFrontendDispatch: mockGateDispatch };
+});
+vi.mock('../../services/ai/commandAudit.mjs', () => ({ recordCommandAudit: mockRecordAudit }));
+
 vi.mock('../../services/ai/commandExecutor.mjs', () => ({
   executeCommandPipeline: mockExecuteCommandPipeline,
-  executeConfirmedOperation: vi.fn(),
+  executeConfirmedOperation: mockExecuteConfirmed,
   checkForConfirmation: vi.fn(),
 }));
 
@@ -58,6 +70,10 @@ const baseCtx = {
 
 describe('aiCommandRoutes frontend dispatch responses', () => {
   beforeEach(() => {
+    mockGateDispatch.mockReset();
+    mockGateDispatch.mockResolvedValue({ allowed: true, refusals: [] });
+    mockRecordAudit.mockReset();
+    mockExecuteConfirmed.mockReset();
     mockExecuteCommandPipeline.mockReset();
     mockBuildCommandContextEnvelope.mockReset();
     mockBuildCommandContextEnvelope.mockResolvedValue({
@@ -177,6 +193,52 @@ describe('aiCommandRoutes frontend dispatch responses', () => {
       payload: { exerciseName: 'Push Up', sets: 3, reps: 10 },
       fallbackToChat: false,
     });
+  });
+
+
+  it('H6-1: refuses an AI_ADD_EXERCISE dispatch the eligibility gate rejects, and audits the denial', async () => {
+    // Whole-Coach hostile round 1 (Sol/HY3/GLM/Grok): the command lane emitted
+    // AI_ADD_EXERCISE with none of the chat lane's registry + pain + review gates.
+    mockGateDispatch.mockResolvedValue({
+      allowed: false,
+      refusals: [{ event: 'AI_ADD_EXERCISE', exerciseName: 'Burpee', code: 'PAIN_EXCLUDED', reason: 'knee flagged in the last 72h' }],
+    });
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'add_exercise_to_form', params: { exerciseName: 'Burpee', sets: 3, reps: 10 } },
+      command: { type: 'add_exercise_to_form', description: 'Add an exercise', method: 'FRONTEND_DISPATCH', endpoint: 'AI_ADD_EXERCISE', frontendEvent: 'AI_ADD_EXERCISE', requiresConfirmation: false },
+      result: { type: 'not_wired' },
+    });
+
+    const response = await request(makeApp()).post('/api/ai-command/execute').send({ message: 'add burpees', selectedClientId: 42 }).expect(200);
+
+    expect(response.body).toMatchObject({ success: false, type: 'error', code: 'DISPATCH_INELIGIBLE', fallbackToChat: false });
+    expect(response.body.error).toMatch(/knee flagged/);
+    expect(response.body.event).toBeUndefined();
+    expect(mockGateDispatch).toHaveBeenCalledWith(expect.objectContaining({ event: 'AI_ADD_EXERCISE', targetClientId: 42 }));
+    expect(mockRecordAudit).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'denied', errorCode: 'DISPATCH_INELIGIBLE', commandType: 'add_exercise_to_form' }));
+  });
+
+  it('H6-2: the confirmed-dispatch path is gated too - confirmation is about intent, not client safety', async () => {
+    mockExecuteConfirmed.mockResolvedValue({ success: true, type: 'frontend_dispatch', command: 'add_exercise_to_form', event: 'AI_ADD_EXERCISE', payload: { exerciseName: 'Burpee' }, client: { id: 42 }, message: 'confirmed' });
+    mockGateDispatch.mockResolvedValue({ allowed: false, refusals: [{ code: 'EXERCISE_NOT_IN_REGISTRY', reason: 'exercise could not be matched' }] });
+
+    const response = await request(makeApp()).post('/api/ai-command/confirm').send({ operationId: 'op-1' }).expect(200);
+
+    expect(response.body).toMatchObject({ success: false, code: 'DISPATCH_INELIGIBLE' });
+    expect(response.body.event).toBeUndefined();
+    expect(mockGateDispatch).toHaveBeenCalledWith(expect.objectContaining({ event: 'AI_ADD_EXERCISE', targetClientId: 42 }));
+  });
+
+  it('H6-3: a non-gated frontend event passes straight through (the gate allows it)', async () => {
+    mockExecuteCommandPipeline.mockResolvedValue({
+      ...baseCtx,
+      intent: { intent: 'toggle_nasm_item', params: { item: 'warmup' } },
+      command: { type: 'toggle_nasm_item', description: 'Toggle', method: 'FRONTEND_DISPATCH', endpoint: 'AI_TOGGLE_NASM_ITEM', frontendEvent: 'AI_TOGGLE_NASM_ITEM', requiresConfirmation: false },
+      result: { type: 'not_wired' },
+    });
+    const response = await request(makeApp()).post('/api/ai-command/execute').send({ message: 'toggle warmup' }).expect(200);
+    expect(response.body).toMatchObject({ success: true, type: 'frontend_dispatch', event: 'AI_TOGGLE_NASM_ITEM' });
   });
 
   it('returns the authoritative server expiry for confirmation cards', async () => {

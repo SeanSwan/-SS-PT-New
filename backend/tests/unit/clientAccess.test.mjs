@@ -176,3 +176,42 @@ describe('session-history fallback is bounded, not unlimited', () => {
     expect(Object.isFrozen(REAL_RELATIONSHIP_STATUSES)).toBe(true);
   });
 });
+
+ it('unknown roles cannot acquire self context',async()=>{expect((await checkClientAccess({id:42,role:'unknown'},42,fakeSequelize())).allowed).toBe(false);});
+
+
+describe('HR8 authenticated actor ID normalization', () => {
+  it.each(['trainer', 'client', 'user'])('%s digit-string actor retains numeric self access without a query', async (role) => {
+    const db = fakeSequelize();
+    expect(await checkClientAccess({ id: '8', role }, 8, db)).toEqual({ allowed: true, via: 'self', reason: null });
+    expect(await checkClientAccess({ id: 8, role }, '8', db)).toEqual({ allowed: true, via: 'self', reason: null });
+    expect(db.query).not.toHaveBeenCalled();
+  });
+
+  it.each(['client', 'user'])('%s string actor cannot access another target', async (role) => {
+    const db = fakeSequelize({ assignmentRows: [{ 1: 1 }] });
+    expect(await checkClientAccess({ id: '8', role }, 42, db)).toEqual({ allowed: false, via: null, reason: 'not_self' });
+    expect(db.query).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['array', ['8']], ['object', { toString: () => '8' }], ['boolean', true],
+    ['empty', ''], ['space', ' 8'], ['leading zero', '08'], ['decimal string', '8.0'],
+    ['decimal number', 8.5], ['zero', 0], ['negative', -8], ['null', null],
+    ['undefined', undefined], ['unsafe number', Number.MAX_SAFE_INTEGER + 1],
+    ['unsafe string', '9007199254740992'], ['exponent', '8e0'],
+  ])('rejects malformed %s actor before every role grant and database access', async (_label, id) => {
+    for (const role of ['admin', 'trainer', 'client', 'user']) {
+      const db = fakeSequelize({ assignmentRows: [{ 1: 1 }], sessionRows: [{ 1: 1 }] });
+      expect(await checkClientAccess({ id, role }, 8, db)).toEqual({ allowed: false, via: null, reason: 'invalid_request' });
+      expect(db.query).not.toHaveBeenCalled();
+    }
+  });
+
+  it('binds normalized trainer and target IDs in both existing relationship queries', async () => {
+    const db = fakeSequelize({ sessionRows: [{ 1: 1 }] });
+    expect(await checkClientAccess({ id: '8', role: 'trainer' }, '42', db)).toEqual({ allowed: true, via: 'session_history', reason: null });
+    expect(db.query).toHaveBeenCalledTimes(2);
+    for (const [, options] of db.query.mock.calls) expect(options.replacements).toMatchObject({ trainerId: 8, clientId: 42 });
+  });
+});

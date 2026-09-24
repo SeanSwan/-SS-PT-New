@@ -575,4 +575,13 @@ describe('aiRateLimiter middleware', () => {
     expect(res2.statusCode).toBe(429);
     expect(res2.body.code).toBe('AI_CONCURRENT_LIMIT');
   });
+  it('keeps a cancelled handler lock until its abort cleanup finishes, releasing only once',async()=>{
+    const {EventEmitter}=await import('node:events');const req=mockReq(99);const res=Object.assign(new EventEmitter(),mockRes());
+    middleware.aiRateLimiter(req,res,vi.fn());const release=req.deferAiConcurrencyRelease();
+    res.emit('close');const blocked=mockRes();middleware.aiRateLimiter(mockReq(99),blocked,vi.fn());
+    expect(blocked.statusCode).toBe(429);release();
+    const next=vi.fn();middleware.aiRateLimiter(mockReq(99),mockRes(),next);expect(next).toHaveBeenCalledOnce();
+    release();const stillBlocked=mockRes();middleware.aiRateLimiter(mockReq(99),stillBlocked,vi.fn());expect(stillBlocked.statusCode).toBe(429);
+  });
+
 });

@@ -7,9 +7,23 @@
  * from appearing in another coaching context.
  */
 import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
+import {
+  isPublicationAdmitted,
+  type PublicationBinding,
+} from '../../../../../hooks/coachPublicationScope';
 
 const DEBOUNCE_MS = 400;
-type DraftScope = { actorId?: string | number | null; clientId?: number | null; enabled?: boolean };
+type DraftScope = {
+  actorId?: string | number | null;
+  clientId?: number | null;
+  enabled?: boolean;
+  /**
+   * Plan 55 C4 — live admission. Absent keeps today's behaviour; present means a
+   * pending or mismatched selection suspends BOTH the restore and the write, so
+   * a draft is never read into, or written out of, a scope that is not admitted.
+   */
+  binding?: PublicationBinding;
+};
 
 export function coachDraftKey(threadKey: string | number | null, scope: DraftScope = {}): string {
   const actor = scope.actorId ?? 'unknown-actor';
@@ -32,7 +46,8 @@ export function useCoachComposerDraft(
    */
   enabled = true,
 ) {
-  const draftEnabled = scope.enabled ?? enabled;
+  const draftEnabled = (scope.enabled ?? enabled)
+    && isPublicationAdmitted(scope.binding, { actorId: scope.actorId, targetUserId: scope.clientId ?? null });
   const key = coachDraftKey(threadKey, scope);
   const restoreKeyRef = useRef(key);
 

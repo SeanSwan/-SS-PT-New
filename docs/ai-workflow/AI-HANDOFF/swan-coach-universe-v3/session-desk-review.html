@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Swan Coach • Session Desk build reference</title>
+<style>
+:root{color-scheme:dark;--bg:#0A0A0F;--panel:#141419;--raised:#1A1A24;--ink:#E0ECF4;--muted:#ACBBD1;--line:#53627A;--blue:#002060;--ice:#60C0F0;--focus:#8B5CF6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Plus Jakarta Sans",system-ui,sans-serif}
+button,select,textarea{font:inherit;color:inherit}button,select{min-width:44px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--raised);padding:9px 14px;cursor:pointer}
+button:hover,select:hover{border-color:var(--ice)}button:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+button:disabled{opacity:.55;cursor:not-allowed}.primary{background:var(--blue)}.primary:focus-visible{box-shadow:0 0 14px var(--focus)}
+a{color:var(--ice)}.demo{padding:12px 24px;background:var(--raised);border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.demo strong{color:var(--ink)}.controls{max-width:1760px;margin:auto;display:flex;gap:16px;padding:16px 24px;align-items:end;flex-wrap:wrap}
+label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}h1,h2,h3,p{margin:0}h1{font-size:clamp(24px,3vw,34px);letter-spacing:-1px}h2{font-size:19px}h3{font-size:16px}
+.shell{max-width:1760px;margin:auto;display:grid;grid-template-columns:188px minmax(0,1fr);padding:0 24px 24px;gap:24px}
+nav{border-right:1px solid var(--line);padding-right:18px}nav p{font-size:12px;color:var(--muted);letter-spacing:.12em;margin:16px 0}
+nav button{display:block;width:100%;text-align:left;background:transparent;border-color:transparent;margin:4px 0}
+nav button[aria-current]{background:var(--blue);border-color:var(--line)}
+main{min-width:0}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0 24px;flex-wrap:wrap}
+.eyebrow{text-transform:uppercase;color:var(--ice);font-size:12px;letter-spacing:.12em}.context{border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:6px;margin-bottom:16px}.tabs button[aria-selected=true]{background:var(--blue);border-color:var(--ice)}
+.desk{display:grid;grid-template-columns:minmax(280px,.9fr) minmax(340px,1.1fr);gap:20px}
+.panel{background:linear-gradient(145deg,var(--panel),var(--raised));border:1px solid var(--line);border-radius:16px;padding:22px;min-width:0}
+.panelhead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap}.badge{font-size:12px;border:1px solid var(--line);border-radius:20px;padding:5px 10px}
+.chat{display:grid;gap:18px;align-content:start;min-height:290px}.message{max-width:68ch}.message small{display:block;color:var(--muted);margin-bottom:6px}.mine{padding:14px;background:var(--blue);border-radius:12px}
+.sources{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;font-size:13px;color:var(--muted)}.sources span{border-bottom:1px solid var(--line)}
+.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0}.metric{padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;min-width:0}
+.metric b{display:block;font-family:"Fira Code",monospace;font-size:22px}.metric small{color:var(--muted)}
+.sets{width:100%;border-collapse:collapse;margin:12px 0 18px}.sets th,.sets td{text-align:left;padding:12px 5px;border-bottom:1px solid var(--line)}.sets th{font-size:12px;color:var(--muted);font-weight:500}
+.note{font-size:13px;color:var(--muted);margin:12px 0}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.timeline{grid-column:1/-1}.result{border-left:2px solid var(--ice);padding:8px 14px;margin-top:12px}
+.result p{font-size:14px}.result small{color:var(--muted)}.composer{display:flex;align-items:end;gap:10px;margin-top:20px;padding:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+textarea{width:100%;resize:vertical;min-height:50px;max-height:160px;border:0;background:transparent;padding:12px;outline-offset:0}.composer label{flex:1;min-width:0}
+.status{min-height:52px;margin-top:16px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+footer{font-size:12px;color:var(--muted);margin-top:20px}dialog{color:var(--ink);background:var(--raised);border:1px solid var(--line);border-radius:16px;max-width:min(520px,calc(100vw - 32px));padding:24px}
+dialog::backdrop{background:#000a}dialog p{margin:16px 0}
+[hidden]{display:none!important}
+@media(min-width:1024px){.tabs{display:none}}
+@media(max-width:1023px){.shell{grid-template-columns:1fr;padding:0 16px 20px}nav{display:none}.desk{grid-template-columns:1fr}.panel{padding:18px}.controls{padding:16px}.demo{padding:12px 16px}.composer{padding-bottom:max(14px,env(safe-area-inset-bottom))}}
+@media(max-width:420px){.controls{gap:10px}.controls label{flex:1}.metrics{gap:5px}.metric{padding:9px}.metric b{font-size:19px}.panel{padding:14px}.composer{gap:6px}.composer button{padding:8px}.sets th,.sets td{padding:10px 4px;font-size:14px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="demo"><strong>BUILD REFERENCE · SYNTHETIC DATA</strong> — Interactive wireframe only. No account, microphone, model or database connection. State controls simulate intended behavior.</div>
+<div class="controls">
+<label>Role<select id="role"><option>Admin</option><option>Trainer</option><option>Client</option><option>User</option></select></label>
+<label>Review state<select id="state"><option value="draft">Draft</option><option value="review">Review</option><option value="saving">Saving</option><option value="unknown">Unknown</option><option value="verified">Verified</option><option value="denied">Access denied</option><option value="offline">Offline</option></select></label>
+<label>Mode<select id="mode"><option>Session Desk</option><option>Floor Mode</option></select></label>
+<p class="note">One task · current client · one verified outcome</p>
+</div>
+<div class="shell">
+<nav aria-label="Synthetic dashboard"><p>TRAINING WORKSPACE</p><button data-info="Home uses real training evidence, with missing data shown explicitly.">Home</button><button data-info="Clients & Team supplies an authorized target, not a permission grant.">Clients & Team</button><button data-info="Planner edits share the task draft and invalidate old approvals.">Workout Planner</button><button data-info="The native Logger remains the manual fallback.">Log Workout</button><button data-info="Progress refetches persisted records after a verified save.">Progress</button><button aria-current="page">One Coach</button><p>THIS TASK</p><button data-info="Memory is visible, scoped and correctable. Private chat disables retrieval and extraction.">Memory</button><button data-info="All 127 inventoried routes have a domain disposition. Only verified adapters activate.">Capabilities</button></nav>
+<main>
+<header class="top"><div><p class="eyebrow">Swan Coach / Session Desk</p><h1>Make this session count.</h1></div><div class="context"><strong id="target">Client-101 · synthetic</strong><br>Today · explicit units · draft revision 4</div></header>
+<div class="tabs" role="tablist" aria-label="Task views"><button role="tab" aria-selected="true" data-view="talk">Talk</button><button role="tab" aria-selected="false" data-view="workout">Workout</button><button role="tab" aria-selected="false" data-view="results">Results</button></div>
+<div class="desk">
+<section class="panel" id="talk" aria-label="Conversation"><div class="panelhead"><h2>Talk it through</h2><span class="badge">Evidence first</span></div>
+<div class="chat"><div class="message mine"><small>You · voice originated</small>Log three sets of bench: eight reps at 135 pounds. Keep the same warmup.</div><div class="message"><small>Swan Coach</small><p id="reply">The bench sets are in your draft. Review the workout before saving. I still need current pain information before suggesting a replacement movement.</p><div class="sources"><span>Canonical exercise selected</span><span>Current pain data unavailable</span></div></div></div>
+<p class="note">A shared draft follows you into the Logger. Conversation alone does not save it.</p></section>
+<section class="panel" id="workout" aria-label="Workout draft"><div class="panelhead"><h2 id="worktitle">Your workout draft</h2><span class="badge" id="draftbadge">DRAFT · NOT SAVED</span></div>
+<h3>Barbell bench press</h3><p class="note">Exercise identity resolved · synthetic library reference</p><div class="metrics"><div class="metric"><b>3</b><small>sets</small></div><div class="metric"><b>8</b><small>reps / set</small></div><div class="metric"><b>135 lb</b><small>explicit load</small></div></div>
+<table class="sets"><thead><tr><th>Set</th><th>Reps</th><th>Load</th><th>State</th></tr></thead><tbody><tr><td>1</td><td>8</td><td>135 lb</td><td>Draft</td></tr><tr><td>2</td><td>8</td><td>135 lb</td><td>Draft</td></tr><tr><td>3</td><td>8</td><td>135 lb</td><td>Draft</td></tr></tbody></table>
+<p class="note">Session accounting comes from the existing domain preview. No credit amount is inferred here.</p>
+<div class="actions" id="workactions"></div></section>
+<section class="panel timeline" id="results" aria-label="Results timeline"><div class="panelhead"><h2>What actually happened</h2><span class="badge" id="count">0 verified effects</span></div><div class="result"><p id="resulttitle">Workout draft prepared</p><small id="resultdetail">Nothing has been submitted. Event acknowledgement means draft updated.</small></div></section>
+</div>
+<div class="status" id="status" role="status" aria-live="polite">Draft — not saved.</div>
+<div class="composer"><button id="mic" aria-label="Voice behavior explanation">Mic</button><label>Ask or act<textarea id="input" rows="1" placeholder="Change a set, ask about progress…"></textarea></label><button class="primary" id="send">Send</button></div>
+<footer>Build contract v3.2 · synthetic role/state lab · unknown never offers a write retry · manual workflows remain available</footer>
+</main>
+</div>
+<dialog id="detail"><h2 id="detailtitle">Build behavior</h2><p id="detailbody"></p><button id="close">Close</button></dialog>
+<script>
+const $=id=>document.getElementById(id);
+const states={
+draft:{status:'Draft — not saved.',badge:'DRAFT · NOT SAVED',title:'Workout draft prepared',detail:'Nothing has been submitted. Event acknowledgement means draft updated.',actions:['Review and save','Open in Logger']},
+review:{status:'Review the target, units and material consequences.',badge:'REVIEW REQUIRED',title:'Awaiting deliberate approval',detail:'Edits invalidate this preview. Confirmation uses the existing proposal review protocol.',actions:['Confirm save','Edit draft','Cancel preview']},
+saving:{status:'Saving… The submitted revision is frozen.',badge:'SAVING',title:'Outcome pending',detail:'No repeat submit or action cancellation. Stopping speech does not cancel a write.',actions:['Stop response']},
+unknown:{status:'Checking whether it saved.',badge:'OUTCOME UNKNOWN',title:'Result not yet verified',detail:'Read the same intent. No automatic resend, no claim that nothing changed.',actions:['Check result','Close task view']},
+verified:{status:'Saved and checked.',badge:'VERIFIED',title:'Workout saved and checked',detail:'Synthetic receipt: form, session, sets and units matched. Production must independently read them.',actions:['Open saved workout','View progress']},
+denied:{status:'This record is no longer available.',badge:'ACCESS CHANGED',title:'No record details displayed',detail:'Current authorization is required even for receipt history.',actions:['Close task view']},
+offline:{status:'Offline. This draft is open in this tab only.',badge:'OFFLINE · NOT SAVED',title:'Draft not submitted',detail:'Sensitive draft persistence is off. Reconnect offers review, never automatic submission.',actions:['Review when online']}
+};
+let view='talk';
+function showInfo(text){$('detailbody').textContent=text;$('detail').showModal()}
+function applyView(){const narrow=matchMedia('(max-width:1023px)').matches;for(const id of ['talk','workout','results'])$(id).hidden=narrow&&id!==view;document.querySelectorAll('[data-view]').forEach(b=>{b.setAttribute('aria-selected',String(b.dataset.view===view));b.tabIndex=b.dataset.view===view?0:-1;b.setAttribute('aria-controls',b.dataset.view)})}
+function render(){
+const key=$('state').value,s=states[key];$('status').textContent=s.status;$('draftbadge').textContent=s.badge;$('resulttitle').textContent=s.title;$('resultdetail').textContent=s.detail;$('count').textContent=key==='verified'?'1 synthetic verified outcome':'0 verified effects';
+$('worktitle').textContent=$('mode').value==='Floor Mode'?'Current exercise':'Your workout draft';
+$('target').textContent=key==='denied'?'No accessible record':['Client','User'].includes($('role').value)?'Your own task · synthetic':'Client-101 · synthetic';
+$('talk').querySelector('.chat').hidden=key==='denied';
+$('workout').querySelector('h3').hidden=key==='denied';
+$('workout').querySelectorAll('.note').forEach(e=>e.hidden=key==='denied');
+$('workout').querySelectorAll('tbody td:last-child').forEach(e=>e.textContent=key==='verified'?'Checked':key==='denied'?'Hidden':'Draft');
+$('workout').querySelector('.metrics').hidden=key==='denied';$('workout').querySelector('.sets').hidden=key==='denied';
+$('workactions').replaceChildren(...s.actions.map((label,i)=>{const b=document.createElement('button');b.textContent=label;if(i===0)b.className='primary';b.onclick=()=>{
+if(label==='Review and save'||label==='Review when online'){$('state').value='review';render()}
+else if(label==='Edit draft'||label==='Cancel preview'){$('state').value='draft';render()}
+else if(label==='Confirm save'){$('state').value='saving';render();showInfo('Synthetic preview only. Choose Unknown or Verified in the state control to inspect recovery. No data was saved.')}
+else showInfo(label+': production uses the existing domain surface or the same intent lookup. This wireframe performs no operation.');
+};return b}));applyView()
+}
+document.querySelectorAll('[data-view]').forEach((b,index,buttons)=>{b.onclick=()=>{view=b.dataset.view;applyView()};b.onkeydown=e=>{const delta=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;if(!delta&&e.key!=='Home'&&e.key!=='End')return;e.preventDefault();const next=e.key==='Home'?0:e.key==='End'?buttons.length-1:(index+delta+buttons.length)%buttons.length;buttons[next].click();buttons[next].focus()}});
+document.querySelectorAll('[data-info]').forEach(b=>b.onclick=()=>showInfo(b.dataset.info));
+for(const id of ['role','state','mode'])$(id).onchange=render;
+$('close').onclick=()=>$('detail').close();
+$('mic').onclick=()=>showInfo('Mic starts only after a gesture. Voice/mixed origin survives submission. Background/logout stops all tracks. This wireframe does not access your microphone.');
+$('send').onclick=()=>showInfo('The real composer routes through an authorized surface and bounded context. It produces an answer, clarification or draft; a message is never proof of a save.');
+window.addEventListener('resize',applyView);render();
+</script>
+</body></html>

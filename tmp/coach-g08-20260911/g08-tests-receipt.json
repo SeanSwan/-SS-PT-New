@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "digest": "01008753d55e76e3530998a643d023e366928e77019df2ee87077c449b06545c",
+  "command": "npx vitest run dashboardSurfaceRegistry.da.test.mjs (6/6, exit 0); frontend dashboardSurfaceContext.test.ts (5/5, exit 0); WSL tsc --noEmit exit 0; vite build exit 0; registry ESM import smoke SMOKE_PASS",
+  "scope": "G08/domains surface adapter layer: 24 declared domains in packet-19 shape, receipt-gated activation (7 active on G01-G07 receipts, contract-fixed explain rows preserved), Map lookup with prototype-probe proof, server-validated role visibility, commandKey membership proven against the initialized 139-command registry, frontend route->surfaceKey context mapper; DA-01/02/03/07/08 at registry level",
+  "files": [
+    "backend/services/ai/dashboardSurfaceRegistry.mjs",
+    "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
+    "frontend/src/services/dashboardSurfaceContext.ts",
+    "frontend/src/services/dashboardSurfaceContext.test.ts"
+  ],
+  "results": {
+    "backendDA": "6/6 PASS",
+    "frontendMapper": "5/5 PASS (two behavioral REDs observed and fixed during implementation)",
+    "types": "tsc --noEmit exit 0",
+    "build": "vite build exit 0"
+  },
+  "toolEvidence": {
+    "path": "tmp/coach-g08-20260911/g08-tests-evidence.md",
+    "sha256": "295f93d409790fe99016eec8eca3a3bac60fe17d78ae8f0fbe156f0e1c9b66e1"
+  }
+}

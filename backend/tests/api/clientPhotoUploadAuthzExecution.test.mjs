@@ -154,8 +154,13 @@ describe('client photo upload is fail-closed against the wrong actor', () => {
     expect(sql).toContain(':trainerId');
     expect(sql).toContain(':clientId');
     expect(sql).toContain("status = 'active'");
+    // The actor id arrives as a STRING (production's `protect` supplies it that
+    // way) and is normalised by parseContextClientId before it reaches the query
+    // — that normalisation is the fix for the string/number mismatch this file
+    // was written around, and it is what lets the `self` branch fire at all. The
+    // bind is therefore NUMERIC; asserting String() here would pin the old bug.
     expect(options.replacements).toEqual(
-      expect.objectContaining({ trainerId: String(TRAINER_ID), clientId: CLIENT_B_ID }),
+      expect.objectContaining({ trainerId: Number(TRAINER_ID), clientId: CLIENT_B_ID }),
     );
   });
 

@@ -4,53 +4,17 @@
  * generated-plan weeks through the hook, receipts use the exact 03 §5 copy,
  * and every branch acknowledges with an honest handled flag.
  */
-import React, { useState } from 'react';
+import React, { useLayoutEffect } from 'react';
 import { act, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { dispatchAIWorkoutEvent } from '../../../../utils/aiWorkoutEvents';
 import { buildContentSignature } from './planDataBuilder';
-import type { ExerciseSlim } from '../../../WorkoutLogger/exerciseSearchWorker';
-import { OPT_PHASES, type GeneratedPlan, type PlanExercise } from './WorkoutPlannerTypes';
-import type { PlannerHorizonSelection } from './workoutPlannerAiEvents.types';
+import { OPT_PHASES, type GeneratedPlan } from './WorkoutPlannerTypes';
 import { useWorkoutPlannerAiEvents } from './useWorkoutPlannerAiEvents';
+import { useWorkoutPlannerDraftMutation, type PlannerDayScope } from './plannerContexts/useWorkoutPlannerDraftMutation';
+import { builderRow, horizonPlan, slim, type HarnessOptions, type HarnessState } from './useWorkoutPlannerAiEvents.testFixtures';
 
-const slim = (id: string, name: string): ExerciseSlim => ({
-  id, name, exerciseKey: id, exerciseType: 'strength', bodyPartCategory: 'legs',
-  primaryMuscles: [], difficulty: 1,
-});
-
-const builderRow = (id: string, exercise: ExerciseSlim): PlanExercise => ({
-  id, exerciseSlim: exercise, sets: 4, reps: '6-8', tempo: '3/1/1', restSeconds: 90,
-  intensityPercent: 80, notes: '',
-});
-
-const horizonPlan = (): GeneratedPlan => ({
-  clientId: 84, clientName: 'Client 84',
-  planSummary: { durationWeeks: 4, sessionsPerWeek: 3, totalSessions: 12, primaryGoal: 'strength', startingPhase: 2 },
-  mesocycles: [], weeklySchedule: [], recommendations: [],
-  weeks: [
-    { weekNumber: 1, days: [
-      { dayNumber: 1, exercises: [{ exerciseName: 'Bench Press', sets: 3, reps: 10, tempo: '2/0/2', restSeconds: 60 }] },
-      { dayNumber: 2, exercises: [
-        { exerciseName: 'Leg Press', sets: 3, reps: 12, tempo: '2/0/2', restSeconds: 60, rotationFallback: true },
-        { exerciseName: 'Calf Raise', sets: 3, reps: 15 },
-      ] },
-    ] },
-  ],
-});
-
-interface HarnessState {
-  planExercises: PlanExercise[];
-  generatedPlan: GeneratedPlan | null;
-}
-
-function setupHarness(opts: {
-  planExercises?: PlanExercise[];
-  generatedPlan?: GeneratedPlan | null;
-  selection?: PlannerHorizonSelection | null;
-  library?: ExerciseSlim[];
-  searchImpl?: (query: string) => Promise<ExerciseSlim[]>;
-}) {
+function setupHarness(opts: HarnessOptions) {
   const receipts: Array<{ ok: boolean; text: string }> = [];
   const onGenerate = vi.fn();
   const searchExercises = vi.fn(opts.searchImpl ?? (async (query: string) => {
@@ -59,11 +23,23 @@ function setupHarness(opts: {
   }));
   const state: HarnessState = { planExercises: opts.planExercises ?? [], generatedPlan: opts.generatedPlan ?? null };
 
+  // P58: the receiver binds to the real draft owner. The fixture day is stable
+  // for the whole test, so this admission scope never churns mid-test.
+  const day: PlannerDayScope = opts.generatedPlan?.weeks?.length
+    ? { kind: 'horizon', weekNumber: opts.selection?.weekNumber ?? opts.generatedPlan.weeks[0].weekNumber, dayIndex: opts.selection?.dayIndex ?? 0 }
+    : { kind: 'builder' };
+
   const Harness: React.FC = () => {
-    const [planExercises, setPlanExercises] = useState<PlanExercise[]>(state.planExercises);
-    const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlan | null>(state.generatedPlan);
+    const owner = useWorkoutPlannerDraftMutation();
+    const { planExercises, generatedPlan, setPlanExercises, setGeneratedPlan } = owner;
     state.planExercises = planExercises;
     state.generatedPlan = generatedPlan;
+    useLayoutEffect(() => {
+      if (opts.planExercises) setPlanExercises(opts.planExercises);
+      if (opts.generatedPlan) setGeneratedPlan(opts.generatedPlan);
+      owner.bindScope({ actorId: 7, actorRole: 'admin', targetClientId: 42, clientsLoading: false, day, configurationKey: 'ai-events-test' });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     useWorkoutPlannerAiEvents({
       planExercises, setPlanExercises, generatedPlan, setGeneratedPlan,
       selectedHorizonTarget: opts.selection ?? null,
@@ -71,6 +47,7 @@ function setupHarness(opts: {
       onGenerate,
       pushReceipt: (r) => receipts.push(r),
       phase: OPT_PHASES[1], // phase 2: sets '2-4', reps '8-12', tempo '2/0/2', rest '0-60s'
+      draftMutation: owner,
     });
     return null;
   };

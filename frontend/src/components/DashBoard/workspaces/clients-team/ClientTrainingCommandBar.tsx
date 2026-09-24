@@ -16,6 +16,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Mic2, Send, Sparkles } from 'lucide-react';
 import { useAIChat } from '../../../../hooks/useAIChat';
 import { useCoachCommand } from '../../../../hooks/useCoachCommand';
+import { commandInputMode, useCoachInputOrigin } from '../../../../hooks/useCoachInputOrigin';
 import {
   commandCancelledBody,
   commandConfirmationResultBody,
@@ -24,7 +25,7 @@ import {
   shouldRouteToCommandLane,
 } from '../../Pages/coach-assistant/CoachCommandCenter.commandLane';
 import type { CommandLogConfirmation } from '../../Pages/coach-assistant/CoachCommandCenter.data';
-import { ConfirmationCard } from '../../Pages/coach-assistant/CoachCommandCards';
+import ConfirmationSheet from '../../../CoachConfirm/ConfirmationSheet';
 import { useCoachBrowserSpeechInput } from '../../Pages/coach-assistant/hooks/useCoachBrowserSpeechInput';
 import CoachActionProposalCard from '../../Pages/coach-assistant/CoachActionProposalCard';
 import type { CoachActionProposal } from '../../Pages/coach-assistant/SwanCoachTypes';
@@ -42,20 +43,8 @@ import {
   VoiceButton,
 } from './ClientTrainingCommandBar.styles';
 import { buildClientTrainingCommandRouteContext, buildDailyCommandPrompt, selectedCommandClientId } from './clientTrainingCommandRouteContext';
-
-interface ClientTrainingCommandBarProps {
-  clientId: number | string;
-  clientName?: string;
-  scheduledSessionCreditHint?: number | null;
-  scheduledSessionDate?: string | null;
-  scheduledSessionId?: string | null;
-  onCommandLaneStart?: (message: string) => void | Promise<void>;
-}
-
-function proposalBelongsToClient(proposal: CoachActionProposal, clientId: number | string): boolean {
-  const proposalClientId = proposal.summary?.clientId;
-  return proposalClientId != null && String(proposalClientId) === String(clientId);
-}
+import { normalizeSheetResult, proposalBelongsToClient, type ClientTrainingCommandBarProps } from './ClientTrainingCommandBar.helpers';
+import { dispatchAIWorkoutEvent } from '../../../../utils/aiWorkoutEvents';
 
 const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
   clientId,
@@ -66,12 +55,13 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
   onCommandLaneStart,
 }) => {
   const [command, setCommand] = useState('');
+  const { inputOrigin, setTrackedCommandText, setVoiceCommandText } = useCoachInputOrigin(setCommand);
   const [inputError, setInputError] = useState<string | null>(null);
   const [pendingConfirmation, setPendingConfirmation] = useState<CommandLogConfirmation | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<'error' | 'success'>('success');
   const { messages, sending, error, sendMessageWithConversation, clearError, newChat } = useAIChat();
-  const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand();
+  const { executeCommand, executingCommand } = useCoachCommand();
   const busy = sending || executingCommand;
   const previousClientIdRef = useRef(String(clientId));
   const latestAssistantMessage = [...messages].reverse().find((message) => message.role === 'assistant');
@@ -93,10 +83,10 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
 
     previousClientIdRef.current = currentClientId;
     newChat();
-    setCommand('');
+    setTrackedCommandText('');
     setPendingConfirmation(null);
     setStatus(null);
-  }, [clientId, newChat]);
+  }, [clientId, newChat, setTrackedCommandText]);
 
   const submitCommandText = useCallback(
     async (rawCommand: string) => {
@@ -116,6 +106,7 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
             scheduledSessionId,
             scheduledSessionCreditHint,
           }),
+          inputMode: commandInputMode(inputOrigin),
         });
         if (commandResult.type === 'error') {
           setStatusTone('error');
@@ -123,8 +114,17 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
           return;
         }
         if (commandResult.type !== 'fallback_to_chat') {
-          setPendingConfirmation(commandLaneConfirmation(commandResult) ?? null);
-          setCommand('');
+          if (commandResult.type === 'confirmation_required' && !commandResult.operationId?.trim()) {
+            setStatusTone('error');
+            setStatus('Confirmation is unavailable. Your draft is still here.');
+            return;
+          }
+          setPendingConfirmation(commandLaneConfirmation(
+            commandResult,
+            trimmed,
+            commandInputMode(inputOrigin),
+          ) ?? null);
+          setTrackedCommandText('');
           setStatusTone('success');
           setStatus(commandLaneLogBody(commandResult));
           return;
@@ -151,7 +151,7 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
         return;
       }
 
-      setCommand('');
+      setTrackedCommandText('');
       setStatusTone('success');
       setStatus('Sent to Coach. Review before save.');
     },
@@ -160,11 +160,13 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
       clearError,
       clientId,
       executeCommand,
+      inputOrigin,
       onCommandLaneStart,
       scheduledSessionCreditHint,
       scheduledSessionDate,
       scheduledSessionId,
       sendMessageWithConversation,
+      setTrackedCommandText,
     ]
   );
 
@@ -172,7 +174,7 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
   // presses Send (no silence-triggered auto-submit — 2026-07-13 rework).
   const speech = useCoachBrowserSpeechInput({
     setInputError,
-    setText: setCommand,
+    setText: setVoiceCommandText,
   });
 
   const handleSubmit = useCallback(
@@ -183,35 +185,45 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
     [command, submitCommandText]
   );
 
-  const handleConfirmCommand = useCallback(
-    async (operationId: string) => {
-      if (!pendingConfirmation) return { success: false, error: 'No pending command to confirm.' };
-      const result = await confirmCommand(operationId);
-      if (!result.success) {
-        setStatusTone('error');
-        setStatus(result.message || 'Coach could not confirm that action.');
-        return { success: false, error: result.message || 'Confirm failed.' };
-      }
+  const handleSheetDone = useCallback((body: unknown) => {
+    if (!pendingConfirmation) return;
+    const result = normalizeSheetResult(body, pendingConfirmation);
+    const handled = result.type === 'frontend_dispatch'
+      ? (typeof result.event === 'string' && result.event.trim()
+        ? dispatchAIWorkoutEvent(result.event, result.payload ?? {})
+        : false)
+      : true;
+    const deliveredResult = result.type === 'frontend_dispatch'
+      ? {
+          ...result,
+          dispatched: handled,
+          success: handled,
+          message: handled
+            ? result.message
+            : 'The active workout surface did not accept that action. No form was changed.',
+        }
+      : result;
+    setPendingConfirmation(null);
+    setStatusTone(deliveredResult.success === false ? 'error' : 'success');
+    setStatus(commandConfirmationResultBody(pendingConfirmation, deliveredResult));
+  }, [pendingConfirmation]);
 
-      setPendingConfirmation(null);
-      setStatusTone('success');
-      setStatus(commandConfirmationResultBody(pendingConfirmation, result));
-      return { success: true };
-    },
-    [confirmCommand, pendingConfirmation]
-  );
-
-  const handleCancelCommand = useCallback(
-    async (operationId: string | null) => {
-      if (operationId) await cancelCommand(operationId);
+  const handleSheetCancel = useCallback(() => {
       if (pendingConfirmation) {
         setStatusTone('success');
         setStatus(commandCancelledBody(pendingConfirmation));
       }
       setPendingConfirmation(null);
-    },
-    [cancelCommand, pendingConfirmation]
-  );
+  }, [pendingConfirmation]);
+
+  const handleSheetReissue = useCallback(() => {
+    const source = pendingConfirmation?.sourceMessage;
+    const sourceInputMode = pendingConfirmation?.sourceInputMode;
+    setPendingConfirmation(null);
+    if (!source) return;
+    if (sourceInputMode === 'voice') setVoiceCommandText(source);
+    else setTrackedCommandText(source);
+  }, [pendingConfirmation, setTrackedCommandText, setVoiceCommandText]);
 
   const speechStatus = speech.interim
     ? `Listening: ${speech.interim}`
@@ -239,7 +251,7 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
           <LeadingIcon size={17} aria-hidden="true" />
           <Input
             value={command}
-            onChange={(event) => setCommand(event.target.value)}
+            onChange={(event) => setTrackedCommandText(event.target.value)}
             aria-label={`Ask Coach about ${clientName}`}
             placeholder="Dictate sets, reps, load, pain, notes..."
           />
@@ -271,16 +283,22 @@ const ClientTrainingCommandBar: React.FC<ClientTrainingCommandBarProps> = ({
 
       {(pendingConfirmation || shouldShowAssistantContent || latestClientProposals.length > 0) && (
         <OutputPanel aria-label="Swan Coach training review output">
-          {pendingConfirmation && (
-            <ConfirmationCard
+          {pendingConfirmation?.operationId && (
+            <ConfirmationSheet
               operationId={pendingConfirmation.operationId}
-              command={pendingConfirmation.command}
-              params={pendingConfirmation.params}
-              client={pendingConfirmation.client}
-              details={pendingConfirmation.details}
-              isDestructive={pendingConfirmation.isDestructive}
-              onConfirm={handleConfirmCommand}
-              onCancel={handleCancelCommand}
+              lockedClientId={pendingConfirmation.client?.id ?? null}
+              presentation="region"
+              input={{
+                tier: pendingConfirmation.tier || (pendingConfirmation.isDestructive ? 'deliberate' : 'read_back'),
+                isDestructive: pendingConfirmation.isDestructive,
+                affectedCount: Number(pendingConfirmation.details?.affectedCount ?? 1),
+                physical: Boolean(pendingConfirmation.physical),
+                irreversible: Boolean(pendingConfirmation.details?.irreversible),
+              }}
+              onDone={handleSheetDone}
+              onCancel={handleSheetCancel}
+              onAcknowledge={() => { setPendingConfirmation(null); setStatus(null); }}
+              onReissue={handleSheetReissue}
             />
           )}
           {shouldShowAssistantContent && <AssistantNote>{latestAssistantContent}</AssistantNote>}

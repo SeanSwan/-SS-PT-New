@@ -4,11 +4,11 @@
  * Converts model-emitted action blocks into encrypted approval proposals.
  * The model prepares drafts; deterministic services own final writes.
  */
-import { randomUUID } from 'node:crypto';
+import { persistCoachActionProposal as createProposal } from './coachWorkoutIntentDraftService.mjs';
 import { QueryTypes } from 'sequelize';
 import sequelize from '../../database.mjs';
 import logger from '../../utils/logger.mjs';
-import { encryptPayload } from '../plaudCipherService.mjs';
+
 import {
   classifyActionBlock,
   parseJsonActionBlocks,
@@ -181,57 +181,6 @@ async function proposalTableExists(db) {
   return !!rows?.[0]?.exists;
 }
 
-function mapProposalRow(row) {
-  const summary = row.summary_json || {};
-  return {
-    id: row.id,
-    type: row.proposal_type,
-    status: row.status,
-    title: summary.title || proposalTitle(row.proposal_type),
-    summary,
-    createdAt: row.created_at,
-  };
-}
-
-async function createProposal({ type, payload, summary, user, conversation, sourceMessageId, db }) {
-  const enc = encryptPayload({
-    type,
-    payload,
-    conversationId: conversation?.id || null,
-    targetUserId: conversation?.targetUserId || null,
-  });
-  const id = randomUUID();
-  const rows = await db.query(
-    `INSERT INTO coach_action_proposals (
-       id, created_by_user_id, conversation_id, source_message_id,
-       proposal_type, status, schema_version, summary_json,
-       proposal_cipher, proposal_iv, proposal_tag, cipher_key_id
-     ) VALUES (
-       :id, :userId, :conversationId, :sourceMessageId,
-       :proposalType, 'PENDING', :schemaVersion, CAST(:summaryJson AS jsonb),
-       :cipher, :iv, :tag, :keyId
-     )
-     RETURNING id, proposal_type, status, summary_json, created_at`,
-    {
-      replacements: {
-        id,
-        userId: user.id,
-        conversationId: conversation?.id || null,
-        sourceMessageId: sourceMessageId || null,
-        proposalType: type,
-        schemaVersion: SCHEMA_VERSION,
-        summaryJson: JSON.stringify(summary),
-        cipher: enc.cipher,
-        iv: enc.iv,
-        tag: enc.tag,
-        keyId: enc.keyId,
-      },
-      type: QueryTypes.SELECT,
-    },
-  );
-  return mapProposalRow(rows[0]);
-}
-
 export async function createCoachActionProposalDraft({
   type,
   payload,
@@ -240,6 +189,7 @@ export async function createCoachActionProposalDraft({
   sourceMessageId = null,
   db = null,
   sequelizeOverride = null,
+  requestKey = null,
 }) {
   const targetDb = db || sequelizeOverride || sequelize;
   const summary = summarizeProposal(type, payload, conversation);
@@ -252,6 +202,7 @@ export async function createCoachActionProposalDraft({
     conversation,
     sourceMessageId,
     db: targetDb,
+    requestKey,
   });
   await linkCoachActionProposalToIntake({ proposal, persisted, user, db: targetDb });
   return persisted;

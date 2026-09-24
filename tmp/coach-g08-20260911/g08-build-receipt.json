@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "digest": "01008753d55e76e3530998a643d023e366928e77019df2ee87077c449b06545c",
+  "actor": "session-agent-subscription",
+  "summary": "G08 surface adapter registry: 24 domains declared (packet-19 shape), 7 receipt-gated active rows tied to real command/evidence lanes, contract-fixed explain rows for waivers/permissions/money/security/operator, Map-based hostile-key-proof lookup, server-side role visibility, frontend route mapper with segment-scoped wildcards. Hostile review fixed route-gap and wildcard-semantics findings.",
+  "toolEvidence": {
+    "path": "tmp/coach-g08-20260911/g08-build-evidence.md",
+    "sha256": "e314e33a3423c752f9cb5d66300b2c31b12331c407e644c621e606708dc052b2"
+  }
+}

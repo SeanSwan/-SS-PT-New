@@ -134,7 +134,11 @@ describe('dailyWorkoutFormRoutes public response hardening', () => {
     expect(submitRoute).toContain('!sameId(linkedScheduledSession.userId, parsedClientId)');
     expect(submitRoute).toContain("linkedScheduledSession.status === 'cancelled'");
     expect(submitRoute).toContain('const workoutDateValue = linkedScheduledSession?.sessionDate');
-    expect(submitRoute).toContain("new Date(linkedScheduledSession.sessionDate).toISOString().split('T')[0]");
+    // The booked session's day is its LOCAL day (client zone, same as the future-date guard), never its UTC day:
+    // the UTC form put every booking from ~5 PM Pacific "in the future" (2026-09-24 review; behaviour locked in
+    // __tests__/dailyWorkoutFormRoutes.scheduledSessionLocalDate.test.mjs).
+    expect(submitRoute).toContain('formatDateOnlyInTimeZone(new Date(linkedScheduledSession.sessionDate), trainingDateContext.timeZone)');
+    expect(submitRoute).not.toContain("new Date(linkedScheduledSession.sessionDate).toISOString().split('T')[0]");
     expect(submitRoute).toContain('const workoutDateIso = toIsoDateOnly(workoutDateValue);');
     expect(submitRoute).toContain('if (workoutDateIso > trainingDateContext.localDate)');
     expect(submitRoute).not.toContain('const workoutDate = new Date');

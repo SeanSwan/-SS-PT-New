@@ -36,6 +36,11 @@ import { dispatch, hasDispatcher } from './commandDispatcher.mjs';
 import { getManualOnlyCommand } from './commandManualOnlyPolicy.mjs';
 import { areCommandWritesEnabled, COMMAND_WRITES_PAUSED_MESSAGE } from './commandLaneControls.mjs';
 import { recordCommandAudit } from './commandAudit.mjs';
+import { resolveCommandClientPair } from './dispatchers/clientScope.mjs';
+import { resolveVoiceConfirmationTier, TIER_REFUSAL } from './voiceConfirmationTier.mjs';
+
+/** observe (default) computes + records; enforce also gates. */
+const tierMode = () => (process.env.APPROVAL_TIER_MODE === 'enforce' ? 'enforce' : 'observe');
 
 const COMMAND_PIPELINE_FAILED_MESSAGE = 'Swan Coach command lane failed. No data was changed.';
 const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confirmed operation. No data was changed.';
@@ -268,12 +273,41 @@ async function stepPHIScan(ctx) {
       matchCount: matches.length,
     });
   }
+
+  // H5 (2026-08-21 hostile round 1 — Sol + Grok independently): previousContext is
+  // a prompt channel too. The route applies roster IDENTITY replacement to it, but
+  // this generic PHI scan ran only on the current message — so an email, phone,
+  // payment or medical detail from an earlier turn reached the classifier
+  // unscrubbed. Every text channel that reaches a model gets the same scrub.
+  const previous = ctx.options?.previousContext;
+  if (typeof previous === 'string' && previous.length > 0) {
+    const prior = scanForPHI(previous);
+    if (prior.hasPHI) {
+      ctx.options.previousContext = stripPHI(previous, prior.matches);
+      ctx.metadata.previousContextPhiMatches = prior.matches.length;
+      logger.info('[CommandExecutor] PHI stripped from previousContext', {
+        userId: ctx.user.id,
+        categories: prior.categories,
+        matchCount: prior.matches.length,
+      });
+    }
+  }
   return ctx;
 }
 
 /** Step 3: Classify intent via AI */
 async function stepClassify(ctx) {
   ctx.stage = 'classify';
+  const selectedCommandType = ctx.options?.routeContext?.commandType;
+  if (selectedCommandType && getCommand(selectedCommandType)) {
+    ctx.intent = {
+      intent: selectedCommandType,
+      clientRef: null,
+      params: {},
+      confidence: 1,
+    };
+    return ctx;
+  }
   const deterministicIntent = routeDeterministicSurfaceCommand(
     ctx.sanitizedInput,
     ctx.options.contextEnvelope,
@@ -409,8 +443,70 @@ async function stepResolveClient(ctx) {
 
   const selectedClientId = toPositiveInteger(ctx.options.selectedClientId);
   const paramsClientId = toPositiveInteger(ctx.intent.params?.clientId);
+
+  // H1 (2026-08-21): client/user-role callers are scoped to THEMSELVES, always.
+  //
+  // Trainer scoping is enforced inside resolveClient via `trainerId`, and the
+  // route's envelope check (assertAssignmentOrAdmin) covers `selectedClientId`.
+  // Neither covered a client-role caller on the LLM-extracted params path: a
+  // client saying "show client #99's XP" reached resolveClient UNSCOPED (trainerId
+  // is only set for trainers) and read another user's gamification profile — the
+  // command lane mirrored GET /gamification/users/:userId/profile without that
+  // route's authorizeResourceAccess guard. Found in the whole-Coach hostile round 1.
+  //
+  // The guard lives HERE, at the root, so every current and future client-allowed
+  // command with requiresClientRef inherits it — not one-off fixes per command.
+  // A mismatched reference is refused with an honest message rather than silently
+  // rewritten, so a confused client learns the boundary instead of getting the
+  // wrong person's data with no error.
+  if (ctx.user.role === 'client' || ctx.user.role === 'user') {
+    const requested = selectedClientId || paramsClientId;
+    if (requested && requested !== ctx.user.id) {
+      logger.warn('[CommandExecutor] Client-role caller referenced another user', {
+        userId: ctx.user.id,
+        requestedClientId: requested,
+        commandType: ctx.command.type,
+      });
+      ctx.error = 'You can only run this for your own account.';
+      return ctx;
+    }
+    if (ctx.intent.clientRef && !requested) {
+      // A name-based reference from a client is never resolved against the roster.
+      ctx.error = 'You can only run this for your own account.';
+      return ctx;
+    }
+    ctx.resolvedClient = { id: ctx.user.id, firstName: ctx.user.firstName, lastName: ctx.user.lastName };
+    if (ctx.intent.params) ctx.intent.params.clientId = ctx.user.id;
+    return ctx;
+  }
+
   const clientId = selectedClientId || paramsClientId;
   const clientRef = selectedClientId ? null : (ctx.intent.clientRef || ctx.options.selectedClientName);
+
+  /**
+   * THE WRONG-CLIENT SEAM (finding F-05a, GLM 5.3 round 1, 2026-09-03).
+   *
+   * When a selection exists, `clientRef` above is deliberately null — the
+   * SELECTION wins for dispatch, which is right and is C0.5's law. But the name
+   * the operator actually SPOKE was then discarded WITHOUT COMPARISON, so
+   * "cancel Jordan's session" while Kayla is selected executed on Kayla,
+   * silently, with no alarm anywhere. That is the exact catastrophe this whole
+   * program exists to prevent, and card 1.2's "pre-collapse pair" did not reach
+   * it: by the time stepConfirmation runs, `ctx.resolvedClient.id` and
+   * `params.clientId` are the SAME value — this step injects one into the other
+   * — so comparing them compares a number with itself.
+   *
+   * The two identities that actually differ are the SELECTION and the SPOKEN
+   * NAME. We record both here, resolving the spoken name only in the narrow
+   * case where it can disagree (a selection AND a name are both present), so
+   * the tier can escalate on a real mismatch instead of on a tautology.
+   */
+  ctx.clientIdentity = {
+    lockedClientId: selectedClientId || null,
+    spokenRef: ctx.intent.clientRef || null,
+    spokenClientId: null,
+    comparable: false,
+  };
 
   if (clientId) {
     // Direct ID provided — use it
@@ -442,6 +538,30 @@ async function stepResolveClient(ctx) {
   }
 
   ctx.resolvedClient = resolved;
+
+  // F-05a: with a selection active the spoken name was never looked up, so a
+  // mismatch could not be seen. Resolve it now — ONLY in that narrow case — and
+  // record the id beside the locked one. Failure to resolve is not an error
+  // here: an unresolvable name is already handled by the normal path, and this
+  // lookup exists solely to feed the tier.
+  if (selectedClientId && ctx.intent.clientRef) {
+    try {
+      const spoken = await resolveClient(
+        ctx.intent.clientRef,
+        sequelize,
+        { trainerId: ctx.user.role === 'trainer' ? ctx.user.id : undefined },
+      );
+      ctx.clientIdentity.spokenClientId = spoken?.resolved?.id ?? null;
+      ctx.clientIdentity.comparable = ctx.clientIdentity.spokenClientId !== null;
+    } catch (err) {
+      // An unresolvable spoken name leaves `comparable: false`, and the tier
+      // treats "a name was spoken that we could not place" as its own
+      // escalation — never as agreement.
+      logger.warn('[CommandExecutor] spoken-name resolution failed (tier input only)', {
+        commandType: ctx.command?.type, error: err?.message,
+      });
+    }
+  }
 
   // Inject resolved clientId into params
   if (resolved && ctx.intent.params) {
@@ -480,11 +600,139 @@ async function stepDebateRouting(ctx) {
   return ctx;
 }
 /** Step 8: Handle destructive operations (prepare confirmation) */
+/**
+ * Card 1.2 — the confirmation tier is resolved HERE, server-side, from the
+ * PRE-COLLAPSE client pair. Two properties this placement buys:
+ *
+ *   1. It cannot be spoofed. A `tier` in the request body is ignored (and
+ *      audited) — a client that could name its own tier could name
+ *      fire_and_forget for a destructive cross-client write.
+ *   2. `cross_client` is reachable. resolveCommandClientId collapses the
+ *      selected and the classifier-extracted client into one value; a tier
+ *      computed from post-collapse values compares a number with itself and the
+ *      alarm can never fire (FF19). resolveCommandClientPair keeps both.
+ *
+ * MODE: `observe` (default) computes and RECORDS the tier without changing what
+ * gates — so the distribution can be read against real traffic before anything
+ * is gated on it. `enforce` additionally short-circuits a REFUSAL tier. The
+ * response carries the tier in both modes so the sheet (card 1.3) can render it.
+ */
+function resolveTierForCommand(ctx) {
+  // F-05a: prefer the identity pair captured at resolution time (the SELECTION
+  // vs the SPOKEN NAME — the two things that can actually disagree). Fall back
+  // to the params/resolvedClient pair for callers that never ran
+  // stepResolveClient, where it is still the best available signal.
+  const identity = ctx.clientIdentity;
+  const pair = resolveCommandClientPair(ctx.intent?.params || {}, ctx);
+  const lockedClientId = identity ? identity.lockedClientId : pair.locked;
+  const targetClientId = identity
+    ? (identity.spokenClientId ?? (identity.spokenRef && !identity.lockedClientId ? pair.target : null))
+    : pair.target;
+
+  const verdict = resolveVoiceConfirmationTier(ctx.command, ctx.intent?.params || {}, {
+    actorRole: ctx.user?.role ?? null,
+    lockedClientId,
+    targetClientId,
+    // A name was spoken but could not be placed: never silence, never a
+    // tautological match — its own escalation reason.
+    unplaceableSpokenRef: Boolean(identity?.spokenRef && identity.lockedClientId && !identity.comparable),
+    /**
+     * LIVE BUG, found 2026-09-03 by a test that drove the PIPELINE instead of
+     * the tier function.
+     *
+     * This read `ctx.routeContext`. There is no such property: `createContext`
+     * stores the caller's options as `ctx.options`, and every other reader in
+     * this file goes through `ctx.options.routeContext` (see stepResolveClient
+     * and auditPipelineResult). So `inputMode` silently defaulted to 'text' on
+     * every request, `knownSafeChannel` was therefore always true, and
+     * `physical` could NEVER be true in production.
+     *
+     * The M3 rule — a voice confirmation may not authorize an act that crosses
+     * client identity — was dead by construction. Not weakened: inert. And it
+     * was inert in exactly the way this whole program was created to fix, inside
+     * the control created to fix it.
+     *
+     * Every test over it passed because they all called
+     * resolveVoiceConfirmationTier DIRECTLY with `inputMode: 'voice'`, which
+     * bypasses this line. A unit test of a function cannot see a caller reading
+     * the wrong property; only a test that drives the pipeline can.
+     */
+    /**
+     * NO DEFAULT — and that is the second half of the fix.
+     *
+     * Repairing the property path above was necessary and not sufficient: NO
+     * caller in the repo sends `inputMode` (buildCommandRouteContext ships
+     * `source` and `intent`; the dock ships `surface`), so `?? 'text'` still
+     * produced 'text' on every request and `physical` was still never true. A
+     * default that assumes the SAFE answer turns "nobody told us" into "we
+     * checked", which is the same lie the missing property was telling, one
+     * level up.
+     *
+     * flash F-08 already established the polarity — the tier treats anything
+     * that is not a known-safe channel as unproven, and carries a distinct
+     * `unproven_channel_identity_crossing` reason for it. That reason was
+     * unreachable while this line manufactured 'text'. Passing the absence
+     * through makes it reachable.
+     *
+     * Callers declare instead: useCoachCommand sends 'text' for the typed lane,
+     * so existing surfaces are unchanged, and a surface that forgets to declare
+     * gets the cautious treatment rather than the convenient one.
+     */
+    inputMode: ctx.options?.routeContext?.inputMode ?? null,
+  });
+  return { verdict, pair };
+}
+
 async function stepConfirmation(ctx) {
   ctx.stage = 'confirmation';
   if (!ctx.command) return ctx;
-  if (!ctx.command.destructive && !ctx.command.requiresConfirmation) return ctx;
 
+  // Tier resolution runs for EVERY command, not only confirmable ones: a refusal
+  // (role_not_permitted) must be reachable on a command that would otherwise
+  // have executed silently.
+  const { verdict } = resolveTierForCommand(ctx);
+  ctx.confirmationTier = verdict;
+
+  if (verdict.tier === TIER_REFUSAL) {
+    // FF20: an authorization failure is a REFUSAL, never a confirmation prompt.
+    // Confirmation is not authorization — rendering "say yes" at an actor who
+    // may never run the command teaches that gates are persuadable.
+    //
+    // HONEST SCOPE (self-review, Opus 2026-09-02). In THIS pipeline a
+    // role_not_permitted command never reaches here: stepRBAC runs five steps
+    // earlier and already errors out. So this branch is defence-in-depth, not
+    // the operative gate — do not cite it as the reason clients cannot run
+    // trainer commands (that is stepRBAC, pinned by
+    // commandPipelineOrder.test.mjs). Where the refusal RANK does the work:
+    //   1. the tier contract the voice surfaces consume DIRECTLY, which was its
+    //      original purpose and has no RBAC step of its own;
+    //   2. the envelope the sheet renders — a client-visible tier of
+    //      'deliberate' on a forbidden command would invite the negotiation
+    //      even when the server was always going to refuse;
+    //   3. any future caller that resolves a tier without first running RBAC.
+    logger.info('[CommandExecutor] tier refusal', {
+      command: ctx.command.type, reasons: verdict.reasons, mode: tierMode(),
+    });
+    // F-01 (GLM 5.3 round 1): a REFUSAL short-circuits in BOTH modes. `observe`
+    // exists to soften CEREMONY (deliberate tier, physical flag) while its
+    // distribution is measured against real traffic — it must never soften
+    // AUTHORIZATION, or "confirmation is not authorization" becomes
+    // "authorization is a rollout flag". The distribution is still measurable:
+    // the refusal is counted at the refusal, not at a mint that should not exist.
+    {
+      ctx.result = {
+        type: 'refused',
+        command: ctx.command.type,
+        code: 'role_not_permitted',
+        reasons: verdict.reasons,
+        message: `"${ctx.command.description}" is not available for your role. No data was changed.`,
+      };
+      ctx.skipRemainingSteps = true;
+      return ctx;
+    }
+  }
+
+  if (!ctx.command.destructive && !ctx.command.requiresConfirmation) return ctx;
   // Never mint confirmation operations for commands that cannot actually run.
   // Frontend-dispatch commands are the exception: /confirm returns a typed
   // browser event, and the browser performs the explicit UI action.
@@ -507,7 +755,8 @@ async function stepConfirmation(ctx) {
 
   // For destructive ops, prepare HMAC-signed operation
   if (ctx.command.destructive) {
-    const pending = prepareDestructiveOperation({
+    const pending = await prepareDestructiveOperation({
+      actorRole: ctx.user?.role ?? null,
       type: ctx.command.method === 'DELETE' ? 'DELETE' : 'UPDATE',
       endpoint: ctx.command.endpoint,
       commandParams: ctx.intent.params,
@@ -515,6 +764,12 @@ async function stepConfirmation(ctx) {
       userId: ctx.user.id,
       description: `${ctx.command.description}${ctx.resolvedClient ? ` for ${ctx.resolvedClient.firstName || 'Client #' + ctx.resolvedClient.id}` : ''}`,
       affectedRecords: ctx.resolvedClient ? [{ id: ctx.resolvedClient.id, name: `${ctx.resolvedClient.firstName} ${ctx.resolvedClient.lastName || ''}`.trim() }] : [],
+      clientId: ctx.resolvedClient?.id ?? null,
+      // F-03: `verdict` is already in hand from the tier resolution above; the
+      // M3 rule was computed and then thrown away.
+      requiresPhysicalConfirm: Boolean(verdict.physical),
+      // SCU G02 / AF11: stamp the policy projection with the tier in hand.
+      tier: verdict?.tier ?? null,
     });
 
     ctx.pendingOperation = pending;
@@ -533,13 +788,18 @@ async function stepConfirmation(ctx) {
     ? (ctx.resolvedClient.firstName || `Client #${ctx.resolvedClient.id}`)
     : null;
 
-  const pending = preparePendingConfirmation({
+  const pending = await preparePendingConfirmation({
+    actorRole: ctx.user?.role ?? null,
     commandType: ctx.command.type,
     params: ctx.intent.params,
     clientId: ctx.resolvedClient?.id ?? null,
     userId: ctx.user.id,
     description: `${ctx.command.description}${clientName ? ` for ${clientName}` : ''}`,
     frontendEvent: isConfirmedFrontendDispatch ? ctx.command.frontendEvent : null,
+    requiresPhysicalConfirm: Boolean(verdict.physical),
+    // SCU G02 / AF11: stamp the policy projection with the tier in hand.
+    tier: verdict?.tier ?? null,
+    command: ctx.command,
   });
 
   ctx.result = {
@@ -801,7 +1061,7 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   }
 
   // ── Path 1: Non-destructive pending confirmation ─────────────────────────
-  const ndResult = retrievePendingConfirmation(operationId, user.id);
+  const ndResult = await retrievePendingConfirmation(operationId, user.id);
   if (ndResult.verified) {
     const { operation } = ndResult;
     if (operation.frontendEvent) {
@@ -931,7 +1191,7 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   }
 
   // ── Path 2: Destructive HMAC-signed operation ─────────────────────────────
-  const { verified, operation, error } = verifyAndRetrieveOperation(operationId, user.id);
+  const { verified, operation, error } = await verifyAndRetrieveOperation(operationId, user.id, user?.role ?? null);
 
   if (!verified) {
     auditConfirm('failed', { errorCode: 'verification_failed', destructive: true });

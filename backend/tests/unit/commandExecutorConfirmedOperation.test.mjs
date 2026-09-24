@@ -34,7 +34,7 @@ describe('command executor confirmed operation guard', () => {
     const { preparePendingConfirmation, executeConfirmedOperation, dispatch } =
       await loadConfirmedOperationHarness({ hasDispatcher: false });
 
-    const pending = preparePendingConfirmation({
+    const pending = await preparePendingConfirmation({
       commandType: 'future_confirmed_command',
       params: { clientId: 42 },
       clientId: 42,
@@ -57,7 +57,7 @@ describe('command executor confirmed operation guard', () => {
     const { preparePendingConfirmation, executeConfirmedOperation, dispatch } =
       await loadConfirmedOperationHarness({ hasDispatcher: false });
 
-    const pending = preparePendingConfirmation({
+    const pending = await preparePendingConfirmation({
       commandType: 'submit_workout_form',
       params: { intensity: 8, notes: 'Strong finish' },
       clientId: 42,
@@ -86,7 +86,7 @@ describe('command executor confirmed operation guard', () => {
         dispatchResult: { write: 'queued' },
       });
 
-    const pending = preparePendingConfirmation({
+    const pending = await preparePendingConfirmation({
       commandType: 'log_workout',
       params: { clientId: 999, title: 'Upper body', exercises: [{ name: 'Push Up' }] },
       clientId: 42,

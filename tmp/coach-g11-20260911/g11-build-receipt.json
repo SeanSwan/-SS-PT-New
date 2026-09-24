@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "digest": "8520b611152331ba0abb0e414bb3e1d7dea65e38a928247c1c25abc2862b05c2",
+  "actor": "session-agent-subscription",
+  "summary": "G11/S11 release readiness: full backend+frontend suites executed against the candidate with every failure proven pre-existing at the pre-G06 baseline; adopted CoachFact registered (drift tripwire green); migrations syntax-checked; tsc and build clean; per-slice rollback documented; environment-gated acceptance (real DB/Redis/browser/evals) explicitly reserved for the final combined Astra review.",
+  "toolEvidence": {
+    "path": "tmp/coach-g11-20260911/g11-build-evidence.md",
+    "sha256": "d9c36b7e127e6abba1fb8ad50ff2a1255ccf11e201ebc93a5f818874e6730f8c"
+  }
+}

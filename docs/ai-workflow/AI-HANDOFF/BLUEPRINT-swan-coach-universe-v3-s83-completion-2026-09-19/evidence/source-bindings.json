@@ -1,0 +1,310 @@
+{
+  "generatedAt": "2026-09-22T21:04:11.837Z",
+  "purpose": "C0 source bindings for the nine G0 operator inputs (PKG/03-contracts.md:9-17).",
+  "baseHead": "53005a6da965f5ca9e9c8d5ead86c6e19e081095",
+  "rowCount": 9,
+  "countCheck": {
+    "assertedBySlicesDoc": 10,
+    "actualEnumerated": 9,
+    "note": "PKG/05-slices.md#C0 says \"all ten G0 rows\"; 03-contracts.md:9-17 enumerates nine. Astra R5-12 carried this forward; nine is correct.",
+    "resolved": true
+  },
+  "distinctions": {
+    "availableSource": "A file named below exists and hashes. Harvestable now.",
+    "missingPreparationArtifact": "A C0 evidence artifact C0 must itself produce before admission.",
+    "futureImplementationDeliverable": "A file a later slice (C1-C4) is expected to CREATE. Its absence does not block C0."
+  },
+  "rows": [
+    {
+      "id": "G0-MOUNT",
+      "surface": "Coach, Settings and Logger mounts",
+      "classification": "present-but-insufficient",
+      "needsSean": false,
+      "required": "Complete Coach, Settings and Logger receipts, including outer routing, selected role, consumer, API literals, ordered overlapping backend mounts and model fields.",
+      "citations": [
+        "UniversalDashboardLayout.routes.tsx:109,211,238 — coach route registrations",
+        "UniversalDashboardLayout.shellPieces.tsx:96-108 — actual dynamic JSX mount",
+        "backend/core/routes.mjs:445 — memory backend mount"
+      ],
+      "sources": [
+        {
+          "path": "frontend/src/components/DashBoard/UniversalDashboardLayout.routes.tsx",
+          "available": true,
+          "bytes": 21700,
+          "lines": 243,
+          "sha256": "5a3572809e50e2c5c39e4704d4957a0dff6390f9cc135112e95092ad06a5a082"
+        },
+        {
+          "path": "frontend/src/components/DashBoard/UniversalDashboardLayout.shellPieces.tsx",
+          "available": true,
+          "bytes": 4208,
+          "lines": 119,
+          "sha256": "bd5eb919c3d32b191ffb06e6a586267d040e1f5d7ecadb5eedf1291c2ebab727"
+        },
+        {
+          "path": "backend/core/routes.mjs",
+          "available": true,
+          "bytes": 56028,
+          "lines": 1007,
+          "sha256": "57e173bd153ab6d68b828140d30537e2d37219f0bc029baef8827a58df4ca69d"
+        }
+      ],
+      "sourceCount": 3,
+      "availableSources": 3,
+      "missingSources": [],
+      "sourceBound": true
+    },
+    {
+      "id": "G0-ADOPT",
+      "surface": "Created-thread adoption and publication scope",
+      "classification": "present",
+      "needsSean": false,
+      "required": "Hash-bound excerpts, transport deadline/operation map, and exact composed-test contract.",
+      "citations": [
+        "coachPublicationScope.ts:1-28 — types",
+        "useCoachCommandCenterSelection.ts:73-78,121-129,155-170 — composition"
+      ],
+      "sources": [
+        {
+          "path": "frontend/src/hooks/coachPublicationScope.ts",
+          "available": true,
+          "bytes": 7470,
+          "lines": 197,
+          "sha256": "322e871ab098991146f6079c8b30b7679b3910c51818fcb7b65267d9ae87502f"
+        },
+        {
+          "path": "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachCommandCenterSelection.ts",
+          "available": true,
+          "bytes": 14654,
+          "lines": 258,
+          "sha256": "a02e5f584bdafe63c19704a8c9781c169eb7b66dc90a59019304fa2037162c71"
+        }
+      ],
+      "sourceCount": 2,
+      "availableSources": 2,
+      "missingSources": [],
+      "sourceBound": true
+    },
+    {
+      "id": "G0-MEMORY",
+      "surface": "Coach memory routes and persistence services",
+      "classification": "present",
+      "needsSean": false,
+      "required": "Complete success/error mapping and source-bound model/service contracts. Preserve response-loss and forgotten-version semantics.",
+      "citations": [
+        "coachMemoryRoutes.mjs:124,171,208 — handlers"
+      ],
+      "sources": [
+        {
+          "path": "backend/routes/coachMemoryRoutes.mjs",
+          "available": true,
+          "bytes": 9330,
+          "lines": 232,
+          "sha256": "c07fd50534cc6ae6c1d57a6e7638d85ed47482809e019dd077ac96137a96f0a0"
+        },
+        {
+          "path": "frontend/src/services/coachMemoryService.ts",
+          "available": true,
+          "bytes": 10873,
+          "lines": 286,
+          "sha256": "5650e412b7a3a526f1df9261cd8a4b0a1de42bf4e846cc9ed921db7b040ff150"
+        }
+      ],
+      "sourceCount": 2,
+      "availableSources": 2,
+      "missingSources": [],
+      "sourceBound": true
+    },
+    {
+      "id": "G0-CONSENT",
+      "surface": "Consent read/write paths and the real User preference attribute",
+      "classification": "present",
+      "needsSean": false,
+      "required": "Bind both writer paths and distinguish current surrogate-model tests from required production-model/controller acceptance.",
+      "citations": [
+        "notificationSettingsRoutes.mjs:40-41 — dedicated routes",
+        "User.mjs:359-363 — preference attribute definition"
+      ],
+      "sources": [
+        {
+          "path": "backend/routes/notificationSettingsRoutes.mjs",
+          "available": true,
+          "bytes": 2564,
+          "lines": 73,
+          "sha256": "76e21907cd335994081934b6c565eb7048970eca47d51732ac4015181b15d0c1"
+        },
+        {
+          "path": "backend/models/User.mjs",
+          "available": true,
+          "bytes": 21908,
+          "lines": 693,
+          "sha256": "f067700db4f02b7837764a755b364a496a8217a3fa3c3eb0ed3223c72c611ba5"
+        }
+      ],
+      "sourceCount": 2,
+      "availableSources": 2,
+      "missingSources": [],
+      "sourceBound": true
+    },
+    {
+      "id": "G0-DB",
+      "surface": "Owned test database: provisioning, identity, migration config",
+      "classification": "present",
+      "needsSean": false,
+      "required": "Owned cluster provisioning/teardown receipt; actual connection identity from the RUNNER namespace; dedicated no-dotenv migration config. Historical port 55440 is not current ownership; current ownership is 127.0.0.1:55533 (R6-07 lifecycle ruling applied).",
+      "citations": [
+        "g0-db-receipt-v2.json — identity probed from the runner namespace over loopback 55533; v1 retained as history; R6-07 namespace conflation and universal-cause claims corrected; lifecycle events recorded"
+      ],
+      "sources": [
+        {
+          "path": "backend/tests/helpers/coachTestDatabase.mjs",
+          "available": true,
+          "bytes": 10177,
+          "lines": 136,
+          "sha256": "2286dcedf2a5e872c99bf2cd49af71ab693f0a1e6c469fb659c69ae6a4189dbb"
+        },
+        {
+          "path": "backend/tests/helpers/coachTestDatabaseLoader.mjs",
+          "available": true,
+          "bytes": 764,
+          "lines": 12,
+          "sha256": "af9ccb83c3f6e6217417a4eb1f5708d05c73482227139222b86856fff19eccbf"
+        },
+        {
+          "path": "backend/tests/helpers/coachDatabaseLease.mjs",
+          "available": true,
+          "bytes": 13097,
+          "lines": 232,
+          "sha256": "ce25b6839acc87ac7cce71f3b525e50859f278057c29478a7500d496a49b9369"
+        },
+        {
+          "path": "backend/run-coach-postgres.mjs",
+          "available": true,
+          "bytes": 16804,
+          "lines": 296,
+          "sha256": "f96ea112d5209970b13d6bbcb703873851ed4d3196504f993f2d3f8030969f0e"
+        },
+        {
+          "path": "docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/evidence/g0-db-receipt-v2.json",
+          "available": true,
+          "bytes": 6371,
+          "lines": 79,
+          "sha256": "d5ae20710784b8741cc321dacb78e6cbe5a1ce00a3c7a869cd8ec527092736b0"
+        }
+      ],
+      "sourceCount": 5,
+      "availableSources": 5,
+      "missingSources": [],
+      "sourceBound": true
+    },
+    {
+      "id": "G0-TEST",
+      "surface": "Test inventory, runner wiring and compiler environment",
+      "classification": "present-but-insufficient",
+      "needsSean": false,
+      "required": "Full package/runner inventory, explicit exclusions, union batches, available typecheck environment, exact browser startup and discovery contracts.",
+      "citations": [],
+      "sources": [
+        {
+          "path": "backend/package.json",
+          "available": true,
+          "bytes": 10532,
+          "lines": 177,
+          "sha256": "676bac2890864bfb0d4ae3adc527bac916f2404df9c29c5cd0b15b25c1432c7e"
+        },
+        {
+          "path": "frontend/package.json",
+          "available": true,
+          "bytes": 4157,
+          "lines": 113,
+          "sha256": "00e897fbf47ca78706caa50d36a1446073fd125357073d9834c1a7921b1286a4"
+        },
+        {
+          "path": "backend/vitest.coach-postgres.config.mjs",
+          "available": true,
+          "bytes": 10366,
+          "lines": 158,
+          "sha256": "72021577221a5b611789b05927d51a1f86aaae981d5297c45b6e1378ef2a4a69"
+        }
+      ],
+      "sourceCount": 3,
+      "availableSources": 3,
+      "missingSources": [],
+      "sourceBound": true
+    },
+    {
+      "id": "G0-SCHEMA",
+      "surface": "Migration source, repaired objects and supported installed history",
+      "classification": "present-but-insufficient",
+      "needsSean": false,
+      "required": "Supported installed-history manifest, complete object repair matrix, interruption fixture, restore assertions, and one reconciled forward-migration decision.",
+      "citations": [],
+      "sources": [
+        {
+          "path": "backend/models/Orientation.mjs",
+          "available": true,
+          "bytes": 2168,
+          "lines": 91,
+          "sha256": "966faed3d724d2739d3f9a7cd4a57aa840041abc200abc45fb6f05eda19dc672"
+        },
+        {
+          "path": "backend/tests/unit/migrationFkTypeCompat.test.mjs",
+          "available": true,
+          "bytes": 13268,
+          "lines": 270,
+          "sha256": "72ad4897bdfcdb38b768ed8ee297bea204ba77c2bfb9bd3f63b410c14584feb8"
+        }
+      ],
+      "sourceCount": 2,
+      "availableSources": 2,
+      "missingSources": [],
+      "sourceBound": true
+    },
+    {
+      "id": "G0-OWNER",
+      "surface": "Worktree ownership, live locks and dirty-source identity",
+      "classification": "present-but-insufficient",
+      "needsSean": false,
+      "required": "Complete fresh orientation, exact claimed paths, dirty-source hashes and preservation receipt.",
+      "citations": [
+        "INCIDENT 2026-09-21: .git/worktrees metadata was pruned by a concurrent session mid-C0; rescue refs pinned (refs/rescue/swan-coach-astra-owned-20260906 -> 53005a6da, whose tree object is corrupt); metadata rebuilt detached and the worktree reattached to intact base 70547685c; git rev-parse --git-path HEAD resolves again"
+      ],
+      "sources": [
+        {
+          "path": ".gitignore",
+          "available": true,
+          "bytes": 12569,
+          "lines": 532,
+          "sha256": "d959b570432a7621099a35d3f038a5ae99a095298614edc2ac35e9df8c6a361a"
+        },
+        {
+          "path": "CLAUDE.md",
+          "available": true,
+          "bytes": 213412,
+          "lines": 1176,
+          "sha256": "1d0c1b6dd8214b7271e0387160bad0d9569ae9664e85c7cb2a96ce461f832bb2"
+        }
+      ],
+      "sourceCount": 2,
+      "availableSources": 2,
+      "missingSources": [],
+      "sourceBound": true
+    },
+    {
+      "id": "G0-RELEASE",
+      "surface": "Reviewer seat and release-gate disposition",
+      "classification": "present-operationally-insufficient",
+      "needsSean": false,
+      "required": "Supported state migration, historical gate disposition, C-to-S coverage mapping, budget accounting and archive references.",
+      "citations": [
+        "Reviewer decision is present: Astra is the orchestrator (Sean, 2026-09-21).",
+        "CLOSED 2026-09-21: v9 migrated from v7 through the SUPPORTED controller (non-vibe-coding skill, policyHash 79aa03e0 generation verified); cadence final-astra; status read-back succeeded; five negative migration tests refused as required"
+      ],
+      "sources": [],
+      "sourceCount": 0,
+      "availableSources": 0,
+      "missingSources": [],
+      "sourceBound": false
+    }
+  ]
+}

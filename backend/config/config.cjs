@@ -1,5 +1,12 @@
 require('dotenv').config({ path: '../.env' });
 
+// TLS against Render's Postgres is the default and is unchanged. Only the
+// migration shadow check (a throwaway container with no TLS) sets PGSSLMODE=disable;
+// without the opt-out that job fails at connect time instead of testing migrations.
+const sslDisabled = ['disable', 'false', '0', 'off'].includes(
+  String(process.env.PGSSLMODE || '').trim().toLowerCase()
+);
+
 module.exports = {
   development: {
     username: process.env.PG_USER || 'swanadmin',
@@ -24,12 +31,14 @@ module.exports = {
     // This is needed for Sequelize CLI migrations to work properly
     use_env_variable: 'DATABASE_URL',
     dialect: 'postgres',
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false // Required for Render PostgreSQL
-      }
-    },
+    dialectOptions: sslDisabled
+      ? { ssl: false }
+      : {
+          ssl: {
+            require: true,
+            rejectUnauthorized: false // Required for Render PostgreSQL
+          }
+        },
     logging: false,
     pool: {
       max: 15,

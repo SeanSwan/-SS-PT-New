@@ -6,7 +6,7 @@
  * Client changes always start a fresh conversation state. Existing threads are
  * immutable records and are never rebound to a different client.
  */
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import {
   useGlobalClient,
@@ -34,6 +34,12 @@ type UseCoachPinnedClientParams = {
   setAutoSelectSuppressed: Dispatch<SetStateAction<boolean>>;
   setSearchParams: SearchParamSetter;
   setSelectedStatus: Dispatch<SetStateAction<string>>;
+  /** Round-2 review #2: a client switch clears the on-screen session too. */
+  resetSessionLog?: () => void;
+  /** The staff selection phase: a clear that fails must let the pin restore resume. */
+  selectionPhase?: string;
+  /** The target the current admission actually granted (null = unscoped). */
+  admittedTargetUserId?: number | null;
   userRole: CoachCommandRole;
 };
 
@@ -49,6 +55,8 @@ function clientName(client?: ActiveClient | null): string | null {
   return [client.firstName, client.lastName].filter(Boolean).join(' ').trim() || `Client #${client.id}`;
 }
 
+const CLEAR_FAILED = new Set(['denied', 'invalid', 'unavailable', 'blocked-return']);
+
 export function useCoachPinnedClient({
   activeThreadClientId,
   chat,
@@ -59,6 +67,9 @@ export function useCoachPinnedClient({
   setAutoSelectSuppressed,
   setSearchParams,
   setSelectedStatus,
+  resetSessionLog,
+  selectionPhase,
+  admittedTargetUserId,
   userRole,
 }: UseCoachPinnedClientParams) {
   const {
@@ -79,7 +90,16 @@ export function useCoachPinnedClient({
     [activeClient, clientList, effectiveClientId],
   );
 
+  // An explicit "No client" is a REQUEST for staff (plan 61): the stored pin only
+  // clears once admitted. Until then this restore must not put the old client
+  // back into the URL — it did, so "No client (general)" never took (brain-v4).
+  const clearingRef = useRef(false);
   useEffect(() => {
+    // Round-2 review #3: a clear that is refused (or returned) never commits, so the
+    // stored pin stays — the restore must resume or every send is refused.
+    // A returned clear puts the client back in the route (round-3 #2).
+    if (!storedClientId || routeClientId || (selectionPhase && CLEAR_FAILED.has(selectionPhase))) clearingRef.current = false;
+    if (clearingRef.current) return;
     if (!operatorEnabled || routeClientId || routeThreadId || activeThreadClientId || !storedClientId) return;
     setSearchParams(
       buildThreadSelectionSearchParams(searchParams, storedClientId, null),
@@ -87,6 +107,7 @@ export function useCoachPinnedClient({
     );
   }, [
     activeThreadClientId,
+    selectionPhase,
     operatorEnabled,
     routeClientId,
     routeThreadId,
@@ -94,6 +115,28 @@ export function useCoachPinnedClient({
     setSearchParams,
     storedClientId,
   ]);
+
+  // Round-3 #1: the status line reports what the admission DID, not what was asked.
+  const requestRef = useRef<{ clientId: number | null; label: string; checked: boolean } | null>(null);
+  useEffect(() => {
+    const request = requestRef.current;
+    if (!request || !selectionPhase) return;
+    if (!request.checked) request.checked = selectionPhase !== 'ready';
+    const settled = CLEAR_FAILED.has(selectionPhase) || (selectionPhase === 'ready' && request.checked);
+    if (!settled) return;
+    requestRef.current = null;
+    // Judge by what the admission GRANTED: a refusal may surface as a failure phase
+    // or as a quiet re-admission of the old client.
+    if (selectionPhase === 'ready' && (admittedTargetUserId ?? null) === request.clientId) {
+      setSelectedStatus(request.clientId === null
+        ? 'Main client cleared - new unscoped Coach thread ready'
+        : `${request.label} pinned - new client-bound Coach thread ready`);
+      return;
+    }
+    const kept = selectionPhase === 'ready' ? admittedTargetUserId ?? null : storedClientId;
+    const keptLabel = kept === null ? '' : clientName(clientList.find((c) => c.id === kept) ?? null) || `Client #${kept}`;
+    setSelectedStatus(`Couldn't ${request.clientId === null ? 'clear the main client' : `switch to ${request.label}`}${keptLabel ? ` - still on ${keptLabel}` : ''}`);
+  }, [admittedTargetUserId, clientList, selectionPhase, setSelectedStatus, storedClientId]);
 
   useEffect(() => {
     if (!operatorEnabled || !effectiveClientId) return;
@@ -108,20 +151,24 @@ export function useCoachPinnedClient({
       : clientList.find((candidate) => candidate.id === clientId) || null;
     if (clientId != null && !client) return;
 
+    clearingRef.current = !client;
     if (client) setActiveClient(client);
     else clearActiveClient();
     chat.newChat();
+    // The previous client's questions and replies never stay on screen under the new one.
+    resetSessionLog?.();
     setActiveThreadId(null);
     setAutoSelectSuppressed(true);
     setSearchParams(
       buildThreadSelectionSearchParams(searchParams, client?.id ?? null, null),
       { replace: true },
     );
-    setSelectedStatus(client
-      ? `${clientName(client)} pinned - new client-bound Coach thread ready`
-      : 'Main client cleared - new unscoped Coach thread ready');
+    const label = client ? clientName(client) || `Client #${client.id}` : '';
+    requestRef.current = { clientId: client?.id ?? null, label, checked: false };
+    setSelectedStatus(client ? `Switching to ${label}...` : 'Clearing the main client...');
   }, [
     chat,
+    resetSessionLog,
     clearActiveClient,
     clientList,
     operatorEnabled,

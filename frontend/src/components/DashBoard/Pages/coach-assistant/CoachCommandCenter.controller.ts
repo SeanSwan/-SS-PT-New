@@ -1,13 +1,16 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
+import { isAllowedRawRole } from '../../../../hooks/coachPublicationScope';
 import { useCoachIntakeQueue } from '../../../../hooks/useCoachIntakeQueue';
 import { useAIChat } from '../../../../hooks/useAIChat';
 import { useCoachCommand } from '../../../../hooks/useCoachCommand';
 import type { CoachCommandClientSource } from '../../../../services/coachCommandClientService';
 import { parsePlaudMergeRequestId } from '../../../../utils/plaudRouteGuards';
 import { createCoachCommandCenterActions } from './CoachCommandCenter.actions';
-import { useApplyRouteContextPrompt, useAutoSelectCoachThread, useLoadCoachConversations, useLoadRoutedCoachThread, usePlaudReviewScroll } from './CoachCommandCenter.controllerEffects';
+import { useSupersedeCoachSendsOnScope } from './coachSendSequence';
+import { useApplyRouteContextPrompt, useAutoSelectCoachThread, useCoachGuidePrompt, useCoachWorkoutPlannerRoute, useLoadCoachConversations, useLoadRoutedCoachThread, usePlaudReviewScroll } from './CoachCommandCenter.controllerEffects';
+import { useCoachCommandCenterSelection } from './hooks/useCoachCommandCenterSelection';
 import { INITIAL_COMMAND_LOGS, type CommandLogEntry } from './CoachCommandCenter.data';
 import { buildConversationLogs, mergeTranscriptLogs } from './CoachCommandCenter.chatLogs';
 import {
@@ -37,21 +40,31 @@ import { useCoachPinnedClient } from './hooks/useCoachPinnedClient';
 import type { DrawerSide } from './CoachCommandCenter.types';
 import { useCoachCommandVoiceCapture } from './CoachCommandCenter.voiceCapture';
 import { usePremiumTTS } from './hooks/usePremiumTTS';
-import { buildSwanCoachWorkoutPlannerRoute } from './SwanCoachWorkoutPlannerRoute';
-export function useCoachCommandCenterController({ actorId, userRole = 'admin' }: { actorId?: string | number | null; userRole?: CoachCommandRole } = {}) {
+import { commandInputMode, useCoachInputOrigin } from '../../../../hooks/useCoachInputOrigin';
+export function useCoachCommandCenterController({
+  actorId, userRole = 'admin', rawRole,
+}: { actorId?: string | number | null; userRole?: CoachCommandRole; rawRole?: string | null } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const chat = useAIChat(userRole);
-  const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand();
-  const tts = usePremiumTTS();
-  const operatorEnabled = userRole !== 'client';
-  const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
   const initialRouteThreadId = parseRouteThreadId(searchParams.get('threadId'));
   const [activeThreadId, setActiveThreadId] = useState<number | null>(initialRouteThreadId);
+  // Plan 55 §3 C3: mount selection before transports so all share its live binding.
+  // `rawRole` is authenticated; `userRole` is the presentation/audience role.
+  const { selection, binding } = useCoachCommandCenterSelection({ actorId, rawRole, audienceRole: userRole, setActiveThreadId });
+  const chat = useAIChat(userRole, binding);
+  const { cancelCommand, confirmCommand, executeCommand, executingCommand } = useCoachCommand(binding);
+  const tts = usePremiumTTS(binding);
+  // N5 (GLM round 2): the RAW role must be recognised too. Presentation alone let
+  // an unrecognised actor ('ghost' -> 'admin') reach staff surfaces. The fence is
+  // role-shaped, not publication-shaped: this queue is PRE-selection discovery, so
+  // gating it on the binding borrows the wrong fence and would blink it off during
+  // admission windows. Full reasoning in the register's N5 entry.
+  const operatorEnabled = userRole !== 'client' && isAllowedRawRole(rawRole);
+  const coachQueue = useCoachIntakeQueue({ scope: 'actionable', limit: 12, enabled: operatorEnabled });
   const [autoSelectSuppressed, setAutoSelectSuppressed] = useState(false);
   const [commandText, setCommandText] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('No coach thread selected');
   const [threadSearch, setThreadSearch] = useState('');
-  const [logs, setLogs] = useState<CommandLogEntry[]>(INITIAL_COMMAND_LOGS);
+  const [logs, setLogs] = useState<CommandLogEntry[]>(INITIAL_COMMAND_LOGS); const resetSessionLog = useCallback(() => setLogs(INITIAL_COMMAND_LOGS), []);
   const [teachMode, setTeachMode] = useState(false);
   const [drawer, setDrawer] = useState<DrawerSide | null>(null);
   const [quickClientName, setQuickClientName] = useState('');
@@ -60,9 +73,8 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   const [quickClientMessage, setQuickClientMessage] = useState<string | null>(null);
   const [quickClientError, setQuickClientError] = useState<string | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
-  const commandFormRef = useRef<HTMLFormElement>(null);
-  const commandTextRef = useRef<HTMLTextAreaElement>(null);
-  const leftRailRef = useRef<HTMLElement>(null);
+  const commandFormRef = useRef<HTMLFormElement>(null); const commandTextRef = useRef<HTMLTextAreaElement>(null);
+  const { inputOrigin, setInputOrigin, setTrackedCommandText } = useCoachInputOrigin(setCommandText); const leftRailRef = useRef<HTMLElement>(null);
   const rightRailRef = useRef<HTMLElement>(null);
   const plaudReviewRef = useRef<HTMLElement>(null);
   const lastDrawerTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -87,7 +99,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     [activeThread?.targetUserId],
   );
   const clientPin = useCoachPinnedClient({ activeThreadClientId, chat, routeClientId, routeThreadId, searchParams,
-    setActiveThreadId, setAutoSelectSuppressed, setSearchParams, setSelectedStatus, userRole });
+    setActiveThreadId, setAutoSelectSuppressed, setSearchParams, setSelectedStatus, userRole, resetSessionLog, selectionPhase: selection.phase, admittedTargetUserId: selection.accepted?.targetUserId });
   const effectiveClientId = clientPin.effectiveClientId;
   const rawRouteIntent = searchParams.get('intent');
   const routeIntent = rawRouteIntent === 'client_onboarding' && routeClientId
@@ -95,9 +107,10 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     : rawRouteIntent;
   const routeSource = searchParams.get('source');
   const routeDraftKey = searchParams.get('draftKey');
+  // Bound staff land on a new chat: an auto-picked thread is highlighted but refused (brain-v4 #3).
   const autoSelectedThread = useMemo(
-    () => autoSelectSuppressed ? null : pickAutoSelectedThread(allCoachThreads, routeIntent, effectiveClientId, activeThreadId),
-    [activeThreadId, allCoachThreads, autoSelectSuppressed, effectiveClientId, routeIntent],
+    () => autoSelectSuppressed || binding ? null : pickAutoSelectedThread(allCoachThreads, routeIntent, effectiveClientId, activeThreadId),
+    [activeThreadId, allCoachThreads, autoSelectSuppressed, binding, effectiveClientId, routeIntent],
   );
   const workflowReturnTo = useMemo(
     () => normalizeCommandCenterReturnTo(searchParams.get('returnTo') || searchParams.get('sourcePath'), userRole),
@@ -106,17 +119,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   const workflowReturnSource = routeSource
     || (workflowReturnTo?.startsWith('/dashboard/client/') ? 'client-dashboard' : null);
   const workflowReturnLabel = buildWorkflowReturnLabel(workflowReturnTo, workflowReturnSource);
-  const workoutPlannerRoute = useMemo(
-    () => userRole === 'client'
-      ? null
-      : buildSwanCoachWorkoutPlannerRoute({
-        userRole,
-        selectedClientId: effectiveClientId,
-        workflowReturnTo,
-        searchParams,
-      }),
-    [effectiveClientId, searchKey, userRole, workflowReturnTo],
-  );
+  const workoutPlannerRoute = useCoachWorkoutPlannerRoute({ userRole, selectedClientId: effectiveClientId, workflowReturnTo, searchParams });
   const routeClientLabel = buildRouteClientLabel(routeClientId);
   const effectiveClientLabel = clientPin.selectedClientName || routeClientLabel || buildRouteClientLabel(activeThreadClientId);
   const routeTeachPrompt = searchParams.get('teachPrompt')?.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS) || null;
@@ -163,19 +166,12 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
   const dossierTiles = useMemo(() => buildDossierTiles(initialReviewMergeRequestId, selectedClientLabel, summary), [initialReviewMergeRequestId, selectedClientLabel, summary]);
   const queueHealthRows = useMemo(() => buildQueueHealthRows(summary), [summary]);
   const rightRailItems = useMemo(() => buildRightRailItems(coachQueue.items), [coachQueue.items]);
-  const handleGuidePrompt = useCallback((prompt: string) => {
-    const trimmed = prompt.trim().slice(0, AI_CHAT_MESSAGE_MAX_CHARS);
-    if (!trimmed) return;
-    setCommandText((current) => current.trim() ? current : trimmed);
-    setSelectedStatus('Guide prompt staged for review');
-    window.setTimeout(() => commandTextRef.current?.focus(), 0);
-  }, []);
-  const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setSelectedStatus });
+  const handleGuidePrompt = useCoachGuidePrompt(setCommandText, setSelectedStatus, commandTextRef);
+  const voiceCapture = useCoachCommandVoiceCapture({ commandTextRef, setCommandText, setInputOrigin, setSelectedStatus, speechOutputStop: tts.stop, binding });
   const notebook = useCoachClientNotebook({ actorId, clientId: effectiveClientId, clientLabel: selectedClientLabel,
-    commandText, commandTextRef, setCommandText, setSelectedStatus });
-  const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId });
-  // Notebook mode owns the composer while active — see useCoachComposerDraft's `enabled`.
-  useCoachComposerDraft(activeThreadId, commandText, setCommandText, { actorId, clientId: effectiveClientId },
+    commandText, commandTextRef, setCommandText, setSelectedStatus, binding });
+  const sendMessageWithFood = useCoachCommandCenterPendingFood({ chat, targetClientId: effectiveClientId, binding });
+  useCoachComposerDraft(activeThreadId, commandText, setCommandText, { actorId, clientId: effectiveClientId, binding },
     !notebook.dockControls.active);
   const actions = createCoachCommandCenterActions({
     activeThread,
@@ -186,6 +182,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     clientFacing: userRole === 'client',
     commandLaneEnabled: operatorEnabled,
     commandText,
+    inputMode: commandInputMode(inputOrigin),
     commandTextRef,
     confirmCommand,
     executeCommand,
@@ -206,7 +203,7 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     onNewThreadRoute: () => setSearchParams(buildThreadSelectionSearchParams(searchParams, effectiveClientId, null), { replace: true }),
     setActiveThreadId,
     setAutoSelectSuppressed,
-    setCommandText,
+    setCommandText: setTrackedCommandText,
     setDrawer,
     setLogs,
     setQuickClientBusy,
@@ -215,21 +212,22 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     setQuickClientName,
     setSelectedStatus,
   });
-  useLoadCoachConversations(chat);
-  useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus);
+  useLoadCoachConversations(chat, selection.phase);
+  useLoadRoutedCoachThread(routeThreadId, allCoachThreads, chat, setActiveThreadId, setSelectedStatus, selection, selection.accepted?.threadId ?? null);
   useAutoSelectCoachThread(autoSelectedThread, chat, setActiveThreadId, setSelectedStatus);
-  useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setCommandText);
-  usePlaudReviewScroll(
-    shouldScrollPlaudReview(plaudWorkspaceRequested, rawMergeRequestId, reviewNextRequested),
-    searchKey,
-    plaudReviewRef,
-  );
+  useApplyRouteContextPrompt(effectiveRouteContext, searchKey, setActiveThreadId, setSelectedStatus, setTrackedCommandText);
+  usePlaudReviewScroll(shouldScrollPlaudReview(plaudWorkspaceRequested, rawMergeRequestId, reviewNextRequested), searchKey, plaudReviewRef);
+  // Review #4: a client switch or re-admission supersedes a send still in flight.
+  useSupersedeCoachSendsOnScope(commandTextRef, `${effectiveClientId ?? ''}:${selection.accepted?.generation ?? ''}`);
   return {
     activeIntakeId: searchParams.get('intake'),
     activeThread,
     activeThreadId,
     allCoachThreads,
     chatLoading: chat.loading,
+    conversationsRefreshing: chat.conversationsRefreshing,
+    conversationListFailed: chat.conversationListFailed,
+    retryConversations: () => { void chat.listConversations('active', true); },
     clientContextTiles,
     clientPin: clientPin.barProps,
     coachQueue,
@@ -241,7 +239,9 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     closeDrawer: actions.closeDrawer,
     dossierTiles,
     drawer,
+    publicationBinding: binding,
     handleReviewIntake: actions.handleReviewIntake,
+    handleIntentSubmit: actions.handleIntentSubmit,
     handleCancelCommand: actions.handleCancelCommand,
     handleConfirmCommand: actions.handleConfirmCommand,
     handleGuidePrompt,
@@ -271,9 +271,11 @@ export function useCoachCommandCenterController({ actorId, userRole = 'admin' }:
     rightRailItems,
     rightRailRef,
     selectedClientLabel,
+    selection,
+    selectionPhase: selection.phase,
     selectedStatus: displaySelectedStatus(voiceCapture.voiceStatus, selectedStatus),
     sendMessageWithFood,
-    setCommandText,
+    inputMode: commandInputMode(inputOrigin), setCommandText: setTrackedCommandText,
     setQuickClientName,
     setQuickClientSource,
     setTeachMode,

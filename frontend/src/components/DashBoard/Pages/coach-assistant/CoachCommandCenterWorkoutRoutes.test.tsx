@@ -196,7 +196,8 @@ describe('CoachCommandCenterPage workout route actions', () => {
       },
     ]);
 
-    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+    // Staff reach an active thread through the routed (admitted) thread, never auto-select.
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat&threadId=201');
 
     await waitFor(() => {
       const header = screen.getByRole('region', { name: /active coach thread/i });

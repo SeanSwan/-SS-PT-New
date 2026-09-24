@@ -16,6 +16,7 @@ const GLOBAL_PER_MINUTE = 60;
 const WINDOW_MINUTE_MS = 60 * 1000;
 const WINDOW_HOUR_MS = 60 * 60 * 1000;
 const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // Prune stale entries every 5 min
+const SUSPICIOUS_WINDOW_MS = 5 * 60 * 1000; // Window for repeated-rate-limit-hit detection
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,27 @@ const _cleanupTimer = setInterval(() => {
     else userRequestsPerHour.set(userId, pruned);
   }
   globalRequests = globalRequests.filter(t => now - t < WINDOW_MINUTE_MS);
+
+  // S6: the two maps the original sweep forgot.
+  //
+  // Filtering is not eviction. A user who trips the limit once and never returns
+  // was never revisited, so their key survived for the life of the process; the
+  // same is true of a concurrent lock whose owner never comes back (auto-release
+  // only fires on that user's NEXT request, which may never arrive).
+  //
+  // Growth here is bounded by the number of authenticated users, NOT attacker-
+  // amplifiable — unlike the req.ip-keyed limiter in middleware/authMiddleware.mjs,
+  // where rotating source IPs minted unbounded keys. That sibling was hardened on
+  // 2026-07-29 with a sweep plus a maxKeys FIFO cap; the fix did not sweep sideways
+  // to this file. Same bug class, lower severity, fixed here for completeness.
+  for (const [userId, timestamps] of rateLimitHits) {
+    const pruned = timestamps.filter(t => now - t < SUSPICIOUS_WINDOW_MS);
+    if (pruned.length === 0) rateLimitHits.delete(userId);
+    else rateLimitHits.set(userId, pruned);
+  }
+  for (const [userId, lockTime] of concurrentUsers) {
+    if (now - lockTime > CONCURRENT_LOCK_TIMEOUT_MS) concurrentUsers.delete(userId);
+  }
 }, CLEANUP_INTERVAL_MS);
 // Allow Node to exit even if timer is running
 if (_cleanupTimer.unref) _cleanupTimer.unref();
@@ -135,13 +157,50 @@ export function releaseConcurrent(userId) {
 }
 
 /**
- * Reset all rate limit state. Used in tests.
+ * Test-only inspection of the store sizes.
+ *
+ * WHY THIS EXISTS: the sweep's eviction of `rateLimitHits` and stale
+ * `concurrentUsers` is a pure MEMORY property with NO behavioural signature.
+ * `logSuspicious()` already filters stale hits on every call, so whether or not the
+ * sweep pruned them, the count it computes is identical. A test written against
+ * observable behaviour therefore passes with the sweep loop deleted — verified by
+ * mutation, after a first attempt at exactly such a test did precisely that.
+ *
+ * The sibling limiter in middleware/authMiddleware.mjs hit the same wall, and its
+ * test file records that proving the sweep "would need a test seam in runtime code".
+ * This is that seam: the smallest possible read-only window, so "the sweep evicts"
+ * can be asserted rather than asserted-about.
+ *
+ * Returns COUNTS ONLY — never keys, never timestamps — so it cannot leak user ids
+ * (Rule 8) even if something ever logs its output.
+ *
+ * @returns {{ perMinute: number, perHour: number, global: number, concurrent: number, suspicious: number }}
+ */
+export function __inspectStateSizes() {
+  return {
+    perMinute: userRequestsPerMinute.size,
+    perHour: userRequestsPerHour.size,
+    global: globalRequests.length,
+    concurrent: concurrentUsers.size,
+    suspicious: rateLimitHits.size,
+  };
+}
+
+/**
+ * Reset ALL rate limit state, including the suspicious-hit tracker. Used in tests.
+ *
+ * S6: this previously cleared four of the five state maps and left `rateLimitHits`
+ * populated, while its own docstring said "all". State therefore leaked between
+ * tests: a suite that provoked three rejections left the counter armed, so the very
+ * next test's FIRST rejection tripped the >= 3 suspicious warning. That also made
+ * the detector untestable in isolation. Pinned by aiRateLimiterStateHygiene.test.mjs.
  */
 export function resetAll() {
   userRequestsPerMinute.clear();
   userRequestsPerHour.clear();
   globalRequests = [];
   concurrentUsers.clear();
+  rateLimitHits.clear();
 }
 
 // ── Suspicious Activity Tracking ─────────────────────────────────────────────
@@ -151,7 +210,7 @@ const rateLimitHits = new Map();
 
 function logSuspicious(userId, reason) {
   const now = Date.now();
-  const hits = (rateLimitHits.get(userId) || []).filter(t => now - t < 5 * 60 * 1000);
+  const hits = (rateLimitHits.get(userId) || []).filter(t => now - t < SUSPICIOUS_WINDOW_MS);
   hits.push(now);
   rateLimitHits.set(userId, hits);
 

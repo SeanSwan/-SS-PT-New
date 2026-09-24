@@ -5,44 +5,114 @@
  * Operations are prepared (preview), then executed only after user confirmation.
  *
  * Pipeline position: ... → ConfirmationGenerator → **DestructiveOps** → Executor → Auditor
+ *
+ * 0.3/0.4 (2026-09-02) — the standing P0 dies here:
+ *   - OPERATION_SIGNING_KEY is REQUIRED. The `|| crypto.randomBytes(32)` fallback
+ *     meant a per-process secret: every deploy silently voided in-flight approvals
+ *     and two instances could never verify each other. Unset/short key now refuses
+ *     at boot (assertOperationSigningKey) and at first use — never a random key.
+ *   - The store API is ASYNC (Redis-ready). One-time consumption is enforced on the
+ *     store's delete() RETURN VALUE: whichever caller's delete returns true owns the
+ *     operation; every other concurrent confirm loses. GET-then-DEL is not atomic —
+ *     the DEL is (see pendingOperationStore.mjs).
+ *   - The HMAC now signs `description` and a hash of the affected-records preview —
+ *     the two fields the human actually READS. Signing only machine fields meant a
+ *     store-level tamper could change what the approver sees while verification
+ *     passed (flash review F17g/FF25, 2026-09-01).
+ *   - `params` are deep-copied at mint. The shallow spread shared nested references
+ *     with caller state, so post-mint mutation of a nested object was invisible to
+ *     the signature.
+ *   - The explicit-scope law covers EVERY destructive type, not just DELETE — an
+ *     unscoped UPDATE/DEACTIVATE/LOCK with `params: {}` no longer passes prepare.
+ *   - `pending_confirmed` (non-destructive) operations are HMAC-signed too; they
+ *     previously carried no integrity binding at all.
  */
 import crypto from 'crypto';
 import logger from '../../utils/logger.mjs';
+import { getPendingOperationStore } from './pendingOperationStore.mjs';
+import { recordApprovalEvent, APPROVAL_EVENTS } from './approvalEvents.mjs';
+import {
+  assertOperationSigningKey,
+  signOperation,
+  verifySignature,
+  signPendingConfirmation,
+} from './operationSigning.mjs';
+import { buildConfirmationProjection } from './confirmationProjection.mjs';
 
-const OPERATION_SECRET = process.env.OPERATION_SIGNING_KEY || crypto.randomBytes(32).toString('hex');
+// Re-exported so core/startup.mjs, commandExecutor and the S1 tests keep ONE
+// import surface — the split (Rule 4 cap) must not ripple through callers.
+export { assertOperationSigningKey };
+export { preparePendingConfirmation, retrievePendingConfirmation } from './pendingConfirmations.mjs';
+export { countPendingForUser as getPendingCount } from './pendingOperationStore.mjs';
+import { countPendingForUser as getPendingCount } from './pendingOperationStore.mjs';
+
 const MAX_AI_BULK_DELETE = 50;
 const OPERATION_TTL_SECONDS = 120;
+const MAX_PENDING_PER_USER = 5;
 
-// In-memory store (fallback when Redis is disabled — which it currently is in production)
-const pendingOps = new Map();
+/** Scope = one named entity (`id` / any `*Id`) or a bounded dateRange, non-empty. */
+/** A dateRange is only a SCOPE if it has both ends, they parse, and the span is bounded. */
+const MAX_SCOPED_RANGE_DAYS = 366;
 
-// Cleanup expired ops every 60s — unref() allows Node to exit cleanly in tests
-const cleanupTimer = setInterval(() => {
-  const now = Date.now();
-  for (const [id, op] of pendingOps.entries()) {
-    if (new Date(op.expiresAt).getTime() < now) {
-      pendingOps.delete(id);
+function isBoundedDateRange(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  const from = Date.parse(v.from ?? v.start ?? '');
+  const to = Date.parse(v.to ?? v.end ?? '');
+  if (!Number.isFinite(from) || !Number.isFinite(to) || to < from) return false;
+  return (to - from) <= MAX_SCOPED_RANGE_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * R2-5 (GLM 5.3 round 2): this checked PRESENCE, while the scope law it enforces
+ * — and the comment at its only caller — says "names ONE entity ... or a bounded
+ * dateRange". Boundedness was enforced by nothing. `dateRange: {}` passed.
+ * `dateRange: { from: '1900-01-01', to: '2100-01-01' }` passed. So did
+ * `clientId: [1, 2, ...5000]`, because an array is neither null nor undefined
+ * nor empty-string — the mass-mutation shape the law exists to refuse, wearing
+ * the name of a single-entity key.
+ *
+ * It is LATENT today only because every registered destructive command is
+ * single-entity by construction, which destructiveCommandsSingleEntity.test.mjs
+ * locks. That test is the thing standing between this and a live hole, and a
+ * law that depends on a DIFFERENT test to hold is not a law. An `*Id` must now
+ * be a scalar, and a dateRange must actually be bounded.
+ */
+export function hasExplicitScope(params) {
+  if (!params || typeof params !== 'object') return false;
+  return Object.entries(params).some(([k, v]) => {
+    if (v === null || v === undefined || v === '') return false;
+    if (k === 'dateRange') return isBoundedDateRange(v);
+    if (k === 'id' || /Id$/.test(k)) {
+      // One entity means one value. An array or object here is a set.
+      return typeof v === 'string' || typeof v === 'number';
     }
+    return false;
+  });
+}
+
+// The pending-approval store lives behind an injectable seam (pendingOperationStore.mjs).
+// Contract audited 2026-09-02 across all call sites in this module: get / set / delete /
+// countForUser (all async), plus entries() for the in-process expiry sweep only.
+const store = () => getPendingOperationStore();
+
+// Expiry sweep: only meaningful for the in-process store — a durable store owns its
+// own TTL (PSETEX). Guarded on capability, not kind, so a future store that DOES
+// need sweeping can opt in by exposing entries().
+const cleanupTimer = setInterval(async () => {
+  try {
+    const s = store();
+    if (typeof s.entries !== 'function') return;
+    const now = Date.now();
+    for (const [id, op] of s.entries()) {
+      if (new Date(op.expiresAt).getTime() < now) {
+        await s.delete(id);
+      }
+    }
+  } catch (err) {
+    logger.warn('[DestructiveOps] expiry sweep failed', { error: err.message });
   }
 }, 60000);
 cleanupTimer.unref();
-
-function signOperation(op) {
-  const payload = JSON.stringify({
-    id: op.id,
-    type: op.type,
-    endpoint: op.endpoint,
-    commandType: op.commandType,  // exec-substrate-v9: included so tampering with commandType fails verification
-    params: op.params,
-    createdBy: op.createdBy,
-  });
-  return crypto.createHmac('sha256', OPERATION_SECRET).update(payload).digest('hex');
-}
-
-function verifySignature(op) {
-  const expected = signOperation(op);
-  return crypto.timingSafeEqual(Buffer.from(op.signature, 'hex'), Buffer.from(expected, 'hex'));
-}
 
 /**
  * Prepare a destructive operation for user confirmation.
@@ -54,38 +124,71 @@ function verifySignature(op) {
  * @param {number} params.userId - ID of user requesting the operation
  * @param {string} params.description - Human-readable description of the operation
  * @param {Object[]} [params.affectedRecords] - Preview of affected records
- * @returns {Object} Pending operation with signature
+ * @returns {Promise<Object>} Pending operation summary
  */
-export function prepareDestructiveOperation({
+export async function prepareDestructiveOperation({
   type,
   endpoint,
   commandParams,
   commandType,      // exec-substrate-v9: command-lane type (e.g. 'cancel_session'); HMAC-signed
   userId,
+  actorRole = null,   // card 1.0: audit rows require a role; null is skipped, not faked
   description,
   affectedRecords = [],
+  /**
+   * F-12: the client this operation is bound to, TOP-LEVEL. It was reachable
+   * only inside `params`, so a caller reading `operation.clientId` — which the
+   * confirmation sheet does, to render the chip — got undefined and rendered
+   * "no client" over an operation that had one.
+   */
+  clientId = null,
+  /**
+   * F-03: the M3 verdict, decided HERE because this is where the spoken-name /
+   * selection evidence exists, and enforced at /confirm because that is where
+   * the channel is declared. Splitting it that way is the point: the surface
+   * that could be fooled is not the surface that decides.
+   */
+  requiresPhysicalConfirm = false,
+  /**
+   * SCU G02 / AF11: the tier verdict in hand at mint (from the executor's tier
+   * resolution), stamped into the signed projection. Callers that resolve no
+   * tier pass nothing; the builder defaults to the conservative 'read_back'.
+   */
+  tier = null,
 }) {
-  // V3: Require explicit scope on DELETE (no unscoped mass deletions)
-  if (
-    type === 'DELETE'
-    && !commandParams.id
-    && !commandParams.clientId
-    && !commandParams.userId
-    && !commandParams.dateRange
-  ) {
-    throw new Error('CRITICAL: DELETE requires explicit scope (id, clientId, userId, or dateRange). Mass unscoped deletions are blocked.');
+  // 0.4a (was V3 DELETE-only): EVERY destructive type requires explicit scope.
+  // An unscoped UPDATE or DEACTIVATE with `params: {}` is the same mass-mutation
+  // hazard as an unscoped DELETE — the scope law is about blast radius, not verb.
+  // "Scoped" = names ONE entity: `id`, any `*Id` key (planId, postId, permissionId,
+  // sessionId, clientId...), or a bounded `dateRange`. The 5.0 draft hardcoded five
+  // key names and would have refused delete_workout_plan / delete_post /
+  // revoke_trainer_permission at mint (Fable 5.1 hostile pass, 2026-09-02);
+  // tests/unit/destructiveScopeLawRegistry.test.mjs now locks the law to the registry.
+  if (!hasExplicitScope(commandParams)) {
+    throw new Error(
+      `CRITICAL: ${type} requires explicit scope (an entity id such as clientId/planId/postId, or a dateRange). Unscoped destructive operations are blocked.`
+    );
   }
 
-  // V3: Hard cap on affected records
+  // V3: cap on the PREVIEW the caller supplies - NOT a database row cap.
+  //
+  // H8 honesty (2026-08-21 hostile round 1, Sol): this only bounds
+  // `affectedRecords.length`, and the executor populates that with at most the
+  // one resolved client. It cannot see how many rows a dispatcher will touch.
+  // It is SAFE today because every registered destructive command is
+  // single-entity by construction (:clientId, :planId, :sessionId, :postId...),
+  // which tests/unit/destructiveCommandsSingleEntity.test.mjs now locks. If a
+  // bulk/date-range destructive command is ever registered, that test fails and
+  // this cap must be replaced by a DB-side preview count over the frozen
+  // predicate - do not rely on this check for that.
   if (affectedRecords.length > MAX_AI_BULK_DELETE) {
     throw new Error(
       `CRITICAL: Would affect ${affectedRecords.length} records. Max: ${MAX_AI_BULK_DELETE}. Use manual deletion for bulk operations.`
     );
   }
 
-  // Per-user cap to prevent memory exhaustion via rapid operation creation
-  const MAX_PENDING_PER_USER = 5;
-  const userPendingCount = getPendingCount(userId);
+  // Per-user cap to prevent memory exhaustion via rapid operation creation.
+  const userPendingCount = await getPendingCount(userId);
   if (userPendingCount >= MAX_PENDING_PER_USER) {
     throw new Error(`Too many pending operations (${userPendingCount}). Please confirm or cancel existing operations first.`);
   }
@@ -96,7 +199,20 @@ export function prepareDestructiveOperation({
     type,
     endpoint,
     commandType: commandType ?? null,  // signed in HMAC payload — tampering detected on verify
-    params: commandParams,
+    // 0.4a: deep copy — a shallow spread shared nested references with caller
+    // state, so post-mint mutation of a nested object bypassed the signature.
+    params: structuredClone(commandParams),
+    clientId: Number.isSafeInteger(Number(clientId)) && Number(clientId) > 0 ? Number(clientId) : null,
+    requiresPhysicalConfirm: Boolean(requiresPhysicalConfirm),
+    /**
+     * R2-7 (GLM 5.3 round 2): `/pending` reads `operation.destructive` with a
+     * kind-heuristic fallback, and I shipped that as an F-09 "fix" for reading a
+     * heuristic — while NO mint ever wrote the field. The left side of that `??`
+     * was dead by construction, so the fix changed nothing except how honest the
+     * code looked, which is worse than the heuristic it replaced. The record
+     * carries the fact now, so the reader is reading something.
+     */
+    destructive: true,
     affectedRecords: affectedRecords.slice(0, 10), // Max 10 in preview
     affectedCount: affectedRecords.length,
     createdBy: userId,
@@ -105,10 +221,23 @@ export function prepareDestructiveOperation({
     expiresAt: new Date(Date.now() + OPERATION_TTL_SECONDS * 1000).toISOString(),
     signature: '',
   };
+  // SCU G02 / AF11: the sheet renders ONE stored projection. It is stamped
+  // BEFORE the signature so tampering with any policy field fails verification.
+  operation.projection = await buildConfirmationProjection({
+    id: opId,
+    expiresAt: operation.expiresAt,
+    commandType: commandType ?? null,
+    isDestructive: true,
+    requiresPhysicalConfirm: operation.requiresPhysicalConfirm,
+    affectedCount: operation.affectedCount,
+    targetUserId: operation.clientId,
+    createdBy: userId,
+    description,
+    tier,
+  });
   operation.signature = signOperation(operation);
 
-  // Store in-memory (or Redis when available)
-  pendingOps.set(opId, operation);
+  await store().set(opId, operation, OPERATION_TTL_SECONDS * 1000);
 
   logger.info('[DestructiveOps] Operation prepared', {
     opId,
@@ -117,6 +246,12 @@ export function prepareDestructiveOperation({
     affectedCount: affectedRecords.length,
     userId,
     expiresAt: operation.expiresAt,
+  });
+  // Card 1.0: countable lifecycle. Best-effort by inheritance — never awaited
+  // into the user's critical path beyond the audit writer's own contract.
+  void recordApprovalEvent({
+    event: APPROVAL_EVENTS.MINTED, userId, userRole: actorRole,
+    commandType: commandType ?? null, operationId: opId, destructive: true,
   });
 
   return {
@@ -127,31 +262,38 @@ export function prepareDestructiveOperation({
     affectedCount: operation.affectedCount,
     expiresAt: operation.expiresAt,
     requiresConfirmation: true,
+    requiresPhysicalConfirm: operation.requiresPhysicalConfirm,
   };
 }
 
 /**
  * Execute a previously prepared destructive operation.
- * Verifies: ownership, expiration, HMAC signature.
+ * Verifies: ownership, expiration, HMAC signature — then CONSUMES atomically:
+ * only the caller whose store.delete() returns true owns the operation.
  *
  * @param {string} operationId - The operation ID from prepare()
  * @param {number} userId - ID of user confirming (must match creator)
- * @returns {{ verified: boolean, operation: Object|null, error: string|null }}
+ * @returns {Promise<{ verified: boolean, operation: Object|null, error: string|null }>}
  */
-export function verifyAndRetrieveOperation(operationId, userId) {
-  const operation = pendingOps.get(operationId);
+export async function verifyAndRetrieveOperation(operationId, userId, actorRole = null) {
+  const operation = await store().get(operationId);
 
-  if (!operation) {
+  if (!operation || operation.kind === 'pending_confirmed') {
     return { verified: false, operation: null, error: 'Operation expired or not found. Please re-issue the command.' };
   }
 
   // Check expiration
   if (new Date(operation.expiresAt).getTime() < Date.now()) {
-    pendingOps.delete(operationId);
+    await store().delete(operationId);
+    void recordApprovalEvent({
+      event: APPROVAL_EVENTS.EXPIRED, userId, userRole: actorRole,
+      commandType: operation.commandType, operationId, destructive: true,
+    });
     return { verified: false, operation: null, error: 'Operation expired (120s). Please re-issue the command.' };
   }
 
-  // Check ownership
+  // Check ownership BEFORE any consumption — a wrong user must never be able to
+  // consume (grief) someone else's pending approval (GLM 2.4).
   if (operation.createdBy !== userId) {
     logger.warn('[DestructiveOps] Ownership mismatch', {
       opId: operationId,
@@ -168,7 +310,7 @@ export function verifyAndRetrieveOperation(operationId, userId) {
         opId: operationId,
         userId,
       });
-      pendingOps.delete(operationId);
+      await store().delete(operationId);
       return { verified: false, operation: null, error: 'Operation signature invalid. Possible tampering detected.' };
     }
   } catch (err) {
@@ -176,94 +318,46 @@ export function verifyAndRetrieveOperation(operationId, userId) {
     return { verified: false, operation: null, error: 'Signature verification failed.' };
   }
 
-  // Clean up — operation can only be executed once
-  pendingOps.delete(operationId);
-
-  return { verified: true, operation, error: null };
-}
-
-/**
- * Prepare a non-destructive pending confirmation.
- *
- * @param {Object} params
- * @param {string} params.commandType  - Registry command type (e.g. 'log_workout')
- * @param {Object} params.params       - Validated command params
- * @param {number|null} params.clientId - Resolved client ID
- * @param {number} params.userId       - ID of user requesting confirmation
- * @param {string} params.description  - Human-readable description for audit log
- * @param {string} [params.frontendEvent] - Browser event for confirmed frontend dispatches
- * @returns {{ operationId: string, description: string, expiresAt: string }}
- */
-export function preparePendingConfirmation({ commandType, params, clientId, userId, description, frontendEvent = null }) {
-  // Apply the same per-user cap as destructive ops
-  const MAX_PENDING_PER_USER = 5;
-  const userCount = getPendingCount(userId);
-  if (userCount >= MAX_PENDING_PER_USER) {
-    throw new Error(`Too many pending operations (${userCount}). Please confirm or cancel existing operations first.`);
-  }
-
-  const opId = crypto.randomUUID();
-  const resolvedClientId = Number(clientId);
-  const confirmedParams = params && typeof params === 'object' && !Array.isArray(params) ? { ...params } : {};
-  const scopedClientId = Number.isSafeInteger(resolvedClientId) && resolvedClientId > 0 ? resolvedClientId : null;
-  if (scopedClientId) confirmedParams.clientId = scopedClientId;
-
-  const operation = {
-    id: opId,
-    kind: 'pending_confirmed',  // distinguishes from HMAC-signed destructive ops
-    commandType,
-    params: confirmedParams,
-    frontendEvent,
-    clientId: scopedClientId,
-    createdBy: userId,
-    description,
-    createdAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + OPERATION_TTL_SECONDS * 1000).toISOString(),
-  };
-
-  pendingOps.set(opId, operation);
-
-  logger.info('[DestructiveOps] Pending confirmation prepared', {
-    opId,
-    commandType,
-    userId,
-    expiresAt: operation.expiresAt,
-  });
-
-  return { operationId: opId, description, expiresAt: operation.expiresAt };
-}
-
-/**
- * Retrieve a non-destructive pending confirmation.
- *
- * @param {string} operationId
- * @param {number} userId
- * @returns {{ verified: boolean, operation: Object|null, error: string|null }}
- */
-export function retrievePendingConfirmation(operationId, userId) {
-  const operation = pendingOps.get(operationId);
-
-  if (!operation || operation.kind !== 'pending_confirmed') {
-    return { verified: false, operation: null, error: 'Pending confirmation not found or already used.' };
-  }
-
-  if (new Date(operation.expiresAt).getTime() < Date.now()) {
-    pendingOps.delete(operationId);
-    return { verified: false, operation: null, error: 'Operation expired (120s). Please re-issue the command.' };
-  }
-
-  if (operation.createdBy !== userId) {
-    logger.warn('[DestructiveOps] Ownership mismatch on pending confirmation', {
-      opId: operationId,
-      expectedUserId: operation.createdBy,
-      actualUserId: userId,
+  // ATOMIC one-time consumption: the delete's return value is the ownership token.
+  // Two racing confirms both pass the checks above; exactly one delete returns true.
+  const consumed = await store().delete(operationId);
+  if (!consumed) {
+    void recordApprovalEvent({
+      event: APPROVAL_EVENTS.ALREADY_CONFIRMED, userId, userRole: actorRole,
+      commandType: operation.commandType, operationId, destructive: true,
     });
-    return { verified: false, operation: null, error: 'You cannot confirm another user\'s operation.' };
+    return { verified: false, operation: null, error: 'Operation was already confirmed. It only executes once.' };
   }
 
-  // Single-use — delete immediately on successful retrieval
-  pendingOps.delete(operationId);
+  void recordApprovalEvent({
+    event: APPROVAL_EVENTS.CONSUMED, userId, userRole: actorRole,
+    commandType: operation.commandType, operationId, destructive: true,
+  });
   return { verified: true, operation, error: null };
+}
+
+/**
+ * Read a pending operation WITHOUT consuming it — the source of truth the
+ * confirmation UI renders (card 1.1 / M1). Before this existed the UI rendered
+ * the REQUEST (`ctx.intent.params`) while the executor ran the STORED op, so the
+ * two could differ by construction (the server injects clientId at mint) and
+ * nothing detected it.
+ *
+ * Ownership and expiry are enforced here. The signature is NEVER returned: it is
+ * the server's proof, and a client that holds it could forge a matching payload.
+ * Not-found and not-owner return the SAME shape so this cannot become an
+ * existence oracle for another user's operation ids.
+ *
+ * @returns {Promise<{ found: boolean, operation: Object|null }>}
+ */
+export async function peekOperation(operationId, userId) {
+  const operation = await store().get(operationId);
+  if (!operation) return { found: false, operation: null };
+  if (operation.createdBy !== userId) return { found: false, operation: null };
+  if (new Date(operation.expiresAt).getTime() < Date.now()) return { found: false, operation: null };
+
+  const { signature, ...safe } = operation;
+  return { found: true, operation: safe };
 }
 
 /**
@@ -271,30 +365,21 @@ export function retrievePendingConfirmation(operationId, userId) {
  *
  * @param {string} operationId
  * @param {number} userId
- * @returns {boolean}
+ * @returns {Promise<boolean>}
  */
-export function cancelOperation(operationId, userId) {
-  const operation = pendingOps.get(operationId);
+export async function cancelOperation(operationId, userId, actorRole = null) {
+  const operation = await store().get(operationId);
   if (!operation) return false;
   if (operation.createdBy !== userId) return false;
 
-  pendingOps.delete(operationId);
-  logger.info('[DestructiveOps] Operation cancelled', { opId: operationId, userId });
-  return true;
+  const removed = await store().delete(operationId);
+  if (removed) {
+    logger.info('[DestructiveOps] Operation cancelled', { opId: operationId, userId });
+    void recordApprovalEvent({
+      event: APPROVAL_EVENTS.CANCELLED, userId, userRole: actorRole,
+      commandType: operation.commandType, operationId,
+    });
+  }
+  return removed;
 }
 
-/**
- * Get count of pending operations for a user.
- * @param {number} userId
- * @returns {number}
- */
-export function getPendingCount(userId) {
-  let count = 0;
-  const now = Date.now();
-  for (const op of pendingOps.values()) {
-    if (op.createdBy === userId && new Date(op.expiresAt).getTime() > now) {
-      count++;
-    }
-  }
-  return count;
-}

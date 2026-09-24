@@ -1,0 +1,80 @@
+{
+  "generatedAt": "2026-09-06T10:41:32.247Z",
+  "scope": "local pure helper and planning checks",
+  "head": "b88dd9e5c894908d9f193411fe66117294d190ef",
+  "runs": [
+    {
+      "id": "runtime",
+      "command": [
+        "node",
+        "--test",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.progress-keys.test.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.readback-validation.test.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.acceptance.red.test.mjs",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.strict-payload.test.mjs",
+        "backend/tests/unit/coachWorkoutResultVerifier.test.mjs",
+        "backend/tests/unit/coachProgressEvidence.test.mjs"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "log": "evidence/astra-runtime-tests.log",
+      "tests": 50,
+      "pass": 50,
+      "fail": 0,
+      "failedTests": []
+    },
+    {
+      "id": "plan",
+      "command": [
+        "node",
+        "--test",
+        "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/review-integration.test.mjs"
+      ],
+      "exitCode": 0,
+      "signal": null,
+      "error": null,
+      "log": "evidence/astra-plan-tests.log",
+      "tests": 9,
+      "pass": 9,
+      "fail": 0,
+      "failedTests": []
+    }
+  ],
+  "diffCheckExit": 0,
+  "hashes": {
+    "backend/services/workout/coachStrictWorkoutPayload.mjs": "8b08cfc711de71e3250d944366d4d006263c310c5eb5e011c2283fce9efc316f",
+    "backend/services/workout/aiWorkoutDailyFormPayloadService.mjs": "098a5600adfd93504f4410bc1e7ae9881c26c1a26e985fcd5bb271ff05f9c2a9",
+    "backend/services/ai/coachWorkoutResultVerifier.mjs": "281e64331ac9ef23a2847fc08e37fe7ee5a37a581c5887929acb9eb27b3b1324",
+    "backend/services/ai/coachProgressEvidence.mjs": "e33a0326cf2d1a61d15bd6463ed2acc69f8730dfb02a0f52857ec39b975009c0",
+    "backend/services/ai/coachIntentService.mjs": "1616fcec0e4e1db73127056518f0fd51e835576ef32926cde06133389f867445",
+    "frontend/src/components/WorkoutLogger/useWorkoutLoggerDictation.ts": "b3c740ca6764fa45fe2f913f675608ae282f7676d82eb010d83634c7d9c3f401",
+    "frontend/src/components/WorkoutLogger/useWorkoutLoggerDictation.provenance.test.tsx": "6704f74bee3903feb73b56e7e9ed7c7fb8b340d9a49e25186c28820cbf8bb6a9",
+    "frontend/src/hooks/useCoachCommand.ts": "e5923fc57cfb82c7499b95a33c589c8063e180cb61c70c2b4f719c3c1e37a1a5",
+    "frontend/src/hooks/coachInputOrigin.ts": "ac844f5766f1bbf9c46b1c0f313460a12218deb7115848aa5bf657bbde9128a5",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/11-comprehensive-handoff.md": "fe773e52ce12e1437c769fdf2fe5418acdd53954fa0f0f2b6de4bc7b79f1eaac",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/12-astra-review.md": "60e25f2cb1bc95788ead0280981484d45c99dcf3fa59f82366cf934f2304b969",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md": "5bd39552e70eaf8481defe83eaed6450e997f5f3eeb987df86c54cb4c6795916",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/14-experience-execution.md": "31f586b6fe2f9efc49146b258a5ae3821b9ad4613346a0e8acbd1e77cf24efb7",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/15-acceptance-and-release.md": "e837616377697af432f1d6e3d4ac88a540f5546668e9de4283ee66a11ec3c04e",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/16-state-and-data-flows.md": "25c7fd7536e2f04be199cb0ef5964c9254c50eba514dd642c491c7d582764c21",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/17-astra-readiness.md": "553a6f56a547dc3782ecd57693aea89d43dad888a132490d4cbb50a05d9aabb1",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/18-dashboard-tab-audit.md": "1ec5dd20a78f547365d6249e0daa19370a615c3ab3647c2d81bb7de992f3975d",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/19-one-coach-domain-contracts.md": "ec365614bf1f2892cf06fde8ff461ca76397cf3d70fa672a4cbbb68df12dce47",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/20-first-repair-source-receipt.md": "35259862c7910e575f0058b229e9b602c4a82e76bdc68e2092c2995defdee53d",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/21-nested-workspace-audit.md": "998bb725a0a3e54ed162374af8a7c8aee188430d081c59b88141ef889a81ebf8",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/22-astra-verification.md": "5f77fa9f4a5ebf7139384267ddfafd4e514e05005dc06a1de4f71a229fbc38dd",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/session-desk-review.html": "1c96bbc9a070497eca72ba00b1c00c4a97fc0e20eb9d5e0f06d253236b5c88f7",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra-verify.mjs": "f5566ccfa13d8ebb8592c825ae5fc1920afd62aa8025c9a403f65505afe1dcb4",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra-wireframe-check.mjs": "5455919774e199ca2918b6e0acadfddc3bc0bec20109ad31cebfb6a0b882e8cf",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.acceptance.red.test.mjs": "f5fb774f9a23ed07a739f3b916d69db6b0853bf7075ade4a8b644fda36a3e957",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.progress-keys.test.mjs": "bf322612acee566c5e9b4f9a3b17d3335d81222d2b2b6976102c6cae4546e314",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.readback-validation.test.mjs": "603af83baccfd336def0bc316a26e2446c938e87afbf096271aa01ab043e141b",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/astra.strict-payload.test.mjs": "cdfe988457ba83a1b90604278becd95cc0fac0abda6321f77edddbde2eeb6762",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/dashboard-audit-report.mjs": "2cb51c3298646621931c022754b4cb9383c9cec66f9f721aeb9a972c7304791c",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/dashboard-inventory.mjs": "4a6f573b4a41b3e323e7b5668766f243e8f90b5c9b91cd3035dde5f2d0cc0a3f",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/tests/review-integration.test.mjs": "fb6bd8be46fa395cf3aff62ae3e2bf4b2174230bca3a9b0950771951da7f93f7"
+  },
+  "runtimeAcceptance": true,
+  "productionVerified": false
+}

@@ -1,0 +1,13 @@
+{
+  "slice": {
+    "id": "G11",
+    "files": [
+      "backend/models/associations.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+  ],
+  "reason": "Sean 2026-09-11: continue slices. G11/S11 clean-candidate verification: full backend+frontend suites executed with baseline-proven failure disclosure, adopted CoachFact registered in the model registry (completing the G09 reconciliation), migrations syntax-checked, tsc/build green, release matrix + rollback documented. Real-DB/Redis/browser/eval harness stays with the final combined Astra review."
+}

@@ -7,15 +7,14 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  apiPostMock,
+  renderAdmittedPage,
   renderPage,
   resetCoachCommandCenterMocks,
   sendMessageWithConversationMock,
+  waitForCoachSelectionAdmission,
 } from './CoachCommandCenterPage.test.harness';
 
-const apiPostMock = vi.hoisted(() => vi.fn());
-vi.mock('../../../../services/api.service', () => ({
-  default: { post: apiPostMock },
-}));
 
 const openCommandTools = () => {
   fireEvent.click(screen.getByRole('button', { name: /more command tools/i }));
@@ -30,11 +29,13 @@ describe('CoachCommandCenter client notebook', () => {
   });
 
   it('saves repeated dictated or typed notes directly to the pinned client profile', async () => {
-    renderPage('/dashboard/admin/coach-assistant?clientId=41');
+    // Plan 55 C3: Client Notes is an ADMITTED boundary, so the surface is opened
+    // only after the plan 52 receipt has been committed and acknowledged.
+    await renderAdmittedPage('/dashboard/admin/coach-assistant?clientId=41');
     openCommandTools();
     fireEvent.click(screen.getByRole('menuitem', { name: /capture client notes/i }));
 
-    const noteComposer = screen.getByPlaceholderText(/client note/i);
+    const noteComposer = await screen.findByPlaceholderText(/client note/i);
     fireEvent.change(noteComposer, {
       target: { value: 'Left knee felt stable; completed goblet squats at a controlled tempo.' },
     });
@@ -48,17 +49,18 @@ describe('CoachCommandCenter client notebook', () => {
         visibility: 'trainer_only',
       });
     });
-    expect(noteComposer).toHaveValue('');
+    expect(await screen.findByPlaceholderText(/client note/i)).toHaveValue('');
     expect(screen.getByText(/note saved to Ava Stone/i)).toBeInTheDocument();
   });
 
   it('stages a review-only workout proposal prompt from saved notes', async () => {
-    renderPage('/dashboard/admin/coach-assistant?clientId=41');
+    await renderAdmittedPage('/dashboard/admin/coach-assistant?clientId=41');
     openCommandTools();
     fireEvent.click(screen.getByRole('menuitem', { name: /draft workouts from saved notes/i }));
 
     const composer = screen.getByPlaceholderText(/talk or type to swan coach/i);
-    expect((composer as HTMLTextAreaElement).value).toMatch(/saved trainer notes/i);
+    // The prefill is admission-gated: wait for the admitted scope to stage it.
+    await waitFor(() => expect((composer as HTMLTextAreaElement).value).toMatch(/saved trainer notes/i));
     expect((composer as HTMLTextAreaElement).value).toMatch(/label every estimate/i);
     expect((composer as HTMLTextAreaElement).value).toMatch(/do not save or log/i);
 
@@ -70,12 +72,15 @@ describe('CoachCommandCenter client notebook', () => {
         expect.any(String),
         41,
         'both',
+        null,
+        null,
+        { reachedNetwork: null },
       );
     });
   });
 
-  it('requires a pinned client before note capture can start', () => {
-    renderPage('/dashboard/admin/coach-assistant');
+  it('requires a pinned client before note capture can start', async () => {
+    await renderAdmittedPage('/dashboard/admin/coach-assistant');
     openCommandTools();
 
     const capture = screen.getByRole('menuitem', { name: /capture client notes/i });
@@ -91,10 +96,10 @@ describe('CoachCommandCenter client notebook', () => {
     });
     apiPostMock.mockReturnValueOnce(pendingSave);
 
-    renderPage('/dashboard/admin/coach-assistant?clientId=41');
+    await renderAdmittedPage('/dashboard/admin/coach-assistant?clientId=41');
     openCommandTools();
     fireEvent.click(screen.getByRole('menuitem', { name: /capture client notes/i }));
-    fireEvent.change(screen.getByRole('textbox', { name: /client note/i }), {
+    fireEvent.change(await screen.findByRole('textbox', { name: /client note/i }), {
       target: { value: 'Ava-only draft that must never enter Ben\'s composer.' },
     });
     fireEvent.click(screen.getByRole('button', { name: /save client note/i }));
@@ -106,10 +111,12 @@ describe('CoachCommandCenter client notebook', () => {
       expect(screen.getByRole('combobox', { name: /main client/i })).toHaveValue('52');
       expect(screen.getByRole('textbox', { name: /message swan coach/i })).toHaveValue('');
     });
+    // The picker is a REQUEST: the new target is usable only once admitted.
+    await waitForCoachSelectionAdmission(2);
 
     openCommandTools();
     fireEvent.click(screen.getByRole('menuitem', { name: /capture client notes/i }));
-    const benComposer = screen.getByRole('textbox', { name: /client note/i });
+    const benComposer = await screen.findByRole('textbox', { name: /client note/i });
     expect(benComposer).toHaveValue('');
     fireEvent.change(benComposer, { target: { value: 'Ben-only follow-up draft.' } });
 

@@ -1,0 +1,24 @@
+{
+  "slice": {
+    "id": "G05",
+    "files": [
+      "backend/services/ai/coachInferenceBoundary.mjs",
+      "backend/services/ai/coachEvidenceTools.mjs",
+      "backend/services/ai/coachContextCache.mjs",
+      "backend/services/ai/coachModelResponseContract.mjs",
+      "backend/services/aiChatService.mjs",
+      "backend/routes/aiChatRoutes.mjs",
+      "backend/tests/unit/coachInferenceBoundary.test.mjs",
+      "backend/tests/unit/coachEvidenceTools.test.mjs",
+      "backend/tests/unit/coachContextCache.test.mjs",
+      "backend/tests/unit/coachCallerInventory.test.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/31-gwen-execution-handoff.md",
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/13-foundation-execution.md"
+  ],
+  "reason": "G05/S5: one provider/privacy boundary for all Coach callers. Server builds the actor/target/capability policy (body policy ignored) via the existing coachProviderBoundary gate; non-Coach callers keep their shapes through a compatibility adapter. Four bounded read-only evidence tools (context summary, exercise lookup, recent-workout evidence, progress evidence) reuse authorized domain readers with per-query row/byte caps and per-tool permission/target refresh; tool output is data, never instructions; no model-visible write tool. Budget: 6 tool calls / 2 model rounds / 20s wall time; exhaustion returns partial findings, never a new provider. Context distinguishes empty/unavailable/stale/denied; denied data never enters the provider payload. In-memory context cache keyed by actor+target+access-version+capability+private-mode, invalidated on role/target change, forget, logout. Final union extends the S5c contract with 'unavailable' (S5c 'proposal' retained as the frozen draft_proposal spelling). Exits T22-T25 plus complete caller inventory and forbidden-provider spy tests. Existing provider configuration only; no live paid inference."
+}

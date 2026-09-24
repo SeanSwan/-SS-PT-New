@@ -110,6 +110,61 @@ export const SheetCommandButton = styled.button`
   }
 `;
 
+/**
+ * Availability badge (S5).
+ *
+ * The registry classifies every command into an execution lane, and
+ * `GET /api/ai-command/commands` has always returned `canExecute` /
+ * `executionLane` / `manualOnlyReason` per command — the sheet simply dropped
+ * them. So a sheet titled "What Swan Coach can do" was listing commands Swan
+ * Coach cannot do (5 of 139 at 66ffde607: 4 manual_only, 1 chat_fallback).
+ *
+ * Gold rather than red: these are not errors or failures. They are capabilities
+ * that exist and are handled a different way, and the badge should read as
+ * information, not alarm.
+ */
+export const SheetAvailability = styled.span`
+  align-self: start;
+  /* The parent is display:grid, where items default to justify-self:stretch. Without
+     this the pill spans the whole column and reads as a full-width banner rather than
+     a badge — the border-radius:999px makes that especially wrong. */
+  justify-self: start;
+  /* Belt and braces at 320px: nowrap keeps the label on one line, so cap the width
+     and ellipsize rather than letting a long future label push the row wider. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: color-mix(in srgb, var(--accent-luxury, #c6a84b) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-luxury, #c6a84b) 42%, transparent);
+  border-radius: 999px;
+  color: var(--accent-luxury, #c6a84b);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+`;
+
+/**
+ * Why a non-executable command still appears, in plain language.
+ *
+ * Rule 7 contrast, computed against the real composited stack rather than assumed:
+ * the sheet panel, then the card at accent-primary 6%, then this text at opacity
+ * .85. Effective ratio 8.85:1 — passes 4.5:1 with headroom. The badge is 4.89:1.
+ * If the opacity or either surface changes, recompute; do not eyeball it.
+ *
+ * The measured colour values are deliberately NOT written here: they are audit
+ * output, not tokens, and pasting them would trip the G4 hardcoded-hex guard for a
+ * comment that styles nothing. Recompute from the tokens above if you need them.
+ */
+export const SheetAvailabilityReason = styled.span`
+  color: var(--text-secondary, #dbe8f7);
+  font-size: 12px;
+  opacity: 0.85;
+`;
+
 export const SheetStateText = styled.p`
   color: var(--text-secondary, #dbe8f7);
   font-size: 14px;

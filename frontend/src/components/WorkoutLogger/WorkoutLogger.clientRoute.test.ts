@@ -502,9 +502,21 @@ describe('Phase 16.2 - Phase 16 + 16.1-UX contracts preserved', () => {
     expect(SOURCE).toMatch(/const acknowledgeAIWorkoutEvent = \(event: Event,\s*handled = true\)/);
   });
 
-  it('AI_SUBMIT_WORKOUT bridge submits through the same save path', () => {
+  it('AI_SUBMIT_WORKOUT bridge is contained: no unbound event reaches the save path (R60-A)', () => {
+    // RE-ANCHORED 2026-09-12 (plan 60 §8 R60-A / R60-R1). The previous version
+    // required `handleSubmit({ ... overallIntensity: nextIntensity` inside the
+    // listener — it pinned the unbound delivery this slice removes. The listener
+    // must exist and must decline before any mutation; the save path is reached
+    // by manual Save, and by the still-PENDING R60-B3 permit path only.
     expect(SOURCE).toMatch(/addEventListener\(\s*AI_SUBMIT_WORKOUT\s*,/);
-    expect(SOURCE).toMatch(/handleSubmit\(\{[\s\S]{0,200}overallIntensity:\s*nextIntensity/);
+    const idx = SOURCE.indexOf('const onSubmitWorkout');
+    expect(idx).toBeGreaterThan(-1);
+    const body = SOURCE.slice(idx, idx + 700);
+
+    expect(body).not.toMatch(/handleSubmit\(/);
+    expect(body).not.toMatch(/setOverallIntensity\(/);
+    expect(body).not.toMatch(/setSessionNotes\(/);
+    expect(body).toMatch(/acknowledgeAIWorkoutEvent\?\.\(false\)/);
   });
 
   it('AI_SUBMIT_WORKOUT does NOT acknowledge unconditionally before the save (F4)', () => {
@@ -517,14 +529,16 @@ describe('Phase 16.2 - Phase 16 + 16.1-UX contracts preserved', () => {
     //
     // The sibling AI_UPDATE_SET test below already required a CONDITIONAL ack
     // (`next !== prev`). Submit was the only bridge exempt from that rule.
+    //
+    // RE-ANCHORED AGAIN 2026-09-12 (R60-A): the conditional ack is now the
+    // containment decline itself. A no-argument ack here would report a save
+    // that never happened, which is the exact lie this pair of locks forbids.
     const idx = SOURCE.indexOf('const onSubmitWorkout');
     expect(idx).toBeGreaterThan(-1);
-    const body = SOURCE.slice(idx, idx + 1800);
+    const body = SOURCE.slice(idx, idx + 700);
 
     expect(body).not.toMatch(/acknowledgeAIWorkoutEvent\?\.\(\)\s*;/);
-    // The ack is handed INTO handleSubmit, which answers from the one place
-    // that knows the refusal rules — rather than a second copy of them here.
-    expect(body).toMatch(/acknowledge:\s*detail\.acknowledgeAIWorkoutEvent/);
+    expect(body).toMatch(/acknowledgeAIWorkoutEvent\?\.\(false\)/);
   });
 
   it('AI_UPDATE_SET bridge only acknowledges once the form state actually changes', () => {

@@ -12,6 +12,7 @@
  */
 import { Op, fn, col } from 'sequelize';
 import AiCommandAuditLog from '../../models/AiCommandAuditLog.mjs';
+import { shapeApprovalCounts, APPROVAL_EVENT_PREFIX } from './approvalEvents.mjs';
 
 const MAX_WINDOW_DAYS = 90;
 const DEFAULT_WINDOW_DAYS = 7;
@@ -32,6 +33,14 @@ export function clampWindowDays(days) {
 export function shapeCommandMetrics(rows) {
   const commands = new Map();
   for (const row of rows) {
+    // Card 1.0: approval-lifecycle rows share this table under an `approval:`
+    // outcome namespace. They are NOT command attempts — counting them here
+    // would inflate `attempts` and deflate `successRate` for the same command
+    // type (caught pre-ship: the first version of the guard test only checked
+    // that the token was absent from the success/failure SETS, which says
+    // nothing about the attempts denominator). They are shaped separately by
+    // shapeApprovalCounts over the same rows.
+    if (typeof row.outcome === 'string' && row.outcome.startsWith(APPROVAL_EVENT_PREFIX)) continue;
     const commandType = row.commandType || 'unknown';
     const count = Number(row.count) || 0;
     const avgDuration = row.avgDurationMs === null || row.avgDurationMs === undefined
@@ -101,5 +110,10 @@ export async function buildCoachCommandMetricsSummary({ days } = {}) {
     group: ['commandType', 'outcome'],
     raw: true,
   });
-  return { windowDays, since: since.toISOString(), ...shapeCommandMetrics(rows) };
+  return {
+    windowDays,
+    since: since.toISOString(),
+    ...shapeCommandMetrics(rows),
+    approvals: shapeApprovalCounts(rows),
+  };
 }

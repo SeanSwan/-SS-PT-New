@@ -189,10 +189,11 @@ for (const painChartEvent of AI_PAINCHART_EVENTS) {
  * Dispatch an AI workout event by name. Used by the AI terminal
  * when it receives a frontend_dispatch command from the backend.
  */
-export function dispatchAIWorkoutEvent(eventName: string, payload: unknown): boolean {
+export function dispatchAIWorkoutEvent(eventName: unknown, payload: unknown): boolean {
+  if (typeof eventName !== 'string' || eventName.trim() === '') return false;
+  if (!Object.prototype.hasOwnProperty.call(dispatchers, eventName)) return false;
   const dispatch = dispatchers[eventName];
-  if (!dispatch) return false;
-  return dispatch(payload as AIEventPayload);
+  return dispatch(payload as AIEventPayload) === true;
 }
 
 // Rest-timer voice intents (Arc L / L3 — Kimi: existing command family, no parallel registry).

@@ -16,9 +16,19 @@ describe('pain entry route access guard', () => {
     expect(routeSource).toContain("import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';");
     expect(routeSource).toContain("router.get('/:userId', verifyClientAccessByUserId({ paramName: 'userId' }), getClientPainEntries)");
     expect(routeSource).toContain("router.get('/:userId/active', verifyClientAccessByUserId({ paramName: 'userId' }), getActivePainEntries)");
-    expect(routeSource).toContain("router.post('/:userId', authorize(['admin', 'trainer', 'client']), verifyClientAccessByUserId({ paramName: 'userId' }), createPainEntry)");
-    expect(routeSource).toContain("router.put('/:userId/:entryId', authorize(['admin', 'trainer', 'client']), verifyClientAccessByUserId({ paramName: 'userId' }), updatePainEntry)");
-    expect(routeSource).toContain("router.put('/:userId/:entryId/resolve', authorize(['admin', 'trainer', 'client']), verifyClientAccessByUserId({ paramName: 'userId' }), resolvePainEntry)");
+    // Hostile review 2026-09-13: these four write routes used to list only
+    // ['admin','trainer','client'] while the sibling verifyClientAccessByUserId
+    // guard on the SAME line admits a `'user'` account to its own records
+    // (verifyClientAccess.mjs:91-93). `'user'` is the default role minted by
+    // public self-registration (models/User.mjs:135), so a freshly registered
+    // account was 403'd out of logging its own pain entry. Both guards must now
+    // agree that 'user' is client-equivalent.
+    expect(routeSource).toContain("router.post('/:userId', authorize(['admin', 'trainer', 'client', 'user']), verifyClientAccessByUserId({ paramName: 'userId' }), createPainEntry)");
+    expect(routeSource).toContain("router.post('/:userId/check-in', authorize(['admin', 'trainer', 'client', 'user']), verifyClientAccessByUserId({ paramName: 'userId' }), painCheckIn)");
+    expect(routeSource).toContain("router.put('/:userId/:entryId', authorize(['admin', 'trainer', 'client', 'user']), verifyClientAccessByUserId({ paramName: 'userId' }), updatePainEntry)");
+    expect(routeSource).toContain("router.put('/:userId/:entryId/resolve', authorize(['admin', 'trainer', 'client', 'user']), verifyClientAccessByUserId({ paramName: 'userId' }), resolvePainEntry)");
+    // DELETE stays admin-only: widening the client-equivalent write routes must
+    // not open the destructive route.
     expect(routeSource).toContain("router.delete('/:userId/:entryId', authorize(['admin']), verifyClientAccessByUserId({ paramName: 'userId' }), deletePainEntry)");
   });
 

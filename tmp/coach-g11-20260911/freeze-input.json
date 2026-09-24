@@ -1,0 +1,4 @@
+{
+  "tests": { "path": "tmp/coach-g11-20260911/g11-tests-receipt.json", "sha256": "4037843e774b5c1d6bcfb6b4f5cf177c1baca879fde60e503c96429e5cdfdc0d" },
+  "build": { "path": "tmp/coach-g11-20260911/g11-build-receipt.json", "sha256": "8f2dfc4b2562de5ffdb5e89ad49f6211d8c2f4899a1bd557b512f3c947e74234" }
+}

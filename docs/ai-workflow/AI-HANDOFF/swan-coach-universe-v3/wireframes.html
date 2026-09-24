@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Swan Coach — Session Desk wireframe</title>
+<style>
+:root{--bg:#0a0a0f;--surface:#141419;--text:#e0ecf4;--muted:#adc3d7;--blue:#002060;--line:#4070c0;--gold:#c6a84b;--purple:#8b5cf6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif}main{max-width:1800px;margin:auto;padding:32px}
+h1{font-size:clamp(28px,4vw,46px);line-height:1.15;margin:8px 0 18px}h2{font-size:22px;margin:0 0 20px}h3{margin:0 0 8px;font-size:16px}
+.eyebrow{color:var(--gold);letter-spacing:.15em;text-transform:uppercase;font-size:12px}.lead{max-width:750px;color:var(--muted)}
+.scope,.tabs,.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.scope{padding:18px 0}.tag{border:1px solid var(--line);padding:8px 14px;border-radius:22px}
+.desk{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px}.panel{background:linear-gradient(145deg,var(--surface),#101c32);border:1px solid #364664;border-radius:20px;padding:24px;min-width:0}
+.bubble{padding:18px;background:#192439;border-radius:16px;margin:18px 0}.coach{border-left:3px solid var(--gold);padding-left:18px;margin:24px 0}
+.muted{color:var(--muted)}.status{color:var(--gold);font-size:13px}.metric{font-size:30px;font-variant-numeric:tabular-nums}table{width:100%;border-collapse:collapse;text-align:left;margin:20px 0}td,th{padding:12px 5px;border-bottom:1px solid #39465a;font-size:14px}th{color:var(--muted)}
+.mock-control{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border:1px solid var(--line);border-radius:12px;background:var(--blue)}
+.primary{background:#37306a;border-color:var(--purple)}.timeline{margin-top:20px}.event{display:grid;grid-template-columns:70px 1fr;gap:14px;padding:16px 0;border-bottom:1px solid #39465a}.composer{margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:16px;display:flex;gap:16px;align-items:center}.input{flex:1;color:var(--muted)}
+.phone{max-width:414px;margin:30px auto;border:2px solid #60708a;border-radius:28px;padding:18px;background:#111724}.phone .panel{padding:18px;margin:14px 0}.phone .tabs{font-size:14px;gap:8px}.note{font-size:13px;color:var(--muted);margin:20px 0}footer{margin-top:30px;border-top:1px solid #39465a;padding-top:20px}
+@media(max-width:760px){main{padding:18px}.desk{grid-template-columns:1fr}.panel{padding:18px}.scope{gap:8px}.composer{flex-wrap:wrap}.input{min-width:150px}td,th{font-size:12px;padding:10px 3px}}
+</style></head><body><main>
+<div class="eyebrow">Swan Coach / Universe V3 / Design review</div>
+<h1>Your training, in focus.</h1>
+<p class="lead">Direction B: Session Desk. Conversation, an editable workout draft, and the evidence of what actually saved — all part of one task.</p>
+<p class="note">Static wireframe · synthetic data · all controls shown below are illustrations, not working application actions.</p>
+<div class="scope"><span class="tag">Client-101 · selected</span><span class="tag">Today’s session</span><span class="muted">Records checked at 10:42 · illustrative timestamp</span></div>
+<div class="desk"><section class="panel"><div class="eyebrow">Conversation</div><h2>Keep the workout moving.</h2>
+<div class="bubble">Log bench press: three sets of eight at 135 pounds.</div>
+<div class="coach"><h3>The draft is ready.</h3><p>I’ve kept the load in pounds. Review the sets before saving them to today’s diary.</p><span class="muted">Source: your current request · no save yet</span></div>
+<div class="bubble">Make the last set six reps.</div><div class="coach"><p>Last set changed to six in the draft. The first two sets remain eight.</p></div>
+</section><section class="panel"><div class="eyebrow">Session workspace</div><h2>Bench press</h2><div class="status">DRAFT · REVISION 2 · NOT SAVED</div>
+<table><thead><tr><th>Set</th><th>Reps</th><th>Load</th><th>Unit</th></tr></thead><tbody><tr><td>1</td><td>8</td><td>135</td><td>lb</td></tr><tr><td>2</td><td>8</td><td>135</td><td>lb</td></tr><tr><td>3</td><td>6</td><td>135</td><td>lb</td></tr></tbody></table>
+<p class="muted">Destination: Client-101’s workout diary.<br>Session accounting follows the existing reviewed save.</p><div class="row"><span class="mock-control">Edit draft</span><span class="mock-control primary">Review and save</span></div>
+<p class="note">Unclear exercise, unit, client or date? Resolve that field here before approving.</p></section></div>
+<section class="panel timeline"><div class="eyebrow">Verified results</div><h2>What actually happened</h2>
+<div class="event"><span class="muted">10:38</span><div><strong>Warmup saved and checked</strong><br><span class="muted">Illustrative existing record · Open record · Review correction</span></div></div>
+<div class="event"><span class="status">Pending</span><div><strong>Bench press draft</strong><br><span class="muted">Nothing saved yet. Review is the next step.</span></div></div></section>
+<div class="composer"><span class="mock-control">Microphone</span><span class="input">Ask, log, correct, or review…</span><span class="mock-control primary">Send</span></div>
+<div class="scope"><span class="tag">History</span><span class="tag">Memory</span><span class="tag">Private chat</span><span class="muted">Coach can explain its sources and show its results.</span></div>
+<footer><div class="eyebrow">Same task / phone projection</div><h2>One task, three clear views.</h2><div class="phone"><h3>Coach · Client-101</h3><div class="tabs"><span class="tag">Talk</span><span class="tag">Workout · 1</span><span class="tag">Results</span></div><div class="panel"><span class="status">DRAFT · NOT SAVED</span><h2>Bench press</h2><p class="metric">8 / 8 / 6</p><p>135 lb · 3 sets</p><span class="mock-control primary">Review and save</span></div><p class="muted">A lost response shows “Checking whether it saved.” It never offers a blind second save.</p><div class="composer"><span class="input">Ask or act…</span><span class="mock-control">Mic</span></div></div></footer>
+</main></body></html>

@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "digest": "292ca454f965799595e7fae3556cb75ded4cb27355f62247991d6096cf31ac3f",
+  "actor": "quinn-3.8-coordinator",
+  "summary": "G05 S5 backend-only candidate: all six changed modules import on Node 22 (SMOKE_PASS), the 4-file scoped suite passed 32/32, the baseline+runner-lock re-run passed 71/71, and the S5c/S5b/S5 context trio passed 11/0 under node --test. Frontend gates not applicable (no frontend files in scope). Evidence produced locally by the Quinn 3.8 build handoff; no external release action.",
+  "toolEvidence": {
+    "path": "tmp/coach-g05-20260909/g05-build-evidence.md",
+    "sha256": "8692ea6dc58c141ec8bd12a494eb3f969a02b7ae4684b62a1a94033109ddb56b"
+  }
+}

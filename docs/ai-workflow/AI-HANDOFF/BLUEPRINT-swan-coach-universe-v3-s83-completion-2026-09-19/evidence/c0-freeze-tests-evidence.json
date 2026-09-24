@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "digest": "aa5b5c41ca22c51503744064faea1ce664ae1b8e802414058c38d78296e94f05",
+  "command": "SWAN_COACH_TEST_PORT=55533 node run-coach-postgres.mjs",
+  "scope": "C0-PREPARATION-AND-RUNNER-SAFETY full guarded run",
+  "files": [],
+  "toolEvidence": {
+    "path": "tmp/coach-completion-20260921/full-guarded-run-20260921T2255.log",
+    "sha256": "d5509ee6786baf9248ff1bd5ecba40db5c79d171a9116dbb70e4d61b64e3f23a"
+  },
+  "totals": {
+    "vitest": "12 files 157/157 (incl. R5-11 real-model consent suites)",
+    "node": "TAP 8+8+2 = 18/18, 0 skipped",
+    "units": "runner 67/67; checkpoint/admission 22/22"
+  },
+  "note": "Full guarded run through the shipped orchestration entry point (post-refactor). Lease held+verified+released; protectionVerified; markerCleared; exit 0."
+}

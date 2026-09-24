@@ -1,0 +1,33 @@
+{
+  "status": "active",
+  "stage": "slice",
+  "index": 10,
+  "calls": 9,
+  "active": {
+    "id": "G11",
+    "allowedFiles": [
+      "backend/models/associations.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+    ],
+    "files": [
+      "backend/models/associations.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/45-g11-release-readiness.md"
+    ],
+    "status": "tested",
+    "round": 0,
+    "reviews": [],
+    "findings": {},
+    "digest": "8520b611152331ba0abb0e414bb3e1d7dea65e38a928247c1c25abc2862b05c2",
+    "frozen": {
+      "tests": {
+        "path": "tmp/coach-g11-20260911/g11-tests-receipt.json",
+        "sha256": "4037843e774b5c1d6bcfb6b4f5cf177c1baca879fde60e503c96429e5cdfdc0d"
+      },
+      "build": {
+        "path": "tmp/coach-g11-20260911/g11-build-receipt.json",
+        "sha256": "8f2dfc4b2562de5ffdb5e89ad49f6211d8c2f4899a1bd557b512f3c947e74234"
+      }
+    }
+  },
+  "inFlight": null
+}

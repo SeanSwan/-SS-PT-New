@@ -20,6 +20,11 @@ const read = (rel) => readFileSync(resolve(__dirname, rel), 'utf8');
 const SERVICE = read('../../services/workout/workoutPrDetectionService.mjs');
 const ROUTE = read('../../routes/dailyWorkoutFormRoutes.mjs');
 const ADAPTER = read('../../services/workout/aiWorkoutDailyFormService.mjs');
+// The secondary effects (XP, PR detection, challenge progress, earnings) were
+// extracted out of the adapter into this module. Source contracts about WHERE
+// detection is called belong to the file that now holds the call; the adapter
+// contract is that it delegates.
+const POST_COMMIT = read('../../services/workout/aiWorkoutPostCommitService.mjs');
 const MODEL = read('../../models/PersonalRecord.mjs');
 const MIGRATION = read('../../migrations/20260707010000-create-personal-records.cjs');
 const LOWER_MIGRATION = read('../../migrations/20260712030000-personal-records-lower-unique.cjs');
@@ -96,9 +101,15 @@ describe('wiring + safety contracts', () => {
   });
 
   it('the unified adapter runs detection post-commit and returns prEvents', () => {
-    expect(ADAPTER).toMatch(/detectAndRecordPersonalRecords\(\{/);
-    expect(ADAPTER).toMatch(/prEvents,/);
-    expect(ADAPTER).toMatch(/PR detection failed \(non-critical\)/);
+    // The contract is unchanged — detection runs after the canonical commit, its
+    // failure cannot fail the write, and the result carries prEvents — but the
+    // code moved. Asserting the delegation AND the callee keeps the contract
+    // honest instead of pinning it to a file that no longer contains the call.
+    expect(ADAPTER).toMatch(/runAiWorkoutPostCommit\(/);
+    expect(POST_COMMIT).toMatch(/detectAndRecordPersonalRecords\(\{/);
+    expect(POST_COMMIT).toMatch(/prEvents/);
+    // Never-fail posture: the PR step is wrapped, so a failure is a warning code.
+    expect(POST_COMMIT).toMatch(/PERSONAL_RECORDS_UNAVAILABLE/);
   });
 
   it('prior-best lookup and award keys are case-insensitive (lower(), not LIKE)', () => {

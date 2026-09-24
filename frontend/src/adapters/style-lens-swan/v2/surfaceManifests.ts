@@ -108,3 +108,18 @@ export const CLIENT_PROGRESS_MANIFEST: SurfaceCapabilityManifest = {
   },
   templates: SWAN_SURFACE_TEMPLATES,
 };
+
+/**
+ * Coach Workspace (v4 Swan Coach at /dashboard/:role/coach-assistant — admin,
+ * trainer, and client mounts). Approval sheets, confirm/cancel, and every write
+ * path stay HOST-FIXED; a recipe can change layout template, surfaces, and type,
+ * never what a button does.
+ */
+export const COACH_WORKSPACE_MANIFEST: SurfaceCapabilityManifest = {
+  surfaceId: 'coach-workspace',
+  hostId: 'coach-command-center',
+  version: '1.0.0',
+  profiles: CONTAINER_PROFILES,
+  slots: SWAN_SURFACE_SLOTS,
+  templates: SWAN_SURFACE_TEMPLATES,
+};

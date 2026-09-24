@@ -38,11 +38,10 @@ import sequelize from '../database.mjs';
 // videoJobQueue may not exist yet — import with graceful fallback.
 // The stub logs a warning per-call so queue unavailability is visible in logs.
 let addJob;
-let jobQueueAvailable = false;
+let videoJobQueueModule = null;
 try {
-  const mod = await import('../services/videoJobQueue.mjs');
-  addJob = mod.addJob;
-  jobQueueAvailable = true;
+  videoJobQueueModule = await import('../services/videoJobQueue.mjs');
+  addJob = videoJobQueueModule.addJob;
 } catch (importErr) {
   logger.warn('[VideoCatalogController] videoJobQueue import failed: %s — background jobs will be unavailable', importErr.message);
   addJob = async (type, payload) => {
@@ -52,13 +51,37 @@ try {
 }
 
 /**
- * GET /api/v2/admin/video-jobs/health
+ * Is the background video job queue genuinely usable right now?
+ *
+ * A successful dynamic import is NOT availability. `videoJobQueue.mjs` exports
+ * `addJob` even when its BullMQ queue was never initialized, and in that state
+ * `addJob` resolves `null` instead of throwing — so every enqueue silently
+ * no-ops. Only `initVideoJobQueue()` creates the queue, so the queue instance is
+ * the single observable truth. Availability therefore means "a queue instance
+ * exists", never "the module imported".
+ *
+ * Fails CLOSED: if the queue instance cannot be observed, the answer is
+ * "not available" — the whole point of this probe is to stop the queue being
+ * reported as available when it is not.
+ */
+function isJobQueueAvailable() {
+  if (!videoJobQueueModule) return false;
+  try {
+    const accessor = videoJobQueueModule.getVideoJobQueue;
+    return typeof accessor === 'function' && Boolean(accessor());
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * GET /api/v2/admin/videos/job-queue-health
  * Returns job queue availability status so admins can detect queue outages.
  */
 export function jobQueueHealth(_req, res) {
   return res.json({
     success: true,
-    data: { available: jobQueueAvailable, timestamp: new Date().toISOString() },
+    data: { available: isJobQueueAvailable(), timestamp: new Date().toISOString() },
   });
 }
 
@@ -652,11 +675,22 @@ export async function completeUpload(req, res) {
     // ── Post-commit: Enqueue async jobs ──────────────────────────────────
     if (enqueueChecksumJob && finalVideo) {
       try {
-        await addJob('checksum_verify', {
+        const job = await addJob('checksum_verify', {
           videoId: finalVideo.id,
           objectKey,
         });
-        logger.info('[VideoCatalogController] Enqueued checksum_verify job for video %s', finalVideo.id);
+        if (job) {
+          logger.info('[VideoCatalogController] Enqueued checksum_verify job for video %s', finalVideo.id);
+        } else {
+          // addJob resolves null (it does not throw) when the queue was never
+          // initialized, so reporting success here would be a false capability
+          // report. The upload itself still succeeded — only the background
+          // checksum verification did not happen.
+          logger.warn(
+            '[VideoCatalogController] checksum_verify job for video %s was NOT enqueued — job queue unavailable, checksum will not be verified in the background',
+            finalVideo.id,
+          );
+        }
       } catch (jobErr) {
         logger.warn('[VideoCatalogController] Failed to enqueue checksum_verify for %s: %s', finalVideo.id, jobErr.message);
       }

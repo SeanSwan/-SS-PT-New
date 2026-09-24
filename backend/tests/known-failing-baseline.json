@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-08-19T19:40:51.219Z",
+  "recordedAt": "2026-09-02T05:00:33.584Z",
   "note": "Files failing for reasons that predate current work. Shrink this list; never grow it casually.",
   "failingFiles": [
     "__tests__/equipmentScanService.multi.test.mjs",
@@ -8,22 +8,16 @@
     "tests/api/idorAuditReaderControls.test.mjs",
     "tests/api/phase1bControllers.test.mjs",
     "tests/unit/adminWorkoutLoggerHistoryDate.test.mjs",
-    "tests/unit/bracket.test.mjs",
-    "tests/unit/capabilityHonesty.test.mjs",
-    "tests/unit/capturedFixtures.test.mjs",
-    "tests/unit/contactSheet.test.mjs",
-    "tests/unit/editWorkoutDateParsing.test.mjs",
-    "tests/unit/fixAfter.test.mjs",
-    "tests/unit/forgeAspectContract.test.mjs",
-    "tests/unit/forgeEndToEnd.test.mjs",
-    "tests/unit/imageDimensions.test.mjs",
-    "tests/unit/moduleSmoke.test.mjs",
-    "tests/unit/pixels.test.mjs",
-    "tests/unit/prune.test.mjs",
-    "tests/unit/swanLawFilter.corpus.test.mjs",
-    "tests/unit/swanLawFilter.test.mjs",
-    "tests/unit/swanPromptCompiler.test.mjs",
-    "tests/unit/variantRun.test.mjs",
-    "tests/unit/winnerAndCapability.test.mjs"
-  ]
+    "tests/unit/editWorkoutDateParsing.test.mjs"
+  ],
+  "classifications": {
+    "__tests__/equipmentScanService.multi.test.mjs": "V2-contract test vs V3 service rewrite (expects 1 generateContent call, pipeline now makes 2); needs the V3 author intent, not assertion-chasing. SchemaType mock fixed 2026-09-02 (6 of 8 tests recovered).",
+    "__tests__/equipmentScanService.retry.test.mjs": "V2-contract: second-direct-question retry protocol changed in V3 (caption fallback). Same disposition as multi.",
+    "tests/api/associationsModelRegistryParity.test.mjs": "pre-existing; unaudited this pass",
+    "tests/api/idorAuditReaderControls.test.mjs": "pre-existing, security-adjacent \u2014 flagged since 2026-08-21; worth its own slice",
+    "tests/api/phase1bControllers.test.mjs": "pre-existing; unaudited this pass",
+    "tests/unit/adminWorkoutLoggerHistoryDate.test.mjs": "file-load failure: \"default.define is not a function\" (model/mock default-export mismatch); unaudited this pass",
+    "tests/unit/editWorkoutDateParsing.test.mjs": "same load-failure class as adminWorkoutLoggerHistoryDate"
+  },
+  "history": "2026-09-02: 23 files -> 7. 16 of the 23 were node:test files vitest misread as failures (\"No test suite found\") \u2014 moved to `npm run test:node` (175 tests, all green) and excluded from vitest, guarded by tests/unit/nodeTestRunnerSeparation.test.mjs."
 }

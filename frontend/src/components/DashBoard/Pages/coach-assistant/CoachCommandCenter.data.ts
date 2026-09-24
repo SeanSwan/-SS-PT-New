@@ -45,6 +45,9 @@ export type CommandLogConfirmation = {
   details: Record<string, unknown> | null;
   expiresAt?: string;
   isDestructive: boolean;
+  tier?: 'fire_and_forget' | 'read_back' | 'deliberate' | 'refusal' | null;
+  physical?: boolean;
+  sourceInputMode?: 'text' | 'voice' | 'ui';
   /** Original operator text, so an expired confirmation can be re-issued one-tap. */
   sourceMessage?: string;
 };

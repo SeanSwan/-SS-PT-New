@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "digest": "30f12ac75527a3c7fcc08498768166a8510c195894d85b8df4cc87d29781a239",
+  "command": "npx vitest run coachFactMemoryPolicy + adopted coachFactService/coachFactsMigration/coachContextTableNames suites = 115/115 pass, exit 0; policy+model ESM import smoke SMOKE_PASS",
+  "scope": "G09/S9: CoachFact history reconciled (adopted S1 layer, 106/106 unmodified), forget with immediate retrieval exclusion + context-cache recheck + 24h purge clock, private-task extraction/retrieval lockout, strict target-client memory scoping, authoritative-record conflict detection; exits T35/T36/T37",
+  "files": [
+    "backend/models/CoachFact.mjs",
+    "backend/migrations/20260831200000-create-coach-facts.cjs",
+    "backend/migrations/20260911000000-add-coach-fact-forget-purge.cjs",
+    "backend/services/coachFactService.mjs",
+    "backend/services/coachFactMemoryPolicy.mjs",
+    "backend/tests/unit/coachContextTableNames.test.mjs",
+    "backend/tests/unit/coachFactService.test.mjs",
+    "backend/tests/unit/coachFactsMigration.test.mjs",
+    "backend/tests/unit/coachFactMemoryPolicy.test.mjs"
+  ],
+  "results": {
+    "adoptedSuite": "106/106 PASS unmodified",
+    "policySuite": "9/9 PASS (T35/T36/T37)",
+    "smoke": "SMOKE_PASS"
+  },
+  "toolEvidence": {
+    "path": "tmp/coach-g09-20260911/g09-tests-evidence.md",
+    "sha256": "7824385d2fbfee96ddb388cc6d5fb2fa9c7d7b01b8e53da0f8b88b1b7ed8f8cb"
+  }
+}

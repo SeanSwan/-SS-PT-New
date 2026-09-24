@@ -31,13 +31,19 @@ router.get('/trainer/digest', authorize(['admin', 'trainer']), trainerPainDigest
 router.get('/:userId', verifyClientAccessByUserId({ paramName: 'userId' }), getClientPainEntries);
 router.get('/:userId/active', verifyClientAccessByUserId({ paramName: 'userId' }), getActivePainEntries);
 
-// Write routes (admin, trainer, or own client — controller enforces ownership)
-router.post('/:userId', authorize(['admin', 'trainer', 'client']), verifyClientAccessByUserId({ paramName: 'userId' }), createPainEntry);
+// Write routes (admin, trainer, or own client — controller enforces ownership).
+// `'user'` is included because it is the default role minted by public
+// self-registration (models/User.mjs:135) and is client-equivalent
+// (utils/clientAccess.mjs:23): the sibling `verifyClientAccessByUserId` guard on
+// each of these lines already admits a `'user'` account to its own records
+// (middleware/verifyClientAccess.mjs:91-93), so omitting it here denied a
+// freshly registered account its own pain entry with a 403.
+router.post('/:userId', authorize(['admin', 'trainer', 'client', 'user']), verifyClientAccessByUserId({ paramName: 'userId' }), createPainEntry);
 // Slice 5 (C6): post-workout check-in — asymmetric gate (worse = immediate,
 // better = trainer-confirmed) lives in painCheckInService.
-router.post('/:userId/check-in', authorize(['admin', 'trainer', 'client']), verifyClientAccessByUserId({ paramName: 'userId' }), painCheckIn);
-router.put('/:userId/:entryId', authorize(['admin', 'trainer', 'client']), verifyClientAccessByUserId({ paramName: 'userId' }), updatePainEntry);
-router.put('/:userId/:entryId/resolve', authorize(['admin', 'trainer', 'client']), verifyClientAccessByUserId({ paramName: 'userId' }), resolvePainEntry);
+router.post('/:userId/check-in', authorize(['admin', 'trainer', 'client', 'user']), verifyClientAccessByUserId({ paramName: 'userId' }), painCheckIn);
+router.put('/:userId/:entryId', authorize(['admin', 'trainer', 'client', 'user']), verifyClientAccessByUserId({ paramName: 'userId' }), updatePainEntry);
+router.put('/:userId/:entryId/resolve', authorize(['admin', 'trainer', 'client', 'user']), verifyClientAccessByUserId({ paramName: 'userId' }), resolvePainEntry);
 
 // Delete (admin only)
 router.delete('/:userId/:entryId', authorize(['admin']), verifyClientAccessByUserId({ paramName: 'userId' }), deletePainEntry);

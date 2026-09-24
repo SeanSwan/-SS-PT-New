@@ -5,11 +5,23 @@
  * Call initializeRegistry() once at server startup.
  *
  * Commands are registered across categories A-N. The per-category counts below
- * are hand-maintained and DRIFT — as of 2026-07-25 they sum to 119 while the
- * registries actually define 134 commands. Treat them as a rough map, never as
- * a figure to quote: two commit messages cited the stale 119 before anyone
- * counted. To get the real number, count definitions rather than trusting this
- * block.
+ * are hand-maintained and DRIFT. As of 2026-07-25 they summed to 119 while the
+ * registries defined 134; re-counted 2026-08-21 the real total is 139 and the
+ * hand list still says 119. Two commit messages once cited the stale 119, and a
+ * 2026-08-20 external audit cited the stale 134 as if it were current.
+ *
+ * TREAT EVERY NUMBER IN THIS BLOCK AS WRONG. It is a rough category map, never a
+ * figure to quote. To get the real number, count:
+ *   getAllCommands().length              (after initializeRegistry())
+ * and for what each command can actually DO:
+ *   getCommandExecutionLane(command)     -- a definition existing is not the same
+ *                                           as a capability working.
+ *
+ * No live lane counts are written here on purpose. A first draft of this comment
+ * added a dated snapshot of the split, which is the very mechanism that made 119
+ * and 134 stale — a block that says "every number here is wrong" must not then
+ * mint five more. The authoritative, self-updating split is asserted in
+ * tests/unit/commandRegistryCoverage.test.mjs, which fails when it drifts.
  *
  * A: Client Management (14)   B: Workouts (17)      C: Scheduling (10)
  * D: Health & Pain (8)        E: Nutrition (6)       F: Social (6)

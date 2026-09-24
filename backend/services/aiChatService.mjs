@@ -1095,7 +1095,23 @@ export function getSystemPrompt(role, context, responseStyle = 'both') {
  * 16. Pain/injury entries (body map)
  * 17. Recent sessions (scheduling, attendance)
  */
-export async function enrichWithUserData(userId, role, context, sequelize, foodContext = null) {
+export async function enrichWithUserData(userId, role, context, sequelize, foodContext = null, readOptions = {}) {
+  const assertAccess = async () => {
+    readOptions.signal?.throwIfAborted();
+    await readOptions.verifyAccess?.();
+    readOptions.signal?.throwIfAborted();
+  };
+  await assertAccess();
+  if (readOptions.signal || readOptions.verifyAccess) {
+    const sourceDatabase = sequelize;
+    sequelize = Object.create(sourceDatabase);
+    sequelize.query = async (...args) => {
+      await assertAccess();
+      const rows = await sourceDatabase.query(...args);
+      await assertAccess();
+      return rows;
+    };
+  }
   try {
     const dataParts = [];
     const startTime = Date.now();
@@ -1216,8 +1232,10 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
          FROM client_baseline_measurements
          WHERE "userId" = :userId
          ORDER BY "takenAt" DESC NULLS LAST LIMIT 1`, { userId }),
+      // Coach uses the bounded canonical evidence tools for workout truth.
+      // Other callers retain the legacy enrichment contract.
       // 6. Recent completed workout diary entries
-      safeQuery(
+      readOptions.coachEvidence ? Promise.resolve([]) : safeQuery(
         `WITH exercise_rollup AS (
            SELECT
              ws.id AS "sessionId",
@@ -1363,8 +1381,8 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
         `SELECT s."sessionDate", s.status, s.notes, s.duration
          FROM sessions s WHERE s."userId" = :userId
          ORDER BY s."sessionDate" DESC LIMIT 5`, { userId }),
-      // 18. Compliance data (workout frequency for this client)
-      safeQuery(
+      // 18. Compliance data (legacy callers only; Coach has no assumed denominator)
+      readOptions.coachEvidence ? Promise.resolve([]) : safeQuery(
         `SELECT
            COUNT(CASE WHEN ws.date >= NOW() - INTERVAL '7 days' THEN 1 END) AS "workouts7d",
            COUNT(CASE WHEN ws.date >= NOW() - INTERVAL '30 days' THEN 1 END) AS "workouts30d",
@@ -1374,7 +1392,7 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
          WHERE ws."userId" = :userId
            AND ws.status = 'completed'`, { userId }),
       // 19. Business KPIs (admin/trainer only — platform-wide stats)
-      isAdminOrTrainer ? safeQuery(
+      isAdminOrTrainer && !readOptions.coachEvidence ? safeQuery(
         `SELECT
            (SELECT COUNT(*) FROM "Users" WHERE role = 'client' AND "isActive" != false) AS "activeClients",
            (SELECT COUNT(*) FROM "Users" WHERE role = 'client' AND "createdAt" >= NOW() - INTERVAL '30 days') AS "newClientsThisMonth",
@@ -1425,7 +1443,7 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
     logger.info('[AIChatService] Enrichment queries completed in %dms for user %d', Date.now() - startTime, userId);
 
     // ── COACH ASSISTANT: Inject assigned client roster for trainer/admin ──
-    if (context === 'coach_assistant' && isAdminOrTrainer) {
+    if (context === 'coach_assistant' && isAdminOrTrainer && !readOptions.coachEvidence) {
       try {
         const assignedClients = await safeQuery(
           `SELECT u.id, u."availableSessions",
@@ -1462,7 +1480,7 @@ You can log workouts, check progress, and manage plans for ANY of these clients.
     }
 
     // ── COACH ASSISTANT / WORKOUT_GENERATION: Inject bootcamp class history, space profiles, equipment ──
-    if ((context === 'coach_assistant' || context === 'workout_generation') && isAdminOrTrainer) {
+    if ((context === 'coach_assistant' || context === 'workout_generation') && isAdminOrTrainer && !readOptions.coachEvidence) {
       try {
         const [recentClasses, spaceProfiles, savedTemplates] = await Promise.all([
           safeQuery(
@@ -1875,7 +1893,9 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       // the model to "flag worsening patterns"; these are the only truthful
       // basis for that. Degrades silently when trend data is unavailable.
       try {
+        await assertAccess();
         const { facts } = await getPainTrendFacts(userId);
+        await assertAccess();
         const trendLines = formatTrendFactsForPrompt(facts);
         if (trendLines.length > 0) {
           dataParts.push(`\n--- PAIN TREND (computed per-episode; sample sizes stated) ---\n${trendLines.join('\n')}`);
@@ -1923,8 +1943,8 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
       }
     } catch { /* workout_plans table may not exist yet - non-fatal */ }
 
-    // 21. ANALYTICS: Exercise history + variety from canonical workout logs
-    try {
+    // 21. ANALYTICS: Coach receives metrics only from its verified evidence tool.
+    if (!readOptions.coachEvidence) try {
       const { exercises: exerciseStats = [] } = await getExerciseHistoryFromLogs(userId, {
         sequelize,
         sort: 'timesPerformed',
@@ -1981,8 +2001,10 @@ If the trainer mentions a name, it has been replaced with "[Client #${userId}]" 
 NEVER ask for or reference personal identifying information. Focus solely on their fitness data.
 === END PRIVACY ===`;
 
+    await assertAccess();
     return '\n\n' + privacyHeader + '\n\n=== CLIENT DATA (23 sources) ===\n' + dataParts.join('\n') + '\n=== END ===';
   } catch (err) {
+    await assertAccess();
     logger.warn('[AIChatService] Data enrichment failed (non-fatal):', err.message);
     return '';
   }
@@ -2033,6 +2055,24 @@ export function buildPromptMessages(systemPrompt, conversationMessages, newMessa
  * Send a chat message to an AI provider.
  * Tries providers in order: OpenAI -> Anthropic -> Gemini
  */
+// S5 compatibility adapter: the legacy provider loop (all non-Coach callers, and
+// the pre-S5 Coach path) keeps its exact shape; the inference boundary consumes
+// this as its provider adapter so Coach callers never get a second, parallel
+// provider selection.
+/** A Coach request selects once. Secrets remain inside this closure. */
+export function getCoachProviderAdapter() {
+  const provider = getAvailableProviders()[0];
+  if (!provider) return null;
+  return { name: provider.name, generate: async (messages, { signal } = {}) => {
+    const result = await callProvider(provider, messages, { maxTokens: 2500, temperature: 0.7, signal, allowModelFallback: false });
+    return { ok: true, ...result, provider: provider.name };
+  } };
+}
+
+export function coachProviderCompatAdapter(messages) {
+  return sendChatMessage(messages);
+}
+
 export async function sendChatMessage(messages, options = {}) {
   // maxTokens: 2500 balances response quality vs Render's 30s proxy timeout
   // (History trimming in buildPromptMessages keeps prompt size manageable)
@@ -2261,32 +2301,33 @@ export function getAIChatDiagnostics() {
 }
 
 async function callProvider(provider, messages, options) {
-  const { maxTokens, temperature } = options;
+  const { maxTokens, temperature, signal, allowModelFallback = true } = options;
 
   switch (provider.name) {
     case 'openai':
-      return callOpenAI(provider.key, messages, maxTokens, temperature);
+      return callOpenAI(provider.key, messages, maxTokens, temperature, signal);
     case 'anthropic':
-      return callAnthropic(provider.key, messages, maxTokens, temperature);
+      return callAnthropic(provider.key, messages, maxTokens, temperature, signal);
     case 'gemini':
-      return callGemini(provider.key, messages, maxTokens, temperature);
+      return callGemini(provider.key, messages, maxTokens, temperature, signal, allowModelFallback);
     case 'venice':
-      return callVenice(provider.key, messages, maxTokens, temperature);
+      return callVenice(provider.key, messages, maxTokens, temperature, signal);
     default:
       throw new Error(`Unknown provider: ${provider.name}`);
   }
 }
 
-async function callOpenAI(apiKey, messages, maxTokens, temperature) {
+async function callOpenAI(apiKey, messages, maxTokens, temperature, signal) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 25000);
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  let response;
+  try { response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    signal: controller.signal,
+    signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal,
     body: JSON.stringify({
       model: 'gpt-4o-mini',
       messages,
@@ -2294,7 +2335,7 @@ async function callOpenAI(apiKey, messages, maxTokens, temperature) {
       temperature,
     }),
   });
-  clearTimeout(timeoutId);
+  } finally { clearTimeout(timeoutId); }
 
   if (!response.ok) {
     const err = await response.text();
@@ -2313,12 +2354,13 @@ async function callOpenAI(apiKey, messages, maxTokens, temperature) {
   };
 }
 
-async function callAnthropic(apiKey, messages, maxTokens, temperature) {
+async function callAnthropic(apiKey, messages, maxTokens, temperature, signal) {
   // Extract system message
   const systemMsg = messages.find(m => m.role === 'system');
   const chatMessages = messages.filter(m => m.role !== 'system');
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
+    signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -2354,7 +2396,7 @@ async function callAnthropic(apiKey, messages, maxTokens, temperature) {
   };
 }
 
-async function callGemini(apiKey, messages, maxTokens, temperature) {
+async function callGemini(apiKey, messages, maxTokens, temperature, signal, allowModelFallback = true) {
   // Convert messages to Gemini format
   const systemMsg = messages.find(m => m.role === 'system');
   const chatMessages = messages.filter(m => m.role !== 'system');
@@ -2368,7 +2410,7 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
   // Set GEMINI_MODEL=gemini-3.1-pro-preview in .env to use Pro instead
   const primaryModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const fallbackModel = primaryModel.includes('pro') ? 'gemini-2.5-flash' : 'gemini-2.0-flash';
-  const models = [primaryModel, fallbackModel];
+  const models = allowModelFallback ? [primaryModel, fallbackModel] : [primaryModel];
 
   for (const model of models) {
     // 25s timeout for all models — must finish before Render's 30s proxy timeout
@@ -2382,7 +2424,7 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-          signal: controller.signal,
+          signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal,
           body: JSON.stringify({
             contents,
             systemInstruction: systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined,
@@ -2414,6 +2456,7 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
       };
     } catch (err) {
       clearTimeout(timeoutId);
+      if (signal?.aborted || !allowModelFallback) throw err;
       if (err.name === 'AbortError') {
         // Pro timed out — try Flash (faster model)
         if (model.includes('pro')) {
@@ -2434,8 +2477,9 @@ async function callGemini(apiKey, messages, maxTokens, temperature) {
   throw new Error('All Gemini models failed');
 }
 
-async function callVenice(apiKey, messages, maxTokens, temperature) {
+async function callVenice(apiKey, messages, maxTokens, temperature, signal) {
   const response = await fetch('https://api.venice.ai/api/v1/chat/completions', {
+    signal,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

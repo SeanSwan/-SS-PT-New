@@ -61,7 +61,8 @@ interface WorkoutPlannerGenerationActionsInput {
   setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
   setPhaseNumber: Dispatch<SetStateAction<number>>;
   setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
-  resetLoadedPlanState: () => void;
+  resetLoadedPlanState: () => void; /** P58-R3: retire accepted add/swap work before a replacement intent's first await. */
+  onBeforeDraftReplacement?: () => void;
   getCurrentClientId?: () => number | null;
 }
 
@@ -102,6 +103,7 @@ export const useWorkoutPlannerGenerationActions = ({
   setPhaseNumber,
   setStatusMsg,
   resetLoadedPlanState,
+  onBeforeDraftReplacement,
   getCurrentClientId,
 }: WorkoutPlannerGenerationActionsInput) => {
   const [generating, setGenerating] = useState(false);
@@ -140,6 +142,7 @@ export const useWorkoutPlannerGenerationActions = ({
     ack?: PlanningReviewAck,
     overrides?: PlannerGenerateOverrides,
   ) => {
+    onBeforeDraftReplacement?.();
     const requestId = ++requestSequence.current;
     const isCurrentRequest = () => requestId === requestSequence.current && (!getCurrentClientId || getCurrentClientId() === selectedClientId);
     setGenerating(true);
@@ -185,12 +188,13 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       if (requestId === requestSequence.current) setGenerating(false);
     }
-  }, [authAxios, category, clearGuidedCandidates, getCurrentClientId, goal, hardcoreMethod, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
+  }, [authAxios, category, clearGuidedCandidates, getCurrentClientId, goal, hardcoreMethod, onBeforeDraftReplacement, phaseNumber, resetLoadedPlanState, selectedEquipmentProfileId, setPhaseNumber, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
   const postPlanGeneration = useCallback(async (
     selectedClientId: number,
     ack?: PlanningReviewAck,
   ) => {
+    onBeforeDraftReplacement?.();
     const requestId = ++requestSequence.current;
     const isCurrentRequest = () => requestId === requestSequence.current && (!getCurrentClientId || getCurrentClientId() === selectedClientId);
     setGeneratingPlan(true);
@@ -228,7 +232,7 @@ export const useWorkoutPlannerGenerationActions = ({
     } finally {
       if (requestId === requestSequence.current) setGeneratingPlan(false);
     }
-  }, [authAxios, clearGuidedCandidates, getCurrentClientId, goal, hardcoreMethod, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
+  }, [authAxios, clearGuidedCandidates, getCurrentClientId, goal, hardcoreMethod, onBeforeDraftReplacement, phaseNumber, planDuration, resetLoadedPlanState, selectedEquipmentProfileId, sessionsPerWeek, setGeneratedPlan, setPlanExercises, setStatusMsg, trainingIntensityMode]);
 
   const onAcknowledged = useCallback(async (
     review: SafetyGateReviewState,
@@ -256,7 +260,7 @@ export const useWorkoutPlannerGenerationActions = ({
 
   const handleSwanCoachWorkoutGenerate = useCallback(async (selectedClientId: number | null, overrides?: PlannerGenerateOverrides) => {
     if (isGuidedGenerationMode(generationMode)) {
-      setGenerating(true);
+      if (selectedClientId) onBeforeDraftReplacement?.(); setGenerating(true);
       try {
         await handleGuidedCandidateGenerate(selectedClientId, overrides);
       } finally {
@@ -267,7 +271,7 @@ export const useWorkoutPlannerGenerationActions = ({
     if (!selectedClientId) return;
     const review = await postWorkoutGeneration(selectedClientId, undefined, overrides);
     if (review) openSafetyGateReview({ mode: 'workout', clientId: selectedClientId, ...review });
-  }, [generationMode, handleGuidedCandidateGenerate, openSafetyGateReview, postWorkoutGeneration]);
+  }, [generationMode, handleGuidedCandidateGenerate, onBeforeDraftReplacement, openSafetyGateReview, postWorkoutGeneration]);
 
   const handleGeneratePlan = useCallback(async (selectedClientId: number | null) => {
     if (!canGenerateHorizonPlan(selectedClientId, planDuration)) return;

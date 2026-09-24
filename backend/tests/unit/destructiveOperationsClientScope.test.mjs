@@ -5,8 +5,8 @@ import {
 } from '../../services/ai/destructiveOperations.mjs';
 
 describe('destructive operation client scope', () => {
-  it('allows clientId as an explicit DELETE scope for soft client deactivation', () => {
-    const pending = prepareDestructiveOperation({
+  it('allows clientId as an explicit DELETE scope for soft client deactivation', async () => {
+    const pending = await prepareDestructiveOperation({
       type: 'DELETE',
       endpoint: '/api/admin/clients/:clientId',
       commandType: 'deactivate_client',
@@ -20,6 +20,6 @@ describe('destructive operation client scope', () => {
     expect(pending.type).toBe('DELETE');
     expect(pending.affectedCount).toBe(1);
 
-    cancelOperation(pending.operationId, 1);
+    await cancelOperation(pending.operationId, 1);
   });
 });

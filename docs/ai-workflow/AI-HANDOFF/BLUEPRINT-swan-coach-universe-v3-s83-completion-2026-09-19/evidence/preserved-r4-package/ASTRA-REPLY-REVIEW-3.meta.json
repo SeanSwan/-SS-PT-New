@@ -1,0 +1,20 @@
+{
+  "model": "gpt-6-astra",
+  "servedModel": null,
+  "identityVerified": false,
+  "identityUnverifiableReason": "codex exec --json emits no model field: measured 2026-09-19 on codex-cli 0.154.0, event set = thread.started, turn.started, item.completed, turn.completed; the substring \"model\" does not occur in the raw JSONL. Requested model is provable; served model is not.",
+  "provider": "openai-codex",
+  "billing": "chatgpt-subscription",
+  "authMode": "chatgpt_subscription",
+  "transport": "codex-cli",
+  "document": "C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/tmp/worktrees/swan-coach-astra-owned-20260906/docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET-REVIEW-3.md",
+  "wallSeconds": 437.4,
+  "generatedAt": "2026-09-20T07:06:23.412Z",
+  "megaBlueprint": true,
+  "megaBlueprintArmedBy": [
+    "document"
+  ],
+  "inputTokens": 380271,
+  "outputTokens": 13444,
+  "reasoningOutputTokens": 2224
+}

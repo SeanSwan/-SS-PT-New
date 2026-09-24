@@ -21,7 +21,41 @@ describe('aiCommandRoutes not-wired fallback source guard', () => {
 
   it('keeps route-level command failures off raw exception messages and stacks', () => {
     expect(ROUTE_SOURCE).toContain('const logAICommandRouteError =');
-    expect(ROUTE_SOURCE).not.toContain('error: err.message');
     expect(ROUTE_SOURCE).not.toContain('stack: err.stack');
+    // The former blanket `not.toContain('error: err.message')` assertion is gone:
+    // /intents now re-emits a TYPED CoachIntentListError via
+    // `res.status(err.status).json({ error: err.message })` (aiCommandRoutes.mjs:511),
+    // and every current constructor call site passes a fixed literal
+    // (coachIntentListing.mjs). Behaviour — fixed bodies, and no exception detail
+    // in the response or the route logger for untrusted errors — is asserted
+    // through the mounted router in tests/api/coachIntentRoutes.test.mjs.
+  });
+});
+
+describe('aiCommandRoutes unhandled-utterance wiring source guard (F1)', () => {
+  it('records the chat/clarification fallthrough instead of discarding it', () => {
+    // The fallthrough branch must call recordUnhandledUtterance BEFORE returning.
+    const branch = ROUTE_SOURCE.split("ctx.intent?.intent === 'chat' || ctx.intent?.intent === 'clarification_needed'")[1] ?? '';
+    expect(branch.slice(0, 600)).toContain('recordUnhandledUtterance');
+  });
+
+  it('records UNKNOWN_INTENT with the phantom intent name', () => {
+    expect(ROUTE_SOURCE).toContain("=== 'UNKNOWN_INTENT'");
+    expect(ROUTE_SOURCE).toContain('phantomIntent');
+  });
+
+  it('feeds the MOST-SCRUBBED text: executor PHI-stripped + route identity-sanitized, never raw body', () => {
+    // Round-1 hostile fix (Grok): an earlier version recorded promptInputs.message,
+    // which is identity-sanitized but NOT yet PHI-stripped. ctx.sanitizedInput has
+    // had both applied by the time the pipeline returns.
+    expect(ROUTE_SOURCE).toContain('input: ctx.sanitizedInput ?? promptInputs.message');
+    expect(ROUTE_SOURCE).not.toContain('input: message,');
+    expect(ROUTE_SOURCE).not.toContain('input: promptInputs.message,');
+  });
+
+  it('gates the unhandled report behind the admin role like /metrics/summary', () => {
+    const idx = ROUTE_SOURCE.indexOf("'/metrics/unhandled'");
+    expect(idx).toBeGreaterThan(-1);
+    expect(ROUTE_SOURCE.slice(idx, idx + 300)).toContain("req.user?.role !== 'admin'");
   });
 });

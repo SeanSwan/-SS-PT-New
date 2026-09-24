@@ -68,4 +68,25 @@ describe('aiChatService exercise analytics truth path', () => {
       .find(sql => /JOIN\s+workout_logs\s+wl/i.test(sql));
     expect(workoutHistorySql).not.toMatch(/daily_workout_forms/i);
   });
+  it('Coach evidence mode does not duplicate legacy workout metrics or read other client subjects',async()=>{
+    const sequelize=makeSequelize();getExerciseHistoryFromLogsMock.mockResolvedValue({exercises:[]});
+    await enrichWithUserData(42,'trainer','coach_assistant',sequelize,null,{coachEvidence:true});
+    const sql=sequelize.query.mock.calls.map(([text])=>text).join(' ');
+    expect(sql).not.toContain('workout_sessions');
+    expect(sql).not.toContain('FROM orders');
+    expect(sql).not.toContain('cta.status AS "assignmentStatus"');
+    expect(getExerciseHistoryFromLogsMock).not.toHaveBeenCalled();
+  });
+  it('aborted enrichment does not begin any domain queries',async()=>{
+    const sequelize=makeSequelize();const controller=new AbortController();controller.abort();
+    await expect(enrichWithUserData(42,'trainer','coach_assistant',sequelize,null,{signal:controller.signal})).rejects.toThrow();
+    expect(sequelize.query).not.toHaveBeenCalled();
+  });
+  it('revoked access during a pending source read discards the entire legacy context',async()=>{
+    const sequelize=makeSequelize();let allowed=true;
+    sequelize.query.mockImplementation(async()=>{allowed=false;return [];});
+    const verifyAccess=async()=>{if(!allowed)throw new Error('CONTEXT_ACCESS_DENIED');};
+    await expect(enrichWithUserData(42,'trainer','coach_assistant',sequelize,null,{verifyAccess})).rejects.toThrow('CONTEXT_ACCESS_DENIED');
+  });
+
 });

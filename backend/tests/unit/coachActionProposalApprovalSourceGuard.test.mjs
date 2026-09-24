@@ -19,6 +19,9 @@ const CLIENT_DATA_UPDATE_APPROVAL_SRC = readFileSync(
   resolve(__dirname, '../../services/ai/coachClientDataUpdateApprovalService.mjs'),
   'utf8',
 );
+const WORKOUT_APPROVAL_SRC = readFileSync(
+  resolve(__dirname, '../../services/ai/coachWorkoutProposalApprovalService.mjs'), 'utf8',
+);
 const COMMAND_DISPATCHER_SRC = readFileSync(
   resolve(__dirname, '../../services/ai/commandDispatcher.mjs'),
   'utf8',
@@ -42,16 +45,17 @@ const COACH_INTAKE_MIGRATION_SRC = readFileSync(
 
 describe('coachActionProposalApprovalService source guards', () => {
   it('routes workout approval through RBAC and the canonical daily form writer', () => {
-    expect(APPROVAL_SERVICE_SRC).toMatch(/ensureClientAccess/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/submitAiWorkoutLogAsDailyForm/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/plannedAssignment:\s*payload\.plannedAssignment/);
-    expect(APPROVAL_SERVICE_SRC).toMatch(/scheduledSessionId:\s*payload\.scheduledSessionId/);
-    expect(APPROVAL_SERVICE_SRC).not.toMatch(/logWorkoutForClient/);
+    expect(APPROVAL_SERVICE_SRC).toMatch(/return approveWorkoutProposal\(/);
+    expect(WORKOUT_APPROVAL_SRC).toMatch(/ensureClientAccess/);
+    expect(WORKOUT_APPROVAL_SRC).toMatch(/submitAiWorkoutLogAsDailyForm/);
+    expect(WORKOUT_APPROVAL_SRC).toMatch(/plannedAssignment:\s*payload\.plannedAssignment/);
+    expect(WORKOUT_APPROVAL_SRC).toMatch(/scheduledSessionId:\s*payload\.scheduledSessionId/);
+    expect(APPROVAL_SERVICE_SRC + WORKOUT_APPROVAL_SRC).not.toMatch(/logWorkoutForClient/);
   });
 
   it('does not create workout rows directly inside the proposal executor', () => {
-    expect(APPROVAL_SERVICE_SRC).not.toMatch(/WorkoutSession\.create\(/);
-    expect(APPROVAL_SERVICE_SRC).not.toMatch(/WorkoutLog\.bulkCreate\(/);
+    expect(APPROVAL_SERVICE_SRC + WORKOUT_APPROVAL_SRC).not.toMatch(/WorkoutSession\.create\(/);
+    expect(APPROVAL_SERVICE_SRC + WORKOUT_APPROVAL_SRC).not.toMatch(/WorkoutLog\.bulkCreate\(/);
   });
 
   it('routes server-side log_workout commands through the canonical daily form writer', () => {

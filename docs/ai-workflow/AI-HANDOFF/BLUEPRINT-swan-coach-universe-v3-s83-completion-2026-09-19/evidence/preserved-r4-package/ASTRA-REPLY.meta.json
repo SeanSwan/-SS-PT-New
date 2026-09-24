@@ -1,0 +1,18 @@
+{
+  "model": "gpt-6-astra",
+  "servedModel": null,
+  "provider": "openai-codex",
+  "billing": "chatgpt-subscription",
+  "authMode": "chatgpt_subscription",
+  "transport": "codex-cli",
+  "document": "C:/Users/BigotSmasher/Desktop/@Everything/quick-pt/SS-PT/tmp/worktrees/swan-coach-astra-owned-20260906/docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-universe-v3-s83-completion-2026-09-19/CONSULT-PACKET.md",
+  "inputTokens": 102109,
+  "outputTokens": 21167,
+  "wallSeconds": 648.5,
+  "generatedAt": "2026-09-19T23:13:30.505Z",
+  "megaBlueprint": true,
+  "megaBlueprintArmedBy": [
+    "remit",
+    "document"
+  ]
+}

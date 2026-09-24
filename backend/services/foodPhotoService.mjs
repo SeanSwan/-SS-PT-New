@@ -87,8 +87,13 @@ export async function analyzeMealPhoto(imageBuffer, mimeType) {
   try {
     const mod = await import('@google/generative-ai');
     GoogleGenerativeAI = mod.GoogleGenerativeAI;
-  } catch {
-    throw new Error('Google Generative AI SDK not installed');
+  } catch (err) {
+    // Keep the cause (and the 'SDK not installed' literal equipmentRoutes matches on):
+    // this catch pattern once swallowed a vitest strict-mock error for weeks.
+    throw new Error(
+      'Google Generative AI SDK not installed or failed to load: ' + (err?.message || err),
+      { cause: err },
+    );
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);

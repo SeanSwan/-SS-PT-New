@@ -7,8 +7,10 @@
  * raw packet available for audit without turning the console into one text blob.
  */
 import { useState } from 'react';
+import { nameClientTokens, useCoachClientNames } from './coachClientNames';
 import CoachActionProposalCard from './CoachActionProposalCard';
-import { ConfirmationCard, ExecutionResultCard } from './CoachCommandCards';
+import { ExecutionResultCard } from './CoachCommandCards';
+import ConfirmationSheet from '../../../CoachConfirm/ConfirmationSheet';
 import {
   AccessHandoffCard,
   AccessHandoffHeader,
@@ -34,6 +36,7 @@ import {
   commandLogAccessHandoffLink,
   commandLogAccessHandoffTitle,
 } from './CoachCommandCenter.accessHandoff';
+import type { ConfirmResult } from '../../../../hooks/useCoachCommand';
 
 export { formatCommandLogBody } from './CoachCommandLogEntry.format';
 
@@ -44,6 +47,27 @@ function formatLogTime(at?: string): string | null {
   return parsed.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
+const CONFIRM_RESULT_TYPES = new Set<ConfirmResult['type']>([
+  'executed', 'error', 'not_wired', 'frontend_dispatch', 'debate_started',
+]);
+
+function normalizeSheetResult(body: unknown, confirmation: NonNullable<CoachCommandLogEntryProps['entry']['commandConfirmation']>): ConfirmResult {
+  const source = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+  const rawType = typeof source.type === 'string' ? source.type as ConfirmResult['type'] : 'executed';
+  const type = CONFIRM_RESULT_TYPES.has(rawType) ? rawType : 'executed';
+  const rawResult = source.result;
+  return {
+    success: source.success !== false,
+    type,
+    message: typeof source.message === 'string' ? source.message : '',
+    result: rawResult && typeof rawResult === 'object' ? rawResult as Record<string, unknown> : null,
+    command: typeof source.command === 'string' ? source.command : confirmation.command,
+    event: typeof source.event === 'string' ? source.event : undefined,
+    payload: source.payload && typeof source.payload === 'object' ? source.payload as Record<string, unknown> : undefined,
+    dispatched: typeof source.dispatched === 'boolean' ? source.dispatched : undefined,
+  };
+}
+
 function CoachCommandLogEntry({
   entry,
   onCancelCommand,
@@ -52,21 +76,28 @@ function CoachCommandLogEntry({
   onSpeak,
   workoutLoggerRoute,
   workoutLoggerScopeLabel,
+  presentation = 'bubble',
 }: CoachCommandLogEntryProps) {
   const [copied, setCopied] = useState(false);
+  const [acknowledgedConfirmationId, setAcknowledgedConfirmationId] = useState<string | null>(null);
+  const clientNames = useCoachClientNames();
   const handleCopy = () => {
-    void navigator.clipboard?.writeText(entry.body).then(() => {
+    void navigator.clipboard?.writeText(nameClientTokens(entry.body, clientNames)).then(() => {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     }).catch(() => undefined);
   };
-  const formatted = formatCommandLogBody(entry.body);
+  // Names on screen only: the ID-only body is what the logger hand-off and
+  // read-aloud receive, because both can leave the browser (coachClientNames.tsx).
+  const formatted = formatCommandLogBody(nameClientTokens(entry.body, clientNames));
+  const rawFormatted = formatCommandLogBody(entry.body);
   const [activeVariant, setActiveVariant] = useState<LogStyleVariantKey>('science');
   const selectedVariant = formatted.variants?.find((variant) => variant.key === activeVariant) || formatted.variants?.[0];
   const visibleBody = selectedVariant?.body || formatted;
+  const rawVariant = rawFormatted.variants?.find((variant) => variant.key === selectedVariant?.key) || rawFormatted.variants?.[0];
   const loggerRoute = workoutLoggerRoute || null;
   const loggerHandoff = entry.actor === 'coach' && loggerRoute
-    ? buildCoachWorkoutLoggerHandoff(visibleBody)
+    ? buildCoachWorkoutLoggerHandoff(rawVariant?.body || rawFormatted)
     : null;
   const confirmation = entry.commandConfirmation;
   const accessHandoff = entry.accessHandoff ?? buildCommandResultAccessHandoff(entry.commandResult);
@@ -77,8 +108,8 @@ function CoachCommandLogEntry({
     : null;
 
   return (
-    <LogEntry $actor={entry.actor}>
-      <LogMeta>
+    <LogEntry $actor={entry.actor} data-presentation={presentation}>
+      {presentation === 'flat' ? null : <LogMeta>
         {/* Coach/operator labels already name the speaker ("Swan Coach", "You",
             "operator command") — the raw actor tag only adds signal for system rows. */}
         {entry.actor === 'system' ? <span>{entry.actor}</span> : <span aria-hidden="true" />}
@@ -86,7 +117,7 @@ function CoachCommandLogEntry({
           {entry.label}
           {formatLogTime(entry.at) ? <time dateTime={entry.at}> · {formatLogTime(entry.at)}</time> : null}
         </span>
-      </LogMeta>
+      </LogMeta>}
 
       <LogBody>
         {formatted.variants?.length ? (
@@ -141,21 +172,27 @@ function CoachCommandLogEntry({
         ) : null}
       </LogBody>
 
-      {confirmation && onConfirmCommand && onCancelCommand ? (
-        <ConfirmationCard
+      {confirmation?.operationId && confirmation.operationId !== acknowledgedConfirmationId && onConfirmCommand && onCancelCommand ? (
+        <ConfirmationSheet
           operationId={confirmation.operationId}
-          command={confirmation.command}
-          params={confirmation.params}
-          client={confirmation.client}
-          details={confirmation.details}
-          expiresAt={confirmation.expiresAt}
-          isDestructive={confirmation.isDestructive}
-          onConfirm={async () => onConfirmCommand(confirmation)}
-          onCancel={async () => onCancelCommand(confirmation)}
+          lockedClientId={confirmation.client?.id ?? null}
+          presentation="dialog"
+          input={{
+            tier: confirmation.tier || (confirmation.isDestructive ? 'deliberate' : 'read_back'),
+            isDestructive: confirmation.isDestructive,
+            affectedCount: Number(confirmation.details?.affectedCount ?? 1),
+            physical: Boolean(confirmation.physical),
+            irreversible: Boolean(confirmation.details?.irreversible),
+          }}
+          onDone={(result) => { void onConfirmCommand(confirmation, normalizeSheetResult(result, confirmation)); }}
+          onCancel={() => { void onCancelCommand(confirmation, { alreadyCancelled: true }); }}
+          onAcknowledge={() => setAcknowledgedConfirmationId(confirmation.operationId)}
           onReissue={confirmation.sourceMessage && onRetryMessage
             ? () => onRetryMessage(confirmation.sourceMessage as string)
             : undefined}
         />
+      ) : confirmation && !confirmation.operationId ? (
+        <div role="status">Swan Coach did not return a pending operation id. No action was run.</div>
       ) : null}
 
       {entry.proposals?.map((proposal) => (

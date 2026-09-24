@@ -46,18 +46,24 @@ export function aiRateLimiter(req, res, next) {
   // Auto-release concurrent lock when response finishes (or connection closes)
   // This ensures the lock is ALWAYS released, even if the handler crashes or forgets
   let released = false;
+  let deferred = false;
   const releaseOnce = () => {
     if (released) return;
     released = true;
     releaseConcurrent(userId);
   };
 
+  // A cancellable handler keeps its lock through abort cleanup, so a closed
+  // socket does not admit a replacement while the old handler is still active.
+  req.deferAiConcurrencyRelease = () => { deferred = true; return releaseOnce; };
+  const releaseOnResponse = () => { if (!deferred) releaseOnce(); };
+
   if (typeof res.once === 'function') {
-    res.once('finish', releaseOnce);
-    res.once('close', releaseOnce);
+    res.once('finish', releaseOnResponse);
+    res.once('close', releaseOnResponse);
   } else if (typeof res.on === 'function') {
-    res.on('finish', releaseOnce);
-    res.on('close', releaseOnce);
+    res.on('finish', releaseOnResponse);
+    res.on('close', releaseOnResponse);
   }
 
   next();

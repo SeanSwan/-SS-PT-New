@@ -1,0 +1,21 @@
+{
+  "slice": {
+    "id": "G07",
+    "files": [
+      "backend/services/ai/coachProgressRecordReader.mjs",
+      "backend/services/ai/coachProgressEvidence.mjs",
+      "backend/services/ai/coachEvidenceTools.mjs",
+      "backend/services/ai/coachSubstitutionDraft.mjs",
+      "backend/services/ai/coachMilestoneShareDraft.mjs",
+      "backend/tests/unit/coachProgressEvidence.test.mjs",
+      "backend/tests/unit/coachProgressRecordReader.test.mjs",
+      "backend/tests/unit/coachProgressEvidenceTool.t33.test.mjs",
+      "backend/tests/unit/coachSubstitutionDraft.test.mjs",
+      "backend/tests/unit/coachMilestoneShareDraft.test.mjs"
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/41-g07-real-evidence-metrics.md"
+  ],
+  "reason": "Sean 2026-09-11: continue slices one by one. G07/S8 real evidence + deterministic metrics per packet 31 G07 row, card 09 S8a-c, contract 32 T33/T34/T48. Source-linked reader fixes the broken progressEvidenceTool join; T34 substitution draft gate; T48 share-draft separation."
+}

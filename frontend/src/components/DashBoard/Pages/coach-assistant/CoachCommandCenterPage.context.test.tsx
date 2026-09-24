@@ -51,6 +51,7 @@ describe('CoachCommandCenterPage route context', () => {
           intent: 'log_workout',
           surface: 'coach-command-center',
         },
+        { reachedNetwork: null },
       );
     });
   }, COACH_COMMAND_CENTER_TEST_TIMEOUT);
@@ -83,6 +84,7 @@ describe('CoachCommandCenterPage route context', () => {
           intent: 'log_workout',
           surface: 'coach-command-center',
         },
+        { reachedNetwork: null },
       );
     });
     const [message] = sendMessageWithConversationMock.mock.calls[0];
@@ -122,6 +124,7 @@ describe('CoachCommandCenterPage route context', () => {
           scheduledSessionDate: '2026-06-07',
           scheduledSessionCredits: 2,
         },
+        { reachedNetwork: null },
       );
     });
 
@@ -137,6 +140,8 @@ describe('CoachCommandCenterPage route context', () => {
 
     await waitFor(() => {
       expect(executeCommandMock).toHaveBeenCalledWith('Log workout: squats 3 sets of 10.', {
+        inputMode: 'text',
+        commandType: undefined,
         selectedClientId: 424242,
         routeContext: {
           source: 'coach-command-center',
@@ -233,6 +238,7 @@ describe('CoachCommandCenterPage route context', () => {
           surface: 'coach-command-center',
           workoutDate: '2026-06-18',
         },
+        { reachedNetwork: null },
       );
     });
   });

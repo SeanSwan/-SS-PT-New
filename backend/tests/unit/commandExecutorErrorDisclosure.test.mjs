@@ -41,7 +41,7 @@ describe('command executor client-safe error disclosure', () => {
     const { preparePendingConfirmation, executeConfirmedOperation } =
       await loadHarnessWithThrowingDispatcher();
 
-    const pending = preparePendingConfirmation({
+    const pending = await preparePendingConfirmation({
       commandType: 'log_workout',
       params: { clientId: 42, title: 'Upper body' },
       clientId: 42,

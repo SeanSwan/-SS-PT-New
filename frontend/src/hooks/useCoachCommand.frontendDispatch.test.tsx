@@ -4,6 +4,9 @@ import { COMMAND_TRANSPORT_FAILED, commandErrorReceiptText, useCoachCommand } fr
 import apiService from '../services/api.service';
 import { dispatchAIWorkoutEvent } from '../utils/aiWorkoutEvents';
 
+vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: { id: '7', role: 'trainer' }, isAuthenticated: true, loading: false }) }));
+vi.mock('../context/PaywallContext', () => ({ usePaywall: () => ({ showPaywall: vi.fn() }) }));
+
 vi.mock('../services/api.service', () => ({
   default: {
     post: vi.fn(),
@@ -144,7 +147,13 @@ describe('useCoachCommand frontend dispatch bridge', () => {
     });
   });
 
-  it('dispatches workout-form browser events returned by confirmed commands', async () => {
+  it('does not emit an unbound AI_SUBMIT_WORKOUT from the confirmed path — even when a receiver would ack it', async () => {
+    // R60-A containment (plan 60 §8 R60-R1). The dispatcher mock returns TRUE
+    // for every event — the worst case, a mounted/global receiver that would
+    // have accepted. The producer must still refuse: bound submit delivery
+    // (origin capture + one-time local permit) is R60-B1/B2/B3 and PENDING, and
+    // a producer-side gate is the only guard that also covers a future listener
+    // without its own containment.
     vi.mocked(apiService.post).mockResolvedValue({
       data: {
         success: true,
@@ -163,28 +172,56 @@ describe('useCoachCommand frontend dispatch bridge', () => {
       response = await result.current.confirmCommand('op-2');
     });
 
-    expect(dispatchAIWorkoutEvent).toHaveBeenCalledWith('AI_SUBMIT_WORKOUT', {
-      intensity: 8,
-      notes: 'Strong finish',
-    });
+    expect(dispatchAIWorkoutEvent).not.toHaveBeenCalled();
     expect(response).toMatchObject({
       success: true,
       type: 'frontend_dispatch',
       command: 'submit_workout_form',
-      message: 'Sent confirmed workout submit to the logger.',
+      dispatched: false,
+      message: 'AI save is unavailable here. Review the workout and use Save.',
     });
+    const message = (response as { message?: string } | null)?.message ?? '';
+    expect(message).not.toMatch(/No active Workout Logger was open/);
+    expect(message).not.toMatch(/saved|submitted|sent to/i);
   });
 
-  it('returns an honest receipt when a confirmed submit has no active WorkoutLogger listener', async () => {
-    vi.mocked(dispatchAIWorkoutEvent).mockReturnValue(false);
+  it('does not emit an unbound AI_SUBMIT_WORKOUT from the execute path either', async () => {
     vi.mocked(apiService.post).mockResolvedValue({
       data: {
         success: true,
         type: 'frontend_dispatch',
         command: 'submit_workout_form',
-        message: 'Sent confirmed workout submit to the logger.',
+        message: 'Sent workout submit to the logger.',
         event: 'AI_SUBMIT_WORKOUT',
         payload: { intensity: 8 },
+      },
+    });
+
+    const { result } = renderHook(() => useCoachCommand());
+    let response: Awaited<ReturnType<typeof result.current.executeCommand>> | null = null;
+
+    await act(async () => {
+      response = await result.current.executeCommand('submit this workout');
+    });
+
+    expect(dispatchAIWorkoutEvent).not.toHaveBeenCalled();
+    expect(response).toMatchObject({
+      type: 'frontend_dispatch',
+      command: 'submit_workout_form',
+      dispatched: false,
+      message: 'AI save is unavailable here. Review the workout and use Save.',
+    });
+  });
+
+  it('confirmed non-submit dispatches still reach the bus (positive control)', async () => {
+    vi.mocked(apiService.post).mockResolvedValue({
+      data: {
+        success: true,
+        type: 'frontend_dispatch',
+        command: 'rearrange_workout',
+        message: 'Sent to the planner.',
+        event: 'AI_PLANNER_REARRANGE',
+        payload: { order: ['a', 'b'] },
       },
     });
 
@@ -192,15 +229,95 @@ describe('useCoachCommand frontend dispatch bridge', () => {
     let response: Awaited<ReturnType<typeof result.current.confirmCommand>> | null = null;
 
     await act(async () => {
-      response = await result.current.confirmCommand('op-3');
+      response = await result.current.confirmCommand('op-4');
     });
 
+    expect(dispatchAIWorkoutEvent).toHaveBeenCalledWith('AI_PLANNER_REARRANGE', { order: ['a', 'b'] });
     expect(response).toMatchObject({
       success: true,
       type: 'frontend_dispatch',
-      command: 'submit_workout_form',
+      event: 'AI_PLANNER_REARRANGE',
+      dispatched: true,
+    });
+  });
+
+  it('keeps the generic no-surface receipt for non-submit events (positive control)', async () => {
+    vi.mocked(dispatchAIWorkoutEvent).mockReturnValue(false);
+    vi.mocked(apiService.post).mockResolvedValue({
+      data: {
+        success: true,
+        type: 'frontend_dispatch',
+        command: 'add_exercise_to_form',
+        message: 'Sent to the workout form.',
+        event: 'AI_ADD_EXERCISE',
+        payload: { exerciseName: 'Push Up', sets: 3 },
+      },
+    });
+
+    const { result } = renderHook(() => useCoachCommand());
+    let response: Awaited<ReturnType<typeof result.current.executeCommand>> | null = null;
+
+    await act(async () => {
+      response = await result.current.executeCommand('add push ups');
+    });
+
+    expect(response).toMatchObject({
+      type: 'frontend_dispatch',
+      event: 'AI_ADD_EXERCISE',
       dispatched: false,
-      message: 'No active Workout Logger was open. No workout was submitted.',
+      message: 'No active workout surface was open. No form was changed.',
+    });
+  });
+});
+
+describe('useCoachCommand — channel declaration (M3)', () => {
+  beforeEach(() => {
+    vi.mocked(apiService.post).mockReset();
+    vi.mocked(apiService.post).mockResolvedValue({ data: { success: true, type: 'executed' } });
+  });
+
+  // Shared command transport cannot infer a typed gesture for an unknown producer.
+  it.each([undefined, {}, { inputMode: undefined }, { inputMode: null }] as const)(
+    'keeps missing provenance unknown for options %j', async options => {
+    const { result } = renderHook(() => useCoachCommand());
+    await act(async () => { await result.current.executeCommand('log a workout', options); });
+
+    const [, body] = vi.mocked(apiService.post).mock.calls[0];
+    expect((body as { routeContext?: Record<string, unknown> }).routeContext)
+      .toMatchObject({ inputMode: 'unknown' });
+  });
+
+  it.each(['text', 'voice', 'ui'] as const)('preserves explicitly declared %s provenance', async inputMode => {
+    const { result } = renderHook(() => useCoachCommand());
+    await act(async () => { await result.current.executeCommand('show my workout', { inputMode }); });
+    expect(vi.mocked(apiService.post).mock.calls[0][1]).toMatchObject({ routeContext: { inputMode } });
+  });
+
+  it('does not infer provenance from a route-context hint', async () => {
+    const { result } = renderHook(() => useCoachCommand());
+    await act(async () => { await result.current.executeCommand('log a workout', {
+      routeContext: { inputMode: 'text', source: 'coach-command-center' },
+    }); });
+    expect(vi.mocked(apiService.post).mock.calls[0][1]).toMatchObject({
+      routeContext: { inputMode: 'unknown', source: 'coach-command-center' },
+    });
+  });
+
+  it('lets a voice surface declare "voice" without losing its other tokens', async () => {
+    const { result } = renderHook(() => useCoachCommand());
+    await act(async () => {
+      await result.current.executeCommand('log a workout', {
+        inputMode: 'voice',
+        surface: 'workout-logger',
+        routeContext: { source: 'coach-command-center' },
+      });
+    });
+
+    const [, body] = vi.mocked(apiService.post).mock.calls[0];
+    expect((body as { routeContext?: Record<string, unknown> }).routeContext).toMatchObject({
+      inputMode: 'voice',
+      surface: 'workout-logger',
+      source: 'coach-command-center',
     });
   });
 });

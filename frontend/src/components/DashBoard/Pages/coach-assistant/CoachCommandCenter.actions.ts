@@ -4,29 +4,24 @@ import type { CoachCommandClientSource } from '../../../../services/coachCommand
 import { createQuickClientSubmitAction } from './CoachCommandCenter.quickClientAction';
 import {
   commandCancelledBody,
-  commandLaneErrorBody,
   commandConfirmationResultBody,
-  commandLaneConfirmation,
-  commandLaneLogAttachments,
-  commandLaneLogBody,
-  commandLaneResult,
   confirmedCommandLogResult,
-  shouldRouteToCommandLane,
   type CancelCoachCommand,
   type CommandConfirmationResult,
   type ConfirmCoachCommand,
   type ExecuteCoachCommand,
 } from './CoachCommandCenter.commandLane';
-import { interpretCoachChatResponse } from './CoachCommandCenter.chatResponse';
+import { createCoachSubmit } from './CoachCommandCenter.submit';
+import { supersedeCoachSends } from './coachSendSequence';
 import { INITIAL_COMMAND_LOGS, type CommandLogConfirmation, type CommandLogEntry } from './CoachCommandCenter.data';
-import { buildCoachCommandTitle } from './CoachCommandCenter.commandTitle';
-import { buildRouteScopedCoachPrompt, getConversationTitle } from './CoachCommandCenter.logic';
+import { getConversationTitle } from './CoachCommandCenter.logic';
 import type { CoachChatRouteRequestContext, CoachCommandRouteContext, DrawerSide } from './CoachCommandCenter.types';
+import type { CoachCommandInputMode } from '../../../../hooks/coachInputOrigin';
+import type { ConfirmResult } from '../../../../hooks/useCoachCommand';
 
 type CoachCommandChat = Pick<ReturnType<typeof useAIChat>, 'listConversations' | 'loadConversation' | 'newChat' | 'sendMessageWithConversation'>;
 type CoachCommandQueue = { refresh: () => unknown };
-
-type CoachCommandActionProps = {
+export type CoachCommandActionProps = {
   activeThread: ConversationSummary | null;
   activeThreadTitle: string;
   chat: CoachCommandChat;
@@ -35,6 +30,7 @@ type CoachCommandActionProps = {
   commandLaneEnabled: boolean;
   cancelCommand: CancelCoachCommand;
   commandText: string;
+  inputMode: CoachCommandInputMode;
   commandTextRef: RefObject<HTMLTextAreaElement>;
   confirmCommand: ConfirmCoachCommand;
   executeCommand: ExecuteCoachCommand;
@@ -64,9 +60,9 @@ type CoachCommandActionProps = {
   setQuickClientName: Dispatch<SetStateAction<string>>;
   setSelectedStatus: Dispatch<SetStateAction<string>>;
 };
-
+export type AddCoachLog = (entry: Omit<CommandLogEntry, 'id' | 'at'>) => void;
 export function createCoachCommandCenterActions(props: CoachCommandActionProps) {
-  const addLog = (entry: Omit<CommandLogEntry, 'id' | 'at'>) => {
+  const addLog: AddCoachLog = (entry) => {
     props.setLogs((current) => [
       { ...entry, id: `log-${Date.now()}-${current.length}`, at: new Date().toISOString() },
       ...current,
@@ -89,6 +85,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
   const handleThreadSelect = (thread: ConversationSummary) => {
     const title = getConversationTitle(thread);
     const status = `${title} - thread loaded`;
+    supersedeCoachSends(props.commandTextRef);
     props.onThreadSelectRoute(thread);
     props.setAutoSelectSuppressed(false);
     props.setActiveThreadId(thread.id);
@@ -100,7 +97,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     closeDrawer(false);
     void props.chat.loadConversation(thread.id);
   };
-
   const handleStartPlaudUpload = () => {
     closeDrawer(false);
     props.setSelectedStatus('Audio review lane ready');
@@ -116,8 +112,8 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     panel?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
     panel?.focus({ preventScroll: true });
   };
-
   const handleNewThread = () => {
+    supersedeCoachSends(props.commandTextRef);
     props.chat.newChat();
     props.onNewThreadRoute();
     props.setAutoSelectSuppressed(true);
@@ -128,7 +124,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     props.setSelectedStatus(props.clientFacing ? 'New Coach Chat ready' : 'New Coach Thread ready');
     focusComposer();
   };
-
   const handleQuickClientSubmit = createQuickClientSubmitAction({
     addLog,
     coachQueue: props.coachQueue,
@@ -140,81 +135,18 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     setQuickClientName: props.setQuickClientName,
     setSelectedStatus: props.setSelectedStatus,
   });
-
-  const submitCoachMessage = async (trimmed: string) => {
-    addLog({ actor: 'operator', label: props.clientFacing ? 'client request' : 'operator command', body: trimmed });
-    props.setCommandText('');
-    props.setSelectedStatus('Sending command to Swan Coach');
-    const commandTitle = buildCoachCommandTitle({
-      activeThreadTitle: props.activeThreadTitle,
-      commandText: trimmed,
-      hasActiveThread: Boolean(props.activeThread),
-      routeClientLabel: props.routeClientLabel,
-      routeIntent: props.routeIntent,
-    });
-    if (props.commandLaneEnabled && shouldRouteToCommandLane(trimmed)) {
-      const commandResult = await props.executeCommand(trimmed, {
-        selectedClientId: props.routeClientId,
-        routeContext: props.routeCommandContext,
-      });
-      if (commandResult.type === 'error') {
-        addLog({
-          actor: 'system',
-          label: 'command lane failed',
-          body: commandLaneErrorBody(commandResult),
-          attachments: ['command lane error', 'No data was changed'],
-          retryMessage: trimmed,
-        });
-        props.setSelectedStatus('Command lane failed');
-        return;
-      }
-      if (commandResult.type !== 'fallback_to_chat') {
-        addLog({
-          actor: 'system',
-          label: commandResult.type === 'confirmation_required' ? 'approval required' : 'command lane result',
-          body: commandLaneLogBody(commandResult),
-          attachments: commandLaneLogAttachments(commandResult),
-          commandConfirmation: commandLaneConfirmation(commandResult, trimmed),
-          commandResult: commandLaneResult(commandResult),
-        });
-        props.setSelectedStatus('Command lane handled');
-        return;
-      }
-    }
-    const chatPrompt = buildRouteScopedCoachPrompt(trimmed, props.routeContextPrompt);
-    const response = props.routeRequestContext
-      ? await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both', null, props.routeRequestContext)
-      : await props.chat.sendMessageWithConversation(chatPrompt, 'coach_assistant', commandTitle, props.routeClientId, 'both');
-    const outcome = interpretCoachChatResponse(response, trimmed, typeof navigator !== 'undefined' && navigator.onLine === false);
-    if (outcome.kind === 'superseded') return;
-    if (outcome.kind !== 'reply') {
-      props.setSelectedStatus(outcome.status);
-      addLog({
-        actor: 'system',
-        label: outcome.label,
-        body: outcome.body,
-        attachments: outcome.attachments,
-        ...(outcome.retryMessage ? { retryMessage: outcome.retryMessage } : {}),
-      });
-      // No retry button on non-retryable failures — hand the words back.
-      if (outcome.kind === 'failed' && !outcome.retryMessage) {
-        props.setCommandText((current) => (current.trim() ? current : trimmed));
-      }
-      return;
-    }
-    addLog({ actor: 'coach', label: props.clientFacing ? 'coach response' : 'coach reply', body: outcome.body, ...(outcome.proposals ? { proposals: outcome.proposals } : {}) });
-    props.speakCoachReply?.(outcome.body);
-    props.setSelectedStatus('Swan Coach response ready');
-    void props.chat.listConversations('active', true);
-  };
-
+  const submitCoachMessage = createCoachSubmit(props, addLog);
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const trimmed = props.commandText.trim();
     if (!trimmed) return;
     await submitCoachMessage(trimmed);
   };
-
+  const handleIntentSubmit = async (message: string, commandType?: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    await submitCoachMessage(trimmed, commandType);
+  };
   const handleRetryMessage = async (message: string) => {
     const trimmed = message.trim();
     if (!trimmed) return;
@@ -222,10 +154,10 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     if (props.isBusy?.()) return props.setSelectedStatus('Wait for the current message to finish, then retry');
     await submitCoachMessage(trimmed);
   };
-
-  const handleConfirmCommand = async (confirmation: CommandLogConfirmation): Promise<CommandConfirmationResult> => {
+  const handleConfirmCommand = async (confirmation: CommandLogConfirmation, sheetResult?: ConfirmResult): Promise<CommandConfirmationResult> => {
     if (!confirmation.operationId) return { success: false, error: 'No pending operation id was returned.' };
-    const result = await props.confirmCommand(confirmation.operationId);
+    // ConfirmationSheet owns the signed transport; this records its result without confirming twice.
+    const result = sheetResult || await props.confirmCommand(confirmation.operationId, undefined, 'tap');
     if (!result.success) {
       props.setSelectedStatus('Command confirmation failed');
       addLog({
@@ -247,9 +179,8 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
     });
     return { success: true };
   };
-
-  const handleCancelCommand = async (confirmation: CommandLogConfirmation): Promise<void> => {
-    if (confirmation.operationId) await props.cancelCommand(confirmation.operationId);
+  const handleCancelCommand = async (confirmation: CommandLogConfirmation, options?: { alreadyCancelled?: boolean }): Promise<void> => {
+    if (confirmation.operationId && !options?.alreadyCancelled) await props.cancelCommand(confirmation.operationId);
     props.setSelectedStatus('Command cancelled');
     addLog({
       actor: 'system',
@@ -258,7 +189,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
       attachments: [confirmation.command, 'cancelled'],
     });
   };
-
   const handleReviewIntake = () => {
     props.setSelectedStatus('Intake review lane ready');
     addLog({
@@ -268,7 +198,6 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
       attachments: ['intake queue open', 'operator approval required'],
     });
   };
-
   const handleReadback = () => {
     props.setSelectedStatus('Voice replies read the next real Swan Coach response when enabled');
     addLog({
@@ -283,6 +212,7 @@ export function createCoachCommandCenterActions(props: CoachCommandActionProps) 
   return {
     closeDrawer,
     handleReviewIntake,
+    handleIntentSubmit,
     handleCancelCommand,
     handleConfirmCommand,
     handleNewThread,

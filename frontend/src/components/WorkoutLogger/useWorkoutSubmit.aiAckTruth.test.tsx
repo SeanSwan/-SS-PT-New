@@ -31,6 +31,13 @@
  * What is fixed here is the class that was always a lie: refusals that never
  * reached the network. The residual gap is pinned by an explicit test so it
  * cannot be mistaken for coverage.
+ *
+ * RE-POINTED 2026-09-12 — plan 60 §8 R60-A (R60-R1)
+ * The accepted-attempt cases used to arrive through an unbound
+ * `AI_SUBMIT_WORKOUT` event. That lane is now contained: it declines every
+ * unbound event before any mutation, so the save-path ack contract is asserted
+ * on the MANUAL path it still governs, and the containment twin asserts the
+ * event lane does NOT reach the save.
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
@@ -91,6 +98,17 @@ const dispatchThroughHook = (over: Record<string, unknown> = {}) => {
   return { handled, params };
 };
 
+/** Drive the MANUAL save path (no AI event) and return the ack it was handed. */
+const countAcks = async (over: Record<string, unknown> = {}) => {
+  const ack = vi.fn();
+  const params = makeParams(over);
+  const { result } = renderHook(() => useWorkoutSubmit(params as never));
+  await (result.current as {
+    handleSubmit: (o?: unknown) => Promise<string>;
+  }).handleSubmit({ acknowledge: ack });
+  return ack;
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   submitWorkoutForm.mockResolvedValue({ success: true, data: { id: 'form-1', clientId: 7 } });
@@ -141,22 +159,35 @@ describe('AI_SUBMIT_WORKOUT acknowledgement truth (F4)', () => {
     expect(submitWorkoutForm).not.toHaveBeenCalled();
   });
 
-  it('DOES report handled when the workout is kept locally offline', () => {
-    // An effector genuinely took the command; the workout is on the device.
-    const queueSubmission = vi.fn();
-    const { handled } = dispatchThroughHook({
-      offlineQueue: { isOnline: false, queueSubmission },
+  it('DOES report handled when the workout is kept locally offline', async () => {
+    // RE-POINTED 2026-09-12 (plan 60 §8 R60-A / R60-R1). This used to drive an
+    // unbound AI_SUBMIT_WORKOUT event; that lane is now contained and declines
+    // every unbound event, so the accepted-attempt contract is asserted on the
+    // MANUAL path it still governs. The containment twin below is the same
+    // scenario through the event lane, which must NOT take it.
+    const ack = await countAcks({
+      offlineQueue: { isOnline: false, queueSubmission: vi.fn() },
     });
 
-    expect(handled).toBe(true);
-    expect(queueSubmission).toHaveBeenCalledTimes(1);
+    expect(ack).toHaveBeenCalledWith(true);
   });
 
-  it('DOES report handled when the save is actually attempted', () => {
-    const { handled } = dispatchThroughHook();
+  it('DOES report handled when the save is actually attempted', async () => {
+    const ack = await countAcks();
 
-    expect(handled).toBe(true);
+    expect(ack).toHaveBeenCalledWith(true);
     expect(submitWorkoutForm).toHaveBeenCalledTimes(1);
+  });
+
+  it('does NOT report handled for the same workout through the unbound event lane (R60-A)', () => {
+    const queueSubmission = vi.fn();
+    const attempted = dispatchThroughHook();
+    const offline = dispatchThroughHook({ offlineQueue: { isOnline: false, queueSubmission } });
+
+    expect(attempted.handled).toBe(false);
+    expect(offline.handled).toBe(false);
+    expect(submitWorkoutForm).not.toHaveBeenCalled();
+    expect(queueSubmission).not.toHaveBeenCalled();
   });
 });
 
@@ -164,15 +195,8 @@ describe('the acknowledgement fires exactly once per submit', () => {
   // The fix introduced an ack call at every decision point in handleSubmit.
   // Two firing on one path would double-record the coach intent log, and the
   // second would overwrite the first's verdict. Proven, not assumed.
-  const countAcks = async (over: Record<string, unknown> = {}) => {
-    const ack = vi.fn();
-    const params = makeParams(over);
-    const { result } = renderHook(() => useWorkoutSubmit(params as never));
-    await (result.current as {
-      handleSubmit: (o?: unknown) => Promise<string>;
-    }).handleSubmit({ acknowledge: ack });
-    return ack;
-  };
+  // (countAcks is the shared manual-path helper above — R60-A moved the
+  // accepted-attempt seam off the contained event lane.)
 
   it.each([
     ['a successful save', {}],
@@ -258,10 +282,14 @@ describe('KNOWN RESIDUAL GAP — the seam cannot revise an attempted save', () =
     // requires changing the coach seam itself, which is shared by the planner,
     // bootcamp and pain-chart command families — an architecture decision, not
     // a Logger fix. Asserted so the gap cannot be mistaken for coverage.
+    //
+    // RE-POINTED 2026-09-12 (plan 60 §8 R60-A): the manual path still carries
+    // this gap; the AI event lane no longer reaches the save at all, so it
+    // cannot exhibit it.
     submitWorkoutForm.mockResolvedValue({ success: false, message: 'server said no' });
 
-    const { handled } = dispatchThroughHook();
+    const ack = await countAcks();
 
-    expect(handled).toBe(true);
+    expect(ack).toHaveBeenCalledWith(true);
   });
 });

@@ -80,8 +80,6 @@ export function useWorkoutSubmit({
   scheduledSessionId,
   sessionNotes,
   setIsSubmitting,
-  setOverallIntensity,
-  setSessionNotes,
   userRole,
   workoutDateValue,
   workoutDraft,
@@ -247,44 +245,46 @@ export function useWorkoutSubmit({
     workoutDraft,
   ]);
 
+  // ── AI_SUBMIT_WORKOUT containment — plan 60 §8 R60-A / requirement R60-R1 ──
+  //
+  // This listener used to write `detail.intensity` / `detail.notes` into LIVE
+  // form state and then call handleSubmit, so an unbound event could edit
+  // notes/intensity, take the single-flight lock, queue, POST
+  // /api/workout-forms, toast a save receipt and clear the draft. Nothing in
+  // the event identified an actor, target, Logger instance or draft revision,
+  // and the bus (aiWorkoutEvents.ts) broadcasts to every mounted listener.
+  //
+  // R60-A contains that at the receiver, the one point every producer shares:
+  // useCoachCommand execute/confirm, and the direct ConfirmationSheet onDone in
+  // ClientTrainingCommandBar. Bound delivery is R60-B1/B2/B3 (server approval
+  // binding, owner capture + one-time local permit, exactly-one-receiver
+  // delivery) and is NOT authorized here — so every submit event reachable
+  // today is unbound by construction and declines synchronously, before any
+  // side effect. The pre-fix chain is positively asserted in
+  // tmp/coach-astra-hostile-20260912/r60a-prefix-probe-20260912.log.
+  //
+  // Acknowledging `false` is the truthful signal: an effector saw the event and
+  // declined, which `resolveOutcome(true, false)` records as `noop` — never the
+  // believable `applied` this lane used to fabricate (see
+  // useWorkoutSubmit.aiAckTruth.test.tsx and plan 60 §5). It is deliberately
+  // NOT a second copy of the submit refusal rules: containment declines before
+  // the real guards are reachable, and R60-B3 replaces this effect with the
+  // permit/instance/revision compare-and-consume path, which must keep the
+  // no-mutation-before-admission ordering locked by
+  // useWorkoutSubmit.confirmedBinding.test.tsx.
+  //
+  // setOverallIntensity / setSessionNotes stay on WorkoutSubmitParams for that
+  // B3 path; they are no longer consumed here because this lane must not write
+  // live form state before admission.
   useEffect(() => {
     const onSubmitWorkout = (event: Event) => {
-      const detail = (event as CustomEvent<AISubmitWorkoutEventDetail>).detail || {};
-      const nextIntensity = typeof detail.intensity === 'number' ? detail.intensity : overallIntensity;
-      const nextNotes = typeof detail.notes === 'string' ? detail.notes : sessionNotes;
-
-      if (typeof detail.intensity === 'number') setOverallIntensity(detail.intensity);
-      if (typeof detail.notes === 'string') setSessionNotes(detail.notes);
-
-      // The acknowledge seam is SYNCHRONOUS: dispatchWithAcknowledgement reads
-      // `handled` on the line after window.dispatchEvent and returns it, so an
-      // ack that arrives after an awaited save is never seen. Probe:
-      //   ack-then-save  -> {acknowledged: true,  handled: true}
-      //   save-then-ack  -> {acknowledged: false, handled: false}
-      // The first is what shipped: an unconditional no-argument ack defaults
-      // `didHandle` to true, so resolveOutcome(true, true) logged EVERY submit as
-      // `applied` — including ones refused by validation that never left the
-      // browser. The second is a different lie ("nobody was listening").
-      //
-      // So this acks only what is knowable synchronously. A settled refusal is a
-      // truthful `noop`. Whether an ATTEMPTED save succeeded is not knowable here
-      // and the boolean seam cannot express "accepted, outcome pending" — that
-      // gap is real and belongs to the coach-seam decision, not to this hook.
-      // The ack is handed INTO handleSubmit rather than re-deciding out here. A
-      // second copy of the refusal rules beside the real ones is precisely how
-      // the trainer-calendar defect (F7) was born. Every refusal path runs
-      // before the first `await`, so handleSubmit can still answer the seam
-      // synchronously from the one place that actually knows.
-      void handleSubmit({
-        overallIntensity: nextIntensity,
-        sessionNotes: nextNotes,
-        acknowledge: detail.acknowledgeAIWorkoutEvent,
-      });
+      const detail = (event as CustomEvent<AISubmitWorkoutEventDetail>).detail;
+      detail?.acknowledgeAIWorkoutEvent?.(false);
     };
 
     window.addEventListener(AI_SUBMIT_WORKOUT, onSubmitWorkout);
     return () => window.removeEventListener(AI_SUBMIT_WORKOUT, onSubmitWorkout);
-  }, [handleSubmit, overallIntensity, sessionNotes, setOverallIntensity, setSessionNotes]);
+  }, []);
 
   const handleGenerateSummary = useCallback(async () => {
     if (!submittedFormId) {

@@ -21,6 +21,7 @@ import { useWorkoutPlannerSequenceEvents } from './useWorkoutPlannerSequenceEven
 import type { GeneratedPlan, OPTPhaseParams, PlanExercise } from './WorkoutPlannerTypes';
 import type { PlannerHorizonSelection } from './workoutPlannerAiEvents.types';
 import type { PlannerGenerateOverrides } from './workoutPlannerGenerateIntent';
+import type { PlannerDraftOwner } from './plannerContexts/useWorkoutPlannerDraftMutation';
 
 export interface UseWorkoutPlannerCoachSurfaceArgs {
   selectedClientId: number | null;
@@ -33,18 +34,20 @@ export interface UseWorkoutPlannerCoachSurfaceArgs {
   onGenerate: (overrides?: PlannerGenerateOverrides) => void;
   phase: OPTPhaseParams;
   phaseNumber: number;
+  /** P58: the single draft/admission authority the AI receiver binds to. */
+  draftMutation: PlannerDraftOwner;
 }
 
 export function useWorkoutPlannerCoachSurface(args: UseWorkoutPlannerCoachSurfaceArgs) {
   const {
     selectedClientId, planExercises, setPlanExercises, generatedPlan, setGeneratedPlan,
-    selectedHorizonTarget, searchExercises, onGenerate, phase, phaseNumber,
+    selectedHorizonTarget, searchExercises, onGenerate, phase, phaseNumber, draftMutation,
   } = args;
 
   const coachDock = useWorkoutPlannerCoachDock({ selectedClientId, pushReceipt: pushWorkoutPlannerCoachReceipt });
   useWorkoutPlannerAiEvents({
     planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, selectedHorizonTarget,
-    searchExercises, onGenerate, pushReceipt: pushWorkoutPlannerCoachReceipt, phase,
+    searchExercises, onGenerate, pushReceipt: pushWorkoutPlannerCoachReceipt, phase, draftMutation,
   });
   useWorkoutPlannerSequenceEvents({
     planExercises, setPlanExercises, generatedPlan, setGeneratedPlan, selectedHorizonTarget,

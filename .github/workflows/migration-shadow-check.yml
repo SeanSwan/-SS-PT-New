@@ -25,11 +25,24 @@ name: Migration Shadow Check
 # dies with the job. No production credential is used, and none should ever be added: the
 # whole value is that this is the one place migrations can fail harmlessly.
 #
-# WHAT IT CANNOT DO. An empty database is not production. A migration that succeeds here can
-# still fail against real data — a NOT NULL added to a populated column, a unique index over
-# existing duplicates. Catching "does it run at all" is a floor, not a ceiling. The stronger
-# version restores a production snapshot into the shadow database first; that needs Sean's
-# decision on snapshot handling and is deliberately not assumed here.
+# WHAT IT CANNOT DO — MEASURED, NOT ASSUMED (2026-09-24, run 36040881514 @ 948d73251).
+# The premise of the migration step below — "run the chain against an empty database" — is
+# FALSE for this repo, and this gate has therefore never once returned a valid verdict. On an
+# empty Postgres 16 the runner connects, reports 378 pending / 0 already executed, and then
+# fails the whole chain: 127 of the first 201 migrations quarantined, 0 applied, every error a
+# missing relation (`Users`, `sessions`, `orientations`, `goals`, `orders`) that NO migration
+# in this directory creates. The chain is a DELTA chain — production's base schema predates it
+# — so it cannot bootstrap from empty at all. At the observed ~5.8s per migration it needs ~37
+# minutes just to finish failing, which is why every previous red was read as "slow/flaky"
+# rather than "structurally impossible".
+#
+# The migration step is therefore now a bounded, non-blocking SMOKE check: it still proves the
+# runner starts, connects, and ledgers its failures, and it no longer burns the whole job
+# window or paints a permanent red that trains reviewers to ignore red. The verdict that
+# matters — "do THIS SHA's migrations apply against the REAL schema" — requires restoring a
+# production snapshot into the shadow database first. That is Sean's decision on snapshot
+# handling and is deliberately not assumed here (SWA-200). Until it lands, do NOT read this
+# job as evidence about the deploy.
 
 on:
   pull_request:
@@ -79,6 +92,12 @@ jobs:
       # Local container only. Never a production credential — see the header.
       DATABASE_URL: postgres://shadow:shadow@localhost:5432/shadow
       NODE_ENV: production
+      # This container has no TLS. Without the opt-out, the run dies at connect
+      # time ("The server does not support SSL connections") before any migration
+      # executes — so the gate reported red while never testing the thing it
+      # exists for. Production keeps TLS required; see productionDialectOptions()
+      # in backend/scripts/safe-migrate.mjs.
+      PGSSLMODE: disable
 
     steps:
       - name: Check out the pushed SHA
@@ -98,19 +117,47 @@ jobs:
         working-directory: backend
         run: node scripts/pre-migrate-guard.mjs --check
 
-      # THE ACTUAL GATE. If migrations cannot apply to an empty database from this SHA, the
-      # deploy would carry them to production and fail there instead — mid-build, after the
-      # push has already been accepted.
-      - name: Run migrations against the shadow database
+      # SMOKE CHECK, NOT A VERDICT — read this before trusting it.
+      #
+      # MEASURED 2026-09-24 (run 36040881514 @ 948d73251, empty Postgres 16):
+      # the runner connected and reported `Total migrations: 378 / Already
+      # executed: 0 / Pending: 378`, then spent the entire job window failing
+      # 127 of the first 201 and applying NONE. Every error was a missing
+      # relation — `Users`, `sessions`, `orientations`, `goals`, `orders` —
+      # tables that NO migration in this directory creates. The chain is a
+      # DELTA chain: production's base schema predates it (built by an earlier
+      # era of the project), so it cannot bootstrap from empty at all. At the
+      # observed ~5.8s per migration it needs ~37 minutes just to finish failing.
+      #
+      # Consequence: this step can never return a green verdict, and it never
+      # has. Every red it has ever shown was either the TLS failure (before
+      # PGSSLMODE existed) or this. It is kept — bounded and non-blocking —
+      # because it still proves three cheap, real things: the runner starts, it
+      # connects, and the quarantine ledger records what failed.
+      #
+      # The verdict that actually matters — "do THIS SHA's migrations apply
+      # against the real schema" — needs a production snapshot restored into the
+      # shadow database first. That is Sean's call on snapshot handling and is
+      # deliberately not assumed here (SWA-200). Until it lands, do NOT read
+      # this step as evidence about the deploy.
+      - name: Run migrations against the shadow database (smoke — see note above)
+        id: shadow_run
         working-directory: backend
+        continue-on-error: true
+        timeout-minutes: 12
         run: npm run migrate:production
 
       - name: Run them AGAIN — migrations must be idempotent
+        # Only meaningful once a first pass actually applied something. While the
+        # empty-DB premise holds, a second identical failure proves nothing and
+        # costs another 12 minutes, so it is skipped rather than run.
+        # Render can rebuild the same SHA (manual redeploy, cache miss, a
+        # restart). A migration set that only survives one application is a
+        # latent outage waiting for the next redeploy, and nothing else in the
+        # system checks this.
+        if: steps.shadow_run.outcome == 'success'
         working-directory: backend
         run: npm run migrate:production
-        # Render can rebuild the same SHA (manual redeploy, cache miss, a restart). A
-        # migration set that only survives one application is a latent outage waiting for
-        # the next redeploy, and nothing else in the system checks this.
 
       # The failure this whole layer exists for is a boot crash: ERR_MODULE_NOT_FOUND from an
       # untracked file, or a missing-export SyntaxError from an uncommitted one. Rule 42's
@@ -143,12 +190,17 @@ jobs:
         run: |
           echo "### Migration shadow check" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Ran the pushed SHA's migrations against a throwaway Postgres, twice (idempotence)," >> $GITHUB_STEP_SUMMARY
-          echo "then imported the backend entry point to prove it loads." >> $GITHUB_STEP_SUMMARY
+          echo "Imported the backend entry point from the pushed SHA to prove it loads." >> $GITHUB_STEP_SUMMARY
+          echo "The migration run above is a bounded SMOKE check, NOT a verdict: this repo's" >> $GITHUB_STEP_SUMMARY
+          echo "migration chain is a delta chain whose base schema predates it, so it cannot" >> $GITHUB_STEP_SUMMARY
+          echo "bootstrap from an empty database. Measured 2026-09-24: 378 pending, 0 applied," >> $GITHUB_STEP_SUMMARY
+          echo "127 of the first 201 quarantined, every error a missing relation." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "This tests the artifact that deploys — not the state of anyone's working tree," >> $GITHUB_STEP_SUMMARY
           echo "and it cannot be skipped with \`--no-verify\` or by a checkout that never" >> $GITHUB_STEP_SUMMARY
           echo "configured \`core.hooksPath\`." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Limit:** an empty database is not production. A migration that passes here can" >> $GITHUB_STEP_SUMMARY
-          echo "still fail against real rows. See SWA-200 for the snapshot-restore version." >> $GITHUB_STEP_SUMMARY
+          echo "**Limit:** an empty database is not production — and here it is not even" >> $GITHUB_STEP_SUMMARY
+          echo "runnable. Restoring a production snapshot into the shadow database is what would" >> $GITHUB_STEP_SUMMARY
+          echo "make this a real gate; see SWA-200. Until then, do not read this job as evidence" >> $GITHUB_STEP_SUMMARY
+          echo "about the deploy." >> $GITHUB_STEP_SUMMARY

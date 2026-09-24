@@ -127,6 +127,7 @@ const setupAssociations = async () => {
     const ClientNutritionPlanModule = await import('./ClientNutritionPlan.mjs');
     const ClientPhotoModule = await import('./ClientPhoto.mjs');
     const ClientNoteModule = await import('./ClientNote.mjs');
+    const CoachFactModule = await import('./CoachFact.mjs');
     const AutomationSequenceModule = await import('./AutomationSequence.mjs');
     const AutomationLogModule = await import('./AutomationLog.mjs');
 
@@ -135,6 +136,7 @@ const setupAssociations = async () => {
     const AiInteractionLogModule = await import('./AiInteractionLog.mjs');
     const AdminAccountAuditLogModule = await import('./AdminAccountAuditLog.mjs');
     const AiCommandAuditLogModule = await import('./AiCommandAuditLog.mjs');
+    const CoachIntentModule = await import('./CoachIntent.mjs');
 
     // AI Monitoring Models (Phase 10)
     const AiMetricsBucketModule = await import('./AiMetricsBucket.mjs');
@@ -350,6 +352,7 @@ const setupAssociations = async () => {
     const ClientNutritionPlan = ClientNutritionPlanModule.default;
     const ClientPhoto = ClientPhotoModule.default;
     const ClientNote = ClientNoteModule.default;
+    const CoachFact = CoachFactModule.default;
     const AutomationSequence = AutomationSequenceModule.default;
     const AutomationLog = AutomationLogModule.default;
 
@@ -358,6 +361,7 @@ const setupAssociations = async () => {
     const AiInteractionLog = AiInteractionLogModule.default;
     const AdminAccountAuditLog = AdminAccountAuditLogModule.default;
     const AiCommandAuditLog = AiCommandAuditLogModule.default;
+    const CoachIntent = CoachIntentModule.default;
 
     // AI Monitoring Models (Phase 10)
     const AiMetricsBucket = AiMetricsBucketModule.default;
@@ -524,10 +528,10 @@ const setupAssociations = async () => {
         FinancialTransaction, BusinessMetrics, AdminNotification, TrainerCommission,
         ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, WorkoutPlanCompletionReceipt, ClientOnboardingQuestionnaire,
         PersonalRecord, RecoveryCompletion, HistoryBackfillRun,
-        ClientOnboardingCoverageItem, ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
+        ClientOnboardingCoverageItem, ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote, CoachFact,
         AutomationSequence, AutomationLog,
         // AI Privacy Models
-        AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog, AdminAccountAuditLog,
+        AiPrivacyProfile, AiInteractionLog, AiCommandAuditLog, AdminAccountAuditLog, CoachIntent,
         // AI Monitoring Models (Phase 10)
         AiMetricsBucket, AiMonitoringAlert,
         // Long-Horizon Planning Models (Phase 5C)
@@ -1069,6 +1073,13 @@ const setupAssociations = async () => {
     ClientNote.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
     ClientNote.belongsTo(Session, { foreignKey: 'relatedSessionId', as: 'session' });
     Session.hasMany(ClientNote, { foreignKey: 'relatedSessionId', as: 'sessionNotes' });
+
+    // Coach Fact Associations (durable client memory — adopted from commit 21ed0554ba, G09)
+    User.hasMany(CoachFact, { foreignKey: 'userId', as: 'coachFacts' });
+    CoachFact.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+    CoachFact.belongsTo(User, { foreignKey: 'createdByUserId', as: 'createdBy' });
+    CoachFact.belongsTo(User, { foreignKey: 'approvedByUserId', as: 'approvedBy' });
+    CoachFact.belongsTo(CoachFact, { foreignKey: 'invalidatedByFactId', as: 'supersededBy' });
     
     // Workout Exercise Associations
     WorkoutSession.hasMany(WorkoutLog, { foreignKey: 'sessionId', as: 'logs' });
@@ -1155,6 +1166,8 @@ const setupAssociations = async () => {
     AiInteractionLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(AiCommandAuditLog, { foreignKey: 'userId', as: 'aiCommandAuditLogs' });
     AiCommandAuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(CoachIntent, { foreignKey: 'actorId', as: 'coachIntents' });
+    CoachIntent.belongsTo(User, { foreignKey: 'actorId', as: 'actor' });
     User.hasMany(AdminAccountAuditLog, { foreignKey: 'actorUserId', as: 'adminAccountActions' });
     AdminAccountAuditLog.belongsTo(User, { foreignKey: 'actorUserId', as: 'actor' });
     User.hasMany(AdminAccountAuditLog, { foreignKey: 'targetUserId', as: 'adminAccountAuditTargets' });
@@ -1564,6 +1577,7 @@ const setupAssociations = async () => {
       ClientNutritionPlan,
       ClientPhoto,
       ClientNote,
+      CoachFact,
       AutomationSequence,
       AutomationLog,
 
@@ -1572,6 +1586,7 @@ const setupAssociations = async () => {
       AiInteractionLog,
       AiCommandAuditLog,
       AdminAccountAuditLog,
+      CoachIntent,
 
       // AI Monitoring Models (Phase 10)
       AiMetricsBucket,

@@ -103,3 +103,57 @@ describe('audiencePath', () => {
       .toBe('/dashboard/trainer/workout-planner');
   });
 });
+
+describe('the named-but-unlocked chip (card 1.4, findings F16g/FF19)', () => {
+  it('a client named while NOTHING is locked alarms — it used to read as "nothing selected"', () => {
+    // Before card 1.4 this produced chipTone 'unlocked' (quiet) while
+    // effectiveClientId returned 47 — a neutral chip over a targeted write.
+    const state = resolveIntentBarState({ lockedClientId: null, targetClientId: 47 });
+    expect(state.unlockedTarget).toBe(true);
+    expect(state.identityCrossing).toBe(true);
+    expect(state.chipTone).toBe('cross-client');
+    expect(effectiveClientId(state)).toBe(47);
+  });
+
+  it('genuinely nothing selected stays quiet — the alarm must not become wallpaper', () => {
+    const state = resolveIntentBarState({ lockedClientId: null, targetClientId: null });
+    expect(state.identityCrossing).toBe(false);
+    expect(state.chipTone).toBe('unlocked');
+    expect(state.unresolvedClient).toBe(true);
+  });
+
+  it('the ordinary locked case stays quiet', () => {
+    const state = resolveIntentBarState({ lockedClientId: 61, targetClientId: 61 });
+    expect(state.identityCrossing).toBe(false);
+    expect(state.chipTone).toBe('locked');
+  });
+
+  it('a true cross-client action still alarms, and is reported as BOTH crossClient and identityCrossing', () => {
+    const state = resolveIntentBarState({ lockedClientId: 61, targetClientId: 47 });
+    expect(state.crossClient).toBe(true);
+    expect(state.unlockedTarget).toBe(false);
+    expect(state.identityCrossing).toBe(true);
+    expect(state.chipTone).toBe('cross-client');
+  });
+
+  it('the chip agrees with the SERVER: the shapes it alarms on are the shapes the tier escalates', () => {
+    // Backend: cross_client (both ids, differing) and unlocked_target (target,
+    // no lock). If these two lists ever diverge the surfaces disagree about
+    // what "safe" means, which is worse than either being wrong alone.
+    const escalatingShapes = [
+      { lockedClientId: 61, targetClientId: 47 },
+      { lockedClientId: null, targetClientId: 47 },
+    ];
+    for (const shape of escalatingShapes) {
+      expect(resolveIntentBarState(shape).chipTone).toBe('cross-client');
+    }
+    const quietShapes = [
+      { lockedClientId: 61, targetClientId: 61 },
+      { lockedClientId: 61, targetClientId: null },
+      { lockedClientId: null, targetClientId: null },
+    ];
+    for (const shape of quietShapes) {
+      expect(resolveIntentBarState(shape).chipTone).not.toBe('cross-client');
+    }
+  });
+});

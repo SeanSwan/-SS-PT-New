@@ -28,6 +28,12 @@ const commands = [{
   requiresClientRef: false,
   category: 'B',
   frontendEvent: 'AI_PLANNER_REARRANGE',
+  // SCU G02 / T10 — the registry's first EXPLICIT reversibility declaration.
+  // A rearrangement is one discrete planner change, and
+  // `planner_undo_last_change` reverts exactly that: a real inverse, not the
+  // blanket 'none' the policy adapter used to mint for every command.
+  reversibility: 'inverse',
+  inverseCommand: 'planner_undo_last_change',
 }, {
   type: 'planner_undo_last_change',
   description: 'Undo the last Swan Coach rearrangement in the open Workout Planner',

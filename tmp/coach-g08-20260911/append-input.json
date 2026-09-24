@@ -1,0 +1,15 @@
+{
+  "slice": {
+    "id": "G08",
+    "files": [
+      "backend/services/ai/dashboardSurfaceRegistry.mjs",
+      "backend/tests/unit/dashboardSurfaceRegistry.da.test.mjs",
+      "frontend/src/services/dashboardSurfaceContext.ts",
+      "frontend/src/services/dashboardSurfaceContext.test.ts"
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/42-g08-domain-adapter-registry.md"
+  ],
+  "reason": "Sean 2026-09-11: continue slices one by one. G08/domains surface adapter registry per contract 32 waves and packet 19 adapter shapes: 24 declared domains, receipt-gated activation, explain-only defaults, server-validated manifest, DA contract tests. Action adapters already exist via commandRegistry (G01-G05 receipts)."
+}

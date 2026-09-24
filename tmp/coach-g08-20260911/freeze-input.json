@@ -1,0 +1,4 @@
+{
+  "tests": { "path": "tmp/coach-g08-20260911/g08-tests-receipt.json", "sha256": "a4486a419604df6c64853fa8454b41a5ceab7671d5aeb007ee8be838a0fbe786" },
+  "build": { "path": "tmp/coach-g08-20260911/g08-build-receipt.json", "sha256": "cd77a104f3bcad5e3f46f9eceddb5fb1d00672a0b0a2d679b2dfadebcfa5b249" }
+}

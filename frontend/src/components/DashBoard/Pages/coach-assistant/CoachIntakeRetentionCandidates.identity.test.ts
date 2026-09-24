@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
+import { expectCoachSurfaceMount } from './coachSurfaceMount.testUtil';
 
 import { retentionCandidateItems, retentionCandidateKey } from './CoachIntakeRetentionCandidates';
 
@@ -20,8 +21,9 @@ describe('CoachIntakeRetentionCandidates identity contract', () => {
     const healthStripSource = readCoachFile('CoachIntakeHealthStrip.tsx');
     const serviceSource = readFileSync(resolve(__dirname, '../../../../services/coachIntakeService.ts'), 'utf8');
 
-    expect(routeComponentsSource).toContain("export const CoachCommandCenterPage = React.lazy(() => import('./Pages/coach-assistant/CoachCommandCenterPage'))");
-    expect(routesSource).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    // RE-ANCHORED (brain-v4): the route now mounts CoachSurfaceRoute (v4 workspace
+    // by default, this legacy page behind the flag); the helper checks both chains.
+    expectCoachSurfaceMount(routeComponentsSource, routesSource);
     // Floor Mode refactor: the page mounts the review panel, which mounts the
     // intake workspace — follow the real chain instead of the old direct mount.
     const reviewPanelSource = readCoachFile('CoachCommandCenterReviewPanel.tsx');

@@ -20,6 +20,7 @@ import { checkClientAccess, CLIENT_ACCESS_DENIED_MESSAGE, parseContextClientId }
 import { getTier, getTierDisplay } from '../../../utils/levelingAlgorithm.mjs';
 import { summarizeNutritionLogs } from './coachNutritionContext.mjs';
 import { loadCoachBadgeRows, summarizeCoachBadges } from './coachGamificationContext.mjs';
+import { buildCoachEvidenceEnvelope } from './coachContextEvidence.mjs';
 
 function selectType(sequelize) {
   return sequelize?.QueryTypes?.SELECT || 'SELECT';
@@ -55,6 +56,7 @@ const DOMAIN_LOADERS = {
      FROM workout_sessions ws
      JOIN workout_logs wl ON wl."sessionId" = ws.id
      WHERE ws."userId" = :clientId AND ws.status = 'completed'
+        AND ws.date <= :now
      GROUP BY ws.id, ws.title, ws.date, ws.duration, ws.intensity
      ORDER BY ws.date DESC
      LIMIT 5`,
@@ -149,9 +151,11 @@ function summarizeSchedule(rows) {
  *   accessVia?: string,
  * }>}
  */
-export async function buildCoachContext({ user, targetClientId, sequelize }) {
+export async function buildCoachContext({ user, targetClientId, sequelize, signal }) {
+  signal?.throwIfAborted();
   // 1. AUTHORIZATION FIRST — denied access loads zero domains.
   const access = await checkClientAccess(user, targetClientId, sequelize);
+  signal?.throwIfAborted();
   if (!access.allowed) {
     return {
       ok: false,
@@ -172,12 +176,15 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
       message: CLIENT_ACCESS_DENIED_MESSAGE,
     };
   }
-  const replacements = { clientId };
+  const replacements = { clientId, now: new Date().toISOString() };
 
   // 2. Load all domains in parallel. Required health data must be complete
   // before a brief can be handed to a provider; only optional rewards may
   // degrade to an explicitly marked empty value.
+  // Cancellation (kept from the coach lineage): stops dependent work and discards
+  // its result. The SQL driver may keep an already-issued query running.
   const outcomes = await Promise.all(DOMAIN_NAMES.map(async (domain) => {
+    signal?.throwIfAborted();
     try {
       const value = await DOMAIN_LOADERS[domain](sequelize, replacements);
       if (!Array.isArray(value)) throw new Error('invalid domain response');
@@ -190,6 +197,7 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
       };
     }
   }));
+  signal?.throwIfAborted();
 
   const results = Object.fromEntries(outcomes.map(({ domain, value }) => [domain, value]));
   const dataQuality = outcomes.map(({ domain, status }) => ({ domain, status }));
@@ -248,7 +256,14 @@ export async function buildCoachContext({ user, targetClientId, sequelize }) {
     },
   };
 
-  return { ok: true, context, aliasMap, dataQuality, accessVia: access.via };
+  return {
+    ok: true,
+    context,
+    aliasMap,
+    dataQuality,
+    evidence: buildCoachEvidenceEnvelope({ dataQuality, accessVia: access.via }),
+    accessVia: access.via,
+  };
 }
 
 // ── Trainer Day-Sheet (Slice A2) ────────────────────────────────────────────

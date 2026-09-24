@@ -9,7 +9,10 @@
  * (06-bans §8); non-commands return the exact 02 §D receipt sentence.
  */
 import { useCallback, useEffect, useState } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { commandErrorReceiptText, useCoachCommand } from '../../hooks/useCoachCommand';
+import { commandInputMode, mergeTypedDraftOrigin, mergeVoiceCaptureOrigin,
+  type CoachInputOrigin } from '../../hooks/coachInputOrigin';
 import {
   useCoachBrowserSpeechInput,
   type CoachSpeechRuntimeFailure,
@@ -25,7 +28,18 @@ export function useWorkoutLoggerDictation({ clientId, enabled = true }: { client
   listening: boolean; stopListening: () => void;
 } {
   const [active, setActive] = useState(false);
-  const [text, setTextState] = useState('');
+  // Origin travels atomically with the draft, including functional speech appends.
+  const [{ text, origin }, setDraft] = useState<{ text: string; origin: CoachInputOrigin }>({ text: '', origin: 'unknown' });
+  const clearDraft = useCallback(() => setDraft({ text: '', origin: 'unknown' }), []);
+  const setText = useCallback((next: string) => setDraft(previous => ({
+    text: next,
+    origin: next === previous.text ? previous.origin : mergeTypedDraftOrigin(previous.origin, previous.text, next),
+  })), []);
+  const setSpeechText: Dispatch<SetStateAction<string>> = useCallback(update => setDraft(previous => {
+    const next = typeof update === 'function' ? update(previous.text) : update;
+    return { text: next, origin: !next.trim() ? 'unknown'
+      : previous.origin === 'voice' ? 'voice' : mergeVoiceCaptureOrigin(previous.origin, previous.text, next) };
+  }), []);
   const [submitting, setSubmitting] = useState(false);
   const [receipt, setReceipt] = useState<LoggerDictationReceipt | null>(null);
   const { executeCommand } = useCoachCommand();
@@ -38,7 +52,7 @@ export function useWorkoutLoggerDictation({ clientId, enabled = true }: { client
   const speech = useCoachBrowserSpeechInput({
     onRuntimeUnavailable: handleSpeechUnavailable,
     setInputError: setVoiceError,
-    setText: setTextState,
+    setText: setSpeechText,
   });
 
   useEffect(() => {
@@ -52,7 +66,7 @@ export function useWorkoutLoggerDictation({ clientId, enabled = true }: { client
     if (active) {
       speech.stopListening();
       setActive(false);
-      setTextState('');
+      clearDraft();
       setReceipt(null);
       return;
     }
@@ -62,7 +76,7 @@ export function useWorkoutLoggerDictation({ clientId, enabled = true }: { client
     if (!speech.speechSupported) {
       setReceipt({ ok: false, text: 'Voice input is not available in this browser — type the entry instead.' });
     }
-  }, [active, enabled, speech]);
+  }, [active, clearDraft, enabled, speech]);
 
   const stopListening = useCallback(() => {
     speech.stopListening();
@@ -78,6 +92,7 @@ export function useWorkoutLoggerDictation({ clientId, enabled = true }: { client
       const result = await executeCommand(trimmed, {
         selectedClientId: clientId ?? undefined,
         surface: 'workout-logger',
+        inputMode: commandInputMode(origin),
       });
       if (result.type === 'error') {
         // Server errors (RBAC, validation) pass through verbatim — only a
@@ -92,7 +107,7 @@ export function useWorkoutLoggerDictation({ clientId, enabled = true }: { client
       }
       if (result.type === 'frontend_dispatch') {
         setReceipt({ ok: result.dispatched, text: result.message });
-        if (result.dispatched) setTextState('');
+        if (result.dispatched) clearDraft();
         return;
       }
       // confirmation_required / executed / not_wired / debate_started —
@@ -104,14 +119,14 @@ export function useWorkoutLoggerDictation({ clientId, enabled = true }: { client
     } finally {
       setSubmitting(false);
     }
-  }, [clientId, executeCommand, speech, submitting, text]);
+  }, [clientId, clearDraft, executeCommand, origin, speech, submitting, text]);
 
   return {
     active,
     toggle,
     interim: speech.interim,
     text,
-    setText: useCallback((t: string) => setTextState(t), []),
+    setText,
     submitting,
     send,
     receipt,

@@ -5,6 +5,8 @@
  * canonical DailyWorkoutForm adapter writes diary, billing, and chart truth.
  */
 
+import { strictCoachWorkoutInput } from './coachStrictWorkoutPayload.mjs';
+
 export class AiWorkoutDailyFormError extends Error {
   constructor(message, code = 'VALIDATION_ERROR') {
     super(message);
@@ -104,7 +106,9 @@ const normalizeSet = (set, setNumber) => ({
   isometricHoldSeconds: parseNonNegativeInteger(set?.isometricHoldSeconds, null),
 });
 
-export function normalizeAiExercises(exercises) {
+export function normalizeAiExercises(exercises, options = {}) {
+  const strict = options.policy === 'coach_verified_v1';
+  if (strict) exercises = strictCoachWorkoutInput(exercises, AiWorkoutDailyFormError);
   if (!Array.isArray(exercises) || exercises.length === 0) {
     throw new AiWorkoutDailyFormError('exercises must be a non-empty array');
   }
@@ -133,12 +137,18 @@ export function normalizeAiExercises(exercises) {
     }
     return {
       exerciseName,
+      ...(strict ? {
+        ...(exercise.exerciseId ? { exerciseId: exercise.exerciseId } : {}),
+        ...(exercise.exerciseKey ? { exerciseKey: exercise.exerciseKey } : {}),
+        exerciseInstanceId: exercise.exerciseInstanceId,
+        unit: exercise.unit,
+      } : {}),
       exerciseNote,
       circuitName: normalizeText(exercise?.circuitName, null),
       circuitOrder: parsePositiveInteger(exercise?.circuitOrder),
       exerciseRole: normalizeText(exercise?.exerciseRole, null),
       ...exerciseMetadata(exercise),
-      sets: sourceSets.map((set, index) => normalizeSet(set, index + 1)),
+      sets: sourceSets.map((set, index) => normalizeSet(set, strict ? set.setNumber : index + 1)),
     };
   });
 }

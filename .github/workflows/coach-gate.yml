@@ -1,0 +1,141 @@
+# S4 — the required check for the Swan Coach lane.
+#
+# The pre-existing ai-eval-gate.yml runs `npm run eval` and nothing else, and `main`
+# had branch protection OFF with zero required contexts, so nothing it reported ever
+# blocked a merge. This workflow is the gate that is meant to become required.
+#
+# EVERY BLOCKING STEP BELOW WAS RUN LOCALLY AT 66ffde607 FIRST. A required gate that
+# is red on arrival teaches people to bypass it. Two things are deliberately NOT
+# blocking, and each says why at its step — do not promote either without re-running
+# it and replacing the note with the evidence.
+#
+# RUNNER BUDGET: this repository is PRIVATE, so GitHub-hosted `ubuntu-latest` is the
+# standard 2-core / ~7 GB tier — NOT the 16 GB public-repo tier. Anything needing more
+# than ~7 GB cannot run here at all, whatever heap flag it is given. That single fact
+# is why the frontend type-check is not a blocking step (see the frontend job).
+name: Coach Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: coach-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — full vitest suite + node:test + eval
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      # The WHOLE vitest suite, both roots. An earlier draft narrowed this to
+      # `tests/unit`, which silently skipped the 150 test files under `backend/__tests__/`
+      # — a coverage hole in the check meant to protect main. Seven known-red files are
+      # quarantined by name in vitest.config.mjs, each with its cause, and the burn-down
+      # is tracked in SWA-142.
+      #
+      # Includes commandRegistryCoverage.test.mjs — the lock that fails when a command is
+      # added without a dispatcher or an intentional execution lane. That lock has existed
+      # for months and gated nothing, because it was never a required check.
+      #
+      # Verified locally at 66ffde607: 1179 files passed, 9562 tests, 1 file skipped.
+      # Bare `npm test` is red on a good tree under the 2026-09-02 resolution: the 7
+      # pre-existing failures stay VISIBLE in the suite and recorded (with per-file
+      # classifications) in tests/known-failing-baseline.json — burn-down: SWA-142 —
+      # rather than hidden in vitest excludes. The check that protects main is the
+      # baseline gate: exit 1 on any NEW failing file or an incomplete run.
+      - name: Backend tests (vitest via baseline gate — fails on NEW failures)
+        run: node scripts/test-baseline-gate.mjs
+
+      # 16 files under tests/unit use Node's built-in runner, not vitest. Vitest reports
+      # them as "No test suite found" failures, which is why `npm test` was permanently
+      # red on a clean checkout. They hold 178 real, passing tests.
+      # Verified locally at 66ffde607: 178 passed, 0 failed.
+      - name: Backend tests (node:test lane)
+        run: npm run test:node
+
+      # BLOCKING as of 2026-09-02, per this file's own instruction: "Remove
+      # continue-on-error in the same PR that fixes warnings_02." That fix is in this
+      # chain (the warnings_02 fixture omitted tempo, and self-heal corrections merge
+      # into warnings, so warningCount 0 was unsatisfiable) — `npm run eval` now exits 0.
+      #
+      # The report is written to ../ on purpose: upload-artifact resolves paths from the
+      # workspace root and ignores `defaults.working-directory`. Do not "fix" this to a
+      # bare filename — the upload will silently find nothing.
+      - name: AI eval harness (deterministic, no network)
+        run: npm run eval > ../ai-eval-report.json
+
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-eval-report
+          path: ai-eval-report.json
+          retention-days: 30
+
+  frontend:
+    name: Frontend — production build (type-check NOT gated, see notes)
+    runs-on: ubuntu-latest
+    # NON-BLOCKING as a whole until the first green run on a real 7 GB runner proves the
+    # memory profile. Everything in this job was verified on a 66 GB developer machine,
+    # which proves nothing about a 2-core / 7 GB private-repo runner. Promoting this job
+    # on local evidence alone would repeat exactly the mistake this workstream exists to
+    # correct: a claim wider than the evidence behind it.
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # DELIBERATELY NOT A BLOCKING CHECK, and it cannot become one on this runner.
+      #
+      # `npm run type-check` OOMs at a 8192 MB heap (SIGABRT, "Ineffective mark-compacts
+      # near heap limit") on a 66 GB machine. It completes cleanly with ZERO errors at
+      # 12288 MB — so the codebase is type-clean; the ceiling was the problem. But this
+      # is a PRIVATE repo, so the runner has ~7 GB TOTAL. A 12 GB heap is unreachable
+      # here regardless of flags.
+      #
+      # Making this required would put the gate in the red-on-arrival state the header
+      # forbids. Three ways out, all Sean-gated: a larger runner (costs money), TypeScript
+      # project references to split the program, or accept type-check as a local/pre-push
+      # check only. Tracked in SWA-142.
+      - name: TypeScript check — informational only, expected to OOM on a 7 GB runner
+        continue-on-error: true
+        run: npm run type-check
+
+      # Verified locally at 66ffde607: exit 0, built in ~24s. Peak memory on a 7 GB
+      # runner is UNVERIFIED, which is why this job is continue-on-error overall.
+      - name: Production build
+        run: npm run build
+
+  # NOT GATED YET: the frontend vitest suite. S5 ships a frontend behaviour change WITH
+  # tests, and this workflow does not run them — a gate named for the Coach lane that
+  # lets frontend regressions through. The coach-assistant subset was verified locally
+  # (158 files / 853 passed), but the full frontend suite has not been run to completion
+  # here, so its baseline is UNKNOWN and it is not claimed as green. Tracked in SWA-142.

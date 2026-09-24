@@ -30,11 +30,77 @@ describe('client data overview privacy', () => {
   });
 
   it('does not expose internal trainer-note metadata to client-role requests', () => {
-    expect(queryServiceSource).toContain("const includeTrainerNoteSummary = requesterRole !== 'client';");
+    // Launch audit 2026-09-13: this assertion used to pin the SOURCE TEXT
+    //   const includeTrainerNoteSummary = requesterRole !== 'client';
+    // which made the test PROTECT THE BUG. `'user'` is the default role minted by
+    // public self-registration (models/User.mjs:135) and is client-equivalent per
+    // utils/clientAccess.mjs:23, so a normal member walked past that predicate and
+    // received the trainer-note count/latest timestamp while this green test
+    // advertised the opposite. The gate is now the shared helper and the real
+    // proof is behavioural, below.
+    expect(queryServiceSource).toContain("import { isClientEquivalentRole } from '../utils/clientAccess.mjs';");
+    expect(queryServiceSource).toContain('const includeTrainerNoteSummary = !isClientEquivalentRole(requesterRole);');
+    expect(queryServiceSource).not.toContain("requesterRole !== 'client'");
     expect(queryServiceSource).toContain('ClientNote.count({ where: { userId: targetUserId } })');
     expect(queryServiceSource).toContain(': Promise.resolve(0)');
     expect(queryServiceSource).toContain('ClientNote.findOne({');
     expect(queryServiceSource).toContain(': Promise.resolve(null)');
+  });
+
+  /**
+   * Executes the REAL service with stub models that record every query issued, so
+   * the gate decision is OBSERVED rather than inferred from source text. `'user'`
+   * and `'client'` must be indistinguishable here; explicit staff must still see
+   * the trainer-note summary, which is what stops a blanket deny from passing.
+   */
+  it('hides the trainer-note summary from every client-equivalent requester, behaviourally', async () => {
+    const { fetchClientDataOverviewRecords } = await import('../../services/clientDataOverviewQueryService.mjs');
+
+    const runAs = async (requesterRole) => {
+      const calls = [];
+      const table = (name) => ({
+        findOne: async (query) => {
+          calls.push(`findOne:${name}:${JSON.stringify(query.where)}`);
+          return { createdAt: '2026-09-01T00:00:00.000Z' };
+        },
+        count: async (query) => {
+          calls.push(`count:${name}:${JSON.stringify(query.where)}`);
+          return 4;
+        },
+      });
+      const records = await fetchClientDataOverviewRecords({
+        models: {
+          ClientOnboardingQuestionnaire: table('ClientOnboardingQuestionnaire'),
+          ClientBaselineMeasurements: table('ClientBaselineMeasurements'),
+          ClientNutritionPlan: table('ClientNutritionPlan'),
+          ClientPhoto: table('ClientPhoto'),
+          ClientNote: table('ClientNote'),
+        },
+        targetUserId: 42,
+        requesterRole,
+      });
+      return { records, noteQueries: calls.filter((call) => call.includes('ClientNote')) };
+    };
+
+    const client = await runAs('client');
+    const user = await runAs('user');
+    const trainer = await runAs('trainer');
+    const admin = await runAs('admin');
+
+    // The default self-registration role must not learn that trainer notes exist.
+    expect(user.records.noteCount).toBe(0);
+    expect(user.records.latestNote).toBeNull();
+    expect(user.noteQueries).toHaveLength(0);
+    // ...and must be indistinguishable from an explicit client.
+    expect({ count: user.records.noteCount, latest: user.records.latestNote, queries: user.noteQueries.length })
+      .toEqual({ count: client.records.noteCount, latest: client.records.latestNote, queries: client.noteQueries.length });
+    // Negative control: the gate must not become a blanket deny for staff.
+    expect(trainer.records.noteCount).toBe(4);
+    expect(trainer.records.latestNote).not.toBeNull();
+    expect(trainer.noteQueries).toHaveLength(2);
+    expect(admin.records.noteCount).toBe(4);
+    expect(admin.records.latestNote).not.toBeNull();
+    expect(admin.noteQueries).toHaveLength(2);
   });
 
   it('keeps overview data assembly outside the route controller', () => {

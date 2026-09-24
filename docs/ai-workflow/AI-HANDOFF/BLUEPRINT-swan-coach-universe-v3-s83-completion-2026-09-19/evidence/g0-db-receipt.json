@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-09-21T18:50:00Z",
+  "purpose": "G0-DB receipt: the owned disposable PostgreSQL cluster, its verified identity, and the reachability blocker that prevents this session from executing the guarded suites.",
+  "baseHead": "53005a6da965f5ca9e9c8d5ead86c6e19e081095",
+
+  "cluster": {
+    "container": "swan-coach-owned-20260921",
+    "image": "postgres:17-alpine",
+    "state": "running",
+    "createdBy": "this session (2026-09-21)",
+    "ownership": "GENUINELY OWNED — created here, not reused.",
+    "whyNotTheSharedCluster": "The pre-existing cluster on 127.0.0.1:5433 (container `swan-dev-pg`) already holds `coach_baseline_gen` and `coach_emptydb_20260916`, i.e. databases belonging to PRIOR Coach work. Astra's builder contract says stop on an unsafe resource identity. That cluster is a shared development resource and was NOT used.",
+    "priorContainersObserved": [
+      "swan-coach-remediation-01a09d22 (exited 255, 4 days ago)",
+      "swan-coach-review-01a09491 (exited 255, 4 days ago)",
+      "swan-coach-astra-review-20260908 (exited 0, 13 days ago)"
+    ]
+  },
+
+  "verifiedIdentity": {
+    "observedVia": "docker exec … psql -h 127.0.0.1 (IN-CONTAINER)",
+    "currentUser": "coach_test_admin",
+    "currentDatabase": "coach_test_20260906",
+    "serverPort": 5432,
+    "serverVersion": "PostgreSQL 17.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+    "preexistingPublicTables": 0,
+    "authMethod": "trust (POSTGRES_HOST_AUTH_METHOD=trust, empty password) — matching coachTestDatabase.mjs, which connects as 'coach_test_admin' with an empty password",
+    "matchesHarnessExpectation": {
+      "role": "coach_test_admin — MATCHES backend/tests/helpers/coachTestDatabase.mjs:12",
+      "database": "coach_test_20260906 — MATCHES coachTestDatabase.mjs:11",
+      "password": "empty — MATCHES",
+      "host": "127.0.0.1 — MATCHES coachTestDatabase.mjs:13",
+      "port": "MISMATCH — see reachability below"
+    },
+    "statement": "The identity was OBSERVED, not asserted. This is the receipt G0-DB was missing."
+  },
+
+  "reachability": {
+    "status": "BLOCKED — the host cannot reach the container",
+    "observation": "Connecting from the host to the container IP 172.17.0.3:5432 TIMES OUT. Connecting from a sibling container on the same Docker network SUCCEEDS.",
+    "cause": "This session's sandbox forbids binding NEW host ports. `docker run -p <port>:5432` fails for every port tried (55440, 55441, 55442, 55443) with 'An attempt was made to access a socket in a way forbidden by its access permissions'. Port 55440 — the historical Coach port — is no longer bindable either.",
+    "consequence": "The guarded suites CANNOT be executed from this session. coachTestDatabase.mjs hardcodes host '127.0.0.1' and requires SWAN_COACH_TEST_PORT to be a HOST port that maps to the container. With no host port available, no reachable port exists.",
+    "whatWouldUnblockIt": "Either (a) a host port bindable in this environment, or (b) a coordinated change to the harness's host/port plumbing for a network-addressable cluster. (b) is a harness change and is NOT in C0's allowed scope, so it is recorded rather than attempted."
+  },
+
+  "migrations": {
+    "status": "NOT RUN",
+    "reason": "Depends on the same reachability. The C2 migration-completion suite is a later slice; nothing here claims it ran."
+  },
+
+  "teardown": {
+    "performed": false,
+    "note": "The container is DELIBERATELY LEFT RUNNING. It is the owned resource the receipt describes, and stopping it would invalidate a receipt whose identity was just observed. Teardown command for the operator: `docker rm -f swan-coach-owned-20260921`. It consumes no host port (none could be bound), so leaving it up is inert."
+  },
+
+  "classification": {
+    "before": "present-but-insufficient (no owned-cluster provisioning/teardown receipt; no observed connection identity)",
+    "after": "PARTIALLY CLOSED — provisioning and identity are now evidenced; EXECUTION REMAINS BLOCKED by reachability.",
+    "honestStatement": "G0-DB is not fully closed. What changed is that the gap is now a MEASURED environment limitation with a named cause, rather than an unverified claim. Astra R5-07's distinction applies: this is a missing preparation artifact that C0 has now partly produced, plus an environment constraint C0 cannot remove."
+  }
+}

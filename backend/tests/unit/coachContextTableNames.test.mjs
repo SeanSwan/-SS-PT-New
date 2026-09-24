@@ -145,3 +145,82 @@ describe('the output contract consumers depend on', () => {
     expect(t).toMatch(/\/client_pain_entries\/\.test/);
   });
 });
+
+/**
+ * Coach Facts (Fable blueprint 2026-08-31, S1).
+ *
+ * The drift this guards is the one this whole file was created for, one layer
+ * earlier: three files independently declare the same vocabulary — the migration
+ * ENUM, the model ENUM, and FACT_CATEGORIES in the service. Postgres rejects an
+ * ENUM value the type does not know, so a category added to the service but not
+ * the migration fails at INSERT time in production and nowhere before it. The
+ * table name is pinned for the same reason `"PainEntries"` is above: the model's
+ * tableName and the migration's createTable target must be the same string, or
+ * every query resolves to a relation that does not exist.
+ *
+ * Source-level assertions, matching the rest of this file: the property under
+ * test is which literals appear in the source, and booting these modules needs
+ * a live DB.
+ */
+describe('coach_facts — model, migration and service agree', () => {
+  const model = read('models/CoachFact.mjs');
+  const migration = read('migrations/20260831200000-create-coach-facts.cjs');
+  const service = read('services/coachFactService.mjs');
+
+  const CATEGORIES = [
+    'injury_constraint', 'preference', 'goal_context', 'lifestyle', 'equipment',
+    'motivation_style', 'schedule_pattern', 'coaching_cue', 'milestone',
+  ];
+  const SOURCE_TYPES = [
+    'chat', 'dictation', 'intake', 'workout_log', 'client_note', 'trainer_manual',
+  ];
+  const STATUSES = ['proposed', 'active', 'invalidated', 'rejected'];
+
+  it('all three name the table coach_facts', () => {
+    expect(model).toMatch(/tableName:\s*'coach_facts'/);
+    expect(migration).toMatch(/const TABLE = 'coach_facts'/);
+    expect(service).toMatch(/getModel\('CoachFact'\)/);
+  });
+
+  it.each(CATEGORIES)('category %s exists in the model, the migration and the service', (category) => {
+    expect(model).toContain(`'${category}'`);
+    expect(migration).toContain(`'${category}'`);
+    expect(service).toContain(`'${category}'`);
+  });
+
+  it.each(SOURCE_TYPES)('sourceType %s exists in the model, the migration and the service', (source) => {
+    expect(model).toContain(`'${source}'`);
+    expect(migration).toContain(`'${source}'`);
+    expect(service).toContain(`'${source}'`);
+  });
+
+  it.each(STATUSES)('status %s exists in the model, the migration and the service', (status) => {
+    expect(model).toContain(`'${status}'`);
+    expect(migration).toContain(`'${status}'`);
+    expect(service).toContain(`'${status}'`);
+  });
+
+  it('references "Users" through sequelize model quoting, never a bare lowercase users', () => {
+    // queryInterface/Sequelize quote the `model:` value, so 'Users' emits
+    // REFERENCES "Users" — the canonical table. A bare lowercase `users` would
+    // bind to the stale production duplicate and corrupt silently.
+    expect(migration).toMatch(/model:\s*'Users'/);
+    expect(migration).not.toMatch(/model:\s*'users'/);
+    expect(model).not.toMatch(/model:\s*'users'/);
+  });
+
+  it('defaults status to proposed so a machine write cannot become active by omission', () => {
+    expect(model).toMatch(/defaultValue:\s*'proposed'/);
+    expect(migration).toMatch(/defaultValue:\s*'proposed'/);
+  });
+
+  it('drops its ENUM types on down(), or a re-run of up() fails', () => {
+    for (const enumName of [
+      'enum_coach_facts_category',
+      'enum_coach_facts_status',
+      'enum_coach_facts_sourceType',
+    ]) {
+      expect(migration).toContain(enumName);
+    }
+  });
+});

@@ -15,17 +15,18 @@ const __dirname = dirname(__filename);
 const AI_CHAT_ROUTES_SRC = readFileSync(
   resolve(__dirname, '../../routes/aiChatRoutes.mjs'),
   'utf8',
-);
+) + readFileSync(resolve(__dirname, '../../services/ai/coachConversationReadAccess.mjs'), 'utf8');
 
 describe('AI chat conversation lifecycle safety', () => {
   it('keeps deleted conversations out of normal thread lists', () => {
     expect(AI_CHAT_ROUTES_SRC).toMatch(/const allowedStatuses = \['active', 'archived'\]/);
-    expect(AI_CHAT_ROUTES_SRC).toMatch(/status: resolvedStatus/);
+    expect(AI_CHAT_ROUTES_SRC).toMatch(/status: input\.status/);
   });
 
   it('blocks direct ID access to deleted conversations', () => {
     expect(AI_CHAT_ROUTES_SRC).toMatch(/import \{ Op \} from 'sequelize';/);
-    expect((AI_CHAT_ROUTES_SRC.match(/\[Op\.ne\]: 'deleted'/g) || []).length).toBeGreaterThanOrEqual(3);
+    expect((AI_CHAT_ROUTES_SRC.match(/\[Op\.ne\]: 'deleted'/g) || []).length).toBeGreaterThanOrEqual(2); // Existing mutation handlers retain their deleted guard.
+    expect(AI_CHAT_ROUTES_SRC).toContain("status: { [Op.in]: ['active', 'archived'] }");
   });
 
   it('only appends new messages to active conversations', () => {

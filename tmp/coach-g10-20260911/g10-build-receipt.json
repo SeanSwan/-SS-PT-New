@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "digest": "a4c53d2867749a40d7cdf81597c0103c4b7e1edd914c03abad24453bc3efc577",
+  "actor": "session-agent-subscription",
+  "summary": "G10/S10 proactive nudge engine: pure deterministic core over the existing in-app worker pattern - opt-in gate, DST-safe quiet hours, daily cap, weekly dedupe, snooze, delivery-time recheck gate with injected writer. Hostile review fixed a test-fixture quiet-hours collision and pinned both DST boundaries.",
+  "toolEvidence": {
+    "path": "tmp/coach-g10-20260911/g10-build-evidence.md",
+    "sha256": "00263206e4c8ae77b2768cc55a15defbe0082314f12142bc958819bea71a43b2"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "slice": {
+    "id": "G10",
+    "files": [
+      "backend/services/ai/coachProactiveNudge.mjs",
+      "backend/tests/unit/coachProactiveNudge.test.mjs"
+    ]
+  },
+  "planFiles": [
+    "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/44-g10-proactive-nudges.md"
+  ],
+  "reason": "Sean 2026-09-11: continue slices. G10/S10 opt-in proactive nudges per packet 31 G10 row and contract 32 T38/T39: deterministic engine over the existing in-app worker pattern - opt-in only, DST-safe local quiet hours 20:00-08:00, one/day cap, weekly dedupe, snooze/disable, delivery-time consent/access/freshness recheck."
+}

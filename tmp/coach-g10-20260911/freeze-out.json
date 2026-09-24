@@ -1,0 +1,34 @@
+{
+  "status": "active",
+  "stage": "slice",
+  "index": 9,
+  "calls": 9,
+  "active": {
+    "id": "G10",
+    "allowedFiles": [
+      "backend/services/ai/coachProactiveNudge.mjs",
+      "backend/tests/unit/coachProactiveNudge.test.mjs"
+    ],
+    "files": [
+      "backend/services/ai/coachProactiveNudge.mjs",
+      "backend/tests/unit/coachProactiveNudge.test.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/44-g10-proactive-nudges.md"
+    ],
+    "status": "tested",
+    "round": 0,
+    "reviews": [],
+    "findings": {},
+    "digest": "a4c53d2867749a40d7cdf81597c0103c4b7e1edd914c03abad24453bc3efc577",
+    "frozen": {
+      "tests": {
+        "path": "tmp/coach-g10-20260911/g10-tests-receipt.json",
+        "sha256": "b131e543e10e5d5c7560e298af80bf796f7b1da0c57d535aba58135ec40e2ba6"
+      },
+      "build": {
+        "path": "tmp/coach-g10-20260911/g10-build-receipt.json",
+        "sha256": "da068e6cd254897b30fead4ddcca1a14d96ce52991802b17c9ab35c7e7276492"
+      }
+    }
+  },
+  "inFlight": null
+}

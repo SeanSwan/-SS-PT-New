@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "digest": "b887c9ccdb58be803459bcb24383717a89dafc0b96909cbb61d9e02f8f9f8054",
+  "actor": "session-agent-subscription",
+  "summary": "G06/S7 foreground speech lifecycle implemented and hostile-reviewed: new useCoachVoiceLifecycle (background/logout/teardown stops, barge-in), speech-hook echo dedupe with fresh-resume reset, recorder abort/teardown with getUserMedia race guard and unmount track cleanup, overlay background hard-stop without transcription, controller one-line output-stop wiring. Slice-internal hostile review fixed 4 findings (multi-final restart dedupe window, request race, 300-line cap, over-asserted test); freeze gate caught a registered-but-missing lifecycle unit test file, created (5/5 pass) before freeze. All scoped files <=300 lines.",
+  "toolEvidence": {
+    "path": "tmp/coach-g06-20260911/g06-build-evidence.md",
+    "sha256": "7e8df252e3f1895ec79031742e3650d13c7978a66c1e699938475a0a7a44c301"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "digest": "30f12ac75527a3c7fcc08498768166a8510c195894d85b8df4cc87d29781a239",
+  "actor": "session-agent-subscription",
+  "summary": "G09/S9: adopted commit 21ed0554ba S1 CoachFact layer (reconciliation per contract), added forget/purge/conflict columns via idempotent migration, new memory policy service (forget with cache recheck and 24h purge, private-task lockout, scoped task memory, conflict detection). Hostile review fixed purge query and test-seed findings; disclosed upstream-authorization and at-rest-encryption boundaries.",
+  "toolEvidence": {
+    "path": "tmp/coach-g09-20260911/g09-build-evidence.md",
+    "sha256": "3b1f7b726f6e70b914f364780080ae7304ddd138a6e9da2cfb2304076158652e"
+  }
+}

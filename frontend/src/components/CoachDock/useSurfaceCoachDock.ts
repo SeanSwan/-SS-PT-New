@@ -12,6 +12,7 @@
 import { createElement, useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { commandErrorReceiptText, useCoachCommand } from '../../hooks/useCoachCommand';
+import { commandInputMode, mergeTypedDraftOrigin, mergeVoiceCaptureOrigin, type CoachInputOrigin } from '../../hooks/coachInputOrigin';
 import { useAIChat } from '../../hooks/useAIChat';
 import VoiceRecordingOverlay from '../DashBoard/Pages/coach-assistant/VoiceRecordingOverlay';
 import {
@@ -65,14 +66,29 @@ export interface UseSurfaceCoachDockArgs {
   pushReceipt: (r: CoachDockReceiptInput) => void;
 }
 
+export type ConfirmationTier = 'fire_and_forget' | 'read_back' | 'deliberate' | 'refusal';
+
+/** What the dock needs to render the sheet in place (card 1.3). */
+export interface PendingConfirmation {
+  operationId: string;
+  tier: ConfirmationTier;
+  physical: boolean;
+  isDestructive: boolean;
+  affectedCount: number;
+  /** Kept so a burned/expired approval can be re-issued without re-typing. */
+  sourceMessage: string;
+}
+
 export function useSurfaceCoachDock({
   surface, chatTitle, eventPrefix, selectedClientId, requireClient = true, pushReceipt,
 }: UseSurfaceCoachDockArgs) {
   const [open, setOpen] = useState(false);
   const [dockText, setDockTextState] = useState('');
+  const [inputOrigin, setInputOrigin] = useState<CoachInputOrigin>('unknown');
   const [submitting, setSubmitting] = useState(false);
   const [receipts, setReceipts] = useState<CoachDockReceipt[]>([]);
   const [overlayOpen, setOverlayOpen] = useState(false);
+  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const receiptIdRef = useRef(0);
   const { executeCommand } = useCoachCommand();
   const chat = useAIChat();
@@ -105,7 +121,11 @@ export function useSurfaceCoachDock({
   const speech = useCoachBrowserSpeechInput({
     onRuntimeUnavailable: handleSpeechUnavailable,
     setInputError: setVoiceError,
-    setText: setDockTextState,
+    setText: (next) => setDockTextState((current) => {
+      const nextValue = typeof next === 'function' ? next(current) : next;
+      setInputOrigin((origin) => mergeVoiceCaptureOrigin(origin, current, nextValue));
+      return nextValue;
+    }),
   });
 
   const handleVoice = useCallback(() => {
@@ -114,9 +134,13 @@ export function useSurfaceCoachDock({
     pushReceipt({ ok: false, text: 'Voice input is not available in this browser.' });
   }, [pushReceipt, recorderSupported, speech]);
 
-  const appendTranscribed = useCallback((text: string) => {
+  const appendTranscribed = useCallback((text: string, edited = false) => {
     const chunk = text.trim();
-    if (chunk) setDockTextState((prev) => (prev ? `${prev} ${chunk}` : chunk));
+    if (chunk) setDockTextState((prev) => {
+      const nextValue = prev ? `${prev} ${chunk}` : chunk;
+      setInputOrigin(edited ? 'mixed' : (origin) => mergeVoiceCaptureOrigin(origin, prev, chunk));
+      return nextValue;
+    });
     setOverlayOpen(false);
   }, []);
 
@@ -124,7 +148,7 @@ export function useSurfaceCoachDock({
     ? createElement(VoiceRecordingOverlay, {
       isOpen: overlayOpen,
       onClose: () => setOverlayOpen(false),
-      onEditTranscript: appendTranscribed,
+      onEditTranscript: (text: string) => appendTranscribed(text, true),
       onTranscribed: appendTranscribed,
     })
     : null;
@@ -135,7 +159,7 @@ export function useSurfaceCoachDock({
     setDockTextState('');
     setSubmitting(true);
     try {
-      const result = await executeCommand(trimmed, { selectedClientId, surface });
+      const result = await executeCommand(trimmed, { selectedClientId, surface, inputMode: commandInputMode(inputOrigin) });
       if (result.type === 'error') {
         // Server errors (RBAC, validation) pass through verbatim — only a
         // transport failure reads as "unreachable" (R1 honesty fix).
@@ -167,19 +191,59 @@ export function useSurfaceCoachDock({
         pushReceipt({ ok: true, text: `Done — ${result.command.replace(/_/g, ' ')}.` });
         return;
       }
-      // confirmation_required / not_wired / debate_started — surface the lane's
-      // own message honestly; confirmations belong to the Coach Command Center.
+      if (result.type === 'confirmation_required') {
+        // CARD 1.3 — the dead end dies here. This branch used to push the lane's
+        // message as TEXT with no control, so a trainer standing in the planner
+        // had to LEAVE the surface and re-find the action in the Coach Command
+        // Center to approve it. On a gym floor that is the end of the ≤2s voice
+        // loop. The sheet now opens in place, carrying the SERVER's tier verdict.
+        setPendingConfirmation({
+          operationId: result.operationId ?? '',
+          tier: (result.tier as ConfirmationTier) ?? 'deliberate',
+          physical: Boolean(result.physical),
+          isDestructive: Boolean(result.isDestructive),
+          affectedCount: Number(result.details?.affectedCount ?? 1),
+          sourceMessage: trimmed,
+        });
+        return;
+      }
+      // not_wired / debate_started — surface the lane's own message honestly.
       pushReceipt({ ok: result.type === 'debate_started', text: result.message });
     } finally {
       setSubmitting(false);
     }
-  }, [chat, chatTitle, dockText, eventPrefix, executeCommand, pushReceipt, requireClient, selectedClientId, submitting, surface]);
+  }, [chat, chatTitle, dockText, eventPrefix, executeCommand, inputOrigin, pushReceipt, requireClient, selectedClientId, submitting, surface]);
 
   return {
+    /**
+     * The client the operator has locked on this surface. Returned (rather than
+     * re-derived in the dock) so all four mounts inherit the chip's cross-client
+     * alarm through the existing `{...dock}` spread — no per-mount edit, and no
+     * second definition of "which client is this about" to drift.
+     */
+    lockedClientId: selectedClientId,
+    pendingConfirmation,
+    dismissConfirmation: useCallback(() => setPendingConfirmation(null), []),
+    /** Re-issue a burned/expired approval from the ORIGINAL utterance. */
+    reissueConfirmation: useCallback(() => {
+      const source = pendingConfirmation?.sourceMessage;
+      setPendingConfirmation(null);
+      if (source) {
+        setDockTextState(source);
+        setInputOrigin('voice');
+      }
+    }, [pendingConfirmation]),
     open,
     toggleOpen: useCallback(() => setOpen((prev) => !prev), []),
     dockText,
-    setDockText: useCallback((t: string) => setDockTextState(t), []),
+    setDockText: useCallback((t: string) => {
+      setDockTextState((current) => {
+        setInputOrigin((origin) => mergeTypedDraftOrigin(origin, current, t));
+        return t;
+      });
+    }, []),
+    inputMode: commandInputMode(inputOrigin),
+    inputOrigin,
     listening: speech.listening,
     interim: speech.interim,
     handleVoice,

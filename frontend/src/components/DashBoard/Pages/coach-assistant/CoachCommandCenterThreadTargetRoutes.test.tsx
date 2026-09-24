@@ -31,7 +31,8 @@ describe('CoachCommandCenter selected thread target routes', () => {
       },
     ]);
 
-    renderPage('/dashboard/admin/coach-assistant?workspace=chat');
+    // Staff reach an active thread through the routed (admitted) thread, never auto-select.
+    renderPage('/dashboard/admin/coach-assistant?workspace=chat&threadId=201');
 
     await waitFor(() => {
       const header = screen.getByRole('region', { name: /active coach thread/i });
@@ -62,6 +63,9 @@ describe('CoachCommandCenter selected thread target routes', () => {
         'Ava Stone weekly training',
         424242,
         'both',
+        null,
+        null,
+        { reachedNetwork: null },
       );
     });
   });
@@ -122,6 +126,9 @@ describe('CoachCommandCenter selected thread target routes', () => {
         'Ava Stone weekly training',
         424242,
         'both',
+        null,
+        null,
+        { reachedNetwork: null },
       );
     });
   });

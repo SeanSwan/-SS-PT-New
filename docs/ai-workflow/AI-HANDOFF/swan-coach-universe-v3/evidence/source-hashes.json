@@ -1,0 +1,97 @@
+{
+  "baseline": "bfc7a789869384e48116c5f0f091913865fdc575",
+  "files": [
+    {
+      "source": "frontend/src/hooks/useCoachCommand.ts",
+      "sha256": "139c9044b7db2b105b61546c0cb7205d4e01c0e2c99534b4b1e3c2a8c547e9a0"
+    },
+    {
+      "source": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.actions.ts",
+      "sha256": "5e7469d63f38056b2bfb7562b3c5ede0bc1fcbdddfe158ff1e84f64b5bd08b2d"
+    },
+    {
+      "source": "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandLogEntry.tsx",
+      "sha256": "53ad47ccb61dadf82f84f7d0396bb4a60b6596d727e5b9ab61cdd6d19876cea0"
+    },
+    {
+      "source": "frontend/src/components/CoachDock/useSurfaceCoachDock.ts",
+      "sha256": "2c4eae1b1711806a74b9c63ecd31e9f254fcc8ffb18f0b4681c11f01522fcbf4"
+    },
+    {
+      "source": "frontend/src/components/CoachConfirm/ConfirmationSheet.tsx",
+      "sha256": "640c110d4122e74c7b885af38ff6740257445b5fed65702d568047e0f0526e4b"
+    },
+    {
+      "source": "backend/services/ai/operationSigning.mjs",
+      "sha256": "656e35dbdede9a9e17c47ed702f23a388d751c59c27a6d900f04c650b5763be8"
+    },
+    {
+      "source": "backend/services/ai/renderDigest.mjs",
+      "sha256": "acc8b2ea7036505baa7dcab28ce621c05d0efbd184d59fce5e718f474a4c6928"
+    },
+    {
+      "source": "backend/services/ai/commandExecutor.mjs",
+      "sha256": "5952e2a5bb0af5dcee60b2b26954a3c37d410459d37dead86a91fe2911f5ddb1"
+    },
+    {
+      "source": "backend/services/ai/coachActionProposalPersistenceService.mjs",
+      "sha256": "50d6d5227c60e210d65838af41339f3d367eeb43d43a92efe8ff38a4b492288b"
+    },
+    {
+      "source": "backend/models/AiCommandAuditLog.mjs",
+      "sha256": "846359792271ea86f3215fcdf1eaf9e777bc9107592807f55f8d3036ae73008c"
+    },
+    {
+      "source": "backend/models/CoachIntent.mjs",
+      "sha256": "eb14633d75c0c8daa89a7799b03448d4b0dd8142679d792ad2ca0a1e6ba0796a"
+    },
+    {
+      "source": "backend/services/ai/coachIntentService.mjs",
+      "sha256": "e4116ecad9fed1fb7cb46448b9f3896201164bc41a98228647b9bd1130bc8857"
+    },
+    {
+      "source": "backend/routes/aiCommandRoutes.mjs",
+      "sha256": "da63c25a13ff956718ab37284c3800eb04a86334012651db735d32225784aaa8"
+    },
+    {
+      "source": "backend/services/ai/commandPolicy.mjs",
+      "sha256": "852ad7c1ae5bbaf20ea1d77a1b1ff53cb50982e3173389bc78c501285e51759a"
+    },
+    {
+      "source": "backend/services/ai/coachWorkoutResultVerifier.mjs",
+      "sha256": "8afbb3530cbe72c3d9d3ec72d8725d1e03c8c16f6437213e3276da7c7e77b5dc"
+    },
+    {
+      "source": "backend/services/workout/coachIntentTransactionHook.mjs",
+      "sha256": "982495fcae9650f0742ec3571b44903af326ef2a603bd96246b2fe177fe42999"
+    },
+    {
+      "source": "backend/services/workout/aiWorkoutDailyFormService.mjs",
+      "sha256": "2fba246e7b209d6d99edbc283145396c354f8aada09932dd598f17275055a10d"
+    },
+    {
+      "source": "backend/services/ai/contextEngine/coachContextEvidence.mjs",
+      "sha256": "1967b3188aae5a75bebdd964bdf13b12b94aa0eb1f581825e3b46779b5ffd2ed"
+    },
+    {
+      "source": "backend/services/ai/contextEngine/coachContextEngine.mjs",
+      "sha256": "65fa79a35fc3e12601e1a8cae8a9bdd00991bfaf71ec956052ed3a97b5b47e6b"
+    },
+    {
+      "source": "backend/services/ai/coachProviderBoundary.mjs",
+      "sha256": "d817f6d698f58d659cb4ae2aa5e57e07b9c0264e8df385e1b4e2dff205560a5e"
+    },
+    {
+      "source": "backend/services/ai/coachModelResponseContract.mjs",
+      "sha256": "967633d91e6849885f8b0462a09802674aad93e2e654d838f2756991a8a02db2"
+    },
+    {
+      "source": "backend/services/ai/providerRouter.mjs",
+      "sha256": "fc2552fa90ed0d61804c6465b28ef4a15b00089a68d096d3c7796dbcd6a3fa2a"
+    },
+    {
+      "source": "backend/services/ai/coachProgressEvidence.mjs",
+      "sha256": "1d808118d251659868779e12a1b456b9ac4426c99fa3ff9ba014ec5dd7aba77e"
+    }
+  ]
+}

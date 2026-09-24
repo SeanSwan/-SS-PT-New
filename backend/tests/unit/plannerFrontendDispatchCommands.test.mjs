@@ -30,6 +30,19 @@ vi.mock('../../database.mjs', () => ({
   default: { query: vi.fn(async () => []) },
 }));
 
+// H6 (landed 2026-09-02 from the 2026-08-21 security branch) gates AI_ADD_EXERCISE
+// through the chat lane's eligibility service (DB registry + pain exclusions,
+// fail-closed). This file's subject is SURFACE DISAMBIGUATION, not eligibility —
+// allow dispatch here so the unit under test stays isolated. The gate's own
+// behavior (allow, refuse, fail-closed on loader error) is covered by
+// tests/api/aiCommandRouteFrontendDispatch.test.mjs.
+vi.mock('../../services/ai/commandDispatchEligibility.mjs', async () => {
+  const actual = await vi.importActual('../../services/ai/commandDispatchEligibility.mjs');
+  return {
+    ...actual,
+    gateCommandFrontendDispatch: vi.fn(async () => ({ allowed: true, refusals: [] })),
+  };
+});
 vi.mock('../../services/ai/intentClassifier.mjs', () => ({
   classifyIntent: mockClassifyIntent,
 }));

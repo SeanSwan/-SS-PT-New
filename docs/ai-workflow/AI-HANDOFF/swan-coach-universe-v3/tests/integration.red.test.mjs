@@ -1,0 +1,88 @@
+/** SCU isolated source-integration sentinels.
+ * Intentionally outside ordinary backend/frontend test discovery.
+ * These expose the connective tissue required by S1/S3; green means the
+ * source boundary exists, not that the full component/database matrix passed.
+ * Replace these with T01/T04/T13 component and real-DB tests as those slices land.
+ */
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = fileURLToPath(new URL('../../../../../', import.meta.url));
+const read = (p) => readFileSync(path.join(root, p), 'utf8');
+const code = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+function files(dir) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+    const p = path.join(dir, d.name);
+    return d.isDirectory() ? files(p) : [p];
+  });
+}
+test('S1 R02 CoachIntentBar has a production JSX consumer', () => {
+  const consumers = files(path.join(root, 'frontend/src'))
+    .filter((p) => p.endsWith('.tsx') && !p.includes('.test.') && !p.includes('.spec.'))
+    .filter((p) => /<CoachIntentBar\b/.test(code(readFileSync(p, 'utf8'))));
+  assert.ok(consumers.length > 0, 'Dormant component: add real mount and T04 behavior test');
+});
+test('S1 R02 Command Center mounts the shared confirmation sheet', () => {
+  const entry = code(read('frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandLogEntry.tsx'));
+  assert.match(entry, /<ConfirmationSheet\b/, 'Current log entry renders older ConfirmationCard');
+});
+test('S1 R01 Command Center explicitly passes origin to execute', () => {
+  const actions = code(read('frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.actions.ts'));
+  const call = actions.match(/props\.executeCommand\(trimmed,\s*\{([\s\S]*?)\}\)/)?.[1] ?? '';
+  assert.match(call, /inputMode\s*:|inputOrigin\s*:/, 'Voice origin omitted at this caller');
+});
+test('S1 R01 surface dock explicitly passes origin to execute', () => {
+  const dock = code(read('frontend/src/components/CoachDock/useSurfaceCoachDock.ts'));
+  const call = dock.match(/executeCommand\(trimmed,\s*\{([\s\S]*?)\}\)/)?.[1] ?? '';
+  assert.match(call, /inputMode\s*:|inputOrigin\s*:/, 'Recorder/speech drafts currently submit without origin');
+});
+test('S3 R04 durable result service exists for lost-response recovery', () => {
+  assert.ok(existsSync(path.join(root, 'backend/services/ai/coachIntentService.mjs')),
+    'Planned service absent; existence is prerequisite only, T11-T16 prove behavior');
+});
+test('S3 R04 mounted command route exposes bounded intent receipt reads', () => {
+  const routes = code(read('backend/routes/aiCommandRoutes.mjs'));
+  assert.match(routes, /router\.get\('\/intents'/, 'Intent list route is not mounted');
+  assert.match(routes, /router\.get\('\/intents\/\:intentId'/, 'Intent detail route is not mounted');
+  assert.match(routes, /toPublicCoachIntent/, 'Intent route does not use the redacted receipt projection');
+});
+test('S2 R02 command registry attaches server-owned policy metadata before discovery', () => {
+  const registry = code(read('backend/services/ai/commandRegistry/baseSchemas.mjs'));
+  const routes = code(read('backend/routes/aiCommandRoutes.mjs'));
+  assert.match(registry, /policy:\s*resolveCommandPolicy/, 'Registry does not normalize policy metadata');
+  assert.match(routes, /policy:\s*\{/, 'Command discovery does not expose server-owned policy metadata');
+});
+test('S4 R05 workout read-back verifier is present before writer integration', () => {
+  const verifier = code(read('backend/services/ai/coachWorkoutResultVerifier.mjs'));
+  assert.match(verifier, /verifyCoachWorkoutReadback/, 'Workout read-back verifier is not wired as a source contract');
+  assert.match(verifier, /READBACK_MISMATCH/, 'Verifier does not fail closed on mismatched records');
+});
+test('S4 R05 daily-form writer accepts the receipt hook at its own transaction boundary', () => {
+  const writer = code(read('backend/services/workout/aiWorkoutDailyFormService.mjs'));
+  assert.match(writer, /persistCoachIntentReceipt/, 'Daily-form writer has no receipt hook');
+  assert.match(writer, /transaction,\s*\n\s*\}\);/, 'Receipt hook is not passed the existing transaction');
+});
+test('S5 R06 context reader emits an evidence envelope with fail-closed safety states', () => {
+  const evidence = code(read('backend/services/ai/contextEngine/coachContextEvidence.mjs'));
+  const engine = code(read('backend/services/ai/contextEngine/coachContextEngine.mjs'));
+  assert.match(evidence, /source:\s*status === 'ok' \? 'database' : 'unavailable'/, 'Evidence source is not explicit');
+  assert.match(evidence, /REQUIRED_DOMAIN_UNAVAILABLE/, 'Required-domain failure code is missing');
+  assert.match(engine, /evidence:\s*buildCoachEvidenceEnvelope/, 'Context reader does not return the evidence envelope');
+});
+test('S5 R06 provider and model boundaries are optional server-owned router paths', () => {
+  const router = code(read('backend/services/ai/providerRouter.mjs'));
+  const policy = code(read('backend/services/ai/coachProviderBoundary.mjs'));
+  const response = code(read('backend/services/ai/coachModelResponseContract.mjs'));
+  assert.match(router, /guardCoachProviderRequest/, 'Provider router has no policy gate');
+  assert.match(router, /coachResponseMode === 'conversation'/, 'Router has no bounded conversation response path');
+  assert.match(policy, /PRIVACY_POLICY_BLOCKED/, 'Provider policy has no privacy refusal');
+  assert.match(response, /requiresServerResolution/, 'Model proposal does not remain server-resolved');
+});
+test('S8 R10 progress evidence excludes unverified and incomparable records', () => {
+  const evidence = code(read('backend/services/ai/coachProgressEvidence.mjs'));
+  assert.match(evidence, /session\?\.verified === true/, 'Progress evidence accepts unverified records');
+  assert.match(evidence, /session\?\.voided !== true/, 'Progress evidence accepts voided records');
+  assert.match(evidence, /mixed_units/, 'Progress evidence does not preserve unit incomparability');
+});

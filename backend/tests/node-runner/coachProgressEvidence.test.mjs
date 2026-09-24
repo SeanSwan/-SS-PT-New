@@ -1,0 +1,117 @@
+/**
+ * SCU S8a — verified progress evidence tests (G07 updates: empty != unavailable).
+ */
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { buildCoachProgressEvidence } from '../../services/ai/coachProgressEvidence.mjs';
+
+const SESSIONS = [
+  {
+    id: 'session-1', date: '2026-08-01', status: 'completed', verified: true,
+    exercises: [{ exerciseKey: 'squat', unit: 'lb', sets: [{ reps: 5, load: 100 }, { reps: 5, load: 110 }] }],
+  },
+  {
+    id: 'session-2', date: '2026-08-08', status: 'completed', verified: true,
+    exercises: [{ exerciseKey: 'squat', unit: 'lb', sets: [{ reps: 5, load: 120 }] }],
+  },
+  {
+    id: 'session-void', date: '2026-08-09', status: 'completed', verified: true, voided: true,
+    exercises: [{ exerciseKey: 'squat', unit: 'lb', sets: [{ reps: 20, load: 999 }] }],
+  },
+  {
+    id: 'session-unverified', date: '2026-08-10', status: 'completed', verified: false,
+    exercises: [{ exerciseKey: 'squat', unit: 'lb', sets: [{ reps: 20, load: 999 }] }],
+  },
+];
+
+test('counts only verified, completed, non-voided sessions and returns record refs', () => {
+  const result = buildCoachProgressEvidence({ sessions: SESSIONS, scheduledCount: 3 });
+  assert.equal(result.status, 'verified');
+  assert.equal(result.completedSessionCount, 2);
+  assert.equal(result.volumeByExercise.squat.lb, 1650);
+  assert.deepEqual(result.recordRefs, ['session-1', 'session-2']);
+  assert.deepEqual(result.adherence, { scheduledCount: 3, completedCount: 2, rate: 2 / 3 });
+});
+
+test('keeps incompatible units in separate evidence buckets', () => {
+  const result = buildCoachProgressEvidence({
+    sessions: [{
+      id: 'session-3', date: '2026-08-15', status: 'completed', verified: true,
+      exercises: [{ exerciseKey: 'squat', unit: 'kg', sets: [{ reps: 5, load: 50 }] }],
+    }, ...SESSIONS],
+  });
+  assert.equal(result.volumeByExercise.squat.lb, 1650);
+  assert.equal(result.volumeByExercise.squat.kg, 250);
+  assert.equal(result.comparability.squat, 'mixed_units');
+});
+
+test('rows exist but none verified -> no_verified_records, not unavailable', () => {
+  const result = buildCoachProgressEvidence({
+    sessions: [{ id: 'pending', status: 'completed', verified: false, exercises: [] }],
+  });
+  assert.equal(result.status, 'no_verified_records');
+  assert.deepEqual(result.missingInputs, ['verified_workout_records']);
+  assert.equal(result.completedSessionCount, 0);
+});
+
+test('truly zero sessions -> empty (a real zero, not an unavailable source)', () => {
+  const result = buildCoachProgressEvidence({ sessions: [] });
+  assert.equal(result.status, 'empty');
+  assert.deepEqual(result.missingInputs, []);
+  assert.equal(result.completedSessionCount, 0);
+});
+
+test('no sessions input at all -> unavailable (source context missing)', () => {
+  const result = buildCoachProgressEvidence({});
+  assert.equal(result.status, 'unavailable');
+  assert.deepEqual(result.missingInputs, ['verified_workout_records']);
+});
+
+test('does not invent adherence when scheduled count is absent', () => {
+  const result = buildCoachProgressEvidence({
+    sessions: [SESSIONS[0]],
+  });
+  assert.equal(result.adherence, null);
+});
+
+test('adherence denominator of zero planned sessions yields no invented rate', () => {
+  const result = buildCoachProgressEvidence({
+    sessions: [SESSIONS[0]],
+    scheduledCount: 0,
+  });
+  assert.equal(result.adherence, null);
+});
+
+test('null load or reps never counts as zero volume', () => {
+  const result = buildCoachProgressEvidence({
+    sessions: [{
+      id: 'session-null', date: '2026-08-20', status: 'completed', verified: true,
+      exercises: [{
+        exerciseKey: 'press', unit: 'kg',
+        sets: [{ reps: null, load: 50 }, { reps: 8, load: null }, { reps: 8, load: 60 }],
+      }],
+    }],
+  });
+  assert.equal(result.volumeByExercise.press.kg, 480);
+});
+
+
+test('HR1-4 absent and malformed set values never publish comparable zero volume', () => {
+  for (const missing of [null, undefined, '', ' ', false, {}, []]) {
+    const out = buildCoachProgressEvidence({ sessions: [{ id: 'missing', status: 'completed', verified: true, exercises: [{ exerciseKey: 'squat', unit: 'lbs', sets: [{ reps: missing, load: 100 }, { reps: 5, load: missing }] }] }] });
+    assert.deepEqual(out.volumeByExercise, {}, `unexpected volume for ${JSON.stringify(missing)}`);
+    assert.deepEqual(out.comparability, {});
+    assert.ok(out.missingInputs.includes('workout_set_values'));
+  }
+});
+test('HR1-4 recorded zero load remains a real zero, with partial records disclosed separately', () => {
+  const make = sets => buildCoachProgressEvidence({ sessions: [{ id: 'zero', status: 'completed', verified: true, exercises: [{ exerciseKey: 'squat', unit: 'lbs', sets }] }] });
+  const zero = make([{ reps: 5, load: 0 }]);
+  assert.equal(zero.volumeByExercise.squat.lbs, 0);
+  assert.equal(zero.comparability.squat, 'comparable');
+  assert.deepEqual(zero.missingInputs, []);
+  const partial = make([{ reps: 5, load: 100 }, { reps: 5, load: null }]);
+  assert.equal(partial.volumeByExercise.squat.lbs, 500);
+  assert.equal(partial.completeness, 'partial');
+  assert.ok(partial.missingInputs.includes('workout_set_values'));
+});

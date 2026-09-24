@@ -49,6 +49,7 @@ describe('CoachCommandCenterPage plan review route', () => {
           intent: 'plan_review',
           surface: 'coach-command-center',
         },
+        { reachedNetwork: null },
       );
     });
   });

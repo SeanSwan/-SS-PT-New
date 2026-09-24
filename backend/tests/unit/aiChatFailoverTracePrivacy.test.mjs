@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../services/analyticsExerciseHistoryService.mjs', () => ({
@@ -10,8 +8,15 @@ import {
   sanitizeAiFailoverTrace,
 } from '../../services/aiChatService.mjs';
 
-const routeSource = readFileSync(resolve(__dirname, '../../routes/aiChatRoutes.mjs'), 'utf8');
-
+// This file covers the PURE sanitizer functions only. The former third test read
+// routes/aiChatRoutes.mjs as text and asserted the sanitizer call was spelled a
+// particular way; the read-service extraction moved the call into
+// services/ai/coachConversationReadAccess.mjs:229 (`sanitizeMetadata(found.metadata)`),
+// so the guard failed on formatting, not behaviour. The route-level property it
+// was approximating — client-visible metadata is sanitized, and persisted
+// failover metadata is sanitized before the conversation update — is now
+// exercised through the mounted router with the REAL sanitizer in
+// tests/api/coachConversationReadAuthorization.test.mjs.
 describe('AI chat failover trace privacy', () => {
   it('redacts provider error details before traces can be stored or returned', () => {
     const trace = sanitizeAiFailoverTrace([
@@ -46,12 +51,5 @@ describe('AI chat failover trace privacy', () => {
       failoverTrace: ['gemini:provider_error', 'openai:success'],
     });
     expect(JSON.stringify(metadata)).not.toMatch(/503|database password|upstream/);
-  });
-
-  it('routes all client-visible metadata through the sanitizer', () => {
-    expect(routeSource).toContain("sanitizeAiChatMetadataForClient");
-    expect(routeSource).toContain('metadata: sanitizeAiChatMetadataForClient(conversation.metadata)');
-    expect(routeSource).toContain('const updatedMetadata = sanitizeAiChatMetadataForClient({');
-    expect(routeSource).not.toContain('metadata: conversation.metadata');
   });
 });

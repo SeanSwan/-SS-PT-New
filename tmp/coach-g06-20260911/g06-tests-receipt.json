@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "digest": "b887c9ccdb58be803459bcb24383717a89dafc0b96909cbb61d9e02f8f9f8054",
+  "command": "cd frontend && npx vitest run on the 8 G06 scoped+regression files (40/40 pass, exit 0); full coach-assistant dir 964 pass / 4 pre-existing HEAD-verified failures; WSL tsc --noEmit exit 0; vite build exit 0",
+  "scope": "G06/S7: one foreground voice lifecycle composing browser dictation, recorder/transcription and TTS - unique final segments with session-scoped echo dedupe (restart-safe), interim display-only with no auto-submit, tracks/output stop on background/logout/switch, audio stop separate from action cancel, fresh-session resume that cannot replay a submitted intent; exits T30-T32",
+  "files": [
+    "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useVoiceRecorder.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.voiceCapture.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenter.controller.ts",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachVoiceLifecycle.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput.uniqueFinals.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/CoachCommandCenterVoiceLifecycle.test.tsx",
+    "frontend/src/components/DashBoard/Pages/coach-assistant/VoiceRecordingOverlay.background.test.tsx"
+  ],
+  "results": {
+    "scopedSuite": "40/40 PASS across 8 files, exit 0 (RED first observed: 10F/3P, assertion-level)",
+    "directoryRegression": "174 files pass / 4 fail (964 tests pass / 4 fail); 4 failures verified identical on HEAD via stash roundtrip - pre-existing baseline, not G06 regressions",
+    "types": "tsc --noEmit exit 0 (WSL Node 22, 10GB heap)",
+    "build": "vite build exit 0"
+  },
+  "toolEvidence": {
+    "path": "tmp/coach-g06-20260911/g06-tests-evidence.md",
+    "sha256": "eafc4d9264bf08bda80e6ab29fff025dd39f46ec8f0dd0d70a8e79c4540800aa"
+  }
+}

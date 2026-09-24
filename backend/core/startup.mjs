@@ -573,6 +573,33 @@ export const initializeServer = async (app) => {
     logger.info('🗄️  Running critical database preflight (pre-listen)...');
     logger.info('Running critical config preflight (pre-listen)...');
     assertAdminAccessCode();
+
+    // S1 (blueprint 0.3): the destructive-approval signing key is REQUIRED —
+    // PRE-LISTEN, beside assertAdminAccessCode, so a keyless deploy fails HERE
+    // with the remedy in the message and never serves a request. (Fable 5.1
+    // hostile pass 2026-09-02: the 5.0 placement was inside the NON-CRITICAL
+    // background block, whose catch logs "Server continues running" — the gate
+    // was decorative and the closeout claim "fails before listen" was false.)
+    {
+      const { assertOperationSigningKey } = await import('../services/ai/destructiveOperations.mjs');
+      assertOperationSigningKey();
+    }
+
+    // 0.4b: durable approval store, explicit opt-in, fail-CLOSED on the flag —
+    // also PRE-LISTEN for the same reason: an operator who asked for redis must
+    // never be served by the in-process store while believing the P0 is fixed.
+    if (process.env.APPROVAL_STORE === 'redis') {
+      try {
+        const { installRedisPendingOperationStore } = await import('../services/ai/redisPendingOperationStore.mjs');
+        await installRedisPendingOperationStore();
+        logger.info('[Startup] Destructive-approval store: REDIS (durable, multi-instance)');
+      } catch (redisStoreErr) {
+        throw new Error(
+          `APPROVAL_STORE=redis was requested but the Redis approval store could not be installed: ${redisStoreErr.message}. `
+          + 'Fix REDIS_URL / connectivity, or unset APPROVAL_STORE to boot with the in-process store (single-instance only).'
+        );
+      }
+    }
     await criticalDatabasePreflight(sequelize);
 
     logger.info('📁 Creating required directories...');
@@ -662,6 +689,19 @@ export const initializeServer = async (app) => {
         }
 
         try {
+          // S2 (2026-08-21). Reports at ERROR level when the destructive-approval
+          // store is in-process while NODE_ENV=production — approvals then cannot
+          // survive a restart or cross instances. Deliberately does NOT throw: the
+          // remedy (provisioning Redis) is not something the process can perform
+          // for itself, so refusing to boot would convert a silent defect into an
+          // outage. Makes it visible in Render logs and alerting.
+          const { assertStoreIsSafeForEnvironment } = await import('../services/ai/pendingOperationStore.mjs');
+          assertStoreIsSafeForEnvironment();
+        } catch (storeGuardErr) {
+          logger.warn(`Pending-operation store guard failed to run: ${storeGuardErr.message}`);
+        }
+
+        try {
           // Workout-OS C6b. No-op unless ENABLE_STALE_CLIENT_NUDGES=true (kill switch).
           const { startStaleClientNudgeScheduler } = await import('../services/staleClientNudgeCron.mjs');
           startStaleClientNudgeScheduler();
@@ -675,6 +715,27 @@ export const initializeServer = async (app) => {
           startNutritionLogNudgeScheduler();
         } catch (nutritionNudgeErr) {
           logger.warn(`Nutrition log nudge scheduler failed to start: ${nutritionNudgeErr.message}`);
+        }
+
+        try {
+          // Swan Coach G10. No-op unless ENABLE_COACH_PROACTIVE_NUDGES=true
+          // (kill switch); per-client delivery additionally needs explicit
+          // opt-in and survives restarts through the nudge_dispatches ledger.
+          const { startCoachProactiveNudgeScheduler } = await import('../services/coachProactiveNudgeCron.mjs');
+          startCoachProactiveNudgeScheduler();
+        } catch (coachNudgeErr) {
+          logger.warn(`Coach proactive nudge scheduler failed to start: ${coachNudgeErr.message}`);
+        }
+
+        try {
+          // Swan Coach G09-R1/T35. No-op unless ENABLE_COACH_FACT_PURGE=true
+          // (kill switch). This is the ONLY production caller of purgeDueFacts;
+          // until it existed, a user's "forget" was never actually destroyed.
+          // Destroys rows only, and logs a count — never fact text.
+          const { startCoachFactPurgeScheduler } = await import('../services/coachFactPurgeCron.mjs');
+          startCoachFactPurgeScheduler();
+        } catch (coachFactPurgeErr) {
+          logger.warn(`Coach fact purge scheduler failed to start: ${coachFactPurgeErr.message}`);
         }
 
         try {

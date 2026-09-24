@@ -1,0 +1,48 @@
+{
+  "status": "active",
+  "stage": "slice",
+  "index": 8,
+  "calls": 9,
+  "active": {
+    "id": "G09",
+    "allowedFiles": [
+      "backend/models/CoachFact.mjs",
+      "backend/migrations/20260831200000-create-coach-facts.cjs",
+      "backend/migrations/20260911000000-add-coach-fact-forget-purge.cjs",
+      "backend/services/coachFactService.mjs",
+      "backend/services/coachFactMemoryPolicy.mjs",
+      "backend/tests/unit/coachContextTableNames.test.mjs",
+      "backend/tests/unit/coachFactService.test.mjs",
+      "backend/tests/unit/coachFactsMigration.test.mjs",
+      "backend/tests/unit/coachFactMemoryPolicy.test.mjs"
+    ],
+    "files": [
+      "backend/models/CoachFact.mjs",
+      "backend/migrations/20260831200000-create-coach-facts.cjs",
+      "backend/migrations/20260911000000-add-coach-fact-forget-purge.cjs",
+      "backend/services/coachFactService.mjs",
+      "backend/services/coachFactMemoryPolicy.mjs",
+      "backend/tests/unit/coachContextTableNames.test.mjs",
+      "backend/tests/unit/coachFactService.test.mjs",
+      "backend/tests/unit/coachFactsMigration.test.mjs",
+      "backend/tests/unit/coachFactMemoryPolicy.test.mjs",
+      "docs/ai-workflow/AI-HANDOFF/swan-coach-universe-v3/43-g09-coachfact-scoped-memory.md"
+    ],
+    "status": "tested",
+    "round": 0,
+    "reviews": [],
+    "findings": {},
+    "digest": "30f12ac75527a3c7fcc08498768166a8510c195894d85b8df4cc87d29781a239",
+    "frozen": {
+      "tests": {
+        "path": "tmp/coach-g09-20260911/g09-tests-receipt.json",
+        "sha256": "0b9a3565841f717cc0d5241eacc8dbbd7cdc6901bd39be1013fcd0a2e558bf14"
+      },
+      "build": {
+        "path": "tmp/coach-g09-20260911/g09-build-receipt.json",
+        "sha256": "dba43dcbc6ff78435fec0f51d92a4881131f5a27c25b9c1a15be50ddc661a5a4"
+      }
+    }
+  },
+  "inFlight": null
+}

@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "digest": "15fbd2413ff7bad84420cc1e3d0317ece50c1eb389ea61fb2832e8729597b1e5",
+  "command": "npx vitest run on 6 G07 scoped+regression files (36/36 pass, exit 0); node --test coachProgressEvidence.test.mjs 8 pass / 0 fail; full backend coach vitest baseline 58 files / 325 tests / 0 fail; ESM import smoke SMOKE_PASS",
+  "scope": "G07/S8: real source-linked workout evidence and deterministic metrics - joined reader over model-verified schema, empty != unavailable vs no_verified_records vs verified, matched planned-session adherence denominator, unit honesty (missing unit reported, never invented), LIMIT+1 truncation marker; T34 substitution draft with hard-contraindication block and no fabricated clearance; T48 share DRAFT structurally separate from log approval; exits T33/T34/T48",
+  "files": [
+    "backend/services/ai/coachProgressRecordReader.mjs",
+    "backend/services/ai/coachProgressEvidence.mjs",
+    "backend/services/ai/coachEvidenceTools.mjs",
+    "backend/services/ai/coachSubstitutionDraft.mjs",
+    "backend/services/ai/coachMilestoneShareDraft.mjs",
+    "backend/tests/unit/coachProgressEvidence.test.mjs",
+    "backend/tests/unit/coachProgressRecordReader.test.mjs",
+    "backend/tests/unit/coachProgressEvidenceTool.t33.test.mjs",
+    "backend/tests/unit/coachSubstitutionDraft.test.mjs",
+    "backend/tests/unit/coachMilestoneShareDraft.test.mjs"
+  ],
+  "results": {
+    "scopedSuite": "36/36 vitest + 8/8 node:test PASS (RED first observed: calculator status assertions + T33 4F/3P)",
+    "baseline": "backend coach vitest baseline CLEAN: 58 files / 325 tests / 0 failures",
+    "smoke": "ESM import smoke SMOKE_PASS"
+  },
+  "toolEvidence": {
+    "path": "tmp/coach-g07-20260911/g07-tests-evidence.md",
+    "sha256": "97954955365a9c77c7073dc9fccdf0baad152a515b256f91f8a730296f8579e2"
+  }
+}
