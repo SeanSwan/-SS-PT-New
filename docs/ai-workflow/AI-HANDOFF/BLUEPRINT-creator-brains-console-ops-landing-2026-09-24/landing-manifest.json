@@ -1,0 +1,301 @@
+{
+  "base": "58e019b1f1e6d16ac1fb0336f109b522c50f1ee6",
+  "tree": "2539dd0517dcf76edef6c6a0dc4e9e8dba61bef6",
+  "entries": [
+    {
+      "path": "packages/creator-brains-console/api.mjs",
+      "mode": "100644",
+      "oid": "aa999bf3314e86eaf19b1ecaad54fa91c8663213"
+    },
+    {
+      "path": "packages/creator-brains-console/lib/repair.mjs",
+      "mode": "100644",
+      "oid": "606c85f92bf23a88b97c6fc71c3cd30475fc6783"
+    },
+    {
+      "path": "packages/creator-brains-console/lib/run-daily.mjs",
+      "mode": "100644",
+      "oid": "41e09da9035cc9adbfaf9c5e938fc505f1fb2956"
+    },
+    {
+      "path": "packages/creator-brains-console/lib/run-gate.mjs",
+      "mode": "100644",
+      "oid": "e820f344514ba25371d1580f385e5f4649c02ad3"
+    },
+    {
+      "path": "packages/creator-brains-console/lib/run-reservation.mjs",
+      "mode": "100644",
+      "oid": "e6b4bd67f28345681172f815e000558fd2567125"
+    },
+    {
+      "path": "packages/creator-brains-console/routes.mjs",
+      "mode": "100644",
+      "oid": "b89a837da9984c92cb27488fe528ce59de5384b0"
+    },
+    {
+      "path": "packages/creator-brains-console/server.mjs",
+      "mode": "100644",
+      "oid": "0008dd05b0d3ef953fb227ea2a8e598da768d60f"
+    },
+    {
+      "path": "packages/creator-brains-console/test/bridge.contractsync.test.mjs",
+      "mode": "100644",
+      "oid": "133ad74899e39621c4cc7878d88c4557f34f41f2"
+    },
+    {
+      "path": "packages/creator-brains-console/test/bridge.handoff.test.mjs",
+      "mode": "100644",
+      "oid": "560762f70d8a8d833df31113dad4780ec980312f"
+    },
+    {
+      "path": "packages/creator-brains-console/test/bridge.hy4.allowlist.test.mjs",
+      "mode": "100644",
+      "oid": "e0694b2f38f951de0bda53fb9b53cc55ebed3b9a"
+    },
+    {
+      "path": "packages/creator-brains-console/test/bridge.hy4.structure.test.mjs",
+      "mode": "100644",
+      "oid": "d916284e7fbebd97b3855d79edc4ad79b947c01f"
+    },
+    {
+      "path": "packages/creator-brains-console/test/bridge.repair.realengine.test.mjs",
+      "mode": "100644",
+      "oid": "15a6955c43c44c7fe3fe2d70d30370c538577a07"
+    },
+    {
+      "path": "packages/creator-brains-console/test/bridge.root-coupling.test.mjs",
+      "mode": "100644",
+      "oid": "4bf6bbdf9f7d5dc5689f5695d3f0046d4479683a"
+    },
+    {
+      "path": "packages/creator-brains-console/test/bridge.rundaily.test.mjs",
+      "mode": "100644",
+      "oid": "ef23a39d3891791837e8fe4aa3601ccfe483cedf"
+    },
+    {
+      "path": "packages/creator-brains-console/test/bridge.spawn-launch.test.mjs",
+      "mode": "100644",
+      "oid": "2193607d16660b5d9c77854e798efa34ff3631dc"
+    },
+    {
+      "path": "packages/creator-brains-console/test/contract-parse.r7.test.mjs",
+      "mode": "100644",
+      "oid": "4446fe6519d8fb5fb6b8c67b3622121db3be207b"
+    },
+    {
+      "path": "packages/creator-brains-console/test/contract-readers.r9.test.mjs",
+      "mode": "100644",
+      "oid": "63ff77858c751e3a2581e4ce82562cf8eb09fe7b"
+    },
+    {
+      "path": "packages/creator-brains-console/test/fixtures/spawn-recorder.mjs",
+      "mode": "100644",
+      "oid": "f8d9b3a732ed34ad0d4b43e1730246c8892d3cdc"
+    },
+    {
+      "path": "packages/creator-brains-console/web/bench/frame-bench.mjs",
+      "mode": "100644",
+      "oid": "0c9e4123edcb8efc3628c28273aa2859b5c1e132"
+    },
+    {
+      "path": "packages/creator-brains-console/web/package-lock.json",
+      "mode": "100644",
+      "oid": "42c3550a65cd682d5db84794636f74517bc13e65"
+    },
+    {
+      "path": "packages/creator-brains-console/web/package.json",
+      "mode": "100644",
+      "oid": "2a1509773700bd722178e05c471406b84ce5d0a9"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/App.tsx",
+      "mode": "100644",
+      "oid": "7dcc75c1b2b20478cc65e9d8c57c3727aa5316eb"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/adapters/LocalEngineAdapter.ts",
+      "mode": "100644",
+      "oid": "8b0543289963969a802c157031b28ecda16865ab"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/adapters/MockAdapter.ts",
+      "mode": "100644",
+      "oid": "0bb01094067c819845c0cfe27aedf19a92583e53"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/BrainConstellation.tsx",
+      "mode": "100644",
+      "oid": "583e1680a9841bffddf6fa488294f42d564b9da2"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/BrainDrawer.tsx",
+      "mode": "100644",
+      "oid": "29a47458370d056113867e2009f8b2aa95586796"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/ConstellationRoster.tsx",
+      "mode": "100644",
+      "oid": "64673d72b8cc0946f3d88e62b8eb5110f1974321"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/OpsRail.test.tsx",
+      "mode": "100644",
+      "oid": "4ac9db4ddd154849c6a82947d261fde5350af68c"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/OpsRail.tsx",
+      "mode": "100644",
+      "oid": "35a2645545627f19d2d329d4cfa816b09afb0ee1"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/QueryConsole.test.tsx",
+      "mode": "100644",
+      "oid": "0286704965898c09613097b951d08ee1728ac0f2"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/QueryConsole.tsx",
+      "mode": "100644",
+      "oid": "0a09c6b88a5d95cf584ef9b91f7ea744302b6fea"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/Roster.test.tsx",
+      "mode": "100644",
+      "oid": "47c9bd0861192bd7e00fb8b937d63cfcf875264b"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/Roster.tsx",
+      "mode": "100644",
+      "oid": "e07c4699cd6b0e36c5b9822f66a51fd7f94ff1f6"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/RunConsole.test.tsx",
+      "mode": "100644",
+      "oid": "a0b5b9d52156bcdb968ecab3294e06176e100fa0"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/RunConsole.tsx",
+      "mode": "100644",
+      "oid": "1e4a0c3fb02a6d65e9547d7a6cbc48072b395aa6"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/RunConsole.watch.test.tsx",
+      "mode": "100644",
+      "oid": "38b75e6d23ab14dff3a85b00f50b7e68555c8d97"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-budget.test.ts",
+      "mode": "100644",
+      "oid": "63428debf5d7c498506a1f72b2ce6bfcf0a649f3"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-chunk.test.ts",
+      "mode": "100644",
+      "oid": "d058c8508c2328f0219b455b53a5f7b2ff7b73da"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-chunk.ts",
+      "mode": "100644",
+      "oid": "83d61165e34c60fafc85edacba57f3f44b5f6106"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-gates.test.tsx",
+      "mode": "100644",
+      "oid": "29cafb8459989f7ce57dbb053c9600ab10805238"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-idle.test.ts",
+      "mode": "100644",
+      "oid": "4f681ba0eb178f7ce4954668260e48bcbbe5430f"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-layout.test.ts",
+      "mode": "100644",
+      "oid": "87849725ea419cccfe8302dc2054eba1c5017762"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-layout.ts",
+      "mode": "100644",
+      "oid": "00ad4da71166829d337f92b94bbf485de4e4e425"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-loop.test.ts",
+      "mode": "100644",
+      "oid": "2d9bac48e990b8c0cd0d82b96c0c571361602df9"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-loop.ts",
+      "mode": "100644",
+      "oid": "b3739a9015adb2e6b9e513a5fd3fe0e0c3dba2c0"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-pointer.ts",
+      "mode": "100644",
+      "oid": "7fc96a3b3e2db83b7cadcd90741efe8bb4aa452c"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-scene-parts.ts",
+      "mode": "100644",
+      "oid": "c58262601d69e9e3f7356e7eea2687e05bba197c"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-three.test.ts",
+      "mode": "100644",
+      "oid": "43d9775d99b4119dc4c66cf262a8b2f6be76e7f5"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-three.ts",
+      "mode": "100644",
+      "oid": "cc7e0b691f750ebe454e1fc62602e76fdbb55269"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-walk.test.ts",
+      "mode": "100644",
+      "oid": "020afeee616d9c071b807042cbad9b11d61b165a"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/constellation-walk.ts",
+      "mode": "100644",
+      "oid": "954ede580894ce6e75edf816d8ebb7e083395d13"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/ops.styles.ts",
+      "mode": "100644",
+      "oid": "84da71b64a73f7971cbbee8bde7b817436c60408"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/roster.styles.ts",
+      "mode": "100644",
+      "oid": "a45c296bb79cc5fe7251b8baf336dc245034c00c"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/components/runVerdict.ts",
+      "mode": "100644",
+      "oid": "9cab8fc795832e1a5a96ddcafa87c88a78b83795"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/hooks/useRoster.ts",
+      "mode": "100644",
+      "oid": "8441ac9c78cefa2e0798543a967599b78ed35689"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/hooks/useRunPoll.ts",
+      "mode": "100644",
+      "oid": "e98ac15b35b9ee4d0c10f098a01799fa6b24fa42"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/hooks/useStatus.test.ts",
+      "mode": "100644",
+      "oid": "789ed92966ff076af9cc340643ecfdd4198ee433"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/hooks/useStatus.ts",
+      "mode": "100644",
+      "oid": "6b11fd49b7e7643fcd88fc46c139724d53b63046"
+    },
+    {
+      "path": "packages/creator-brains-console/web/src/test/adapter-contract.test.ts",
+      "mode": "100644",
+      "oid": "59321b6f61b46f5668fdd279af9e1bae42a94b78"
+    }
+  ]
+}
