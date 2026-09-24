@@ -6,6 +6,7 @@
  * session credits, build WorkoutSession linkage, and stamp attendance.
  */
 import { AiWorkoutDailyFormError, parsePositiveInteger, toIsoDateOnly } from './aiWorkoutDailyFormPayloadService.mjs';
+import { formatDateOnlyInTimeZone } from '../clientTrainingDateService.mjs';
 
 const sameId = (a, b) => String(a) === String(b);
 
@@ -68,8 +69,18 @@ export async function resolveAiScheduledSessionForLog({
   return { linkedScheduledSession, creditsRequired };
 }
 
-export function scheduledWorkoutDate(linkedScheduledSession, fallbackDate) {
-  if (linkedScheduledSession?.sessionDate) return toIsoDateOnly(linkedScheduledSession.sessionDate);
+/**
+ * The day a workout is filed under. A booked session is its LOCAL day in the
+ * client's zone (the zone the future-date guard compares against); its UTC day
+ * put every booking from ~5 PM Pacific "in the future" (2026-09-24 review).
+ */
+export function scheduledWorkoutDate(linkedScheduledSession, fallbackDate, timeZone) {
+  if (linkedScheduledSession?.sessionDate) {
+    const at = new Date(linkedScheduledSession.sessionDate);
+    return timeZone && Number.isFinite(at.getTime())
+      ? formatDateOnlyInTimeZone(at, timeZone)
+      : toIsoDateOnly(linkedScheduledSession.sessionDate);
+  }
   return toIsoDateOnly(fallbackDate);
 }
 

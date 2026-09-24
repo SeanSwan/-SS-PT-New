@@ -128,7 +128,7 @@ export async function submitAiWorkoutLogAsDailyForm({
       userRole,
       transaction,
     });
-    const workoutDateIso = scheduledWorkoutDate(linkedScheduledSession, date);
+    const workoutDateIso = scheduledWorkoutDate(linkedScheduledSession, date, trainingDateContext.timeZone);
     if (!workoutDateIso) throw new AiWorkoutDailyFormError('Valid workout date is required');
 
     if (workoutDateIso > trainingDateContext.localDate) {

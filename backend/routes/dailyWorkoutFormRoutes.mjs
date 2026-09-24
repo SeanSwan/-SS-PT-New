@@ -44,7 +44,7 @@ import { buildChallengeProgressImpactReceipt } from '../services/gamification/ch
 import { buildWorkoutSessionBillingDecision, normalizePaidSessionCount } from '../services/sessionBillingPolicy.mjs';
 import { toCurrentWorkoutPlanResponse } from '../services/workoutPlanShapeService.mjs';
 import { buildClientTrainingOverview } from '../services/clientTrainingReadModelService.mjs';
-import { resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
+import { formatDateOnlyInTimeZone, resolveClientTrainingDateContext } from '../services/clientTrainingDateService.mjs';
 import {
   buildProgressDetailedAnalysisRows,
   fetchCanonicalProgressWorkoutSessions,
@@ -794,8 +794,11 @@ router.post('/', protect, checkTrainerClientRelationship, async (req, res) => {
       }
     }
 
+    // A booked session is logged under ITS local day in the client's time zone —
+    // the same zone the future-date guard below compares against. Its UTC date put
+    // every booking from ~5 PM Pacific on "in the future" (2026-09-24 review).
     const workoutDateValue = linkedScheduledSession?.sessionDate
-      ? new Date(linkedScheduledSession.sessionDate).toISOString().split('T')[0]
+      ? formatDateOnlyInTimeZone(new Date(linkedScheduledSession.sessionDate), trainingDateContext.timeZone)
       : date;
     const workoutDateIso = toIsoDateOnly(workoutDateValue);
     if (!workoutDateIso) {
