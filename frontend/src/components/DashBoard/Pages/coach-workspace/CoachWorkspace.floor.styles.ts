@@ -86,6 +86,7 @@ export const FloorRoot = styled.section`
   }
   .ws-floor-end p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--ws-text); }
   .ws-floor-end .ws-floor-eyebrow { color: var(--ws-gold); }
+  .ws-floor-end .ws-floor-bill { font-size: 12.5px; color: var(--ws-muted); }
   .ws-floor-end[data-phase='failed'], .ws-floor-end[data-phase='conflict'] { border-color: color-mix(in srgb, var(--ws-warn) 55%, transparent); }
   .ws-floor-end .ws-floor-save { min-height: 52px; font-size: 15px; padding: 0 18px; }
 

@@ -7,9 +7,10 @@
  * The view switch — Chat · Today · Floor — is one click from anywhere (unified
  * design, Sean 2026-09-23); on phones it drops to its own full-width row.
  */
-import React from 'react';
+import React, { useRef } from 'react';
 import { CalendarDays, Dumbbell, Feather, Inbox, MessageCircle, MoreHorizontal, PanelLeft, PanelRight } from 'lucide-react';
 import { WorkspaceHeaderBar } from './CoachWorkspace.styles';
+import { useCompactWidth } from './useCompactWidth';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 
 type Props = { model: CoachWorkspaceModel };
@@ -51,10 +52,15 @@ const WorkspaceHeader: React.FC<Props> = ({ model }) => {
       : controller.activeThread?.title?.trim() || (model.view === 'review' ? 'Review' : 'New conversation');
   const whole = model.view === 'today' || model.view === 'floor';
   const brain = brainState(model);
+  const showThreadsToggle = !panels.docking.sidebarDocked && model.view !== 'floor';
+  // With labels the bar needs ~800px plus room for its longest status ("Needs your choice", +86px);
+  // below that the wordmark and button words give way (icons keep their accessible names).
+  const barRef = useRef<HTMLElement>(null);
+  const compact = useCompactWidth(barRef, showThreadsToggle ? 954 : 900);
 
   return (
-    <WorkspaceHeaderBar>
-      {!panels.docking.sidebarDocked && model.view !== 'floor' ? (
+    <WorkspaceHeaderBar ref={barRef} data-compact={compact ? 'true' : undefined}>
+      {showThreadsToggle ? (
         <button
           type="button"
           className="ws-icon-btn"

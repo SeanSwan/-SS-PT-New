@@ -9,11 +9,12 @@
  * the schedule Ask (client id + time, never a name to the model); the PDF is the
  * on-device report; "Brief my day" sends the real registry command.
  */
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CalendarDays, Dumbbell, FileText, MessageCircleQuestion, RotateCcw, Sparkles } from 'lucide-react';
 import { TodayRoot } from './CoachWorkspace.today.styles';
 import { useSessionPlannedWorkout } from '../../../UniversalMasterSchedule/useSessionPlannedWorkout';
-import { localDateISO } from './floorSession';
+import { type FloorLink, localDateISO } from './floorSession';
+import { useNowClock } from './useNowClock';
 import type { TodaySlot } from './useTodaySchedule';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 
@@ -21,14 +22,24 @@ type Props = { model: CoachWorkspaceModel };
 
 const time = (date: Date) => date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
+/** Booked statuses a Floor save may complete (never requested, completed or cancelled). */
+const LINKABLE = new Set<TodaySlot['status']>(['scheduled', 'booked', 'confirmed']);
+
+/** The booking Floor carries into its save: the logger's scheduledSessionId, the session's own date. */
+export function floorLinkFor(slot: TodaySlot): FloorLink | null {
+  return LINKABLE.has(slot.status)
+    ? { scheduledSessionId: slot.id, date: localDateISO(slot.startsAt), startsAt: slot.startsAt.toISOString() }
+    : null;
+}
+
 /** The session in progress, else the next one to start, else the last of the day. */
 export function upNext(slots: TodaySlot[], now: number): TodaySlot | null {
   const live = slots.filter((slot) => slot.status !== 'cancelled');
   return live.find((slot) => now < slot.startsAt.getTime() + slot.minutes * 60_000) ?? live[live.length - 1] ?? null;
 }
 
-function PlanPeek({ clientId }: { clientId: number | null }) {
-  const plan = useSessionPlannedWorkout(clientId, clientId ? localDateISO() : null);
+function PlanPeek({ clientId, day }: { clientId: number | null; day: string }) {
+  const plan = useSessionPlannedWorkout(clientId, clientId ? day : null);
   if (plan.status === 'hidden') return null;
   if (plan.status === 'loading') return <p className="ws-today-note" role="status">Loading today’s plan…</p>;
   if (plan.status === 'error') return <p className="ws-today-note" data-tone="warn">Today’s plan did not load.</p>;
@@ -50,13 +61,21 @@ const TodayView: React.FC<Props> = ({ model }) => {
   const { schedule, isClientMode } = model;
   const state = schedule.state;
   const [picked, setPicked] = useState<string | null>(null);
-  const now = Date.now();
+  const now = useNowClock();
+  const dayKey = localDateISO(new Date(now));
+  // Midnight: a slot picked yesterday falls away (the schedule hook re-reads the new day itself).
+  const shownDay = useRef(dayKey);
+  useEffect(() => {
+    if (shownDay.current === dayKey) return;
+    shownDay.current = dayKey;
+    setPicked(null);
+  }, [dayKey]);
   const slots = state.phase === 'ready' ? state.slots : [];
   const focus = slots.find((slot) => slot.id === picked) ?? upNext(slots, now);
   const liveCount = slots.filter((slot) => slot.status !== 'cancelled').length;
   // The now-line sits before the first session that has not ended (none after the last).
   const nowBefore = slots.find((slot) => now < slot.startsAt.getTime() + slot.minutes * 60_000)?.id ?? null;
-  const today = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+  const today = new Date(now).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
   // Only a type the role-scoped catalog carries is sent directly (same rule as the starters).
   const canBrief = model.catalog.commands.some((command) => command.type === 'brief_my_day');
   // Floor and the PDF act on a client by ID only when the viewer's roster has them — never a guess that
@@ -126,10 +145,10 @@ const TodayView: React.FC<Props> = ({ model }) => {
             <span className="ws-eyebrow">{focus !== upNext(slots, now) ? 'Selected' : now >= focus.startsAt.getTime() + focus.minutes * 60_000 ? 'Last session today' : now >= focus.startsAt.getTime() ? 'In session now' : 'Up next'}</span>
             <h2 id="ws-next-title">{focus.who} · {time(focus.startsAt)}</h2>
             <p className="ws-today-note">{focus.minutes} min · {focus.status}{focus.what ? ` · ${focus.what}` : ''}</p>
-            <PlanPeek clientId={isClientMode ? (Number(model.user?.id) || null) : focus.clientId} />
+            <PlanPeek clientId={isClientMode ? (Number(model.user?.id) || null) : focus.clientId} day={localDateISO(focus.startsAt)} />
             <div className="ws-actions">
               {(isClientMode || inRoster) && focus.status !== 'cancelled' ? (
-                <button type="button" className="ws-btn ws-btn-primary" onClick={() => model.startFloor(isClientMode ? null : focus.clientId)}>
+                <button type="button" className="ws-btn ws-btn-primary" onClick={() => model.startFloor(isClientMode ? null : focus.clientId, floorLinkFor(focus))}>
                   <Dumbbell size={15} aria-hidden="true" /> Start in Floor mode
                 </button>
               ) : null}

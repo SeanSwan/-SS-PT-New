@@ -7,6 +7,8 @@
  *     saves ONCE through POST /api/workout-forms — nothing goes to the coach.
  *  3. Today and Floor never overflow sideways, 320 → 2560, and the chat header
  *     keeps every control on screen (incl. the 360–367px two-row band).
+ *  4. The header keeps every control inside its OWN bar with its longest status,
+ *     including 1024–1199px where a docked sidebar narrows the bar (Astra round).
  */
 import { expect, test, type Page } from '@playwright/test';
 import { json, open } from './coachWorkspace.fixtures';
@@ -55,10 +57,12 @@ test('Today → Floor → one save: the plan seeds Floor, a spoken set logs, not
   await expect(floor.getByRole('complementary').getByText('145 × 6 · 150 × 5')).toBeVisible();
   await page.screenshot({ path: info.outputPath('unified-floor-1440.png') });
 
+  await expect(floor.getByText(/Completes the .* session\. A credit already taken for it is not taken again; otherwise its session type.s credits are used\./)).toBeVisible(); // said before the tap
   await floor.getByRole('button', { name: /End session · save 2 sets/ }).click();
   await expect(floor.getByRole('status').filter({ hasText: 'workout log and progress charts' })).toBeVisible();
   expect(saves).toHaveLength(1);
-  expect(saves[0]).toMatchObject({ clientId: 12, exercises: [{ exerciseName: 'Box squat', sets: [{ setNumber: 1, weight: 145, reps: 6 }, { setNumber: 2, weight: 150, reps: 5 }] }] });
+  // Started from Avery's booked 9:00 session, so the save completes THAT booking under its credit rules (Astra F1).
+  expect(saves[0]).toMatchObject({ clientId: 12, scheduledSessionId: 's1', exercises: [{ exerciseName: 'Box squat', sets: [{ setNumber: 1, weight: 145, reps: 6 }, { setNumber: 2, weight: 150, reps: 5 }] }] });
   expect((saves[0] as { exercises: unknown[] }).exercises).toHaveLength(1);
   expect(chat).toEqual([]); // the set, the name, the save — none of it went to Swan Coach
 });
@@ -89,5 +93,25 @@ for (const vp of [
       .map((el) => (el.getAttribute('aria-label') || el.textContent || '').trim().slice(0, 40)));
     expect(small, '44px targets').toEqual([]);
     await page.screenshot({ path: info.outputPath(`floor-${vp.width}.png`) });
+  });
+}
+
+for (const width of [768, 1024, 1100, 1150, 1199, 1280]) {
+  test(`the chat header fits its longest status at ${width}px`, async ({ page }) => {
+    await open(page, width, 900);
+    await page.getByRole('combobox', { name: 'Client this chat is about' }).selectOption('12');
+    await expect(page.locator('[data-coach-workspace="v4"] > header .ws-brain-label')).toHaveCount(1);
+    for (const label of ['Ready', 'Connecting', 'Needs your choice', 'Commands offline']) {
+      const clipped = await page.evaluate((text) => {
+        const bar = document.querySelector('[data-coach-workspace="v4"] > header') as HTMLElement;
+        const status = bar.querySelector('.ws-brain-label');
+        if (status) status.textContent = text; // the widest states the pill can show
+        const edge = bar.getBoundingClientRect();
+        return [...bar.querySelectorAll('button')]
+          .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.right > Math.min(window.innerWidth, edge.right) + 0.5 || r.left < Math.max(0, edge.left) - 0.5); })
+          .map((el) => el.getAttribute('aria-label') || el.textContent);
+      }, label);
+      expect(clipped, `${width}px with "${label}"`).toEqual([]);
+    }
   });
 }

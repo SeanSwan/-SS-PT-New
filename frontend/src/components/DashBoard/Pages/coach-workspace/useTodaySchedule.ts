@@ -8,7 +8,7 @@
  * studio, a trainer sees sessions assigned to them, a client sees their own
  * plus open slots (open slots are dropped here — they are not "my day").
  * Freshness: re-reads on the schedule's own cross-dashboard sync event
- * (setupDashboardSync), when the tab becomes visible, and on retry.
+ * (setupDashboardSync), when the tab becomes visible, at local midnight, and on retry.
  *
  * Truth rules: an error is never rendered as an empty day; the waiver gate is
  * named as the waiver gate. Names are for this screen only — nothing here is
@@ -132,6 +132,16 @@ export function useTodaySchedule(role: Role, actorId: number | null, enabled = t
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [enabled, refresh]);
+
+  // Midnight is a new day: re-read, whichever view is open (the strip and a later-opened Today
+  // must not show yesterday). Re-armed after every load; a sleeping laptop wakes into onVisible.
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime();
+    const timer = setTimeout(() => { void refresh(); }, midnight - now.getTime() + 1_000);
+    return () => clearTimeout(timer);
+  }, [enabled, refresh, state]);
 
   return { state, refresh };
 }

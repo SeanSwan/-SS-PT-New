@@ -4,9 +4,10 @@
  * ID-only path (Floor pins by id, the PDF is local, the brief is a registry command).
  */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import TodayView, { upNext } from './TodayView';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import TodayView, { floorLinkFor, upNext } from './TodayView';
+import { localDateISO } from './floorSession';
 import TodayStrip from './TodayStrip';
 import type { TodaySlot } from './useTodaySchedule';
 
@@ -39,6 +40,14 @@ describe('upNext', () => {
   });
 });
 
+describe('floorLinkFor', () => {
+  it('links only a booked session — requested, completed and cancelled slots start an unbooked Floor', () => {
+    expect(floorLinkFor(slot('s1', 9))?.scheduledSessionId).toBe('s1');
+    expect(floorLinkFor(slot('s2', 9, { status: 'scheduled' }))?.scheduledSessionId).toBe('s2');
+    for (const status of ['requested', 'completed', 'cancelled'] as const) expect(floorLinkFor(slot('x', 9, { status }))).toBeNull();
+  });
+});
+
 describe('TodayView', () => {
   const ready = { phase: 'ready', scopeLabel: 'Your sessions', slots: [slot('a', 23, { minutes: 59 })] };
 
@@ -47,7 +56,8 @@ describe('TodayView', () => {
     render(<TodayView model={m as never} />);
     expect(screen.getByText('Box squat')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /start in floor mode/i }));
-    expect(m.startFloor).toHaveBeenCalledWith(12);
+    // The booking travels with Floor so the save completes it under its own credit rules (Astra F1).
+    expect(m.startFloor).toHaveBeenCalledWith(12, { scheduledSessionId: 'a', date: localDateISO(ready.slots[0].startsAt), startsAt: ready.slots[0].startsAt.toISOString() });
     fireEvent.click(screen.getByRole('button', { name: /progress pdf/i }));
     expect(m.requestPdfFor).toHaveBeenCalledWith(12);
     fireEvent.click(screen.getByRole('button', { name: /ask swan coach/i }));
@@ -101,5 +111,31 @@ describe('TodayStrip', () => {
     expect(screen.getByRole('button', { name: /Client a — open Today/ }).closest('li')).toHaveAttribute('data-past', 'true');
     fireEvent.click(next);
     expect(onOpen).toHaveBeenCalled();
+  });
+});
+
+describe('the Day Sheet keeps time on its own (Astra F6)', () => {
+  afterEach(() => vi.useRealTimers());
+  const day = (h: number, m = 0) => new Date(2026, 8, 24, h, m);
+  const timed = (id: string, h: number) => ({ id, startsAt: day(h), minutes: 60, status: 'confirmed' as const, clientId: 12, who: `Client ${id}`, what: null });
+
+  it('the strip moves its next marker when a session ends, with no other render', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(day(9, 30));
+    render(<TodayStrip state={{ phase: 'ready', scopeLabel: '', slots: [timed('a', 9), timed('b', 11)] }} onOpen={vi.fn()} />);
+    expect(screen.getByRole('button', { name: /Client a, next/ })).toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(60 * 60_000); });
+    expect(screen.getByRole('button', { name: /Client b, next/ })).toBeInTheDocument();
+  });
+
+  it('at midnight a slot picked yesterday falls away (the schedule hook re-reads the day)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(day(23, 58));
+    const m = model({ phase: 'ready', scopeLabel: '', slots: [timed('a', 9), timed('b', 11)] });
+    render(<TodayView model={m as never} />);
+    fireEvent.click(screen.getByRole('button', { name: /Client a/ }));
+    expect(screen.getByText('Selected')).toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(3 * 60_000); });
+    expect(screen.queryByText('Selected')).not.toBeInTheDocument();
   });
 });

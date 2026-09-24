@@ -4,7 +4,7 @@
  * question ABOUT a PDF still reaches the coach.
  */
 import { describe, expect, it } from 'vitest';
-import { isPdfRequest, pdfTarget, resolveNamedClient } from './coachPdfRequest';
+import { isPdfRequest, pdfSubject, pdfTarget, resolveNamedClient } from './coachPdfRequest';
 
 describe('isPdfRequest', () => {
   it.each([
@@ -82,5 +82,81 @@ describe('pdfTarget', () => {
     expect((pdfTarget('make her pdf', roster, 7) as { id: number }).id).toBe(7);
     expect(pdfTarget('make her pdf', roster, null)).toBeNull();
     expect(pdfTarget('make her pdf', roster, 999)).toBeNull(); // a pin outside the roster is not trusted
+  });
+});
+
+describe('pdfSubject — the pin stands in ONLY when nobody is named (Astra F4)', () => {
+  const roster = [{ id: 84, label: 'Jesse Moreno' }, { id: 85, label: 'Maria Rios' }, { id: 86, label: 'Maria Chen' }];
+  const kind = (text: string) => pdfSubject(text, roster, 84).kind;
+  const who = (text: string) => { const s = pdfSubject(text, roster, 84); return s.kind === 'client' ? s.client.id : s.kind; };
+
+  it('any capitalisation, possessives and speech-style lowercase resolve the same way', () => {
+    expect(who('make a pdf for jesse moreno')).toBe(84);
+    expect(who('MAKE A PDF FOR MARIA CHEN')).toBe(86);
+    expect(who("make maria rios's pdf")).toBe(85);
+    expect(kind('Make a PDF for maria')).toBe('ambiguous');
+    expect(kind("maria's pdf please")).toBe('ambiguous');
+  });
+
+  it('a name that matches nobody is refused — never the pinned client', () => {
+    expect(kind('Make a PDF for Olivia Patel')).toBe('unknown');
+    expect(kind('Make a PDF for Jess')).toBe('unknown');
+    expect(pdfTarget('Make a PDF for Olivia Patel', roster, 84)).toBeNull();
+  });
+
+  it('two named clients are refused regardless of name length or form', () => {
+    expect(kind('Make a PDF comparing Maria Rios with Jesse Moreno')).toBe('multiple');
+    expect(kind('pdf for Jesse Moreno and maria chen')).toBe('multiple');
+    expect(kind('PDF for Maria Chen vs Olivia Patel')).toBe('multiple');
+    expect(pdfTarget('Make a PDF comparing Maria Rios with Jesse Moreno', roster, 84)).toBe('ambiguous');
+  });
+
+  it('the same client named twice is one subject', () => {
+    expect(who("Make a PDF for Maria Rios — Maria's knee plan")).toBe(85);
+    expect(who("Jesse Moreno's PDF, the one for Jesse Moreno")).toBe(84);
+  });
+
+  it('CONTROL: ordinary words after "for/of" are not names, so the pinned client is used', () => {
+    for (const text of ['Make a PDF for me', 'Make a PDF of Week 6', 'make a pdf of their workout plan', 'Create a PDF for Today', 'make a PDF for Client']) {
+      expect(who(text)).toBe(84);
+    }
+    expect(pdfSubject('make her pdf', roster, null).kind).toBe('none');
+  });
+});
+
+describe('pdfSubject — precision after the hostile review (ordinary words are not people)', () => {
+  const roster = [
+    { id: 85, label: 'Maria Rios' }, { id: 40, label: 'June Park' }, { id: 41, label: 'Will Carter' }, { id: 42, label: 'Mark Diaz' },
+  ];
+  const who = (text: string, pin = 85) => { const s = pdfSubject(text, roster, pin); return s.kind === 'client' ? s.client.id : s.kind; };
+
+  it('a lowercase ordinary word never becomes a client: months, "and will", "and mark", "with will"', () => {
+    expect(who('make a pdf of her progress for june')).toBe(85);
+    expect(who('Make a PDF of her progress and will you email it')).toBe(85);
+    expect(who('make a pdf of her plan and mark the changes')).toBe(85);
+    expect(who('make a pdf of her plan with will')).toBe(85);
+    expect(who("Let's make a PDF of her plan")).toBe(85);
+  });
+
+  it('the same names, written as names, still resolve', () => {
+    expect(who('make a pdf for Will')).toBe(41);
+    expect(who("make mark's pdf")).toBe(42);
+    expect(who('make a pdf of her plan with Will')).toBe(41); // a capitalised name is a named subject; the preview shows whose PDF it is
+  });
+
+  it('a first name followed by a surname that matches nobody is a different person', () => {
+    expect(who('Make a PDF for Maria Smith', 41)).toBe('unknown');
+  });
+
+  it('unknown names are refused in more shapes: possessive, "on", "to"', () => {
+    for (const text of ["Get me Olivia's PDF", "Make Olivia Patel's PDF", 'Make a PDF on Olivia Patel', 'Send a PDF to Olivia Patel']) {
+      expect(who(text)).toBe('unknown');
+    }
+  });
+
+  it('labels, acronyms and month abbreviations are not names', () => {
+    expect(who("Make Maria Rios's PDF for Sept", 41)).toBe(85);
+    expect(who('Make a PDF of her plan with NASM scores')).toBe(85);
+    expect(who('Make a PDF of her plan for Q3')).toBe(85);
   });
 });

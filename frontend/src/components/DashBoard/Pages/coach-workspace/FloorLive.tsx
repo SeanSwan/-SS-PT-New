@@ -17,22 +17,45 @@ import { ChevronLeft, ChevronRight, Feather, Minus, Plus, Undo2 } from 'lucide-r
 import WorkspaceComposer from './WorkspaceComposer';
 import TurnEntry, { turnKind } from './TurnEntry';
 import { useFloorSession } from './useFloorSession';
-import { parseSetUtterance } from './floorSession';
+import { type FloorLink, localDateISO, parseSetUtterance, spokenKilograms } from './floorSession';
 import { nameClientTokens, useCoachClientNames } from '../coach-assistant/coachClientNames';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 
-type Props = { model: CoachWorkspaceModel; clientId: number; who: string };
+type Props = { model: CoachWorkspaceModel; clientId: number; who: string; link: FloorLink | null };
 
 const plural = (count: number) => `${count} set${count === 1 ? '' : 's'}`;
+/** "5:30 PM", or "Sep 23, 5:30 PM" for a booking that is not today's. */
+function when(link: FloorLink): string {
+  const at = new Date(link.startsAt);
+  const time = at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return link.date === localDateISO() ? time : `${at.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${time}`;
+}
 
-const FloorLive: React.FC<Props> = ({ model, clientId, who }) => {
+/**
+ * The rule the server will apply, said BEFORE the tap. It never promises an
+ * exemption the save may not carry; the saved message then says exactly what
+ * was charged (the logger's own billing receipt).
+ */
+function billingLine(link: FloorLink | null): string {
+  return link
+    ? `Completes the ${when(link)} session. A credit already taken for it is not taken again; otherwise its session type’s credits are used.`
+    : 'Not tied to a booked session: for clients on paid sessions this save may use a session credit. The saved message says exactly what was charged.';
+}
+
+const FloorLive: React.FC<Props> = ({ model, clientId, who, link: incomingLink }) => {
   const { controller } = model;
+  // The session holds Today's booking from here on (and stores it with the sets), so the page lets go of it:
+  // a later header or inspector trip to Floor never re-attaches a booking that was used or left behind.
+  const { consumeFloorLink } = model;
+  useEffect(() => { if (incomingLink) consumeFloorLink?.(); }, []); // eslint-disable-line react-hooks/exhaustive-deps -- once, at mount
   const names = useCoachClientNames();
-  const floor = useFloorSession(model.user ? `${model.user.id}:${model.user.role}` : null, clientId);
+  const floor = useFloorSession(model.user ? `${model.user.id}:${model.user.role}` : null, clientId, incomingLink);
   const [newName, setNewName] = useState('');
   const current = floor.current;
   const setNumber = (current?.sets.length ?? 0) + 1;
   const heard = current ? parseSetUtterance(controller.commandText) : null;
+  const heardKg = heard ? spokenKilograms(controller.commandText) : null;
+  const saving = floor.save.phase === 'saving';
   const latest = controller.logs.find((entry) => entry.actor !== 'operator');
   const latestKind = latest ? turnKind(latest) : null;
 
@@ -83,7 +106,7 @@ const FloorLive: React.FC<Props> = ({ model, clientId, who }) => {
                 </div>
               </div>
               <div className="ws-floor-row">
-                <button type="button" className="ws-floor-btn" disabled={!current.sets.length} onClick={floor.undoLastSet}><Undo2 size={16} aria-hidden="true" /> Undo last set</button>
+                <button type="button" className="ws-floor-btn" disabled={!current.sets.length || saving} onClick={floor.undoLastSet}><Undo2 size={16} aria-hidden="true" /> Undo last set</button>
                 <button type="button" className="ws-floor-save" disabled={floor.draft.reps < 1} onClick={floor.saveSet}>Save set {setNumber}</button>
               </div>
             </>
@@ -104,7 +127,7 @@ const FloorLive: React.FC<Props> = ({ model, clientId, who }) => {
         <section className="ws-floor-coach" aria-label="Swan Coach">
           {heard ? (
             <button type="button" className="ws-floor-heard" onClick={() => { floor.setDraft(heard); controller.setCommandText(''); }}>
-              Use {heard.weight} × {heard.reps} for set {setNumber}
+              Use {heard.weight} × {heard.reps} for set {setNumber}{heardKg !== null ? ` (from ${heardKg} kg)` : ''}
             </button>
           ) : null}
           {latest && latestKind === 'coach' ? (
@@ -136,15 +159,18 @@ const FloorLive: React.FC<Props> = ({ model, clientId, who }) => {
         <div className="ws-floor-end" data-phase={floor.save.phase}>
           <span className="ws-floor-eyebrow">Saves when you end</span>
           <p role="status" aria-live="polite">
-            {floor.save.phase === 'saved' ? `Saved to ${who}’s workout log and progress charts.`
+            {floor.save.phase === 'saved' ? `Saved to ${who}’s workout log and progress charts.${floor.save.message ? ` ${floor.save.message}` : ''}${floor.loggedSets ? ` ${plural(floor.loggedSets)} logged after the save ${floor.loggedSets === 1 ? 'is' : 'are'} still here — today’s workout is saved, so add ${floor.loggedSets === 1 ? 'it' : 'them'} in the workout logger.` : ''}`
               : floor.save.phase === 'conflict' || floor.save.phase === 'failed' ? floor.save.message
+                : saving && floor.loggedSets ? 'Saving… Undo waits until it finishes. Sets you add now stay here; today’s workout will already be saved, so add them in the workout logger.'
                 : floor.loggedSets ? `${plural(floor.loggedSets)} on this device. Nothing is saved until you end the session.`
                   : 'Sets you save stay on this device, then land in the workout log when you end the session.'}
           </p>
-          <button type="button" className="ws-floor-save" disabled={!floor.loggedSets || floor.save.phase === 'saving'} onClick={() => { void floor.endAndSave(); }}>
-            {floor.save.phase === 'saving' ? 'Saving…' : floor.loggedSets ? `End session · save ${plural(floor.loggedSets)}` : 'End session'}
+          {floor.loggedSets && !saving ? <p className="ws-floor-bill">{billingLine(floor.link)}</p> : null}
+          <button type="button" className="ws-floor-save" disabled={!floor.loggedSets || saving} onClick={() => { void floor.endAndSave(); }}>
+            {saving ? 'Saving…' : floor.loggedSets ? `End session · save ${plural(floor.loggedSets)}` : 'End session'}
           </button>
-          {floor.save.phase === 'conflict' && model.workoutLoggerRoute ? <Link className="ws-floor-btn" to={model.workoutLoggerRoute}>Open the workout logger</Link> : null}
+          {model.workoutLoggerRoute && (floor.save.phase === 'conflict' || (floor.save.phase === 'saved' && floor.loggedSets > 0))
+            ? <Link className="ws-floor-btn" to={model.workoutLoggerRoute}>Open the workout logger</Link> : null}
         </div>
       </aside>
     </div>

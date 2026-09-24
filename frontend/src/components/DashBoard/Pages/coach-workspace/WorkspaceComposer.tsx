@@ -20,7 +20,7 @@ import { buildSlashItems, pickableExample, slashQuery, type SlashItem } from './
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 import { workspaceStatus } from './workspaceStatus';
 import { isPdfRequest } from './coachPdfRequest';
-import { wholeSetUtterance } from './floorSession';
+import { spokenKilograms, wholeSetUtterance } from './floorSession';
 
 type Props = { model: CoachWorkspaceModel };
 
@@ -89,6 +89,9 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
       event.preventDefault();
       model.floorSetSink.current(heardSet);
       controller.setCommandText('');
+      // A set said in kilograms lands on the pound dials converted — say so, never silently.
+      const kg = spokenKilograms(text);
+      model.notify(kg !== null ? `Heard ${kg} kg — ${heardSet.weight} lb on the dials.` : null);
       return;
     }
     // "Make me a PDF of …" is answered on this device from first-party records; the

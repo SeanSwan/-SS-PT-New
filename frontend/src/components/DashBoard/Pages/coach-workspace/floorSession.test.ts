@@ -3,7 +3,7 @@
  * producing EXACTLY the Workout Logger's canonical /api/workout-forms body.
  */
 import { describe, expect, it } from 'vitest';
-import { floorExerciseEntries, floorStorageKey, localDateISO, loggedSetCount, nextReps, nextWeight, parseSetScheme, parseSetUtterance, wholeSetUtterance } from './floorSession';
+import { floorAccess, floorExerciseEntries, floorStorageKey, localDateISO, loggedSetCount, nextReps, nextWeight, parseSetScheme, parseSetUtterance, reconcileAfterSave, spokenKilograms, wholeSetUtterance } from './floorSession';
 import { buildWorkoutFormSubmitBody } from '../../../WorkoutLogger/workoutLoggerSubmitPayload';
 
 describe('parseSetScheme', () => {
@@ -80,5 +80,53 @@ describe('wholeSetUtterance — only a message that IS a set becomes one', () =>
   });
   it.each(['Log bench 4x8 at 185', 'What about 3x10 for Jesse?', 'Rest 90 for 2 minutes', 'her knee felt fine at 145 for 5', ''])('stays a message: %s', (text) => {
     expect(wholeSetUtterance(text)).toBeNull();
+  });
+});
+
+describe('units are converted, never dropped (Astra F5)', () => {
+  it.each([
+    ['100 kg for 5', { weight: 220.5, reps: 5 }, 100],
+    ['5 reps at 100 kg', { weight: 220.5, reps: 5 }, 100],
+    ['60kgs x 8', { weight: 132.5, reps: 8 }, 60],
+    ['22.5 kilos for 10', { weight: 49.5, reps: 10 }, 22.5],
+    ['8 @ 40 kilograms', { weight: 88, reps: 8 }, 40],
+    ['135 lbs for 8', { weight: 135, reps: 8 }, null],
+    ['145 for 6', { weight: 145, reps: 6 }, null],
+  ])('%s → pounds on the dials', (text, expected, kg) => {
+    expect(parseSetUtterance(text)).toEqual(expected);
+    expect(wholeSetUtterance(text)).toEqual(expected);
+    expect(spokenKilograms(text)).toBe(kg);
+  });
+  it('a kilogram word the weight does not carry is refused, never read as pounds', () => {
+    expect(parseSetUtterance('100 for 5 kg')).toBeNull();
+    expect(wholeSetUtterance('100 for 5 kg')).toBeNull();
+  });
+});
+
+describe('reconcileAfterSave — only what the save carried leaves (Astra F3)', () => {
+  const ex = (name: string, sets: Array<[number, number]>) => ({ name, targetSets: null, targetReps: null, sets: sets.map(([weight, reps]) => ({ weight, reps })) });
+  it('sets added while the save was out stay; an exercise added meanwhile is untouched', () => {
+    const sent = [ex('Squat', [[145, 6]]), ex('Row', [[95, 10], [95, 9]])];
+    const now = [ex('Squat', [[145, 6], [150, 5]]), ex('Row', [[95, 10], [95, 9]]), ex('Plank', [[0, 1]])];
+    expect(reconcileAfterSave(now, sent)).toEqual([ex('Squat', [[150, 5]]), ex('Row', []), ex('Plank', [[0, 1]])]);
+  });
+  it('CONTROL: a list that no longer starts with the sent sets is left alone', () => {
+    expect(reconcileAfterSave([ex('Squat', [[150, 5]])], [ex('Squat', [[145, 6]])])).toEqual([ex('Squat', [[150, 5]])]);
+    expect(reconcileAfterSave([ex('Lunge', [[145, 6]])], [ex('Squat', [[145, 6]])])).toEqual([ex('Lunge', [[145, 6]])]);
+  });
+});
+
+describe('floorAccess — the chat admission decides (Astra F2)', () => {
+  it('open only for the accepted client; failures close; anything else is still checking', () => {
+    expect(floorAccess({ clientMode: false, clientId: 12, phase: 'ready', acceptedTargetUserId: 12 })).toBe('open');
+    expect(floorAccess({ clientMode: false, clientId: 12, phase: 'ready', acceptedTargetUserId: '12' })).toBe('open');
+    expect(floorAccess({ clientMode: false, clientId: 12, phase: 'ready', acceptedTargetUserId: 7 })).toBe('checking');
+    for (const phase of ['unadmitted', 'checking', 'decision', 'committing', undefined]) {
+      expect(floorAccess({ clientMode: false, clientId: 12, phase, acceptedTargetUserId: 12 })).toBe('checking');
+    }
+    for (const phase of ['invalid', 'denied', 'unavailable', 'blocked-return', 'retired']) {
+      expect(floorAccess({ clientMode: false, clientId: 12, phase, acceptedTargetUserId: 12 })).toBe('closed');
+    }
+    expect(floorAccess({ clientMode: true, clientId: 5 })).toBe('open'); // a client's own session
   });
 });

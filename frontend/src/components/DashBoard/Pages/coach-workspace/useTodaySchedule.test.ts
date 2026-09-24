@@ -66,6 +66,23 @@ describe('today schedule', () => {
   });
 });
 
+describe('today schedule — a new day is re-read on its own (hostile review #7)', () => {
+  it('re-reads just after local midnight, whichever view is open', async () => {
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] });
+    vi.setSystemTime(new Date(2026, 8, 24, 23, 59, 30));
+    getSessions.mockReset();
+    getSessions.mockResolvedValue([]);
+    renderHook(() => useTodaySchedule('trainer', 3));
+    await act(async () => { await Promise.resolve(); });
+    expect(getSessions).toHaveBeenCalledTimes(1);
+    await act(async () => { await vi.advanceTimersByTimeAsync(31_000); });
+    vi.useRealTimers();
+    expect(getSessions).toHaveBeenCalledTimes(2);
+    const [{ customDateStart }] = getSessions.mock.calls[1] as [{ customDateStart: string }];
+    expect(new Date(customDateStart).getDate()).toBe(25); // the new day's bounds
+  });
+});
+
 describe('scheduleRoleForUser (review #12: the server scopes by the signed-in role)', () => {
   it('uses the authenticated role, whatever dashboard path is open', () => {
     expect(scheduleRoleForUser('admin')).toBe('admin');

@@ -21,7 +21,7 @@ function mount(text: string, { made = true, noteMode = false, view = 'chat', sin
   };
   const model = {
     controller, catalog: { commands: [] }, isClientMode: false, runAction: vi.fn(), prefill: vi.fn(),
-    requestPdf: vi.fn(() => made), view, floorSetSink: { current: sink },
+    requestPdf: vi.fn(() => made), view, floorSetSink: { current: sink }, notify: vi.fn(),
   };
   render(<MemoryRouter><WorkspaceComposer model={model as never} /></MemoryRouter>);
   const input = screen.getByRole('combobox', { name: noteMode ? 'Client note' : 'Message Swan Coach' });
@@ -67,6 +67,13 @@ describe('Floor mode: a set typed into the one composer fills the dials, never t
     expect(controller.handleSubmit).not.toHaveBeenCalled();
     expect(controller.setCommandText).toHaveBeenCalledWith('');
   });
+  it('"100 kg for 5" on Floor lands converted on the pound dials, and says so', () => {
+    const sink = vi.fn();
+    const { model } = mount('100 kg for 5', { view: 'floor', sink });
+    expect(sink).toHaveBeenCalledWith({ weight: 220.5, reps: 5 });
+    expect(model.notify).toHaveBeenCalledWith('Heard 100 kg — 220.5 lb on the dials.');
+  });
+
   it('a message that merely CONTAINS a set is still a message on Floor', () => {
     const sink = vi.fn();
     expect(mount('Log bench 4x8 at 185', { view: 'floor', sink }).controller.handleSubmit).toHaveBeenCalledTimes(1);

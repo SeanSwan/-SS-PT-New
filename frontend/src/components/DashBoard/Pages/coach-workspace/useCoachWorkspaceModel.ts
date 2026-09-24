@@ -32,11 +32,19 @@ import { useWorkspacePanels } from './useWorkspacePanels';
 import { scheduleRoleForUser, useTodaySchedule } from './useTodaySchedule';
 import type { WorkspaceActionId } from './slashCommands';
 import type { CoachPdfRequest } from './CoachProgressPdf';
-import type { FloorSet } from './floorSession';
-import { pdfTarget } from './coachPdfRequest';
+import type { FloorLink, FloorSet } from './floorSession';
+import { pdfSubject } from './coachPdfRequest';
 
 /** Chat, the Day Sheet, Floor (live session), or Review — one header switch, one conversation. */
 export type WorkspaceView = 'chat' | 'review' | 'today' | 'floor';
+
+/** Why no PDF was made — said plainly; the pinned client is never used as a stand-in for a name. */
+const PDF_REFUSAL = {
+  ambiguous: 'More than one client matches that name — pick the client with @ and ask again. No PDF was made.',
+  multiple: 'That names more than one client, and one PDF covers one client. Ask for each separately. No PDF was made.',
+  unknown: 'No client on your roster matches that name, so no PDF was made. Check the name or pick the client with @.',
+  none: 'Pick the client with @ (or name them) — the PDF is built from their records on this device.',
+} as const;
 
 const SCHEDULE_ROUTE: Record<'admin' | 'trainer' | 'client', string> = {
   admin: '/dashboard/admin/master-schedule',
@@ -101,11 +109,21 @@ export function useCoachWorkspaceModel() {
   const showView = useCallback((next: 'chat' | 'today' | 'floor') => {
     setView(next); panels.closeSheets();
   }, [panels]);
-  /** Floor mode for a client: pins them by ID first (same admission path as the @ chip). */
-  const startFloor = useCallback((clientId?: number | null) => {
+  /**
+   * Floor mode for a client: pins them by ID first (same admission path as the @ chip).
+   * From Today's session card it also carries that booking (`link`), so the save
+   * completes it under its own credit rules; `null` means an unbooked session,
+   * omitted keeps whatever Floor already had (the header toggle).
+   */
+  const [floorLink, setFloorLink] = useState<{ clientId: number; link: FloorLink } | null>(null);
+  const startFloor = useCallback((clientId?: number | null, link?: FloorLink | null) => {
     if (!isClientMode && clientId && clientId !== controller.clientPin.selectedClientId) controller.clientPin.onSelectClient(clientId);
+    const target = isClientMode ? Number(user?.id) || null : clientId ?? null;
+    if (link !== undefined) setFloorLink(link && target ? { clientId: target, link } : null);
     showView('floor');
-  }, [controller.clientPin, isClientMode, showView]);
+  }, [controller.clientPin, isClientMode, showView, user?.id]);
+  /** Floor took the booking into its own session (and storage): the page lets go of it. */
+  const consumeFloorLink = useCallback(() => setFloorLink(null), []);
   const backToChat = useCallback(() => {
     setView('chat');
     window.setTimeout(() => controller.commandTextRef.current?.focus({ preventScroll: true }), 0);
@@ -198,16 +216,12 @@ export function useCoachWorkspaceModel() {
       return true;
     }
     const pin = controller.clientPin;
-    const target = pdfTarget(text, pin.clients, pin.selectedClientId);
-    if (target === 'ambiguous') {
-      setScheduleAskStatus('More than one client matches that name — pick the client with @ and ask again. No PDF was made.');
+    const subject = pdfSubject(text, pin.clients, pin.selectedClientId);
+    if (subject.kind !== 'client') {
+      setScheduleAskStatus(PDF_REFUSAL[subject.kind]);
       return false;
     }
-    if (!target) {
-      setScheduleAskStatus('Pick the client with @ (or name them) — the PDF is built from their records on this device.');
-      return false;
-    }
-    setPdfRequest({ nonce: pdfNonce.current, kind: 'client', clientId: target.id, clientName: target.label });
+    setPdfRequest({ nonce: pdfNonce.current, kind: 'client', clientId: subject.client.id, clientName: subject.client.label });
     return true;
   }, [controller.clientPin, isClientMode, user]);
   /** The PDF for one roster client by ID (Today's up-next card, the inspector). */
@@ -237,7 +251,7 @@ export function useCoachWorkspaceModel() {
 
   return {
     user, userRole, scheduleRole, isClientMode, controller, catalog, layout, panels,
-    view, setView, showView, startFloor, backToChat, reviewSection, setReviewSection, openReview, startPlaudUpload,
+    view, setView, showView, startFloor, floorLink, consumeFloorLink, backToChat, reviewSection, setReviewSection, openReview, startPlaudUpload,
     searchParams, setSearchParams,
     workoutLoggerRoute, workoutPlannerRoute, scopeLabel, loggerScopeLabel, nextActionLabel,
     counts, reviewTotal, scheduleRoute, clientPickerRoute,

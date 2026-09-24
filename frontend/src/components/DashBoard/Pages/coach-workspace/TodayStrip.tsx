@@ -10,12 +10,15 @@ import React from 'react';
 import { CalendarDays, ChevronRight } from 'lucide-react';
 import { StripRoot } from './CoachWorkspace.strip.styles';
 import type { TodayScheduleState } from './useTodaySchedule';
+import { useNowClock } from './useNowClock';
 
 type Props = { state: TodayScheduleState; onOpen: () => void; now?: number };
 
 const time = (date: Date) => date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
-const TodayStrip: React.FC<Props> = ({ state, onOpen, now = Date.now() }) => {
+const TodayStrip: React.FC<Props> = ({ state, onOpen, now: fixedNow }) => {
+  const clockNow = useNowClock(); // the next-session marker moves with the clock, not with unrelated renders
+  const now = fixedNow ?? clockNow;
   if (state.phase !== 'ready') return null;
   const slots = state.slots.filter((slot) => slot.status !== 'cancelled');
   if (!slots.length) return null;

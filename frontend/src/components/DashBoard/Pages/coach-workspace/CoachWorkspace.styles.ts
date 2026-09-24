@@ -186,9 +186,13 @@ export const WorkspaceHeaderBar = styled.header`
   .ws-views button[aria-pressed='true'] svg { color: var(--ws-accent); }
   .ws-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ws-gold); box-shadow: 0 0 8px var(--ws-gold); }
 
+  /* < 1024px the status pill keeps its words (a dot alone would be colour-only), so the
+     wordmark text gives way: the longest state ("Needs your choice") still fits at 768. */
   @media (max-width: 1023.98px) {
-    .ws-btn-label { display: none; }
+    .ws-btn-label, .ws-mark-label { display: none; }
   }
+  /* The bar's OWN width decides once measured (useCompactWidth): a docked sidebar narrows it at any viewport. */
+  &[data-compact='true'] .ws-btn-label, &[data-compact='true'] .ws-mark-label { display: none; }
   @media (max-width: 767.98px) {
     min-height: 52px; padding: 0 6px 4px; gap: 4px; flex-wrap: wrap;
     /* Row 1 must never wrap (a wrapped row costs the chat ~50px): the site header already carries the brand. */
