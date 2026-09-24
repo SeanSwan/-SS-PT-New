@@ -72,6 +72,14 @@ export {
   creatorRows, addCreatorRow, setCreatorEnabled,
 } from './lib/creators.mjs';
 
+export { repairStore, projectRepair } from './lib/repair.mjs';
+// S4. `validatePerHour` is deliberately NOT re-exported here: it already lives in
+// the validation block below, from `errors.mjs`. One validator, one name.
+export { startDailyRun } from './lib/run-daily.mjs';
+// The shared gate itself, exported so a test can assert there is ONE of it rather
+// than one per operation — the property A1-06 turns on.
+export { underRunGate, heldRefusal, lockedError } from './lib/run-gate.mjs';
+
 export {
   BRAIN_FILES, queryConsole, brainDoc,
 } from './lib/brains.mjs';

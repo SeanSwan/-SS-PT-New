@@ -28,7 +28,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
+import { implementedRoute, isDeferred } from './contract-parse.mjs';
 import { interfaceFields } from './contract-scan.mjs';
 import { rowIndexes, wholeObjectShape } from './contract-table.mjs';
 
@@ -132,4 +134,56 @@ test('R9-07c: the closing brace on its own line is not a member, and is not refu
   // And the real documents still read, which is the control that the refusal has not
   // become a blanket one: both artifacts this suite compares must keep parsing.
   assert.deepEqual(names(['export interface X { a: string, extra: number }']), ['a', 'extra']);
+});
+
+/* ── T-B27m0b · the deferral switch, and why its checker lives HERE ───────── */
+
+/**
+ * The switch that decides WHICH contract reader runs is itself a checker, and needs its own
+ * mutant — so it lives in this file rather than beside the switch.
+ *
+ * MOVED TWICE on 2026-09-21, and the route is the interesting part. It started in
+ * `bridge.contractsync.test.mjs`, which hit the 300-line cap (Rule 4) when S4's route landed.
+ * It was then briefly appended to `contract-parse.r7.test.mjs`, which ALSO went over the cap.
+ * The lesson is that "where the case is USED" is not the same as "where it belongs": this case
+ * never touches the bridge, the server or a fixture — it calls two pure functions of
+ * `contract-parse.mjs` over a source STRING. A file whose own header is about pinning reader
+ * behaviour with mutants is where a reader's own checker goes.
+ *
+ * A switch stuck on `true` sends an implemented method to the stub reader and reproduces exactly
+ * the stale-premise failure the S3 round fixed — where the test failed on a method that agreed
+ * with the contract perfectly, because the TEST's premise was out of date rather than the code.
+ * That is the mutant this pins, and it is why the case asserts discrimination rather than just
+ * three values: a switch that answered the same thing for everything would satisfy three
+ * assertions only by luck.
+ */
+const ADAPTER_SRC = readFileSync(
+  new URL('../web/src/adapters/LocalEngineAdapter.ts', import.meta.url), 'utf8',
+);
+
+test('T-B27m0b: the deferral switch can FAIL, and both readers refuse rather than guess', () => {
+  // S4 LANDED `POST /api/run/daily` on 2026-09-21, so `startDailyRun` now reads as IMPLEMENTED.
+  // This assertion said `true` ("S4 is unbuilt") until then and failed the moment the route
+  // landed, which is the intended behaviour rather than a regression: the switch is pinned to the
+  // shipped adapter, so a slice landing MUST move it.
+  assert.equal(isDeferred(ADAPTER_SRC, 'startDailyRun'), false, 'S4 shipped it, so the daily run is implemented');
+  assert.equal(isDeferred(ADAPTER_SRC, 'repair'), false, 'S3 shipped it, so repair is implemented');
+  assert.equal(isDeferred(ADAPTER_SRC, 'backup'), true,
+    'backup is WITHHELD (A1-08 / D4), and a withheld route is a stub — collapsing it into "implemented" would make this reader disagree with the contract on purpose');
+
+  // MUTANT: make `isDeferred` `return true`. The three assertions above still hold (they pin
+  // specific values), but this one goes red — and it is the one that says the switch DISCRIMINATES
+  // rather than agreeing by accident.
+  const verdicts = ['startDailyRun', 'repair', 'backup'].map((m) => isDeferred(ADAPTER_SRC, m));
+  assert.deepEqual(verdicts.slice().sort(), [false, false, true].sort(),
+    'the switch must NOT be constant — a constant switch passes while comparing nothing');
+
+  // MUTANT: make `implementedRoute` return `''` on input it cannot read, instead of throwing. Both
+  // throws below go red, and an empty route string is exactly the "compares equal to a document
+  // declaring nothing" failure that makes a contract check vacuous.
+  assert.throws(() => implementedRoute('x(): Promise<void> { }', 'x'), /could not be read/,
+    'an unreadable implemented call must throw');
+  assert.throws(() => implementedRoute("x(): Promise<void> { return this.request<{ a: number }>('/api/y', {}); }", 'x'),
+    /without naming an HTTP method/,
+    'a call with no verb must throw — the verb is half the join key');
 });

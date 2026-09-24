@@ -1,19 +1,17 @@
 /*
  * LocalEngineAdapter — ConsoleDataAdapter over the bridge HTTP API.
  *
- * Talks ONLY to the routes that actually exist. At S0 that was the nine read
- * routes of `05-contracts.md` §2a. Since then the write routes have landed slice
- * by slice: S3 added `POST /api/repair`, so `repair` is now a real call.
+ * Talks ONLY to the routes that actually exist. At S0 that was the nine read routes of
+ * `05-contracts.md` §2a. Since then the write routes have landed slice by slice: S3 added
+ * `POST /api/repair`, S4 added `POST /api/run/daily`, so both are now real calls.
  *
- * The remaining non-calls are TWO DIFFERENT THINGS and are kept apart on purpose:
- *   - `startDailyRun` — a slice not yet built (S4). Deferred.
- *   - `backup` — a route the contract WITHHOLDS (A1-08 / D4 still open). Not an
- *     unbuilt slice, and it must not be described as one: a reader who files it
- *     under "S4 work" would route it to the wrong owner, and the boundary it
- *     defends (the engine copy includes raw transcripts, which `01` bans from
- *     every served surface) is a ruling, not a backlog item.
- * Both throw a typed error instead of silently succeeding, so a caller can never
- * mistake "not implemented" for "done".
+ * The one remaining non-call is NOT an unbuilt slice and must not be described as one:
+ *   - `backup` — a route the contract WITHHOLDS (A1-08 / D4 still open). A reader who files it
+ *     under "later work" would route it to the wrong owner, and the boundary it defends (the
+ *     engine copy includes raw transcripts, which `01` bans from every served surface) is a
+ *     ruling, not a backlog item.
+ * It throws a typed error instead of silently succeeding, so a caller can never mistake
+ * "withheld" for "done".
  */
 
 import { ConsoleApiError, mapBridgeError, mapTransportError } from './errors';
@@ -34,16 +32,6 @@ export interface LocalEngineAdapterOptions {
   /** Injected for tests; defaults to global fetch. */
   fetchImpl?: typeof fetch;
 }
-
-/**
- * The one route still awaiting its slice (S4). This began as a shared
- * `DEFERRED_TO_S3` string that callers patched with `.replace('S3','S4')` — a
- * construction whose only merit was brevity, and which silently produced a
- * sentence about S3 whenever the patch was forgotten. S3 has now landed
- * `repair`, so exactly one caller remains and it names its own slice.
- */
-const DEFERRED_TO_S4 =
-  'route not implemented until S4 — see 05-contracts.md §2b; the bridge has no such route yet';
 
 /**
  * The bridge's write gate requires this header on every mutating request
@@ -138,9 +126,24 @@ export class LocalEngineAdapter implements ConsoleDataAdapter {
     return this.request<RunState>('/api/run');
   }
 
-  async startDailyRun(_perHour: number): Promise<{ requestId: string; runId: string | null }> {
-    // POST /api/run/daily is deferred to S4 (05-contracts.md §2b).
-    throw new ConsoleApiError('NOT_FOUND', DEFERRED_TO_S4, { status: null });
+  /**
+   * S4: the route now exists (`POST /api/run/daily`), so this is a real call.
+   *
+   * The `202` body is returned as given, INCLUDING `runId: null`. It is not corrected to the
+   * request id or to anything else: acceptance is not completion (A1-05), and substituting an id
+   * here would manufacture a correlation the engine never offered. The caller's job is to read
+   * progress from `getRunState()`; this method's job is only to report that the request landed.
+   *
+   * `perHour` is serialised as a NUMBER, which is what the bridge validates. Sending the raw string
+   * would have worked on the server (the validator coerces a numeric string by design — see
+   * `lib/errors.mjs`), but relying on that coercion from the client would make this adapter
+   * dependent on a leniency rather than on the contract.
+   */
+  startDailyRun(perHour: number): Promise<{ requestId: string; runId: string | null }> {
+    return this.request<{ requestId: string; runId: string | null }>('/api/run/daily', {
+      method: 'POST',
+      body: JSON.stringify({ perHour }),
+    });
   }
 
   canary(): Promise<CanaryReading> {

@@ -37,7 +37,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
-  CONTRACTS_MD, contractRowShape, interfaceFields, stripComments,
+  CONTRACTS_MD, contractRowShape, implementedRoute, interfaceFields, isDeferred, stripComments,
 } from './contract-parse.mjs';
 import { memberNames } from './contract-names.mjs';
 import {

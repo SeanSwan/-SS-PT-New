@@ -221,12 +221,70 @@ describe('T-W1 parity: identical error mapping', () => {
 });
 
 describe('T-W1 honesty: deferred routes do not silently succeed', () => {
-  it('LocalEngineAdapter refuses repair/backup/startDailyRun until their slice lands', async () => {
+  it('LocalEngineAdapter refuses the routes that are still deferred', async () => {
+    // S3 LANDED `repair` and S4 LANDED `startDailyRun`, so BOTH have left this list — and that is
+    // the point of the case rather than a weakening of it. A member that is still deferred must
+    // fail with a NAMED code and a sentence naming its slice; once the slice lands, the member must
+    // start behaving like a real route instead. Asserting the list as a fixed set would have made
+    // "S4 shipped" look like a regression — which is exactly what happened the first time this file
+    // ran after the route landed.
+    //
+    // `backup` is the only remaining member, and it is NOT here because its slice has not landed:
+    // the contract WITHHOLDS it (A1-08 / D4). The assertion accepts either wording so the two
+    // reasons stay distinguishable, but the case's own comment records which one this is.
     const adapter = local();
-    for (const call of [adapter.repair(), adapter.backup(), adapter.startDailyRun(5)]) {
-      const seen = await capture(call);
-      expect(seen.code).toBe('NOT_FOUND');
-      expect(seen.message).toMatch(/S3|S4/);
-    }
+    const seen = await capture(adapter.backup());
+    expect(seen.code).toBe('NOT_FOUND');
+    expect(seen.message).toMatch(/withheld/);
+    // And it says it is not a backlog item, so nobody routes it to a future slice owner.
+    expect(seen.message).toMatch(/[Nn]ot an unbuilt slice/);
+  });
+
+  it('startDailyRun is NOT deferred any more — it reaches the bridge as a POST', async () => {
+    // The positive half for S4, mirroring the `repair` case below. A fetch that resolves to a
+    // refusal is correct; a throw before any request is the old deferred behaviour and would mean
+    // S4 never actually landed.
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const adapter = new LocalEngineAdapter({
+      baseUrl: 'http://127.0.0.1:1',
+      fetchImpl: ((url: string, init?: RequestInit) => {
+        calls.push({ url: String(url), init });
+        return Promise.resolve(new Response(JSON.stringify({ requestId: 'req-1', runId: null }), {
+          status: 202,
+          headers: { 'content-type': 'application/json' },
+        }));
+      }) as unknown as typeof fetch,
+    });
+
+    const res = await adapter.startDailyRun(60);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].init?.method).toBe('POST');
+    expect(calls[0].url).toMatch(/\/api\/run\/daily$/);
+    // The body carries a NUMBER, which is what the bridge validates.
+    expect(JSON.parse(String(calls[0].init?.body))).toEqual({ perHour: 60 });
+    // And the null `runId` is passed through UNTOUCHED — acceptance is not completion (A1-05).
+    expect(res).toEqual({ requestId: 'req-1', runId: null });
+  });
+
+  it('repair is NOT deferred any more — it reaches the bridge as a POST', async () => {
+    // The positive half. `repair()` must now issue `POST /api/repair` and let the
+    // bridge answer, rather than short-circuiting to a client-side NOT_FOUND. A
+    // fetch that resolves to a refusal is correct; a throw before any request is
+    // the old behaviour and would mean S3 never actually landed.
+    const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
+    const adapter = new LocalEngineAdapter({
+      baseUrl: 'http://127.0.0.1:1',
+      fetchImpl: ((url: string, init?: RequestInit) => {
+        calls.push({ url, init });
+        return Promise.resolve(new Response(JSON.stringify({ repaired: 0, built: 0, emptied: 0 }), {
+          status: 200, headers: { 'content-type': 'application/json' },
+        }));
+      }) as unknown as typeof fetch,
+    });
+    const res = await adapter.repair();
+    expect(res).toEqual({ repaired: 0, built: 0, emptied: 0 });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe('http://127.0.0.1:1/api/repair');
+    expect(calls[0].init?.method).toBe('POST');
   });
 });

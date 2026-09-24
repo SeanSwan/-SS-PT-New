@@ -104,17 +104,46 @@ export function useStatus(
 
   useEffect(() => {
     mounted.current = true;
-    if (!enabled) return undefined;
 
+    // ── THE CLEANUP IS RETURNED ON EVERY PATH (Astra round 1, P2f) ───────────
+    //
+    //   This used to be three exits that each skipped `mounted.current = false`:
+    //
+    //     if (!enabled) return undefined;      // no cleanup
+    //     void load();
+    //     if (pollMs <= 0) return undefined;   // no cleanup — the initial read
+    //                                          // is already in flight here
+    //
+    //   A request started at `load()` above is awaited ACROSS an unmount, then
+    //   passes its own `mounted.current` check and writes state into a component
+    //   that no longer exists. The flag that exists to prevent exactly that was
+    //   never cleared on the two paths most likely to be exercised in a test.
+    //
+    //   Measured on the pre-fix code: with `enabled: false` the read did not even
+    //   start (`load() called at all? false`), so the leak was LATENT rather than
+    //   absent — fixing the read without fixing the cleanup would have exposed it.
+    //   Hence both changes, here and below, and the test that pins both.
+    const teardown = () => { mounted.current = false; };
+
+    // ── THE FIRST READ IS NOT GATED ON THE LOOP, NOR ON `enabled` ────────────
+    //
+    //   The guard was `if (!enabled) return` placed BEFORE this call, which put
+    //   the initial load inside the enablement it was supposed to inform. The two
+    //   are different questions: `enabled` answers "should there be a recurring
+    //   loop?"; the initial read answers "what is the state right now?" — and a
+    //   caller who disabled polling still wants one answer. `useRunPoll` already
+    //   makes this distinction explicit (`its 245-line header: "THE FIRST READ IS
+    //   NOT GATED ON THE LOOP"), and this hook is its sibling.
     void load();
-    if (pollMs <= 0) return undefined;
+
+    if (!enabled || pollMs <= 0) return teardown;
 
     const timer = setInterval(() => {
       void load();
     }, pollMs);
 
     return () => {
-      mounted.current = false;
+      teardown();
       clearInterval(timer);
     };
   }, [enabled, pollMs, load]);

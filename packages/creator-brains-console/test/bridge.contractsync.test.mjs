@@ -281,20 +281,14 @@ for (const method of ['startDailyRun', 'repair']) {
   });
 }
 
-test('T-B27m0b: the deferral switch can FAIL, and both readers refuse rather than guess', () => {
-  // The switch above decides which reader runs, so it is itself a checker and is
-  // checked here. A switch stuck on `true` would send an implemented method to the
-  // stub reader and reproduce exactly the stale-premise failure this round fixed.
-  assert.equal(isDeferred(adapterSource, 'startDailyRun'), true, 'S4 is unbuilt, so the daily run is still a stub');
-  assert.equal(isDeferred(adapterSource, 'repair'), false, 'S3 shipped it, so repair is implemented');
-  assert.equal(isDeferred(adapterSource, 'backup'), true,
-    'backup is WITHHELD (A1-08 / D4), and a withheld route is a stub — collapsing it into "implemented" would make this reader disagree with the contract on purpose');
-
-  // And each reader refuses on input it cannot read, rather than returning an
-  // empty answer that compares equal to a document declaring nothing.
-  assert.throws(() => implementedRoute('x(): Promise<void> { }', 'x'), /could not be read/,
-    'an unreadable implemented call must throw');
-  assert.throws(() => implementedRoute("x(): Promise<void> { return this.request<{ a: number }>('/api/y', {}); }", 'x'),
-    /without naming an HTTP method/,
-    'a call with no verb must throw — the verb is half the join key');
-});
+/*
+ * `T-B27m0b` — the deferral switch's own checker — MOVED to `contract-readers.r9.test.mjs`
+ * on 2026-09-21, under Rule 4. It tests `isDeferred`/`implementedRoute`, which are pure functions
+ * of `contract-parse.mjs` over a source string: it never touches the bridge, the server or a
+ * fixture, so it did not belong in a file whose subject is "the web contract and the bridge must
+ * agree". It sat here because that is where the switch it guards is USED.
+ *
+ * It landed in `contract-readers.r9` rather than beside the switch in `contract-parse.r7` because
+ * the r7 file went over the same cap when the block was added. Both files' headers record the move
+ * rather than only its destination, because the first draft of this note named r7 and was wrong.
+ */

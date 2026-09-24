@@ -43,7 +43,7 @@
 
 import {
   statusInstrument, creatorRows, queryConsole, brainDoc, runState,
-  canaryState, backlogData, addCreatorRow, setCreatorEnabled,
+  canaryState, backlogData, addCreatorRow, setCreatorEnabled, repairStore, startDailyRun,
 } from './api.mjs';
 import { ApiError, CODE } from './lib/errors.mjs';
 import { sendJson, readBody, resolveStatic, contentTypeFor, readStatic } from './lib/http.mjs';
@@ -77,13 +77,23 @@ const BRIDGE_PAGE = `<!doctype html><meta charset="utf-8"><title>Creator Brains 
  * anything unroutable; the caller's `catch` turns that into the envelope, which
  * is why this function never writes an error response itself.
  */
-export async function dispatch(req, res, { r, url }) {
+export async function dispatch(req, res, { r, url, reservation = null }) {
   const p = url.pathname;
 
   /* ── reads (tier T0) ── */
   if (req.method === 'GET' && p === '/api/status') return sendJson(res, 200, statusInstrument(r));
   if (req.method === 'GET' && p === '/api/creators') return sendJson(res, 200, creatorRows(r));
-  if (req.method === 'GET' && p === '/api/run') return sendJson(res, 200, runState(r));
+  if (req.method === 'GET' && p === '/api/run') {
+    // D2/P1a: this read is also the HANDOFF ACKNOWLEDGEMENT. A run reservation
+    // outlives the 202 that created it and is released on evidence that the
+    // child owns the store — a journal run id this read has not seen before, or
+    // a held lock. `GET /api/run` is exactly that evidence, and it is the route
+    // the client already polls while waiting for a run, so the release costs no
+    // extra request and no timer. See `lib/run-reservation.mjs`.
+    const state = runState(r);
+    if (reservation) reservation.noteRun(state);
+    return sendJson(res, 200, state);
+  }
   if (req.method === 'GET' && p === '/api/canary') return sendJson(res, 200, canaryState(r));
   if (req.method === 'GET' && p === '/api/backlog') return sendJson(res, 200, backlogData(r));
   if (req.method === 'GET' && p === '/api/query') {
@@ -107,6 +117,37 @@ export async function dispatch(req, res, { r, url }) {
       throw new ApiError(CODE.VALIDATION, "'enabled' must be true or false");
     }
     return sendJson(res, 200, setCreatorEnabled(id, body.enabled, { r }));
+  }
+
+  /* ── operations (tier T2 — ONE shared exclusion gate, A1-06) ──
+   * S3. `POST /api/repair` answers the PROJECTED engine result
+   * `{repaired,built,emptied}` (05 §2b), and may answer `409 RUN_LOCKED {holder}`
+   * when a run holds the store.
+   * S4. `POST /api/run/daily` spawns the engine's scheduled entry point and
+   * answers `202 {requestId, runId:null}` — ACCEPTANCE, not completion (A1-05),
+   * with progress read from `GET /api/run`.
+   *
+   * Both take the SAME gate (`lib/run-gate.mjs`), because both reach `runDaily`
+   * and therefore the same journal. The engine's repair path IS
+   * `runDaily({only:[...]})`, so two separate gates would leave the journal
+   * reachable through whichever door was gated less (A1-06).
+   *
+   * There is deliberately no `/api/backup`: A1-08 / D4 is still open, and the
+   * contract says that route stays visible-but-blocked with NO endpoint. */
+  if (req.method === 'POST' && p === '/api/repair') {
+    return sendJson(res, 200, await repairStore({ r }));
+  }
+  if (req.method === 'POST' && p === '/api/run/daily') {
+    const body = await readBody(req);
+    // 202: the work is ACCEPTED, not done. The status code is part of the
+    // contract's honesty, not a style choice — a 200 here would tell the client
+    // the run finished.
+    //
+    // D2/P1a: the reservation is passed through, taken BEFORE the gate, and
+    // released by `GET /api/run` above once the child owns the store. Without it
+    // a second request in the spawn handoff window spawns a second child into
+    // one store — measured, not inferred.
+    return sendJson(res, 202, await startDailyRun({ r, perHour: body && body.perHour, reservation }));
   }
 
   /* ── anything else is a named 404; a static path is GET/HEAD only (H11) ── */

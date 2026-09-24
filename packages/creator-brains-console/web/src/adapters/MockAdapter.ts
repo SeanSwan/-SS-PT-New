@@ -115,7 +115,11 @@ export class MockAdapter implements ConsoleDataAdapter {
   }
 
   async startDailyRun(perHour: number): Promise<{ requestId: string; runId: string | null }> {
-    if (!Number.isInteger(perHour) || perHour < 1) {
+    // MIRRORS THE BRIDGE'S RULE, not a stricter one of the mock's own. `lib/errors.mjs` accepts a
+    // numeric string and coerces it; the mock accepts the same set (`>= 1`, integral after
+    // coercion), so a component tested against the mock cannot pass here and fail on the bridge.
+    const n = typeof perHour === 'string' ? Number(perHour) : perHour;
+    if (!Number.isInteger(n) || n < 1) {
       throw new ConsoleApiError('VALIDATION', 'perHour must be an integer >= 1', { status: 400 });
     }
     // R3-05: `runId` is null on acceptance, because acceptance is not completion

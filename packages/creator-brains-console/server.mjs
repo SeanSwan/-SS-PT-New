@@ -73,6 +73,7 @@ import {
 import { claimInstance, releaseInstance, registerBridge, unregisterBridge } from './lib/instance.mjs';
 import { servingOriginFor, writeGateFailure } from './lib/write-gate.mjs';
 import { createAdmission } from './lib/admission.mjs';
+import { createReservation } from './lib/run-reservation.mjs';
 import { finishStart } from './lib/lifecycle.mjs';
 
 export { statusFor, hostAllowed } from './lib/http.mjs';
@@ -98,8 +99,17 @@ export const HOST = '127.0.0.1';
  * envelope. Everything between the parse and the envelope is `dispatch`.
  */
 export function createBridge({
-  r = root(), log = () => {}, port = null, admission = null,
+  r = root(), log = () => {}, port = null, admission = null, reservation = null,
 } = {}) {
+  // D2/P1a: one operation reservation per bridge, created here when the caller
+  // did not inject one — the same shape as `admission` above it. The reservation
+  // is what spans the spawn handoff: `POST /api/run/daily` takes it before the
+  // gate, returns its 202, and it is not released until `GET /api/run` shows the
+  // child owning the store. A caller that builds two bridges on one store would
+  // get two reservations and the original gap back — which is already refused by
+  // the single-instance guard (`lib/instance.mjs`), and is named here so the
+  // dependency is visible rather than assumed.
+  const runReservation = reservation || createReservation();
   // The handler body is named so the admission wrapper below can guarantee that
   // EVERY exit path — including a thrown handler — gives its slot back.
   const handleRequest = async (req, res) => {
@@ -152,7 +162,7 @@ export function createBridge({
     try {
       // MUST stay inside the try — see parseRequestUrl and T-B18 (S1-H8).
       const url = parseRequestUrl(req.url, `http://${HOST}`);
-      return await dispatch(req, res, { r, url });
+      return await dispatch(req, res, { r, url, reservation: runReservation });
     } catch (err) {
       return sendError(res, err, log);
     }

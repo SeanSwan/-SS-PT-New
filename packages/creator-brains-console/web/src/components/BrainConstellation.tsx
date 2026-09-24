@@ -34,20 +34,27 @@
  * ── THE ENTRY DOLLY IS SKIPPED, NOT DELAYED (`14 §3` item 4) ────────────────
  *
  * If the chunk arrives after the idle window, the dolly is skipped entirely
- * rather than playing late. A camera move that starts four seconds after the
- * panel was already readable is not a flourish, it is a jolt — and the operator
- * has begun reading. `entryDolly` is passed down and this component decides.
+ * rather than playing late — a camera move that starts once the panel is already
+ * readable is a jolt, not a flourish. `entryDolly` is passed down and decided here.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
 import type { CreatorRow, StatusInstrument } from '../adapters';
-import { layoutBrains, nodeLabel, type BrainNode } from './constellation-layout';
+import { layoutBrains, type BrainNode } from './constellation-layout';
 import { startLoop, type LoopHandle } from './constellation-loop';
 import { hasWebGL, loadConstellationChunk, onIdle, shouldLoadChunk } from './constellation-chunk';
+import { Frame } from './constellation.styles';
 import {
-  Canvas, Caption, Frame, NodeButton, NodeList, NodeMeta, STATE_SWATCH, Swatch,
-} from './constellation.styles';
+  ConstellationCanvas, ConstellationCaptions, ConstellationRoster,
+} from './ConstellationRoster';
+import { walk } from './constellation-walk';
+import { pointerToNormalised } from './constellation-pointer';
+// TYPE-ONLY, deliberately. `constellation-three` is the lazy chunk, so importing
+// anything runtime from it here would pull three.js into the initial bundle and
+// defeat the T-E3 deferral contract. A `import type` is erased at build, so the
+// handle shape stays in sync with the real module without being loaded by it.
+import type { SceneHandle } from './constellation-three';
 
 export interface BrainConstellationProps {
   rows: CreatorRow[];
@@ -85,7 +92,7 @@ export function BrainConstellation({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
-  const sceneRef = useRef<{ update: (n: BrainNode[]) => void; frame: (ms: number) => void; pick: (x: number, y: number) => string | null; focusNode: (id: string | null) => void; resize: (w: number, h: number) => void; dispose: () => void } | null>(null);
+  const sceneRef = useRef<SceneHandle | null>(null);
   const loopRef = useRef<LoopHandle | null>(null);
   const nodesRef = useRef<BrainNode[]>(nodes);
   nodesRef.current = nodes;
@@ -136,8 +143,20 @@ export function BrainConstellation({
       if (cancelled) { scene.dispose(); return; }
       sceneRef.current = scene;
 
-      const rect = frameEl.getBoundingClientRect();
-      scene.resize(rect.width || 480, rect.height || 380);
+      // SIZE THE RENDERER FROM THE CANVAS, NOT THE FRAME.
+      //
+      // `Frame` is the flex column holding BOTH the canvas and the `NodeList`,
+      // so its rect is taller than the canvas by however many roster rows are
+      // rendered. Sizing the renderer from the frame therefore set a drawing
+      // buffer whose aspect did not match the box the canvas actually occupied,
+      // and the constellation drew into a squashed, vertically-offset region —
+      // visible in the S5 render as nodes sitting low with empty space above.
+      //
+      // The canvas is the thing being drawn into, so the canvas is what to
+      // measure. `|| 480 / 380` keeps a zero-rect first pass (jsdom, or a
+      // display:none parent) from producing a zero-sized buffer.
+      const canvasRect = canvas.getBoundingClientRect();
+      scene.resize(canvasRect.width || 480, canvasRect.height || 380);
       scene.update(nodesRef.current);
 
       // The loop's three stop conditions are owned by `constellation-loop.ts`
@@ -182,8 +201,10 @@ export function BrainConstellation({
   useEffect(() => {
     if (!ready) return undefined;
     const onResize = () => {
-      const el = frameRef.current;
+      const el = canvasRef.current;
       if (!el) return;
+      // The canvas, for the same reason as the initial sizing above: the frame
+      // includes the roster list and is not the box being drawn into.
       const rect = el.getBoundingClientRect();
       sceneRef.current?.resize(rect.width || 480, rect.height || 380);
     };
@@ -191,31 +212,44 @@ export function BrainConstellation({
     return () => window.removeEventListener('resize', onResize);
   }, [ready]);
 
-  /** Pointer → node. Hover and click share one hit test. */
+  /**
+   * Pointer → node. Hover and click share one hit test.
+   *
+   * The coordinate transform lives in `constellation-pointer.ts` with the
+   * reasoning for why it is the CANVAS rect and not the frame. All this does is
+   * supply the canvas and hand the result to the scene.
+   */
   const pickAt = useCallback((e: { clientX: number; clientY: number }) => {
-    const el = frameRef.current;
+    const el = canvasRef.current;
     const scene = sceneRef.current;
     if (!el || !scene) return null;
-    const r = el.getBoundingClientRect();
-    if (!r.width || !r.height) return null;
-    return scene.pick((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+    const at = pointerToNormalised(el, e);
+    if (!at) return null;
+    return scene.pick(at.nx, at.ny);
   }, []);
 
   // ── ARROW-KEY NODE WALKING (`03 §Keyboard`) ───────────────────────────────
+  //
+  // The wrap arithmetic and the activation semantics live in
+  // `constellation-walk.ts` as a pure function, so the keyboard contract is
+  // testable without rendering React or a WebGL context. This callback is only
+  // the adapter: it turns the resolved action into state changes.
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!nodes.length) return;
-    const i = nodes.findIndex((n) => n.channelId === focused);
-    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-      e.preventDefault();
-      setFocused(nodes[(i + 1 + nodes.length) % nodes.length].channelId);
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
-      e.preventDefault();
-      setFocused(nodes[(i <= 0 ? nodes.length : i) - 1].channelId);
-    } else if (e.key === 'Enter' && focused) {
-      e.preventDefault();
-      onOpenBrain(focused);
-    } else if (e.key === 'Escape') {
-      setFocused(null);
+    const action = walk(nodes, focused, e.key);
+    switch (action.kind) {
+      case 'focus':
+        e.preventDefault();
+        setFocused(action.channelId);
+        break;
+      case 'activate':
+        e.preventDefault();
+        onOpenBrain(action.channelId);
+        break;
+      case 'clear':
+        setFocused(null);
+        break;
+      default:
+        break;
     }
   }, [nodes, focused, onOpenBrain]);
 
@@ -229,62 +263,33 @@ export function BrainConstellation({
       data-webgl={webgl ? 'present' : 'absent'}
     >
       {!showFallbackList && (
-        <Canvas
-          ref={canvasRef}
-          data-testid="constellation-canvas"
-          role="img"
-          aria-label={
-            nodes.length
-              ? `Brain constellation: ${nodes.length} creator${nodes.length === 1 ? '' : 's'}. Use the list below to open one.`
-              : 'Brain constellation: no creators yet.'
-          }
-          tabIndex={0}
+        <ConstellationCanvas
+          canvasRef={canvasRef}
+          nodes={nodes}
+          focused={focused}
           onKeyDown={onKeyDown}
-          onClick={(e) => { const id = pickAt(e); if (id) setFocused(id); }}
-          onDoubleClick={(e) => { const id = pickAt(e); if (id) onOpenBrain(id); }}
-          onMouseMove={(e) => { const id = pickAt(e); if (id) setFocused(id); }}
-          onFocus={() => { if (!focused && nodes.length) setFocused(nodes[0].channelId); }}
+          onPick={pickAt}
+          onFocusNode={setFocused}
+          onOpen={onOpenBrain}
         />
       )}
 
-      {showFallbackList && (
-        <Caption as="div" data-testid="constellation-fallback">
-          {webgl ? 'The constellation could not load. ' : 'WebGL is unavailable here. '}
-          The creators are listed below, and the roster to the right is unchanged.
-        </Caption>
-      )}
-
-      {!showFallbackList && !ready && (
-        <Caption data-testid="constellation-placeholder">
-          {nodes.length ? 'Constellation loading…' : 'No brains yet — add your first creator.'}
-        </Caption>
-      )}
-
-      {/* THE ALWAYS-PRESENT EQUAL. `03`: "every action also exists as a DOM
-          control (never hover-only)". This list is not a degraded fallback for
-          screen readers only — it is the same nodes, focusable and labelled, in
-          a deterministic order, for everyone. */}
-      <NodeList data-testid="constellation-node-list">
-        {nodes.map((n) => (
-          <li key={n.channelId}>
-            <NodeButton
-              type="button"
-              $focused={focused === n.channelId}
-              aria-label={nodeLabel(n)}
-              onFocus={() => setFocused(n.channelId)}
-              onMouseEnter={() => { setFocused(n.channelId); sceneRef.current?.focusNode(n.channelId); }}
-              onClick={() => onOpenBrain(n.channelId)}
-            >
-              <Swatch $color={STATE_SWATCH[n.state]} aria-hidden="true" />
-              {n.title}
-              <NodeMeta>
-                {n.state}
-                {n.coverage === null ? ' · counts unavailable' : ` · ${Math.round(n.coverage * 100)}%`}
-              </NodeMeta>
-            </NodeButton>
-          </li>
-        ))}
-      </NodeList>
+      <ConstellationCaptions
+        showFallback={showFallbackList}
+        showPlaceholder={!showFallbackList && !ready}
+        webgl={webgl}
+        nodeCount={nodes.length}
+      />
+      {/* THE ALWAYS-PRESENT EQUAL, extracted to `ConstellationRoster.tsx` so the
+          reasoning about why it is not a fallback lives beside the markup it
+          describes rather than here. */}
+      <ConstellationRoster
+        nodes={nodes}
+        focused={focused}
+        onFocus={setFocused}
+        onHoverNode={(id) => sceneRef.current?.focusNode(id)}
+        onOpen={onOpenBrain}
+      />
     </Frame>
   );
 }
