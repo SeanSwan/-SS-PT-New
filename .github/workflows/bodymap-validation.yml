@@ -38,14 +38,24 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      # The repo-wide tsc exceeds Node's default old-space on a 7 GB runner and
-      # aborts with SIGABRT (exit 134) before emitting a single diagnostic, so
-      # this job reported red without ever returning a type verdict. The heap
-      # bump lets the check answer; it does not change what is checked.
-      - name: Typecheck frontend
+      # NO HEAP FLAG FIXES THIS, and this step previously claimed otherwise by
+      # failing. The repo measured it: `tsc --noEmit` OOMs at an 8192 MB heap even
+      # on a 66 GB machine and completes cleanly at 12288 MB — while a private-repo
+      # runner has ~7 GB TOTAL, so 12288 is unreachable whatever flag it is given
+      # (coach-gate.yml:118-126, tracked in SWA-142). The codebase IS type-clean at
+      # a reachable heap; the ceiling is memory, not a defect.
+      #
+      # Run bare here, the step aborted with SIGABRT / exit 134 and ZERO `error TS`
+      # lines — so the job reported a type failure it had never actually reached,
+      # and a red that no change can clear teaches people to ignore the job.
+      #
+      # Marked non-blocking in the same way, and for the same reason, as the
+      # equivalent step in coach-gate.yml. Promoting it needs one of the three
+      # Sean-gated options in SWA-142 (larger runner, project references, or
+      # local-only), not a bigger heap number.
+      - name: Typecheck frontend — informational only, cannot complete on this runner
+        continue-on-error: true
         run: npx tsc --noEmit
-        env:
-          NODE_OPTIONS: --max-old-space-size=8192
 
       - name: Run focused frontend tests
         run: npx vitest run src/context/GlobalClientContext.test.ts src/components/BodyMap/BodyMap.clientTarget.test.ts
