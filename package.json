@@ -40,7 +40,9 @@
     "backup": "node scripts/backup-repo.mjs",
     "backup:verify": "node scripts/backup-repo.mjs --verify-only",
     "db:drift-check": "node backend/scripts/schema-drift-check.mjs",
-    "design-brain:test": "node --test \"scripts/design-brain/tests/*.test.mjs\""
+    "design-brain:test": "node --test \"scripts/design-brain/tests/*.test.mjs\"",
+    "design-brain:directions": "node scripts/design-brain/directions/validate-directions.mjs",
+    "design-brain:directions:strict": "node scripts/design-brain/directions/validate-directions.mjs --strict"
   },
   "devDependencies": {
     "fallow": "^2.88.3",

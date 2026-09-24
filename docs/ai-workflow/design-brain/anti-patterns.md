@@ -72,6 +72,17 @@
 | **Skipping the mounted-surface receipt before a UI fix** | Rule 26 — you may be styling a dormant component |
 | **"Looks good" as a QA verdict** | qa-gates.md verdicts are binary gates with receipts, not vibes (rule 19) |
 
+## Convergence bans (new 2026-09-23 — the Direction Registry)
+
+| Ban | Why |
+|---|---|
+| **Assuming a palette instead of selecting a direction** | `design.md` §4 is the `crystalline-swan` direction, not *the* palette. The ideation gate used to be required to emit a valid Swan direction, which gave it exactly one legal output — so every brief produced the same picture. Select per `directions/README.md`. |
+| **A fourth identical unpinned direction for the same surface class** | The anti-convergence gate refuses it. Pin it with a written reason, or take the rotation. "It is the default" is not a reason — it is the absence of one. |
+| **A direction that differs from another only in hue** | That is one direction, not two. Breadth is over visual language, not over hex values. Two directions sharing a signature device or a `match_terms` entry are the same direction wearing two names. |
+| **A direction that relaxes a rule instead of recolouring** | 44px, 4.5:1, reduced motion gated in CSS *and* JS, approved display faces, and this entire file apply in **every** direction. A direction's `bans` list is additive. |
+| **A stated contrast ratio that was not computed** | Directions declare role pairs; the validator measures them. An exception must name the mechanism that compensates, and a stale exception number fails the gate. |
+| **A runtime theme with no direction file** | The theme is switchable by a human and selectable by no agent. `directions/registry.json` counts them; the count is the backlog. |
+
 ## Pass/fail gate
 
 PASS = zero hits from this list in the diff, checked against BOTH the rendered surface and the source. One hit = FAIL — fix, or get Sean's explicit written exception logged per `obsidian/design-decision-log-policy.md`.

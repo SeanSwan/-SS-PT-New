@@ -502,3 +502,14 @@ SOUL.archive/**
 # class as the `.codex-tmp-*` entry above. The directory contains copies of tracked
 # source, never anything original.
 backend/.mutation-tmp/
+
+# Design Brain — direction selection ledger (2026-09-23).
+# Same shape as the coordination ledger above: LEDGER.md (the format + the human record) is
+# TRACKED, the live LEDGER.jsonl is not. It is append-only, same-machine state that the
+# anti-convergence gate reads. Committing it would add a line of churn per UI slice and set up
+# a merge conflict between two agents working in parallel — the same reasoning as the
+# coordination ledger, and the same reasoning as the gate telemetry file.
+# The consequence is stated plainly in LEDGER.md: the gate's memory is per-machine, so two
+# machines can each independently reach a run of three. That is a known limitation, not an
+# oversight, and it is the reviewer's to weigh.
+docs/ai-workflow/design-brain/directions/LEDGER.jsonl

@@ -21,12 +21,14 @@
 
 Frozen enchanted forest meets deep-ocean luxury vault. Sapphire depths, ice-glow accents, gilded luxury edges, obsidian ground. Typography carries drama (Cormorant italic beats) against precise UI faces. The RETIRED Galaxy-Swan theme (`#0a0a1a`, `#00FFFF`, `#7851A9`) is banned everywhere.
 
-## 3. The two modes
+## 3. Modes (scope) and directions (look)
+
+**A mode answers *where may this appear*. A direction answers *what does it look like*.** They compose, and neither substitutes for the other. Modes are unchanged. Directions are new, and they live in `directions/`.
 
 | Mode | Where | Tokens |
 |---|---|---|
-| **Crystalline Swan** (canonical) | ALL product surfaces: marketing, storefront, user/client/trainer/admin dashboards, Swan Coach, Coach Command Center, onboarding | Full palette §4, unmodified |
-| **Crystalline Cyberforest** (operator-only) | Hermes operator surfaces ONLY (Sean-only tooling, per `HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md` §10) | Same token system + the forest/aurora extension layer below. **Never on client-facing UI.** Product rules (44px, dark-first, reduced-motion, 4.5:1) still apply |
+| **Crystalline Swan** (canonical) | ALL product surfaces: marketing, storefront, user/client/trainer/admin dashboards, Swan Coach, Coach Command Center, onboarding | The `crystalline-swan` direction (palette §4), unmodified |
+| **Crystalline Cyberforest** (operator-only) | Hermes operator surfaces ONLY (Sean-only tooling, per `HERMES-SWANSTUDIOS-OPERATOR-BRIDGE.md` §10) | The `crystalline-cyberforest` direction — same token system + the forest/aurora extension layer below. **Never on client-facing UI.** Product rules (44px, dark-first, reduced-motion, 4.5:1) still apply |
 
 **Cyberforest extension layer** (additive; base palette unchanged):
 
@@ -41,7 +43,23 @@ Frozen enchanted forest meets deep-ocean luxury vault. Sapphire depths, ice-glow
 
 Aurora is a top-edge/header wash or divider treatment at low opacity — never a full-page animated background. Text, buttons, glow discipline, and tier badges use the standard palette. If a component works in Swan mode, it works in Cyberforest mode by swapping only the bg/surface layer tokens.
 
-## 4. Color tokens (Crystalline Swan — active palette)
+### 3.1 Directions — the missing half of the abstraction
+
+§4 below is **the palette of the `crystalline-swan` direction**. It is not *the palette*. It was the only one, which is exactly why every brief produced the same picture: the ideation gate is required to emit a **valid Swan** direction, so it had precisely one legal output.
+
+Directions are named, closed, versioned token sets in `directions/`. **Read `directions/README.md` before selecting one.** The short version:
+
+- **Select** a direction — `pinned`, `matched`, or `rotated` — never assume one. Three identical unpinned selections in a row for the same surface class are **REFUSED**: pin it with a written reason, or take the rotation.
+- **The role set is closed and shared.** Every direction declares the same seven required roles (`ground · surface · panel · text · muted · focus · rare`, fixed in `prompter/lib/design-bridge.mjs:40`) with different values. That is what lets a component port across directions by swapping tokens only.
+- **`scope` is permission, not preference.** Cyberforest remains Sean-only. A direction never grants itself more scope than its status allows.
+- **A direction recolours; it never relaxes.** Every rule in this file — 44px, 4.5:1, reduced motion gated in CSS *and* JS, the `anti-patterns.md` bans, the approved display faces — applies in **every** direction.
+- **Contrast is measured, not asserted.** A direction declares role pairs; the validator computes the ratios. An exception must name the mechanism that compensates.
+
+`cinematic-pages.md` §18 already mandates a breadth pass over **concepts**. This is the same rule applied to **visual language**, which §18 left pinned.
+
+## 4. Color tokens — the `crystalline-swan` direction
+
+This is **one direction's** palette, not *the* palette. See §3.1 and `directions/README.md`.
 
 Always consumed as `var(--token, #fallback)`:
 

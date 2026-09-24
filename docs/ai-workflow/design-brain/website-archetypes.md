@@ -63,7 +63,7 @@ All budgets ship the three performance tiers from the design system §A (full / 
 - **A11y:** text over video needs the vignette layer to hold 4.5:1; focus order follows the arc; skip-to-pricing link.
 - **Components:** `GlowButton` (Dual-Button Glow), `GlassPanel` (C12 base), `SheenCard` for feature/sell cards, `NarrativeDivider`, `ChartEnvironment` if a proof chart appears.
 - **Anti-patterns:** centered-hero-two-buttons-blob; equal 4-up feature grid; testimonial-carousel-with-avatars template; pricing hidden behind a "contact us" wall.
-- **Fable brief:** "SaaS landing for [product]. Audience: [who]. One-sentence promise: [X]. Give 2–3 concept directions: name each act's emotional beat, hero treatment, signature moment, and the Act-2 proof strategy. Palette stays Crystalline Swan."
+- **Fable brief:** "SaaS landing for [product]. Audience: [who]. One-sentence promise: [X]. Give 2–3 concept directions: name each act's emotional beat, hero treatment, signature moment, and the Act-2 proof strategy. Direction: resolve one per `directions/README.md` — pin it with a written reason or let it rotate. Do not default to house style; a default is not a decision."
 - **Builder brief:** "Implement direction [n]. B2.1 arc written in-thread first. styled-components only, tokens from design.md, C1 hero with tier-2 poster + tier-3 static in the same file, pricing module reuses #10. Rule 26 receipt before touching any mounted route."
 - **Harness QA:**
   - [ ] hero paints < 2.5s with poster-first

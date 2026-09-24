@@ -17,14 +17,24 @@
     --line-soft:     #1a1d22;
     --ink:           #e7e9ee;   /* primary text            */
     --ink-2:         #a3a8b3;   /* secondary               */
-    --ink-3:         #6b7280;   /* tertiary / metadata     */
+    --ink-3:         #7C8492;   /* tertiary / metadata — CORRECTED 2026-09-23.
+                                    Was #6b7280, which measures 4.00:1 on --bg and fails
+                                    WCAG AA for the 9–12px text it actually carries
+                                    (.grp, .s-m, .who, .tool .meta, .railfoot, .act h2).
+                                    #7C8492 measures 5.13:1 and keeps the cool grey.
+                                    Found by design-brain/directions/validate-directions.mjs */
     --accent:        #7aa2f7;   /* the ONE accent          */
     --ok:            #7bc47f;
     --warn:          #d9a441;
     --err:           #e06c75;
     --radius:        7px;
     --mono: ui-monospace,"SF Mono","JetBrains Mono","Fira Code",Menlo,monospace;
-    --sans: -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Roboto,sans-serif;
+    --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    /* NOTE (2026-09-23): "Inter" and Roboto were removed — both sit in the family that
+       design.md section 6 bans. This mockup uses a system-native stack rather than an
+       approved display face (Sora / Plus Jakarta Sans / Fira Code). That deviation is
+       RECORDED in design-brain/directions/codex-restraint.md, not silently normalised:
+       a direction that quietly contradicts a canonical rule is how rules die. */
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}

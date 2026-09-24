@@ -1,0 +1,221 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "swan-direction/1",
+  "title": "Swan Design Direction",
+  "description": "A named, closed, versioned token set. Declares the SAME roles with DIFFERENT values so a component ports across directions by swapping tokens only. Lives as a fenced ```json direction block inside directions/<id>.md — one source of truth, human-readable and machine-checkable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "name", "version", "status", "scope", "feel", "palette", "contrast_pairs", "type", "motion", "glow", "signature", "evidence"],
+  "properties": {
+    "schema": { "const": "swan-direction/1" },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Stable machine id. Must equal the filename stem and the registry.json key."
+    },
+    "name": { "type": "string", "minLength": 2, "maxLength": 60 },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "status": { "enum": ["canonical", "experimental", "quarantined"] },
+    "theme_id": {
+      "type": ["string", "null"],
+      "description": "The runtime theme id this direction corresponds to in the UniversalThemeContext collection (docs/ai-workflow/references/THEME-CHANGER-COMPAT.md). Null when the direction has no runtime theme. This field is the BRIDGE between the theme changer and the Design Brain - it is what makes an existing theme agent-selectable instead of human-switchable only."
+    },
+    "theme_source": {
+      "type": ["string", "null"],
+      "description": "The doc and row this direction's palette was read from, when it was registered rather than invented."
+    },
+    "scope": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["product", "operator", "marketing", "internal-tool", "experiment"] },
+      "description": "Which surface classes may select this direction. Scope is permission, not preference — a direction never grants itself more scope than its status allows."
+    },
+    "feel": { "type": "string", "minLength": 20, "maxLength": 240 },
+    "match_terms": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9 -]*$" },
+      "description": "Lowercase terms that make a brief select this direction. Keep them discriminating — a term that matches every brief is a bug."
+    },
+    "ground_inverts": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when this direction's ground is light. The registry breadth rule requires at least one direction with ground_inverts true."
+    },
+    "palette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ground", "surface", "panel", "text", "muted", "focus", "rare"],
+      "properties": {
+        "ground":     { "$ref": "#/$defs/hex" },
+        "ground-2":   { "$ref": "#/$defs/hex" },
+        "surface":    { "$ref": "#/$defs/hex" },
+        "panel":      { "$ref": "#/$defs/hex" },
+        "panel-hi":   { "$ref": "#/$defs/hex" },
+        "panel-sunk": { "$ref": "#/$defs/hex" },
+        "line":       { "$ref": "#/$defs/hex" },
+        "line-hi":    { "$ref": "#/$defs/hex" },
+        "text":       { "$ref": "#/$defs/hex" },
+        "text-dim":   { "$ref": "#/$defs/hex" },
+        "muted":      { "$ref": "#/$defs/hex" },
+        "on-accent":  { "$ref": "#/$defs/hex" },
+        "focus":      { "$ref": "#/$defs/hex" },
+        "rare":       { "$ref": "#/$defs/hex" },
+        "third":      { "$ref": "#/$defs/hex" },
+        "danger":     { "$ref": "#/$defs/hex" },
+        "warn":       { "$ref": "#/$defs/hex" },
+        "ok":         { "$ref": "#/$defs/hex" }
+      },
+      "description": "The seven required roles are the closed set already fixed in prompter/lib/design-bridge.mjs:40. The rest are the Design Brain's own ladder vocabulary. Every value must be consumed as var(--token, #fallback)."
+    },
+    "contrast_pairs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fg", "bg", "min", "role"],
+        "properties": {
+          "fg":   { "type": "string", "description": "Palette role name (not a hex)." },
+          "bg":   { "type": "string" },
+          "min":  { "type": "number", "minimum": 1, "maximum": 21 },
+          "role": { "type": "string", "minLength": 2, "maxLength": 60 }
+        }
+      },
+      "description": "Pairs the direction will actually ship. The validator RESOLVES the roles and MEASURES WCAG 2.x contrast — it does not trust a stated number."
+    },
+    "contrast_exceptions": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fg", "bg", "measured", "reason", "compensated_by"],
+        "properties": {
+          "fg": { "type": "string" },
+          "bg": { "type": "string" },
+          "measured": { "type": "number" },
+          "reason": { "type": "string", "minLength": 20 },
+          "compensated_by": {
+            "type": "string",
+            "minLength": 20,
+            "description": "REQUIRED and non-trivial. The mechanism that carries the separation instead. An exception without a mechanism is a bug wearing a justification."
+          }
+        }
+      },
+      "description": "A pair that legitimately cannot meet the threshold. Must name the compensating mechanism so the failure is visible and attackable rather than laundered."
+    },
+    "type": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["display", "body", "mono"],
+      "properties": {
+        "display": { "type": "string" },
+        "body":    { "type": "string" },
+        "mono":    { "type": "string" },
+        "scale":   { "type": "array", "items": { "type": "string" } },
+        "rules":   { "type": "array", "items": { "type": "string" } }
+      },
+      "description": "Inter, Roboto, Arial and Helvetica remain banned as display faces in every direction (design.md §6)."
+    },
+    "radius": {
+      "oneOf": [
+        { "const": "inherit" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sm":   { "type": "string" },
+            "md":   { "type": "string" },
+            "lg":   { "type": "string" },
+            "pill": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "space": {
+      "oneOf": [
+        { "const": "inherit" },
+        { "type": "array", "items": { "type": "number" } }
+      ]
+    },
+    "motion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["easings", "durations", "signature_budget", "gate"],
+      "properties": {
+        "easings":   { "type": "object", "additionalProperties": { "type": "string" } },
+        "durations": { "type": "object", "additionalProperties": { "type": "string" } },
+        "signature_budget": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Signature moments per page/section (design.md §1.5). Data-dense and operator directions are 0."
+        },
+        "gate": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "enum": ["css", "js"] },
+          "description": "Reduced-motion must be gated in BOTH. A CSS-only gate misses what GSAP drives on a timer; a JS-only gate misses CSS transitions."
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "glow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "primary", "accent"],
+      "properties": {
+        "rule": { "enum": ["dual-button", "none", "flat-border"] },
+        "primary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bg", "glow"],
+          "properties": { "bg": { "type": "string" }, "glow": { "type": "string" } }
+        },
+        "accent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bg", "glow"],
+          "properties": { "bg": { "type": "string" }, "glow": { "type": "string" } }
+        }
+      },
+      "description": "The Dual-Button Glow idiom (design.md §5), recoloured per direction. Roles, not hexes."
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "device"],
+      "properties": {
+        "name":   { "type": "string", "minLength": 3, "maxLength": 60 },
+        "device": { "type": "string", "minLength": 20 },
+        "where":  { "type": "string" }
+      },
+      "description": "The one device that recurs across the direction. A direction without a signature is a palette, not a direction."
+    },
+    "bans": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Direction-specific additions ON TOP of the global anti-patterns list. Never a relaxation of it."
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Where this direction was actually built and measured. A direction with no built artifact is a proposal, and must say so."
+    },
+    "derived_roles": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Roles whose value is computed from a documented rule rather than read from an existing token. Declaring these keeps a derivation from being mistaken for an invented token (enforcement rule 4)."
+    },
+    "supersedes": { "type": ["string", "null"] },
+    "notes": { "type": "string" }
+  },
+  "$defs": {
+    "hex": {
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    }
+  }
+}

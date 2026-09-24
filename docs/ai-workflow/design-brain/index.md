@@ -31,6 +31,19 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | `mobbin-learning-system.md` | Governed recursive-learning doctrine: evidence/2, identity, inspection, K1-K5 dedupe, budgets, audit, human-only adjudication/canon, and cold-mode exit criteria |
 | `swan-element-intelligence.md` | Proven-current Swan capability baseline, crawler/browser/source evidence separation, Mobbin gap comparison, and USE_NOW/TRIAL/WATCH/REJECT notification loop |
 
+### `directions/` — the Direction Registry (CANONICAL)
+
+| File | Purpose |
+|---|---|
+| `directions/README.md` | Doctrine: mode vs direction, the closed role contract, selection (pinned / matched / rotated), the anti-convergence gate, the breadth rules, how to add a direction |
+| `directions/direction.schema.json` | The closed contract every direction must satisfy — required seven roles, measured contrast, dual motion gate, a named signature |
+| `directions/registry.json` | Machine index of every direction, plus `known_themes`: the runtime themes in `references/THEME-CHANGER-COMPAT.md` that have **no** direction file yet |
+| `directions/LEDGER.md` | Append-only record of which direction each surface class received, and whether it was pinned |
+| `directions/REVIEW-HANDOFF.md` | The open handoff — the hostile review this registry is awaiting |
+| `directions/<id>.md` | One direction per file. The canonical payload is the fenced json-direction block; the prose around it is commentary |
+
+**Why it exists.** The Brain had modes (scope) but no directions (look), so every ideation path was required to emit a *valid Swan* direction and had exactly one legal output. `cinematic-pages.md` §18 already mandates a breadth pass over **concepts**; this folder is the same rule applied to **visual language**.
+
 ### Page generators (parallel agents — CANONICAL when landed)
 
 | File | Purpose |

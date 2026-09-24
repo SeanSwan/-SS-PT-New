@@ -23,8 +23,9 @@ It exists to make four brains draw the same picture: same tokens, same patterns,
 5. `external-reference-mcp.md` — only for net-new pages, major redesigns, design-reference requests, or Mobbin/Mobbin-like connector use; mark `[MOBBIN UNAVAILABLE]` when the connector is not callable
 6. `mobbin-learning-system.md` — required when external research will be retained, compared across runs, or proposed for Design Brain promotion
 7. `swan-element-intelligence.md` — required when comparing external ideas with Swan existing mounted, fragmented, experimental, or unmounted capabilities
-8. The relevant subfile (`design.md` always; then `motion.md` / `components.md` / `anti-patterns.md` / `qa-gates.md` / `cinematic-pages.md` / `website-archetypes.md` / an adapter as the task requires)
-9. The **mounted-surface receipt** for the surface you're touching (rule 26 — no UI fix without proving the live route tree)
+8. **`directions/README.md` — resolve a DIRECTION for the surface class, before you read §4 of `design.md`.** `design.md` §4 is one direction, not the only one. Selection is `pinned` / `matched` / `rotated`, and three identical unpinned picks in a row for the same surface class are refused. Do not treat a default as a decision.
+9. The relevant subfile (`design.md` always; then `motion.md` / `components.md` / `anti-patterns.md` / `qa-gates.md` / `cinematic-pages.md` / `website-archetypes.md` / an adapter as the task requires)
+10. The **mounted-surface receipt** for the surface you're touching (rule 26 — no UI fix without proving the live route tree)
 
 ## 3. Enforcement contract
 
@@ -36,6 +37,7 @@ Every agent that builds or reviews UI agrees to this:
 4. **Propose — never invent — new tokens.** A new color, spacing step, or radius is a proposal to Sean (and a paired update to `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §B + CLAUDE.md Active Palette per that doc's §G maintenance rules). It is never a hardcoded hex in a component.
 5. **Verify responsive + accessibility** against `qa-gates.md` Gates 1–2 before claiming done.
 6. **Run visual QA** (`qa-gates.md` Gate 3 hostile critique) before claiming done, and produce the QA receipt it defines.
+7. **Resolve a direction before you pick a colour.** `design.md` §4 is the `crystalline-swan` **direction**, not *the* palette. Select per `directions/README.md` and log the pick to `directions/LEDGER.md`. A direction recolours; it never relaxes a rule in this folder.
 
 ## 4. What this folder does NOT override
 
