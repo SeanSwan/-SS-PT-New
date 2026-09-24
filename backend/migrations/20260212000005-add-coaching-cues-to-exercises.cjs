@@ -31,6 +31,7 @@ module.exports = {
   },
 
   async down(queryInterface) {
+    if (!(await queryInterface.tableExists('Exercises'))) return;
     const table = await queryInterface.describeTable('Exercises');
 
     if (table.coachingCues) {

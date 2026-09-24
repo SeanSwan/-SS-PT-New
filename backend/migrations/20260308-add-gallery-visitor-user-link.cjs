@@ -30,7 +30,12 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    await queryInterface.removeIndex('gallery_visitors', 'idx_gallery_visitors_user_id').catch(() => {});
-    await queryInterface.removeColumn('gallery_visitors', 'user_id').catch(() => {});
+    if (!(await queryInterface.tableExists('gallery_visitors'))) return;
+    const columns = await queryInterface.describeTable('gallery_visitors');
+    const indexes = await queryInterface.showIndex('gallery_visitors');
+    if (indexes.some(index => index.name === 'idx_gallery_visitors_user_id')) {
+      await queryInterface.removeIndex('gallery_visitors', 'idx_gallery_visitors_user_id');
+    }
+    if (columns.user_id) await queryInterface.removeColumn('gallery_visitors', 'user_id');
   },
 };

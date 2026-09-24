@@ -141,40 +141,25 @@ is_skipped_path() {
 
 git_grep_cached_chunked() {
   local regex="$1"
-  local output_file="$2"
-  shift 2
-
+  shift
   local -a batch=()
-  local file grep_rc
-  local found=1
-
-  : > "$output_file"
-
+  local file grep_rc found=1
   for file in "$@"; do
     batch+=("$file")
-
     if (( ${#batch[@]} >= 100 )); then
-      git grep --cached -I -nE -- "$regex" -- "${batch[@]}" >> "$output_file"
+      git --literal-pathspecs grep --cached --null -I -nE -e "$regex" -- "${batch[@]}"
       grep_rc=$?
-      if (( grep_rc == 0 )); then
-        found=0
-      elif (( grep_rc != 1 )); then
-        return "$grep_rc"
-      fi
+      if (( grep_rc == 0 )); then found=0
+      elif (( grep_rc != 1 )); then return "$grep_rc"; fi
       batch=()
     fi
   done
-
   if (( ${#batch[@]} > 0 )); then
-    git grep --cached -I -nE -- "$regex" -- "${batch[@]}" >> "$output_file"
+    git --literal-pathspecs grep --cached --null -I -nE -e "$regex" -- "${batch[@]}"
     grep_rc=$?
-    if (( grep_rc == 0 )); then
-      found=0
-    elif (( grep_rc != 1 )); then
-      return "$grep_rc"
-    fi
+    if (( grep_rc == 0 )); then found=0
+    elif (( grep_rc != 1 )); then return "$grep_rc"; fi
   fi
-
   return "$found"
 }
 
@@ -315,48 +300,39 @@ scan_staged_fast() {
 
   [[ ${#staged_files[@]} -eq 0 ]] && return 0
 
-  local entry name regex tmp rc file line _
+  # Keep matched text in the pipe only. No plaintext temporary files and no rm
+  # shim/approval wait on every pattern. lastpipe keeps the aggregate in this shell.
+  shopt -s lastpipe
+  local entry name regex scan_regex rc file line content
   for entry in "${PATTERNS[@]}"; do
     name="${entry%%|*}"
     regex="${entry#*|}"
-    tmp="$(mktemp)"
-
-    set +e
+    scan_regex="$regex"
     if [[ "$name" == "rotated-password-shape" ]]; then
-      # The full rotated-password regex is intentionally broad and can become
-      # slow against large Markdown archives. First find cheap candidate lines,
-      # then apply the expensive same-line password-context check in Bash.
-      git_grep_cached_chunked "K[a-z]{4}K[a-z]{4}[0-9]{2,}!?" "$tmp" "${staged_files[@]}"
-    else
-      git_grep_cached_chunked "$regex" "$tmp" "${staged_files[@]}"
+      scan_regex='K[a-z]{4}K[a-z]{4}[0-9]{2,}!?'
     fi
-    rc=$?
+    declare -A lines_by_file=()
+    set +e
+    git_grep_cached_chunked "$scan_regex" "${staged_files[@]}" |
+      while IFS= read -r -d '' file && IFS= read -r -d '' line && IFS= read -r content; do
+        # --null separates the exact filename; neither colons nor Unicode paths
+        # can redirect the match to an allowlisted filename.
+        [[ -z "$file" || ! "$line" =~ ^[0-9]+$ ]] && continue
+        if [[ "$name" == "rotated-password-shape" && ! "$content" =~ $regex ]]; then
+          continue
+        fi
+        if [[ -z "${lines_by_file[$file]:-}" ]]; then
+          lines_by_file[$file]="$line"
+        else
+          lines_by_file[$file]="${lines_by_file[$file]},$line"
+        fi
+      done
+    rc=${PIPESTATUS[0]}
     set -e
-
-    if (( rc == 1 )); then
-      rm -f "$tmp"
-      continue
-    fi
-
-    if (( rc != 0 )); then
-      rm -f "$tmp"
-      echo "Secret scan failed while scanning staged files for pattern: $name" >&2
+    if (( rc != 0 && rc != 1 )); then
+      echo "Secret scan failed while reading staged blobs for pattern: $name" >&2
       return 2
     fi
-
-    declare -A lines_by_file=()
-    while IFS=: read -r file line _; do
-      [[ -z "$file" || -z "$line" ]] && continue
-      if [[ "$name" == "rotated-password-shape" && ! "$_" =~ $regex ]]; then
-        continue
-      fi
-      if [[ -z "${lines_by_file[$file]:-}" ]]; then
-        lines_by_file[$file]="$line"
-      else
-        lines_by_file[$file]="${lines_by_file[$file]},$line"
-      fi
-    done < "$tmp"
-    rm -f "$tmp"
 
     for file in "${!lines_by_file[@]}"; do
       local line_numbers="${lines_by_file[$file]}"
@@ -381,7 +357,15 @@ scan_mode="--workingtree"
 case "$mode" in
   --staged)
     echo "=== Secret scan: STAGED BLOBS (pre-commit mode) ==="
-    mapfile -t files < <(git diff --cached --name-only --diff-filter=ACM)
+    shopt -s lastpipe
+    set +e
+    git diff --cached --name-only -z --no-renames --diff-filter=ACMT | mapfile -d '' -t files
+    staged_rc=${PIPESTATUS[0]}
+    set -e
+    if (( staged_rc != 0 )); then
+      echo 'Secret scan failed: cannot read selected Git index.' >&2
+      exit 2
+    fi
     scan_mode="--stagedblob"
     ;;
   --all)

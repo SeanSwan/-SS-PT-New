@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Split an Astra Pro reply into the fable-blueprint-forge numbered doc set.
+ * Split a reviewer reply into the fable-blueprint-forge numbered doc set.
  *
  * The Forge doctrine (Phase 2) requires the package be a SMALL DOC SET — one
  * directory, numbered files, each ≤~300 lines, so a builder can load them
@@ -22,7 +22,10 @@
  *
  * Usage:
  *   node scripts/split-astra-blueprint.mjs [--in <reply.md>] [--out-dir <dir>] [--check]
- *     [--mega-blueprint] [--title <name>] [--packet <path>]
+ *     [--mega-blueprint] [--title <name>] [--packet <path>] [--seat <label>]
+ *
+ * `--seat` is the caller-reported reviewer label, defaulting to `unreported`.
+ * Generated source/packet paths are relative to MANIFEST.md, with POSIX separators.
  *
  * `--mega-blueprint` requires the extra `### 09-tests.md` document that Mega
  * Blueprint mode mandates, and takes its required-doc list from
@@ -43,7 +46,7 @@
  * default is honest for any package rather than correct for exactly one.
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, relative, isAbsolute } from 'node:path';
 import { FORGE_DOCS, MEGA_BLUEPRINT_REQUIRED_DOCS } from './lib/mega-blueprint-mandate.mjs';
 
 const PKG = 'docs/ai-workflow/AI-HANDOFF/BLUEPRINT-social-bridge-completion-2026-09-19';
@@ -54,19 +57,27 @@ const PART_C = 'PART C — DECISION-DENSITY SELF-TEST';
 function parseArgs(argv) {
   const o = {
     in: `${PKG}/ASTRA-PRO-REPLY.md`, outDir: PKG, check: false,
-    megaBlueprint: false, title: null, packet: null,
+    megaBlueprint: false, title: null, packet: null, seat: 'unreported',
   };
+  const valueFlags = new Map([
+    ['--in', 'in'], ['--out-dir', 'outDir'], ['--title', 'title'],
+    ['--packet', 'packet'], ['--seat', 'seat'],
+  ]);
   for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === '--in') o.in = argv[++i];
-    else if (argv[i] === '--out-dir') o.outDir = argv[++i];
+    const flag = argv[i];
+    if (valueFlags.has(flag)) {
+      const value = argv[++i];
+      if (!value?.trim() || value.startsWith('--')) throw new Error(`${flag} requires a value`);
+      o[valueFlags.get(flag)] = value;
+    }
     else if (argv[i] === '--check') o.check = true;
-    else if (argv[i] === '--title') o.title = argv[++i];
-    else if (argv[i] === '--packet') o.packet = argv[++i];
     // Mega Blueprint replies carry an extra document (09-tests.md). Requiring it
     // only in that mode keeps existing packages valid.
     else if (argv[i] === '--mega-blueprint') o.megaBlueprint = true;
     else throw new Error(`unknown argument: ${argv[i]}`);
   }
+  if (/[\x00-\x1f\x7f`]/.test(o.seat)) throw new Error('--seat must be a single-line label without control characters or backticks');
+  o.seat = o.seat.trim();
   return o;
 }
 
@@ -122,7 +133,9 @@ function scanHeadings(text) {
   return { lines, headings };
 }
 
-const opts = parseArgs(process.argv.slice(2));
+let opts;
+try { opts = parseArgs(process.argv.slice(2)); }
+catch (error) { console.error(`FATAL: ${error.message}`); process.exit(1); }
 if (!existsSync(opts.in)) { console.error(`FATAL: reply not found: ${opts.in}`); process.exit(1); }
 
 /**
@@ -179,6 +192,22 @@ if (missingSections.length) console.error(`[split] FATAL: missing top-level sect
 if (missingDocs.length) console.error(`[split] FATAL: missing PART B documents: ${missingDocs.join(', ')}`);
 if (missingSections.length || missingDocs.length) process.exit(1);
 
+// Anchor provenance to the manifest, not to a machine-specific invocation path.
+// Windows returns an absolute path across volumes; fail before any document writes.
+function manifestPath(path) {
+  const portable = relative(resolve(opts.outDir), resolve(path));
+  if (isAbsolute(portable)) throw new Error('provenance path cannot be relative to the manifest: different filesystem roots');
+  return portable.replace(/\\/g, '/') || '.';
+}
+const title = opts.title || deriveTitle(opts.outDir);
+const packet = opts.packet || derivePacket(opts.outDir);
+let sourcePath;
+let packetPath;
+try {
+  sourcePath = manifestPath(opts.in);
+  packetPath = packet ? manifestPath(packet) : null;
+} catch (error) { console.error(`FATAL: ${error.message}`); process.exit(1); }
+
 if (opts.check) { console.log('[split] --check: nothing written.'); process.exit(0); }
 
 mkdirSync(opts.outDir, { recursive: true });
@@ -195,24 +224,19 @@ function emit(filename, body, { extraHeader = '' } = {}) {
 }
 
 emit('HOSTILE-REVIEW.md', partA, {
-  extraHeader: '# PART A — Hostile Review (Astra Pro)\n\n> Review first, per the Forge: findings carry file:line evidence and a fix.\n> A finding without a fix is not a finding.',
+  extraHeader: `# PART A — Hostile Review (${opts.seat})\n\n> Review first, per the Forge: findings carry file:line evidence and a fix.\n> A finding without a fix is not a finding.`,
 });
 for (const name of REQUIRED_DOCS) emit(name, docs.get(name));
 emit('08-decision-density-self-test.md', partC, {
   extraHeader: '# PART C — Decision-Density Self-Test\n\n> Every remaining builder choice: decided-in-package, or delegated-with-bounds.',
 });
 
-const title = opts.title || deriveTitle(opts.outDir);
-const packet = opts.packet || derivePacket(opts.outDir);
-// `join()` yields `docs\ai-workflow\...` on Windows while the source-reply line is
-// written from the caller's POSIX-style argument, so the two lines of the same
-// manifest disagreed on separator. Normalise both: this manifest is read and
-// copy-pasted by agents on Windows, WSL and macOS.
-const asPosix = (p) => String(p).replace(/\\/g, '/');
 const manifest = `# Package Manifest — ${title} Blueprint\n\n`
   + `**Generated:** ${new Date().toISOString()}\n`
-  + `**Source reply:** \`${asPosix(opts.in)}\`\n`
-  + (packet ? `**Packet:** \`${asPosix(packet)}\`\n` : '**Packet:** not filed in this directory\n')
+  + `**Reviewer seat:** \`${opts.seat}\`\n`
+  + `**Source reply:** \`${sourcePath}\`\n`
+  + (packetPath ? `**Packet:** \`${packetPath}\`\n` : '**Packet:** not filed in this directory\n')
+  + '\nPaths are relative to this manifest. Reviewer seat is caller-reported, not independently verified.\n'
   + `\n## Documents\n\n| File | Lines | Fenced blocks |\n|---|---|---|\n`
   + written.map((w) => `| \`${w.filename}\` | ${w.lines} | ${w.fences} |`).join('\n')
   + `\n\n## Build order\n\nPer \`04-build-order.md\` and \`05-slices.md\`. Build ONE slice at a time;`

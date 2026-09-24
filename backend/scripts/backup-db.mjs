@@ -184,11 +184,17 @@ function proveRestorable(url, file, srcTables, srcCounts) {
     created = true;
 
     const target = url.replace(/\/[^/?]+(\?|$)/, `/${scratch}$1`);
-    // --no-owner / --no-privileges: the scratch db has no matching roles, and ownership is not what
-    // we are testing. Exit status is not trusted alone — pg_restore warns noisily on a clean restore,
-    // so the counts below are the actual verdict.
-    spawnSync('pg_restore', ['--no-owner', '--no-privileges', '-d', target, file],
+    // Rows can match even when restoring indexes or constraints failed. Require command success
+    // before the content checks; no nonzero restore error is intentionally tolerated.
+    const restored = spawnSync('pg_restore', ['--no-owner', '--no-privileges', '-d', target, file],
       { encoding: 'utf8', timeout: 900000 });
+    if (restored.error || restored.signal || restored.status !== 0) {
+      // stderr/error.message may contain connection details or row content. Log only safe status.
+      const reason = restored.error ? 'command error or timeout'
+        : restored.signal ? 'terminated by signal'
+          : `exit ${Number.isInteger(restored.status) ? restored.status : 'unavailable'}`;
+      return { ok: false, detail: `pg_restore failed (${reason})` };
+    }
 
     // PER-TABLE EXACT COUNTS, not a summed estimate. The first version compared
     // sum(n_live_tup) — an ANALYZE-refreshed estimate — which cannot distinguish "restored
