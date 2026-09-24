@@ -54,6 +54,19 @@ vi.mock('../../services/ai/approvalEvents.mjs', async (importOriginal) => {
   return { ...actual, recordApprovalEvent: (...a) => recordApprovalEvent(...a) };
 });
 
+/**
+ * The entity-ownership re-check is a SEPARATE control, and this file is about the
+ * channel split. Left real it runs against the bare `database` stub above (whose
+ * `query` returns undefined), fails closed, and answers 403 BEFORE the channel
+ * decision is observable — so every ALLOW case below would be asserting the
+ * re-check's behaviour rather than the split's. Stubbed to "authority unchanged",
+ * which is the precondition this file means to hold fixed.
+ */
+vi.mock('../../services/ai/entityOwnershipRecheck.mjs', () => {
+  const recheckEntityOwnership = vi.fn(async () => ({ refuse: false, reason: null, targetClientId: null }));
+  return { recheckEntityOwnership, default: { recheckEntityOwnership } };
+});
+
 const { executeConfirmedOperation } = await import('../../services/ai/commandExecutor.mjs');
 const router = (await import('../../routes/aiCommandRoutes.mjs')).default;
 

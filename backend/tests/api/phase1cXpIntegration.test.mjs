@@ -235,16 +235,24 @@ describe('workoutLogService — XP failure isolation', () => {
     expect(stepSource).toMatch(/let\s+xpTx\s*=/);
     // Must catch and log XP errors, never failing the workout write
     expect(stepSource).toMatch(/XP award failed/);
-    // The unified service commits BEFORE the XP step runs (post-commit).
+    // The unified service commits BEFORE the post-commit step runs. After the
+    // post-commit extraction the XP step is invoked from aiWorkoutPostCommitService,
+    // which the adapter calls after transaction.commit() — so the ordering is
+    // asserted across the two files: commit first, delegate second, XP step third.
     const unifiedSource = fs.readFileSync(
       path.join(baseDir, 'services/workout/aiWorkoutDailyFormService.mjs'),
       'utf-8'
     );
     const commitIdx = unifiedSource.indexOf('transaction.commit()');
-    // lastIndexOf: the first hit is the import line; the CALL comes post-commit.
-    const stepIdx = unifiedSource.lastIndexOf('runWorkoutXpAwardStep');
+    const delegateIdx = unifiedSource.lastIndexOf('runAiWorkoutPostCommit(');
     expect(commitIdx).toBeGreaterThan(-1);
-    expect(stepIdx).toBeGreaterThan(commitIdx);
+    expect(delegateIdx).toBeGreaterThan(commitIdx);
+
+    const postCommitSource = fs.readFileSync(
+      path.join(baseDir, 'services/workout/aiWorkoutPostCommitService.mjs'),
+      'utf-8'
+    );
+    expect(postCommitSource).toMatch(/runWorkoutXpAwardStep\(/);
 
     // Controller thin adapter must still return 201
     const ctrlSource = fs.readFileSync(
