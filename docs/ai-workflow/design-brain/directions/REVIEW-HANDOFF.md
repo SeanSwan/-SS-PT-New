@@ -77,7 +77,7 @@ The sharper version of the finding, discovered mid-build: **thirteen runtime the
 - **No selection has been logged.** `LEDGER.jsonl` is empty, so the gate has never fired on real input. It is tested against synthetic ledgers only.
 - **`match_terms` were written by hand and not tuned.** A term that is too broad silently collapses the registry back to one answer. The validator catches collisions between directions but cannot catch a term that is merely too general.
 - **The registry is markdown-embedded JSON.** One source of truth, but it means a direction's payload is parsed out of prose. If that proves fragile, split it.
-- **`cinematic-pages.md` §18 was not updated** to reference directions. It still describes its breadth pass as being over concepts alone. That is a real inconsistency.
+- **`cinematic-pages.md` §18 now references directions — closed in the same session.** §18 previously described its breadth pass as being over *concepts* alone, which was the same defect one level down: twelve genuinely different worlds all rendered in midnight sapphire. It now states that breadth runs on **two axes**, concepts and visual language, and points here. Recorded rather than deleted, so a reviewer who read an earlier copy knows it moved rather than wondering whether they misread.
 
 ## 6. "More like Claude design"
 
