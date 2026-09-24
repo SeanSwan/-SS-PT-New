@@ -2,7 +2,9 @@
 
 **Package ID:** `SWAN-COACH-BRAIN-V4-20260922`
 **Location:** `docs/ai-workflow/AI-HANDOFF/BLUEPRINT-swan-coach-brain-v4-2026-09-22/`
-**Current status (2026-09-23, late):** the unified Swan Coach (Chat · Today · Floor, names on screen, PDFs from chat) is built on top of Codex's branch — see [13 — unified coach](13-unified-coach-names-pdf-floor.md); not deployed. Earlier the same day: D1 workspace repaired on `codex/coach-v4-hostile-20260923`; builder audit PARTIAL. See [12 — repair and verification receipt](12-astra-hostile-repair-20260923.md). S83 delivery and independent review remain blocked/pending; D2–D4 and D9–D10 remain pending. The historical round-3 approval in `11` does not approve these new changes.
+**Current status (2026-09-24):** Astra's independent review of the unified Swan Coach (REVISE, 3H/3M/1L) is repaired, with a second hostile round and a booked-session date fix in the workout-form backend — see [13 §7](13-unified-coach-names-pdf-floor.md#7-astra-review-round-2026-09-24). Reviewer of record: Astra or Opus 5.5 (Kimi no longer required, per Sean). Not deployed; S83 still blocks merge.
+
+**Earlier (2026-09-23, late):** the unified Swan Coach (Chat · Today · Floor, names on screen, PDFs from chat) is built on top of Codex's branch — see [13 — unified coach](13-unified-coach-names-pdf-floor.md); not deployed. Earlier the same day: D1 workspace repaired on `codex/coach-v4-hostile-20260923`; builder audit PARTIAL. See [12 — repair and verification receipt](12-astra-hostile-repair-20260923.md). S83 delivery and independent review remain blocked/pending; D2–D4 and D9–D10 remain pending. The historical round-3 approval in `11` does not approve these new changes.
 **Implementation verified:** Local frontend repairs — unit + 27 browser checks with mocked APIs + full frontend TypeScript check. Evidence and limitations in `12`. **Deployed:** No.
 **Evidence basis:** Hostile review `Z:\HostileReviews\2026-09-22-153136-swan-coach-coach-command-center-whole-system.md` (3C/8H/6M/2L), run against:
 - `origin/main@53f93854b`
@@ -89,7 +91,7 @@ The screen reads like the best of Claude Code and Codex: one conversation, one c
 6. `PART-C-decisions.md`: what only Sean can decide.
 7. `10-local-first-hive-brain.md` (added 2026-09-22 evening): the one-and-only surface plan, local-first/privacy-first brain routing, hive-brain entry points, the Style Lens and Master Schedule findings, and the D1/D2/D3 updates. Where it conflicts with PART-C, `10-` wins.
 8. `12-astra-hostile-repair-20260923.md` (Codex): the D1 repair and verification receipt.
-9. `13-unified-coach-names-pdf-floor.md` (2026-09-23): Sean's unified design (Chat · Today · Floor), names on screen with the coach blind, PDFs from chat, Floor mode — what exists now, its privacy paths, evidence, and residual risks.
+9. `13-unified-coach-names-pdf-floor.md` (2026-09-23, repaired 2026-09-24): Sean's unified design (Chat · Today · Floor), names on screen with the coach blind, PDFs from chat, Floor mode — what exists now, its privacy paths, evidence, residual risks, and the Astra review round (§7).
 
 ## Authority and supersession
 
