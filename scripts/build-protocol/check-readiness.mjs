@@ -12,7 +12,13 @@ const CORE = ['baseline', 'requirements', 'blueprint', 'flowchart', 'contracts',
   'tests', 'traceability', 'slices', 'review', 'preservation'];
 const CONDITIONAL = ['wireframes', 'state', 'sequence', 'erd', 'permissions', 'privacy', 'operations'];
 const nonempty = x => typeof x === 'string' && Boolean(x.trim());
-const hash = x => createHash('sha256').update(x).digest('hex');
+// E3 (2026-09-24): hashes are computed over LF-NORMALIZED bytes. The old raw
+// readFileSync(Buffer) hash pinned whichever line endings the AUTHOR'S checkout
+// had — a receipt generated on Windows (CRLF worktree) failed on every LF
+// checkout and vice versa. Normalizing makes the hash a property of the
+// CONTENT, not of the checkout: identical to the committed blob for LF repos.
+const hash = x => createHash('sha256').update(String(x).replace(/\r\n/g, '\n')).digest('hex');
+const hashFile = (path) => hash(readFileSync(path, 'utf8'));
 function confined(root, file) {
   const rel = relative(root, file);
   return rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
@@ -38,7 +44,7 @@ export function validateReceipt(packet, root) {
         if (!confined(base, target) || !confined(base, realpathSync(target))) throw Error('outside packet root');
         const stat = statSync(target);
         if (!stat.isFile() || stat.size === 0 || stat.size > 32 * 1024 * 1024) throw Error('invalid evidence file');
-        if (hash(readFileSync(target)) !== item.sha256) throw Error('stale hash');
+        if (hashFile(target) !== item.sha256) throw Error('stale hash');
       } catch (e) { errors.push(`${label}: ${item.path}: ${e.message}`); }
     }
   }

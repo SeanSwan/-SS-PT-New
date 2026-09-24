@@ -195,7 +195,10 @@ export const SECTIONS = {
   operations: [EVIDENCE.record],
 };
 
-const sha256 = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
+// E3 (2026-09-24): hash LF-NORMALIZED bytes, matching check-readiness.mjs. Raw
+// bytes pinned the author's checkout line endings — a receipt generated on a
+// CRLF checkout failed every LF checkout (readiness.test R1/R2, measured).
+const sha256 = (path) => createHash('sha256').update(readFileSync(path, 'utf8').replace(/\r\n/g, '\n')).digest('hex');
 const evidenceRef = (name) => ({
   path: name,
   sha256: sha256(join(HANDOFF, name)),
