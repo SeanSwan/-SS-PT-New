@@ -44,6 +44,7 @@
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createMigrationAppliedProbe } from './v3b3-migration-probe.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -100,6 +101,7 @@ async function pollUntil(probeFn, { intervalMs, timeoutMs, label }) {
         return true;
       }
     } catch (err) {
+      if (err?.code === 'MIGRATION_PROBE_UNVERIFIABLE') throw err;
       logSub(C.dim(`  attempt ${attempt}: ${err?.message || err}`));
     }
     await new Promise((r) => setTimeout(r, intervalMs));
@@ -113,36 +115,9 @@ async function probeBackendUp() {
   return res.status >= 200 && res.status < 600;
 }
 
-function probeMigrationApplied() {
-  // Shell out to sequelize-cli — it consults backend/.env via config.cjs.
-  // We look for either "up" status against MIGRATION_NAME or absence
-  // of a "down" line for the migration in the status output.
-  const r = spawnSync(
-    'npx',
-    [
-      'sequelize-cli',
-      'db:migrate:status',
-      '--config',
-      'config/config.cjs',
-      '--migrations-path',
-      'migrations',
-      '--models-path',
-      'models',
-      '--env',
-      'production',
-    ],
-    {
-      cwd: BACKEND_DIR,
-      encoding: 'utf8',
-      shell: process.platform === 'win32',
-    },
-  );
-  const out = (r.stdout || '') + (r.stderr || '');
-  // sequelize-cli marks applied migrations with "up" prefix and pending
-  // ones with "down". We want to see "up <MIGRATION_NAME>".
-  const upLine = new RegExp(`^\\s*up\\s+${MIGRATION_NAME.replace(/\./g, '\\.')}`, 'm');
-  return upLine.test(out);
-}
+const probeMigrationApplied = createMigrationAppliedProbe({
+  backendDir: BACKEND_DIR, migrationName: MIGRATION_NAME,
+});
 
 function runShell(cmd, args, opts = {}) {
   const { cwd, env, allowFail } = opts;
@@ -179,11 +154,16 @@ if (!SKIP_WAIT) {
   });
   if (!backendUp) fail('Render backend did not come up within 5 minutes.');
 
-  const migrated = await pollUntil(probeMigrationApplied, {
-    intervalMs: 15_000,
-    timeoutMs: 8 * 60_000,
-    label: `migration ${MIGRATION_NAME} applied`,
-  });
+  let migrated;
+  try {
+    migrated = await pollUntil(probeMigrationApplied, {
+      intervalMs: 15_000,
+      timeoutMs: 8 * 60_000,
+      label: `migration ${MIGRATION_NAME} applied`,
+    });
+  } catch (error) {
+    fail(error.message);
+  }
   if (!migrated) {
     fail('V3b.3 migration did not land within 8 minutes — check Render deploy logs.');
   }
