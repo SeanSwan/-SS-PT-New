@@ -66,6 +66,7 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { tempRoot, reviewDeps } from './helpers.mjs';
+import { GATE_SNIPPET, startGun } from './start-gun.mjs';
 import { paths } from '../lib/paths.mjs';
 import { ensureStore, readRunJournal, finalizeRunJournal } from '../lib/store.mjs';
 import { acquireLock } from '../lib/lock.mjs';
@@ -114,7 +115,7 @@ const RUNNER_BODY = `
     import { paths } from ${JSON.stringify(pathToFileURL(join(LIB, 'paths.mjs')).href)};
     import { readRunJournal } from ${JSON.stringify(pathToFileURL(join(LIB, 'store.mjs')).href)};
     import { readFileSync } from 'node:fs';
-    const clock = () => Date.parse(${JSON.stringify(FROZEN)});
+${GATE_SNIPPET}    const clock = () => Date.parse(${JSON.stringify(FROZEN)});
     const rec = await runDaily({
       r: process.env.CB_ROOT, clock,
       deps: {
@@ -185,7 +186,7 @@ test('A1-06 two runs on one store: the journal keeps the run that did the work',
 
   const spawnOne = () => new Promise((resolve) => {
     const p = spawn(process.execPath, [file], {
-      env: { ...process.env, CB_ROOT: r }, stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, CB_ROOT: r, ...gun.env }, stdio: ['ignore', 'pipe', 'pipe'],
     });
     let out = '';
     p.stdout.on('data', (d) => { out += d; });
@@ -193,8 +194,19 @@ test('A1-06 two runs on one store: the journal keeps the run that did the work',
     p.on('error', () => resolve('SPAWN_ERROR'));
   });
 
-  const results = (await Promise.all([spawnOne(), spawnOne()]))
+  // START GUN, not spawn-and-hope: both children finish loading, THEN go.
+  // Without it they can serialize (B's lock attempt lands after A's release),
+  // both proceed, zero refused — measured 2/11 isolation reds reading like a
+  // lost mutex. See `start-gun.mjs` for the full rationale.
+  const gun = startGun(2);
+  const pending = [spawnOne(), spawnOne()];
+  const seen = await gun.release();
+  assert.equal(seen, 2,
+    `start gun: both children must reach the gate before release, saw ${seen} `
+    + '(0 means the gate snippet is gone — the mutation control for this harness)');
+  const results = (await Promise.all(pending))
     .map((s) => { try { return JSON.parse(s.slice(s.indexOf('VERDICT') + 7)); } catch { return { raw: s }; } });
+  gun.dispose();
 
   assert.equal(results.filter((x) => x.lockRefused).length, 1,
     `exactly one run is refused, got ${JSON.stringify(results)}`);

@@ -34,6 +34,7 @@ import {
 } from './store.mjs';
 import { isChannelId, resolveCreatorRef } from './registry-resolve.mjs';
 import { damagedRefusal, lockedRefusal } from './registry-write-guard.mjs';
+import { releaseStore } from './lock-release.mjs';
 import { nowIso } from './paths.mjs';
 import { acquireLock } from './lock.mjs';
 
@@ -82,8 +83,11 @@ export class RegistryError extends Error {}
  * WHY THIS DOES NOT USE `withLock`. This function is SYNCHRONOUS by design — the
  * console commits on the MAIN thread (F04), where an await inside the critical
  * section would let another writer interleave — and `withLock` is async, so the
- * lock is taken and given back by hand. `setEnabled` does the same for the same
- * reason.
+ * lock is taken and given back by hand. Taking it by hand is ALSO what makes the
+ * release retryable (F03): `release()` returns false when its deletion retries
+ * are exhausted and deliberately stays retryable (E4), so a call site that
+ * discards the boolean throws that property away. `setEnabled` does the same, for
+ * the same two reasons.
  */
 export function commitResolvedCreator({ r, ref, resolved, name = null, now }) {
   if (!resolved || !isChannelId(resolved.channelId)) {
@@ -112,22 +116,13 @@ export function commitResolvedCreator({ r, ref, resolved, name = null, now }) {
       out = { ok: true, creator, reason: null };
     }
   } finally {
-    // ⚠ This boolean is DISCARDED ON PURPOSE. Do not "fix" it here.
-    //
-    // `release()` can fail, and the failure is not benign: a transient unlink
-    // failure (on Windows, another reader holding the file open) leaves the lock
-    // on disk carrying a **live** pid, and `acquireLock` refuses to reclaim a
-    // lock whose owner is alive — so the store wedges until a human deletes the
-    // file. That is F03, and it is real.
-    //
-    // The remedy is a bounded 4× retry of `release()`. It is NOT here because at
-    // this commit it would be INERT: `lock.mjs`'s `release()` latches `released`
-    // BEFORE its single unlink attempt and carries no transient-retry policy, so
-    // calls 2-4 would return false without touching the file. The retry
-    // therefore ships with the slice that makes `release()` retryable. Until
-    // then a failed unlink can still strand the store, and it is not fixable
-    // from this file.
-    lock.release();
+    // The write has COMMITTED by this line. A failed release is cleanup, not a
+    // refusal — S1-H9 forbids reporting a completed write as a refusal — so it is
+    // surfaced as its own field and never as `{ok:false}`. `release()` is left
+    // retryable by design (E4); `releaseStore` is what actually uses that, because
+    // a discarded boolean makes the retryability unreachable (F03).
+    const freed = releaseStore(lock);
+    if (out && out.ok && !freed) out.releaseFailed = true;
   }
   return out;
 }
@@ -222,10 +217,14 @@ export function setEnabled(r, channelId, enabled, { now } = {}) {
     saveRegistry(reg, r);
     return c;
   } finally {
-    // Discarded, exactly as in `commitResolvedCreator` above — F03's retry is
-    // held back with the E1/E4 slice, and the note there explains why it would
-    // be inert against this commit's `lock.mjs`.
-    lock.release();
+    // Retried rather than discarded (F03) — see `releaseStore`. This is the
+    // enable/disable flip: a release that gives up leaves the lock on disk under a
+    // LIVE pid, which no later writer can reclaim, so the store would be WEDGED
+    // rather than merely busy. No `releaseFailed` field is surfaced here, because
+    // this function returns the CREATOR, not an `{ok}` envelope — there is no
+    // field to carry it, and inventing one would change the contract all three of
+    // its synchronous callers rely on.
+    releaseStore(lock);
   }
 }
 

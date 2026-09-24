@@ -49,6 +49,10 @@
  * taken INSIDE it — see `commitSnapshot`. A snapshot collected before a
  * concurrent enable committed was silently reverting that enable.
  *
+ * F03 (Astra r1) then moved the RELEASE off `withLock`. Its `finally` discarded
+ * `release()`'s result, so the retryability the E4 repair added was unreachable
+ * from here too; the release now goes through `releaseStore` and is retried.
+ *
  * @module creator-brains/subs-apply
  */
 
@@ -56,6 +60,7 @@ import {
   readRegistry, registryOrDefault, isDamaged, saveRegistry, upsertCreator,
 } from './store.mjs';
 import { acquireLock } from './lock.mjs';
+import { releaseStore } from './lock-release.mjs';
 import { damagedRefusal, lockedRefusal } from './registry-write-guard.mjs';
 
 /**
@@ -111,13 +116,14 @@ export function applySnapshot(reg, snapshot, { now = Date.now() } = {}) {
  * reason is the same one the other two writers give: a scheduled run waiting
  * behind a manual write is how a store gets two writers "safely".
  *
- * WHY THE LOCK IS TAKEN BY HAND RATHER THAN THROUGH `withLock`. The refusal prose
- * is now the SAME two sentences `registry.mjs` uses, imported rather than
- * re-typed — this function had grown its own third copy of the locked-store
- * sentence, and that is how two refusal paths drift apart until a caller can
- * tell them by their words. (The lock is still taken by hand because this
- * function's refusal must be a VALUE, not a throw; F03's retried release is held
- * back with the E1/E4 slice.)
+ * WHY THE LOCK IS TAKEN BY HAND RATHER THAN THROUGH `withLock`. Two reasons, and
+ * neither is cosmetic. First, this function's refusal must be a VALUE, not a
+ * throw, and `withLock` refuses by throwing. Second, `withLock`'s `finally` used
+ * to discard `release()`'s result (F03), so the release is retried here through
+ * `releaseStore` instead. The refusal prose is the SAME two sentences
+ * `registry.mjs` uses, imported rather than re-typed — this function had grown
+ * its own third copy of the locked-store sentence, and that is how two refusal
+ * paths drift apart until a caller can tell them by their words.
  */
 export async function commitSnapshot({ r, snapshot, now = Date.now() }) {
   const lock = acquireLock(r);
@@ -142,10 +148,10 @@ export async function commitSnapshot({ r, snapshot, now = Date.now() }) {
   } finally {
     // The write above has ALREADY COMMITTED by this line, so a release failure is
     // cleanup, not a refusal — S1-H9 forbids reporting a completed write as
-    // `{ok:false}`. The boolean is discarded; F03's retry for it is held back
-    // with the E1/E4 slice (the reason is written out in `registry.mjs`'s
-    // `commitResolvedCreator`).
-    lock.release();
+    // `{ok:false}`. Retried rather than discarded (F03): a release that gives up
+    // strands the lock under a LIVE pid, which no later writer may reclaim, so the
+    // store would be WEDGED rather than merely busy.
+    releaseStore(lock);
   }
   return out;
 }

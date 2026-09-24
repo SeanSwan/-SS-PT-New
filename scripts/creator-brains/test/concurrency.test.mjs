@@ -39,6 +39,7 @@ import { hostname } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { tempRoot, makeClock } from './helpers.mjs';
+import { GATE_SNIPPET, startGun } from './start-gun.mjs';
 import { paths } from '../lib/paths.mjs';
 import { ensureStore } from '../lib/store.mjs';
 import { acquireLock, lockStatus } from '../lib/lock.mjs';
@@ -185,7 +186,7 @@ test('HR14f two REAL concurrent runs: one proceeds, the other is refused with a 
   const r = seed('hr14-race');
   const runner = `
     import { runDaily } from ${JSON.stringify(pathToFileURL(join(LIB, 'run.mjs')).href)};
-    const clock = () => Date.parse('2026-09-13T10:00:00Z');
+${GATE_SNIPPET}    const clock = () => Date.parse('2026-09-13T10:00:00Z');
     const deps = {
       version: 'concurrency-stub',
       probeSubs: () => ({ ok: true, kind: 'ok', languages: ['en-orig'], originals: ['en-orig'] }),
@@ -200,10 +201,15 @@ test('HR14f two REAL concurrent runs: one proceeds, the other is refused with a 
   const file = join(dir, 'runner.mjs');
   writeFileSync(file, runner, 'utf-8');
 
-  // Start both at once and wait for both.
+  // REAL concurrency needs a START GUN, not a wish: spawn both children, wait
+  // until both have finished loading their import graphs (ready-* files), then
+  // release them together. Spawn-at-once let them serialize — child B reached
+  // the lock after A released it, both proceeded, zero refused — which reads
+  // exactly like a lost mutex. Measured 2/11 reds that way before the gun.
+  const gun = startGun(2);
   const spawnOne = () => new Promise((resolve) => {
     const p = spawn(process.execPath, [file], {
-      env: { ...process.env, CB_ROOT: r }, stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, CB_ROOT: r, ...gun.env }, stdio: ['ignore', 'pipe', 'pipe'],
     });
     let out = '';
     p.stdout.on('data', (d) => { out += d; });
@@ -211,7 +217,13 @@ test('HR14f two REAL concurrent runs: one proceeds, the other is refused with a 
     p.on('error', () => resolve('SPAWN_ERROR'));
   });
 
-  const results = await Promise.all([spawnOne(), spawnOne()]);
+  const pending = [spawnOne(), spawnOne()];
+  const seen = await gun.release();
+  assert.equal(seen, 2,
+    `start gun: both children must reach the gate before release, saw ${seen} `
+    + '(0 means the gate snippet is gone — the mutation control for this harness)');
+  const results = await Promise.all(pending);
+  gun.dispose();
   const parsed = results.map((s) => { try { return JSON.parse(s); } catch { return { raw: s }; } });
 
   const refused = parsed.filter((x) => x.lockRefused);

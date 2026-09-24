@@ -49,7 +49,7 @@ import { runDaily, DEFAULT_CANARY_VIDEO } from './lib/run.mjs';
 import { root } from './lib/paths.mjs';
 import {
   enabledCreators, ensureStore, listRuns, readRegistry, registryOrDefault, isDamaged,
-  describeRead, saveRun,
+  describeRead, saveRun, writeRunJournal,
 } from './lib/store.mjs';
 import { writeJsonAtomic } from './lib/paths.mjs';
 import { listCreatorsSafe } from './lib/registry.mjs';
@@ -83,9 +83,35 @@ function recordStartupOutcome(r, { kind, reason, detail = null }) {
   // surface reads, and a refusal that appears only in a digest file is invisible
   // to it (review HR16).
   try { saveRun(r, record); } catch { /* best effort */ }
+  // ── THE JOURNAL GOES THROUGH THE OWNERSHIP RULE, NOT AROUND IT (D8) ───────
+  //
+  //   This used to call `writeJsonAtomic(paths(r).journal, …)` directly. That
+  //   bypassed `writeRunJournal` — and with it the A1-06 ownership guard — so a
+  //   startup outcome wrote the journal WITHOUT EVER CONSULTING THE LOCK and
+  //   without comparing `runId`. Measured against a temp store: a well-formed
+  //   held lock (`lockStatus` → `held:true`), a completed `HOLDER-REAL` entry,
+  //   one `no-op` startup outcome — the holder's entry was gone and the journal
+  //   named the no-op run. The lock was not stale-checked, not refused, not
+  //   mentioned; the write simply landed on top.
+  //
+  //   `recordStartupOutcome` runs on every startup refusal and every no-op, so
+  //   this was the MOST COMMON writer in the system, and the one path that
+  //   could silently erase a live run's verdict. The guard now declines when
+  //   the slot names a different, still-open run. That is the correct outcome:
+  //   a startup that could not take the store does not get to be its last word.
+  //
+  //   `displaced` is deliberately NOT restored here, unlike the lock-refusal
+  //   path in `run.mjs`. This function never opened the slot, so there is
+  //   nothing of its own to undo, and it must not clobber a holder that is
+  //   mid-run. The refusal is still recorded in the run record and the digest.
   try {
-    writeJsonAtomic(paths(r).journal, {
-      status: kind, runId, startedAt: record.startedAt, endedAt: record.endedAt, ok: false, reason,
+    writeRunJournal(r, {
+      runId,
+      startedAt: record.startedAt,
+      endedAt: record.endedAt,
+      ok: false,
+      reason,
+      status: kind,
     });
   } catch { /* nothing more we can do; stdout carries it */ }
   return { runId, digestPath };

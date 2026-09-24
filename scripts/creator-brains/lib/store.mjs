@@ -5,8 +5,13 @@
  * PURPOSE: The store's maps, transcript documents, ledger, run records and
  *          ownership manifest — all behind STRICT reads.
  * PART OF: Creator Brains — SS-PT acquisition engine (review repair HR04/05/08/11/25)
- * ADDED: 2026-09-12 | REWRITTEN 2026-09-13
+ * ADDED: 2026-09-12 | REWRITTEN 2026-09-13 | SPLIT 2026-09-21 (A1-06)
  * ============================================================================
+ *
+ * NOT HERE ANY MORE: the RUN JOURNAL. It moved to ./run-journal.mjs when the
+ * A1-06 ownership repair pushed this module past rule 4's 300-line cap. The
+ * three journal verbs are re-exported below, so callers are unaffected; read
+ * that file for journal semantics and ownership.
  *
  * WHAT CHANGED AND WHY:
  *
@@ -225,45 +230,21 @@ export function ensureStore(r) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Run journal (review HR16)
+// Run journal — EXTRACTED to ./run-journal.mjs (rule 4 seam, A1-06)
 // ─────────────────────────────────────────────────────────────────────────────
+//
+//   The ownership repair pushed this module over the 300-line cap. The journal
+//   is a self-contained cluster with its own contract, so it moved rather than
+//   the cap moving. These re-exports keep every existing import site working:
+//   `run.mjs`, `cli.mjs`, `status-command.mjs` and both journal test files all
+//   still reach it through this barrel, unchanged.
+//
+//   Do NOT re-implement a journal write here. There is exactly one writer, and
+//   ownership (the slot belongs to the run holding the store) is enforced there.
 
-/**
- * Open a journal entry for a run BEFORE anything can fail.
- *
- *   A run that never reached the phase wrapper used to leave no trace at all:
- *   missing yt-dlp exited 2 with no run record and no digest, and
- *   "no enabled creators" returned before recording. A reader then could not
- *   distinguish "nothing to do" from "the job has not run in three weeks".
- *   The journal is written first and finalized last, so an INTERRUPTED run is
- *   visible as an open journal rather than as silence.
- */
-export function writeRunJournal(r, entry) {
-  return writeJsonAtomic(paths(r).journal, {
-    status: 'running',
-    ...entry,
-    heartbeats: 0,
-  });
-}
-
-export function finalizeRunJournal(r, record) {
-  try {
-    const prior = readJson(paths(r).journal, null) || {};
-    return writeJsonAtomic(paths(r).journal, {
-      ...prior,
-      status: record.ok ? 'completed' : 'failed',
-      runId: record.runId,
-      endedAt: record.endedAt,
-      ok: record.ok,
-    });
-  } catch {
-    return null;
-  }
-}
-
-export function readRunJournal(r) {
-  return readJson(paths(r).journal, null);
-}
+export {
+  writeRunJournal, finalizeRunJournal, readRunJournal,
+} from './run-journal.mjs';
 
 /** Record the last SUCCESSFUL acquisition, separately from the last attempt.
  *  Staleness must be answerable even when every recent run failed (HR16). */

@@ -71,7 +71,14 @@ export function listPublished(r) {
 }
 
 function nextGeneration(dir) {
-  const existing = listDir(dir).filter((n) => /^gen-\d{4}$/.test(n)).sort();
+  // E2 (2026-09-22), TWO load-bearing halves:
+  //   1. the filter was /^gen-\d{4}$/, which made gen-10000 INVISIBLE — three
+  //      publishes at the boundary yielded one distinct generation;
+  //   2. `listDir().sort()` LEXICOGRAPHS: 'gen-10000' < 'gen-9999'. Stage 1
+  //      alone still returned gen-10000 forever — measured by running the E2
+  //      gate between the two stages, not reasoned. Both halves, or none.
+  const existing = listDir(dir).filter((n) => /^gen-\d{4,}$/.test(n))
+    .sort((a, b) => Number(a.slice(4)) - Number(b.slice(4)));
   const last = existing.length ? Number(existing[existing.length - 1].slice(4)) : 0;
   return `gen-${String(last + 1).padStart(4, '0')}`;
 }

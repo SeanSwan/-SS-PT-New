@@ -54,7 +54,8 @@ import {
   readRegistry, readState, registryOrDefault, stateOrDefault, isDamaged, describeRead,
   saveRun, enabledCreators, writeRunJournal, finalizeRunJournal, markSuccess,
 } from './store.mjs';
-import { acquireLock } from './lock.mjs';
+import { takeStoreLock } from './run-lock.mjs';
+import { withOwnership } from './run-ownership.mjs';
 import { DEFAULT_CANARY_VIDEO } from './canary.mjs';
 import { selectCreators } from './pipeline.mjs';
 import { runPasses } from './passes.mjs';
@@ -74,11 +75,17 @@ import { nowIso } from './paths.mjs';
  *                                   applied by default even when a caller passes
  *                                   nothing, so no invocation is unbounded.
  * @param {number}   o.noTrackHours  the no-caption retry window (HR23; 48h default)
+ * @param {object}   o.acquiredLock  an ALREADY-ACQUIRED lock handle to REUSE
+ *                                   instead of acquiring a second one (D2/P1b).
+ *                                   The caller keeps ownership and releases it.
+ *                                   Validated; a refusal shape is not accepted
+ *                                   as ownership. See `run-lock.mjs`, which now
+ *                                   owns this reasoning and the release rule.
  */
 export async function runDaily({
   r, deps = {}, clock = null, now = null, canary = {}, budget = {},
   secrets = {}, onPhase = null, only = null, onlyCreators = null, lock = true, retry = false,
-  bounds = {}, noTrackHours = null, authoritative = 'auto',
+  bounds = {}, noTrackHours = null, authoritative = 'auto', acquiredLock = null,
 } = {}) {
   const tick = clock || (() => Date.now());
   const runId = runIdFor(tick);
@@ -104,13 +111,18 @@ export async function runDaily({
   };
 
   // ── 0. JOURNAL, BEFORE ANYTHING CAN FAIL (HR16) ───────────────────────────
-  writeRunJournal(r, {
+  //   Keep what this open displaces. A run that is refused by the lock has
+  //   already erased a finished foreign entry — deliberately replaceable, see
+  //   O2 — and the refusal path is the only place that knows to put it back
+  //   (round 3, D8). Null when there was nothing prior to displace.
+  const opened = writeRunJournal(r, {
     runId,
     startedAt: record.startedAt,
     pid: process.pid,
     selection: onlyCreators || null,
     phases: only || 'all',
   });
+  const displaced = opened ? opened.displaced : null;
 
   const phase = async (name, fn) => {
     const t0 = tick();
@@ -148,18 +160,28 @@ export async function runDaily({
     return { ...scrubbed, digestPath };
   };
 
-  // ── LOCK (HR14) ───────────────────────────────────────────────────────────
-  let held = null;
-  if (lock) {
-    held = acquireLock(r, { runId, now: tick });
-    if (!held.ok) {
-      addPhase(record, 'lock', { ok: false, reason: `store is locked (${held.reason})`, counts: {} });
-      notes.push('another run owns this store; refusing rather than saving a stale state map');
-      return conclude([], false);
-    }
+  // ── LOCK (HR14) + THE CLAIM THAT FOLLOWS IT (A1-06, D2/P1b) ───────────────
+  //   Acquire, or reuse a handle the caller already holds. Then — and only
+  //   under ownership — claim the journal slot. The claim and the release now live
+  //   in `withOwnership`, which is the region that opens BEFORE the claim write;
+  //   `run-ownership.mjs` owns that reasoning. `run-lock.mjs` owns acquire-or-reuse.
+  const taken = takeStoreLock({ r, runId, now: tick, lock, acquiredLock });
+  const held = taken.ok ? taken.handle : null;
+
+  if (!taken.ok) {
+    addPhase(record, 'lock', { ok: false, reason: `store is locked (${taken.reason})`, counts: {} });
+    notes.push('another run owns this store; refusing rather than saving a stale state map');
+    // D8: this run never owned the store, so its step-0 open has no right to be
+    // the journal's last word. Hand the displaced entry back so finalize can
+    // restore it. Without this the holder's verdict is silently gone and the
+    // journal names a run that was refused.
+    record.restore = displaced || undefined;
+    return conclude([], false);
   }
 
-  try {
+  return await withOwnership({
+    r, runId, record, taken, held, onlyCreators, only,
+    body: async () => {
     // ── 0b. PREFLIGHT: STRICT, FAIL-CLOSED (HR04/HR05) ──────────────────────
     const stateRead = readState(r);
     if (isDamaged(stateRead)) {
@@ -238,9 +260,8 @@ export async function runDaily({
     const didAcquire = selected.length > 0 && (out.ok || record.counts.fetched > 0);
     if (didAcquire) markSuccess(r, tick);
     return { ...out, exportResult };
-  } finally {
-    if (held && held.ok) held.release();
-  }
+    },
+  });
 }
 
 // Re-exported so the CLI and the scheduled entry keep importing the canary video
