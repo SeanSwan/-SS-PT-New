@@ -32,8 +32,10 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    await queryInterface.removeColumn('gallery_visitors', 'free_enhancements_used');
-    await queryInterface.removeColumn('gallery_visitors', 'is_vip');
-    await queryInterface.removeColumn('gallery_visitors', 'enhancement_credits');
+    if (!(await queryInterface.tableExists('gallery_visitors'))) return;
+    const columns = await queryInterface.describeTable('gallery_visitors');
+    for (const column of ['free_enhancements_used', 'is_vip', 'enhancement_credits']) {
+      if (columns[column]) await queryInterface.removeColumn('gallery_visitors', column);
+    }
   },
 };

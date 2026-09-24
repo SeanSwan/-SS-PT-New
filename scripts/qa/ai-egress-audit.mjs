@@ -159,13 +159,38 @@ function allFiles() {
   return [...new Set(files)];
 }
 
-function stagedFiles() {
-  const supplied = process.env.AI_EGRESS_STAGED_FILES;
-  if (typeof supplied === 'string') {
-    return supplied.split(/\r?\n/).filter(Boolean).map((rel) => path.join(ROOT, rel));
+function gitInput(args) {
+  return execFileSync('git', args, {
+    cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000, maxBuffer: 16 * 1024 * 1024,
+    env: { ...process.env, GIT_OPTIONAL_LOCKS: '0', GIT_NO_REPLACE_OBJECTS: '1' },
+  });
+}
+
+function stagedEntries() {
+  // Capture object IDs with NUL paths. Later disk edits or index path changes cannot
+  // substitute different contents for these immutable blobs. Never trust an env list.
+  const output = new TextDecoder('utf-8', { fatal: true }).decode(gitInput([
+    'diff', '--cached', '--raw', '-z', '--no-abbrev', '--no-renames', '--no-ext-diff',
+    '--no-textconv', '--diff-filter=ACMRTUXB',
+  ]));
+  if (!output) return [];
+  if (!output.endsWith('\0')) throw new Error('Incomplete staged input');
+  const fields = output.slice(0, -1).split('\0');
+  if (fields.length % 2 !== 0) throw new Error('Malformed staged input');
+  const entries = [];
+  for (let i = 0; i < fields.length; i += 2) {
+    const metadata = fields[i].match(/^:([0-7]{6}) ([0-7]{6}) ([a-f0-9]{40}|[a-f0-9]{64}) ([a-f0-9]{40}|[a-f0-9]{64}) ([AMT])$/);
+    const rel = fields[i + 1];
+    if (!metadata || /^0+$/.test(metadata[4]) || !rel || rel.startsWith('/') || rel.split('/').includes('..')) {
+      throw new Error('Unreadable staged entry');
+    }
+    entries.push({ rel, oid: metadata[4] });
   }
-  const output = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR'], { cwd: ROOT, encoding: 'utf8' });
-  return output.split(/\r?\n/).filter(Boolean).map((rel) => path.join(ROOT, rel));
+  return entries;
+}
+
+function stagedFiles() {
+  return stagedEntries().map(({ rel }) => path.join(ROOT, rel));
 }
 
 export function collectFiles(mode, explicit = []) {
@@ -187,18 +212,31 @@ export function auditFiles(files) {
   return { scanned, findings };
 }
 
+export function auditStagedFiles() {
+  const findings = [];
+  let scanned = 0;
+  for (const { rel, oid } of stagedEntries()) {
+    const surface = classifySurface(rel);
+    if (surface === 'other' || surface === 'test') continue;
+    const source = new TextDecoder('utf-8', { fatal: true }).decode(gitInput(['cat-file', 'blob', oid]));
+    scanned += 1;
+    findings.push(...findFindings(rel, source));
+  }
+  return { scanned, findings };
+}
+
 function main() {
   const args = process.argv.slice(2);
   const mode = args.includes('--all') ? 'all' : args.includes('--staged') ? 'staged' : 'explicit';
   const explicit = args.filter((arg) => !arg.startsWith('--'));
-  let files;
+  let result;
   try {
-    files = collectFiles(mode, explicit);
-  } catch (error) {
-    console.error(`[ai-egress] BLOCKED — could not establish audit input: ${error?.message || error}`);
+    result = mode === 'staged' ? auditStagedFiles() : auditFiles(collectFiles(mode, explicit));
+  } catch {
+    // Child-process errors can include source text or private command output.
+    console.error('[ai-egress] BLOCKED — could not establish complete audit input.');
     process.exit(2);
   }
-  const result = auditFiles(files);
   if (!result.findings.length) {
     console.log(`[ai-egress] CLEAN — policy v${POLICY.version}; scanned ${result.scanned} harness/AI surface(s).`);
     return;

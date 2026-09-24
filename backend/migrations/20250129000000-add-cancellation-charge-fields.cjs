@@ -88,6 +88,7 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
+    if (!(await queryInterface.tableExists('sessions'))) return;
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
