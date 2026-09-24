@@ -4,7 +4,7 @@
  * These assertions freeze desired behavior; they are not application implementation.
  */
 import { expect, it } from 'vitest';
-import { buildWorkoutGenerationRequest } from '../../../../tmp/worktrees/agent-ready-planner-audit-20260906/frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerGenerationActions.helpers';
+import { buildWorkoutGenerationRequest } from '../../../../frontend/src/components/DashBoard/Pages/admin-workout-planner/workoutPlannerGenerationActions.helpers';
 const fixture = {
   selectedClientId: 424242, category: 'full_body', goal: 'general_fitness',
   phaseNumber: 2, selectedEquipmentProfileId: null,
