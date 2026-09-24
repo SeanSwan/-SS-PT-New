@@ -79,6 +79,12 @@ jobs:
       # Local container only. Never a production credential — see the header.
       DATABASE_URL: postgres://shadow:shadow@localhost:5432/shadow
       NODE_ENV: production
+      # This container has no TLS. Without the opt-out, the run dies at connect
+      # time ("The server does not support SSL connections") before any migration
+      # executes — so the gate reported red while never testing the thing it
+      # exists for. Production keeps TLS required; see productionDialectOptions()
+      # in backend/scripts/safe-migrate.mjs.
+      PGSSLMODE: disable
 
     steps:
       - name: Check out the pushed SHA

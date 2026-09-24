@@ -38,8 +38,14 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      # The repo-wide tsc exceeds Node's default old-space on a 7 GB runner and
+      # aborts with SIGABRT (exit 134) before emitting a single diagnostic, so
+      # this job reported red without ever returning a type verdict. The heap
+      # bump lets the check answer; it does not change what is checked.
       - name: Typecheck frontend
         run: npx tsc --noEmit
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
 
       - name: Run focused frontend tests
         run: npx vitest run src/context/GlobalClientContext.test.ts src/components/BodyMap/BodyMap.clientTarget.test.ts

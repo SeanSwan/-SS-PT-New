@@ -18,7 +18,12 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-const REAL_KEY = 'unit-signing-key-0123456789abcdef0123456789abcdef';
+// Word-shaped and hex-free on purpose. The previous value was
+// `unit-signing-key-<32 hex>` — which is exactly the Mailgun key shape, so
+// GitGuardian flagged this unit fixture as a leaked credential on every run and
+// the PR carried a red security check for a string that was never a secret.
+// The test only needs something past the 32-char floor.
+const REAL_KEY = 'unit-test-fixture-signing-secret-not-a-credential';
 const ORIGINAL = process.env.OPERATION_SIGNING_KEY;
 
 async function freshModule() {
