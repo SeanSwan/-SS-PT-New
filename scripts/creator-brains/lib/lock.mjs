@@ -46,6 +46,7 @@ import { hostname } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { ensureDir, retryTransientSync } from './paths.mjs';
+import { releaseStore } from './lock-release.mjs';
 
 export const LOCK_NAME = '.lock';
 
@@ -274,7 +275,8 @@ export async function withLock(r, fn, { runId = null, now = () => Date.now(), on
   try {
     return await fn(lock);
   } finally {
-    lock.release();
+    // Retried, not discarded (F03) — see `releaseStore` for why the boolean matters.
+    releaseStore(lock);
   }
 }
 
