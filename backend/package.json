@@ -4,6 +4,9 @@
   "description": "",
   "main": "server.mjs",
   "type": "module",
+  "engines": {
+    "node": ">=22 <23"
+  },
   "scripts": {
     "start": "node scripts/render-start.mjs",
     "start:minimal": "node server-minimal.mjs",
@@ -103,7 +106,8 @@
     "lint:fix": "eslint . --ext .mjs,.js --fix --ignore-path ../.gitignore",
     "lint:check": "eslint . --ext .mjs,.js --max-warnings 0 --ignore-path ../.gitignore",
     "test:mutation": "vitest run --config vitest.mutation.config.mjs",
-    "test:all": "npm run test:mutation && npm test"
+    "test:all": "npm run test:mutation && npm test",
+    "test:security": "vitest run --config tests/security/vitest.injection.config.mjs tests/unit/emailHtmlInjectionGuard.test.mjs tests/unit/emailUrlPolicy.test.mjs tests/unit/templateBindings.test.mjs tests/unit/htmlEscapeContract.test.mjs"
   },
   "keywords": [],
   "author": "",
@@ -145,6 +149,7 @@
     "pg": "^8.13.3",
     "rrule": "^2.7.1",
     "sequelize": "^6.37.5",
+    "sequelize-cli": "^6.6.2",
     "sharp": "^0.34.5",
     "slugify": "^1.6.8",
     "socket.io": "^4.8.1",
@@ -155,12 +160,12 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "acorn": "8.16.0",
     "axios": "^1.9.0",
     "chalk": "^5.4.1",
     "concurrently": "^8.2.2",
     "eslint": "^8.57.1",
     "nodemon": "^3.1.11",
-    "sequelize-cli": "^6.6.2",
     "supertest": "^7.2.2",
     "vitest": "^4.0.18"
   }

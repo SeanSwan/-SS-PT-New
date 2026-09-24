@@ -10,6 +10,15 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // H-02 class guard (hostile review of the review, 2026-09-18).
+    // `Exercises` is not created until 20260307000002-create-exercises-table.cjs,
+    // which runs AFTER this migration. describeTable() throws on a missing
+    // table, so this kills a from-empty bootstrap.
+    if (!(await queryInterface.tableExists('Exercises'))) {
+      console.log('  [20260212000005] Exercises table absent — skipping (H-02 class guard)');
+      return;
+    }
+
     const table = await queryInterface.describeTable('Exercises');
 
     if (!table.coachingCues) {

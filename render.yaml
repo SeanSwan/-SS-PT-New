@@ -25,6 +25,12 @@ services:
     env:
       - key: NODE_ENV
         value: production
+      # U-01: pin the runtime instead of inheriting Render's default image.
+      # Matches backend/package.json "engines" and the migration shadow gate
+      # (.github/workflows/migration-shadow-check.yml runs Node 22), so prod
+      # no longer resolves a different Node than CI does.
+      - key: NODE_VERSION
+        value: "22"
       - key: PORT
         value: 10000
       - key: FRONTEND_URL

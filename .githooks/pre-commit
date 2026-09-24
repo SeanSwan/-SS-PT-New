@@ -124,6 +124,27 @@ if [[ -f "$EGRESS_GUARD" ]] && command -v node >/dev/null 2>&1; then
   fi
 fi
 
+# -- AI/harness egress policy ratchet ----------------------------------------
+# Catches new repository/workspace capture instructions, raw external transport
+# in AI scripts, and protected-root reads. This is deliberately separate from
+# egress-chokepoint: that guard focuses on known model hosts, while this policy
+# covers harness configuration and the broader repository snapshot incident.
+# Exit 2 is an audit failure and blocks; a security audit must not turn an
+# unreadable index into a green result.
+AI_EGRESS_AUDIT="$REPO_ROOT/scripts/qa/ai-egress-audit.mjs"
+if [[ -f "$AI_EGRESS_AUDIT" ]] && command -v node >/dev/null 2>&1; then
+  # Resolve the index in Bash, where this hook already runs, then pass the
+  # exact newline-delimited paths to Node. This keeps the audit independent of
+  # nested child-process restrictions in some managed Windows harnesses.
+  AI_EGRESS_STAGED_FILES="$(git diff --cached --name-only --diff-filter=ACMR)" \
+    node "$AI_EGRESS_AUDIT" --staged
+  AI_EGRESS_RC=$?
+  if [[ $AI_EGRESS_RC -ne 0 ]]; then
+    echo "[pre-commit] COMMIT BLOCKED by ai-egress policy (see above)." >&2
+    exit 1
+  fi
+fi
+
 # NOTE: the rulebook-review guard lives in .githooks/commit-msg, NOT here. It needs the
 # commit MESSAGE, and during pre-commit the message is not written yet (with -m, git
 # writes COMMIT_EDITMSG after pre-commit) — a pre-commit read sees the PREVIOUS commit's

@@ -3,6 +3,15 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // H-02 class guard (hostile review of the review, 2026-09-18).
+    // `gallery_visitors` is not created until 20260308-create-gallery-tables.cjs,
+    // which sorts AFTER this file. Unguarded addColumn() here killed any
+    // from-empty bootstrap.
+    if (!(await queryInterface.tableExists('gallery_visitors'))) {
+      console.log('  [20260308-add-enhancement-credits] gallery_visitors absent — skipping (H-02 class guard)');
+      return;
+    }
+
     await queryInterface.addColumn('gallery_visitors', 'enhancement_credits', {
       type: Sequelize.INTEGER,
       allowNull: false,

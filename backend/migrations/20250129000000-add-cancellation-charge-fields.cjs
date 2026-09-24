@@ -13,6 +13,20 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // H-02 class guard (hostile review of the review, 2026-09-18).
+    //
+    // This migration runs at 20250129000000, but `sessions` is not created
+    // until 20250305000000-create-sessions.cjs:304 — 39 days LATER in chain
+    // order. queryInterface.describeTable() below throws
+    // `relation "sessions" does not exist` on any database built from empty,
+    // so the chain dies here immediately after H-01's fix removes the earlier
+    // wall. Same defect class as H-01/H-02; the ledger filed H-02 once and
+    // dismissed it as "covered by H-01's guard", which it is not.
+    if (!(await queryInterface.tableExists('sessions'))) {
+      console.log('  [20250129000000] sessions table absent — skipping (H-02 class guard)');
+      return;
+    }
+
     const transaction = await queryInterface.sequelize.transaction();
 
     try {

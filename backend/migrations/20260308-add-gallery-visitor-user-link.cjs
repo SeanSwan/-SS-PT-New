@@ -3,6 +3,15 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
+    // H-02 class guard (hostile review of the review, 2026-09-18).
+    // `gallery_visitors` is created by 20260308-create-gallery-tables.cjs,
+    // which sorts after this file — describeTable() below throws on a
+    // from-empty database.
+    if (!(await queryInterface.tableExists('gallery_visitors'))) {
+      console.log('  [20260308-add-gallery-visitor-user-link] gallery_visitors absent — skipping (H-02 class guard)');
+      return;
+    }
+
     // Check if column already exists before adding
     const tableDesc = await queryInterface.describeTable('gallery_visitors');
     if (!tableDesc.user_id) {
