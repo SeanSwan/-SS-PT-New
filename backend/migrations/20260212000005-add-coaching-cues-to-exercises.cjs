@@ -31,6 +31,13 @@ module.exports = {
   },
 
   async down(queryInterface) {
+    // Absent-table guard: describeTable() below throws when `Exercises` never
+    // existed, wedging db:migrate:undo:all (G9 hostile review, 2026-09-25).
+    if (!(await queryInterface.tableExists('Exercises'))) {
+      console.log('  [20260212000005] Exercises table absent — nothing to roll back');
+      return;
+    }
+
     const table = await queryInterface.describeTable('Exercises');
 
     if (table.coachingCues) {

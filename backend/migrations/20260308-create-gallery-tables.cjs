@@ -69,6 +69,21 @@ module.exports = {
       newsletter_opt_in: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: true },
       parental_consent: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
       source: { type: Sequelize.STRING(50), allowNull: false, defaultValue: 'gallery' },
+      // enhancement-credits + user-link fields, folded here so a from-empty
+      // chain produces the complete model shape: the two 20260308-add-* migrations
+      // sort BEFORE this file and skip when the table is absent, so without
+      // these definitions a rebuilt database ends up missing four model-declared
+      // columns (G9 hostile review, 2026-09-25). Definitions MUST stay identical
+      // to those migrations' addColumn calls.
+      enhancement_credits: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
+      is_vip: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
+      free_enhancements_used: { type: Sequelize.JSONB, allowNull: false, defaultValue: '{}' },
+      // user_id lands here WITHOUT the FK on purpose: the FK targets "Users",
+      // which no migration creates (schema-authority debt, M-02), so a hard FK
+      // in this file would kill the from-empty chain entirely. The FK-bearing
+      // addColumn lives in 20260308-add-gallery-visitor-user-link.cjs and still
+      // applies it on databases that predate this fold.
+      user_id: { type: Sequelize.INTEGER, allowNull: true },
       created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.fn('NOW') },
       updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.fn('NOW') },
     });
@@ -76,6 +91,7 @@ module.exports = {
     await queryInterface.addIndex('gallery_visitors', ['email'], { name: 'idx_gallery_visitors_email' });
     await queryInterface.addIndex('gallery_visitors', ['event_id'], { name: 'idx_gallery_visitors_event' });
     await queryInterface.addIndex('gallery_visitors', ['email', 'event_id'], { unique: true, name: 'idx_gallery_visitors_email_event' });
+    await queryInterface.addIndex('gallery_visitors', ['user_id'], { name: 'idx_gallery_visitors_user_id' });
 
     // ── EnhancementRequest ────────────────────────────────────────────────
     await queryInterface.createTable('gallery_enhancement_requests', {
@@ -169,6 +185,13 @@ module.exports = {
   },
 
   async down(queryInterface) {
+    // Absent-table guard: on a database where the gallery tables never
+    // existed, the first dropTable throws and wedges db:migrate:undo:all
+    // (G9 hostile review, 2026-09-25).
+    if (!(await queryInterface.tableExists('gallery_events'))) {
+      console.log('  [20260308-create-gallery-tables] gallery tables absent — nothing to drop');
+      return;
+    }
     await queryInterface.removeConstraint('gallery_events', 'fk_gallery_events_cover_photo').catch(() => {});
     await queryInterface.dropTable('gallery_referrals');
     await queryInterface.dropTable('gallery_donations');

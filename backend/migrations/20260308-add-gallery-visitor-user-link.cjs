@@ -30,7 +30,26 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    await queryInterface.removeIndex('gallery_visitors', 'idx_gallery_visitors_user_id').catch(() => {});
-    await queryInterface.removeColumn('gallery_visitors', 'user_id').catch(() => {});
+    // Absent-table guard: the removes below throw when the table never
+    // existed, wedging db:migrate:undo:all (G9 hostile review, 2026-09-25).
+    if (!(await queryInterface.tableExists('gallery_visitors'))) {
+      console.log('  [20260308-add-gallery-visitor-user-link] gallery_visitors absent — nothing to roll back');
+      return;
+    }
+
+    // The index may legitimately be absent (from-empty databases get it from
+    // the create-table migration instead) — that one specific error is the
+    // expected skip case. Scoped catch, not blanket: a real failure (e.g.
+    // permissions) must still surface.
+    await queryInterface.removeIndex('gallery_visitors', 'idx_gallery_visitors_user_id')
+      .catch((error) => {
+        if (!/index .* does not exist|Cannot find index/i.test(error.message)) throw error;
+        console.log('  [20260308-add-gallery-visitor-user-link] index absent — skipping');
+      });
+
+    const tableDesc = await queryInterface.describeTable('gallery_visitors');
+    if (tableDesc.user_id) {
+      await queryInterface.removeColumn('gallery_visitors', 'user_id');
+    }
   },
 };

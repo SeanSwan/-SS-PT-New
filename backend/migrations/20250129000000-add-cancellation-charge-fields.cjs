@@ -88,6 +88,14 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
+    // Absent-table guard: describeTable() below throws on a database where
+    // `sessions` never existed, wedging db:migrate:undo:all (G9 hostile
+    // review, 2026-09-25).
+    if (!(await queryInterface.tableExists('sessions'))) {
+      console.log('  [20250129000000] sessions table absent — nothing to roll back');
+      return;
+    }
+
     const transaction = await queryInterface.sequelize.transaction();
 
     try {

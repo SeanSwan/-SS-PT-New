@@ -394,6 +394,36 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true
       },
+      // Cancellation-charge fields, folded here so a from-empty chain produces
+      // the complete model shape: 20250129000000-add-cancellation-charge-fields.cjs
+      // sorts BEFORE this file and skips when the table is absent, so without
+      // these definitions a rebuilt database ends up missing four model-declared
+      // columns (G9 hostile review, 2026-09-25). Definitions MUST stay identical
+      // to that migration's addColumn calls.
+      cancellationChargeType: {
+        type: Sequelize.STRING(20),
+        allowNull: true,
+        defaultValue: null,
+        comment: 'Type of cancellation charge: none, full, partial, late_fee'
+      },
+      cancellationChargeAmount: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: true,
+        defaultValue: null,
+        comment: 'Amount charged for cancellation (in dollars)'
+      },
+      sessionCreditRestored: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+        comment: 'Whether session credit was restored to client after cancellation'
+      },
+      cancellationChargedAt: {
+        type: Sequelize.DATE,
+        allowNull: true,
+        defaultValue: null,
+        comment: 'Timestamp when cancellation charge was processed'
+      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE
@@ -429,6 +459,13 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
+    // Absent-table guard: db:migrate:undo:all on a database where the table
+    // never existed must skip, not wedge (same class as the add-migration
+    // down() guards, G9 hostile review 2026-09-25).
+    if (!(await queryInterface.tableExists('sessions'))) {
+      console.log('  [20250305000000] sessions table absent — nothing to drop');
+      return;
+    }
     await queryInterface.dropTable('sessions');
     // Optional: Drop the enum type if needed
     // await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_sessions_status";');
