@@ -83,6 +83,7 @@ export const NODE_CONTRACT_SUITES = Object.freeze([
   'scripts/swan-brain-console/renderAttempt.artifact.test.mjs',
   'scripts/swan-brain-console/stageReport.test.mjs',
   'scripts/swan-brain-console/exitCodes.test.mjs',
+  'scripts/swan-brain-console/probeReconcile.test.mjs',
   'scripts/qa/local-frontend-server.test.mjs',
   'scripts/qa/local-frontend-server.deadline.test.mjs',
 ]);

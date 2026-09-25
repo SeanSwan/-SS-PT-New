@@ -42,6 +42,8 @@ import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:net';
 import { assertTargetIdentity } from './verifyTarget.mjs';
 import { createStageReport, firstLines, spawnCapability } from './stageReport.mjs';
+// Round 28 D1 — the probe above is advisory, and this is what stops it disagreeing in silence.
+import { reconcileProbe } from './probeReconcile.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
@@ -122,7 +124,7 @@ async function waitFor(url, seconds, expect) {
 import { NODE_CONTRACT_SUITES, missingSuites } from './contractSuites.mjs';
 
 async function main() {
-  const { note, run, summary } = createStageReport({ cwd: REPO });
+  const { note, run, results, summary } = createStageReport({ cwd: REPO });
 
   const spawnProbe = spawnCapability();
   if (!spawnProbe.ok) {
@@ -278,6 +280,17 @@ async function main() {
   } finally {
     consoleServer?.kill();
   }
+
+  /*
+   * RECONCILE THE TWO INSTRUMENTS (round 28 D1, 2026-09-25). The probe at the top of this function
+   * is a single start-of-run sample; the verdicts above are the measurement. Until this line,
+   * nothing compared them, so the gate could warn that the environment was capable while a stage
+   * reported BLOCKED — or warn that it was incapable while every stage passed — and leave the reader
+   * to arbitrate between two vocabularies. The probe stays advisory: this prints, it never
+   * reclassifies a stage and never touches the exit code.
+   */
+  const reconcile = reconcileProbe(spawnProbe.ok, results.filter((r) => r.blocked).length);
+  if (reconcile) console.log(`[verify] NOTE — ${reconcile}`);
 
   process.exit(summary());
 }

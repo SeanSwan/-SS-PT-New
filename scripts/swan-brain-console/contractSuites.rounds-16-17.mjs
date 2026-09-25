@@ -163,4 +163,33 @@ export const SUITE_RATIONALE_16_17 = Object.freeze({
     green — asserted by confirming the count is not even consulted on that path.
   `,
 
+  "scripts/swan-brain-console/probeReconcile.test.mjs": `
+    ROUND 28 (2026-09-25), hostile review of \`verify-all.mjs\`'s use of its own capability probe —
+    the gate carried two instruments answering one question and nothing compared them.
+    \`spawnCapability()\` is a single sample taken before any stage runs; the per-stage verdicts are
+    the measurement. The probe's verdict never reached \`summary()\`, and the summary's blocked-count
+    never reached the probe, so the gate could warn that the environment was capable while a stage
+    reported BLOCKED — or warn that it was incapable while every stage passed — in two vocabularies,
+    leaving the reader to arbitrate. That is the round-18 defect class one level up: a verdict that
+    does not follow from its evidence.
+
+    Both directions are reachable. The probe spawns \`node -e 'process.exit(0)'\`, which exercises
+    neither a working directory nor a port nor a browser, so a suite may block on something the probe
+    never touched; and four of the gate's six stages spawn no child at all, so a transient failure at
+    start-up can contradict the run it warns about.
+
+    The fix is reconciliation, not merging, and not authority. Gating the exit code on one
+    start-of-run spawn would convert a transient failure into a whole-gate verdict — strictly worse,
+    and the opposite of what the per-stage design achieves. So the probe stays advisory and the
+    suite pins that: neither line may contain PASS, FAILED or BLOCKED, because a third verdict word
+    in a gate that already has two instruments is the defect rather than the fix. The remaining
+    assertions pin that a disagreement produces exactly one line, that the line names which
+    instrument wins and why, and that the stage count reaches the text — a reconciliation that
+    cannot name the disagreement it is reconciling is decoration.
+
+    It is a module for the round-21 reason: \`verify-all.mjs\` calls \`main()\` at module load, so
+    nothing defined inside it can be driven from a test. That is the same constraint that forced
+    \`classifyStageOutput\` out of \`run()\`'s closure.
+  `,
+
 });

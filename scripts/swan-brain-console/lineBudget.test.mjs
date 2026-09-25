@@ -22,9 +22,9 @@
  * real-browser gate that cannot be executed in this environment, so a split of it could not be
  * proven — and an unverifiable change to a working gate is a worse outcome than a disclosed line
  * count. `baselineLock.mjs` joined it on 2026-09-24 (round 18): the round-17 lock repairs grew it
- * to 398 lines, and its split is deferred only because the worktree cannot currently be bound to a
- * revision, so the change could not be proven before and after. Both await Sean or Fable. Any
- * packet quoting this tree must carry both exceptions with it (Rule 56: disclose the union).
+ * to 398 lines. Its split is deferred on Astra's round-24 ruling — no split is warranted on that
+ * pass's evidence — and NOT, any longer, on D4: the worktree has been bound since 2026-09-25, so
+ * that reason is expired. Any packet quoting this tree must carry both exceptions (Rule 56).
  *
  * Run: node --test scripts/swan-brain-console/lineBudget.test.mjs
  */
@@ -97,15 +97,15 @@ export const DECLARED_EXCEPTIONS = Object.freeze([
   {
     /*
      * ROUND 18 (2026-09-24) — Astra L08/L09/L10's repairs grew the lock owner past Rule 4.
-     *
-     * This is a DISCLOSURE, not an approval, and it is the weaker of the two honest options.
-     * The stronger option — splitting the module — is named below as the retirement condition
-     * rather than performed now, because this file carries seventeen rounds of hostile review and
-     * its worktree currently cannot be bound to a revision at all (round 18, finding D4). A split
-     * performed in an unbindable tree would trade a disclosed line count for an unverifiable
-     * behavioural risk in the single most safety-critical module in this subsystem. If the
-     * reviewer disagrees with that trade, the correct answer is to perform the split, not to
-     * argue about the number.
+     * UPDATED 2026-09-25 — D4 IS DONE; this entry's original reason cited D4.
+     * A DISCLOSURE, not an approval, and the weaker of the two honest options: the stronger one —
+     * splitting the module — is named below as the retirement condition rather than done now. The
+     * original justification was that an unbindable worktree made a before/after proof impossible;
+     * the worktree is now bound (d6b291af7, 5fadb33bf, f9224312f), so that reason has EXPIRED and is
+     * replaced, not deleted. What remains is Astra's round-24 ruling — an engineering tradeoff, no
+     * split warranted on that pass's evidence, and broken git impairing provenance rather than
+     * behavioural comparison — plus the standing risk of restructuring the safety-critical lock
+     * owner with no reason to touch it. A reviewer who disagrees should perform the split, not argue.
      */
     file: 'baselineLock.mjs',
     reason:
@@ -116,12 +116,12 @@ export const DECLARED_EXCEPTIONS = Object.freeze([
       + 'seam is already drawn by the module\'s own headers — pure PLANNING (`resourcePathFor`, '
       + '`declaredBaselineDir`, `requiredResources`, `fleetIdsFromManifest`, `childrenFor`, '
       + '`parentsFor`, `lockPlanFor`, `baselineChildrenFor`) versus ACQUISITION (`acquireAllLocks`). '
-      + 'Declared rather than split because restructuring the lock owner in a worktree that cannot '
-      + 'be bound to a revision (round 18 D4) cannot be proven before and after.',
+      + 'Declared rather than split on Astra\'s round-24 ruling that no split is warranted on that '
+      + 'pass\'s evidence; see the note above for why the original D4 reason no longer applies.',
     removeWhen:
-      'the worktree can be bound to a revision again (round 18 finding D4), so the planning/'
-      + 'acquisition split can be proven green before and after: `acquireAllLocks` moves to its own '
-      + 'module and `baselineLock.mjs` re-exports it, leaving the import surface unchanged.',
+      'a pass touches `acquireAllLocks` for a substantive reason — the split is then performed as '
+      + 'part of that change, where its behaviour can be compared before and after: `acquireAllLocks` '
+      + 'moves to its own module and `baselineLock.mjs` re-exports it, import surface unchanged.',
     since: '2026-09-24',
   },
 ]);
