@@ -45,6 +45,11 @@
  *   `subs-apply.mjs` `commitSnapshot`         async, but the lock is by hand
  *   `lock.mjs`       `withLock`               async — the console run gate
  *
+ * A FIFTH survived the sweep (found by the 2026-09-25 G9 hostile review): the
+ * daily run's own `withOwnership` (`run-ownership.mjs`) still called bare
+ * `held.release()`. It now goes through this module, and an exhausted verdict
+ * lands as `record.releaseFailed` + stderr.
+ *
  * `withLock` is the site that reaches callers this workstream does not edit, so
  * leaving it out would have left the F03 class OPEN on the console's run-gate
  * path while claiming the class closed. Its `finally` retries too.

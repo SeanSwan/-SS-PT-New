@@ -58,6 +58,7 @@
  */
 
 import { claimRunJournal as realClaim, shouldRelease } from './run-lock.mjs';
+import { releaseStore } from './lock-release.mjs';
 
 /**
  * Run `body` as the owner of the store: claim the journal under the lock, run,
@@ -90,6 +91,19 @@ export async function withOwnership({
     // D2/P1b: release EXACTLY ONCE, and only what this run acquired. `taken.reused`
     // is the discriminator — see `shouldRelease` in `run-lock.mjs` for why a double
     // release is not the harmless no-op it looks like.
-    if (shouldRelease(taken)) held.release();
+    //
+    // F03, FIFTH SITE (G9 hostile review, major 3): this was a bare `held.release()`
+    // discarding the boolean, so one exhausted transient budget left the lock on
+    // disk under a LIVE pid — wedged, unreclaimable, silent, on the daily run's
+    // own path. `releaseStore` retries the whole release a bounded number of
+    // times; a still-false verdict surfaces as `record.releaseFailed` (the
+    // registry.mjs pattern) and on stderr — never as a refusal, because the
+    // body's write has already committed (S1-H9).
+    if (shouldRelease(taken)) {
+      if (!releaseStore(held)) {
+        if (record && typeof record === 'object') record.releaseFailed = true;
+        console.error(`[run-ownership] store lock for ${r} may still be held: release exhausted its retries`);
+      }
+    }
   }
 }

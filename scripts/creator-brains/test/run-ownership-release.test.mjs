@@ -224,3 +224,45 @@ test('no handle means no claim, no release and no throw — the lock:false path 
   assert.equal(out, 'ran-unlocked', 'the lock:false path runs and returns normally');
   assert.equal(claimCalls, 0, 'and it must NOT claim: a journal slot without ownership is the A1-06 defect');
 });
+
+/* ── F03, fifth site (G9 hostile review, 2026-09-25, major 3) ─────────────── */
+/* `withOwnership`'s finally used to call bare `held.release()` and discard the
+ * boolean — so release()'s own ~92 ms transient budget was the LAST word, and a
+ * lock left on disk under a LIVE pid was unreclaimable and silent. These two
+ * cases pin the retried policy (`releaseStore`) and the honest surface for a
+ * genuinely exhausted one. */
+
+test('F03 fifth site: a transient-failing release is RETRIED by the finally, and the store is freed', async () => {
+  const state = { calls: 0 };
+  const handle = {
+    ok: true, runId: 'run-x',
+    release() { state.calls += 1; return state.calls >= 3; }, // fails twice, then frees
+  };
+  const record = {};
+  const out = await withOwnership({
+    ...BASE,
+    record,
+    held: handle,
+    taken: acquired(handle),
+    claim: () => {},
+    body: async () => 'body-ok',
+  });
+  assert.equal(out, 'body-ok', 'the body result is untouched by the release policy');
+  assert.ok(state.calls >= 3, `only ${state.calls} release call(s) — the finally did not retry past the transient failures (F03 is open again)`);
+  assert.equal(record.releaseFailed, undefined, 'a release that EVENTUALLY freed the store must not be reported as failed');
+});
+
+test('F03 fifth site: an exhausted release surfaces releaseFailed on the record, never a refusal', async () => {
+  const handle = { ok: true, runId: 'run-x', release() { return false; } };
+  const record = {};
+  const out = await withOwnership({
+    ...BASE,
+    record,
+    held: handle,
+    taken: acquired(handle),
+    claim: () => {},
+    body: async () => 'value',
+  });
+  assert.equal(out, 'value', 'S1-H9: the write committed, so the run must not read as refused');
+  assert.equal(record.releaseFailed, true, 'the wedge must surface as its own field, or an operator has zero signal');
+});

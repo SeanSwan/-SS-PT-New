@@ -275,8 +275,9 @@ export async function withLock(r, fn, { runId = null, now = () => Date.now(), on
   try {
     return await fn(lock);
   } finally {
-    // Retried, not discarded (F03) — see `releaseStore` for why the boolean matters.
-    releaseStore(lock);
+    // Retried, not discarded (F03). A false verdict surfaces on stderr, never a throw:
+    // the write already committed (S1-H9); a throwing finally would mask it. G9 major 3.
+    if (!releaseStore(lock)) console.error(`[withLock] store lock for ${r} may still be held: release exhausted its retries`);
   }
 }
 
