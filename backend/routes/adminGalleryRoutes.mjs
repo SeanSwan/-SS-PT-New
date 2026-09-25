@@ -62,8 +62,14 @@ const SAFE_CONTENT_TYPE_FALLBACK = 'application/octet-stream';
  * numbers. The unique index on (event_id, photo_number) then converts the
  * loser into a raw 500 mid-batch — after the bytes are already in R2.
  *
- * Taking a row lock on the parent event serializes the read-modify-write, so
- * the second caller waits for the first to commit and then sees the new max.
+ * Taking a row lock on the parent event serializes the read-modify-write for
+ * the READ itself — but the reservation is NOT materialized by this function
+ * (nothing is inserted inside the transaction), so it cannot survive the
+ * pipeline that follows: the numbers are spent on storage keys, then minutes
+ * of watermarking and R2 upload happen before the row exists. The unique
+ * index on (event_id, photo_number) is therefore the real authority, and
+ * `createPhotoWithRacingNumber` below is what makes a lost race survivable
+ * (G9 hostile review, major 7).
  *
  * @param {number|string} eventId
  * @param {number} count - how many numbers to reserve (batch size)
@@ -81,6 +87,42 @@ async function allocatePhotoNumbers(eventId, count) {
   } catch (err) {
     await transaction.rollback();
     throw err;
+  }
+}
+
+/**
+ * E-09 completion (G9 hostile review, major 7): create a photo row whose number
+ * was allocated BEFORE a long pipeline (watermark, R2 upload, presigned browser
+ * PUT). Holding the allocation lock across that pipeline would stall every
+ * other admin for the upload's duration, so the pre-allocation is a hint, not a
+ * guarantee: the unique index on (event_id, photo_number) is the real
+ * authority, and before this helper a loser hit it as a raw 500 AFTER the bytes
+ * were already in R2.
+ *
+ * On a unique-constraint conflict the ROW is re-numbered against a fresh max
+ * and the create is retried, bounded. The storage keys deliberately stay
+ * pointed at the objects that were actually uploaded: in the loser case the
+ * storage address and the display number can diverge, which is cosmetic; a
+ * lost upload is not.
+ *
+ * Exported for the race regression test.
+ *
+ * @param {number} eventId
+ * @param {number} initialPhotoNumber the number the uploaded keys were derived from
+ * @param {(photoNumber: number) => object} buildPayload
+ * @returns {Promise<GalleryPhoto>}
+ */
+export async function createPhotoWithRacingNumber(eventId, initialPhotoNumber, buildPayload) {
+  let photoNumber = initialPhotoNumber;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await GalleryPhoto.create(buildPayload(photoNumber));
+    } catch (err) {
+      const conflict = err?.name === 'SequelizeUniqueConstraintError' || err?.original?.code === '23505';
+      if (!conflict || attempt >= 2) throw err;
+      logger.warn(`[AdminGallery] photo number ${photoNumber} lost an allocation race — re-numbering the row (attempt ${attempt + 1})`);
+      photoNumber = (await allocatePhotoNumbers(eventId, 1))[0];
+    }
   }
 }
 
@@ -751,9 +793,10 @@ router.post('/events/:id/upload', (req, res, next) => {
           mediumSize: variants?.medium?.length || null,
         };
 
-        const photo = await GalleryPhoto.create({
+        // G9 major 7: survive a lost number race instead of 500-ing after upload.
+        const photo = await createPhotoWithRacingNumber(event.id, photoNumber, (n) => ({
           eventId: event.id,
-          photoNumber,
+          photoNumber: n,
           displayName,
           storageKey,
           thumbnailKey: variants ? keys.thumbKey : storageKey,
@@ -768,7 +811,7 @@ router.post('/events/:id/upload', (req, res, next) => {
           height: variants?.height || null,
           mimeType: 'image/jpeg',
           metadata,
-        });
+        }));
 
         // Free variant buffers
         variants = null;
@@ -1171,9 +1214,10 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
             ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${photo.finalKey}`
             : `/api/serve-photo/${photo.finalKey}`;
 
-          const dbPhoto = await GalleryPhoto.create({
+          // G9 major 7: survive a lost number race instead of 500-ing after upload.
+          const dbPhoto = await createPhotoWithRacingNumber(event.id, photo.photoNumber, (n) => ({
             eventId: event.id,
-            photoNumber: photo.photoNumber,
+            photoNumber: n,
             displayName: photo.displayName,
             storageKey: photo.finalKey,
             thumbnailKey: photo.finalKey,
@@ -1190,7 +1234,7 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
               uploadMethod: 'direct-r2-background',
               uploadedAt: new Date().toISOString(),
             },
-          });
+          }));
 
           confirmed.push({
             id: dbPhoto.id,
@@ -1336,9 +1380,10 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
           ? `${R2_PUBLIC_URL.replace(/\/+$/, '')}/${photo.finalKey}`
           : `/api/serve-photo/${photo.finalKey}`;
 
-        const dbPhoto = await GalleryPhoto.create({
+        // G9 major 7: survive a lost number race instead of 500-ing after upload.
+        const dbPhoto = await createPhotoWithRacingNumber(event.id, photo.photoNumber, (n) => ({
           eventId: event.id,
-          photoNumber: photo.photoNumber,
+          photoNumber: n,
           displayName: photo.displayName,
           storageKey: photo.finalKey,
           thumbnailKey: photo.finalKey,
@@ -1355,7 +1400,7 @@ router.post('/events/:id/confirm-upload', async (req, res) => {
             uploadMethod: 'direct-r2',
             uploadedAt: new Date().toISOString(),
           },
-        });
+        }));
 
         confirmed.push({
           id: dbPhoto.id,
