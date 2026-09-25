@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "defaultDecision": "DENY",
+  "requiredRuntimeTransport": "fetchForEgress",
+  "allowMarker": "ai-egress-audit: allow",
+  "allowedLocalHosts": ["127.0.0.1", "localhost", "::1"],
+  "protectedRoots": [
+    ".git",
+    ".env",
+    ".env.",
+    ".auth",
+    "backend/.env",
+    "frontend/.env",
+    "client-data",
+    "backend/uploads",
+    "backups",
+    "logs",
+    "test-results",
+    "playwright-report"
+  ],
+  "harnessConfigFiles": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "CODEBUDDY.md",
+    ".github/copilot-instructions.md",
+    ".mcp.json",
+    ".mcp.local.json"
+  ],
+  "harnessConfigPatterns": [
+    "^\\.claude/settings(?:\\.[^/]+)?\\.json$",
+    "^\\.cursor/rules/[^/]+$",
+    "^\\.continue/[^/]+\\.json$",
+    "^\\.opencode/[^/]+\\.json$",
+    "^\\.codex/[^/]+\\.json$",
+    "^\\.codebuddy/settings(?:\\.[^/]+)?\\.json$"
+  ],
+  "aiTransportPrefixes": [
+    "scripts/consult-",
+    "scripts/ai-workflow/",
+    "scripts/auto-research/",
+    "scripts/mcp/",
+    "scripts/hermes-village.mjs",
+    "scripts/validation-orchestrator.mjs",
+    "scripts/glm-audit.mjs",
+    "scripts/lib/openrouter-stream.mjs"
+  ],
+  "blockedConfigPatterns": [
+    {
+      "id": "repository-snapshot-upload",
+      "severity": "critical",
+      "regex": "\\b(?:repo(?:sitory)?|workspace|worktree|project)\\b[\\s_-]*(?:snapshot|archive|bundle|capture)|\\b(?:snapshot|archive|bundle|capture)\\b[\\s_-]*(?:of|for|from)?[\\s_-]*(?:repo(?:sitory)?|workspace|worktree|project)\\b",
+      "reason": "A harness config must not authorize whole-repository capture or packaging."
+    },
+    {
+      "id": "repository-wiki-upload",
+      "severity": "critical",
+      "regex": "\\b(?:repo(?:sitory)?\\s+wiki|workspace\\s+capture|project\\s+capture)\\b",
+      "reason": "Repository wiki and workspace capture are not an approved data path."
+    },
+    {
+      "id": "file-context-telemetry",
+      "severity": "high",
+      "regex": "\\b(?:telemetry|analytics)\\b.{0,100}\\b(?:file|files|workspace|repo(?:sitory)?|prompt|context)\\b",
+      "reason": "Telemetry must not silently include source, prompt, or workspace content."
+    },
+    {
+      "id": "automatic-workspace-upload",
+      "severity": "critical",
+      "regex": "\\b(?:upload|send|post|sync)\\b.{0,100}\\b(?:repo(?:sitory)?|workspace|worktree|project|snapshot|archive)\\b",
+      "reason": "Any source/workspace upload must be an explicit reviewed product path, not harness background behavior."
+    }
+  ]
+}
