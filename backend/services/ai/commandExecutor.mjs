@@ -321,10 +321,19 @@ function scanContextChannels(options, user) {
   // the field is not admissible as free text, and a name is only ever resolved
   // server-side from `selectedClientId`. Recorded unconditionally, as above.
   scanned.push('selectedClientName');
-  if (typeof next.selectedClientName === 'string' && next.selectedClientName.length > 0) {
+  // G9 hostile review, major 5: this used to drop only non-empty STRINGS, so a
+  // truthy non-string from a request body — an array or object — was neither
+  // dropped nor scanned while `scanned` above already recorded the channel, and
+  // the classifier's truthiness interpolation stringified it into the provider
+  // prompt. A client name is not admissible in ANY form, so the drop is now
+  // unconditional, matching the `previousContext` policy above.
+  if (next.selectedClientName !== undefined && next.selectedClientName !== null) {
+    // Capture the type BEFORE the delete, or the log always reports 'undefined'.
+    const receivedType = Array.isArray(next.selectedClientName) ? 'array' : typeof next.selectedClientName;
     delete next.selectedClientName;
     logger.warn('[CommandExecutor] selectedClientName dropped — not admissible as context (R2-01)', {
       userId: user?.id,
+      receivedType,
     });
   }
 
