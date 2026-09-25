@@ -32,19 +32,58 @@ if (!STAGED && fileArgs.length === 0) {
 
 const FRONTEND_RE = /^frontend\/src\/.+\.(tsx?|jsx?|css)$/;
 
+/*
+ * WHY EVERY `git` CALL GOES THROUGH THIS HELPER — 2026-09-25.
+ *
+ * `execFileSync('git', …, { encoding: 'utf8' })` leaves stdin at its DEFAULT, which is a PIPE.
+ * A piped stdin is the configuration that returns `EBUSY` in the WorkBuddy sandbox (measured
+ * 10/10; `stdio: ['ignore','pipe','pipe']` succeeds). The guard therefore CRASHED, and the
+ * pre-commit hook's `if ! node …` converted that crash into:
+ *
+ *     COMMIT BLOCKED: frontend design-rule violation (see FAIL lines above).
+ *
+ * — an environment limitation rendered as the author's design violation, with no FAIL line to
+ * see. That is the "unavailable is not failed" defect class, in the hook that gates every
+ * commit in this repo. Pinning stdin to `'ignore'` fixes the cause; the exit-3 contract below
+ * fixes the misreport.
+ *
+ * Same mechanism, same fix as `scripts/swan-brain-console/stageReport.mjs`.
+ */
+function git(args, opts = {}) {
+  return execFileSync('git', args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    ...opts,
+  });
+}
+
 function stagedFiles() {
-  const out = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR'], { encoding: 'utf8' });
+  const out = git(['diff', '--cached', '--name-only', '--diff-filter=ACMR']);
   return out.split('\n').filter((f) => FRONTEND_RE.test(f));
 }
 
 function stagedContent(file) {
   // read the STAGED blob, not the working tree — what's being committed is what's judged
-  return execFileSync('git', ['show', `:${file}`], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+  return git(['show', `:${file}`], { maxBuffer: 16 * 1024 * 1024 });
 }
 
-const targets = STAGED
-  ? stagedFiles().map((f) => ({ file: f, text: stagedContent(f) }))
-  : fileArgs.filter((f) => existsSync(f)).map((f) => ({ file: f, text: readFileSync(f, 'utf8') }));
+/*
+ * EXIT 3 = COULD NOT RUN. Distinct from exit 1 (violations found) on purpose: the pre-commit
+ * hook can then say which one happened. A guard that cannot run has checked NOTHING, and
+ * reporting it as a violation accuses the author of a rule they did not break.
+ */
+let targets;
+try {
+  targets = STAGED
+    ? stagedFiles().map((f) => ({ file: f, text: stagedContent(f) }))
+    : fileArgs.filter((f) => existsSync(f)).map((f) => ({ file: f, text: readFileSync(f, 'utf8') }));
+} catch (err) {
+  const cause = err?.code ?? err?.signal ?? 'unknown';
+  console.error('[frontend-guards] COULD NOT RUN — the guard failed while enumerating staged files,');
+  console.error(`  so it checked NOTHING. cause: ${cause} — ${String(err?.message ?? err).split('\n')[0]}`);
+  console.error('  This is an environment or tooling failure, NOT a design-rule violation.');
+  process.exit(3);
+}
 
 const GALAXY = /#0a0a1a|#00FFFF|#7851A9/i;
 const MUI = /from\s+['"]@mui\/|require\(\s*['"]@mui\//;

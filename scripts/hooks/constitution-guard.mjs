@@ -86,8 +86,28 @@ const MIRROR_MARKER = '--- project-doc mirror from CLAUDE.md ---';
 const FILES = ['CLAUDE.md', 'AGENTS.md'];
 
 const git = (args) => {
-  const r = spawnSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-  return { ok: r.status === 0, out: r.stdout ?? '', err: r.stderr ?? '' };
+  /*
+   * `stdio: ['ignore','pipe','pipe']` PINS STDIN TO IGNORE — 2026-09-25.
+   *
+   * The default leaves stdin as a PIPE, and a piped stdin is the configuration that returns
+   * `EBUSY` in the WorkBuddy sandbox (measured 10/10; the table is documented in
+   * `scripts/swan-brain-console/stageReport.mjs`). Without this, this guard fails closed on
+   * EVERY commit in that environment — which is the correct direction, but it did so with an
+   * empty cause: `could not list staged files ()`, because `r.stderr` is `undefined` when the
+   * child never starts. Failing closed for a reason nobody can read is a different defect from
+   * failing closed, and it is why this went undiagnosed.
+   */
+  const r = spawnSync('git', args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const cause = r.error?.code ?? (r.status === null ? 'status null (child never started)' : null);
+  return {
+    ok: r.status === 0,
+    out: r.stdout ?? '',
+    err: r.stderr || (cause ? `${cause} — the child could not be started, so it produced no stderr` : ''),
+  };
 };
 
 /**

@@ -39,7 +39,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, openSync, closeSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,11 +50,39 @@ const SEAT = 'scripts/consult-fable.mjs';
 
 function run(command) {
   const dir = mkdtempSync(join(tmpdir(), 'swan-shapes-'));
-  const r = spawnSync(process.execPath, [GATE], {
-    input: JSON.stringify({ tool_name: 'Bash', tool_input: { command } }),
-    encoding: 'utf-8',
-    env: { ...process.env, SWAN_SPEND_DIR: dir },
-  });
+  /*
+   * STDIN IS A FILE DESCRIPTOR, NOT A PIPE — 2026-09-25.
+   *
+   * This used to pass `input: <json>`, which makes Node create a PIPE for the child's stdin.
+   * In the WorkBuddy sandbox that configuration returns `error: EBUSY`, `status: null`, and no
+   * stdio at all — the gate never starts. Measured 10/10, and re-measured here in four shapes:
+   * `input` + `encoding` → EBUSY; `input` + `stdio:['pipe','pipe','pipe']` → EBUSY;
+   * `stdio:['ignore',...]` → the child RUNS but stdin is /dev/null, so the gate reads an empty
+   * payload and every row reports "the gate let a paid call through".
+   *
+   * The cost of leaving it: all six tests in this file reported a PRODUCT failure for an
+   * ENVIRONMENT failure. The control row said `null !== 2` — which reads as "the canonical paid
+   * call no longer blocks", the single most alarming thing this corpus can say, and it was not
+   * true. A blocked test is a blocked test; a false accusation is worse than a skip.
+   *
+   * Fix: write the payload to a real file and hand the child that fd as stdin. The gate reads
+   * fd 0 with `readFileSync(0)` and cannot tell the difference, so fidelity is unchanged —
+   * verified by the child echoing the byte count back (`READ:97`), and by all six rows below
+   * going green again once the transport works.
+   */
+  const payloadPath = join(dir, 'payload.json');
+  writeFileSync(payloadPath, JSON.stringify({ tool_name: 'Bash', tool_input: { command } }));
+  const fd = openSync(payloadPath, 'r');
+  let r;
+  try {
+    r = spawnSync(process.execPath, [GATE], {
+      encoding: 'utf-8',
+      stdio: [fd, 'pipe', 'pipe'],
+      env: { ...process.env, SWAN_SPEND_DIR: dir },
+    });
+  } finally {
+    closeSync(fd);
+  }
   rmSync(dir, { recursive: true, force: true });
   return { code: r.status, stderr: r.stderr || '' };
 }

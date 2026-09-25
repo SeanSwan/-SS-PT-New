@@ -42,7 +42,20 @@ echo "[pre-commit] Secret scan: CLEAN"
 # G1 no-MUI · G2 no-recharts · G3 retired Galaxy palette · G4 hardcoded hex.
 # Staged frontend/src files only; existing violations tracked separately (Rule 34).
 echo "[pre-commit] Running frontend guards on staged files..."
-if ! node "$REPO_ROOT/scripts/hooks/frontend-guards.mjs" --staged; then
+# Exit 3 is "the guard could not RUN" — see the contract in frontend-guards.mjs. It is NOT a
+# violation, and `if ! node …` rendered it as one: a crashed guard printed "COMMIT BLOCKED:
+# frontend design-rule violation" with no FAIL line to see. Both outcomes refuse the commit
+# (a guard that could not run has checked nothing), but they must not read the same.
+set +e
+node "$REPO_ROOT/scripts/hooks/frontend-guards.mjs" --staged
+FG_RC=$?
+set -e
+if [[ $FG_RC -eq 3 ]]; then
+  echo "COMMIT BLOCKED: the frontend guard COULD NOT RUN (exit 3) — it checked NOTHING." >&2
+  echo "This is NOT a design-rule violation. Fix the guard's ability to run, then retry." >&2
+  exit 1
+fi
+if [[ $FG_RC -ne 0 ]]; then
   echo "COMMIT BLOCKED: frontend design-rule violation (see FAIL lines above)." >&2
   echo "These rules are mechanically enforced — fix the line, do not bypass. (CLAUDE.md rules 1/6/10)" >&2
   exit 1
