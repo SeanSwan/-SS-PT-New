@@ -98,6 +98,20 @@ const run = spawnSync(process.execPath, [join(HERE, 'server.mjs')], {
  */
 if (run.error || run.status === null) {
   const cause = run.error?.code ?? (run.signal ? `killed by ${run.signal}` : 'status null');
+  /*
+   * THE GATE COUNTS THIS LINE, NOT THE WORD (round 21, 2026-09-25).
+   *
+   * The gate used to count occurrences of `SPAWN-UNAVAILABLE` in the captured output and compare
+   * that to node's `# fail N`. Those are different populations — occurrences of a phrase against a
+   * count of failing tests — and they agreed only by coincidence (measured 1 vs 1). A second
+   * mention anywhere in the text (a re-thrown error, a comment echoed by a future editor) would
+   * have made a purely-environmental stage read as a PRODUCT failure.
+   *
+   * One line, emitted once per blocked file, is the same unit as `# fail N`: an import-time crash
+   * fails the FILE, which node counts as exactly one failing test. The prose stays — it is what a
+   * human reads — but it is no longer what the gate measures.
+   */
+  console.error(`SPAWN-BLOCKER: ${fileURLToPath(import.meta.url)}`);
   throw new Error(
     `SPAWN-UNAVAILABLE: the MCP server child process could not be started (${cause}). No `
     + 'assertion in this file was executed — this is an environment BLOCKER, not a defect in the '

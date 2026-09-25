@@ -263,7 +263,18 @@ export const TOOL_SPECS = Object.freeze(
  * evidence available without editing a module this slice may not touch.
  */
 export async function callTool(name, args = {}) {
-  const entry = TOOL_REGISTRY[name];
+  /*
+   * `Object.hasOwn`, NOT `TOOL_REGISTRY[name]` truthiness — 2026-09-25 (round 20). Every
+   * `Object.prototype` key resolves truthy, so `callTool('constructor')` walked past
+   * `if (!entry)`, reached `entry.handler(args)`, and surfaced as `{error:'tool failed',
+   * detail:'entry.handler is not a function', hint:'…check the repo root…'}` — a caller
+   * error mislabelled as a data-layer fault, pointing the reader at the wrong thing.
+   * `callTool('nope')` said `unknown tool`, so the surface looked like it handled unknown
+   * names; it handled the names nobody tries. `Object.freeze` blocks mutation, not prototype
+   * resolution, and `in` has the same hole; `TOOL_NAMES` was already own-key-only, so only
+   * the lookup disagreed with the hint it printed.
+   */
+  const entry = Object.hasOwn(TOOL_REGISTRY, name) ? TOOL_REGISTRY[name] : undefined;
   if (!entry) {
     const forbidden = FORBIDDEN_NAMES.includes(name);
     return {

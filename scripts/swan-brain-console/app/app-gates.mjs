@@ -47,14 +47,22 @@ export const STATUS_TONE = Object.freeze({
   not_evidence: 'warn',
 });
 
+/*
+ * `Object.hasOwn`, not `?? fallback` on the lookup — 2026-09-25 (round 24). The docstring said
+ * "an unrecognised status reads as UNKNOWN, never as PASS", and it was true about PASS while
+ * being false about everything else. `STATUS_TEXT['constructor']` resolves to the `Object`
+ * function and `['__proto__']` to `Object.prototype`, and neither is nullish, so `??` never
+ * fired: the panel rendered a FUNCTION where an operator expects a word. The test probed only
+ * `'wat'` — a key nobody types — which is why this survived.
+ */
 /** The label for a status. An unrecognised status reads as UNKNOWN, never as PASS. */
 export function statusText(status) {
-  return STATUS_TEXT[status] ?? 'UNKNOWN';
+  return Object.hasOwn(STATUS_TEXT, status) ? STATUS_TEXT[status] : 'UNKNOWN';
 }
 
 /** The tone for a status. An unrecognised status is never the passing tone. */
 export function statusTone(status) {
-  return STATUS_TONE[status] ?? 'unknown';
+  return Object.hasOwn(STATUS_TONE, status) ? STATUS_TONE[status] : 'unknown';
 }
 
 /**

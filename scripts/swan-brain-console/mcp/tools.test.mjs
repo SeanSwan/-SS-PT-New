@@ -183,6 +183,18 @@ describe('B5 — a failure is a correctable error, never a crash', () => {
     assert.match(out.hint, /swan_get_state/);
   });
 
+  /* ROUND 20. The test above probed only a name nobody types, so it missed the truthiness
+   * hole: `constructor`/`toString`/`__proto__` resolve on `Object.prototype`, walked past
+   * `if (!entry)`, and surfaced as `error:'tool failed'` with a hint blaming the data layer. */
+  test('a prototype key is unknown, not a tool that failed', async () => {
+    for (const name of ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__', 'isPrototypeOf']) {
+      const out = await mod.callTool(name, {});
+      assert.equal(out.error, `unknown tool: ${name}`, `${name} must not reach the handler dispatch`);
+      assert.equal(out.detail, undefined, `${name} must not be reported as a data-layer failure`);
+      assert.match(out.hint, /available tools:/);
+    }
+  });
+
   test('callTool never throws, even for a nonsense argument shape', async () => {
     for (const args of [undefined, null, 0, 'string', [], { filter: 'not-an-object' }]) {
       const out = await mod.callTool('swan_list_variants', args);

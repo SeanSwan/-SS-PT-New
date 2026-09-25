@@ -8,6 +8,13 @@
  * repairs still under review — and it is the one that will keep growing while that engagement
  * runs, which is exactly why it is the one that needed its own file.
  *
+ * ROUND 21 ENTRIES LIVE HERE TOO, and the filename is now historical rather than descriptive. The
+ * round-21 suites answer findings that are equally open, and `contractSuites.test.mjs` names this
+ * file as the destination for any newly added suite, so putting them anywhere else would have
+ * meant either a third file in the merge or an entry the ratchet refuses. Renaming the file is the
+ * honest follow-up and is deliberately left as one: a rename touches the merge, the import and the
+ * module id, and it is not worth bundling into a repair whose subject is a test that did not exist.
+ *
  * The two together are one map: `contractSuites.test.mjs` merges them and checks coverage against
  * `contractSuites.list.mjs`, so a suite in neither file is reported by name rather than passing.
  *
@@ -113,6 +120,47 @@ export const SUITE_RATIONALE_16_17 = Object.freeze({
     guards each correct alone and lethal together. L12: \`requiredResources\` dropped \`baselineDir\`
     and \`repoRoot\`, so the plan reported the caller's override while the lock used its own default —
     two answers to one question, and the reassuring one was the one printed.
+  `,
+
+  "scripts/swan-brain-console/stageReport.test.mjs": `
+    ROUND 21 (2026-09-25), hostile review of \`stageReport.mjs\` — the verdict predicate had no
+    test AND compared two different populations. It decides the single most consequential branch in
+    this chain: whether the gate says "the product is red" or "I could not tell you about the
+    product". It lived inline inside \`run()\`'s closure, where nothing could reach it, so it had no
+    test at all.
+
+    The two counts were in DIFFERENT UNITS. \`(out.match(/SPAWN-UNAVAILABLE/g) ?? []).length\` counts
+    occurrences of a PHRASE; node's \`# fail N\` counts TESTS. They agreed only by coincidence in the
+    one measured case (1 vs 1). A second mention anywhere in the text — a re-thrown error, an echoed
+    comment — would have made a purely environmental stage read as a PRODUCT failure, which is the
+    exact inversion this module was written to prevent.
+
+    The predicate is now an exported pure function (\`classifyStageOutput\`) over a counted
+    \`SPAWN-BLOCKER:\` diagnostic line, which the emitter writes exactly once per blocked file; an
+    import-time crash fails the FILE, which node counts as one test, so the units agree by
+    construction. \`countBlockedFiles\` is exported too, so the marker's shape is asserted rather
+    than assumed. The suite pins the real measured TAP shape, the mixed case (blocker + a genuine
+    assertion failure must stay FAILED, per Astra's round-18 condition), and — as a standing
+    assertion, not a comment — the case where the phrase appears twice and one test failed.
+  `,
+
+  "scripts/swan-brain-console/exitCodes.test.mjs": `
+    ROUND 21 (2026-09-25), hostile review of \`exitCodes.mjs\` — the module's own header states the
+    reason it exists as a module rather than four inline \`return\`s: "a test can now name the
+    contract instead of grepping for a literal". The module was extracted, the promise was written
+    down, and the test was never written. Seventy lines of vocabulary that CI branches on, with no
+    assertion anywhere in the repo.
+
+    It matters more here than for an ordinary module, because the failure is silent and the header
+    records it happening before: two of the four codes "drifted into meaning the same thing in an
+    earlier round" while they were inline. Collapsing 3 into 2 again breaks no existing test — it
+    just makes a busy gate read as a red one, and the documented response to a red gate is to go
+    looking at what changed, when the correct response to a busy gate is to wait and re-run.
+
+    The suite pins the four values, their pairwise distinctness, that \`EXIT_NOT_STARTED\` is not
+    \`EXIT_ATTEMPT_FAILED\`, that \`EXIT_MEANINGS\` names exactly those four and nothing else, that
+    \`exitForCompletedRun\` refuses to guess a failure count, and that \`--update\` can never return
+    green — asserted by confirming the count is not even consulted on that path.
   `,
 
 });

@@ -64,6 +64,101 @@ export function firstLines(text, max = 3) {
 }
 
 /**
+ * The environment blockers this gate recognises in a child's TAP output.
+ *
+ * Each entry names a condition where the HARNESS could not do its job, so a failing test is not
+ * evidence about the product. They arrive in two different shapes, and the difference is why this
+ * is two counters rather than one:
+ *
+ *  - `SPAWN-BLOCKER:` is OURS. `mcp/server.test.mjs` writes it once per blocked file, on a
+ *    diagnostic line BEFORE the `not ok` block (an import-time crash fails the file, so node never
+ *    gets to attribute it to a test). Counting the marker line is exact by construction.
+ *
+ *  - `SAFE_DELETE_BULK_CONFIRM_REQUIRED` is the SANDBOX's, printed by its delete shim when a
+ *    session's per-turn delete budget is spent. It lands inside the `not ok` block, in the test's
+ *    `error:` field. There is no seam to add a marker to: the refusal is thrown from inside
+ *    `fs.rmSync`, from a test's `finally` block, after its assertions have already run.
+ *
+ * COUPLING TO A VENDOR STRING IS A REAL COST, ACCEPTED DELIBERATELY. The alternative was measured
+ * on 2026-09-25 and it is worse: with the budget spent, four suites that had already PASSED their
+ * assertions were reported as product failures, and the gate printed "the product was measured and
+ * did not pass" — a false statement about the product, which is the exact defect this module was
+ * written to prevent. A blocked test is a blocked test.
+ */
+export function countBlockedTests(out) {
+  const text = String(out ?? '');
+  const bySpawn = (text.match(/^#\s*SPAWN-BLOCKER:/gm) ?? []).length;
+  // A `not ok` block runs to the next `not ok`, so the split keeps each failing test whole. The
+  // `#` diagnostics are deliberately not blocks — the spawn marker lives there and is counted above.
+  // The filter is LOAD-BEARING: `split` emits NO leading empty part when the zero-width match is at
+  // index 0, so the `.slice(1)` this replaced discarded the FIRST failing block whenever the output
+  // began with `not ok` — under-counting against `# fail N` and printing a blocked stage as a
+  // product FAILURE. See stageReport.test.mjs, 'the first failing block is not discarded'.
+  const byDelete = text
+    .split(/^(?=not ok )/m)
+    .filter((part) => part.startsWith('not ok '))
+    .map(tapBlockBody)
+    .filter((body) => body.includes('SAFE_DELETE_BULK_CONFIRM_REQUIRED'))
+    .length;
+  return { bySpawn, byDelete, total: bySpawn + byDelete };
+}
+
+/**
+ * The indented body of one TAP `not ok` block, stopping at the next column-0 line.
+ *
+ * The bound is not decoration. Without it the LAST `not ok` block runs to end-of-output and
+ * swallows whatever the caller printed afterwards — measured 2026-09-25, where it absorbed the
+ * next stage's blocked-stage message and its shim diagnostic, counting one blocked suite as two and
+ * turning a BLOCKED stage into a FAILED one. A parser whose last item is unbounded is a parser
+ * whose last item is wrong.
+ */
+function tapBlockBody(block) {
+  const lines = block.split('\n');
+  const body = [];
+  for (let i = 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (line !== '' && !/^\s/.test(line)) break;
+    body.push(line);
+  }
+  return body.join('\n');
+}
+
+/**
+ * Classify a `node --test` run that exited non-zero.
+ *
+ * Returns `'blocked'` when EVERY failing test is attributable to a recognised environment blocker,
+ * `'failed'` when at least one real assertion failed, and `null` when there is nothing to
+ * attribute. `null` is not a third verdict — `run()` falls through to FAILED, the fail-closed
+ * direction.
+ *
+ * WHY THIS IS A FUNCTION AND NOT TWO LINES IN A CLOSURE (round 21, 2026-09-25).
+ *
+ * The predicate decides the gate's verdict — the difference between "the product is red" and "I
+ * could not tell you about the product" — and it had no test at all, because it lived inline
+ * inside `run()` where nothing could reach it. A verdict-deciding predicate that cannot be driven
+ * from a test is the one piece of this module that must be drivable.
+ *
+ * AND ITS TWO COUNTS USED TO BE IN DIFFERENT UNITS. The first version compared
+ * `(out.match(/SPAWN-UNAVAILABLE/g) ?? []).length` — occurrences of a PHRASE — against node's
+ * `# fail N`, which counts TESTS. They coincided in the one measured case (1 vs 1) and would have
+ * diverged the moment the phrase appeared twice, reporting an environment blocker as a product
+ * failure. It now counts a marker line written once per blocked file, and a failing block whose
+ * own error IS the blocker, so the units agree BY CONSTRUCTION rather than by luck.
+ */
+export function classifyStageOutput(out) {
+  const text = String(out ?? '');
+  const failing = Number((text.match(/^# fail (\d+)/m) ?? [])[1] ?? NaN);
+  const { total } = countBlockedTests(text);
+  if (total === 0 || !Number.isFinite(failing)) return null;
+  return total === failing ? 'blocked' : 'failed';
+}
+
+/** The number of files that reported a `SPAWN-BLOCKER` line. Kept for callers that only want that. */
+export function countBlockedFiles(out) {
+  return (String(out ?? '').match(/^#\s*SPAWN-BLOCKER:/gm) ?? []).length;
+}
+
+/**
  * Build a stage recorder bound to one working directory.
  *
  * THREE OUTCOMES, NOT TWO (round 18). `note` used to take a boolean, so a stage that could not
@@ -139,21 +234,21 @@ export function createStageReport({ cwd }) {
      */
     if (!ok && opts.capture) {
       const out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
-      const blockedSuites = (out.match(/SPAWN-UNAVAILABLE/g) ?? []).length;
-      const totalFail = Number((out.match(/^# fail (\d+)/m) ?? [])[1] ?? NaN);
-      if (blockedSuites > 0 && Number.isFinite(totalFail) && totalFail === blockedSuites) {
+      const verdict = classifyStageOutput(out);
+      const { total: blockedTests } = countBlockedTests(out);
+      if (verdict === 'blocked') {
         note(
           'blocked',
           name,
-          `${blockedSuites} suite(s) could not execute — SPAWN-UNAVAILABLE (environment); every assertion that did run passed`,
+          `${blockedTests} suite(s) could not execute — environment blocker; every assertion that did run passed`,
         );
         return false;
       }
-      if (blockedSuites > 0) {
+      if (verdict === 'failed') {
         note(
           false,
           name,
-          `exit ${r.status} · ${blockedSuites} suite(s) also could not execute — SPAWN-UNAVAILABLE (environment, not a defect)`,
+          `exit ${r.status} · ${blockedTests} suite(s) also could not execute — environment blocker, not a defect`,
         );
         return false;
       }

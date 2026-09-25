@@ -79,6 +79,17 @@ test('an unknown status degrades to a non-passing label rather than throwing', (
   assert.notEqual(statusTone('wat'), 'ok');
 });
 
+/* ROUND 24. `'wat'` is a key nobody types. These are the ones an agent probes with, and every
+ * one of them resolves on `Object.prototype` — truthy, non-nullish, and not a label. */
+test('a prototype key is an unknown status, not a label or a tone', () => {
+  for (const s of ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__', 'isPrototypeOf']) {
+    assert.equal(statusText(s), 'UNKNOWN', `statusText('${s}') must be a label, not ${typeof statusText(s)}`);
+    assert.equal(typeof statusText(s), 'string');
+    assert.equal(statusTone(s), 'unknown', `statusTone('${s}') must be a tone, not ${typeof statusTone(s)}`);
+    assert.notEqual(statusTone(s), 'ok');
+  }
+});
+
 /* ── the headline says what the operator needs in one line ────────────────── */
 
 test('a headline names how many gates have no result — and never claims they did not run', () => {
