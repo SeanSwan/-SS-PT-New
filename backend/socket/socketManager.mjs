@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import logger from '../utils/logger.mjs';
 import { getUser } from '../models/index.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
+import { isAccessTokenRevoked } from '../services/tokenRevocationService.mjs';
 import { buildAllowedOrigins, DEV_SOCKET_ORIGINS } from '../utils/corsOriginPolicy.mjs';
 
 // Global socket.io instance
@@ -321,6 +322,17 @@ async function authenticateSocketUser(token) {
     // — the same class as E-02. Only access tokens may authenticate a socket.
     if (decoded?.tokenType !== 'access') {
       logger.warn(`Socket auth rejected non-access tokenType: ${decoded?.tokenType ?? 'unknown'}`);
+      return null;
+    }
+    // G9 hostile review, major 6: signature + family alone let a REVOKED access
+    // token (logged out, or stolen and revoked) keep a live socket — including
+    // the admin dashboard rooms — until natural expiry. Same single boundary as
+    // HTTP: `verifyAccessToken` consults the revocation registry after verify
+    // (authMiddleware.mjs), so socket auth does too. The registry is fail-open
+    // on store errors by documented design; a socket inherits the same posture
+    // as an HTTP request, no worse.
+    if (decoded?.tokenId && (await isAccessTokenRevoked(decoded.tokenId))) {
+      logger.warn(`Socket auth rejected revoked access token (tokenId suffix: ${String(decoded.tokenId).slice(-6)})`);
       return null;
     }
     const userId = decoded.userId ?? decoded.id;
