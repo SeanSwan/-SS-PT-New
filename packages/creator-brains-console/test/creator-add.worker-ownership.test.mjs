@@ -168,3 +168,38 @@ test('F04 TRIPWIRE (source-shape, not proof): the shipped worker resolves and ow
 
   assert.ok(existsSync(WORKER), 'creator-add.worker.mjs disappeared while this gate ran');
 });
+
+/* ── G9 hostile review, major 4: the settled straddle ─────────────────────── */
+/* `finish(resolve, settleCreate(msg.value, r))` evaluated the COMMIT before
+ * `finish`'s `settled` guard ran, so a reply already queued on the port when
+ * the deadline fired still committed a creator — after the caller had received
+ * the timeout rejection that promises "nothing happened". This test makes the
+ * interleaving DETERMINISTIC: the worker answers immediately, and a main-thread
+ * busy-wait freezes the loop across the deadline so both the answer and the
+ * expiry are queued together. Node's phase order (timers before message
+ * delivery) then runs the deadline first. Whether Node delivers a message that
+ * was queued before `port1.close()` is implementation-defined — which is exactly
+ * why the assertion is the INVARIANT (rejected ⇒ committed nothing), not the
+ * mechanism: it passes either way with the guard, and fails on any Node that
+ * delivers post-close messages if the guard is ever removed. */
+
+test('G9 major 4: a reply queued before the deadline never commits after it', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'cb-g9-straddle-'));
+  try {
+    __setCreateWorkerUrl(new URL('./fixtures/early-answer.worker.mjs', import.meta.url));
+
+    const pending = addCreatorOffLoop('https://www.youtube.com/@straddle', dir, { timeoutMs: 150 });
+    const until = Date.now() + 400; // crosses the 150 ms deadline while the loop is frozen
+    while (Date.now() < until) { /* deliberate busy-wait: the freeze is the barrier */ }
+
+    await assert.rejects(pending, /did not answer within 150 ms/,
+      'the deadline fired with the answer in flight, so the call must reject');
+
+    assert.equal(listCreatorsSafe(dir).creators.length, 0,
+      'a rejected create must have committed NOTHING — a commit after the rejection '
+      + 'is the straddle the guard exists to kill');
+  } finally {
+    __resetCreateWorkerUrl();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

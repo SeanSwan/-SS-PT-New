@@ -218,6 +218,14 @@ export function addCreatorOffLoop(ref, r, { timeoutMs = CREATE_TIMEOUT_MS } = {}
     // adding one would be dead code that looks like a second delivery route.
     port1.on('message', (msg) => {
       if (!msg || msg.epoch !== myEpoch) return; // a retired epoch's answer
+      // THE STRADDLE GUARD (G9 hostile review, major 4): arguments evaluate
+      // BEFORE `finish` runs, so a reply already queued on this port when the
+      // deadline fired still ran `settleCreate` — committing a creator after
+      // the caller had already received the timeout rejection that promised
+      // nothing happened. A settled call drops the answer: the worker's work
+      // is a pure resolve, the commit lives in `settleCreate` below, and the
+      // module's invariant ("a timed-out add commits nothing") holds again.
+      if (settled) return;
       // THE COMMIT HAPPENS HERE, ON A THREAD NOTHING TERMINATES (F04).
       //
       // `finish()` terminates the worker, so a lock taken on the worker could be
