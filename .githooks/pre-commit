@@ -145,6 +145,22 @@ if [[ -f "$AI_EGRESS_AUDIT" ]] && command -v node >/dev/null 2>&1; then
   fi
 fi
 
+# M1 import-closure guard (G9 hostile review, major 11): the guard existed and
+# was tested since 24ab9159a, but nothing invoked it — the exact failure it
+# exists to prevent (a commit adding a file that imports a module the commit
+# leaves untracked, breaking every fresh clone) is what d5a268974 and the
+# G-rescues then had to clean up by hand. Blocks the commit on a violation;
+# exit 0 = no unresolved relative imports in the added set.
+IMPORT_CLOSURE_GUARD="$REPO_ROOT/scripts/hooks/import-closure-guard.mjs"
+if [[ -f "$IMPORT_CLOSURE_GUARD" ]] && command -v node >/dev/null 2>&1; then
+  node "$IMPORT_CLOSURE_GUARD" --staged
+  ICG_RC=$?
+  if [[ $ICG_RC -ne 0 ]]; then
+    echo "[pre-commit] COMMIT BLOCKED by import-closure guard: a staged file imports a module the commit leaves untracked." >&2
+    exit 1
+  fi
+fi
+
 # NOTE: the rulebook-review guard lives in .githooks/commit-msg, NOT here. It needs the
 # commit MESSAGE, and during pre-commit the message is not written yet (with -m, git
 # writes COMMIT_EDITMSG after pre-commit) — a pre-commit read sees the PREVIOUS commit's
