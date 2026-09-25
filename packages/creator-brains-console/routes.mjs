@@ -121,8 +121,10 @@ export async function dispatch(req, res, { r, url, reservation = null }) {
 
   /* ── operations (tier T2 — ONE shared exclusion gate, A1-06) ──
    * S3. `POST /api/repair` answers the PROJECTED engine result
-   * `{repaired,built,emptied}` (05 §2b), and may answer `409 RUN_LOCKED {holder}`
-   * when a run holds the store.
+   * `{repaired,built,emptied}` (05 §2b), `409 RUN_LOCKED {holder}` when a run
+   * holds the store, or `422 REFUSED {error}` when the engine refused from
+   * INSIDE runDaily (preflight damage, bounds refusal) — a refused run's
+   * counts never ship as a 200 (G9 review, major 1).
    * S4. `POST /api/run/daily` spawns the engine's scheduled entry point and
    * answers `202 {requestId, runId:null}` — ACCEPTANCE, not completion (A1-05),
    * with progress read from `GET /api/run`.

@@ -61,6 +61,7 @@
  */
 
 import { underRunGate } from './run-gate.mjs';
+import { ApiError, CODE } from './errors.mjs';
 // Astra round 1, P1a: the raw `runDaily` re-export was REMOVED from
 // `run-gate.mjs`. It made the gate module look like the only import site for the
 // engine entry point while offering it UNRESTRICTED — an ordinary caller could
@@ -103,6 +104,9 @@ export function projectRepair(record) {
  * @param {object} [opts.gate]             injected lock functions (tests)
  * @returns {Promise<{repaired:number, built:number, emptied:number}>}
  * @throws {ApiError} RUN_LOCKED (409) with the holder named
+ * @throws {ApiError} REFUSED (422) when the engine concluded the run with
+ *   `ok === false` from inside `runDaily` (preflight damage, bounds refusal) —
+ *   the counts of a refused run are never shipped as a 200 (G9 review, major 1)
  */
 export async function repairStore({ r, deps = {}, clock = null, run = runDaily, gate } = {}) {
   const record = await underRunGate(
@@ -125,8 +129,24 @@ export async function repairStore({ r, deps = {}, clock = null, run = runDaily, 
   );
 
   // The engine's repair verdict can also be a refusal from INSIDE runDaily (a
-  // bounds refusal, say). Those arrive as a concluded record rather than a throw.
-  // Only the lock case is translated by the gate; inventing a code for the rest
-  // here would be a second, quieter contract.
+  // bounds refusal, a damaged preflight). Those arrive as a concluded record
+  // with `ok === false` (run.mjs:148) rather than a throw — and projecting
+  // their (zero) counts into a 200 told the operator "repair ran and changed
+  // nothing" for work that never happened (G9 hostile review, 2026-09-25,
+  // major finding 1). They surface through the API's EXISTING refusal
+  // contract — ApiError REFUSED, the same channel `setCreatorEnabled` and the
+  // resolver use — not through a second, quieter shape.
+  if (record && record.ok === false) {
+    const reason = (Array.isArray(record.notes) ? record.notes.filter(Boolean) : [])
+      .join('; ')
+      .slice(0, 300);
+    throw new ApiError(
+      CODE.REFUSED,
+      `repair refused by the engine${reason ? `: ${reason}` : ''}`,
+    );
+  }
+
+  // Only the lock case is translated by the gate; it arrives here as a thrown
+  // ApiError(RUN_LOCKED), never as a record.
   return projectRepair(record);
 }

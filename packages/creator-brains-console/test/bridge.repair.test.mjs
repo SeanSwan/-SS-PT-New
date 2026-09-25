@@ -59,6 +59,59 @@ test('T-B10: repair returns exactly the projected triple, nothing more', async (
   assert.equal('quarantined' in result, false, 'a count outside the contract must not leak through the projection');
 });
 
+/* ── a refused run is never a 200 (G9 review, major 1) ────────────────────── */
+/* The engine can refuse from INSIDE runDaily — a bounds refusal, a damaged
+ * preflight — and those arrive as a CONCLUDED record with `ok === false`
+ * (run.mjs:148), not as a throw. Projecting that record's (zero) counts used
+ * to ship a 200 and the UI read it as "repair ran and changed nothing": the
+ * success-shaped lie. The fix surfaces it through the API's existing refusal
+ * contract, and these cases pin that. */
+
+test('T-B10: an engine-refused repair (ok:false) is REFUSED, not a projected 200', async () => {
+  const { gate } = recordingGate();
+  await assert.rejects(
+    () => repairStore({
+      r: R,
+      gate,
+      run: async () => ({
+        ok: false,
+        counts: { repaired: 0, built: 0, emptied: 0 },
+        notes: ['preflight: state.json is damaged beyond repair'],
+        phases: [{ name: 'preflight', ok: false, reason: 'state.json is damaged beyond repair' }],
+      }),
+    }),
+    (e) => {
+      assert.ok(e instanceof ApiError, 'the refusal must be an ApiError, not a raw throw');
+      assert.equal(e.code, CODE.REFUSED);
+      assert.match(e.message, /preflight: state\.json is damaged beyond repair/, 'the engine\'s note must reach the operator');
+      return true;
+    },
+    'a refused run must never surface as resolved counts',
+  );
+});
+
+test('T-B10: an ok:false record with no notes still refuses, with a usable message', async () => {
+  const { gate } = recordingGate();
+  await assert.rejects(
+    () => repairStore({ r: R, gate, run: async () => ({ ok: false, counts: {} }) }),
+    (e) => {
+      assert.equal(e.code, CODE.REFUSED);
+      assert.match(e.message, /repair refused by the engine/);
+      return true;
+    },
+  );
+});
+
+test('T-B10: a record without an ok verdict still projects (defensive for legacy shapes)', async () => {
+  const { gate } = recordingGate();
+  const result = await repairStore({
+    r: R,
+    gate,
+    run: async () => ({ counts: { repaired: 1, built: 0, emptied: 0 } }),
+  });
+  assert.deepEqual(result, { repaired: 1, built: 0, emptied: 0 });
+});
+
 test('T-B10: the engine is asked for the repair phase set, not the whole daily run', async () => {
   const { gate } = recordingGate();
   let received = null;
