@@ -6,7 +6,9 @@ import { describe, expect, it } from 'vitest';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const routeSource = readFileSync(resolve(__dirname, '../../routes/videoSessionRoutes.mjs'), 'utf8');
-const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'), 'utf8');
+const coreRoutesSource = readFileSync(
+  process.env.VIDEO_SESSION_CORE_ROUTES_UNDER_TEST || resolve(__dirname, '../../core/routes.mjs'), 'utf8'
+);
 
 function routeSlice(signature, nextSignature) {
   return routeSource.slice(
@@ -31,7 +33,7 @@ describe('video session route ownership', () => {
 
     for (const source of [endRoute, notesRoute, microWinRoute]) {
       expect(source).toContain("authorize(['admin', 'trainer'])");
-      expect(source).toContain('getSessionIfParticipant(req.params.id, req.user.id, req.user.role)');
+      expect(source).toContain('getSessionIfTrainer(req.params.id, req.user.id, req.user.role)');
       expect(source).not.toContain('VideoSession.findByPk(req.params.id)');
     }
   });
