@@ -1,0 +1,10 @@
+# Generated verification bundles (G9 hostile review, 2026-09-25).
+#
+# The evidence harness's esbuild outputs and its generated spec dump were
+# committed at ~13.5 MB (logo-bundle.js alone is 53K lines). They are
+# regenerable from the harness sources beside them, carry no review value
+# beyond the receipts that cite them, and were stripped from the branch
+# before its main merge. This file keeps a re-run of the harness from
+# re-introducing them via a blanket `git add`.
+evidence/harness/*bundle*.js
+evidence/swan-mark.spec.json
