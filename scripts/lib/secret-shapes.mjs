@@ -242,12 +242,26 @@ export const SECRET_SHAPES = [
   //
   // ROW 1: the QUOTED value. Its quotes are part of the match, so the placeholder goes INSIDE
   // them and the quoting survives byte-for-byte.
-  [/\b(chat_id|chat|user_id|from_id|owner_id|telegram_id|id)(["']?)(\s*[=:]\s*)(["'])(-?\d{7,})\4/gi,
+  //
+  // THE KEY CLASS (generalised 2026-09-25, G9 hostile review major 4). These rows originally
+  // named seven keys (`chat_id|chat|user_id|from_id|owner_id|telegram_id|id`). Live probes
+  // showed the generalisation gap a hard list creates: every `*_id` suffix and every camelCase
+  // id key — `sender_id`, `message_id`, `userId`, `chatId`, Mongo `_id` — sailed through with
+  // a 7-9 digit id in the clear, and camelCase is this codebase's own dominant convention.
+  // The class is now ANY word key ending in `id` (case-insensitive), plus the bare `chat` key
+  // the original row carried. Two bounds keep it a policy, not a sieve:
+  //   - the prefix is capped at 32 chars, so key length cannot inflate the match;
+  //   - the value still must be a 7+ digit run after `[=:]` — prose survives unless it carries
+  //     an id-shaped number. (`did: 1234567` in prose now redacts; that is the SAME
+  //     over-refusal posture the unconditional 10+ bare row already had, accepted then.)
+  // Not covered, recorded honestly: plural keys (`user_ids`) — their values are array
+  // elements, not a `key: value` pair, and need a different row.
+  [/\b([A-Za-z_]{0,32}(?:id|chat))(["']?)(\s*[=:]\s*)(["'])(-?\d{7,})\4/gi,
     '$1$2$3$4<REDACTED-ID>$4', 'chat_id="1234567"'],
   // ROW 2: the BARE value, which is a JSON number or a plain assignment. The placeholder is
   // emitted as a STRING so a JSON body still parses; a plain `chat_id=1234567` is not JSON to
   // begin with, and there the quoted form is harmless.
-  [/\b(chat_id|chat|user_id|from_id|owner_id|telegram_id|id)(['"]?)(\s*[=:]\s*)(-?\d{7,})(?!\d)/gi,
+  [/\b([A-Za-z_]{0,32}(?:id|chat))(['"]?)(\s*[=:]\s*)(-?\d{7,})(?!\d)/gi,
     '$1$2$3"<REDACTED-ID>"', 'chat_id=1234567'],
   // THE SAME KEY, WITH EVERY QUOTE BACKSLASH-ESCAPED — a JSON body inside a prompt string.
   // `JSON.stringify({prompt: JSON.stringify({chat_id: 1234567})})` puts `\"chat_id\":` in the
@@ -263,9 +277,9 @@ export const SECRET_SHAPES = [
   //
   // The bare-vs-quoted split from the rows above is preserved here for the same reason: the
   // body has to stay parseable after it is un-escaped by whoever reads the prompt.
-  [/\b(chat_id|chat|user_id|from_id|owner_id|telegram_id|id)\\":(\s*)\\"(-?\d{7,})\\"/gi,
+  [/\b([A-Za-z_]{0,32}(?:id|chat))\\":(\s*)\\"(-?\d{7,})\\"/gi,
     '$1\\": $2\\"<REDACTED-ID>\\"', 'chat_id\\":\\"1234567\\"'],
-  [/\b(chat_id|chat|user_id|from_id|owner_id|telegram_id|id)\\":(\s*)(-?\d{7,})(?!\d)/gi,
+  [/\b([A-Za-z_]{0,32}(?:id|chat))\\":(\s*)(-?\d{7,})(?!\d)/gi,
     '$1\\": $2\\"<REDACTED-ID>\\"', 'chat_id\\":1234567'],
   [/(?<![\w.-])-?\d{10,}(?![\w.-])/g, '<REDACTED-ID>', '98765432109876543210'],
 ];

@@ -138,6 +138,48 @@ const here = dirname(fileURLToPath(import.meta.url));
 }
 
 
+// --- R9-E5b: the keyed class is ANY id-suffixed key, not the canonical seven ---
+//
+// G9 hostile review (2026-09-25, major 4): the rows named `chat_id|chat|user_id|from_id|
+// owner_id|telegram_id|id`, and live probes showed the generalisation gap a hard list creates —
+// `userId`, `chatId`, `sender_id`, `message_id` (camelCase and *_id suffixes, this codebase's
+// own dominant spellings) sailed through with 7-9 digit ids in the clear. The class is now any
+// word key ending in `id` (case-insensitive) plus bare `chat`, bounded to a 32-char prefix.
+//
+// MUTANT THAT RE-GREENS THIS: restore the seven-key alternation in secret-shapes.mjs — every
+// case below then returns UNCHANGED, which is exactly the leak this block exists to prevent.
+{
+  const cases = [
+    ['camelCase bare JSON', '{"userId":1234567}'],
+    ['camelCase spaced', '{"chatId": 7654321}'],
+    ['snake _id suffix', '{"sender_id":1234567}'],
+    ['snake _id suffix 2', '{"message_id":7654321}'],
+    ['Mongo _id', '{"_id": 1234567}'],
+    ['camelCase quoted value', '{"userId":"1234567"}'],
+    ['escaped-quote camelCase', 'prompt body {\\"userId\\":1234567} tail'],
+    ['bare chat key preserved', '{chat: 1234567}'],
+    ['quoted bare chat key', '{"chat":1234567}'],
+    ['long key within the 32-char cap', '{"secondaryContactId":1234567}'],
+  ];
+  for (const [label, input] of cases) {
+    const { text } = redactForEgress(input);
+    ok(`R9-E5b: ${label} is redacted`, text.includes('<REDACTED-ID>'), `${JSON.stringify(input)} -> ${JSON.stringify(text)}`);
+    ok(`R9-E5b: ${label} leaves no 7+ digit residue`, !/[0-9]{7}/.test(text.replace(/<REDACTED-ID>/g, '')), text);
+  }
+  // Over-refusal guards: words that merely CONTAIN an id-shaped suffix must not trip the row —
+  // the separator has to sit immediately after the key.
+  const guards = [
+    ['catch is not a key', '{"catch":1234567}'],
+    ['width is not a key', 'width = 1234567'],
+    ['watch is not a key', 'watch: 1234567'],
+  ];
+  for (const [label, input] of guards) {
+    const { text } = redactForEgress(input);
+    ok(`R9-E5b guard: ${label} survives untouched`, !text.includes('<REDACTED-ID>'), `${JSON.stringify(input)} -> ${JSON.stringify(text)}`);
+  }
+}
+
+
 // --- R9-E10: OVERLAP RESOLUTION on ORIGINAL spans (Astra A2) ---
 //
 // The redactor used to apply each row in TABLE ORDER, so row N+1 matched against text row N had

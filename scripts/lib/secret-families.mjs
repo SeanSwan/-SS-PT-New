@@ -92,8 +92,8 @@ export const SECRET_FAMILIES = [
     why: 'Email address — identity, not a credential, but identity is the 2026-08-22 incident class.' },
   { id: 'phone-number', marker: '\\d{3}\\)?',
     why: 'North-American phone number, the other identity shape.' },
-  { id: 'keyed-numeric-id', marker: 'chat_id',
-    why: 'A numeric id under a name that announces it as an id (Telegram `chat_id` etc). Marked by the canonical name: any row that still recognises the family must name it.' },
+  { id: 'keyed-numeric-id', marker: 'id|chat',
+    why: 'A numeric id under a name that announces it as an id (Telegram `chat_id`, camelCase `userId`, Mongo `_id` ...). Since 2026-09-25 (G9 review major 4) the rows recognise ANY word key ending in id plus bare chat, bounded to a 32-char prefix and a 7+ digit value; the marker is the key-class alternation itself, because a canonical-key marker would go dark the moment the class widened past that key.' },
   { id: 'bare-numeric-id', marker: '\\d{10,}',
     why: 'A 10+ digit run with no key — ids and large opaque numbers, above the commit-SHA range.' },
 ];
