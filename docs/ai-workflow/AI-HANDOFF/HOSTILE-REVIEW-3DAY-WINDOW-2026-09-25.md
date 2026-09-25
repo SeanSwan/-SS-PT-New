@@ -15,16 +15,18 @@
 4. **`.githooks/pre-commit` mode flipped 100755 -> 100644** in `05fc32b99`, undisclosed — silently dead guard chain on any POSIX checkout using `core.hooksPath`. **FIXED** `d9f12a916` — `git update-index --chmod=+x` (the index is the carrier; Windows worktree filemode is not meaningful).
 5. (Cheap pre-main, also fixed) `backend/package.json` `test:security` referenced `tests/unit/htmlEscapeContract.test.mjs`, which did not exist anywhere — the script could not run. **FIXED** `6bacf9041` — contract test written and green; `test:security` now runs 101/101 (27 ratchet + 37 templateBindings + 26 emailUrlPolicy + 11 contract).
 
-## 2. Major findings still open (fix soon; none block the branch)
+## 2. The eight majors — ALL FIXED 2026-09-25 (commits `6c9f15490..8509b2f39`, pushed)
 
-1. **Console ops: failed repair reports success** [VERIFIED] — `packages/creator-brains-console/lib/repair.mjs` projects only `{repaired,built,emptied}`; `routes.mjs` answers 200 unconditionally; UI renders "Repair ran and changed nothing" for an engine refusal.
-2. **Daily-run lock release discards the boolean** [VERIFIED] — `scripts/creator-brains/lib/run-ownership.mjs:93` calls bare `held.release()`; F03's "all four sites" missed this fifth site; `lock.mjs:279` (`withLock` finally) discards too.
-3. **Creator-add can commit after the caller was told it failed** [VERIFIED] — `170220fbb`'s port handler runs `settleCreate` before the `settled` guard; a late reply after the 60 s deadline commits a "refused" creator. One-line fix, untested.
-4. **Redaction leaks 7-9 digit ids under common key spellings** [VERIFIED, live-probed] — keyed rows match only the hard-coded key list; `userId`, `chatId`, `sender_id`, `message_id` all MISS. Round 9d generalized quoting, not the key-name class.
-5. **E-09 photo-number race fix does not fix the race** [VERIFIED] — `adminGalleryRoutes.mjs` `allocatePhotoNumbers` commits the row lock without materializing the reservation; the unique-index 500 still occurs.
-6. **Socket auth bypasses the revocation registry** [VERIFIED] — `socketManager.mjs:318` never consults `isAccessTokenRevoked`; revoked tokens keep socket access (incl. admin rooms) until natural expiry.
-7. **The M1 import-closure guard is wired to nothing** [VERIFIED] — tested, docblock says "Usage: --staged (pre-commit)", invoked by no hook/CI/script.
-8. **`selectedClientName` guard hole** [VERIFIED, latent] — `commandExecutor.mjs:323-329` drops only non-empty strings; a truthy non-string bypasses the scan while the channel is recorded as scanned. Not reachable today (`aiCommandRoutes.mjs:163` hardcodes null); becomes live with a second caller.
+1. **Console repair 200-on-failure** — FIXED `6c9f15490`: an `ok:false` record now throws `ApiError(REFUSED)` carrying the engine's note; the adapter maps it onto the existing repair-error alert. Three new cases; console suite 358/358.
+2. **Daily-run release discards the boolean** — FIXED `0761650fc`: `withOwnership` goes through `releaseStore` (retried); exhaustion surfaces as `record.releaseFailed` + stderr; `withLock` reports too. `lock-release.mjs` docblock names the fifth site. Engine suite 235/235 (the consistency gate caught my first draft pushing `lock.mjs` to 304 lines — fixed to exactly 300).
+3. **Creator-add late-reply straddle** — FIXED `b6030a83d`: the handler drops settled replies. The deterministic test pins the invariant; on Node v24 `port.close()` drops post-close messages, so the guard-less mutant SURVIVES HERE — recorded honestly in the test header; the guard is version-proof insurance. Console 358/358.
+4. **Keyed-id redaction gap** — FIXED `9eb93e6b2`: rows accept any id-suffixed key plus bare `chat` (32-char prefix bound); family marker moved to the class expression; R9-E5b pins 10 leak shapes + 3 over-refusal guards; rows 262/262, egress 83/83, roundtrip green; all five review probes now redact.
+5. **Photo-number race** — FIXED `ac2e13a90`: `createPhotoWithRacingNumber` re-numbers the row on 23505 and retries (bounded), keeping the uploaded keys; all three create sites wired; allocation docblock now states the reservation is a hint. 4/4 constructed interleavings.
+6. **Socket revocation bypass** — FIXED `bbfb7a1a1`: socket auth consults `isAccessTokenRevoked` after verify+family, before the DB fetch; structural pin per the repo's socket-suite convention; socket suites 21/21.
+7. **Import-closure guard wired to nothing** — FIXED `8509b2f39`: runs `--staged` in pre-commit and blocks; verified exit 0 on the tree before wiring.
+8. **`selectedClientName` hole** — FIXED `d18cc8e91`: the drop is unconditional; six boundary cases; 6/6.
+
+Baseline disclosure (rule 56): the backend unit suite at this pass is 4000/4008 with 8 failures in 5 files (awardWorkoutXP, clientSelfServiceCommandDispatcherContract, coachActionProposalClarificationApprovalService, +2) — mock-expectation drift with ZERO import linkage to this slice's files (verified by grep). These are pre-existing branch noise, slice-clean not baseline-clean.
 
 ## 3. Clean bills (attacked, held)
 
