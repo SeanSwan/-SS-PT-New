@@ -1,0 +1,10 @@
+[
+  { "seat": "codex",     "script": "scripts/consult-codex.mjs",   "billing": "api",          "gate": "relay" },
+  { "seat": "gemini",    "script": "scripts/consult-gemini.mjs",  "billing": "unknown",      "gate": "relay" },
+  { "seat": "glm",       "script": "scripts/consult-glm.mjs",     "billing": "subscription", "gate": "relay" },
+  { "seat": "kimi",      "script": "scripts/consult-kimi.mjs",    "billing": "unknown",      "gate": "relay" },
+  { "seat": "opus5",     "script": "scripts/consult-opus5.mjs",   "billing": "api",          "gate": "relay" },
+  { "seat": "sol",       "script": "scripts/consult-sol.mjs",     "billing": "unknown",      "gate": "relay" },
+  { "seat": "fable",     "script": "scripts/consult-fable.mjs",   "billing": "unknown",      "gate": "relay" },
+  { "seat": "hy3-design","script": "scripts/consult-hy3-design.mjs","billing": "api",        "gate": "relay" }
+]

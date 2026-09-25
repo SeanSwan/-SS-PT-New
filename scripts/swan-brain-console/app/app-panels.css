@@ -1,0 +1,188 @@
+/*
+ * Swan Brain Console — per-panel treatments.
+ * @module scripts/swan-brain-console/app/app-panels
+ *
+ * WHY THIS IS ITS OWN STYLESHEET (round 12, 2026-09-20 — Astra F20)
+ * `app.css` reached 409 lines against Rule 4's 300-line budget, and Astra F20 is right that a
+ * SELECTIVE guard cannot support a tree-wide ceiling claim. The split is by SUBJECT: `app.css`
+ * keeps the shell's chrome (tokens, overflow handling, top bar, tabs, panel frame, tables) and this
+ * file holds the treatments for individual panels.
+ *
+ * LOAD ORDER IS PART OF THE SPLIT. `index.html` links this file AFTER `app.css`, and the block
+ * moved here was the TAIL of the original file — so the cascade order is exactly the order it had
+ * before. A split that reordered rules would silently change which declaration wins.
+ */
+/* ── Gate Health tones ───────────────────────────────────────────────────────
+ * WHY THIS BLOCK EXISTS (round 10, 2026-09-20)
+ *
+ * `app-gates.mjs` has emitted `tone-ok | tone-bad | tone-warn | tone-unknown` since S4.1 —
+ * on six summary cards (`:141`) and on every table row (`:179`) — and no stylesheet ever
+ * defined one of them. Measured in Chromium, all four statuses computed to the SAME colour
+ * at the SAME weight: PASS, FAIL and NOT RUN were visually identical. That is the single
+ * outcome the panel's own header says it exists to prevent ("make that difference
+ * impossible to skim past", "a row that is merely neutral has failed at the panel's only
+ * real requirement") — measured, every row was merely neutral.
+ *
+ * This is round 7's defect surviving its own fix. Round 7 found `gate-table` matched no rule
+ * and fixed it by emitting `table gate-table` — on the line between the two tone emissions
+ * it never swept. The class-level guard now lives in `style-hooks.test.mjs`; this block is
+ * what that guard demands.
+ *
+ * COLOUR IS NOT THE ONLY CUE. `tone-bad` is also weighted and `tone-unknown` is dashed, so
+ * the four states survive a monochrome render and a colour-blind reader — which matters
+ * most for exactly the state this panel is about.
+ *
+ * Rows use `box-shadow: inset`, never a border: a border on a `td` changes the box model and
+ * this table already had an overflow defect once (round 7: 63px at 320px, clipped by
+ * `html { overflow-x: hidden }`).
+ * ------------------------------------------------------------------------- */
+
+.card.tone-ok { border-color: color-mix(in srgb, var(--ice-wing) 45%, transparent); }
+.card.tone-bad { border-color: color-mix(in srgb, var(--danger) 55%, transparent); }
+.card.tone-warn { border-color: color-mix(in srgb, var(--gilded) 50%, transparent); }
+.card.tone-unknown { border-color: color-mix(in srgb, var(--muted) 45%, transparent); border-style: dashed; }
+
+.card.tone-ok .value { color: var(--ice-wing); }
+.card.tone-bad .value { color: var(--danger); }
+.card.tone-warn .value { color: var(--gilded); }
+.card.tone-unknown .value { color: var(--muted); }
+
+.table tbody tr.tone-ok > td:first-child { box-shadow: inset 3px 0 0 var(--ice-wing); }
+.table tbody tr.tone-bad > td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.table tbody tr.tone-warn > td:first-child { box-shadow: inset 3px 0 0 var(--gilded); }
+.table tbody tr.tone-unknown > td:first-child { box-shadow: inset 3px 0 0 var(--muted); }
+
+.table tbody tr.tone-ok td.gate-status { color: var(--ice-wing); }
+.table tbody tr.tone-bad td.gate-status { color: var(--danger); font-weight: 600; }
+.table tbody tr.tone-warn td.gate-status { color: var(--gilded); }
+.table tbody tr.tone-unknown td.gate-status { color: var(--muted); }
+
+/*
+ * The panel's container and its computed answer.
+ *
+ * `gate-headline` carries the number an operator acts on — "2 of 5 gates passing, 3 never
+ * ran". It was emitted with no rule at all and measured at 16px/400, indistinguishable from
+ * body text, in the one panel whose stated job is to be read first.
+ *
+ * The rhythm uses adjacent-sibling margins rather than making `.gate-body` a flex container
+ * on purpose: a flex item's automatic minimum size would let the `display: block;
+ * overflow-x: auto` table (the ≤700px rule below) push the container wide — the round-7
+ * overflow defect, reintroduced by the fix for a different one.
+ */
+.gate-body > * + * { margin-top: 1rem; }
+.gate-headline {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--frost);
+}
+
+/* ── Canvas rounds ───────────────────────────────────────────────────────── */
+.round { display: flex; flex-direction: column; gap: 0.75rem; }
+.round h3 {
+  margin: 0.5rem 0 0;
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  color: var(--ice-wing);
+}
+.round .board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.75rem;
+}
+.artboard {
+  min-height: 172px;
+  padding: 0.85rem;
+  border-radius: 14px;
+  border: 1px solid var(--hairline);
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--ice-wing) 20%, transparent) 0%, transparent 60%),
+    linear-gradient(160deg, var(--primary), var(--obsidian));
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.artboard h4 { margin: 0; font-family: var(--font-ui); font-size: 0.95rem; }
+.artboard .tuple { font-family: var(--font-data); font-size: 0.7rem; color: var(--arctic-cyan); }
+.artboard .tnote { margin: auto 0 0; font-size: 0.76rem; color: var(--muted); }
+.ghost {
+  border-style: dashed;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* ── Engine panel ────────────────────────────────────────────────────────── */
+.gate {
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--gilded) 55%, transparent);
+  background: color-mix(in srgb, var(--gilded) 10%, transparent);
+}
+.gate h3 { margin: 0 0 0.4rem; font-family: var(--font-ui); color: var(--gilded); }
+.gate p { margin: 0 0 0.5rem; max-width: 90ch; }
+.gate .quote {
+  padding-left: 0.85rem;
+  border-left: 3px solid var(--gilded);
+  font-style: italic;
+  color: var(--frost);
+}
+.nolist { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+.nolist li { margin-bottom: 0.25rem; }
+
+.planned {
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px dashed color-mix(in srgb, var(--lavender) 60%, transparent);
+  background: color-mix(in srgb, var(--primary) 40%, transparent);
+  max-width: 90ch;
+}
+
+.copy-item {
+  padding: 0.7rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  background: var(--carbon);
+  margin-bottom: 0.5rem;
+}
+.copy-item .hl { font-family: var(--font-ui); font-weight: 600; }
+.copy-item .sb { color: var(--muted); font-size: 0.88rem; }
+.copy-item .nt { font-family: var(--font-data); font-size: 0.72rem; color: var(--arctic-cyan); margin-top: 0.3rem; }
+
+.foot {
+  padding: 1.25rem clamp(1rem, 3vw, 2rem);
+  border-top: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.foot p { margin: 0.2rem 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+@media (max-width: 700px) {
+  .status { font-size: 0.7rem; gap: 0.3rem 1rem; }
+  .tradeoff { max-width: none; }
+
+  /*
+   * A six-column table cannot fit 320px. Rather than let it push the whole page
+   * wide, the table becomes its own horizontal scroller: the page stays put and
+   * the data stays readable, which is the standard mobile treatment.
+   */
+  .table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table caption { white-space: normal; }
+  .table thead th { white-space: nowrap; }
+  .tradeoff, .table td { white-space: normal; }
+  .table td { min-width: 8ch; }
+}

@@ -1,5 +1,28 @@
 # Swan Brain Console v3 + 20-Variant Three.js Front-Page Fleet — Build Blueprint
 
+> ## ⚠ RELOCATION NOTICE — added 2026-09-24 (round 18, sable)
+>
+> **This packet's declared target is no longer the tree the code lives in.**
+>
+> The header below names worktree `tmp/worktrees/brain-console-20260913`, branch
+> `feat/swan-brain-console-20260913`. The console was later **salvaged into a different worktree**
+> — `tmp/worktrees/brain-console-salvage-20260918`, branch
+> `swan-brain-console-v3-salvage-20260918` — which is where every round-4..18 review, the gate and
+> all 122 console files now live.
+>
+> The original packet was never re-based when the work was salvaged, so a requirement traced
+> through it lands on a checkout that does not contain the implementation. This notice is a
+> **pointer, not a correction**: no requirement, acceptance criterion, invariant or tradeoff below
+> is altered, and this packet remains the governing plan for the design intent. It is the *target*
+> that moved, not the plan.
+>
+> **Known gap, recorded rather than hidden:** the salvage worktree's git registration was destroyed
+> (`git rev-parse` → `fatal: not a git repository: (NULL)`), and branch
+> `swan-brain-console-v3-salvage-20260918` no longer exists in the main checkout — so neither the
+> salvage worktree nor this packet can currently be bound to a commit or tree ID. Until that is
+> resolved (round 18 finding D4), every review filed against the console is `commit: dirty` and
+> un-bindable. See `Z:\HostileReviews\2026-09-24-211725-swan-brain-console-v3-round-18-hostile-review.md`.
+
 - **Date:** 2026-09-13 · **Author:** DeepSeek Harness agent (builder) · **Status:** CANONICAL_CURRENT (supersedes the two 2026-08-26 console docs)
 - **Worktree:** `tmp/worktrees/brain-console-20260913` · **Branch:** `feat/swan-brain-console-20260913` · **Base:** `origin/main` @ `aafe387a9` (2026-09-12)
 - **Lane (rule 67):** `vs-claude--brain-console-20260913-d260fe8f92.lane.md`

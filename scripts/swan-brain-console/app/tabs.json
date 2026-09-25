@@ -1,0 +1,12 @@
+[
+  { "id": "doctrine", "label": "Doctrine", "module": "renderDoctrine", "api": "doctrine" },
+  { "id": "fleet", "label": "Fleet", "module": "renderFleet", "api": "fleet" },
+  { "id": "canvas", "label": "Canvas", "module": "renderCanvas", "api": "fleet" },
+  { "id": "copy", "label": "Copy", "module": "renderCopy", "api": "copy" },
+  { "id": "engine", "label": "Engine", "module": "renderEngine", "api": "engine" },
+  { "id": "gate-health", "label": "Gates", "module": "initGates", "api": "gates" },
+  { "id": "seats", "label": "Seats", "module": null, "api": "seats" },
+  { "id": "judge", "label": "Judge", "module": "initJudge", "api": "fleet" },
+  { "id": "memory", "label": "Memory", "module": null, "api": null },
+  { "id": "ship", "label": "Ship", "module": null, "api": null }
+]

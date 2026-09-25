@@ -1,0 +1,68 @@
+[
+  {
+    "id": "skeletons",
+    "kind": "code",
+    "path": "frontend/src/pages/HomePage/three-worlds/skeletons.ts",
+    "note": "canonical 20-variant structural manifest, imported directly by Node"
+  },
+  {
+    "id": "registry",
+    "kind": "code",
+    "path": "frontend/src/pages/HomePage/three-worlds/registry.ts",
+    "note": "authored titles and tradeoffs, read as text"
+  },
+  {
+    "id": "copy-pack",
+    "kind": "code",
+    "path": "frontend/src/pages/HomePage/three-worlds/copy/pack.ts",
+    "note": "headline and subhead resolution"
+  },
+  {
+    "id": "anti-slop",
+    "kind": "code",
+    "path": "frontend/src/pages/HomePage/three-worlds/copy/antiSlop.ts",
+    "note": "banned-phrase list; the app owns the rule, the console only reports it"
+  },
+  {
+    "id": "doctrine-design",
+    "kind": "doc",
+    "path": "docs/ai-workflow/design-brain/design.md",
+    "note": "tokens, modes, components, states"
+  },
+  {
+    "id": "doctrine-motion",
+    "kind": "doc",
+    "path": "docs/ai-workflow/design-brain/motion.md",
+    "note": "motion tiers and GPU-safe rules"
+  },
+  {
+    "id": "doctrine-anti-patterns",
+    "kind": "doc",
+    "path": "docs/ai-workflow/design-brain/anti-patterns.md",
+    "note": "the banned list, with the reason each is banned"
+  },
+  {
+    "id": "doctrine-qa-gates",
+    "kind": "doc",
+    "path": "docs/ai-workflow/design-brain/qa-gates.md",
+    "note": "responsive and accessibility gates"
+  },
+  {
+    "id": "engine-readme",
+    "kind": "doc",
+    "path": "scripts/design-brain/README.md",
+    "note": "the fail-closed gate declaration the Engine tab quotes"
+  },
+  {
+    "id": "archetypes",
+    "kind": "data",
+    "path": "docs/ai-workflow/design-brain/archetypes/index.json",
+    "note": "archetype routing table the atelier loop reads first"
+  },
+  {
+    "id": "engine-spec-mode",
+    "kind": "data",
+    "path": "scripts/design-brain/config/spec-mode.json",
+    "note": "spec persistence flag; off by policy"
+  }
+]

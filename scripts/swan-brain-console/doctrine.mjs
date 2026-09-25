@@ -51,32 +51,65 @@ function describe(repo, entry) {
   return { ...entry, present: true, lines: text.split('\n').length, headings };
 }
 
-/** The archetype routing table — the atelier loop's first read (A7 recall contract). */
+/**
+ * The archetype routing table — the atelier loop's first read (A7 recall contract).
+ *
+ * THREE NAMED STATES, AND `status` IS THE ONE TO READ (round 11, finding F17).
+ *
+ * This used to report a parse failure as `{ present: true, count: 0, error: … }`, and the
+ * renderer keyed its warning off `present`. So a CORRUPT catalogue and a HEALTHY one looked
+ * identical on screen: the panel read `Archetypes | 0 | generated from undefined` — no warning,
+ * no error, and a number that an operator would read as "the routing table is empty" rather than
+ * "the routing table could not be parsed". Astra reproduced that, and separately showed a missing
+ * config directory rendering as `Spec mode | undefined`.
+ *
+ * `missing` and `invalid` are different facts with different fixes (restore the file vs repair
+ * it), so they are different values rather than one falsy flag. `count` is still always present,
+ * because a caller should not have to branch to get a number.
+ */
 function readArchetypes(repo) {
   const raw = tryRead(join(repo, ARCHETYPES, 'index.json'));
-  if (!raw) return { present: false, count: 0, sample: [] };
-  try {
-    const parsed = JSON.parse(raw);
-    const list = Array.isArray(parsed.archetypes) ? parsed.archetypes : [];
-    return {
-      present: true,
-      generatedFrom: parsed.generated_from ?? 'unknown',
-      count: list.length,
-      // The two that matter for a front-page fleet.
-      relevant: list
-        .filter((a) => ['cinematic-3d-scroll-website', 'fitness-coaching-website'].includes(a.id))
-        .map((a) => ({ n: a.n, id: a.id, motion: a.motion, thesis: a.thesis })),
-      sample: list.slice(0, 5).map((a) => `${String(a.n).padStart(2, '0')} ${a.id}`),
-    };
-  } catch {
-    return { present: true, count: 0, sample: [], error: 'index.json is not valid JSON' };
+  const blank = {
+    count: 0, generatedFrom: null, relevant: [], sample: [], error: null,
+  };
+  if (raw === null) {
+    return { ...blank, status: 'missing', error: `${ARCHETYPES}/index.json is not present` };
   }
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ...blank, status: 'invalid', error: 'index.json is not valid JSON' };
+  }
+  if (!Array.isArray(parsed?.archetypes)) {
+    // Parsed, but not the shape the loop reads. Distinct from both above: the file is fine and
+    // the CONTRACT has changed, which is the failure a `try/catch` alone would have called "ok".
+    return { ...blank, status: 'invalid', generatedFrom: parsed?.generated_from ?? null, error: 'index.json has no `archetypes` array' };
+  }
+  const list = parsed.archetypes;
+  return {
+    ...blank,
+    status: 'ok',
+    generatedFrom: parsed.generated_from ?? 'unknown',
+    count: list.length,
+    // The two that matter for a front-page fleet.
+    relevant: list
+      .filter((a) => ['cinematic-3d-scroll-website', 'fitness-coaching-website'].includes(a.id))
+      .map((a) => ({ n: a.n, id: a.id, motion: a.motion, thesis: a.thesis })),
+    sample: list.slice(0, 5).map((a) => `${String(a.n).padStart(2, '0')} ${a.id}`),
+  };
 }
 
 /** Engine config surface, so the console can show what the loop is allowed to do. */
 function readEngineConfig(repo) {
   const dir = join(repo, ENGINE_CONFIG);
-  if (!existsSync(dir)) return { present: false, files: [] };
+  /*
+   * `specModeEnabled` IS ALWAYS PRESENT, and `null` means "unknown" (round 11, finding F17).
+   * Returning `{ present: false, files: [] }` with the key absent made the renderer read
+   * `undefined`, which it printed as the literal string `undefined` — a missing config directory
+   * displayed as a value. `null` is a statement; a missing key is an accident.
+   */
+  if (!existsSync(dir)) return { present: false, files: [], specModeEnabled: null };
   const files = readdirSync(dir).filter((f) => f.endsWith('.json')).sort();
   const specMode = tryRead(join(dir, 'spec-mode.json'));
   let enabled = null;

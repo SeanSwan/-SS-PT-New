@@ -6,10 +6,68 @@
 <meta name="color-scheme" content="dark">
 <title>Swan Brain Console</title>
 <link rel="stylesheet" href="/app.css">
+<!-- ROUND 12 (Astra F20): the per-panel treatments split out of app.css. It is linked AFTER
+     app.css on purpose — the block it holds was that file's TAIL, so this preserves the cascade
+     order exactly. Reordering these two lines would silently change which rule wins. -->
+<link rel="stylesheet" href="/app-panels.css">
 <link rel="stylesheet" href="/onboard.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
+
+<!--
+  SCRIPT-FAILURE STATE (round 12, 2026-09-20 — Astra F18).
+
+  Before this block, the no-JavaScript page offered ten `type="button"` tab controls that could
+  not reveal anything. Visibility is changed only in `app.js`, so nine panels stayed hidden
+  while the buttons sat there looking operable — Gates among them.
+  `app-fallback-drift.test.mjs` checked that the fallback buttons and the registry rows shared
+  IDS, and Astra graded that correctly: matching `aria-controls` is not an interaction.
+
+  Two things make this honest now:
+    1. the controls that cannot work are REMOVED from the no-JS view rather than left inert;
+    2. what remains is DECLARED in `data-available` / `data-unavailable`, and the suite compares
+       that declaration against the panels actually visible in this file — so the notice cannot
+       drift from the page it describes.
+
+  The `<style>` lives inside `<noscript>` on purpose: it is parsed exactly when the console
+  cannot run, so a JS-enabled browser never downloads these rules as dead CSS.
+-->
+<noscript>
+  <style>
+    #tabs, .kbd-hint { display: none; }
+    .script-state {
+      margin: 0 0 1rem;
+      padding: .9rem 1.1rem;
+      border: 1px solid var(--gilded, #c6a84b);
+      border-radius: 8px;
+      background: var(--graphite, #1a1a24);
+      color: var(--frost, #e0ecf4);
+      font-family: var(--font-body, system-ui, sans-serif);
+      line-height: 1.55;
+    }
+    .script-state strong { color: var(--gilded, #c6a84b); }
+    .script-state code { font-family: var(--font-data, ui-monospace, monospace); }
+    .script-state ul { margin: .4rem 0 0; padding-left: 1.2rem; }
+  </style>
+  <p class="script-state" role="note" id="script-state"
+     data-available="doctrine"
+     data-unavailable="fleet canvas copy engine gate-health seats judge memory ship">
+    <strong>JavaScript is disabled, so this is a static presentation — not the console.</strong>
+    Every count in this console is computed at read time and every tab is wired by
+    <code>app.js</code>, so the tab strip has been removed rather than left as buttons that do
+    nothing.
+    <br>
+    <strong>Available here:</strong> the <strong>Doctrine</strong> panel below — the design rules
+    the fleet is judged against.
+    <strong>Unavailable here:</strong> Fleet, Canvas, Copy, Engine, <strong>Gates</strong>,
+    Seats, Judge, Memory and Ship. They are <em>unavailable, not empty</em>: no gate has been
+    read and no count has been computed, so nothing on this page is a green light.
+    <br>
+    Enable JavaScript to use the console, or read <code>docs/ai-workflow/design-brain/</code>
+    directly.
+  </p>
+</noscript>
 
 <header class="topbar">
   <div class="brand">
@@ -34,7 +92,9 @@
   <button type="button" role="tab" id="tab-canvas" aria-controls="panel-canvas" aria-selected="false" tabindex="-1">Canvas</button>
   <button type="button" role="tab" id="tab-copy" aria-controls="panel-copy" aria-selected="false" tabindex="-1">Copy</button>
   <button type="button" role="tab" id="tab-engine" aria-controls="panel-engine" aria-selected="false" tabindex="-1">Engine</button>
+  <button type="button" role="tab" id="tab-gate-health" aria-controls="panel-gate-health" aria-selected="false" tabindex="-1">Gates</button>
   <button type="button" role="tab" id="tab-seats" aria-controls="panel-seats" aria-selected="false" tabindex="-1">Seats</button>
+  <button type="button" role="tab" id="tab-judge" aria-controls="panel-judge" aria-selected="false" tabindex="-1">Judge</button>
   <button type="button" role="tab" id="tab-memory" aria-controls="panel-memory" aria-selected="false" tabindex="-1">Memory</button>
   <button type="button" role="tab" id="tab-ship" aria-controls="panel-ship" aria-selected="false" tabindex="-1">Ship</button>
 </nav>
@@ -55,7 +115,9 @@
       <li><button type="button" class="goto" data-goto="engine">3 · Check the Engine tab</button> — what the system saves today, and why.</li>
     </ol>
     <p class="welcome-note">The winner never ships from here: promotion happens as a normal reviewed
-      commit, so every design, accessibility and review gate still applies.</p>
+      commit, so every design, accessibility and review gate still applies. Links marked
+      <em>Watch it move</em> open the live gallery — if one does not load, the gallery harness is
+      not running: start it with <code>npx vite --port 5199</code> from the <code>frontend/</code> folder.</p>
     <button type="button" class="dismiss" id="welcome-dismiss">Got it — don't show this again</button>
   </section>
 
@@ -138,12 +200,29 @@
     <div id="engine-body"></div>
   </section>
 
+  <section class="panel" id="panel-gate-health" role="tabpanel" aria-labelledby="tab-gate-health" tabindex="0" hidden>
+    <h2>Gates</h2>
+    <p class="lede">Whether each declared gate has actually <em>run</em>, and what it said. A gate with
+      no result, a stale result, a corrupt result and a simulated result are four different problems,
+      and none of them is a green light. <strong>What to do here:</strong> read this before trusting
+      any other number in the console — a gate that did not run is not a gate that passed.</p>
+    <div id="gate-body" class="gate-body"></div>
+  </section>
+
   <section class="panel" id="panel-seats" role="tabpanel" aria-labelledby="tab-seats" tabindex="0" hidden>
     <h2>Seats</h2>
     <p class="lede">Model seats are not wired in this build.</p>
     <p class="planned" role="note"><strong>NOT BUILT — v1 fence.</strong> Seat selection lives in environment variables today, and the console deliberately does not wrap them yet: a picker implies the choice is verified, and the recorded Ox-as-Grok misfires show an env-var seat silently picks the wrong model. Building this panel needs a verified identity check first, not a dropdown.</p>
     <p class="today"><strong>Do today instead:</strong> ask the agent to verify which model a seat is
       actually serving before any paid run — the receipt names the exact check.</p>
+  </section>
+
+  <section class="panel" id="panel-judge" role="tabpanel" aria-labelledby="tab-judge" tabindex="0" hidden>
+    <h2>Judge</h2>
+    <p class="lede">Pairwise judging: two variants side by side, your pick recorded. Rankings are kept
+      in this browser only — nothing here is written to the repo or the learning engine.
+      <strong>What to do here:</strong> work through the pairs; the ranking is the input the design
+      decision needs, and it is cheaper than re-reading twenty pages.</p>
   </section>
 
   <section class="panel" id="panel-memory" role="tabpanel" aria-labelledby="tab-memory" tabindex="0" hidden>
@@ -164,7 +243,19 @@
 </main>
 
 <footer class="foot">
-  <p>Read-only · localhost only · GET only · no engine writes · every count computed at read time.</p>
+  <!--
+    ROUND 9 (2026-09-20) — "GET only" was REMOVED from this line, not corrected.
+
+    It was the FOURTH copy of the allowed-methods fact, and the only one still false. Round 5
+    fixed the module header (the copy a maintainer reads). Round 7 fixed the startup banner
+    (the copy the terminal shows). Neither enumerated the copies, so the one rendered ON THE
+    PAGE — this one, read by the operator while using the console — survived both.
+
+    It is removed rather than updated because a static HTML footer cannot derive a server
+    constant, so a corrected copy is a copy that can go stale again. The list has exactly one
+    home: `ALLOWED_METHODS` in `server.mjs`, which drives both the gate and the banner.
+  -->
+  <p>Read-only · localhost only · no engine writes · every count computed at read time.</p>
   <p id="generated"></p>
 </footer>
 

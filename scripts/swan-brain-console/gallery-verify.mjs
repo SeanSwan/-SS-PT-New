@@ -32,7 +32,12 @@
  */
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { checkHarnessIdentity } from './harnessIdentity.mjs';
+// The canonical variant ids. ONE definition, shared with `shot-diff.mjs` (round 11): this file
+// used to resolve `skeletons.ts` itself, so "the fleet" had two independent answers and a
+// change to either could silently disagree with the other.
+import { loadFleetIds } from './fleetData.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
@@ -41,22 +46,77 @@ const { chromium } = require('playwright');
 
 const BASE = process.argv[2] ?? 'http://127.0.0.1:5199/qa-worlds.html';
 
-/** Read the canonical variant ids and per-variant pixel digests from the fleet. */
-async function loadFleet() {
-  const mod = await import(pathToFileURL(
-    resolve(REPO, 'frontend/src/pages/HomePage/three-worlds/skeletons.ts'),
-  ).href);
-  return mod.SKELETONS.map((s) => s.id);
-}
-
 const results = [];
 const pass = (n, d = '') => results.push({ ok: true, n, d });
 const fail = (n, d = '') => results.push({ ok: false, n, d });
 
-const ids = await loadFleet();
+/**
+ * Print every result collected so far, then exit. Also the crash path.
+ *
+ * A CRASH MUST NOT DESTROY THE EVIDENCE (round 5, 2026-09-19). Results were previously
+ * printed only after the whole run, so an uncaught exception anywhere in the 20-variant
+ * loop discarded every PASS/FAIL already gathered — measured: a Playwright timeout
+ * produced ZERO lines of output, which makes a real regression look like a flake and is
+ * how a red gate gets waved through. Now a crash reports what it had.
+ */
+const reportAndExit = (code) => {
+  const failed = results.filter((r) => !r.ok);
+  for (const r of results) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.n}${r.d ? `  — ${r.d}` : ''}`);
+  console.log(`\n[gallery] ${results.length - failed.length}/${results.length} checks passed`);
+  process.exit(code);
+};
+process.on('uncaughtException', (err) => {
+  console.error(`\n[gallery] CRASHED after ${results.length} checks — reporting what was collected:`);
+  console.error(`[gallery] ${err?.message ?? err}`);
+  reportAndExit(1);
+});
+
+const ids = await loadFleetIds();
 const browser = await chromium.launch({
   args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'],
 });
+
+/*
+ * IDENTITY BEFORE MEASUREMENT (round 4, 2026-09-19).
+ *
+ * This script navigates the harness THREE times — the per-variant loop below, the layout pass,
+ * and the reduced-motion pass — and checked the identity of its target NONE of the time.
+ * Measured: `grep -n "HARNESS_TITLE|title|identity|marker" gallery-verify.mjs` returned no
+ * matches, while its sibling `shot-diff.mjs` hard-stops on the same marker and explains why at
+ * line 51: in S4, :5199 was owned by a DIFFERENT worktree's dev server, so the run found zero
+ * `[data-world]` nodes and reported a confusing selector timeout instead of "you are pointing
+ * at the wrong application". The lesson was encoded in the smaller script and never applied to
+ * the larger one.
+ *
+ * The symptom here is worse than a confusing timeout, and it is measured. Pointed at a
+ * non-harness page, this script ran for 36 SECONDS and ended in `CRASHED after 1 checks`,
+ * reporting a variant-level failure that reads like a rendering regression:
+ *
+ *     FAIL  v01: animating with real draws  — cards=0 · no canvas · backing store 0x0 ·
+ *           zero draw calls · -1 colour token
+ *
+ * With the gate: 1.5 seconds, and the wrong target named. A reader of the first output would
+ * reasonably conclude the fleet had stopped rendering.
+ *
+ * A PASS/FAIL set recorded against the wrong app is worse than none, because it looks
+ * authoritative. So this is a hard stop, before a single variant is measured.
+ *
+ * (First measurement of this was confounded: it used spawnSync, which blocks on the stdout
+ * pipe Chromium inherits and returns empty output on its timeout path. The numbers above are
+ * from an A/B against a copy with only this block removed, using the same async spawn the
+ * shipped test uses.)
+ */
+{
+  const identityContext = await browser.newContext();
+  const identityPage = await identityContext.newPage();
+  const identity = await checkHarnessIdentity(identityPage, BASE);
+  await identityContext.close();
+  if (!identity.ok) {
+    fail('harness identity', identity.message);
+    await browser.close();
+    reportAndExit(1);
+  }
+}
 
 const digests = [];
 try {
@@ -419,6 +479,7 @@ try {
       id: n.getAttribute('data-world-id'),
       live: n.getAttribute('data-live') === 'yes',
       onScreen: n.dataset.onScreen === 'yes',
+      running: n.dataset.running === 'yes',
       frames: Number(n.dataset.frames ?? '0'),
     })),
   }));
@@ -443,6 +504,39 @@ try {
   } else {
     pass('context budget: slots hand off to newly visible worlds',
       `live set moved to on-screen worlds (${handoff.liveIds.join(', ')}), ${handoff.live}/${handoff.cap} slots held`);
+  }
+
+  /*
+   * TORN-DOWN TELEMETRY — a world with no context must not advertise one.
+   *
+   * The poster path already obeys this rule: the reduced-motion check below asserts a
+   * frozen world reports 0 frames. The hand-off path did not. Teardown removes the canvas
+   * and stops the loop, but the diagnostics timer was merely CANCELLED, so the last
+   * published attributes froze on the element — a handed-off world kept reporting
+   * `frames=131` and `running=yes` while holding no <canvas> at all (measured
+   * reproducibly over three runs, 2026-09-19).
+   *
+   * This matters more than a stale number. `data-frames` is the only rendering signal the
+   * fleet publishes, and `data-running` is the attribute a reader trusts to mean "this is
+   * animating". A dead world claiming to run is the false telemetry the diagnostics
+   * contract exists to prevent — the same class as the frame counter that keeps climbing
+   * on a dead scene (loop.ts:9-10).
+   *
+   * The dead-set must be non-empty, or the check would pass on a page where nothing was
+   * ever handed off — a guard that cannot fail.
+   */
+  const dead = handoff.worlds.filter((w) => !w.live);
+  const lying = dead.filter((w) => w.frames > 0 || w.running);
+  if (dead.length === 0) {
+    fail('context budget: a torn-down world reports no live context',
+      'no torn-down world on the page, so this check proved nothing');
+  } else if (lying.length > 0) {
+    fail('context budget: a torn-down world reports no live context',
+      `${lying.length}/${dead.length} torn-down worlds still advertise a context: ` +
+      lying.map((w) => `${w.id}(frames=${w.frames}, running=${w.running})`).join(', '));
+  } else {
+    pass('context budget: a torn-down world reports no live context',
+      `${dead.length} torn-down worlds all report frames=0, running=no`);
   }
 
   /*
@@ -495,7 +589,4 @@ try {
   await browser.close();
 }
 
-const failed = results.filter((r) => !r.ok);
-for (const r of results) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.n}${r.d ? `  — ${r.d}` : ''}`);
-console.log(`\n[gallery] ${results.length - failed.length}/${results.length} checks passed`);
-process.exit(failed.length ? 1 : 0);
+reportAndExit(results.some((r) => !r.ok) ? 1 : 0);

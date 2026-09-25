@@ -18,7 +18,7 @@
  * post-mortem is explicit that hand-maintained counts go stale invisibly, so
  * nothing in this module is a constant.
  */
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -26,10 +26,59 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 export const REPO = resolve(HERE, '..', '..');
 const WORLDS = join(REPO, 'frontend/src/pages/HomePage/three-worlds');
 
-/** Import the canonical skeleton manifest through Node's TS type-stripping. */
+/**
+ * Import the canonical skeleton manifest through Node's TS type-stripping.
+ *
+ * THE IMPORT URL CARRIES A REVISION, AND THAT IS NOT DECORATION (round 11, finding F07).
+ * `import()` caches by URL for the life of the process. With a stable URL, a long-lived console
+ * — or simply two `snapshot()` calls either side of an edit — kept serving the skeletons it read
+ * first, while `readRegistryText()` below re-read `registry.ts` from disk on every call. The
+ * result was a MIXED-GENERATION fleet: fresh prose describing stale structure, stamped with a
+ * fresh `generatedAt`, so nothing on screen said which moment the numbers belonged to.
+ *
+ * `mtimeMs` plus `size` is the cache key: the same file reuses one instance, so the cache still
+ * does its job, and a changed file gets a new URL, so the revision is observed. A content hash
+ * would be stronger and would mean reading every byte twice on every call. This module's thesis
+ * is that a cached registry is decay made invisible; the decay being closed here is measured in
+ * edits, not in bytes.
+ */
+/**
+ * The import URL for the skeleton manifest, carrying the revision it was read at.
+ *
+ * Extracted so the cache key is TESTABLE rather than asserted. `import()` caches by URL, so this
+ * string is the whole mechanism: if it stops varying with the file, the staleness comes straight
+ * back and no other test would notice.
+ */
+export function skeletonsImportUrl(file, stat) {
+  return `${pathToFileURL(file).href}?rev=${stat.mtimeMs}-${stat.size}`;
+}
+
 export async function loadSkeletons() {
-  const mod = await import(pathToFileURL(join(WORLDS, 'skeletons.ts')).href);
+  const file = join(WORLDS, 'skeletons.ts');
+  const mod = await import(skeletonsImportUrl(file, statSync(file)));
   return { skeletons: mod.SKELETONS, collisions: mod.findCollisions() };
+}
+
+/**
+ * The canonical, ORDERED variant ids — the fleet's population, and nothing else.
+ *
+ * ONE DEFINITION FOR EVERY CONSUMER (round 11, finding F04). Both browser verifiers need to
+ * know WHICH variants exist, and `gallery-verify.mjs` had grown its own copy of this
+ * two-line import. Two copies of "the fleet" are two answers to "did every variant render".
+ *
+ * `shot-diff.mjs` took its id list EXCLUSIVELY from the DOM, so a harness serving one
+ * variant produced a one-row run that still stamped `gate: 'three-worlds-render'`: a subset
+ * run certifying the full-fleet gate, with the missing variant absent from both the
+ * measurement and the denominator. Reading the expected set from the MANIFEST rather than
+ * from the page under measurement is what makes that unreachable.
+ *
+ * Deliberately NOT the registry's on-disk directories (`readRegistryText().dirs`): a variant
+ * directory can exist without being declared in the manifest, and the manifest is the
+ * canonical structural source. The reconciliation reports a mismatch either way.
+ */
+export async function loadFleetIds() {
+  const { skeletons } = await loadSkeletons();
+  return skeletons.map((s) => s.id);
 }
 
 /** Pull `id: '...'` → prose pairs out of a Record literal in registry.ts. */

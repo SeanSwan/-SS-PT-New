@@ -9,10 +9,16 @@
  * real Chromium against the running server.
  *
  * It checks the things the blueprint promised (T8, T10, T11):
- *   - the page boots with no console errors
+ *   - the page boots with no console errors — and raises none during the run either
  *   - the engine is shown BLOCKED and no write control exists anywhere
- *   - all 8 tabs are reachable by keyboard alone and switch panels
- *   - the layout holds at 320/375/414/768/1280/2560 without horizontal overflow
+ *   - the tab strip MATCHES THE REGISTRY, and every tab is reachable by keyboard alone
+ *   - every panel renders CONTENT, not an empty shell
+ *   - the layout holds at 320/375/414/768/1280/2560, on EVERY tab, without h-overflow
+ *
+ * EVERY CHECK RUNS INSIDE `step`, and that is load-bearing — an uncaught throw aborts the
+ * run and the checks written to catch the failure never execute. `step`, the viewport
+ * matrix and the per-tab overflow measurement live in `browserHarness.mjs`; nothing in this
+ * file may touch a locator outside a `step`.
  *
  * Run (server must be up): node scripts/swan-brain-console/console-verify.mjs [url]
  * Exits non-zero when any check fails, so it can gate a merge.
@@ -25,24 +31,28 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
 const require = createRequire(resolve(REPO, 'frontend', 'noop.cjs'));
 const { chromium } = require('playwright');
+import { reportResults } from './verifyReport.mjs';
+import { createRecorder, checkResponsiveAcrossTabs } from './browserHarness.mjs';
+import { PANEL_POPULATION, comparePopulations } from './panelPopulation.mjs';
 
-const URL = process.argv[2] ?? 'http://127.0.0.1:4599/';
-const VIEWPORTS = [
-  { w: 320, h: 720, label: 'phone-320' },
-  { w: 375, h: 812, label: 'phone-375' },
-  { w: 414, h: 896, label: 'phone-414' },
-  { w: 768, h: 1024, label: 'tablet-768' },
-  { w: 1280, h: 800, label: 'laptop-1280' },
-  { w: 2560, h: 1440, label: 'qhd-2560' },
-];
+// No default port: measured 2026-09-19 a leftover pre-S3 console owned 4599 and passed every probe.
+const URL = process.argv[2];
+if (!URL) { console.error('[console-verify] pass a URL, e.g. node console-verify.mjs http://127.0.0.1:<port>/'); process.exit(2); }
 
-const results = [];
-const pass = (name, detail = '') => results.push({ ok: true, name, detail });
-const fail = (name, detail = '') => results.push({ ok: false, name, detail });
+/*
+ * The viewport matrix and the isolating `step` live in `browserHarness.mjs` — see that
+ * module's header for why every check must run inside `step` rather than inline. Nothing in
+ * this file may call a locator outside one, or a single broken panel aborts the run and the
+ * checks written to catch it never execute.
+ */
+const { results, step } = createRecorder();
 
 const browser = await chromium.launch();
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+  // A local, in-process server needs no patience. 30s per missing element turns a
+  // broken console into a two-minute hang; 5s still dwarfs any real render.
+  page.setDefaultTimeout(5000);
 
   const consoleErrors = [];
   page.on('console', (m) => { if (m.type() === 'error') consoleErrors.push(m.text()); });
@@ -51,122 +61,238 @@ try {
   await page.goto(URL, { waitUntil: 'networkidle' });
 
   // 1. Boots clean.
-  if (consoleErrors.length === 0) pass('boot: no console errors');
-  else fail('boot: no console errors', consoleErrors.join(' | ').slice(0, 300));
+  await step('boot: no console errors', () => {
+    if (consoleErrors.length) throw new Error(consoleErrors.join(' | ').slice(0, 300));
+    return 'clean';
+  });
 
   // 2. Title and identity.
-  const title = await page.title();
-  title.includes('Swan Brain Console')
-    ? pass('boot: title', title)
-    : fail('boot: title', title);
+  await step('boot: title', async () => {
+    const title = await page.title();
+    if (!title.includes('Swan Brain Console')) throw new Error(title);
+    return title;
+  });
 
   // 3. Engine honesty: BLOCKED is visible, and nothing offers a write.
-  const engineText = await page.locator('#stat-engine').innerText();
-  engineText.trim() === 'DECLARED_BLOCKED'
-    ? pass('engine: status reads BLOCKED', engineText)
-    : fail('engine: status reads BLOCKED', engineText);
-
-  const writeish = await page.evaluate(() => {
-    const bad = [];
-    for (const el of document.querySelectorAll('button, a, input, [role="button"]')) {
-      const t = (el.textContent || el.getAttribute('aria-label') || '').toLowerCase();
-      if (/apply|save|write|commit|approve|adjudicate|promote|delete|submit/.test(t)) {
-        bad.push(t.trim().slice(0, 40));
-      }
-    }
-    return bad;
+  await step('engine: status reads BLOCKED', async () => {
+    const text = (await page.locator('#stat-engine').innerText()).trim();
+    // JSON.stringify so a blank or whitespace-only status is VISIBLE in the report
+    // rather than rendering as an empty detail.
+    if (text !== 'DECLARED_BLOCKED') throw new Error(`reads ${JSON.stringify(text)}`);
+    return text;
   });
-  writeish.length === 0
-    ? pass('engine: no write control anywhere')
-    : fail('engine: no write control anywhere', writeish.join(', '));
+
+  await step('engine: no write control anywhere', async () => {
+    const bad = await page.evaluate(() => {
+      const hits = [];
+      for (const el of document.querySelectorAll('button, a, input, [role="button"]')) {
+        const t = (el.textContent || el.getAttribute('aria-label') || '').toLowerCase();
+        if (/apply|save|write|commit|approve|adjudicate|promote|delete|submit/.test(t)) {
+          hits.push(t.trim().slice(0, 40));
+        }
+      }
+      return hits;
+    });
+    if (bad.length) throw new Error(bad.join(', '));
+    return 'none found';
+  });
 
   // 4. Fleet rendered with all 20 rows.
-  await page.locator('#tab-fleet').click();
-  const rowCount = await page.locator('#fleet-rows tr').count();
-  rowCount === 20
-    ? pass('fleet: 20 rows rendered', String(rowCount))
-    : fail('fleet: 20 rows rendered', String(rowCount));
-
-  const collisionCard = await page.locator('#fleet-summary .card').nth(2).innerText();
-  collisionCard.includes('0')
-    ? pass('fleet: zero fingerprint collisions')
-    : fail('fleet: zero fingerprint collisions', collisionCard.replace(/\n/g, ' '));
-
-  // 5. Keyboard-only tab navigation across all 8 tabs.
-  await page.locator('#tab-doctrine').click();
-  await page.locator('#tab-doctrine').focus();
-  const seen = ['doctrine'];
-  for (let i = 0; i < 7; i += 1) {
-    await page.keyboard.press('ArrowRight');
-    const id = await page.evaluate(() => document.activeElement?.id ?? '');
-    seen.push(id.replace('tab-', ''));
-  }
-  const expected = ['doctrine', 'fleet', 'canvas', 'copy', 'engine', 'seats', 'memory', 'ship'];
-  JSON.stringify(seen) === JSON.stringify(expected)
-    ? pass('a11y: arrow keys traverse all 8 tabs in order')
-    : fail('a11y: arrow keys traverse all 8 tabs in order', seen.join(' > '));
-
-  // Every tab selection must actually reveal its panel.
-  let panelsOk = true;
-  const panelNotes = [];
-  for (const id of expected) {
-    await page.locator(`#tab-${id}`).click();
-    const hidden = await page.locator(`#panel-${id}`).isHidden();
-    if (hidden) { panelsOk = false; panelNotes.push(id); }
-  }
-  panelsOk
-    ? pass('a11y: every tab reveals its panel')
-    : fail('a11y: every tab reveals its panel', `still hidden: ${panelNotes.join(', ')}`);
-
-  // 6. Touch-target floor: every visible control >= 44px tall.
-  await page.locator('#tab-fleet').click();
-  const tooSmall = await page.evaluate(() => {
-    const bad = [];
-    for (const el of document.querySelectorAll('button, a, input')) {
-      const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0 && r.height < 44) {
-        bad.push(`${el.id || el.className || el.tagName}:${Math.round(r.height)}px`);
-      }
-    }
-    return bad;
+  await step('fleet: 20 rows rendered', async () => {
+    await page.locator('#tab-fleet').click();
+    const n = await page.locator('#fleet-rows tr').count();
+    if (n !== 20) throw new Error(String(n));
+    return String(n);
   });
-  tooSmall.length === 0
-    ? pass('a11y: every control >= 44px tall')
-    : fail('a11y: every control >= 44px tall', tooSmall.slice(0, 8).join(', '));
 
-  // 7. Responsive matrix: no horizontal overflow at any width.
-  for (const vp of VIEWPORTS) {
-    await page.setViewportSize({ width: vp.w, height: vp.h });
-    await page.waitForTimeout(120);
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  /*
+   * Read the collision count by NAME and assert the NUMBER.
+   *
+   * This check previously read the card by position (`.nth(2)`) and then asserted
+   * `cardText.includes('0')` — a substring test on a single character, which passes for
+   * a collision count of 0, 10, 20, or any other value containing a zero digit. Astra
+   * (gpt-6-astra) falsified it in round 2; a direct probe confirmed
+   * `'Fingerprint collisions\n10'.includes('0') === true`. The guard could not fail for
+   * the case it names, which is the defect class this workstream keeps re-encountering.
+   *
+   * `app.js` publishes the value under `data-card="collisions"`, so the assertion is on
+   * the number itself and does not depend on card order.
+   */
+  await step('fleet: zero fingerprint collisions', async () => {
+    const text = await page.locator('#fleet-summary [data-card="collisions"] .value').innerText();
+    const n = Number(text.trim());
+    if (!Number.isInteger(n)) throw new Error(`the card published a non-integer: ${JSON.stringify(text)}`);
+    if (n !== 0) throw new Error(`${n} collision(s) — the divergence tuple is not unique`);
+    return '0 collisions';
+  });
+
+  /*
+   * 5. The tab strip must MATCH THE REGISTRY, then every tab must be keyboard-reachable.
+   *
+   * HISTORY — this is the check that let a dead console pass.
+   * The expectation here used to be a hardcoded array of the eight ids that
+   * `index.html`'s no-JS static fallback happens to contain. When `app-judge.js`
+   * imported `./judge-export.mjs` and that asset had no route, the 404 killed
+   * `app-judge.js`, which killed `app.js`, which meant NOTHING dynamic ever ran. The
+   * static fallback rendered its eight buttons, the page looked plausible — and this
+   * assertion, comparing the fallback against a hardcoded copy of the fallback,
+   * PASSED. A green suite certified a console where no registry row was ever read.
+   *
+   * The fix is structural, not a bigger literal. The expected list is FETCHED from the
+   * same registry the page is supposed to read, and cross-checked against the DOM
+   * BEFORE it is used as an expectation. A served list that disagrees with what rendered
+   * therefore fails loudly instead of silently defining its own answer.
+   */
+  let expected = [];
+  await step('a11y: tab strip matches the registry', async () => {
+    const registry = await page.evaluate(async () => {
+      const res = await fetch('/registry/tabs.json');
+      if (!res.ok) return { ok: false, status: res.status, ids: [] };
+      const rows = await res.json();
+      return { ok: true, status: res.status, ids: rows.map((t) => t.id) };
+    });
+    const domIds = await page.evaluate(
+      () => [...document.querySelectorAll('[role="tab"]')].map((el) => (el.id || '').replace('tab-', '')),
     );
-    // A couple of px of rounding is not a layout failure; a real overflow is.
-    if (overflow <= 2) pass(`responsive ${vp.label}: no h-overflow`, `${overflow}px`);
-    else fail(`responsive ${vp.label}: no h-overflow`, `${overflow}px over`);
-  }
+    // Assigned before any throw, so the later checks still have a list to walk.
+    expected = registry.ids.length ? registry.ids : domIds;
+
+    if (!registry.ok) throw new Error(`GET /registry/tabs.json -> ${registry.status}`);
+    if (registry.ids.length === 0) throw new Error('the registry served zero tabs — this check would be vacuous');
+    if (JSON.stringify(domIds) !== JSON.stringify(registry.ids)) {
+      throw new Error(`registry [${registry.ids.join(',')}] vs DOM [${domIds.join(',')}]`);
+    }
+    return `${registry.ids.length} tabs, DOM identical`;
+  });
+
+  await step('a11y: arrow keys traverse every tab in order', async () => {
+    if (expected.length === 0) throw new Error('no tabs rendered at all');
+    await page.locator(`#tab-${expected[0]}`).click();
+    await page.locator(`#tab-${expected[0]}`).focus();
+    const seen = [expected[0]];
+    for (let i = 0; i < expected.length - 1; i += 1) {
+      await page.keyboard.press('ArrowRight');
+      const id = await page.evaluate(() => document.activeElement?.id ?? '');
+      seen.push(id.replace('tab-', ''));
+    }
+    if (JSON.stringify(seen) !== JSON.stringify(expected)) throw new Error(seen.join(' > '));
+    return seen.join(' > ');
+  });
+
+  await step('a11y: every tab reveals its panel', async () => {
+    if (expected.length === 0) throw new Error('no tabs rendered at all');
+    const hidden = [];
+    for (const id of expected) {
+      await page.locator(`#tab-${id}`).click();
+      if (await page.locator(`#panel-${id}`).isHidden()) hidden.push(id);
+    }
+    if (hidden.length) throw new Error(`still hidden: ${hidden.join(', ')}`);
+    return `${expected.length} panels`;
+  });
+
+  /*
+   * 6. Gate Health (S4.1) must actually RENDER, not merely exist.
+   *
+   * A panel that is present, visible and EMPTY satisfies every check above — the tab
+   * appears in the strip, the panel is revealed, nothing overflows. That is the D2 defect
+   * one level down: reachability is not identity, and "the tab is there" is not "the tab
+   * shows you anything". So the row count is compared against the number of gates the
+   * SNAPSHOT declares, fetched independently of the DOM.
+   */
+  await step('gates: the panel renders one row per declared gate', async () => {
+    await page.locator('#tab-gate-health').click();
+    const rendered = await page.locator('#panel-gate-health .gate-table tbody tr').count();
+    const declared = await page.evaluate(async () => {
+      const res = await fetch('/api/state');
+      if (!res.ok) return -1;
+      const state = await res.json();
+      return Array.isArray(state.gates?.gates) ? state.gates.gates.length : -1;
+    });
+    if (declared < 0) throw new Error('the snapshot carried no gate list at all');
+    if (declared === 0) throw new Error('the snapshot declared zero gates — this check would be vacuous');
+    if (rendered !== declared) throw new Error(`${rendered} rows rendered for ${declared} declared gates`);
+    return `${rendered} rows`;
+  });
+
+  // 6b. Touch-target floor: every visible control >= 44px tall.
+  await step('a11y: every control >= 44px tall', async () => {
+    await page.locator('#tab-fleet').click();
+    const bad = await page.evaluate(() => {
+      const hits = [];
+      for (const el of document.querySelectorAll('button, a, input')) {
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.height > 0 && r.height < 44) {
+          hits.push(`${el.id || el.className || el.tagName}:${Math.round(r.height)}px`);
+        }
+      }
+      return hits;
+    });
+    if (bad.length) throw new Error(bad.slice(0, 8).join(', '));
+    return 'all >= 44px';
+  });
+
+  /*
+   * 7. Responsive matrix: no horizontal overflow at any width, ON EVERY TAB.
+   *
+   * Round 7 measured this file reporting 6/6 green while the Gate Health panel overflowed
+   * the document by 63px at 320px — because the loop measured one tab of ten. The story is
+   * in `browserHarness.mjs`, which now owns both the matrix and the per-tab walk.
+   */
+  await checkResponsiveAcrossTabs({ page, step, tabs: expected });
 
   // 8. Copy tab actually rendered content (not an empty placeholder).
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.locator('#tab-copy').click();
-  const copyItems = await page.locator('#copy-body .copy-item').count();
-  copyItems === 20
-    ? pass('copy: 20 copy entries rendered', String(copyItems))
-    : fail('copy: 20 copy entries rendered', String(copyItems));
+  await step('copy: 20 copy entries rendered', async () => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.locator('#tab-copy').click();
+    const n = await page.locator('#copy-body .copy-item').count();
+    if (n !== 20) throw new Error(String(n));
+    return String(n);
+  });
 
-  const slopVisible = await page.locator('#copy-body').innerText();
-  const banned = ['unlock your', 'elevate your', 'seamless', 'world-class', 'game-changing'];
-  const found = banned.filter((b) => slopVisible.toLowerCase().includes(b));
-  found.length === 0
-    ? pass('copy: no banned phrases visible')
-    : fail('copy: no banned phrases visible', found.join(', '));
+  await step('copy: no banned phrases visible', async () => {
+    const visible = (await page.locator('#copy-body').innerText()).toLowerCase();
+    const banned = ['unlock your', 'elevate your', 'seamless', 'world-class', 'game-changing'];
+    const found = banned.filter((b) => visible.includes(b));
+    if (found.length) throw new Error(found.join(', '));
+    return 'none found';
+  });
+
+  /*
+   * 9. Every RENDERED CONTAINER holds its independently-expected population.
+   *
+   * This used to measure each panel's `innerText` and call 20 characters "content". Every
+   * authored panel carries PERMANENT intro copy — `#panel-judge` alone holds ~334 characters —
+   * so Astra F14 (round 11) is right that a renderer replaced by a successful no-op passed. It
+   * measured the prose. The container and the snapshot-derived table live in `panelPopulation.mjs`.
+   */
+  await step('panels: every rendered container holds its expected population', async () => {
+    if (expected.length === 0) throw new Error('no tabs to check — this check would be vacuous');
+    const state = await page.evaluate(async () => (await fetch('/api/state')).json());
+    const measured = {};
+    for (const entry of PANEL_POPULATION) {
+      if (!expected.includes(entry.tab)) continue;
+      await page.locator(`#tab-${entry.tab}`).click();
+      measured[entry.selector] = await page.locator(entry.selector).count();
+    }
+    const problems = comparePopulations(state, measured);
+    if (problems.length) throw new Error(problems.join(' | '));
+    return `${PANEL_POPULATION.length} containers hold their expected population`;
+  });
+
+  /*
+   * 10. Errors that arrived AFTER boot. `consoleErrors` is written by two listeners from the
+   * moment the page is created, but was READ exactly once — in check 1, right after `goto`.
+   * A panel module that throws on click produced a green "boot: no console errors" and
+   * nothing else. This runs last on purpose: it is the only assertion here covering the
+   * whole run rather than one moment of it.
+   */
+  await step('runtime: no console errors after boot', () => {
+    if (consoleErrors.length) throw new Error(consoleErrors.join(' | ').slice(0, 300));
+    return 'clean';
+  });
 } finally {
   await browser.close();
 }
 
-const failed = results.filter((r) => !r.ok);
-for (const r of results) {
-  console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name}${r.detail ? `  — ${r.detail}` : ''}`);
-}
-console.log(`\n[browser] ${results.length - failed.length}/${results.length} checks passed`);
-process.exit(failed.length ? 1 : 0);
+// The tally lives in `verifyReport` so its vacuity guard is testable — see that module.
+process.exit(reportResults(results, '[browser]') ? 1 : 0);

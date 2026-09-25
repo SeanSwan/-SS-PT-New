@@ -1,0 +1,253 @@
+/*
+ * Swan Brain Console — Judge Mode.
+ * @module scripts/swan-brain-console/app/judge.css
+ *
+ * Tokens are inherited from `app.css` (same :root custom properties, no redefinition),
+ * so this panel reads as the same product rather than a bolted-on tool. Loaded AFTER
+ * app.css, so it may override where the judging layout genuinely differs.
+ *
+ * TWO HARD CONSTRAINTS, both from the repo's own gates:
+ *   1. Every interactive control is >=44px tall with a visible focus ring (rules 2, 7).
+ *      A judging surface driven by keyboard must show where the keyboard is.
+ *   2. Nothing may overflow horizontally at 375px. The pair grid is the risk: two
+ *      variant cards side by side plus long unbreakable tuples. It becomes a single
+ *      column below 720px, and the tuples break rather than push.
+ */
+
+/* ── Summary ───────────────────────────────────────────────────────────────── */
+
+.judge-host { display: block; }
+
+.judge-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  align-items: baseline;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--graphite);
+}
+
+.judge-progress { margin: 0; font-family: var(--font-ui); font-weight: 600; color: var(--frost); }
+.judge-tally { margin: 0; font-family: var(--font-data); font-size: 0.82rem; color: var(--muted); }
+
+/* ── The pair list ─────────────────────────────────────────────────────────── */
+
+.judge-list { display: grid; gap: 0.9rem; }
+
+.judge-pair {
+  padding: 0.85rem 1rem 1rem;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: var(--carbon);
+}
+
+/* The focused pair is the one the keyboard acts on, so the ring is load-bearing. */
+.judge-pair:focus-visible,
+.judge-pair:focus {
+  outline: 3px solid var(--ice-wing);
+  outline-offset: 2px;
+}
+
+.judge-head {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-data);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.judge-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.judge-variant {
+  min-width: 0; /* lets the grid shrink instead of overflowing at narrow widths */
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--obsidian);
+}
+
+.judge-variant h4 {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  color: var(--frost);
+}
+
+/* ── The side ────────────────────────────────────────────────────────────────
+ * ROUND 10 (2026-09-20). `judge-left` / `judge-right` have been emitted since S2 and no
+ * stylesheet ever defined either one, so the only record of which variant was "1" and which
+ * was "2" was a class nothing read — while the panel's own legend says "1 left wins · 2
+ * right wins". `judge.css` stacks `.judge-sides` into one column at ≤720px, which removes
+ * the positional cue as well.
+ *
+ * The LABEL is the fix; the hue is a secondary cue and carries no ranking — the two are a
+ * cool pair chosen because `--gilded` already means "attention" elsewhere in this console
+ * (`.card.warn`, `.status dd.blocked`, `.id`) and must not be borrowed to mean "the right
+ * one". A reader who cannot distinguish the hues still has the word.
+ * ------------------------------------------------------------------------- */
+.judge-side {
+  margin: 0 0 0.3rem;
+  font-family: var(--font-data);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/*
+ * ROUND 14 (2026-09-21) — THE RIGHT LABEL USED A TOKEN THAT COULD NOT BE READ (Astra J08).
+ *
+ * It read `color: var(--lavender)`. `--lavender` is `#4070c0`, and this label renders inside
+ * `.judge-variant`, whose background is `--obsidian` `#0a0a0f` — a measured **4.04:1**, below
+ * the repository's 4.5:1 floor for small text. The label is 0.68rem, so the floor applies.
+ *
+ * The round-13 guard did not catch it because that guard asks whether a `var()` RESOLVES, not
+ * whether the colour it resolves to is legible: `--lavender` is defined, so the reference was
+ * green while the text was not. Resolving both tokens does not establish readability, and the
+ * same blind spot meant mutating `--danger` to a dark blue left the guard green while the
+ * persistence warning dropped to about 1.2:1. `app/contrast.test.mjs` now checks the ratio.
+ *
+ * `--purple` is the replacement, and it is the right one rather than merely a passing one: this
+ * panel's two sides are deliberately a COOL pair (see the note above), and `--ice-wing` and
+ * `--purple` are already paired as the console's cool gradient in `app.css`. It measures
+ * 4.66:1 here. It is NOT safe on every surface — against `--graphite` it is 4.07:1 — and that
+ * limit is recorded in `app/contrast.test.mjs` rather than left to be rediscovered.
+ *
+ * ROUND 15 (Astra K06) — AND THE LIMIT RECORDED ABOVE WAS ALREADY BEING EXCEEDED ELSEWHERE.
+ * The exception that recorded it said purple's "only text rule renders inside `.judge-variant`".
+ * That was false when it was written: `.wild` in `app.css` used the same token as text on the
+ * Fleet table's `--carbon`, at 4.34:1 — below the floor, unexcepted, and shipped. A text colour
+ * whose safety depends on where it is used cannot be declared safe once; it needs a value that is
+ * safe on the worst-case surface. `--purple-text` (#a78bfa) is that value at 6.34:1 on
+ * `--graphite`, so this label now uses it and the exception table is empty rather than corrected.
+ */
+.judge-left > .judge-side { color: var(--ice-wing); }
+.judge-right > .judge-side { color: var(--purple-text); }
+.judge-left { border-left: 3px solid color-mix(in srgb, var(--ice-wing) 55%, transparent); }
+.judge-right { border-left: 3px solid color-mix(in srgb, var(--purple) 70%, transparent); }
+
+.judge-tuple {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  color: var(--arctic-cyan);
+  overflow-wrap: anywhere; /* a tuple has no spaces to break at */
+}
+
+.judge-tradeoff {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.judge-wild {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-data);
+  font-size: 0.74rem;
+  color: var(--gilded);
+}
+
+/* ── Verdict + key hints ───────────────────────────────────────────────────── */
+
+.judge-verdict {
+  margin: 0.6rem 0 0;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.judge-verdict.recorded { color: var(--ice-wing); font-weight: 600; }
+
+.judge-keys {
+  margin: 0.3rem 0 0;
+  font-family: var(--font-data);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+/* ── Export bar ────────────────────────────────────────────────────────────── */
+
+.judge-export {
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.judge-note {
+  flex: 1 1 22rem;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.judge-btn {
+  min-height: 44px; /* rule 2 */
+  padding: 0 1.1rem;
+  border: 1px solid var(--ice-wing);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--frost);
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.judge-btn:hover { background: var(--primary); }
+
+.judge-btn:focus-visible {
+  outline: 3px solid var(--gilded);
+  outline-offset: 2px;
+}
+
+/* ── Narrow viewports: stack, and break long strings ──────────────────────── */
+
+@media (max-width: 720px) {
+  .judge-sides { grid-template-columns: 1fr; }
+  .judge-summary { flex-direction: column; gap: 0.3rem; }
+  .judge-btn { width: 100%; }
+}
+
+/* ── Round 12 (Astra G13): the not-persisted warning ──────────────────────── */
+
+/*
+ * Shown only when `saveState` reports that the session could not be stored. It is styled as a
+ * warning rather than an error because nothing is broken: the judgments are real, held in
+ * memory, and exportable. What the operator needs to know is that they will not survive a
+ * reload, and that they should export before closing the tab.
+ *
+ * ROUND 13 (2026-09-21) — THE FIRST VERSION USED A TOKEN THAT DOES NOT EXIST (Astra H09).
+ * It read `var(--warn, #b45309)`. `--warn` is defined nowhere in this console's stylesheets,
+ * so the fallback `#b45309` was ALWAYS the rendered colour — a dark amber on the dark surface,
+ * measuring roughly **3.93:1**, below the repository's 4.5:1 floor for small text. A warning
+ * that cannot be read is not a warning, and this one exists to prevent lost work.
+ *
+ * `--danger` is a real token in `app.css`, chosen for exactly this dark surface, and measures
+ * about **8.7:1** against `--obsidian` (7.6:1 against `--graphite`). The lesson generalises:
+ * a `var(--x, fallback)` where `--x` is undefined is not a themed value, it is a hardcoded one
+ * wearing a theme's clothes.
+ */
+.judge-persistence {
+  margin: 0 0 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--danger);
+  border-radius: 4px;
+  color: var(--danger);
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
