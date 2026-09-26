@@ -10,6 +10,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuthContext } from '../../context/authContextState';
+import type { AuthContextType } from '../../context/AuthContextProvider';
 import type { ExerciseEntry } from '../../services/nasmApiService';
 import LoggerDictationStrip from './LoggerDictationStrip';
 import { useWorkoutLoggerDictation } from './useWorkoutLoggerDictation';
@@ -65,11 +67,38 @@ const AiEventsHarness: React.FC<{ stateOut: { exercises: ExerciseEntry[] } }> = 
 };
 
 type DictationApi = ReturnType<typeof useWorkoutLoggerDictation>;
-const DictationHarness: React.FC<{ apiOut: { current: DictationApi | null }; enabled?: boolean }> = ({ apiOut, enabled = true }) => {
+type DictationHarnessProps = { apiOut: { current: DictationApi | null }; enabled?: boolean };
+
+const DictationHarnessInner: React.FC<DictationHarnessProps> = ({ apiOut, enabled = true }) => {
   const api = useWorkoutLoggerDictation({ clientId: 84, enabled });
   apiOut.current = api;
   return <LoggerDictationStrip {...api} />;
 };
+
+/**
+ * `useWorkoutLoggerDictation` submits through `useCoachCommand`, which derives the actor from
+ * `useAuth` and REFUSES the command when `authenticated` is false (useCoachCommand.ts:184,208).
+ * The real logger always renders inside App.tsx's AuthProvider; this suite rendered the hook
+ * bare, so every send threw "useAuth must be used within an AuthProvider" and 9 of its tests
+ * went red — a real regression that sat invisible inside the standing suite red.
+ *
+ * The provider lives HERE rather than at each call site so that every mount in this file is
+ * covered, including the rerender-based eligibility tests below.
+ *
+ * Minimum `useCoachCommand` reads: a positive actor id, an allowed raw role
+ * (isAllowedRawRole accepts admin|trainer|client), authenticated and not loading.
+ */
+const authValue = {
+  user: { id: '9201', role: 'client' },
+  isAuthenticated: true,
+  loading: false,
+} as unknown as AuthContextType;
+
+const DictationHarness: React.FC<DictationHarnessProps> = (props) => (
+  <AuthContext.Provider value={authValue}>
+    <DictationHarnessInner {...props} />
+  </AuthContext.Provider>
+);
 
 const setup = () => {
   const stateOut = { exercises: [] as ExerciseEntry[] };
@@ -101,11 +130,15 @@ describe('useWorkoutLoggerDictation + LoggerDictationStrip (blueprint S4)', () =
     await act(async () => { apiOut.current?.toggle(); });
     await act(async () => { apiOut.current?.setText('leg press set two ninety pounds eleven reps'); });
     await act(async () => { await apiOut.current?.send(); });
+    // `useCoachCommand` passes a THIRD transport argument — { signal, _isBackgroundRequest } —
+    // on all three command-lane calls (execute/confirm/cancel at useCoachCommand.ts:253,326,360),
+    // so an arity-exact toHaveBeenCalledWith can no longer match even though every substantive
+    // field does. Third arg is matched but not pinned; the endpoint and payload are the contract.
     expect(mockPost).toHaveBeenCalledWith('/api/ai-command/execute', expect.objectContaining({
       message: 'leg press set two ninety pounds eleven reps',
       selectedClientId: 84,
       routeContext: expect.objectContaining({ surface: 'workout-logger' }),
-    }));
+    }), expect.anything());
   });
 
   it('frontend_dispatch AI_UPDATE_SET reaches the EXISTING logger handler and updates the set', async () => {

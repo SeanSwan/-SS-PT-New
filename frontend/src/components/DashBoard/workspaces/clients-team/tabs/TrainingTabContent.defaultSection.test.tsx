@@ -238,10 +238,15 @@ describe('TrainingTabContent daily workflow default', () => {
     );
     await user.click(screen.getByRole('button', { name: /send to coach/i }));
     await waitFor(() => expect(commandMock.executeCommand).toHaveBeenCalledTimes(1));
+    // `inputMode` is a top-level option alongside `routeContext` — ClientTrainingCommandBar.tsx:109
+    // forwards commandInputMode(inputOrigin), and this command was typed, so 'text'. It was added
+    // after this assertion was written. Everything below it is unchanged, so the assertion stays
+    // EXACT rather than loosened to objectContaining.
     expect(commandMock.executeCommand).toHaveBeenCalledWith(
       'Log bench press 3 sets of 10',
       {
         selectedClientId: 424242,
+        inputMode: 'text',
         routeContext: {
           source: 'clients-team',
           intent: 'daily_training_command',
