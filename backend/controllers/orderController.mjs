@@ -157,7 +157,12 @@ export const applyOrderPayment = async (req, res) => {
     }
 
     const previousStatus = order.status;
-    order.paymentAppliedAt = new Date();
+    // H4/H5: paymentAppliedAt is the ALLOCATION CLAIM owned by
+    // SessionAllocationService — it is taken inside the allocation
+    // transaction (atomic with the session creation). Do NOT pre-set it
+    // here: a pre-set marker makes the service see the order as already
+    // allocated and permanently suppresses the grant. Payment attribution
+    // fields (method/reference/by) stay here; the service does not write them.
     order.paymentAppliedBy = req.user.id;
     order.paymentMethod = method;
     if (reference) order.paymentReference = reference;
@@ -188,6 +193,12 @@ export const applyOrderPayment = async (req, res) => {
     }
 
     const admin = await User.findByPk(req.user.id, { attributes: ['id', 'firstName', 'lastName'] });
+
+    // The service claimed paymentAppliedAt inside its transaction — refresh
+    // this instance so the response reflects DB truth (and stays null when
+    // allocation was skipped or failed, which is the retry-safe state).
+    await order.reload().catch(() => {});
+
     const response = {
       success: true,
       alreadyPaid: false,

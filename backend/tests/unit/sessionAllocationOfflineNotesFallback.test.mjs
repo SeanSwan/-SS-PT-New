@@ -7,6 +7,20 @@ const mocks = vi.hoisted(() => ({
   user: { findByPk: vi.fn() },
   session: { bulkCreate: vi.fn() },
   financialTransaction: { create: vi.fn() },
+  // H4/H5: the service now runs allocation inside a sequelize transaction
+  // (atomic marker claim). Mock the connection layer so this unit test can
+  // never touch a real database.
+  transaction: {
+    LOCK: { UPDATE: 'UPDATE' },
+    commit: vi.fn().mockResolvedValue(true),
+    rollback: vi.fn().mockResolvedValue(true),
+  },
+}));
+
+vi.mock('../../database.mjs', () => ({
+  default: {
+    transaction: vi.fn().mockResolvedValue(mocks.transaction),
+  },
 }));
 
 vi.mock('../../models/index.mjs', () => ({
@@ -30,7 +44,9 @@ describe('SessionAllocationService offline payment note fallback', () => {
       totalAmount: '200.00',
       paymentMethod: 'zelle',
       status: 'completed',
+      paymentAppliedAt: null,
       orderItems: [],
+      update: vi.fn().mockResolvedValue(true),
       notes: JSON.stringify({
         type: 'offline_payment',
         items: [
@@ -77,7 +93,7 @@ describe('SessionAllocationService offline payment note fallback', () => {
           status: 'available',
         }),
       ]),
-      { returning: true },
+      { returning: true, transaction: mocks.transaction },
     );
     expect(mocks.session.bulkCreate.mock.calls[0][0]).toHaveLength(20);
   });
@@ -90,7 +106,9 @@ describe('SessionAllocationService offline payment note fallback', () => {
       totalAmount: '200.00',
       paymentMethod: 'ach',
       status: 'completed',
+      paymentAppliedAt: null,
       orderItems: [],
+      update: vi.fn().mockResolvedValue(true),
       notes: JSON.stringify({
         items: [
           { storefrontItemId: 10, quantity: 2, name: 'Ten Session Pack' },

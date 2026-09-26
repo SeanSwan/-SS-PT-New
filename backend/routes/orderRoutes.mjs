@@ -131,7 +131,12 @@ router.put('/:id', protect, async (req, res) => {
     await order.save();
 
     let sessionCreationResult = null;
-    if (status === 'completed' && previousStatus !== 'completed') {
+    // H5 guard: an order whose payment was already applied (ACH webhook or
+    // apply-payment flow) has already had its sessions allocated — a status
+    // toggle around 'completed' must not allocate them again. The shared
+    // service enforces the same claim transactionally; this pre-check keeps
+    // the route from even attempting a second allocation.
+    if (status === 'completed' && previousStatus !== 'completed' && !order.paymentAppliedAt) {
       try {
         logger.info(`Order ${orderId} completed, allocating sessions for user ${order.userId}`);
         sessionCreationResult = await sessionAllocationService.allocateSessionsFromOrder(orderId, order.userId);

@@ -17,13 +17,14 @@
  */
 
 import logger from '../utils/logger.mjs';
+import sequelize from '../database.mjs';
 import {
-  getUser, 
-  getOrder, 
-  getOrderItem, 
-  getStorefrontItem, 
+  getUser,
+  getOrder,
+  getOrderItem,
+  getStorefrontItem,
   getSession,
-  getFinancialTransaction 
+  getFinancialTransaction
 } from '../models/index.mjs';
 import { isNonDeductingClient } from './sessionBillingPolicy.mjs';
 import { extractOrderSessionData, hasPaymentNoteItems } from './orderSessionExtraction.mjs';
@@ -37,10 +38,21 @@ class SessionAllocationService {
   /**
    * Allocate sessions from completed order
    * Main entry point for payment completion
-   * 
+   *
+   * ORDER-LEVEL IDEMPOTENCY (hostile-review H4/H5 fix 2026-09-25):
+   * paymentAppliedAt is the ALLOCATION CLAIM, taken inside the allocation
+   * transaction while holding the Order row lock:
+   *   lock order → marker set? → idempotent no-op (alreadyAllocated)
+   *            └→ no? create sessions + financial record + claim marker → commit
+   * Allocation and claim commit or roll back TOGETHER — a crashed attempt
+   * leaves no marker and no sessions (retry safe), a committed attempt makes
+   * every retry (Stripe redelivery, admin status toggle, manual re-run) a
+   * no-op. Callers must NOT pre-set paymentAppliedAt before calling: a
+   * pre-set marker would permanently suppress the grant.
+   *
    * @param {number} orderId - Completed order ID
    * @param {number} userId - User who made the purchase
-   * @returns {Object} Allocation result
+   * @returns {Object} Allocation result (alreadyAllocated: true on retry)
    */
   async allocateSessionsFromOrder(orderId, userId) {
     const startTime = Date.now();
@@ -50,14 +62,32 @@ class SessionAllocationService {
       timestamp: new Date().toISOString()
     });
 
+    const transaction = await sequelize.transaction();
+
     try {
-      // 1. Validate order and user
-      const { order, user } = await this.validateOrderAndUser(orderId, userId);
-      
-      // 2. Extract session information from order items
+      // 1. Validate order and user (Order row locked FOR UPDATE inside)
+      const { order, user } = await this.validateOrderAndUser(orderId, userId, transaction);
+
+      // 2. ORDER-LEVEL GUARD: marker set = sessions were already granted
+      if (order.paymentAppliedAt) {
+        await transaction.rollback();
+        logger.info(`[SessionAllocation] Order ${orderId} already allocated (paymentAppliedAt set) — idempotent no-op`, {
+          orderId,
+          userId
+        });
+        return {
+          success: true,
+          allocated: 0,
+          alreadyAllocated: true,
+          message: 'Sessions were already allocated for this order'
+        };
+      }
+
+      // 3. Extract session information from order items
       const sessionData = await this.extractSessionDataFromOrder(order);
-      
+
       if (sessionData.totalSessions === 0) {
+        await transaction.rollback();
         logger.info(`[SessionAllocation] No sessions to allocate for order ${orderId}`);
         return {
           success: true,
@@ -66,16 +96,25 @@ class SessionAllocationService {
         };
       }
 
-      // 3. Create available session slots
-      const createdSessions = await this.createAvailableSessions(sessionData, user);
-      
-      // 4. Update user session balance (if applicable)
+      // 4. Create available session slots (same transaction as the claim)
+      const createdSessions = await this.createAvailableSessions(sessionData, user, transaction);
+
+      // 5. Update user session balance (if applicable)
       await this.updateUserSessionBalance(user, sessionData.totalSessions);
-      
-      // 5. Create financial transaction record
-      await this.createFinancialTransactionRecord(order, sessionData);
-      
-      // 6. Log allocation success
+
+      // 6. Create financial transaction record (same transaction)
+      await this.createFinancialTransactionRecord(order, sessionData, transaction);
+
+      // 7. Claim the marker INSIDE the allocation transaction: sessions,
+      //    financial record and claim commit or roll back together.
+      await order.update(
+        { paymentAppliedAt: order.paymentAppliedAt || new Date() },
+        { transaction }
+      );
+
+      await transaction.commit();
+
+      // 8. Log allocation success
       const duration = Date.now() - startTime;
       logger.info(`[SessionAllocation] Session allocation completed successfully`, {
         orderId,
@@ -91,6 +130,7 @@ class SessionAllocationService {
         allocated: createdSessions.length,
         totalSessions: sessionData.totalSessions,
         sessions: createdSessions,
+        alreadyAllocated: false,
         orderDetails: {
           orderNumber: order.orderNumber,
           totalAmount: order.totalAmount,
@@ -100,6 +140,11 @@ class SessionAllocationService {
       };
 
     } catch (error) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        logger.warn(`[SessionAllocation] Rollback warning for order ${orderId}: ${rollbackError.message}`);
+      }
       logger.error(`[SessionAllocation] Error allocating sessions for order ${orderId}`, {
         error: error.message,
         stack: error.stack,
@@ -114,20 +159,23 @@ class SessionAllocationService {
 
   /**
    * Validate order and user for allocation
-   * 
+   * The Order row is fetched SELECT ... FOR UPDATE so concurrent writers
+   * (webhook retry vs admin toggle) serialize on the claim check.
+   *
    * @param {number} orderId - Order ID
    * @param {number} userId - User ID
+   * @param {object} transaction - Sequelize transaction (required for the lock)
    * @returns {Object} Validated order and user
    */
-  async validateOrderAndUser(orderId, userId) {
+  async validateOrderAndUser(orderId, userId, transaction) {
     const Order = getOrder();
     const OrderItem = getOrderItem();
     const StorefrontItem = getStorefrontItem();
     const User = getUser();
 
-    // Get order with items
+    // Get order with items, locked for the claim check
     const order = await Order.findOne({
-      where: { 
+      where: {
         id: orderId,
         userId,
         status: 'completed'
@@ -139,7 +187,12 @@ class SessionAllocationService {
           model: StorefrontItem,
           as: 'storefrontItem'
         }]
-      }]
+      }],
+      lock: {
+        level: transaction.LOCK.UPDATE,
+        of: Order
+      },
+      transaction
     });
 
     if (!order) {
@@ -177,12 +230,13 @@ class SessionAllocationService {
   /**
    * Create available session slots
    * Creates individual session records that can be scheduled
-   * 
+   *
    * @param {Object} sessionData - Session data from order
    * @param {Object} user - User object
+   * @param {object} transaction - Sequelize transaction (atomic with the claim)
    * @returns {Array} Created session records
    */
-  async createAvailableSessions(sessionData, user) {
+  async createAvailableSessions(sessionData, user, transaction) {
     const Session = getSession();
     const createdSessions = [];
 
@@ -207,7 +261,8 @@ class SessionAllocationService {
 
     // Bulk create sessions
     const createdSessionRecords = await Session.bulkCreate(sessionsToCreate, {
-      returning: true
+      returning: true,
+      transaction
     });
 
     createdSessions.push(...createdSessionRecords);
@@ -253,12 +308,13 @@ class SessionAllocationService {
    * 
    * @param {Object} order - Order object
    * @param {Object} sessionData - Session data
+   * @param {object} transaction - Sequelize transaction (atomic with the claim)
    */
-  async createFinancialTransactionRecord(order, sessionData) {
+  async createFinancialTransactionRecord(order, sessionData, transaction) {
     try {
       const FinancialTransaction = getFinancialTransaction();
-      
-      const transaction = await FinancialTransaction.create({
+
+      const transactionRecord = await FinancialTransaction.create({
         userId: order.userId,
         orderId: order.id,
         amount: order.totalAmount,
@@ -272,10 +328,10 @@ class SessionAllocationService {
           allocationDate: new Date().toISOString()
         }),
         processedAt: new Date()
-      });
+      }, { transaction });
 
       logger.info(`[SessionAllocation] Financial transaction created`, {
-        transactionId: transaction.id,
+        transactionId: transactionRecord.id,
         orderId: order.id,
         amount: order.totalAmount
       });
