@@ -114,6 +114,12 @@ async function workoutControllerHarness(serviceOverrides = {}, extraDeps = {}) {
     },
     '../utils/logger.mjs': { default: logger },
     '../utils/idUtils.mjs': { idEquals: (a, b) => String(a) === String(b) },
+    // S1: the controller gates through the assignment helper — stub keeps the
+    // VM harness DB-free while the behavioral contract stays in the probe.
+    '../middleware/verifyClientAccess.mjs': {
+      assertAssignmentOrAdmin: async (userId, role, clientId) =>
+        String(userId) === '9' && String(clientId) === '202', // admin id 9 assigned to 202 in fixtures
+    },
     ...extraDeps,
   });
 }
@@ -144,7 +150,10 @@ test('R02 [S6/S7]: an unpriced line cannot disappear from reconciliation', expec
   }
 }));
 
-test('R01 [S1]: unassigned trainer cannot read another client session', expectCurrentFailure('S1 — mounted authorization (D-010)', async (markRepaired) => {
+test('R01 [S1] GREEN: unassigned trainer cannot read another client session', async () => {
+  // Flipped from documented-live-defect to hard assertion in S1 (commit:
+  // mounted authorization per D-010). The stub grants assignments only to
+  // admin id 9, so trainer 101 reading client 202's session must 404.
   const controller = await workoutControllerHarness({
     getWorkoutSessionById: async () => ({
       id: 'synthetic-session',
@@ -157,11 +166,9 @@ test('R01 [S1]: unassigned trainer cannot read another client session', expectCu
     user: { id: 101, role: 'trainer' },
     params: { sessionId: 'synthetic-session' },
   }, response);
-  // Target contract: unassigned trainer gets 404 (existence not confirmed).
-  if (response.status === 404) {
-    markRepaired();
-  }
-}));
+  assert.equal(response.status, 404);
+  assert.ok(!response.body || !JSON.stringify(response.body).includes('synthetic private note'));
+});
 
 test('S0 guard: campaign probes load real source with zero DB/network transport', async () => {
   // The harness itself is the guarantee: vm.SourceTextModule + stubbed

@@ -179,10 +179,18 @@ describe('authorization guards use idEquals instead of bare strict equality', ()
 });
 
 describe('verified-safe bare comparisons are retained deliberately', () => {
-  it('workoutController compares two strings (route param fallback)', () => {
+  it('workoutController authorization is assignment-backed and type-safe (S1, D-010)', () => {
+    // Revised 2026-09-26: the old role-only bare comparison
+    // (`userId !== req.user.id && role !== admin && role !== trainer`) was
+    // the cross-tenant defect the Astra blueprint flagged (first-mounted
+    // shadow path). The gate now routes through canAccessClientData ->
+    // idEquals (type-safe across the string/number boundary) +
+    // assertAssignmentOrAdmin (active assignment for cross-client).
     const source = read('controllers/workoutController.mjs');
     expect(source).toContain('const userId = req.params.userId || req.user.id;');
-    expect(source).toContain("if (userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer')");
+    expect(source).toContain('const canAccessClientData = async (targetUserId, reqUser)');
+    expect(source).toContain('return assertAssignmentOrAdmin(reqUser.id, reqUser.role, targetUserId);');
+    expect(source).not.toContain("if (userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer')");
   });
 
   it('social posts route param comparison stays bare', () => {

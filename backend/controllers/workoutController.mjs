@@ -208,6 +208,19 @@ import workoutService from '../services/workoutService.mjs';
 import { errorResponse, successResponse } from '../utils/responseUtils.mjs';
 import logger from '../utils/logger.mjs';
 import { idEquals } from '../utils/idUtils.mjs';
+import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
+
+// D-010 (Astra blueprint S1, 2026-09-26): active assignment governs
+// cross-client access on the FIRST-MOUNTED controller. This file serves the
+// live /api/workout/sessions CRUD paths (workoutRoutes shadows
+// workoutSessionRoutes per S0-MANIFEST.md), so the campaign's role-only
+// checks here were the reachable defect. Self short-circuits first —
+// trainers and 'user'-role keep their own data; admins pass via the
+// helper; unassigned trainers and every other role fail closed.
+const canAccessClientData = async (targetUserId, reqUser) => {
+  if (idEquals(targetUserId, reqUser.id)) return true;
+  return assertAssignmentOrAdmin(reqUser.id, reqUser.role, targetUserId);
+};
 
 /**
  * Get all workout sessions for a user
@@ -276,11 +289,12 @@ export async function getWorkoutSessionById(req, res) {
       return errorResponse(res, 404, 'Workout session not found');
     }
     
-    // Check if the user is authorized to view this session
-    if (!idEquals(session.userId, req.user.id) && req.user.role !== 'admin' && req.user.role !== 'trainer') {
-      return errorResponse(res, 403, 'You are not authorized to view this session');
+    // Check if the user is authorized to view this session — assignment-
+    // backed (D-010); 404 so a wrong-id probe cannot confirm existence
+    if (!(await canAccessClientData(session.userId, req.user))) {
+      return errorResponse(res, 404, 'Workout session not found');
     }
-    
+
     return successResponse(res, { session });
   } catch (error) {
     logger.error(`Error getting workout session: ${error.message}`, { stack: error.stack });
@@ -306,9 +320,10 @@ export async function createWorkoutSession(req, res) {
       if (req.body[field] !== undefined) sessionData[field] = req.body[field];
     }
 
-    // Check if the user is authorized to create a session for another user
-    if (!idEquals(sessionData.userId, req.user.id) && req.user.role !== 'admin' && req.user.role !== 'trainer') {
-      return errorResponse(res, 403, 'You are not authorized to create sessions for other users');
+    // Check if the user is authorized to create a session for the target
+    // user — assignment-backed (D-010); 404 so probing ids is unrewarding
+    if (!(await canAccessClientData(sessionData.userId, req.user))) {
+      return errorResponse(res, 404, 'Target user not found');
     }
 
     const session = await workoutService.createWorkoutSession(sessionData);
@@ -336,9 +351,10 @@ export async function updateWorkoutSession(req, res) {
       return errorResponse(res, 404, 'Workout session not found');
     }
     
-    // Check if the user is authorized to update this session
-    if (!idEquals(existingSession.userId, req.user.id) && req.user.role !== 'admin' && req.user.role !== 'trainer') {
-      return errorResponse(res, 403, 'You are not authorized to update this session');
+    // Check if the user is authorized to update this session — assignment-
+    // backed (D-010); 404 fail-closed
+    if (!(await canAccessClientData(existingSession.userId, req.user))) {
+      return errorResponse(res, 404, 'Workout session not found');
     }
     
     // Whitelist allowed fields — never allow userId/trainerId injection
@@ -376,11 +392,12 @@ export async function deleteWorkoutSession(req, res) {
       return errorResponse(res, 404, 'Workout session not found');
     }
     
-    // Check if the user is authorized to delete this session
-    if (!idEquals(existingSession.userId, req.user.id) && req.user.role !== 'admin' && req.user.role !== 'trainer') {
-      return errorResponse(res, 403, 'You are not authorized to delete this session');
+    // Check if the user is authorized to delete this session — assignment-
+    // backed (D-010); 404 fail-closed
+    if (!(await canAccessClientData(existingSession.userId, req.user))) {
+      return errorResponse(res, 404, 'Workout session not found');
     }
-    
+
     await workoutService.deleteWorkoutSession(sessionId);
     
     return successResponse(res, { message: 'Workout session deleted successfully' });
@@ -399,11 +416,13 @@ export async function getClientProgress(req, res) {
   try {
     const userId = req.params.userId || req.user.id;
     
-    // Check if the user is authorized to view this progress
-    if (userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
-      return errorResponse(res, 403, 'You are not authorized to view this progress');
+    // Check if the user is authorized to view this progress — assignment-
+    // backed (D-010); idEquals also fixes the string-vs-number strict
+    // comparison the old `userId !== req.user.id` check relied on
+    if (!(await canAccessClientData(userId, req.user))) {
+      return errorResponse(res, 404, 'Progress not found');
     }
-    
+
     const progress = await workoutService.getClientProgress(userId);
     
     return successResponse(res, { progress });
@@ -422,9 +441,10 @@ export async function getWorkoutStatistics(req, res) {
   try {
     const userId = req.params.userId || req.user.id;
     
-    // Check if the user is authorized to view these statistics
-    if (userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
-      return errorResponse(res, 403, 'You are not authorized to view these statistics');
+    // Check if the user is authorized to view these statistics —
+    // assignment-backed (D-010)
+    if (!(await canAccessClientData(userId, req.user))) {
+      return errorResponse(res, 404, 'Workout statistics not found');
     }
     
     // Extract query parameters
@@ -467,8 +487,10 @@ export async function getExerciseRecommendations(req, res) {
     const userId = libraryMode ? 'admin-library' : (requestedUserId || req.user.id);
     
     // Check if the user is authorized to get recommendations for this user
-    if (!libraryMode && userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'trainer') {
-      return errorResponse(res, 403, 'You are not authorized to get recommendations for this user');
+    // — assignment-backed (D-010); libraryMode (exercise catalog browsing)
+    // legitimately bypasses user scoping
+    if (!libraryMode && !(await canAccessClientData(userId, req.user))) {
+      return errorResponse(res, 404, 'Recommendations not found');
     }
     
     // Extract query parameters
@@ -531,9 +553,14 @@ export async function createWorkoutPlan(req, res) {
       if (req.body[field] !== undefined) planData[field] = req.body[field];
     }
 
-    // Check if the user is authorized to create a plan
+    // Check if the user is authorized to create a plan — trainer/admin only,
+    // and a client-targeted plan requires an ACTIVE assignment to that client
+    // (D-010): role alone never authorized creating data onto a client
     if (req.user.role !== 'admin' && req.user.role !== 'trainer') {
       return errorResponse(res, 403, 'You are not authorized to create workout plans');
+    }
+    if (planData.clientId && !(await canAccessClientData(planData.clientId, req.user))) {
+      return errorResponse(res, 404, 'Target client not found');
     }
 
     const plan = await workoutService.createWorkoutPlan(planData);
@@ -591,8 +618,25 @@ export async function updateWorkoutPlan(req, res) {
     if (!idEquals(existingPlan.trainerId, req.user.id) && req.user.role !== 'admin') {
       return errorResponse(res, 403, 'You are not authorized to update this plan');
     }
-    
-    const planData = req.body;
+
+    // Whitelist the update — D-001 owner-transfer rejection: trainerId is
+    // immutable and a clientId reassignment requires an ACTIVE assignment to
+    // the new client. Raw req.body here previously allowed transferring plan
+    // ownership/targeting wholesale.
+    const planUpdateAllowed = [
+      'title', 'name', 'description', 'goal', 'difficulty', 'durationWeeks',
+      'workoutsPerWeek', 'template', 'active', 'nasmPhase', 'exercises', 'status'
+    ];
+    const planData = {};
+    for (const field of planUpdateAllowed) {
+      if (req.body[field] !== undefined) planData[field] = req.body[field];
+    }
+    if (req.body.clientId !== undefined && !idEquals(req.body.clientId, existingPlan.clientId)) {
+      if (!(await canAccessClientData(req.body.clientId, req.user))) {
+        return errorResponse(res, 404, 'Target client not found');
+      }
+      planData.clientId = req.body.clientId;
+    }
     const plan = await workoutService.updateWorkoutPlan(planId, planData);
     
     return successResponse(res, { plan });

@@ -60,27 +60,17 @@ if (disposableFlag && !localDbShape) {
 }
 
 // ── RUN ─────────────────────────────────────────────────────────────────────
-if (suite === 'campaign-safety') {
-  const testFile = join(securityDir, 'campaign-safety.test.mjs');
-  if (!existsSync(testFile)) {
-    console.error(`[disposable] missing ${testFile}`);
-    process.exit(2);
-  }
-  const result = spawnSync(process.execPath, [
-    '--experimental-vm-modules', '--test-isolation=none', '--test', testFile,
-  ], { stdio: 'inherit', cwd: backendRoot, env: process.env });
-  process.exit(result.status ?? 1);
-}
-
+// Every tests/security/*.test.mjs is a node:test file (VM harness, no DB) and
+// is excluded from the default vitest run by vitest.config.mjs. Uniform runner:
+// node --test with the VM-modules flag, targeted file, from backend/.
 const suiteFile = join(securityDir, `${suite}.test.mjs`);
 if (!existsSync(suiteFile)) {
   console.error(`[disposable] unknown suite: ${suite} (no tests/security/${suite}.test.mjs)`);
-  console.error('[disposable] available: ' + 'campaign-safety');
+  console.error('[disposable] available suites: see backend/tests/security/');
   process.exit(2);
 }
 
-const vitestCli = join(backendRoot, 'node_modules', 'vitest', 'vitest.mjs');
 const result = spawnSync(process.execPath, [
-  vitestCli, 'run', `tests/security/${suite}.test.mjs`, '--retry=0',
+  '--experimental-vm-modules', '--test-isolation=none', '--test', suiteFile,
 ], { stdio: 'inherit', cwd: backendRoot, env: process.env });
 process.exit(result.status ?? 1);
