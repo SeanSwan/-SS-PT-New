@@ -309,7 +309,14 @@ describe('CoachCommandCenter foreground voice lifecycle (G06)', () => {
     // Audio stop is separate from action cancel: the in-flight write stays tracked.
     expect(cancelCommandMock).not.toHaveBeenCalled();
     resolveInFlight({ type: 'fallback_to_chat' });
-  });
+    // 20s budget, not vitest's 5s default. This is a full CoachCommandCenterPage
+    // render plus a visibilitychange rerender, and it is load-sensitive rather
+    // than hung — the pending write IS resolved at the end of the body. Measured
+    // 1.7-3.6s on an idle dev box, i.e. under 1.4x headroom at the 5s default,
+    // which flaked red in CI on main twice (540593778, and d94d372bc before it)
+    // while passing on 467009cea with a byte-identical blob. Same convention as
+    // WorkoutDesignLab.interaction.test.tsx (20s) and ClientsWorkspace (15s).
+  }, 20000);
 
   it('logout stops capture and output on the authenticated-to-anonymous flip', async () => {
     const view = await renderAdmittedPage();
