@@ -5,7 +5,7 @@
  */
 import { closeSync, existsSync, ftruncateSync, fsyncSync, mkdirSync, openSync, writeSync } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
-import { dirname } from 'node:path';
+import { basename, dirname } from 'node:path';
 import { readForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 import {
   appendGlmLedger,
@@ -21,7 +21,7 @@ const sha256 = (value) => createHash('sha256').update(value).digest('hex');
 const safeName = (value) => typeof value === 'string' && /^[A-Za-z0-9._:/-]{1,100}$/.test(value) ? value : null;
 
 function parseArgs(argv) {
-  const flags = new Set(['--document', '--out', '--remit', '--model', '--max-tokens', '--timeout-ms']);
+  const flags = new Set(['--document', '--out', '--remit', '--model', '--max-tokens', '--timeout-ms', '--title']);
   const args = {};
   for (let i = 0; i < argv.length; i += 2) {
     const name = argv[i], value = argv[i + 1];
@@ -34,6 +34,7 @@ function parseArgs(argv) {
     document: args['--document'],
     out: args['--out'] || 'docs/ai-workflow/AI-HANDOFF/GLM-CONSULT.md',
     remit: args['--remit'] || '',
+    title: args['--title'] || '',
     model: args['--model'] || 'glm-5.3',
     tokenPolicy: args['--max-tokens'] === GLM_TOKEN_POLICY_PROVIDER_DEFAULT
       ? GLM_TOKEN_POLICY_PROVIDER_DEFAULT : 'numeric',
@@ -70,6 +71,15 @@ async function main() {
     return 2;
   }
   const { document, out, remit, model, maxTokens, tokenPolicy, timeoutMs } = args;
+  // The H1 must name the WORK, not the writer. `check-doc-identity.mjs` exists to catch
+  // self-identity written where subject-identity belongs, and its own positive control is the
+  // literal `# GLM Consult` this transport used to hardcode — so every document it produced was
+  // the checker's canonical offender, and the reported symptom ("it changed the title to some
+  // completely random name, and then it starts to make me confused what I'm working on") followed
+  // directly from it. Derive the title from `--title` or the document basename; never the vendor.
+  const title = String(args.title || '').trim()
+    || basename(document).replace(/\.(md|txt|json)$/i, '').replace(/[-_]+/g, ' ').trim()
+    || 'GLM consult';
   const key = process.env.ZAI_API_KEY;
   if (!key) { console.error('[consult-glm] credential-missing: ZAI_API_KEY not set.'); return 2; }
   if (existsSync(out) || existsSync(out + '.receipt.json')) {
@@ -112,7 +122,7 @@ async function main() {
     mkdirSync(dirname(out), { recursive: true });
     // Reserve both artifacts before admission. wx never overwrites earlier evidence.
     reportFd = openSync(out, 'wx');
-    writeOwned(reportFd, '# GLM Consult\n\nPENDING — no completion evidence yet.\n');
+    writeOwned(reportFd, '# ' + title + '\n\nPENDING — no completion evidence yet.\n');
     receiptFd = openSync(out + '.receipt.json', 'wx');
     persist();
     try {
@@ -123,7 +133,7 @@ async function main() {
         : /unresolved|reconciliation/.test(error.message) ? 'unresolved-lock'
           : /already active/.test(error.message) ? 'active-lock' : 'guard-denied';
       persist();
-      writeOwned(reportFd, '# GLM Consult\n\nBLOCKED: ' + receipt.reason + '. No request sent.\n');
+      writeOwned(reportFd, '# ' + title + '\n\nBLOCKED: ' + receipt.reason + '. No request sent.\n');
       console.error('[consult-glm] BLOCKED: ' + receipt.reason);
       return 2;
     }
@@ -226,7 +236,8 @@ async function main() {
     persist();
     const usage = receipt.usage;
     const substituted = modelMismatch ? ' SUBSTITUTED' : '';
-    writeOwned(reportFd, '# GLM Consult\n\n'
+    writeOwned(reportFd, '# ' + title + '\n\n'
+      + '**Document:** `' + document + '`\n'
       + '**Requested:** `' + model + '`\n**Served:** `' + (receipt.servedModel || 'unreported') + '`' + substituted
       + '\n**Status:** ' + receipt.status + ' (' + receipt.reason + ')'
       + '\n**Tokens:** ' + (usage.prompt_tokens ?? 'unreported') + ' in / '
