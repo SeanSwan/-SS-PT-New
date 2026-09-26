@@ -7,6 +7,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { validationMiddleware } from '../middleware/validationMiddleware.mjs';
+import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -33,6 +34,16 @@ const sendInternalError = (res, message) => res.status(500).json({
 
 const isPrivileged = (role) => ['admin', 'trainer'].includes(role);
 const sameId = (a, b) => String(a) === String(b);
+
+// Trainer privilege on ANOTHER user's session data requires an ACTIVE
+// ClientTrainerAssignment (hostile-review fix 2026-09-25: this file predated
+// the assignment middleware, so any trainer could read/mutate any client's
+// sessions by id). Self-access passes without a query; admins pass via the
+// helper; every other role fails closed.
+const canAccessUserSessions = async (targetUserId, reqUser) => {
+  if (sameId(targetUserId, reqUser.id)) return true;
+  return assertAssignmentOrAdmin(reqUser.id, reqUser.role, targetUserId);
+};
 
 const parsePositiveInteger = (value, label, maxValue = Number.MAX_SAFE_INTEGER) => {
   if (value === undefined || value === null || value === '') {
@@ -124,10 +135,11 @@ router.get('/', protect, async (req, res) => {
         return res.status(400).json({ success: false, message: parsedUserId.message });
       }
 
-      // Allow trainers and admins to view other users' sessions
-      if (!sameId(parsedUserId.value, req.user.id) && !isPrivileged(req.user.role)) {
-        return res.status(403).json({ 
-          message: 'You are not authorized to view this user\'s workout sessions' 
+      // Allow trainers and admins to view other users' sessions — but ONLY
+      // with an active assignment (role alone is not authorization)
+      if (!(await canAccessUserSessions(parsedUserId.value, req.user))) {
+        return res.status(403).json({
+          message: 'You are not authorized to view this user\'s workout sessions'
         });
       }
       where.userId = parsedUserId.value;
@@ -217,7 +229,7 @@ router.get('/:id', protect, async (req, res) => {
     }
 
     // Check authorization - compare as integers
-    if (!sameId(session.userId, req.user.id) && !isPrivileged(req.user.role)) {
+    if (!(await canAccessUserSessions(session.userId, req.user))) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to view this workout session'
@@ -279,7 +291,11 @@ router.post('/',
         if (!sameId(sessionData.userId, req.user.id)) {
           // FIXED: Use Sequelize findByPk instead of Mongoose findById
           const userExists = await User.findByPk(sessionData.userId);
-          if (!userExists) {
+          // Cross-tenant gate: creating a session for another user requires an
+          // ACTIVE assignment — same 404 as unknown user (does not confirm
+          // existence of a client to an unassigned trainer)
+          const canTarget = userExists && await canAccessUserSessions(sessionData.userId, req.user);
+          if (!canTarget) {
             return res.status(404).json({ success: false, message: 'Target user not found' });
           }
         }
@@ -319,7 +335,7 @@ router.put('/:id',
       }
 
       // Check authorization - compare as integers
-      if (!sameId(existingSession.userId, req.user.id) && !isPrivileged(req.user.role)) {
+      if (!(await canAccessUserSessions(existingSession.userId, req.user))) {
         return res.status(403).json({
           success: false,
           message: 'You are not authorized to update this workout session'
@@ -355,7 +371,7 @@ router.delete('/:id', protect, async (req, res) => {
     }
 
     // Check authorization - compare as integers
-    if (!sameId(session.userId, req.user.id) && !isPrivileged(req.user.role)) {
+    if (!(await canAccessUserSessions(session.userId, req.user))) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to delete this workout session'
@@ -400,10 +416,19 @@ router.post('/start', protect, async (req, res) => {
     if (!isPrivileged(req.user.role)) {
       sessionData.userId = req.user.id;
     }
-    
+
+    // Cross-tenant gate: starting a session for another user requires an
+    // ACTIVE assignment (role alone is not authorization)
+    if (!(await canAccessUserSessions(sessionData.userId, req.user))) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to start a workout session for this user'
+      });
+    }
+
     // Create the session
     const session = await WorkoutSession.create(sessionData);
-    
+
     res.status(201).json({ session });
   } catch (error) {
     console.error('Error starting workout session:', error);
@@ -428,7 +453,7 @@ router.post('/:id/end', protect, async (req, res) => {
     }
 
     // Check authorization - compare as integers
-    if (!sameId(session.userId, req.user.id) && !isPrivileged(req.user.role)) {
+    if (!(await canAccessUserSessions(session.userId, req.user))) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to update this workout session'
@@ -504,10 +529,10 @@ router.get('/statistics/:userId', protect, async (req, res) => {
       return res.status(400).json({ success: false, message: parsedUserId.message });
     }
     
-    // Check authorization
-    if (!sameId(parsedUserId.value, req.user.id) && !isPrivileged(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'You are not authorized to view this user\'s statistics' 
+    // Check authorization — assignment-backed (role alone is not authorization)
+    if (!(await canAccessUserSessions(parsedUserId.value, req.user))) {
+      return res.status(403).json({
+        message: 'You are not authorized to view this user\'s statistics'
       });
     }
     

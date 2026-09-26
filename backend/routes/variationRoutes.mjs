@@ -12,6 +12,7 @@
  */
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
+import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { getVariationLog } from '../models/index.mjs';
 import {
   getNextSessionType,
@@ -62,6 +63,14 @@ router.post('/suggest', async (req, res) => {
     if (isNaN(parsedClientId)) {
       return res.status(400).json({ success: false, error: 'Valid clientId is required' });
     }
+
+    // Cross-tenant gate: writing variation logs for a client requires an
+    // ACTIVE assignment (role alone is not authorization)
+    const canAccessClient = await assertAssignmentOrAdmin(req.user.id, req.user.role, parsedClientId);
+    if (!canAccessClient) {
+      return res.status(404).json({ success: false, error: 'Client not found or not accessible' });
+    }
+
     if (!templateCategory || typeof templateCategory !== 'string') {
       return res.status(400).json({ success: false, error: 'templateCategory is required' });
     }
@@ -221,6 +230,13 @@ router.get('/timeline', async (req, res) => {
     const parsedClientId = parseInt(req.query.clientId, 10);
     if (isNaN(parsedClientId)) {
       return res.status(400).json({ success: false, error: 'Valid clientId is required' });
+    }
+
+    // Cross-tenant gate: reading a client's rotation history requires an
+    // ACTIVE assignment (role alone is not authorization)
+    const canAccessClient = await assertAssignmentOrAdmin(req.user.id, req.user.role, parsedClientId);
+    if (!canAccessClient) {
+      return res.status(404).json({ success: false, error: 'Client not found or not accessible' });
     }
 
     const category = req.query.category;

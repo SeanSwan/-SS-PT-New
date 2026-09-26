@@ -240,6 +240,13 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Analysis not found' });
     }
 
+    // Cross-tenant gate: viewing AI movement analysis requires an ACTIVE
+    // assignment (role alone is not authorization)
+    const canAccess = await assertAssignmentOrAdmin(req.user.id, req.user.role, analysis.userId);
+    if (!canAccess) {
+      return res.status(404).json({ error: 'Analysis not found' });
+    }
+
     res.json(analysis);
   } catch (error) {
     logger.error('[FormAnalysis] Get analysis error:', error.message);
@@ -259,6 +266,13 @@ router.post('/:id/reprocess', async (req, res) => {
     );
 
     if (!analysis) {
+      return res.status(404).json({ error: 'Analysis not found' });
+    }
+
+    // Cross-tenant gate: triggering AI reprocessing requires an ACTIVE
+    // assignment (role alone is not authorization)
+    const canAccess = await assertAssignmentOrAdmin(req.user.id, req.user.role, analysis.userId);
+    if (!canAccess) {
       return res.status(404).json({ error: 'Analysis not found' });
     }
 
