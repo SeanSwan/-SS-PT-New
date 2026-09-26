@@ -1,8 +1,8 @@
 /**
  * FILE: CoachCommandCenter.voiceCapture.ts
- * PURPOSE: Unifies browser dictation, recorder transcription fallback, and reviewed composer handoff.
+ * PURPOSE: Unifies browser dictation, inline recorder transcription, and reviewed composer handoff.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { mergeVoiceCaptureOrigin, type CoachInputOrigin } from '../../../../hooks/coachInputOrigin';
 import { useAuth } from '../../../../hooks/useAuth';
@@ -18,16 +18,13 @@ import {
   useCoachBrowserSpeechInput,
   type CoachSpeechRuntimeFailure,
 } from './hooks/useCoachBrowserSpeechInput';
+import { useCoachInlineRecorder } from './hooks/useCoachInlineRecorder';
 import { useCoachVoiceLifecycle } from './hooks/useCoachVoiceLifecycle';
 
 type VoiceCaptureMode = 'browser' | 'recorder' | 'none';
 
-type VoiceOverlayProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  onEditTranscript: (text: string) => void;
-  onTranscribed: (text: string) => void;
-};
+/** 'listening' = the mic is live; 'transcribing' = the audio is away for text. */
+export type VoiceCapturePhase = 'idle' | 'listening' | 'transcribing';
 
 type VoiceCaptureParams = {
   commandTextRef: RefObject<HTMLTextAreaElement>;
@@ -65,12 +62,12 @@ function isCoachVoiceRecorderSupported(): boolean {
 function runCoachVoiceCommand(
   speech: {
     listening: boolean;
-    openRecorder: () => void;
     recorderSupported: boolean;
     speechSupported: boolean;
     toggleListening: () => void;
   },
   bargeIn: () => void,
+  toggleRecorder: () => void,
   setSelectedStatus: (status: string) => void,
 ) {
   if (speech.speechSupported) {
@@ -82,9 +79,11 @@ function runCoachVoiceCommand(
     return;
   }
   if (speech.recorderSupported) {
+    // Inline, exactly like dictation: no overlay and no preview step. The
+    // recorder lane owns its own listening/transcribing status, so this branch
+    // deliberately sets none.
     bargeIn();
-    speech.openRecorder();
-    setSelectedStatus('Voice recorder opened - review transcript before sending');
+    toggleRecorder();
     return;
   }
   setSelectedStatus('Voice input is not available in this browser');
@@ -99,7 +98,6 @@ export function useCoachCommandVoiceCapture({
   binding,
 }: VoiceCaptureParams) {
   const [voiceInputError, setVoiceInputError] = useState<string | null>(null);
-  const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
   const recorderSupported = isCoachVoiceRecorderSupported();
 
   // Live admission read at call time: browser dictation finals and recorder
@@ -141,37 +139,46 @@ export function useCoachCommandVoiceCapture({
     });
   }, [canStage, setCommandText, setInputOrigin]);
 
-  const handleVoiceCaptured = useCallback((text: string) => {
-    if (!canStage()) return;
+  /** Stage dictated words. Returns false when the live admission refuses them. */
+  const stageCapturedText = useCallback((text: string): boolean => {
+    if (!canStage()) return false;
     setCommandText((current) => {
       const nextValue = capturedVoiceText(current, text);
       setInputOrigin((origin) => mergeVoiceCaptureOrigin(origin, current, text));
       return nextValue;
     });
     setVoiceInputError(null);
-    setSelectedStatus('Voice command captured - press Send to continue');
-  }, [canStage, setCommandText, setInputOrigin, setSelectedStatus]);
+    return true;
+  }, [canStage, setCommandText, setInputOrigin]);
 
-  const handleVoiceOverlayEdit = useCallback((text: string) => {
-    if (!canStage()) return;
-    setVoiceCommandText(text);
-    setInputOrigin('mixed');
-    setVoiceInputError(null);
-    setSelectedStatus('Voice transcript staged - press Send to continue');
-    setVoiceOverlayOpen(false);
-    window.setTimeout(() => commandTextRef.current?.focus(), 0);
-  }, [canStage, commandTextRef, setInputOrigin, setSelectedStatus, setVoiceCommandText]);
+  /** The recorder lane stages through the same admission gate, then hands back
+   * the composer focus the overlay's edit path used to provide. */
+  const stageInlineTranscript = useCallback((text: string): boolean => {
+    const staged = stageCapturedText(text);
+    if (staged) window.setTimeout(() => commandTextRef.current?.focus(), 0);
+    return staged;
+  }, [commandTextRef, stageCapturedText]);
 
-  const handleVoiceOverlayTranscribed = useCallback((text: string) => {
-    handleVoiceCaptured(text);
-    setVoiceOverlayOpen(false);
-  }, [handleVoiceCaptured]);
+  const inlineRecorder = useCoachInlineRecorder({
+    onTranscribed: stageInlineTranscript,
+    setSelectedStatus,
+    setVoiceInputError,
+  });
+  // Held in refs so the speech hook and the lifecycle keep stable callback
+  // identities across the recorder lane's re-renders.
+  const toggleRecorderRef = useRef(inlineRecorder.toggle);
+  toggleRecorderRef.current = inlineRecorder.toggle;
+  const abortRecorderRef = useRef(inlineRecorder.abort);
+  abortRecorderRef.current = inlineRecorder.abort;
 
   const handleBrowserSpeechUnavailable = useCallback((failure: CoachSpeechRuntimeFailure) => {
     if (recorderSupported && failure.canTryRecorder) {
-      setVoiceInputError('Browser dictation failed - recorder fallback opened for review.');
-      setVoiceOverlayOpen(true);
-      setSelectedStatus('Browser dictation failed - recorder fallback opened');
+      // Hand over to the same inline dock lane. This is a NOTICE, not an error:
+      // routing it through voiceInputError would latch it as the
+      // highest-priority status (buildVoiceStatus returns it first, and only a
+      // later stage clears it) and so mask every subsequent status line.
+      setSelectedStatus('Browser dictation failed - switching to inline recording');
+      toggleRecorderRef.current();
       return;
     }
     setVoiceInputError(failure.message);
@@ -193,7 +200,7 @@ export function useCoachCommandVoiceCapture({
     authenticated: Boolean(user),
     stopCapture: useCallback(() => {
       speech.stopListening();
-      setVoiceOverlayOpen(false);
+      abortRecorderRef.current();
     }, [speech]),
     stopSpeechOutput: speechOutputStop,
   });
@@ -210,6 +217,12 @@ export function useCoachCommandVoiceCapture({
     if (previous === admissionKey) return;
     armedTokenRef.current = null;
     stopAll('surface-switch');
+    // `admissionToken` is deliberately NOT a dependency. It is a fresh object
+    // every render, so listing it would re-run this effect on every render; the
+    // effect only ACTS when `admissionKey` changes, and that key is a pure
+    // function of the token's fields — so whenever it changes, the token read
+    // here is already the one from the render that changed it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [admissionKey, stopAll]);
 
   const handleVoice = useCallback(() => {
@@ -221,27 +234,28 @@ export function useCoachCommandVoiceCapture({
     armedTokenRef.current = readPublicationScope(bindingRef.current);
     runCoachVoiceCommand({
       listening: speech.listening,
-      openRecorder: () => setVoiceOverlayOpen(true),
       recorderSupported,
       speechSupported: speech.speechSupported,
       toggleListening: speech.toggleListening,
-    }, bargeIn, setSelectedStatus);
+    }, bargeIn, toggleRecorderRef.current, setSelectedStatus);
   }, [admittedNow, bargeIn, recorderSupported, setSelectedStatus, speech]);
 
   const voiceCaptureMode: VoiceCaptureMode = speech.speechSupported ? 'browser' : recorderSupported ? 'recorder' : 'none';
-  const voiceOverlay: VoiceOverlayProps = useMemo(() => ({
-    isOpen: voiceOverlayOpen,
-    onClose: () => setVoiceOverlayOpen(false),
-    onEditTranscript: handleVoiceOverlayEdit,
-    onTranscribed: handleVoiceOverlayTranscribed,
-  }), [handleVoiceOverlayEdit, handleVoiceOverlayTranscribed, voiceOverlayOpen]);
+  const voiceListening = speech.listening || inlineRecorder.isListening;
+  const voicePhase: VoiceCapturePhase = voiceListening
+    ? 'listening'
+    : inlineRecorder.active ? 'transcribing' : 'idle';
 
   return {
     handleVoice,
-    voiceActive: selectionAdmitted && (speech.listening || voiceOverlayOpen),
+    // A voice session is live from the first press until the words land — the
+    // same span the overlay used to cover.
+    voiceActive: selectionAdmitted && voicePhase !== 'idle',
     voiceCaptureMode,
-    voiceOverlay,
-    voiceStatus: buildVoiceStatus(voiceInputError, speech.interim, speech.listening),
-    voiceSupported: speech.speechSupported || recorderSupported,
+    // Recorder mode meters its own recording stream; browser dictation has no
+    // stream to meter, so the dock's meter opens its own parallel capture.
+    voiceGetLevel: voiceCaptureMode === 'recorder' ? inlineRecorder.getLevel : null,
+    voicePhase,
+    voiceStatus: buildVoiceStatus(voiceInputError, speech.interim, voiceListening),
   };
 }

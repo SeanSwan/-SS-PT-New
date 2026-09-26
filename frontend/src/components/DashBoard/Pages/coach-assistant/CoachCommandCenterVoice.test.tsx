@@ -13,6 +13,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   executeCommandMock,
+  inlineRecorderDriver,
   renderAdmittedPage,
   renderPage,
   resetVoiceFixture,
@@ -41,7 +42,7 @@ describe('CoachCommandCenter voice input', () => {
     expect(screen.getByRole('button', { name: /voice dictation/i })).toBeDisabled();
   });
 
-  it('opens the server transcription recorder when browser speech is unavailable', async () => {
+  it('captures inline, with no recorder overlay, when browser speech is unavailable', async () => {
     speechMock.speechSupported = false;
     setRecorderSupport(true);
 
@@ -51,14 +52,14 @@ describe('CoachCommandCenter voice input', () => {
     expect(mic).not.toBeDisabled();
 
     fireEvent.click(mic);
-    expect(screen.getByRole('dialog', { name: /voice recording/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /mock transcribe/i }));
-    expect(screen.getByPlaceholderText(/talk or type to swan coach/i)).toHaveValue('Log squats 3 by 10');
-    expect(screen.getByText(/voice command captured - press send to continue/i)).toBeInTheDocument();
+    expect(inlineRecorderDriver.toggle).toHaveBeenCalledTimes(1);
+    // The regression this whole change exists to prevent: one press must not
+    // raise a full-screen module the speaker then has to walk out of.
+    expect(screen.queryByRole('dialog', { name: /voice recording/i })).toBeNull();
   });
 
-  it('opens recorder capture when browser speech fails at runtime', async () => {
+  it('hands a runtime browser-speech failure to the inline recorder, not an overlay', async () => {
     setRecorderSupport(true);
     await renderAdmittedPage();
 
@@ -72,8 +73,9 @@ describe('CoachCommandCenter voice input', () => {
       });
     });
 
-    expect(screen.getByRole('dialog', { name: /voice recording/i })).toBeInTheDocument();
-    expect(screen.getByText(/recorder fallback opened/i)).toBeInTheDocument();
+    expect(inlineRecorderDriver.toggle).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/switching to inline recording/i)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: /voice recording/i })).toBeNull();
   });
 
   it('routes transcribed workout commands through the approval-gated command lane', async () => {
@@ -93,7 +95,9 @@ describe('CoachCommandCenter voice input', () => {
     await renderAdmittedPage();
 
     fireEvent.click(screen.getByRole('button', { name: /start voice recording/i }));
-    fireEvent.click(screen.getByRole('button', { name: /mock transcribe/i }));
+
+    act(() => { inlineRecorderDriver.onTranscribed?.('Log squats 3 by 10'); });
+
     fireEvent.click(screen.getByRole('button', { name: /^send to swan coach$/i }));
 
     await waitFor(() => {

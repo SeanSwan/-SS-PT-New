@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import WorkspaceComposer from './WorkspaceComposer';
 vi.mock('../coach-assistant/CoachCommandCatalogSheet', () => ({ default: () => null }));
-vi.mock('../coach-assistant/VoiceRecordingOverlay', () => ({ default: () => null }));
 function mount() {
   const controller = {
     commandText: '/', commandTextRef: createRef<HTMLTextAreaElement>(), commandFormRef: createRef<HTMLFormElement>(),

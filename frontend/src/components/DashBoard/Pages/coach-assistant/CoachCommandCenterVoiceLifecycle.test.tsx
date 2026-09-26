@@ -107,6 +107,29 @@ vi.mock('./hooks/useCoachBrowserSpeechInput', () => ({
   },
 }));
 
+// The recorder lane is driven synthetically: jsdom has neither MediaRecorder nor
+// getUserMedia, so the two hooks it composes are stubbed and steered directly.
+const recorderStub = vi.hoisted(() => ({
+  abort: vi.fn(),
+  audioBlob: null as Blob | null,
+  duration: 0,
+  error: null as string | null,
+  getAudioLevel: () => 0,
+  reset: vi.fn(),
+  start: vi.fn(),
+  state: 'idle' as string,
+  stop: vi.fn(),
+}));
+const transcriptionStub = vi.hoisted(() => ({
+  error: null as string | null,
+  reset: vi.fn(),
+  state: 'idle' as string,
+  text: '',
+  transcribe: vi.fn(),
+}));
+vi.mock('./hooks/useVoiceRecorder', () => ({ useVoiceRecorder: () => recorderStub }));
+vi.mock('./hooks/useGeminiTranscription', () => ({ useGeminiTranscription: () => transcriptionStub }));
+
 vi.mock('./VoiceRecordingOverlay', () => ({
   default: ({ isOpen }: { isOpen: boolean }) => (
     isOpen ? <section role="dialog" aria-label="Voice recording" /> : null
@@ -376,7 +399,7 @@ function actSetText(text: string) {
  * Plan 55 C4 (G04BC-R05, G04BC-R07, G04BC-T14) — dictation is an input lane
  * INTO a scoped composer. While the mounted Coach holds a live publication
  * binding that no longer admits the actor, a late browser transcript or a
- * recorder-overlay edit must not stage words, and the existing
+ * recorder transcript must not stage words, and the existing
  * useCoachVoiceLifecycle stopAll must fire when the admission changes.
  * Each assertion is paired with an admitted control.
  * ========================================================================= */
@@ -431,6 +454,12 @@ describe('Plan 55 C4: voice staging obeys the live publication admission', () =>
     setHidden(false);
     useAuthMock.mockReset();
     useAuthMock.mockReturnValue({ user: { role: 'admin', id: VOICE_ACTOR } });
+    recorderStub.state = 'idle';
+    recorderStub.audioBlob = null;
+    recorderStub.error = null;
+    transcriptionStub.state = 'idle';
+    transcriptionStub.text = '';
+    transcriptionStub.error = null;
   });
 
   it('drops a browser dictation final that lands after the admission retired', () => {
@@ -452,20 +481,30 @@ describe('Plan 55 C4: voice staging obeys the live publication admission', () =>
     expect(result.current.commandText).toBe('late dictated words');
   });
 
-  it('refuses a recorder-overlay transcript edit while the selection is not admitted', () => {
+  it('refuses an inline recorder transcript while the selection is not admitted', () => {
     const live = { current: voiceSnapshot({ enabled: false }) as PublicationSnapshot | null };
-    const { result } = renderHook(() => useVoiceCaptureWithBinding(voiceBinding(() => live.current)));
+    const { result, rerender } = renderHook(({ tick }: { tick: number }) => {
+      void tick;
+      return useVoiceCaptureWithBinding(voiceBinding(() => live.current));
+    }, { initialProps: { tick: 0 } });
 
-    act(() => { result.current.capture.voiceOverlay.onEditTranscript('Edit bench press 4 by 8'); });
+    transcriptionStub.text = 'Edit bench press 4 by 8';
+    transcriptionStub.state = 'done';
+    act(() => { rerender({ tick: 1 }); });
 
     expect(result.current.commandText).toBe('');
   });
 
-  it('CONTROL: stages the same overlay edit while the admission is live', () => {
+  it('CONTROL: stages the same inline recorder transcript while the admission is live', () => {
     const live = { current: voiceSnapshot() as PublicationSnapshot | null };
-    const { result } = renderHook(() => useVoiceCaptureWithBinding(voiceBinding(() => live.current)));
+    const { result, rerender } = renderHook(({ tick }: { tick: number }) => {
+      void tick;
+      return useVoiceCaptureWithBinding(voiceBinding(() => live.current));
+    }, { initialProps: { tick: 0 } });
 
-    act(() => { result.current.capture.voiceOverlay.onEditTranscript('Edit bench press 4 by 8'); });
+    transcriptionStub.text = 'Edit bench press 4 by 8';
+    transcriptionStub.state = 'done';
+    act(() => { rerender({ tick: 1 }); });
 
     expect(result.current.commandText).toBe('Edit bench press 4 by 8');
   });
