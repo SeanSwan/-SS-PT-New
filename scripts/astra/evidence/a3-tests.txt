@@ -1,0 +1,307 @@
+ASTRA — slice A3 evidence (Surface v1: Compose · Choose · Think)
+Captured: 2026-09-26T03:40:00Z
+Node: v22.22.2
+Worktree: tmp/worktrees/brain-console-salvage-20260918  branch: swan-brain-console-v3-salvage-20260918
+Base: 4eb34f3ad (A2)
+
+===============================================================================
+1. EXIT CRITERION — three directions render from a real brief, at ZERO COST
+===============================================================================
+brief: "a frozen lake at dawn, low vantage, the ice breathing" / hero / 16:9 / public
+
+directions returned: 3
+ - PRIOR    Obsidian Plane | A-swan-native
+ - PRIOR    Interference | A-swan-native
+ - PRIOR    Quiet Frame | A-swan-native
+cost: {"estimatedCents":0,"provider":"none"}
+
+All three are PRIOR, not EVIDENCE — and each card renders its `tierReason` saying so.
+No injected picks exist, so `EVIDENCE` is unreachable. That is the tier-is-truth rule
+working in the UI rather than merely in the type.
+
+===============================================================================
+2. EXIT CRITERION — BRAIN_VERSION displays FROM CODE, not a literal
+===============================================================================
+grep BRAIN_VERSION scripts/astra/core/brain.mjs
+  22:  BRAIN_VERSION,
+  39:  return compiler.BRAIN_VERSION;
+
+The pane reads it through readBrainVersion(), which returns the compiler's LIVE export.
+Covered by a1-core "T-U-05: readBrainVersion() returns the LIVE export" and
+"T-U-05: NO version literal exists anywhere in Astra's own source", plus the A3 route
+test "the rendered brainVersion comes from code, not a literal".
+
+===============================================================================
+3. EXIT CRITERION — AC4.6 control inventory (DIAL vs PROPOSAL)
+===============================================================================
+verifyControls(): {"ok":true,"total":23,"dials":18,"proposals":5,"rendered":14,
+                   "badKind":[],"duplicates":[],"missingFields":[],
+                   "writeWithoutToken":[],"proposalThatWrites":[]}
+
+23 controls: 18 DIAL, 5 PROPOSAL. 14 rendered, 9 declared-but-not-yet-rendered.
+EVERY unrendered control names the slice that will render it — 0 are unplanned:
+
+  tune     dial      tuning.knob                 plannedIn="A4"
+  tune     dial      tuning.stage                plannedIn="A4"
+  tune     dial      tuning.commit               plannedIn="A4"
+  tune     dial      tuning.revert               plannedIn="A4"
+  proposal proposal  proposal.newToken           plannedIn="A7"
+  proposal proposal  proposal.canonChange        plannedIn="A7"
+  proposal proposal  proposal.lawChange          plannedIn="A7"
+  proposal proposal  proposal.specModeActivation plannedIn="A7"
+  proposal proposal  proposal.tasteChange        plannedIn="A7"
+
+`proposalThatWrites` is EMPTY. That is the definition of the proposal channel: a
+proposal that writes is not a proposal, it is a dial wearing a proposal's label.
+
+Read-only panes carry their reason, not just their emptiness:
+  law   — "A failed check blocks the compile and Astra offers no override. Silent
+           stripping teaches the operator nothing and hides taste failures."
+  state — "No control on this pane enables a REFUSED lane. That is a design decision,
+           not a missing feature."
+
+The registry is checked in BOTH directions by the test: every registered control that
+claims `rendered` appears in the markup, AND every `data-control` in the markup is
+registered. A one-directional check passes against either bug.
+
+===============================================================================
+4. THE DECLARATION MATCHES THE ENFORCEMENT (registry vs server)
+===============================================================================
+The one control that writes is declared `writes: true, token: true`:
+  think.markRejectedAll  pane=think  kind=dial  writes=true  token=true
+
+The server enforces it on the route that control actually calls:
+  MUTATION_ROUTES = ['compile','reject','preview','tuning-stage','tuning-commit','tuning-revert']
+  client:  data-control="think.markRejectedAll"  ->  api('reject', ...)
+
+`reject` IS in MUTATION_ROUTES, so the gate at server.mjs:146 runs BEFORE the handler.
+A registry that declares `token: true` while the server treats the route as non-mutating
+would be a silent CSRF hole; these two were measured against each other, not assumed.
+
+===============================================================================
+5. EXIT CRITERION — T-A-01 / T-A-03 / T-A-05 are REAL browser measurements
+===============================================================================
+Playwright is NOT resolvable and there is no node_modules, but a real Chromium is
+cached, so the suite drives it over CDP with zero new dependencies (Node 22 has a
+global WebSocket). `--no-sandbox` is REQUIRED or the page target crashes.
+
+ok 1 - A3 browser measurements
+# tests 6
+# pass 6
+# fail 0
+
+Screenshots written by the run, verified as real PNGs at the requested widths:
+
+  a3-compose-360.png   | PNG | 360x900  | 40899 bytes
+  a3-compose-768.png   | PNG | 768x900  | 66767 bytes
+  a3-compose-1440.png  | PNG | 1440x900 | 80703 bytes
+  a3-think-1440.png    | PNG | 1440x900 | 115874 bytes
+
+T-A-01 is a horizontal-overflow measurement at 5 widths x 2 panes, plus a
+DELIBERATE-OVERFLOW PROBE: the test injects a wide element and confirms the detector
+CAN report overflow. Without that probe a green result would only prove the detector
+was broken. The stylesheet contains no `overflow-x: hidden` for the same reason — a
+clip would make the measurement unable to fail.
+
+===============================================================================
+6. THE DEFECT THIS SLICE FOUND AND FIXED — T-M-03
+===============================================================================
+T-M-03: a compile record missing `lawChecks` must render as PARTIAL, and must NEVER
+render as "0 checks passed".
+
+BEFORE the fix, renderThink always emitted its count heading, so an empty `lawChecks`
+rendered the literal text "0 run, 0 passed" — a finding the data cannot support. Zero
+passes and five unrun checks are different findings, and only one is a problem with
+the compile.
+
+The fix is in the RENDERER (surface/panes.mjs), not the test: a count is a CLAIM ABOUT
+COMPLETENESS, so it is only made when the record can support it. Measured across four
+cases:
+
+  partial + empty lawChecks   | LAW CHECKS  counts withheld — this record is PARTIAL
+                              | contains "0 passed": false
+  partial + 3 checks          | LAW CHECKS  counts withheld — this record is PARTIAL
+                              | contains "0 passed": false
+  complete + 2 checks         | LAW CHECKS  2 run, 2 passed
+                              | contains "0 passed": false
+  lawChecks never reported    | LAW CHECKS  not reported in this record
+                              | contains "0 passed": false
+
+The complete case still shows its real count, so the fix DISTINGUISHES rather than
+blanket-suppressing. The fourth case is new: a record that never reported `lawChecks`
+now states that fact in place of the table, because an empty <tbody> renders as
+nothing and reads as "all clear".
+
+===============================================================================
+7. THE FOUR TESTS §3 ASSIGNED TO A3 AND A3 HAD NOT BUILT
+===============================================================================
+04-TESTS-TRACEABILITY.md §3 puts T-U-02, T-U-03, T-I-07 and T-A-04 on slice A3.
+A3's own exit criterion (T-A-01/03/05 + AC4.6) was met, but those four were not
+built. Recording them as "not run" would have been a silent omission, so they are
+built in scripts/astra/tests/a3-choose.test.mjs (its own file — a3-surface.test.mjs
+is at 273 lines and panes.mjs at 289, both close to Rule 4's cap).
+
+ok 1 - T-U-02 a prior direction renders PRIOR, and never EVIDENCE
+ok 2 - T-U-02 an evidence direction renders EVIDENCE and cites the event ids
+ok 3 - T-U-03 swatches derived from fixed facets are byte-identical twice
+ok 4 - T-U-03 the strip carries no image bytes and reaches no network
+ok 5 - T-I-07 the Law pane offers NO override affordance — by construction
+ok 6 - T-A-04 every text pair Astra paints meets the repo contrast rule
+ok 7 - T-A-04 the non-text exemptions are explicit, reasoned, and not text pairs
+# tests 7
+# pass 7
+# fail 0
+
+T-A-04 MEASURED, using the repo's OWN instrument (contrastRatio from
+packages/swan-forge/scripts/audit-contrast.mjs — not a second implementation that
+could disagree with the design system's):
+
+  ok   ink on page                16.02:1 (min 4.5)
+  ok   ink on panel               14.64:1 (min 4.5)
+  ok   muted on page               6.15:1 (min 4.5)
+  ok   muted on panel              5.62:1 (min 4.5)
+  ok   accent on page             10.12:1 (min 4.5)
+  ok   accent on panel             9.25:1 (min 4.5)
+  ok   pass on panel               6.81:1 (min 4.5)
+  ok   fail on panel               5.16:1 (min 4.5)
+  ok   prior on panel              6.85:1 (min 4.5)
+
+One pair was measured and is deliberately NOT audited as text:
+
+  --line on --panel = 1.32:1 — a decorative 1px panel edge. WCAG 1.4.11 governs
+  non-text UI where the graphic is the ONLY means of conveying the information;
+  here panels are separated by layout, spacing and a distinct surface, and no state
+  or affordance is signalled by the edge alone.
+
+The exemption is recorded WITH its measured ratio and a reason, and the test asserts
+(a) every entry is genuinely a non-text pair — a text pair may not be quietly moved
+into the list — and (b) the recorded ratio still matches what the instrument computes,
+so the note cannot go stale.
+
+T-I-07 IS STRUCTURAL, NOT A WORD SEARCH. The first draft of this test grepped control
+ids for /override|force|skip|bypass/ and FIRED ON slots.stageOverrides — one of the
+THREE LEGAL DIALS, whose name contains the word. That is A2's D11 class again (a scan
+reading a declaration as the thing declared). The test now asserts the property that
+actually matters: the Law and State panes render ZERO registry controls, and every
+control a blocked compile emits belongs to a pane that is not a read-only one.
+
+===============================================================================
+8. THE SMOKE RUNNER — and the proof that its checks can fail
+===============================================================================
+04-TESTS-TRACEABILITY.md §1.7 names `node scripts/astra/surface/smoke.mjs`, and A3's
+evidence line names "the smoke output". The file DID NOT EXIST, so it was built rather
+than the packet's command left dangling. 290 lines, 26 checks, exit 0:
+
+astra smoke — http://127.0.0.1:52722
+brainVersion 0.2.0 · 26 checks
+
+ok    GET  /healthz                             200
+ok    GET  /static/astra.css                    200
+ok    GET  /static/../../../package.json (raw)  404
+ok    GET  / (Compose)                          200
+ok    GET  /choose                              200
+ok    GET  /think (no compile)                  200
+ok    GET  /law (not built)                     200
+ok    GET  /state (not built)                   200
+ok    GET  /tune (not built)                    200
+ok    GET  /ledger (not built)                  200
+ok    GET  /nope (404)                          404
+ok    GET  /api/capabilities                    200
+ok    GET  /api/state                           200
+ok    GET  /api/directions (POST-only)          405 E_METHOD
+ok    POST /api/directions (zero cost)          200
+ok    POST /api/compile (NO token)              401 E_TOKEN_REQUIRED
+ok    POST /api/compile (WRONG token)           401 E_TOKEN_INVALID
+ok    POST /api/compile (token)                 200
+ok    POST /api/preview (token, REFUSED)        501 E_GENERATION_DISABLED
+ok    POST /api/tuning-stage (token)            501 E_NOT_BUILT
+ok    POST /api/tuning-commit (token)           501 E_NOT_BUILT
+ok    POST /api/tuning-revert (token)           501 E_NOT_BUILT
+ok    POST /api/explain (unknown id)            404 E_COMPILE_UNKNOWN
+ok    POST /api/explain (real id)               200
+ok    POST /api/reject (token, real id)         200
+ok    POST /api/reject (unknown id)             404 E_COMPILE_UNKNOWN
+
+26 passed, 0 failed        exit 0
+
+EVERY CHECK ASSERTS A STATUS *AND* A CODE. A 501 from a crashed handler and a 501 that
+names E_GENERATION_DISABLED look identical to a status-only check, and only one of them
+is the refusal we built.
+
+THE RUNNER WAS THEN MUTATION-TESTED, because a check that cannot fail is not a check.
+`MUTATION_ROUTES` was emptied in the shipped server.mjs (with a byte-exact backup taken
+first), and the runner was re-run:
+
+  --- smoke against mutated code ---
+  24 passed, 2 failed
+  exit 1
+
+The two failures were exactly the two token-gate checks — `POST /api/compile (NO token)`
+and `(WRONG token)`. server.mjs was then restored and verified BYTE-IDENTICAL to the
+backup (`cmp` clean), and the runner returned to 26/26.
+
+THE RUNNER'S OWN FIRST RUN FAILED 5 OF 24, AND THREE OF THOSE WERE ITS OWN BUGS:
+
+ 1. The overflow scan matched the stylesheet's own COMMENT reading "NO `overflow-x:
+    hidden` ANYWHERE". The scan read a declaration as the thing declared — the D11/D20
+    class, fourth appearance in this engagement. Fixed by stripping comments first.
+ 2. The traversal check used `fetch`, which normalises `..` away before the request is
+    sent — so it tested the URL PARSER, not the server. The existing a3-surface test
+    already documents this and uses a raw socket; the smoke runner now does too.
+ 3. The token sentinel was `undefined` for "no token", which was also the "not
+    specified" value, so the check labelled "NO token" actually SENT a valid token and
+    passed a 200. Now `'none'` is explicit.
+
+The other two were a wrong expectation (`lawChecks` live on the `view`, not top-level)
+and a correct behaviour tested with a bad id (`E_COMPILE_UNKNOWN` on an unknown compile).
+
+===============================================================================
+9. THE FULL ASTRA SUITE
+===============================================================================
+# tests 79
+# pass 79
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+
+Per file:
+  a1-core.test.mjs      :: # tests 18 # pass 18 # fail 0
+  a2-mcp.test.mjs       :: # tests 15 # pass 15 # fail 0
+  a2-transport.test.mjs :: # tests  6 # pass  6 # fail 0
+  a3-browser.test.mjs   :: # tests  6 # pass  6 # fail 0
+  a3-choose.test.mjs    :: # tests  7 # pass  7 # fail 0
+  a3-surface.test.mjs   :: # tests 15 # pass 15 # fail 0
+  a5-capabilities.test.mjs :: # tests 12 # pass 12 # fail 0
+
+(79 = A1 18 + A5 12 + A2 21 + A3 28.)
+
+===============================================================================
+10. RULE 4 — the 300-line budget
+===============================================================================
+Modules checked: 28 (.mjs/.js/.css under scripts/astra)
+Over 300 lines: 0
+MAX: 290 at scripts/astra/surface/smoke.mjs
+(then panes.mjs at 289 — both are inside the cap with single-digit headroom)
+
+panes.mjs is under the cap but only 11 lines of headroom. A4 adds the Tune pane, which
+will not fit. The house overflow pattern applies: split into a sibling module, import
+it for local use, AND re-export — `export ... from` alone creates no local binding.
+This is recorded here so A4 starts by splitting rather than by discovering the cap.
+
+Test files are held to the same cap:
+  scripts/astra/tests/a3-surface.test.mjs  :: 273 lines
+  scripts/astra/tests/a3-choose.test.mjs   :: 199 lines
+  scripts/astra/tests/a3-browser.test.mjs  :: 232 lines
+
+===============================================================================
+11. WHAT THIS SLICE DELIBERATELY DID NOT DO
+===============================================================================
+- The Tune pane is NOT built. Its 4 controls are declared with plannedIn="A4" so the
+  rail is complete and the gap is VISIBLE rather than absent.
+- The proposal channel is NOT built. Its 5 controls are declared with plannedIn="A7",
+  and every one is `writes: false` so no code path can apply a proposal.
+- /api/preview returns 501 E_GENERATION_DISABLED and the tuning routes return 501
+  E_NOT_BUILT. They are named refusals, not silent 404s or empty 200s.
+- No Astra-scoped module smoke guard exists (named gap G3). moduleSmoke.test.mjs covers
+  shared/ only. Deferred to after A8.

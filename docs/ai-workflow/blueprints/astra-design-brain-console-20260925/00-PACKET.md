@@ -1,8 +1,8 @@
 # Astra — Design Brain Console · Build Packet
 
 - **Date:** 2026-09-25 · **Author:** sable (WorkBuddy AI, deepseek-v4.1-flash) · **Requested by:** Sean
-- **Status:** **A0 ✅ DONE** · **A1 ✅ DONE** (30/30 tests green) · **A2 ✅ DONE** (9 MCP tools; 51/51 tests green; evidence in `scripts/astra/evidence/a2-tests.txt`) · **A5 partially done** (the board is built and code-sourced) · A3–A4, A6–A8 **not started**.
-- **Read the corrections before coding on:** `A0-SEAM-AUDIT.md` (5 corrections), **`A1-CORRECTIONS.md` (11)**, and **`A2-CORRECTIONS.md` (6 + 9 defects)** supersede the sections they name in this packet. `A1-CORRECTIONS.md` §3 replaces `A0-SEAM-AUDIT.md` §6 outright — three of A0's REFUSED lanes were measured ACTIVE. `A2-CORRECTIONS.md` §4 records the two defects that mattered most: a CRLF file that made every anchored regex fail **silently**, and a licence filter that rejected all 18 worlds because it read the palette law at the wrong line offset.
+- **Status:** **A0 ✅ DONE** · **A1 ✅ DONE** (30/30 tests green) · **A2 ✅ DONE** (9 MCP tools; evidence in `scripts/astra/evidence/a2-tests.txt`) · **A3 ✅ DONE** (the loopback surface, 23 controls, 3 panes; **72/72 tests green**; evidence in `scripts/astra/evidence/a3-tests.txt` + 4 screenshots) · **A5 partially done** (the board is built and code-sourced; its `/law` + `/state` panes and its half of `T-P-01` are **not**) · A4, A6–A8 **not started**.
+- **Read the corrections before coding on:** `A0-SEAM-AUDIT.md` (5 corrections), **`A1-CORRECTIONS.md` (11)**, **`A2-CORRECTIONS.md` (6 + 9 defects)**, and **`A3-CORRECTIONS.md` (9 + 11 defects)** supersede the sections they name in this packet. `A1-CORRECTIONS.md` §3 replaces `A0-SEAM-AUDIT.md` §6 outright — three of A0's REFUSED lanes were measured ACTIVE. `A2-CORRECTIONS.md` §4 records the two defects that mattered most: a CRLF file that made every anchored regex fail **silently**, and a licence filter that rejected all 18 worlds because it read the palette law at the wrong line offset. `A3-CORRECTIONS.md` §5 records the defect that matters most here: a partial compile record rendered as **"0 checks passed"** — a finding the data could not support. `A3-CORRECTIONS.md` C18 is a **live trap for A5**: `T-P-01` is one id serving two requirements in two slices, and A3 claims only the `AC4.6` half.
 - **Mega Blueprints:** this is the packet. Read `00` → `05` in order before writing code.
 - **Repo/worktree:** `SS-PT` @ `tmp/worktrees/brain-console-salvage-20260918`
 - **Branch:** `swan-brain-console-v3-salvage-20260918` · **Commit:** `e29508664`
@@ -57,7 +57,11 @@ Measured on this worktree at `e29508664`; the A1 rows re-measured at `40d32c7ad`
 | **MCP server for the design brain** | **✅ EXISTS (A2)** — 9 tools, 1 guarded write | `scripts/astra/mcp/{server,tools}.mjs` |
 | **The World Engine catalogue + roulette** | **✅ EXISTS (A2)** — 18 worlds / 5 families, deterministic | `scripts/astra/core/{worlds,worldRoulette}.mjs` |
 | **Bounded doctrine search** | **✅ EXISTS (A2)** — pattern reused, module not shared | `scripts/astra/core/doctrine.mjs` |
-| Console surface of any kind | **MISSING** (A3) | — |
+| **Console surface — the loopback server + the control registry** | **✅ EXISTS (A3)** — 23 controls (18 DIAL / 5 PROPOSAL), token-gated mutations, loopback-only | `scripts/astra/surface/{controls,shell,panes,api,server}.mjs` |
+| **The three panes: Compose · Choose · Think** | **✅ EXISTS (A3)** — all §2.6 states; `AC4.6`'s registry test passes | `scripts/astra/static/`, `surface/panes.mjs` |
+| **Browser-measured accessibility** | **✅ EXISTS (A3)** — real Chromium over CDP, **zero new dependencies** | `scripts/astra/tests/helpers/cdp.mjs`, `a3-browser.test.mjs` |
+| Tune pane | **MISSING** (A4) — its 4 controls are declared with `plannedIn: "A4"` | `surface/controls.mjs` |
+| `/law` + `/state` panes | **MISSING** (A5) — the *board* exists, the *panes* do not | `core/capabilities.mjs` |
 | Doctrine corpus | **EXISTS** — ~25 files, ~400 KB | `docs/ai-workflow/design-brain/` |
 | Style taxonomy ("MidJourney Brain") | **EXISTS** | `design-brain/style-taxonomy.md` |
 | World Engine (18 DNA recipes) | **EXISTS** (doctrine) | `design-brain/worlds.md` |
@@ -74,9 +78,17 @@ Measured on this worktree at `e29508664`; the A1 rows re-measured at `40d32c7ad`
 - **G2 — `explain()` was missing. ✅ CLOSED in A1.** `lawChecks` were computed and attached to the
   result, and nothing rendered them. `shared/swanExplain.mjs` implements it; the CLI prints a full
   `ExplainView` for both a lawful compile and a blocked one.
-- **G3 — no MCP server**, so no agent can ask the design brain anything without shelling out. *(open)*
+- **G3 — no MCP server**, so no agent can ask the design brain anything without shelling out.
+  **✅ CLOSED in A2.** `scripts/astra/mcp/` — 9 tools, exactly one of which writes, and that one
+  refuses without `confirm: true`.
 - **G4 — no surface**, so the loop (bracket → pick → refine → review-answer → prune) is a sequence of
-  commands only its author remembers. *(A3; the CLI in A1 is the first face, not the surface)*
+  commands only its author remembers. **✅ CLOSED in A3.** The loopback console renders the first three
+  panes; the remaining two (Tune, Law/State) are named gaps with declared controls, not silent omissions.
+- **G5 — no Astra-scoped module smoke guard.** *(open)* `backend/tests/node-runner/moduleSmoke.test.mjs`
+  covers `shared/` only, so a new `scripts/astra/core/*.mjs` is verified only by whichever test happens
+  to import it. Astra is now **28 modules**. Deliberately deferred until after A8 so the guard is written
+  once, against the final module set. **Renumbered from G3** — see `A3-CORRECTIONS.md` C24: `G3` was
+  used for two unrelated gaps in two files.
 
 ### 2.2 Two drift findings
 

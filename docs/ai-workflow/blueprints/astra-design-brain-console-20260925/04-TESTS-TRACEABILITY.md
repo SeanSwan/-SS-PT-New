@@ -88,7 +88,7 @@ budget, but four modules sit above 280 — the next edit to any of them should e
 ### 1.7 Commands
 
 ```bash
-# unit + integration (A1 onward) — RUN at A1: 30 pass / 0 fail
+# unit + integration — RUN at A3: 79 pass / 0 fail  (A1: 30, A2: 51, A3: 79)
 node --test scripts/astra/tests/*.test.mjs
 
 # the A1 exit command — prints an ExplainView for both a lawful and a blocked compile
@@ -101,13 +101,18 @@ node scripts/astra/cli.mjs bind 0.0.0.0
 # the honest board
 node scripts/astra/cli.mjs state
 
-# surface smoke (A3 onward) — the same shape the verify console uses
+# surface smoke — RUN at A3: 26 checks, 26 passed, exit 0. The file did not exist
+# before A3 (A3-CORRECTIONS.md C26). Mutation-tested: emptying MUTATION_ROUTES in
+# server.mjs turns it RED (2 failed, exit 1) on exactly the two token-gate checks.
 node scripts/astra/surface/smoke.mjs --port 7411
 
 # MCP tool listing (A2)
 node scripts/astra/mcp/server.mjs --list-tools
 
 # accessibility + contrast
+# The swan-forge instrument audits its OWN theme packs. Astra's palette is audited
+# with the same rule by importing its exported contrastRatio — T-A-04 in
+# scripts/astra/tests/a3-choose.test.mjs. Worst measured text pair: 5.16:1 (fail on panel).
 node packages/swan-forge/scripts/audit-contrast.mjs
 ```
 
@@ -136,13 +141,13 @@ unchanged.
 
 | Req | AC | Artifact / component | Test | Slice | Evidence / status |
 |---|---|---|---|---|---|
-| R1 | AC1.1 | `shared/swanExplain.mjs`, Think pane | `T-U-04`, `T-E-01` | A1, A3 | **T-U-04 PASS** (A1); T-E-01 not run |
+| R1 | AC1.1 | `shared/swanExplain.mjs`, Think pane | `T-U-04`, `T-M-03`, `T-E-01` | A1, A3 | **T-U-04 PASS** (A1); **T-M-03 PASS** (A3 — and it FAILED first: a partial record rendered "0 checks passed"); T-E-01 not run |
 | R1 | AC1.2 | `shared/swanExplain.mjs` | `T-U-04` | A1 | **PASS** |
 | R1 | AC1.3 | `core/brain.mjs` version read | `T-U-05` | A1 | **PASS** |
 | R2 | AC2.1 | `shared/swanDirections.mjs` | `T-U-01` | A1 | **PASS** |
-| R2 | AC2.2 | Choose pane | `T-U-02`, `T-A-02` | A3 | not run |
-| R2 | AC2.3 | swatch derivation | `T-U-03` | A3 | not run |
-| R2 | AC2.4 | preview gate | `T-I-07` (no-override half) | A3 | not run |
+| R2 | AC2.2 | Choose pane | `T-U-02`, `T-A-02` | A3 | **PASS** — T-A-02 as a real 360px browser measurement; T-U-02 asserts a `prior` card never contains the word `EVIDENCE` |
+| R2 | AC2.3 | swatch derivation | `T-U-03` | A3 | **PASS** — byte-identical across renders; no data-URI / url() / http in the strip |
+| R2 | AC2.4 | preview gate | `T-I-07` (no-override half) | A3 | **PASS (no-override half)** — the Law and State panes render ZERO registry controls, so no affordance can exist. The `E_LAW_VIOLATION` half is A1. |
 | R3 | AC3.1 | `core/variants.mjs` brief write | `T-I-01` | A1 | not run |
 | R3 | AC3.2 | override layer | `T-I-01` | A1, A3 | not run |
 | R3 | AC3.3 | `personify()` gate | `T-U-06` | A1 | **PASS** |
@@ -151,11 +156,11 @@ unchanged.
 | R4 | AC4.3 | atomic write | `T-I-03`, `T-M-06` | A4 | not run |
 | R4 | AC4.4 | revert | `T-I-04` | A4 | not run |
 | R4 | AC4.5 | blast radius | `T-I-05` | A4 | not run |
-| R4 | AC4.6 | control registry | `T-P-01` | A3 | not run |
+| R4 | AC4.6 | control registry | `T-P-01` (**registry half**) | A3 | **PASS** — 23 controls, 18 DIAL / 5 PROPOSAL, `proposalThatWrites: []`, `writeWithoutToken: []`, and the markup agrees with the registry in BOTH directions |
 | R5 | AC5.1 | `core/capabilities.mjs` | `T-U-07` | A5 | **PASS** — A0 is done, board built |
 | R5 | AC5.2 | spec-mode read | `T-U-07` | A5 | **PASS** (DISABLED row, code-sourced) |
 | R5 | AC5.3 | claimed→false | `T-U-08` | A5 | **PASS** |
-| R5 | AC5.4 | no enabling control | `T-P-01` | A5 | not run |
+| R5 | AC5.4 | no enabling control | `T-P-01` (**authority half**) | A5 | not run — **and this is the only half still open.** `T-P-01` is ONE id serving two requirements in two slices; A3 claimed only the `AC4.6` half (`A3-CORRECTIONS.md` C18). |
 | R6 | AC6.1 | `core/ledger.mjs` | `T-E-03` | A6 | not run |
 | R6 | AC6.2 | cost drift | `T-I-06` | A6 | not run |
 | R6 | AC6.3 | trend view | `T-E-03` | A6 | not run |
@@ -163,7 +168,7 @@ unchanged.
 | R7 | AC7.2 | MCP surface audit | `T-P-02` | A2 | **PASS** — 21 forbidden names refused; no env read; no write path in `mcp/` |
 | R7 | AC7.3 | one board, two consumers | `T-I-09` | A2 | **PASS** — `deepEqual` against the live `capabilities()` |
 | R8 | AC8.1 | `core/bind.mjs` | `T-U-10` | A1 | **PASS** |
-| R8 | AC8.2 | mutation token | `T-I-10` | A1 | not run |
+| R8 | AC8.2 | mutation token | `T-I-10` | **A3** | **PASS** — 401 on missing AND wrong token; the gate runs BEFORE the handler; cookie is `SameSite=Strict`. Moved from A1: A1 had no server to test it against. |
 | R8 | AC8.3 | no secret in surface | `T-P-02` | A2 | **PASS** — no `process.env`, no dotenv import in Astra's shipped source |
 | INV1 | — | write-path scan | `T-P-02` | A2 | **PASS** — one mutating call in `mcp/`, and it is `brain.reject`'s |
 | INV2 | — | write-path scan | `T-P-03` | A1 | not run |

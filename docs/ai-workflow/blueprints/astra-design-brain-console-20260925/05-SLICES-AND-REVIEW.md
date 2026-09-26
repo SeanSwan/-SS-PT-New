@@ -50,16 +50,38 @@ sitting.
   Two are worth reading before A3: a CRLF catalogue made every anchored regex fail **silently**, and the
   `swan-brand` licence filter rejected **all 18 worlds** because it read the palette law at the wrong
   line offset. Both are "the instrument was wrong, not the thing it measured".
-- **Named gap:** **G3** — there is no Astra-scoped module smoke guard. `moduleSmoke.test.mjs` covers
+- **Named gap:** **G5** — there is no Astra-scoped module smoke guard. `moduleSmoke.test.mjs` covers
   `shared/` only, so a new `core/*.mjs` is verified only by whichever test imports it. Deliberately not
-  built here; better written once after A8.
+  built here; better written once after A8. *(Renumbered from `G3`, which `00-PACKET.md` §2.1 used for
+  the missing MCP server — see `A3-CORRECTIONS.md` C24.)*
 
-### A3 — Surface v1 (Compose · Choose · Think)
+### A3 — Surface v1 (Compose · Choose · Think) ← **✅ DONE 2026-09-26**
 - **Does:** the loopback server, the control registry, three panes, all §2.6 states.
-- **Entry:** A1 exit met.
-- **Exit:** three directions render from a real brief at **zero cost**; `BRAIN_VERSION` displays from
-  code; `T-A-01`/`T-A-03`/`T-A-05` pass; `AC4.6`'s registry test passes.
-- **Evidence:** screenshots at 360/768/1440 + the smoke output.
+- **Entry:** A1 exit met. ✅
+- **Exit:** three directions render from a real brief at **zero cost** ✅ (`estimatedCents: 0`,
+  `provider: none`, all three honestly `PRIOR`); `BRAIN_VERSION` displays from code ✅; `T-A-01` ✅ /
+  `T-A-03` ✅ / `T-A-05` ✅ pass **as real Chromium measurements over CDP**; `AC4.6`'s registry test ✅.
+- **Also built, because §3 assigns them to A3:** `T-U-02`, `T-U-03`, `T-I-07` and `T-A-04` ✅ — the exit
+  criterion above did not require them, so the slice could have been called done with four of its own
+  assigned tests missing. See `A3-CORRECTIONS.md` C25. `T-A-04` is measured with the **repo's own**
+  `contrastRatio` from `packages/swan-forge/scripts/audit-contrast.mjs`.
+- **Measured:** `node --test scripts/astra/tests/*.test.mjs` → **79 pass / 0 fail** (was 51);
+  Rule 4 → **0 of 28 modules over 300**, max `smoke.mjs` at **290**, then `panes.mjs` at **289**.
+- **Evidence:** `scripts/astra/evidence/a3-tests.txt` + screenshots at 360/768/1440 + `A3-CORRECTIONS.md`.
+- **The smoke output, which A3's evidence line requires:** `node scripts/astra/surface/smoke.mjs` → **26 checks, 26 passed, exit 0**. The file did not exist before this slice (C26). It was then **mutation-tested** — `MUTATION_ROUTES` emptied in `server.mjs` → **2 failed, exit 1**, exactly the two token-gate checks — then restored byte-identically.
+- **Landed beyond the slice's own list:** the control registry enforces two constraints the packet
+  implies but never states — a **PROPOSAL must never write** (`proposalThatWrites`, empty) and a **write
+  must require the token** (`writeWithoutToken`, empty). The registry's declaration was then checked
+  against the server's actual `MUTATION_ROUTES`, so the token claim is enforced, not merely asserted.
+- **Defect worth reading before A4:** `T-M-03` failed, and **the renderer was wrong, not the test**. A
+  partial compile record printed the literal **"0 run, 0 passed"** — a finding the data could not
+  support. Fixed in `panes.mjs`: *a count is a claim about completeness*, so it is only made when the
+  record can support it. Fixing it exposed a second case the suite never covered (a record with **no**
+  `lawChecks` field rendered an empty table, which reads as "all clear"). See `A3-CORRECTIONS.md` D15/D16.
+- **Carry into A4:** `panes.mjs` is at **289/300**. The Tune pane will not fit. Split it first — into a
+  sibling module, imported for local use **and re-exported** (`export … from` alone creates no local binding).
+- **Trap for A5:** `T-P-01` is **one id serving two requirements in two slices** (see C18). A3 claims
+  only the **`AC4.6`** half and names its tests `T-P-01 (AC4.6) …`. **`AC5.4`'s half is still A5's.**
 
 ### A4 — Tune pane
 - **Does:** staged knobs, fixture preview, atomic commit with note, byte-exact revert.
@@ -76,7 +98,10 @@ sitting.
   `node scripts/astra/cli.mjs state` → exit 0, `RETIRED=3 REFUSED=3 ACTIVE=5 DISABLED=1`.
 - **Corrected input:** A0's lane list was **over-broad** — three lanes it called REFUSED were measured
   ACTIVE. The board is built from the measurement, and each correction is recorded on its own row.
-- **Still to do:** the `/law` and `/state` panes (A3's surface), and `T-P-01`.
+- **Still to do:** the `/law` and `/state` panes — A3's surface now exists, so these are panes **inside**
+  it, and the `READ_ONLY_PANES` registry entries for both already carry their reasons; and **`T-P-01`'s
+  authority half (`AC5.4`)**: *no actor enables a REFUSED lane or spec mode*. The `AC4.6` registry half of
+  `T-P-01` **landed in A3** and is **not A5's to re-claim** — see `A3-CORRECTIONS.md` C18.
 
 ### A6 — Ledger
 - **Does:** one-action `rejected_all`; cost drift; trends by slot and facet.
