@@ -231,12 +231,9 @@ const CoachCommandCenterPage: React.FC = () => {
             commandTextRef={commandCenter.commandTextRef}
             nextActionLabel={nextActionLabel}
             selectedStatus={commandCenter.selectedStatus}
-            voiceActive={commandCenter.voiceActive}
-            voiceCaptureMode={commandCenter.voiceCaptureMode}
-            voiceOverlay={commandCenter.voiceOverlay}
+            voice={commandCenter.voice}
             voiceReplyEnabled={commandCenter.voiceReplyEnabled}
             voiceReplySpeaking={commandCenter.voiceReplySpeaking}
-            voiceSupported={commandCenter.voiceSupported}
             showFreestyle
             freestyleAccountKey={authUser?.id ?? null}
             workoutLoggerRoute={workoutLoggerRoute}

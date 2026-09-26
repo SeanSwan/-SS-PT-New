@@ -1,17 +1,27 @@
-import { useCallback, useMemo, useState } from 'react';
+/**
+ * FILE: CoachCommandCenter.voiceCapture.ts
+ * PURPOSE: The Coach Command Center dock's single voice entry point.
+ *
+ * The dock used to expose two voice behaviours that looked like one: inline
+ * dictation where the Web Speech API exists, and a full-screen
+ * VoiceRecordingOverlay plus a transcript-confirmation preview where it does
+ * not. Finishing one spoken sentence on the second path cost four gestures.
+ *
+ * Both paths now resolve to `useCoachInlineDictation`: press the mic, talk,
+ * press the mic, Send. Nothing opens over the composer and nothing has to be
+ * confirmed twice. The overlay component still exists for the legacy assistant
+ * surface, but the command center no longer renders it.
+ */
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { AI_CHAT_MESSAGE_MAX_CHARS } from '../../../../hooks/aiMessageLimits';
-import { capturedVoiceText, resolveVoiceCommandText } from './CoachCommandCenter.voiceText';
-import { useCoachBrowserSpeechInput } from './hooks/useCoachBrowserSpeechInput';
-
-type VoiceCaptureMode = 'browser' | 'recorder' | 'none';
-
-type VoiceOverlayProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  onEditTranscript: (text: string) => void;
-  onTranscribed: (text: string) => void;
-};
+import {
+  DICTATION_LISTENING_COPY,
+  DICTATION_TRANSCRIBING_COPY,
+  formatDictationElapsed,
+  useCoachInlineDictation,
+  type InlineDictationMode,
+  type InlineDictationPhase,
+} from './hooks/useCoachInlineDictation';
 
 type VoiceCaptureParams = {
   commandTextRef: RefObject<HTMLTextAreaElement>;
@@ -20,48 +30,26 @@ type VoiceCaptureParams = {
   setSelectedStatus: Dispatch<SetStateAction<string>>;
 };
 
+/**
+ * The dock's status line. Live state only — phase copy that the mic press
+ * already wrote via `setSelectedStatus` would be replaced a frame later by an
+ * identical string.
+ */
 function buildVoiceStatus(
-  voiceInputError: string | null,
-  interim: string | null,
-  cancelPillVisible: boolean,
+  phase: InlineDictationPhase,
+  mode: InlineDictationMode,
+  interim: string,
+  elapsedSeconds: number,
+  error: string | null,
 ): string | null {
-  if (voiceInputError) return voiceInputError;
+  if (error) return error;
+  if (phase === 'transcribing') return DICTATION_TRANSCRIBING_COPY;
+  if (phase !== 'listening') return null;
   if (interim) return `Listening: ${interim}`;
-  return cancelPillVisible ? 'Voice command captured - tap Mic to cancel before it lands in the composer' : null;
-}
-
-function isCoachVoiceRecorderSupported(): boolean {
-  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
-  return typeof window.MediaRecorder !== 'undefined'
-    && typeof navigator.mediaDevices?.getUserMedia === 'function';
-}
-
-function runCoachVoiceCommand(
-  speech: {
-    cancelPillVisible: boolean;
-    handleCancelSend: () => void;
-    openRecorder: () => void;
-    recorderSupported: boolean;
-    speechSupported: boolean;
-    toggleListening: () => void;
-  },
-  setSelectedStatus: (status: string) => void,
-) {
-  if (speech.cancelPillVisible) {
-    speech.handleCancelSend();
-    setSelectedStatus('Voice command cancelled');
-    return;
-  }
-  if (speech.speechSupported) {
-    speech.toggleListening();
-    return;
-  }
-  if (speech.recorderSupported) {
-    speech.openRecorder();
-    setSelectedStatus('Voice recorder opened - review transcript before sending');
-    return;
-  }
-  setSelectedStatus('Voice input is not available in this browser');
+  // The RECORD branch has no interim words, so the ticking clock is the only
+  // honest proof it is still running.
+  if (mode === 'recorder') return `${DICTATION_LISTENING_COPY} · ${formatDictationElapsed(elapsedSeconds)}`;
+  return DICTATION_LISTENING_COPY;
 }
 
 export function useCoachCommandVoiceCapture({
@@ -70,63 +58,30 @@ export function useCoachCommandVoiceCapture({
   setCommandText,
   setSelectedStatus,
 }: VoiceCaptureParams) {
-  const [voiceInputError, setVoiceInputError] = useState<string | null>(null);
-  const [voiceOverlayOpen, setVoiceOverlayOpen] = useState(false);
-
-  const setVoiceCommandText = useCallback((next: SetStateAction<string>) => {
-    setCommandText((current) => resolveVoiceCommandText(next, current));
-  }, [setCommandText]);
-
-  const handleVoiceCaptured = useCallback((text: string) => {
-    setCommandText((current) => capturedVoiceText(current, text));
-    setSelectedStatus('Voice command captured - press Send to continue');
-  }, [setCommandText, setSelectedStatus]);
-
-  const handleVoiceOverlayEdit = useCallback((text: string) => {
-    setVoiceCommandText(text);
-    setSelectedStatus('Voice transcript staged - press Send to continue');
-    setVoiceOverlayOpen(false);
-    window.setTimeout(() => commandTextRef.current?.focus(), 0);
-  }, [commandTextRef, setSelectedStatus, setVoiceCommandText]);
-
-  const handleVoiceOverlayTranscribed = useCallback((text: string) => {
-    handleVoiceCaptured(text);
-    setVoiceOverlayOpen(false);
-  }, [handleVoiceCaptured]);
-
-  const speech = useCoachBrowserSpeechInput({
+  const dictation = useCoachInlineDictation({
+    commandTextRef,
     maxChars,
-    onSend: handleVoiceCaptured,
-    setInputError: setVoiceInputError,
-    setText: setVoiceCommandText,
+    setCommandText,
+    setSelectedStatus,
   });
 
-  const recorderSupported = isCoachVoiceRecorderSupported();
-  const handleVoice = useCallback(() => {
-    runCoachVoiceCommand({
-      cancelPillVisible: speech.cancelPillVisible,
-      handleCancelSend: speech.handleCancelSend,
-      openRecorder: () => setVoiceOverlayOpen(true),
-      recorderSupported,
-      speechSupported: speech.speechSupported,
-      toggleListening: speech.toggleListening,
-    }, setSelectedStatus);
-  }, [recorderSupported, setSelectedStatus, speech]);
-
-  const voiceCaptureMode: VoiceCaptureMode = speech.speechSupported ? 'browser' : recorderSupported ? 'recorder' : 'none';
-  const voiceOverlay: VoiceOverlayProps = useMemo(() => ({
-    isOpen: voiceOverlayOpen,
-    onClose: () => setVoiceOverlayOpen(false),
-    onEditTranscript: handleVoiceOverlayEdit,
-    onTranscribed: handleVoiceOverlayTranscribed,
-  }), [handleVoiceOverlayEdit, handleVoiceOverlayTranscribed, voiceOverlayOpen]);
-
   return {
-    handleVoice,
-    voiceActive: speech.listening || voiceOverlayOpen,
-    voiceCaptureMode,
-    voiceOverlay,
-    voiceStatus: buildVoiceStatus(voiceInputError, speech.interim, speech.cancelPillVisible),
-    voiceSupported: speech.speechSupported || recorderSupported,
+    handleVoice: dictation.toggle,
+    /** Discards the open microphone without keeping the pending tail. */
+    voiceCancel: dictation.cancel,
+    voiceActive: dictation.phase !== 'idle',
+    voiceCaptureMode: dictation.mode,
+    voiceElapsedSeconds: dictation.elapsedSeconds,
+    voiceLevels: dictation.levels,
+    voiceMetering: dictation.metering,
+    voicePhase: dictation.phase,
+    voiceStatus: buildVoiceStatus(
+      dictation.phase,
+      dictation.mode,
+      dictation.interim,
+      dictation.elapsedSeconds,
+      dictation.error,
+    ),
+    voiceSupported: dictation.supported,
   };
 }

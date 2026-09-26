@@ -11,6 +11,7 @@ const STYLE_FILES = [
   'CoachCommandCenter.composerStyles.ts',
   'CoachCommandCenter.bridgeDockStyles.ts',
   'CoachCommandCenter.bridgeMobileDockStyles.ts',
+  'CoachCommandCenter.dictationStyles.ts',
   'CoachCommandCenter.crystallineFocusStyles.ts',
   'CoachCommandCenter.opsStyles.ts',
   'CoachCommandCenter.opsMissionStyles.ts',
@@ -70,7 +71,13 @@ describe('CoachCommandCenter style split', () => {
     expect(mobileDockSource).toMatch(/\.dock-more,[\s\S]*?\.dock-mic,[\s\S]*?\.dock-send[\s\S]*?min-width:\s*54px;/);
     expect(mobileDockSource).toMatch(/\.dock-more,[\s\S]*?\.dock-mic,[\s\S]*?\.dock-send[\s\S]*?min-height:\s*54px;/);
     expect(mobileDockSource).toMatch(/\.dock-more-menu[\s\S]*?min-width:\s*min\(244px,\s*calc\(100vw - 24px\)\);/);
-    expect(dockComponentSource).toContain('aria-label="More command tools"');
-    expect(dockComponentSource).toContain('Audio');
+    // The More menu was extracted to keep CoachConsoleDock inside the section
+    // file-size cap, so the contract follows it to its new render site rather
+    // than asserting on a component that no longer contains the markup.
+    const moreMenuSource = readFileSync(resolve(__dirname, 'CoachDockMoreMenu.tsx'), 'utf8');
+
+    expect(dockComponentSource).toContain('<CoachDockMoreMenu');
+    expect(moreMenuSource).toContain('aria-label="More command tools"');
+    expect(moreMenuSource).toContain('Audio');
   });
 });

@@ -32,7 +32,18 @@ vi.mock('./hooks/useVoiceRecorder', () => ({
       grantPermission = () => setState('recording');
     }, []);
     const stop = useCallback(() => { recorderStop(); setState('stopped'); }, []);
-    return { state, audioBlob, duration: 0, error: null, start, stop, reset: recorderReset };
+    return {
+      state,
+      audioBlob,
+      duration: 0,
+      error: null,
+      // Part of the real interface; a mock missing it makes the harness lie
+      // about what useCoachCapture receives.
+      getStream: () => null,
+      start,
+      stop,
+      reset: recorderReset,
+    };
   },
 }));
 

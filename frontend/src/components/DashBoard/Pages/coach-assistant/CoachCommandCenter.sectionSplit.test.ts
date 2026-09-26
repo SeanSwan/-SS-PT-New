@@ -19,6 +19,8 @@ const SECTION_FILES = [
   'CoachOnboardingWorkbench.styles.ts',
   'CoachChatTranscript.tsx',
   'CoachConsoleDock.tsx',
+  'CoachDockMoreMenu.tsx',
+  'CoachDictationStrip.tsx',
   'CoachCommandLeftRail.tsx',
   'CoachCommandOpsRail.tsx',
 ];

@@ -48,7 +48,11 @@ describe('CoachCommandCenterPage shell', () => {
     expect(composerInput()).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^More command tools$/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Attach$/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /start voice dictation/i })).toBeInTheDocument();
+    // jsdom has neither SpeechRecognition nor MediaRecorder, so voice really is
+    // unavailable here — and the mic says so instead of promising "Start voice
+    // dictation" over a control that is disabled. Matched loosely so the
+    // assertion stays about "the dock has a mic", not about which copy.
+    expect(screen.getByRole('button', { name: /voice dictation/i })).toBeInTheDocument();
     expect(sendButton()).toBeInTheDocument();
     expect(screen.getByText(/Confirm before save/i)).toBeInTheDocument();
   }, COACH_COMMAND_CENTER_TEST_TIMEOUT);

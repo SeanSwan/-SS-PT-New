@@ -11,6 +11,7 @@ import styled, { css } from 'styled-components';
 
 import { coachCommandDockStyles } from './CoachCommandCenter.bridgeDockStyles';
 import { coachCommandDockMenuStyles } from './CoachCommandCenter.bridgeDockMenuStyles';
+import { coachCommandDictationStyles } from './CoachCommandCenter.dictationStyles';
 import { coachCommandBridgeMobileDockStyles } from './CoachCommandCenter.bridgeMobileDockStyles';
 import { coachCommandCrystallineFocusStyles } from './CoachCommandCenter.crystallineFocusStyles';
 import { coachCommandFoundationStyles } from './CoachCommandCenter.foundationStyles';
@@ -287,6 +288,7 @@ export const CommandBridgeShell = styled.div`
   ${coachCommandThreadHeaderStyles}
   ${coachCommandDockStyles}
   ${coachCommandDockMenuStyles}
+  ${coachCommandDictationStyles}
   ${coachCommandBridgeMobileDockStyles}
   ${coachCommandOpsStyles}
   ${coachCommandOwnerControlsStyles}

@@ -28,6 +28,14 @@ export interface UseVoiceRecorderReturn {
   audioBlob: Blob | null;
   duration: number;
   error: string | null;
+  /**
+   * Read-only accessor for the live capture stream; null unless a capture is
+   * running. Added so a level meter can be driven from the SAME stream rather
+   * than opening a second getUserMedia. It deliberately returns a ref read
+   * instead of React state: a stream is not a render input, and mirroring it
+   * into state would re-render the recorder on every permission resolution.
+   */
+  getStream: () => MediaStream | null;
   start: () => Promise<void>;
   stop: () => void;
   reset: () => void;
@@ -260,5 +268,11 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     cleanup();
   }, [cleanup]);
 
-  return { state, audioBlob, duration, error, start, stop, reset };
+  /**
+   * Stable accessor for the live stream. Deliberately a callback rather than a
+   * state value — see the note on `getStream` in the return type.
+   */
+  const getStreamAccessor = useCallback(() => streamRef.current, []);
+
+  return { state, audioBlob, duration, error, getStream: getStreamAccessor, start, stop, reset };
 }

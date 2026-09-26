@@ -61,6 +61,12 @@ export interface UseCoachCaptureReturn {
   error: string | null;
   /** True when the last stop came from the lifecycle policy rather than the user. */
   stoppedAutomatically: boolean;
+  /**
+   * Read-only accessor for the live capture stream; null unless capturing.
+   * Passed through from `useVoiceRecorder` so a level meter can read the same
+   * stream the recorder is already using.
+   */
+  getStream: () => MediaStream | null;
   start: () => Promise<void>;
   stop: () => void;
   transcribe: () => Promise<string>;
@@ -310,6 +316,7 @@ export function useCoachCapture(): UseCoachCaptureReturn {
     transcript: transcription.text,
     error,
     stoppedAutomatically,
+    getStream: recorder.getStream,
     start,
     stop,
     transcribe,
