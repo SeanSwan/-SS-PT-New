@@ -17,11 +17,23 @@ import { zonedWallClockToUtc, parseWallClock, nowInZone } from '../../utils/zone
 
 const TZ = 'America/Los_Angeles';
 
-/** Render a UTC instant as HH:mm in the target zone. */
+/**
+ * Render a UTC instant as HH:mm in the target zone.
+ *
+ * `hourCycle: 'h23'` is REQUIRED here, not cosmetic. `hour12: false` leaves the cycle to the locale,
+ * and en-US resolves it to h24 — in which midnight formats as "24:00". Node 20 (the coach-gate
+ * runner) does exactly that, so this helper produced "24:00" and the assertion failed, blaming the
+ * product: `zonedWallClockToUtc` had in fact returned the correct instant. Node 22 resolves the same
+ * options to h23 and renders "00:00", which is why it only ever failed in CI and never locally.
+ *
+ * `hourCycle: 'h23'` is the house pattern for this reason — see services/coachProactiveNudgeCron.mjs
+ * and services/nutritionLogNudgeCron.mjs. utils/zonedTime.mjs defends against the same quirk instead
+ * by normalizing with `% 24`, which is why it was correct on every runtime.
+ */
 const localHHmm = (date) =>
   new Intl.DateTimeFormat('en-US', {
     timeZone: TZ,
-    hour12: false,
+    hourCycle: 'h23',
     hour: '2-digit',
     minute: '2-digit',
   }).format(date);
@@ -62,7 +74,7 @@ describe('zonedWallClockToUtc', () => {
 
     const tokyo = zonedWallClockToUtc({ year: 2026, month: 6, day: 15, hour: 9, minute: 0 }, 'Asia/Tokyo');
     const tokyoLocal = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Tokyo', hour12: false, hour: '2-digit', minute: '2-digit',
+      timeZone: 'Asia/Tokyo', hourCycle: 'h23', hour: '2-digit', minute: '2-digit',
     }).format(tokyo);
     expect(tokyoLocal).toBe('09:00');
   });

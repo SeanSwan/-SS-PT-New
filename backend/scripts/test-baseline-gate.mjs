@@ -21,21 +21,50 @@
  *   node backend/scripts/test-baseline-gate.mjs            # gate: exit 1 on regression
  *
  * Exit 0 = no new failures (baseline may still be red).
- * Exit 1 = a file that used to pass now fails, OR the run itself did not complete.
+ * Exit 1 = a file that used to pass now fails, OR the run itself did not complete,
+ *          OR the output could not be read.
  * Exit 2 = usage / could not run.
  *
  * It deliberately reports files that were EXPECTED to fail and now pass, too — a
  * baseline that silently rots is the next version of this same problem.
+ *
+ * ----------------------------------------------------------------------------
+ * 2026-09-26 — THE GATE WAS DEAD IN CI AND SAID THE WRONG THING ABOUT WHY.
+ *
+ * For at least three consecutive main runs (2026-09-24, 09-25, 09-26) this gate reported
+ * "the suite did not produce a summary — treating as FAILURE" in coach-gate. That message
+ * blames the suite. The suite was healthy; the PARSER was blind to ANSI escapes, which
+ * vitest emits in CI and not on a developer's terminal. So the gate could not read its own
+ * input, and its failure message pointed at the wrong component — which is why nobody
+ * chased it. The backend's only regression check had been non-functional for weeks.
+ *
+ * The fix is in scripts/lib/baselineGateParse.mjs, together with the invariant that matters
+ * more than the fix: a run whose evidence contradicts itself is reported as BLIND and fails
+ * closed. The worst outcome was never "the gate is broken" — it was "the gate is broken and
+ * reads as green". See that module's header for the full account, including why repairing
+ * only the totals parser would have produced a gate that actively lied.
+ *
+ * --from-file <path> exists so this gate is verifiable without running 1327 test files: it
+ * reads captured vitest output, applies the same parsers and the same baseline diff, and
+ * reports. It is how the ANSI fix was proved, and it is the fastest way to triage a CI log.
  */
 
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { diffBaseline, interpretRun, stripAnsi } from './lib/baselineGateParse.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASELINE_PATH = join(HERE, '..', 'tests', 'known-failing-baseline.json');
 const UPDATE = process.argv.includes('--update');
+
+/** `--from-file <path>` — parse captured vitest output instead of running the suite. */
+const fromFileIndex = process.argv.indexOf('--from-file');
+const FROM_FILE = fromFileIndex === -1 ? null : process.argv[fromFileIndex + 1];
+/** `--exit-code N` — the exit code that produced a --from-file capture. Defaults to 0. */
+const exitCodeIndex = process.argv.indexOf('--exit-code');
+const FROM_FILE_EXIT = exitCodeIndex === -1 ? 0 : Number(process.argv[exitCodeIndex + 1]);
 
 function runSuite() {
   return new Promise((resolve) => {
@@ -52,31 +81,41 @@ function runSuite() {
   });
 }
 
-/** Failing FILES, not individual test names — test names churn, files are stable. */
-function parseFailingFiles(out) {
-  const files = new Set();
-  for (const line of out.split('\n')) {
-    const m = line.match(/^\s*FAIL\s+(\S+)/);
-    if (m) files.add(m[1].replace(/\\/g, '/'));
+if (fromFileIndex !== -1 && (!FROM_FILE || FROM_FILE.startsWith('--'))) {
+  process.stderr.write('\n  test-baseline-gate: --from-file needs a path.\n\n');
+  process.exit(2);
+}
+
+let out;
+let code;
+if (FROM_FILE) {
+  if (!existsSync(FROM_FILE)) {
+    process.stderr.write(`\n  test-baseline-gate: --from-file target not found: ${FROM_FILE}\n\n`);
+    process.exit(2);
   }
-  return [...files].sort();
+  out = readFileSync(FROM_FILE, 'utf8');
+  code = FROM_FILE_EXIT;
+} else {
+  ({ out, code } = await runSuite());
 }
 
-function parseTotals(out) {
-  const m = out.match(/Tests\s+(?:(\d+) failed \| )?(\d+) passed/);
-  return m ? { failed: Number(m[1] || 0), passed: Number(m[2]) } : null;
-}
+const verdict = interpretRun(out, code);
+const { totals, failing } = verdict;
 
-const { out, code } = await runSuite();
-const failing = parseFailingFiles(out);
-const totals = parseTotals(out);
-
-// A run that never produced a summary is NOT a pass — it is an unknown, and treating an
-// unknown as success is how a broken suite reads as a clean one.
-if (!totals) {
-  process.stderr.write('\n  test-baseline-gate: the suite did not produce a summary — treating as FAILURE.\n');
-  process.stderr.write(`  vitest exit code: ${code}\n\n`);
-  process.stderr.write(`${out.split('\n').slice(-25).join('\n')}\n`);
+// A run that never produced readable evidence is NOT a pass — it is an unknown, and treating an
+// unknown as success is how a broken suite reads as a clean one. This covers a missing summary, a
+// totals line that says tests failed while no FAIL line could be parsed, and a non-zero exit with
+// no FAIL lines: all three mean the gate cannot see what happened, so it fails closed.
+if (verdict.blind) {
+  process.stderr.write(`\n  test-baseline-gate: cannot read this run — treating as FAILURE (${verdict.reason}).\n`);
+  if (FROM_FILE) process.stderr.write(`  source: ${FROM_FILE}\n`);
+  else process.stderr.write(`  vitest exit code: ${code}\n`);
+  if (totals) process.stderr.write(`  totals parsed: ${totals.failed} failed, ${totals.passed} passed\n`);
+  else process.stderr.write('  totals parsed: none — no "Tests ... passed" line found in the output.\n');
+  process.stderr.write(`  FAIL lines parsed: ${failing.length}\n`);
+  process.stderr.write('\n  The parsers are in scripts/lib/baselineGateParse.mjs. If vitest changed its\n');
+  process.stderr.write('  output format, fix the parser — do not relax this check.\n\n');
+  process.stderr.write(`${stripAnsi(out).split('\n').slice(-25).join('\n')}\n`);
   process.exit(1);
 }
 
@@ -98,9 +137,7 @@ if (!existsSync(BASELINE_PATH)) {
 }
 
 const baseline = JSON.parse(readFileSync(BASELINE_PATH, 'utf8')).failingFiles || [];
-const known = new Set(baseline);
-const regressions = failing.filter((f) => !known.has(f));
-const fixed = baseline.filter((f) => !failing.includes(f));
+const { regressions, fixed } = diffBaseline(failing, baseline);
 
 process.stdout.write(`\n  tests: ${totals.passed} passed, ${totals.failed} failed`
   + `  |  failing files: ${failing.length} (baseline ${baseline.length})\n`);
