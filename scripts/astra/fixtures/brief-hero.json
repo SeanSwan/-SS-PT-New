@@ -1,0 +1,8 @@
+{
+  "briefId": "fixture-hero-01",
+  "text": "light bending through a frozen structure",
+  "surfaceClass": "public",
+  "intent": "hero",
+  "aspect": "16:9",
+  "facets": ["Temperature>Arctic", "Optics>Caustics", "Form>Geometric"]
+}

@@ -1,7 +1,9 @@
 # Astra — Test Plan and Traceability
 
-Test IDs are stable. Every test names the requirement it serves, its level, and its command. **No test
-in this table has been run** — no Astra code exists yet. The commands are the plan, not a result.
+Test IDs are stable. Every test names the requirement it serves, its level, and its command.
+**A1's tests have now RUN** — 30 pass / 0 fail, captured in `scripts/astra/evidence/a1-tests.txt`.
+Everything from A2 onward is still the plan, not a result. Two rows below were **corrected** before
+they ran: `T-U-05` and `T-U-07` were not executable as written — see `A1-CORRECTIONS.md` C11 and C10.
 
 ---
 
@@ -15,9 +17,9 @@ in this table has been run** — no Astra code exists yet. The commands are the 
 | `T-U-02` | R2/AC2.2 | render a `tier:'prior'` direction | the string `PRIOR` appears in the card's visible text | the word `EVIDENCE` on the same card |
 | `T-U-03` | R2/AC2.3 | derive swatches from fixed facets twice | byte-identical swatch output | any network fetch for image bytes |
 | `T-U-04` | R1/AC1.2 | `explain(fixtureCompile)` | `lawChecks.length` equals the compiler's, passes **and** fails both present | dropping a failing check |
-| `T-U-05` | R1/AC1.3 | mutate `BRAIN_VERSION` export, re-read the UI string | UI string changes | a hardcoded version surviving the mutation |
+| `T-U-05` | R1/AC1.3 | **CORRECTED (C11):** `readBrainVersion()` equals the live export, **and** no version literal exists in Astra's source (comments stripped) | both hold | a hardcoded version surviving the scan |
 | `T-U-06` | R3/AC3.3 | set slot 4 via `personify()` | legal form produced | a raw `"[subject] by [artist]"` string passing |
-| `T-U-07` | R5/AC5.1 | `capabilities()` | `synthesize`,`corroborate`,`adjudicate`,`emit-vault`,`log-receipt` = REFUSED; `attest`,`redact-provenance`,`log-spec` = RETIRED | any lane reported ACTIVE without a code source |
+| `T-U-07` | R5/AC5.1 | **CORRECTED (C10):** `capabilities()` — RETIRED = `attest`,`redact-provenance`,`log-spec`; REFUSED = `corroborate`,`adjudicate`,`emit-vault`; ACTIVE = `synthesize`,`log-receipt`,`reference-modes`,`packet`,`novelty` | every row carries a live `file:line`, and a bogus marker degrades to INCONCLUSIVE | any lane reported ACTIVE without a code source |
 | `T-U-08` | R5/AC5.3 | capability declared `claimed` | rendered as not-verified | rendering `claimed` as if it were `verified` |
 | `T-U-09` | R4/AC4.1 | mutate `tuning.json`, re-read | UI reflects the new value with no code change | a hardcoded default winning |
 | `T-U-10` | R8/AC8.1 | `bind('0.0.0.0')` | refuses, non-zero exit | binding succeeds |
@@ -80,11 +82,24 @@ in this table has been run** — no Astra code exists yet. The commands are the 
 | `T-F-03` | tuning preview over 12 fixture pairs in < 2 s | builder |
 | `T-F-04` | no Astra module exceeds the Rule 4 300-line budget without a declared exception | builder |
 
+**`T-F-04` measured at A1:** largest touched module `shared/swanLawFilter.mjs` at **294 / 300**. Within
+budget, but four modules sit above 280 — the next edit to any of them should expect to split.
+
 ### 1.7 Commands
 
 ```bash
-# unit + integration (A1 onward)
+# unit + integration (A1 onward) — RUN at A1: 30 pass / 0 fail
 node --test scripts/astra/tests/*.test.mjs
+
+# the A1 exit command — prints an ExplainView for both a lawful and a blocked compile
+node scripts/astra/cli.mjs explain fixtures/brief-hero.json
+node scripts/astra/cli.mjs explain fixtures/law-violation.json
+
+# the loopback refusal — must exit non-zero
+node scripts/astra/cli.mjs bind 0.0.0.0
+
+# the honest board
+node scripts/astra/cli.mjs state
 
 # surface smoke (A3 onward) — the same shape the verify console uses
 node scripts/astra/surface/smoke.mjs --port 7411
@@ -121,25 +136,25 @@ unchanged.
 
 | Req | AC | Artifact / component | Test | Slice | Evidence / status |
 |---|---|---|---|---|---|
-| R1 | AC1.1 | `core/explain.mjs`, Think pane | `T-U-04`, `T-E-01` | A1, A3 | not run |
-| R1 | AC1.2 | `core/explain.mjs` | `T-U-04` | A1 | not run |
-| R1 | AC1.3 | `core/brain.mjs` version read | `T-U-05` | A1 | not run |
-| R2 | AC2.1 | `core/directions.mjs` | `T-U-01` | A1 | not run |
+| R1 | AC1.1 | `shared/swanExplain.mjs`, Think pane | `T-U-04`, `T-E-01` | A1, A3 | **T-U-04 PASS** (A1); T-E-01 not run |
+| R1 | AC1.2 | `shared/swanExplain.mjs` | `T-U-04` | A1 | **PASS** |
+| R1 | AC1.3 | `core/brain.mjs` version read | `T-U-05` | A1 | **PASS** |
+| R2 | AC2.1 | `shared/swanDirections.mjs` | `T-U-01` | A1 | **PASS** |
 | R2 | AC2.2 | Choose pane | `T-U-02`, `T-A-02` | A3 | not run |
 | R2 | AC2.3 | swatch derivation | `T-U-03` | A3 | not run |
 | R2 | AC2.4 | preview gate | `T-I-07` (no-override half) | A3 | not run |
 | R3 | AC3.1 | `core/variants.mjs` brief write | `T-I-01` | A1 | not run |
 | R3 | AC3.2 | override layer | `T-I-01` | A1, A3 | not run |
-| R3 | AC3.3 | `personify()` gate | `T-U-06` | A1 | not run |
+| R3 | AC3.3 | `personify()` gate | `T-U-06` | A1 | **PASS** |
 | R4 | AC4.1 | `core/tuning.mjs` | `T-U-09` | A4 | not run |
 | R4 | AC4.2 | stage/preview/commit | `T-I-02` | A4 | not run |
 | R4 | AC4.3 | atomic write | `T-I-03`, `T-M-06` | A4 | not run |
 | R4 | AC4.4 | revert | `T-I-04` | A4 | not run |
 | R4 | AC4.5 | blast radius | `T-I-05` | A4 | not run |
 | R4 | AC4.6 | control registry | `T-P-01` | A3 | not run |
-| R5 | AC5.1 | `core/capabilities.mjs` | `T-U-07` | A5 | **depends on A0** |
-| R5 | AC5.2 | spec-mode read | `T-U-07` | A5 | not run |
-| R5 | AC5.3 | claimed→false | `T-U-08` | A5 | not run |
+| R5 | AC5.1 | `core/capabilities.mjs` | `T-U-07` | A5 | **PASS** — A0 is done, board built |
+| R5 | AC5.2 | spec-mode read | `T-U-07` | A5 | **PASS** (DISABLED row, code-sourced) |
+| R5 | AC5.3 | claimed→false | `T-U-08` | A5 | **PASS** |
 | R5 | AC5.4 | no enabling control | `T-P-01` | A5 | not run |
 | R6 | AC6.1 | `core/ledger.mjs` | `T-E-03` | A6 | not run |
 | R6 | AC6.2 | cost drift | `T-I-06` | A6 | not run |
@@ -147,18 +162,18 @@ unchanged.
 | R7 | AC7.1 | `mcp/tools.mjs` | `T-I-08` | A2 | not run |
 | R7 | AC7.2 | MCP surface audit | `T-P-02` | A2 | not run |
 | R7 | AC7.3 | one board, two consumers | `T-I-09` | A2 | not run |
-| R8 | AC8.1 | `core/bind.mjs` | `T-U-10` | A1 | not run |
+| R8 | AC8.1 | `core/bind.mjs` | `T-U-10` | A1 | **PASS** |
 | R8 | AC8.2 | mutation token | `T-I-10` | A1 | not run |
 | R8 | AC8.3 | no secret in surface | `T-P-02` | A1 | not run |
 | INV1 | — | write-path scan | `T-P-02` | A1 | not run |
 | INV2 | — | write-path scan | `T-P-03` | A1 | not run |
 | INV3 | — | LAW gate | `T-I-07` | A1 | not run |
-| INV4 | — | spend gate | `T-U-01`, `T-I-07` | A1, A3 | not run |
-| INV5 | — | version read | `T-U-05` | A1 | not run |
+| INV4 | — | spend gate | `T-U-01`, `T-I-07` | A1, A3 | **T-U-01 PASS**; T-I-07 not run |
+| INV5 | — | version read | `T-U-05` | A1 | **PASS** |
 | INV6 | — | immutability | `T-I-01` | A1 | not run |
 | INV7 | — | fail-closed | `T-I-07` | A1 | not run |
-| INV8 | — | no fake metrics | `T-U-07` (every lane needs a source) | A5 | not run |
-| INV9 | — | loopback | `T-U-10` | A1 | not run |
+| INV8 | — | no fake metrics | `T-U-07` (every lane needs a source) | A5 | **PASS** — and the degradation is proven to fire |
+| INV9 | — | loopback | `T-U-10` | A1 | **PASS** |
 | INV10 | — | lane isolation | `T-P-02`, `T-P-03` | A1 | not run |
 
 ### 3.1 Uncovered requirements

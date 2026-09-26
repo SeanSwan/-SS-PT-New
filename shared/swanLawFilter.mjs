@@ -133,6 +133,22 @@ function normalize(value) {
 /** Banned taxonomy facets — off-brand for a luxury training instrument. */
 const BANNED_FACETS = new Set(['psychedelic', 'cute', 'funny', 'madness']);
 
+/**
+ * THE LAW LIST, exported so it has exactly one definition.
+ *
+ * `checks` is built from this, and `swanExplain.mjs` builds its table from it too.
+ * Two hand-kept copies of a law list is how a table quietly stops covering a law
+ * that was added later — the renderer would show five rows and look complete.
+ */
+export const LAW_NAMES = Object.freeze([
+  'LAW2-gold-allowlist',
+  'LAW3-kill-list',
+  'LAW3-banned-facet',
+  'LAW4-optics-not-creatures',
+  'LAW9-retired-palette',
+  'LAW10-content',
+]);
+
 /** LAW 10 — content law. The credential form is assembled, never written whole. */
 const YOGA = /\b(yoga|meditation|meditative|namaste|chakra)\b/i;
 const BAD_CREDENTIAL = new RegExp('nasm' + '[\\s-]*' + 'certified', 'i');
@@ -253,12 +269,13 @@ export function applyLaws(slots = {}, facets = []) {
 
   void joined; // reserved for future cross-slot checks; kept explicit, not silently unused
 
-  const laws = ['LAW2-gold-allowlist', 'LAW3-kill-list', 'LAW3-banned-facet',
-    'LAW4-optics-not-creatures', 'LAW9-retired-palette', 'LAW10-content'];
   return {
     passed: violations.length === 0,
     violations,
-    checks: laws.map((law) => ({ law, passed: !violations.some((v) => v.law === law) })),
+    // From LAW_NAMES — the ONE definition. See its comment above: this line held
+    // a second hand-kept copy until it was caught, which is how a law added later
+    // gets enforced by the loops and omitted from `checks`.
+    checks: LAW_NAMES.map((law) => ({ law, passed: !violations.some((v) => v.law === law) })),
   };
 }
 

@@ -29,6 +29,18 @@ import { strategyFor, serializeFor, fitToBudget, SERIALIZERS } from './swanPromp
 
 export { strategyFor, serializeFor, fitToBudget, SERIALIZERS };
 
+// Gate 0 (`directions`) and the "Why this?" renderer (`explain`) — the two
+// contract functions that were specified and never implemented, so the only way
+// to see options was `forge bracket --confirm-spend`, which BILLS BEFORE YOU HAVE
+// CHOSEN. Same seam as the serializers above, same reason: split out at the cap,
+// imported for local use AND re-exported, so the CLI and the MCP get ONE brain
+// from ONE import path rather than reaching into three modules and hoping they
+// stay in step. (Resolves `U1`; see the packet's `A0-SEAM-AUDIT.md` §9.)
+import { directions } from './swanDirections.mjs';
+import { explain } from './swanExplain.mjs';
+
+export { directions, explain };
+
 /**
  * 0.2.0 — the compiled object gained `aspect` (typed) and `aspectDivergence`.
  * Bumped because run records persist `brainVersion`: comparing a 0.1.0 run to a

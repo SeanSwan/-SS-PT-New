@@ -277,7 +277,7 @@ flowchart LR
 ```ts
 type Tier = 'evidence' | 'prior';
 
-interface Direction {            // the missing contract function, implemented in A1
+interface Direction {            // ✅ IMPLEMENTED in A1 — shared/swanDirections.mjs
   name: string;                  // evocative — "Glacier Cathedral"
   sentence: string;              // mood, hierarchy, the ONE impossible phenomenon
   phenomenon: string;            // the single impossible thing — load-bearing
@@ -285,18 +285,35 @@ interface Direction {            // the missing contract function, implemented i
   paletteLaw: 'A-swan-native' | 'B-world-native';
   tier: Tier;                    // 'evidence' requires >=2 of Sean's own picks, ids cited
   evidenceEventIds?: string[];   // present iff tier === 'evidence'
+  swatches: { facet: string; hue: number; hex: string }[];   // deterministic, derived from facet NAMES
+  tierReason: string;            // ALWAYS present — the card renders it, so PRIOR cannot look like EVIDENCE
 }
 
+// CORRECTED (C1 + C4). The original `lawChecks: {law, passed, detail?}[]` was wrong on
+// sourcing: the compiler's `checks` carry NO detail, and `detail` lives on `violations`.
+// `passed: null` is NOT a pass — it is NOT OBSERVED, and a blocked compile produces
+// five of them. `slots` is an array, not a Record, because every empty slot must carry
+// its REASON (a facet may have emptied it deliberately — see FACETS['Form>Abstract']).
 interface ExplainView {          // derived ONLY from the compile result — never a second log
-  compileId: string;
-  brainVersion: string;          // read at run time, never a literal
-  seed: number;
+  blocked: boolean;
+  partial: boolean;              // true when the view genuinely cannot be complete
+  partialReason: string | null;
+  brainVersion: string | null;   // read at run time, never a literal (T-U-05)
+  briefId: string | null;
+  seed: number | null;
   provider: string;
   modelVersion: string;
-  slots: Record<string, string>; // 12 keys
-  emptySlots: string[];          // slots deliberately empty, with the reason rendered
+  aspect: string | null;
+  aspectDivergence: { declared: string; inProse: string } | null;  // typed vs prose frame
+  promptStyle: string | null;
+  truncated: boolean;            // a silent quality loss unless surfaced
+  droppedSegments: string[];
+  negativeText: string | null;
+  slots: { key: string; value: string; empty: boolean; emptyReason: string | null }[];  // 12
+  emptySlots: string[];
   facetsApplied: string[];
-  lawChecks: { law: string; passed: boolean; detail?: string }[];   // EVERY check
+  lawChecks: { law: string; passed: boolean | null; detail: string | null;
+               slot: string | null; observed: boolean }[];   // EVERY check, passes AND fails
   capabilities: Record<string, 'verified' | 'claimed' | 'false'>;
   promptText: string;
 }
@@ -313,7 +330,24 @@ interface TuningView {
   priorValuesPath?: string;          // set once committed
 }
 
-interface LaneState { lane: string; status: 'ACTIVE'|'REFUSED'|'RETIRED'; reason: string; source: string }
+// CORRECTED (C7). The original had three states. Spec mode is a fourth thing — a MODE,
+// not a lane — and INCONCLUSIVE is what a row becomes when its marker is not found in
+// the lane's own source. INCONCLUSIVE is not decoration: it is the mechanism that makes
+// INV8 ("no lane reported ACTIVE without a code source") enforceable rather than
+// aspirational. A row whose source cannot be found does not get to claim a status.
+interface LaneState {
+  lane: string;
+  file?: string;                 // when the module name differs from the lane name
+  status: 'ACTIVE' | 'REFUSED' | 'RETIRED' | 'DISABLED' | 'INCONCLUSIVE';
+  reason?: string;               // present when INCONCLUSIVE
+  marker: string;                // a literal that MUST exist in the lane's source
+  guardKind: 'none' | 'conditional' | 'unconditional';
+  gatedBy: string | null;        // what would unblock a REFUSED lane
+  writes: string;                // what durable artifact it writes, or 'none'
+  source: string;                // LIVE-resolved `file:line`, or the file when missing
+  sourceLine: number | null;
+  sourceMissing: boolean;
+}
 ```
 
 ### 4.2 HTTP contract
@@ -332,16 +366,29 @@ interface LaneState { lane: string; status: 'ACTIVE'|'REFUSED'|'RETIRED'; reason
 | `POST /api/reject` | `{ compileId }` | `{ ok }` | token | records `rejected_all` |
 | `GET /api/profile` | — | taste profile | none | proxy; optional |
 
-### 4.3 Error contract
+### 4.3 Error contract — CORRECTED (C2 + C3)
 
-| Code | Meaning | Surface behaviour |
-|---|---|---|
-| `E_LAW_VIOLATION` | a LAW check failed | name the offending slot; offer **no** override |
-| `E_IMAGE_FIRST_REQUIRED` | video compile without an init image | explain, link to the image step |
-| `E_CAPABILITY_UNVERIFIED` | a required capability is `claimed` | name the capability, say `claimed` ≠ verified |
-| `E_BRAIN_VERSION_MISMATCH` | consumer pinned a different version | show both versions; refuse silently proceeding |
-| `E_PROVIDER_UNCONFIGURED` | no provider | fail closed; **never** fabricate media |
-| `E_NOT_LOOPBACK` | bind address was not `127.0.0.1` | refuse startup, exit non-zero |
+The original table listed `E_IMAGE_FIRST_REQUIRED`, `E_PROVIDER_UNCONFIGURED` and
+`E_BRAIN_VERSION_MISMATCH`. **None of the three is thrown by this compiler.** `E_IMAGE_FIRST_REQUIRED`
+belonged to `compileVideo`, which was **removed** (`compiler:271-275`) — that guard belongs to the video
+lane's own tree. The other two were never implemented. This is the table of codes that exist.
+
+| Code | Thrown by | Meaning | Surface behaviour |
+|---|---|---|---|
+| `E_LAW_VIOLATION` | `assertLawful` | a LAW check failed; carries `violations[]` | name the offending slot and detail; offer **no** override |
+| `E_CAPABILITY_UNVERIFIED` | `compileImage` | requested aspect not in `supportedAspectRatios` | name the capability, say `claimed` ≠ verified |
+| `E_CAPABILITY_UNAVAILABLE` | `requireCapability` | brief asked for a dead capability (seed / image-init) | explain that it is accepted, billed, and inert |
+| `E_EMPTY_PROMPT` | `compileImage` | the brief resolved to no substantive content | refuse to submit a paid request; quote the render |
+| `E_SPEC_MODE_DISABLED` | `spec-contract.mjs:65` | spec mode is gated off | show the gate; offer no control that enables it |
+| `E_LEGACY_MODE_REFUSED` | `reference-modes.mjs:13` | an unsupported reference mode | name the mode; list the supported ones |
+| `E_NOT_LOOPBACK` | `bind.mjs` | bind address was not `127.0.0.1` / `::1` | refuse startup, **exit non-zero** |
+| `E_BAD_PORT` | `bind.mjs` | not a TCP port | refuse startup, exit non-zero |
+| `E_TUNING_INVALID` / `E_TUNING_UNREADABLE` | `tuning.mjs` | the config is corrupt or missing | named error, **no write**, no default substitution |
+| `E_EXPLAIN_INPUT` | `swanExplain.mjs` | `explain()` got neither a compile nor a violation | developer error; throw |
+
+**Deliberately absent:** there is no `E_PROVIDER_UNCONFIGURED`, because "no provider" is not an error
+this compiler raises — it is `provider: 'unconfigured'` on the record, and the **fail-closed** rule
+(*the app never fabricates generated media*) lives in the generation lane, not here.
 
 ### 4.4 MCP tools (A7 — read, plus exactly one guarded write)
 

@@ -86,6 +86,15 @@ const MINIMAL_VALID_ARGS = {
   strategyFor: [{ promptStyle: 'sentence' }], fitToBudget: ['some text', 4000],
   compileImage: [{ text: 'a frozen lake', aspect: '16:9' }, { promptStyle: 'sentence', maxPromptChars: 4000 }],
   assertLawful: [{ subject: 'a frozen lake' }, []],
+  // Gate 0 + the "Why this?" renderer (Astra A1). `directions` and `explain` are
+  // exported by their own modules AND re-exported from the compiler, so these
+  // entries cover both paths — the map is keyed by name.
+  directions: [{ text: 'a frozen lake', intent: 'hero' }, 3, {}],
+  swatchesFor: [['Temperature>Arctic']],
+  explain: [{ slots: { subject: 'a lake' }, facetsApplied: [], lawChecks: [], provider: 'p' }, {}],
+  explainSlots: [{ subject: 'a lake' }, []],
+  explainLawChecks: [[], []],
+  explainCapabilities: [{}, 'p', 'm'],
   // records — buildRecord reaches its body with these and validates
   buildRecord: [{ briefId: 'b', provider: 'p', model: 'm', serializer: 'sentence', status: 'ok' }],
   isBuilt: [{}],
@@ -118,6 +127,7 @@ const FORGE_OWNED = new Set([
   'imageDimensions.mjs', 'pixels.mjs', 'swanLawFilter.mjs', 'swanPromptCompiler.mjs',
   'swanPromptSerializers.mjs', 'swanVocabulary.mjs', 'variantLineage.mjs',
   'variantRun.mjs', 'variantVerdict.mjs',
+  'swanDirections.mjs', 'swanExplain.mjs',
   'openrouterImage.mjs', 'openrouterModels.mjs', 'transportRetry.mjs',
 ]);
 

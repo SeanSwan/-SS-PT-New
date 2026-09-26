@@ -1,0 +1,183 @@
+# A1 exit evidence — Astra Core
+# Captured 2026-09-26T02:07:25Z on v22.22.2
+# Command: node --test scripts/astra/tests/*.test.mjs
+
+# Subtest: T-U-01: directions() returns 3 complete Directions
+ok 1 - T-U-01: directions() returns 3 complete Directions
+# Subtest: T-U-01: directions() makes ZERO provider calls — a transport spy proves it
+ok 2 - T-U-01: directions() makes ZERO provider calls — a transport spy proves it
+# Subtest: T-U-01: the purity is STRUCTURAL — swanDirections imports nothing that can spend
+ok 3 - T-U-01: the purity is STRUCTURAL — swanDirections imports nothing that can spend
+# Subtest: T-U-01: directions() is REPLAYABLE — same brief, same order
+ok 4 - T-U-01: directions() is REPLAYABLE — same brief, same order
+# Subtest: T-U-01: no injected evidence means every direction is PRIOR, never fabricated EVIDENCE
+ok 5 - T-U-01: no injected evidence means every direction is PRIOR, never fabricated EVIDENCE
+# Subtest: T-U-01: evidence is injected, and only >=2 ids flips the tier
+ok 6 - T-U-01: evidence is injected, and only >=2 ids flips the tier
+# Subtest: T-U-04: explain() lawChecks length equals the compiler's own check count
+ok 7 - T-U-04: explain() lawChecks length equals the compiler's own check count
+# Subtest: T-U-04: a BLOCKED compile shows the failure AND marks the rest NOT OBSERVED
+ok 8 - T-U-04: a BLOCKED compile shows the failure AND marks the rest NOT OBSERVED
+# Subtest: T-U-04: an empty slot is given a REASON, and a facet-emptied one names the facet
+ok 9 - T-U-04: an empty slot is given a REASON, and a facet-emptied one names the facet
+# Subtest: T-U-04: explain() refuses an input that is neither a compile nor a law violation
+ok 10 - T-U-04: explain() refuses an input that is neither a compile nor a law violation
+# Subtest: T-U-05: readBrainVersion() returns the LIVE export
+ok 11 - T-U-05: readBrainVersion() returns the LIVE export
+# Subtest: T-U-05: NO version literal exists anywhere in Astra's own source
+ok 12 - T-U-05: NO version literal exists anywhere in Astra's own source
+# Subtest: T-U-05: the version reaches the ExplainView from the record
+ok 13 - T-U-05: the version reaches the ExplainView from the record
+# Subtest: T-U-06: personify() produces the legal form
+ok 14 - T-U-06: personify() produces the legal form
+# Subtest: T-U-06: the raw "[subject] by [artist]" form never appears
+ok 15 - T-U-06: the raw "[subject] by [artist]" form never appears
+# Subtest: T-U-10: non-loopback addresses are REFUSED, including 0.0.0.0
+ok 16 - T-U-10: non-loopback addresses are REFUSED, including 0.0.0.0
+# Subtest: T-U-10: literal loopback addresses are accepted
+ok 17 - T-U-10: literal loopback addresses are accepted
+# Subtest: T-U-10: the CLI exits NON-ZERO on a refused bind
+ok 18 - T-U-10: the CLI exits NON-ZERO on a refused bind
+# Subtest: T-U-07: exactly three lanes are RETIRED, and they THROW ON IMPORT
+ok 19 - T-U-07: exactly three lanes are RETIRED, and they THROW ON IMPORT
+# Subtest: T-U-07: exactly three lanes are REFUSED, each with a code guard
+ok 20 - T-U-07: exactly three lanes are REFUSED, each with a code guard
+# Subtest: T-U-07: the lanes A0 called REFUSED that are actually ACTIVE are recorded as ACTIVE
+ok 21 - T-U-07: the lanes A0 called REFUSED that are actually ACTIVE are recorded as ACTIVE
+# Subtest: T-U-07: spec mode is DISABLED and is NOT a lane
+ok 22 - T-U-07: spec mode is DISABLED and is NOT a lane
+# Subtest: T-U-07 / INV8: EVERY row resolves to a live file:line — no status without a source
+ok 23 - T-U-07 / INV8: EVERY row resolves to a live file:line — no status without a source
+# Subtest: T-U-07: the board DEGRADES rather than asserting an unsupported status
+ok 24 - T-U-07: the board DEGRADES rather than asserting an unsupported status
+# Subtest: T-U-07: an unreadable lane file degrades too, and does not throw
+ok 25 - T-U-07: an unreadable lane file degrades too, and does not throw
+# Subtest: T-U-07: every lane in the table is unique, and the counts are derived
+ok 26 - T-U-07: every lane in the table is unique, and the counts are derived
+# Subtest: T-U-07: the source paths are repo-relative and forward-slashed
+ok 27 - T-U-07: the source paths are repo-relative and forward-slashed
+# Subtest: T-U-08: a capability declared "claimed" renders as NOT usable
+ok 28 - T-U-08: a capability declared "claimed" renders as NOT usable
+# Subtest: T-U-08: only "verified" is usable — true/1/"yes" are all false
+ok 29 - T-U-08: only "verified" is usable — true/1/"yes" are all false
+# Subtest: T-U-08: the claimed fixture really is claimed, end to end
+ok 30 - T-U-08: the claimed fixture really is claimed, end to end
+# tests 30
+# suites 0
+# pass 30
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 850.5169
+
+=== node scripts/astra/cli.mjs version ===
+brainVersion 0.2.0
+
+=== node scripts/astra/cli.mjs explain fixtures/brief-hero.json ===
+ExplainView
+  briefId  fixture-hero-01
+  version  0.2.0
+  provider gemini-image-flash / gemini-3.1-flash-image-preview
+  aspect   16:9  (no divergence)
+  style    sentence
+  seed     2028017219
+  facets   Temperature>Arctic, Optics>Caustics, Form>Geometric
+
+SLOTS (12)
+  intent       full-bleed hero plate carrying the page
+  subject      light bending through a frozen structure
+  medium       photograph
+  styleAnchor  (empty) not set by this brief
+  composition  single dominant gesture, generous negative space, strict geometric construction, symmetrical
+  optics       (empty) not set by this brief
+  light        cold rim light, 5600K falling to blue in shadow
+  palette      ice wing cyan over midnight sapphire
+  material     caustic light through crystal, real refraction
+  abstraction  high variety, one impossible phenomenon, cinematic
+  negative     iridescent gradient, lens flare, causeless particles, glassmorphism, literal creature form, fantasy wallpaper, watermark, text artifacts
+  output       16:9
+
+EMPTY SLOTS  styleAnchor, optics
+
+PROMPT
+  A photograph: light bending through a frozen structure. Framed single dominant gesture, generous negative space, strict geometric construction, symmetrical. Lit and surfaced with cold rim light, 5600K falling to blue in shadow, ice wing cyan over midnight sapphire, caustic light through crystal, real refraction. high variety, one impossible phenomenon, cinematic. Composed for a 16:9 frame.
+
+LAW CHECKS (6)
+  PASS  LAW2-gold-allowlist       
+  PASS  LAW3-kill-list            
+  PASS  LAW3-banned-facet         
+  PASS  LAW4-optics-not-creatures 
+  PASS  LAW9-retired-palette      
+  PASS  LAW10-content             
+
+CAPABILITIES  seed=verified (usable: true)  negative=verified (usable: true)
+exit=0
+
+=== node scripts/astra/cli.mjs explain fixtures/law-violation.json ===
+ExplainView  ** BLOCKED **
+  code     E_LAW_VIOLATION
+  partial  the compile was blocked, so no prompt or slot map exists for this run
+LAW CHECKS (6)
+  n/o   LAW2-gold-allowlist         NOT OBSERVED
+  FAIL  LAW3-kill-list             slot="subject"  iridescent/unicorn gradient — the #1 AI-slop tell
+  n/o   LAW3-banned-facet           NOT OBSERVED
+  n/o   LAW4-optics-not-creatures   NOT OBSERVED
+  n/o   LAW9-retired-palette        NOT OBSERVED
+  n/o   LAW10-content               NOT OBSERVED
+exit=0
+
+=== node scripts/astra/cli.mjs bind 0.0.0.0 ===
+REFUSED  E_NOT_LOOPBACK: E_NOT_LOOPBACK: refusing to bind "0.0.0.0" — Astra serves 127.0.0.1 or ::1 only. It has no authentication, so any other address would expose the operator's briefs and the brain's reasoning to the network.
+exit=1
+
+=== node scripts/astra/cli.mjs state ===
+STATE — the honest board. Every row resolves to a live code source.
+
+  RETIRED       attest               scripts/design-brain/src/attest.mjs:2
+      gated by: nothing — retired by the Opus/Kimi hardening decision
+      writes:   none — Inspect detail persistence is forbidden
+  RETIRED       redact-provenance    scripts/design-brain/src/redact-provenance.mjs:2
+      gated by: nothing — retired by the Opus/Kimi hardening decision
+      writes:   none
+  RETIRED       log-spec             scripts/design-brain/src/log-spec.mjs:2
+      gated by: nothing — SDIR experiments must stay task-local and non-durable
+      writes:   none
+      note:     A0 had this prose-sourced; the guard is real and unconditional.
+  REFUSED       corroborate          scripts/design-brain/src/corroborate.mjs:163
+      gated by: a signed monotonic lifecycle authority (not installed)
+      writes:   rev+1 evidence appended to an ACCEPTED claim — canon-adjacent
+      note:     The pure core runs; applyCorroboration() refuses the write. This is the gate that decides whether a claim reaches canon without review.
+  REFUSED       adjudicate           scripts/design-brain/src/adjudicate.mjs:68
+      gated by: a signed claim adjudication authority (not installed)
+      writes:   a signed decision on a proposed claim
+      note:     Conditional guard (typeof signDecision !== function). It always trips in the shipped config because no authority adapter exists.
+  REFUSED       emit-vault           scripts/design-brain/src/emit-vault.mjs:14
+      gated by: signed canonical receipt provenance on every accepted claim
+      writes:   the vault / claim document
+      note:     Conditional guard. Always trips in the shipped config.
+  ACTIVE        synthesize           scripts/design-brain/src/synthesize.mjs:42
+      ungated
+      writes:   claims-proposed.jsonl — PROPOSED claims, mechanical, no LLM
+      note:     A0 called this REFUSED on the strength of :118 printing "REFUSED <receiptId>". That line reports receipts that failed validation; the lane itself writes and returns 0. Reclassified by reading main(), not the string.
+  ACTIVE        log-receipt          scripts/design-brain/src/log-receipt.mjs:56
+      ungated
+      writes:   receipts.jsonl — appends a VALID receipt
+      note:     A0 called this REFUSED. Its refusals (:50 invalid receipt, :57 duplicate id) are validation on the INPUT, not a disabled lane — a valid receipt is appended.
+  ACTIVE        reference-modes      scripts/design-brain/src/reference-modes.mjs:13
+      ungated
+      writes:   nothing directly — policy for reference modes
+      note:     A0 labelled this "REFUSED (legacy modes)", which is right about the legacy path and wrong as a lane status: supported modes are served. The refusal is a per-MODE path inside a working lane.
+  ACTIVE        packet               scripts/design-brain/src/packet.mjs:61
+      ungated
+      writes:   none — renders the packet for Sean
+  ACTIVE        novelty              scripts/design-brain/src/novelty.mjs:89
+      ungated
+      writes:   none — reports
+  DISABLED      spec-mode            scripts/design-brain/src/spec-contract.mjs:65
+      gated by: config/spec-mode.json `enabled: true` — currently false, and activationRef is null
+      writes:   none while disabled
+      note:     Not a lane: a contract gated off. Astra must surface it and must offer NO control that enables it (AC5.4).
+
+COUNTS  RETIRED=3  REFUSED=3  ACTIVE=5  DISABLED=1
+exit=0

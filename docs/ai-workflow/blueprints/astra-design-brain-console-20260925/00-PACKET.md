@@ -1,7 +1,8 @@
 # Astra — Design Brain Console · Build Packet
 
 - **Date:** 2026-09-25 · **Author:** sable (WorkBuddy AI, deepseek-v4.1-flash) · **Requested by:** Sean
-- **Status:** PROPOSED — ready to code. Nothing here is implemented except where §2 says VERIFIED.
+- **Status:** **A0 ✅ DONE** · **A1 ✅ DONE** (30/30 tests green; evidence in `scripts/astra/evidence/a1-tests.txt`) · **A5 partially done** (the board is built and code-sourced) · A2–A4, A6–A8 **not started**.
+- **Read the corrections before coding on:** `A0-SEAM-AUDIT.md` (5 corrections) and **`A1-CORRECTIONS.md` (11)** supersede the sections they name in this packet. `A1-CORRECTIONS.md` §3 replaces `A0-SEAM-AUDIT.md` §6 outright — three of A0's REFUSED lanes were measured ACTIVE.
 - **Mega Blueprints:** this is the packet. Read `00` → `05` in order before writing code.
 - **Repo/worktree:** `SS-PT` @ `tmp/worktrees/brain-console-salvage-20260918`
 - **Branch:** `swan-brain-console-v3-salvage-20260918` · **Commit:** `e29508664`
@@ -33,11 +34,11 @@ how it thinks" into **three legal dials (instant, reversible, logged)** and **on
 
 ## 2. Verified baseline — what actually exists (A0 partially done)
 
-Measured on this worktree at `e29508664`, not quoted from the contract.
+Measured on this worktree at `e29508664`; the A1 rows re-measured at `40d32c7ad`. Not quoted from the contract.
 
 | Thing | Status | Evidence |
 |---|---|---|
-| Prompt compiler | **EXISTS** — 274 lines | `shared/swanPromptCompiler.mjs` |
+| Prompt compiler | **EXISTS** — 287 lines (was 274; +re-exports in A1) | `shared/swanPromptCompiler.mjs` |
 | `BRAIN_VERSION` | **`'0.2.0'`** | `shared/swanPromptCompiler.mjs:39` |
 | `personify()` — slot 4's only legal form | **EXISTS** | `shared/swanPromptCompiler.mjs:53` |
 | `resolveSlots(brief)` — the SlotMap | **EXISTS** | `shared/swanPromptCompiler.mjs:97` |
@@ -49,10 +50,12 @@ Measured on this worktree at `e29508664`, not quoted from the contract.
 | CLI `bracket` (n variants) / `pick --winner` / `refine` / `list` / `prune` / `review-answer` | **EXIST** | `scripts/forge.mjs:58-71` |
 | Spend gate | **EXISTS** — `--confirm-spend` required for any generation | `scripts/forge.mjs:32,93` |
 | Variant store with lineage, retention, winners-never-pruned | **EXISTS** | `scripts/forge.mjs:229-242` |
-| `directions()` — Gate 0, zero cost | **MISSING** | specified `forge-compiler-contract.md:128`; absent from the compiler |
-| `explain()` / `ExplainView` — the "Why this?" view | **MISSING** | specified `:129`; absent |
-| MCP server for the design brain | **MISSING** | no `mcp/` under `scripts/design-brain/` |
-| Console surface of any kind | **MISSING** | — |
+| **`directions()` — Gate 0, zero cost** | **✅ EXISTS (A1)** — 208 lines, pure | `shared/swanDirections.mjs` |
+| **`explain()` / `ExplainView` — the "Why this?" view** | **✅ EXISTS (A1)** — 192 lines | `shared/swanExplain.mjs` |
+| **Astra core + CLI** | **✅ EXISTS (A1)** | `scripts/astra/{core,cli.mjs,tests,fixtures,evidence}` |
+| **The honest lane board** | **✅ EXISTS (A1/A5)** — every row code-verified | `scripts/astra/core/capabilities.mjs` |
+| MCP server for the design brain | **MISSING** (A2) | no `mcp/` under `scripts/astra/` or `scripts/design-brain/` |
+| Console surface of any kind | **MISSING** (A3) | — |
 | Doctrine corpus | **EXISTS** — ~25 files, ~400 KB | `docs/ai-workflow/design-brain/` |
 | Style taxonomy ("MidJourney Brain") | **EXISTS** | `design-brain/style-taxonomy.md` |
 | World Engine (18 DNA recipes) | **EXISTS** (doctrine) | `design-brain/worlds.md` |
@@ -61,25 +64,28 @@ Measured on this worktree at `e29508664`, not quoted from the contract.
 
 ### 2.1 Four gaps Astra exists to close
 
-- **G1 — `directions()` is missing.** The contract's Gate 0 returns 3 text directions at **zero cost**.
-  Today the only way to see options is `forge bracket … --confirm-spend`, which *generates and bills*.
-  The cheapest, highest-value step in the whole contract does not exist yet.
-- **G2 — `explain()` is missing.** `lawChecks` are computed and attached to the result, but nothing
-  renders them. "Why this?" has no implementation.
-- **G3 — no MCP server**, so no agent can ask the design brain anything without shelling out.
+- **G1 — `directions()` was missing. ✅ CLOSED in A1.** The contract's Gate 0 returns 3 text directions
+  at **zero cost**. Before A1 the only way to see options was `forge bracket … --confirm-spend`, which
+  *generates and bills*. Now `shared/swanDirections.mjs` implements it, and `T-U-01` proves the
+  zero-spend property twice over: a transport spy that fails the test if it fires, and a check that the
+  module's **entire import list** is `./swanVocabulary.mjs` and nothing else.
+- **G2 — `explain()` was missing. ✅ CLOSED in A1.** `lawChecks` were computed and attached to the
+  result, and nothing rendered them. `shared/swanExplain.mjs` implements it; the CLI prints a full
+  `ExplainView` for both a lawful compile and a blocked one.
+- **G3 — no MCP server**, so no agent can ask the design brain anything without shelling out. *(open)*
 - **G4 — no surface**, so the loop (bracket → pick → refine → review-answer → prune) is a sequence of
-  commands only its author remembers.
+  commands only its author remembers. *(A3; the CLI in A1 is the first face, not the surface)*
 
-### 2.2 Two drift findings, recorded here rather than fixed
+### 2.2 Two drift findings
 
 - **D-A — version drift.** `forge-compiler-contract.md` is headed **v0.1.0**; the implementation reports
   **`BRAIN_VERSION = '0.2.0'`**. The contract's own §0.5 says *"`brainVersion` pinned by every consumer
   — CLI on v1 + backend on v2 = the drift this whole design exists to kill."* The doc has drifted from
-  the code. **Astra must display `BRAIN_VERSION` read from the code, never a literal.**
-- **D-B — the contract's `SlotMap` field names are unverified against the implementation.**
-  `resolveSlots()` exists but its accepted key set has not been read in this pass. **Slice A0 must
-  read it** and the interface in `03-INTERFACE.md` must be corrected to match before A1 is coded.
-  This packet deliberately does not guess.
+  the code. **Astra displays `BRAIN_VERSION` read from the code, never a literal** — and `T-U-05` now
+  enforces that by scanning Astra's own source for the literal, comments stripped.
+- **D-B — the contract's `SlotMap` field names are unverified against the implementation. ✅ CLOSED in
+  A0.** `resolveSlots()`'s accepted key set was read at `compiler:97-130`; the packet's 12 slot names
+  were **correct**. See `A0-SEAM-AUDIT.md` §1.
 
 ---
 

@@ -8,25 +8,34 @@ Each slice names **entry evidence** (what must be true to start) and **exit evid
 is done). Do not start a slice whose entry evidence is unmet. Slices are small on purpose — each is one
 sitting.
 
-### A0 — Seam audit (read-only, no code) ← **START HERE**
+### A0 — Seam audit (read-only, no code) ← **✅ DONE 2026-09-25**
 - **Does:** reads `shared/swanPromptCompiler.mjs`'s `resolveSlots()` key set; locates the variant store
   and its record shape; re-derives the REFUSED/RETIRED lane list from the `scripts/design-brain/src/*`
   refusal paths rather than from prose; confirms whether `directions`/`explain` exist anywhere.
 - **Entry:** none.
 - **Exit:** a written inventory with `file:line` for every Astra dependency, and **three open questions
   closed**: D-B (`resolveSlots` keys), the variant store path/shape, the refusal list's code source.
-- **Evidence:** the inventory file, committed.
+- **Evidence:** `A0-SEAM-AUDIT.md` — `D-B` **CLOSED** (the packet's 12 slot names were correct),
+  5 packet corrections found. **Its §6 lane list is superseded by `A1-CORRECTIONS.md` §3**, which
+  measured three of those rows and found them ACTIVE.
 - **Spend:** zero. **Writes:** only inside the packet directory.
 - **Why first:** `03-INTERFACE.md` §4.1 is written against the *contract*, and the contract is
   demonstrably stale (D-A). Coding A1 against an unverified interface is the failure this packet
   exists to prevent.
 
-### A1 — Astra Core (adapter, no UI)
-- **Does:** `brain.mjs`, `directions.mjs`, `explain.mjs`, `tuning.mjs` (read-only), `bind.mjs`, `paths.mjs`.
-- **Entry:** A0 exit met.
-- **Exit:** `node --test scripts/astra/tests/*.test.mjs` green; `node scripts/astra/cli.mjs explain <fixture>`
-  prints an `ExplainView`; `T-U-01` proves zero provider calls; `T-U-10` proves the loopback refusal.
-- **Evidence:** test output captured to `evidence/a1-tests.txt`.
+### A1 — Astra Core (adapter, no UI) ← **✅ DONE 2026-09-26**
+- **Does:** `brain.mjs`, `directions`, `explain`, `tuning.mjs` (read-only), `bind.mjs`, `paths.mjs`.
+  **Where the primitives landed:** `directions()` → `shared/swanDirections.mjs` and `explain()` →
+  `shared/swanExplain.mjs`, both **re-exported from the compiler** — so there is no `core/directions.mjs`
+  or `core/explain.mjs`, and `core/brain.mjs` is the one import path (see `A1-CORRECTIONS.md` C8).
+- **Entry:** A0 exit met. ✅
+- **Exit:** `node --test scripts/astra/tests/*.test.mjs` green — **30 pass / 0 fail**;
+  `node scripts/astra/cli.mjs explain fixtures/brief-hero.json` prints an `ExplainView` (12 slots,
+  6 LAW checks); `T-U-01` proves zero provider calls **twice** (transport spy + import-list scan);
+  `T-U-10` proves the loopback refusal including the CLI's non-zero exit.
+- **Evidence:** `scripts/astra/evidence/a1-tests.txt` (183 lines) + `A1-CORRECTIONS.md`.
+- **Also landed:** the A5 board (`core/capabilities.mjs`), because A0 unblocked it and its rows are
+  code-sourced — so **A5's entry is met too**.
 
 ### A2 — Astra MCP
 - **Does:** `mcp/server.mjs`, `mcp/tools.mjs`; read tools + one guarded write.
@@ -48,11 +57,16 @@ sitting.
 - **Exit:** `T-I-02`, `T-I-03`, `T-I-04`, `T-I-05`, `T-M-06`, `T-M-07` pass.
 - **Evidence:** before/after `tuning.json` hashes.
 
-### A5 — Law + State boards
+### A5 — Law + State boards ← **◐ PARTIAL — the board is built; the UI panes are not**
 - **Does:** the LAW rows from the compiler's own `lawChecks`; the honest lane board from A0's code-derived list.
-- **Entry:** A0 exit met (the lane list must come from code).
-- **Exit:** `T-U-07`, `T-U-08`, `T-P-01` pass; every REFUSED lane shows a reason traceable to a file.
-- **Evidence:** the board, with each row's source path.
+- **Entry:** A0 exit met (the lane list must come from code). ✅
+- **Exit:** `T-U-07`, `T-U-08` pass; `T-P-01` not run. Every row shows a reason traceable to a file — and
+  the board **verifies** that rather than asserting it.
+- **Evidence:** `scripts/astra/core/capabilities.mjs` + `scripts/astra/tests/a5-capabilities.test.mjs`.
+  `node scripts/astra/cli.mjs state` → exit 0, `RETIRED=3 REFUSED=3 ACTIVE=5 DISABLED=1`.
+- **Corrected input:** A0's lane list was **over-broad** — three lanes it called REFUSED were measured
+  ACTIVE. The board is built from the measurement, and each correction is recorded on its own row.
+- **Still to do:** the `/law` and `/state` panes (A3's surface), and `T-P-01`.
 
 ### A6 — Ledger
 - **Does:** one-action `rejected_all`; cost drift; trends by slot and facet.

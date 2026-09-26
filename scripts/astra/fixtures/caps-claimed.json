@@ -1,0 +1,8 @@
+{
+  "provider": "example-provider",
+  "modelVersion": "example-1",
+  "seedIsDeterministic": "claimed",
+  "honorsNegativePrompt": "claimed",
+  "supportedAspectRatios": ["16:9"],
+  "maxPromptChars": 4000
+}

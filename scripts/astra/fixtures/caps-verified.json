@@ -1,0 +1,9 @@
+{
+  "provider": "gemini-image-flash",
+  "promptStyle": "sentence",
+  "modelVersion": "gemini-3.1-flash-image-preview",
+  "seedIsDeterministic": "verified",
+  "honorsNegativePrompt": "verified",
+  "supportedAspectRatios": ["16:9", "1:1", "9:16"],
+  "maxPromptChars": 4000
+}
