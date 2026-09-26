@@ -17,7 +17,10 @@ export default defineConfig({
     // tests/mutation/** mutates source and spawns child vitest runs. It is
     // opt-in (`npm run test:mutation`) and must never run inside the normal
     // suite, where it would be slow and would race other readers.
-    exclude: ['node_modules', 'dist', 'tests/integration/**', 'tests/mutation/**'],
+    // tests/security/** are the Astra-blueprint S0 security suites: they run
+    // through scripts/run-disposable-security-tests.mjs (DB-resource guard)
+    // or node --test with --experimental-vm-modules, never the default run.
+    exclude: ['node_modules', 'dist', 'tests/integration/**', 'tests/mutation/**', 'tests/security/**'],
 
     // Setup file for test environment
     setupFiles: ['./tests/setup.mjs'],
