@@ -31,10 +31,6 @@ const COACH_TTS_SOURCE = readFileSync(
   resolve(__dirname, '../components/DashBoard/Pages/coach-assistant/hooks/usePremiumTTS.ts'),
   'utf8',
 );
-const COACH_TEACH_MODE_SOURCE = readFileSync(
-  resolve(__dirname, '../components/DashBoard/Pages/coach-assistant/hooks/useCoachTeachMode.ts'),
-  'utf8',
-);
 const PLAUD_APPLY_SOURCE = readFileSync(resolve(__dirname, '../components/PlaudClipMerge/PlaudMergeWorkspace.apply.ts'), 'utf8');
 const SPA_SW_SOURCE = readFileSync(resolve(__dirname, '../../public/spa-sw.js'), 'utf8');
 
@@ -107,11 +103,14 @@ describe('AI and admin auth transport', () => {
     expect(COACH_PROPOSAL_SERVICE_SOURCE).toMatch(/apiService\.post[\s\S]*`\/api\/coach\/proposals\/\$\{encodeURIComponent\(id\)\}\/reject`/);
   });
 
-  it('routes Coach transcription, voice readback, and teach-mode calls through apiService', () => {
+  it('routes Coach transcription and voice readback calls through apiService', () => {
+    // `useCoachTeachMode` was the third source here until 2026-09-26, when the
+    // legacy coach teach-mode chain was deleted as unreachable. The lock below is
+    // about the transport contract, so a deleted subject is dropped rather than
+    // kept as a dangling read — the two live lanes still assert it.
     for (const source of [
       COACH_TRANSCRIPTION_SOURCE,
       COACH_TTS_SOURCE,
-      COACH_TEACH_MODE_SOURCE,
     ]) {
       expect(source).toMatch(/import\s+apiService\s+from\s+['"][^'"]*services\/api\.service['"]/);
       expect(source).not.toMatch(/localStorage\.getItem\(['"]token['"]\)/);
@@ -124,8 +123,6 @@ describe('AI and admin auth transport', () => {
     expect(COACH_TTS_SOURCE).toMatch(/apiService\.post/);
     expect(COACH_TTS_SOURCE).toContain("'/api/ai-chat/tts'");
     expect(COACH_TTS_SOURCE).toMatch(/responseType:\s*['"]blob['"]/);
-    expect(COACH_TEACH_MODE_SOURCE).toMatch(/apiService\.get/);
-    expect(COACH_TEACH_MODE_SOURCE).toContain("'/api/exercises'");
   });
 
   it('does not synthesize 503 responses from the disabled service worker', () => {

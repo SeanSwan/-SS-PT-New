@@ -15,13 +15,11 @@ const routeComponentsSource = read('../../../components/DashBoard/UniversalDashb
 const dashboardRoutesSource = read('../../../components/DashBoard/UniversalDashboardLayout.routes.tsx');
 const workoutPlannerLayoutSource = read('../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPageLayout.tsx');
 const plannerSidebarSource = read('../../../components/DashBoard/Pages/admin-workout-planner/TeachModeSidebar.tsx');
-const coachPageSource = read('../../../components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.tsx');
-const coachPanelSource = read('../../../components/DashBoard/Pages/coach-assistant/CoachTeachModePanel.tsx');
 const backendMountSource = read('../../../../../backend/core/routes.mjs');
 const exerciseRoutesSource = read('../../../../../backend/routes/exerciseRoutes.mjs');
 
 describe('useExerciseTeachData auth pipeline', () => {
-  it('is consumed by active workout planner and legacy coach teach-mode surfaces', () => {
+  it('is consumed by the active workout planner surface', () => {
     expect(routeComponentsSource).toMatch(/export const WorkoutPlannerPage = React\.lazy\(\(\) => import\('\.\/Pages\/admin-workout-planner\/WorkoutPlannerPage'\)\)/);
     // The lazy route component is now CoachSurfaceRoute, not CoachCommandCenterPage: the v4 coach
     // workspace became the default, and CoachSurfaceRoute is the single mount point that renders
@@ -35,8 +33,11 @@ describe('useExerciseTeachData auth pipeline', () => {
     expect(workoutPlannerLayoutSource).toMatch(/import TeachModeSidebar from '\.\/TeachModeSidebar'/);
     expect(workoutPlannerLayoutSource).toMatch(/<TeachModeSidebar exercise=\{selectedExercise\}[\s\S]*onClose=\{act\.pageActions\.handleTeachModeToggle\} \/>/);
     expect(plannerSidebarSource).toMatch(/useExerciseTeachData\(\s*exercise\?\.id \?\? null/);
-    expect(coachPageSource).toMatch(/<CoachTeachModePanel teachMode=\{teachMode\} \/>/);
-    expect(coachPanelSource).toMatch(/useExerciseTeachData\(\s*teachMode\.selectedExercise\?\.id \?\? null/);
+    // The legacy coach teach-mode surface (SwanCoachAssistantPage + CoachTeachModePanel)
+    // was deleted 2026-09-26 — it was unreachable from App.tsx and had no production
+    // consumer. Its wiring assertions went with it; the planner surface above is the
+    // only live consumer of this hook, and the backend mount below is the reason this
+    // suite stays.
     expect(backendMountSource).toMatch(/app\.use\('\/api\/exercises', exerciseRoutes\)/);
   });
 

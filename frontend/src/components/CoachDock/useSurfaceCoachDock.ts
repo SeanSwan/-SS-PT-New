@@ -8,13 +8,27 @@
  * outcome renders as a truthful receipt row. No new transport (blueprint 06-bans §1).
  * The planner keeps a thin wrapper with an IDENTICAL public API — its regression
  * suite is the refactor gate. Bootcamp (CC-3) and Pain Chart (CC-4) consume this.
+ *
+ * MIC LANES (2026-09-26). Both lanes are now INLINE — there is no recorder modal.
+ * Browser dictation was always inline. The MediaRecorder fallback used to open
+ * `VoiceRecordingOverlay`, which made the speaker walk record → Stop & Send →
+ * preview → Send/Edit → composer → Send for one sentence, and made the surface
+ * dock the only remaining consumer of the overlay. It now runs through the SAME
+ * `useCoachInlineRecorder` lane that PR 131 gave the coach console and the
+ * workspace composer, so all three share one staging policy and one admission story.
+ *
+ * Deliberately NOT ported: the coach console's `CoachVoiceLevelMeter`. Its styles
+ * live in `CoachCommandCenter.voiceStripStyles.ts` and are built on `--coach-*`
+ * tokens that only the coach console injects, so mounting it on the planner /
+ * bootcamp / pain-chart surfaces would render an unstyled widget. Phase and
+ * outcome are reported textually through `voiceStatus` instead; a themed meter
+ * for the surface docks is a separate styling task.
  */
-import { createElement, useCallback, useEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { commandErrorReceiptText, useCoachCommand } from '../../hooks/useCoachCommand';
 import { commandInputMode, mergeTypedDraftOrigin, mergeVoiceCaptureOrigin, type CoachInputOrigin } from '../../hooks/coachInputOrigin';
 import { useAIChat } from '../../hooks/useAIChat';
-import VoiceRecordingOverlay from '../DashBoard/Pages/coach-assistant/VoiceRecordingOverlay';
+import { useCoachInlineRecorder } from '../DashBoard/Pages/coach-assistant/hooks/useCoachInlineRecorder';
 import {
   useCoachBrowserSpeechInput,
   type CoachSpeechRuntimeFailure,
@@ -87,7 +101,8 @@ export function useSurfaceCoachDock({
   const [inputOrigin, setInputOrigin] = useState<CoachInputOrigin>('unknown');
   const [submitting, setSubmitting] = useState(false);
   const [receipts, setReceipts] = useState<CoachDockReceipt[]>([]);
-  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [voiceStatusText, setVoiceStatusText] = useState('');
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const receiptIdRef = useRef(0);
   const { executeCommand } = useCoachCommand();
@@ -105,22 +120,53 @@ export function useSurfaceCoachDock({
   }, [surface]);
 
   const recorderSupported = isRecorderSupported();
+
+  /** Stage a finished transcript into the dock textarea. Returns whether the
+   *  words landed, which the recorder lane reports back to the speaker. */
+  const stageCapturedText = useCallback((text: string): boolean => {
+    const chunk = text.trim();
+    if (!chunk) return false;
+    setDockTextState((prev) => {
+      const nextValue = prev ? `${prev} ${chunk}` : chunk;
+      setInputOrigin((origin) => mergeVoiceCaptureOrigin(origin, prev, chunk));
+      return nextValue;
+    });
+    return true;
+  }, []);
+
+  const inlineRecorder = useCoachInlineRecorder({
+    onTranscribed: stageCapturedText,
+    setSelectedStatus: setVoiceStatusText,
+    setVoiceInputError: setVoiceError,
+  });
+  // Held in refs so the speech hook and the runtime-failure handler keep stable
+  // callback identities across the recorder lane's re-renders.
+  const toggleRecorderRef = useRef(inlineRecorder.toggle);
+  toggleRecorderRef.current = inlineRecorder.toggle;
+
   const handleSpeechUnavailable = useCallback((failure: CoachSpeechRuntimeFailure) => {
     if (recorderSupported && failure.canTryRecorder) {
-      setOverlayOpen(true);
+      // Hand over to the same inline lane. This is a NOTICE, not an error:
+      // routing it through the voice-error channel would latch it as the
+      // top-priority status line and so mask every status after it.
+      setVoiceStatusText('Browser dictation failed — switching to inline recording');
+      toggleRecorderRef.current();
       return;
     }
     pushReceipt({ ok: false, text: failure.message });
   }, [pushReceipt, recorderSupported]);
 
-  const setVoiceError = useCallback((error: string | null | ((prev: string | null) => string | null)) => {
+  const setSpeechInputError = useCallback((error: string | null | ((prev: string | null) => string | null)) => {
     // Runtime failures already surface through handleSpeechUnavailable receipts.
+    // Browser dictation's other errors stay silent here exactly as before; the
+    // INLINE RECORDER does not share this channel — a denied microphone would
+    // otherwise be invisible, so that lane owns voiceError below.
     void error;
   }, []);
 
   const speech = useCoachBrowserSpeechInput({
     onRuntimeUnavailable: handleSpeechUnavailable,
-    setInputError: setVoiceError,
+    setInputError: setSpeechInputError,
     setText: (next) => setDockTextState((current) => {
       const nextValue = typeof next === 'function' ? next(current) : next;
       setInputOrigin((origin) => mergeVoiceCaptureOrigin(origin, current, nextValue));
@@ -128,30 +174,18 @@ export function useSurfaceCoachDock({
     }),
   });
 
+  const voiceCaptureMode: 'browser' | 'recorder' | 'none' =
+    speech.speechSupported ? 'browser' : recorderSupported ? 'recorder' : 'none';
+  const voiceListening = speech.listening || inlineRecorder.isListening;
+  const voicePhase: 'idle' | 'listening' | 'transcribing' = voiceListening
+    ? 'listening'
+    : inlineRecorder.active ? 'transcribing' : 'idle';
+
   const handleVoice = useCallback(() => {
     if (speech.speechSupported) { speech.toggleListening(); return; }
-    if (recorderSupported) { setOverlayOpen(true); return; }
+    if (recorderSupported) { toggleRecorderRef.current(); return; }
     pushReceipt({ ok: false, text: 'Voice input is not available in this browser.' });
   }, [pushReceipt, recorderSupported, speech]);
-
-  const appendTranscribed = useCallback((text: string, edited = false) => {
-    const chunk = text.trim();
-    if (chunk) setDockTextState((prev) => {
-      const nextValue = prev ? `${prev} ${chunk}` : chunk;
-      setInputOrigin(edited ? 'mixed' : (origin) => mergeVoiceCaptureOrigin(origin, prev, chunk));
-      return nextValue;
-    });
-    setOverlayOpen(false);
-  }, []);
-
-  const voiceOverlay: ReactNode = overlayOpen
-    ? createElement(VoiceRecordingOverlay, {
-      isOpen: overlayOpen,
-      onClose: () => setOverlayOpen(false),
-      onEditTranscript: (text: string) => appendTranscribed(text, true),
-      onTranscribed: appendTranscribed,
-    })
-    : null;
 
   const handleSubmit = useCallback(async () => {
     const trimmed = dockText.trim();
@@ -244,10 +278,20 @@ export function useSurfaceCoachDock({
     }, []),
     inputMode: commandInputMode(inputOrigin),
     inputOrigin,
-    listening: speech.listening,
+    listening: voiceListening,
     interim: speech.interim,
     handleVoice,
-    voiceOverlay,
+    /** Which lane the mic will use; 'none' means neither lane exists in this browser. */
+    voiceCaptureMode,
+    /** idle | listening | transcribing — the dock's pressed state and honest mic label. */
+    voicePhase,
+    /**
+     * The lane's own status line. An error OUTRANKS the optimistic copy, mirroring
+     * `buildVoiceStatus`' precedence in the coach console: without that ordering a
+     * denied microphone would keep advertising a live one, and the recorder lane
+     * writes its "Listening" copy on INTENT, before the device has opened.
+     */
+    voiceStatus: voiceError ?? voiceStatusText,
     submitting,
     handleSubmit,
     receipts,

@@ -19,7 +19,10 @@ export interface WorkoutPlannerCoachDockProps {
   listening: boolean;
   interim: string;
   handleVoice: () => void;
-  voiceOverlay: React.ReactNode;
+  /** Capture-lane state, passed straight through to the generalized dock. */
+  voiceCaptureMode?: 'browser' | 'recorder' | 'none';
+  voicePhase?: 'idle' | 'listening' | 'transcribing';
+  voiceStatus?: string;
   submitting: boolean;
   handleSubmit: () => Promise<void> | void;
   /** Fired when the single action on an actionable receipt is tapped. */

@@ -16,7 +16,11 @@ vi.mock('../../hooks/useCoachCommand', () => ({
 vi.mock('../DashBoard/Pages/coach-assistant/hooks/useCoachBrowserSpeechInput', () => ({
   useCoachBrowserSpeechInput: () => ({ speechSupported: false, listening: false, interim: '', toggleListening: vi.fn() }),
 }));
-vi.mock('../DashBoard/Pages/coach-assistant/VoiceRecordingOverlay', () => ({ default: () => null }));
+vi.mock('../DashBoard/Pages/coach-assistant/hooks/useCoachInlineRecorder', () => ({
+  useCoachInlineRecorder: () => ({
+    abort: vi.fn(), active: false, duration: 0, getLevel: () => 0, isListening: false, toggle: vi.fn(),
+  }),
+}));
 
 import PainChartCoachDockMount from './PainChartCoachDockMount';
 import { dispatchAIWorkoutEvent, AI_PAINCHART_SELECT_REGION } from '../../utils/aiWorkoutEvents';
