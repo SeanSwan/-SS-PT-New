@@ -952,9 +952,12 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
 
         if (normalizedCartId) {
           const ShoppingCart = getShoppingCart();
+          // Session-id match in the WHERE clause: a stale session's expiry must
+          // not disarm the freeze a newer session re-armed, and a matching
+          // expiry also clears the pending payment status.
           await ShoppingCart.update(
-            { checkoutSessionExpired: true },
-            { where: { id: normalizedCartId } }
+            { checkoutSessionExpired: true, paymentStatus: 'expired' },
+            { where: { id: normalizedCartId, checkoutSessionId: session.id, paymentStatus: 'pending' } }
           );
           logger.info('[Webhook] Checkout session expired for cart', {
             cartId: normalizedCartId

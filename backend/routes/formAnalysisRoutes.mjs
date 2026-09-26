@@ -241,8 +241,11 @@ router.get('/:id', async (req, res) => {
     }
 
     // Cross-tenant gate: viewing AI movement analysis requires an ACTIVE
-    // assignment (role alone is not authorization)
-    const canAccess = await assertAssignmentOrAdmin(req.user.id, req.user.role, analysis.userId);
+    // assignment (role alone is not authorization). Self-access short-circuits
+    // FIRST — uploaders of any role (trainer, 'user'-role subscriber) must
+    // keep reaching their own analyses (round-2 hostile review regression fix).
+    const canAccess = String(analysis.userId) === String(req.user.id)
+      || await assertAssignmentOrAdmin(req.user.id, req.user.role, analysis.userId);
     if (!canAccess) {
       return res.status(404).json({ error: 'Analysis not found' });
     }
@@ -270,8 +273,9 @@ router.post('/:id/reprocess', async (req, res) => {
     }
 
     // Cross-tenant gate: triggering AI reprocessing requires an ACTIVE
-    // assignment (role alone is not authorization)
-    const canAccess = await assertAssignmentOrAdmin(req.user.id, req.user.role, analysis.userId);
+    // assignment. Self-access short-circuits FIRST (round-2 regression fix).
+    const canAccess = String(analysis.userId) === String(req.user.id)
+      || await assertAssignmentOrAdmin(req.user.id, req.user.role, analysis.userId);
     if (!canAccess) {
       return res.status(404).json({ error: 'Analysis not found' });
     }

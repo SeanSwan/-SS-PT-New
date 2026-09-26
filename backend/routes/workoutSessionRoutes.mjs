@@ -418,11 +418,12 @@ router.post('/start', protect, async (req, res) => {
     }
 
     // Cross-tenant gate: starting a session for another user requires an
-    // ACTIVE assignment (role alone is not authorization)
+    // ACTIVE assignment (role alone is not authorization). 404, not 403 —
+    // same existence-leak posture as POST /.
     if (!(await canAccessUserSessions(sessionData.userId, req.user))) {
-      return res.status(403).json({
+      return res.status(404).json({
         success: false,
-        message: 'You are not authorized to start a workout session for this user'
+        message: 'Target user not found'
       });
     }
 

@@ -199,10 +199,15 @@ const stripeWebhookHandler = async (req, res) => {
           break;
         }
         
-        // Mark cart checkout as expired
+        // Mark cart checkout as expired — but ONLY if this expired session is
+        // the cart's CURRENT checkout session. A stale session's expiry must
+        // not disarm the freeze a newer session just re-armed.
         const cart = await ShoppingCart.findByPk(cartId);
-        if (cart) {
+        if (cart && cart.checkoutSessionId === session.id) {
           cart.checkoutSessionExpired = true;
+          if (cart.paymentStatus === 'pending') {
+            cart.paymentStatus = 'expired';
+          }
           await cart.save();
           logger.info(`Checkout session expired for cart ID: ${cartId}`);
         }

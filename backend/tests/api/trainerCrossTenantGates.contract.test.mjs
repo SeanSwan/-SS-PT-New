@@ -83,6 +83,17 @@ describe('form analysis: AI movement data requires an assignment', () => {
     expect(formAnalysis).toMatch(/import\s*\{[^}]*assertAssignmentOrAdmin[^}]*\}\s*from\s*'\.\.\/middleware\/verifyClientAccess\.mjs'/);
   });
 
+  it('round-2 regression fix: self-access short-circuits BEFORE the assignment check', () => {
+    // The first version 404'd trainers/'user'-role subscribers on their OWN
+    // uploads (assertAssignmentOrAdmin has no self branch for those roles).
+    const get = section(formAnalysis, "router.get('/:id'", "router.post('/:id/reprocess'");
+    const reprocess = section(formAnalysis, "router.post('/:id/reprocess'", null);
+    for (const slice of [get, reprocess]) {
+      expect(slice).toMatch(/String\(analysis\.userId\)\s*===\s*String\(req\.user\.id\)/);
+      expect(slice).toMatch(/\|\|\s*await assertAssignmentOrAdmin/);
+    }
+  });
+
   it('GET /:id cannot read another trainer’s client analysis', () => {
     const get = section(formAnalysis, "router.get('/:id'", "router.post('/:id/reprocess'");
     expect(get).toMatch(/assertAssignmentOrAdmin/);

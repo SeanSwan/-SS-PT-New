@@ -87,8 +87,15 @@ class SessionAllocationService {
       const sessionData = await this.extractSessionDataFromOrder(order);
 
       if (sessionData.totalSessions === 0) {
-        await transaction.rollback();
-        logger.info(`[SessionAllocation] No sessions to allocate for order ${orderId}`);
+        // Nothing to grant — still CLAIM the marker so completed→pending→
+        // completed toggles and webhook redeliveries stop re-running
+        // extraction (round-2 review finding 12).
+        await order.update(
+          { paymentAppliedAt: order.paymentAppliedAt || new Date() },
+          { transaction }
+        );
+        await transaction.commit();
+        logger.info(`[SessionAllocation] No sessions to allocate for order ${orderId} (claim set)`);
         return {
           success: true,
           allocated: 0,
@@ -102,17 +109,22 @@ class SessionAllocationService {
       // 5. Update user session balance (if applicable)
       await this.updateUserSessionBalance(user, sessionData.totalSessions);
 
-      // 6. Create financial transaction record (same transaction)
-      await this.createFinancialTransactionRecord(order, sessionData, transaction);
-
-      // 7. Claim the marker INSIDE the allocation transaction: sessions,
-      //    financial record and claim commit or roll back together.
+      // 6. Claim the marker INSIDE the allocation transaction: sessions and
+      //    claim commit or roll back together. The financial record is
+      //    deliberately OUTSIDE (post-commit, best-effort): on Postgres an
+      //    INSERT failure aborts the transaction, and swallowing it here
+      //    would poison the claim update into a guaranteed rollback — the
+      //    exact no-retry hazard this fix exists to remove (round-2 finding 4).
       await order.update(
         { paymentAppliedAt: order.paymentAppliedAt || new Date() },
         { transaction }
       );
 
       await transaction.commit();
+
+      // 7. Best-effort financial tracking (post-commit; failure is logged,
+      //    never blocks the grant — preserves the original semantics).
+      await this.createFinancialTransactionRecord(order, sessionData);
 
       // 8. Log allocation success
       const duration = Date.now() - startTime;
@@ -308,12 +320,14 @@ class SessionAllocationService {
    * 
    * @param {Object} order - Order object
    * @param {Object} sessionData - Session data
-   * @param {object} transaction - Sequelize transaction (atomic with the claim)
    */
-  async createFinancialTransactionRecord(order, sessionData, transaction) {
+  async createFinancialTransactionRecord(order, sessionData) {
     try {
       const FinancialTransaction = getFinancialTransaction();
 
+      // Best-effort tracking record, created OUTSIDE the allocation
+      // transaction post-commit: a failure here must never poison the
+      // already-committed session grant (see allocateSessionsFromOrder).
       const transactionRecord = await FinancialTransaction.create({
         userId: order.userId,
         orderId: order.id,
@@ -328,7 +342,7 @@ class SessionAllocationService {
           allocationDate: new Date().toISOString()
         }),
         processedAt: new Date()
-      }, { transaction });
+      });
 
       logger.info(`[SessionAllocation] Financial transaction created`, {
         transactionId: transactionRecord.id,

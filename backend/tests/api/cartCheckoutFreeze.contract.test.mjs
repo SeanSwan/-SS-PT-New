@@ -23,6 +23,7 @@ const read = (p) => readFileSync(resolve(root, p), 'utf8');
 
 const cart = read('routes/cartRoutes.mjs');
 const pay = read('routes/v2PaymentRoutes.mjs');
+const webhook = read('webhooks/stripeWebhook.mjs');
 
 /** Slice one route handler out of the source by its unique route marker. */
 const section = (src, startMarker, endMarker) => {
@@ -51,6 +52,29 @@ describe('money-path: cart checkout lock predicate', () => {
 
   it('v2 checkout actually stamps paymentStatus pending (the state the lock keys on)', () => {
     expect(pay).toMatch(/paymentStatus:\s*'pending'/);
+  });
+
+  it('round-2: a NEW checkout session re-arms the freeze (expired flag reset)', () => {
+    // The flag was previously never reset, so one abandoned checkout
+    // permanently disarmed the lock for that cart.
+    const step6 = pay.slice(pay.indexOf('Step 6: Update cart'), pay.indexOf('Step 7'));
+    expect(step6).toMatch(/checkoutSessionExpired:\s*false/);
+  });
+
+  it('round-2: expiry only marks the cart when the expired session is the CURRENT one', () => {
+    // A stale session's expiry webhook must not disarm a newer session's lock.
+    const webhook = read('webhooks/stripeWebhook.mjs');
+    const expiredCase = webhook.slice(
+      webhook.indexOf("case 'checkout.session.expired'"),
+      webhook.indexOf("payment_intent.processing'")
+    );
+    expect(expiredCase).toMatch(/checkoutSessionId\s*===\s*session\.id/);
+
+    const legacyWebhookSection = cart.slice(
+      cart.indexOf("case 'checkout.session.expired'"),
+      cart.indexOf('case \'charge.refunded\'')
+    );
+    expect(legacyWebhookSection).toMatch(/checkoutSessionId:\s*session\.id/);
   });
 });
 

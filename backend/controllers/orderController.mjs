@@ -173,7 +173,11 @@ export const applyOrderPayment = async (req, res) => {
     await order.save();
 
     let sessionCreationResult = null;
-    if (previousStatus !== 'completed') {
+    // Allocation gate is the CLAIM, not the previous status (round-2 review
+    // finding 6): an order toggled 'completed' by PUT with a failed allocation
+    // has marker null — applying payment must still allocate. The service
+    // itself is idempotent, so this is safe on every path.
+    if (!order.paymentAppliedAt) {
       try {
         logger.info(`Payment applied to order ${orderId}, allocating sessions for user ${order.userId}`);
         sessionCreationResult = await sessionAllocationService.allocateSessionsFromOrder(orderId, order.userId);

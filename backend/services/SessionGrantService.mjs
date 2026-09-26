@@ -57,22 +57,42 @@ export function calculateCartSessionCredits(cartItems = []) {
 }
 
 /**
- * One-directional charge-vs-cart invariant (hostile-review C1 fix 2026-09-25).
+ * One-directional charge-vs-cart invariant (hostile-review C1 fix 2026-09-25,
+ * hardened 2026-09-26 after round-2 review caught the frozen-subtotal flaw).
  *
- *   amountTotalCents + discountCents + tolerance >= round(subtotal * 100)
+ *   amountTotalCents + discountCents + tolerance >= LIVE value of current rows
  *
- * Stripe-added tax only ever makes the charge LARGER than the stored subtotal,
- * and Stripe-held promotions are credited back via discountCents — so the check
- * is safe for both. A violation means the cart rows grew after the checkout was
- * priced (the pay-1x-grant-Nx attack). Legacy carts without a stored subtotal
- * and callers without a Stripe session (admin-manual, reconciliation script)
- * return true — nothing to reconcile against, never brick a legitimate grant.
+ * The comparison target is the CURRENT cart rows' value (price × quantity,
+ * summed), NOT the checkout-time `subtotal` — that field is frozen at checkout
+ * creation while the mutation routes keep only `total` in sync, so comparing
+ * against it could never detect post-checkout growth. Rows without a stored
+ * price fall back to the frozen subtotal; rows and subtotal both absent skip
+ * (legacy carts, never brick a legitimate grant). Stripe-added tax only makes
+ * the charge larger and Stripe-held promotions are credited back via
+ * discountCents, so the one-directional check stays safe for both.
  */
 const AMOUNT_CENT_TOLERANCE = 1;
 
-export function chargeCoversCartSubtotal({ amountTotalCents, discountCents = 0, subtotal }) {
+export function calculateCartRowValueCents(cartItems = []) {
+  return (cartItems || []).reduce((sum, item) => {
+    const price = Number(item?.price);
+    const quantity = Number(item?.quantity) || 0;
+    const lineCents = Number.isFinite(price) && price > 0
+      ? Math.round(price * quantity * 100)
+      : 0;
+    return sum + lineCents;
+  }, 0);
+}
+
+export function chargeCoversCartValue({ amountTotalCents, discountCents = 0, cartItems, subtotal }) {
+  const rowsValueCents = calculateCartRowValueCents(cartItems);
   const subtotalCents = Math.round(Number(subtotal) * 100);
-  if (!Number.isFinite(subtotalCents) || subtotalCents <= 0) {
+  // What the current cart claims to be worth: live rows when priced, else the
+  // frozen checkout subtotal (legacy), else nothing to reconcile against.
+  const claimedCents = rowsValueCents > 0
+    ? rowsValueCents
+    : (Number.isFinite(subtotalCents) && subtotalCents > 0 ? subtotalCents : 0);
+  if (claimedCents <= 0) {
     return true;
   }
   const paidCents = Number(amountTotalCents);
@@ -80,7 +100,7 @@ export function chargeCoversCartSubtotal({ amountTotalCents, discountCents = 0, 
     return true;
   }
   const creditedDiscountCents = Number(discountCents) || 0;
-  return paidCents + creditedDiscountCents + AMOUNT_CENT_TOLERANCE >= subtotalCents;
+  return paidCents + creditedDiscountCents + AMOUNT_CENT_TOLERANCE >= claimedCents;
 }
 
 async function findLockedCart({
@@ -226,8 +246,9 @@ export async function grantSessionsForCart(cartId, userId, grantedBy, expectedCh
 
     // AMOUNT RECONCILIATION (C1 defense-in-depth): the grant must never exceed
     // what Stripe actually charged. Cart-side freeze (cartRoutes) prevents
-    // post-checkout mutation; this catches any path that slips past it.
-    if (expectedCharge && !chargeCoversCartSubtotal({ ...expectedCharge, subtotal: cart.subtotal })) {
+    // post-checkout mutation; this catches any path that slips past it by
+    // comparing the charge against the LIVE value of the current rows.
+    if (expectedCharge && !chargeCoversCartValue({ ...expectedCharge, cartItems: cart.cartItems, subtotal: cart.subtotal })) {
       await transaction.rollback();
       logger.error(`[SessionGrant] AMOUNT MISMATCH for cart ${cartId} (user ${userId}, caller: ${grantedBy}): charged ${expectedCharge.amountTotalCents}¢ (+${Number(expectedCharge.discountCents) || 0}¢ discount) cannot cover cart subtotal ${cart.subtotal}. Grant WITHHELD for manual reconciliation.`);
       return {

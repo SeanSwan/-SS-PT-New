@@ -527,6 +527,11 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, moneyP
       subtotal: subtotal,
       tax: usesStripeTax ? 0 : tax,
       paymentStatus: 'pending',
+      // A new checkout session re-arms the freeze: any earlier session's
+      // expired flag must not disarm the lock for THIS session (round-2
+      // hostile review — the flag was never reset, permanently unlocking
+      // the cart after one abandoned checkout).
+      checkoutSessionExpired: false,
       customerInfo: JSON.stringify({
         name: customerInfo?.name || `${user.firstName || ''} ${user.lastName || ''}`.trim(),
         email: customerInfo?.email || user.email,

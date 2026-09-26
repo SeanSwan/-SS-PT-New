@@ -2303,16 +2303,34 @@ class UnifiedSessionService {
     });
 
     try {
-      // 1. Validate order and user
+      // 1. Validate order and user (Order row locked FOR UPDATE)
       const { order, user } = await this.validateOrderAndUser(orderId, userId, transaction);
-      
+
+      // 1b. ORDER-LEVEL GUARD (sibling of SessionAllocationService H4/H5 fix
+      // 2026-09-26): paymentAppliedAt is the allocation claim — marker set
+      // means already granted; redeliveries/retries are no-ops.
+      if (order.paymentAppliedAt) {
+        await transaction.rollback();
+        logger.info(`[UnifiedSessionService] Order ${orderId} already allocated (paymentAppliedAt set) — idempotent no-op`);
+        return {
+          success: true,
+          allocated: 0,
+          alreadyAllocated: true,
+          message: 'Sessions were already allocated for this order'
+        };
+      }
+
       // 2. Extract session information from order items
       const sessionData = await this.extractSessionDataFromOrder(order);
-      
+
       if (sessionData.totalSessions === 0) {
+        await order.update(
+          { paymentAppliedAt: order.paymentAppliedAt || new Date() },
+          { transaction }
+        );
         await transaction.commit();
-        
-        logger.info(`[UnifiedSessionService] No sessions to allocate for order ${orderId}`);
+
+        logger.info(`[UnifiedSessionService] No sessions to allocate for order ${orderId} (claim set)`);
         return {
           success: true,
           allocated: 0,
@@ -2322,14 +2340,23 @@ class UnifiedSessionService {
 
       // 3. **TRANSACTIONAL INTEGRITY**: Create sessions and update balance atomically
       const createdSessions = await this.createAvailableSessionsFromAllocation(sessionData, user, transaction);
-      
+
       // 4. Update user session balance
       await this.updateUserSessionBalance(user, sessionData.totalSessions, transaction);
-      
-      // 5. Create financial transaction record
-      await this.createFinancialTransactionRecord(order, sessionData, transaction);
+
+      // 5. Claim the allocation marker in the SAME transaction as the session
+      //    rows. The financial record moves post-commit: on Postgres a failed
+      //    INSERT aborts the transaction, and swallowing that error would
+      //    poison the claim update (round-2 hostile review finding 4).
+      await order.update(
+        { paymentAppliedAt: order.paymentAppliedAt || new Date() },
+        { transaction }
+      );
 
       await transaction.commit();
+
+      // 5b. Best-effort financial tracking (post-commit, never blocks grant)
+      await this.createFinancialTransactionRecord(order, sessionData);
       
       // 6. Log allocation success
       const duration = Date.now() - startTime;
@@ -2347,6 +2374,7 @@ class UnifiedSessionService {
         allocated: createdSessions.length,
         totalSessions: sessionData.totalSessions,
         sessions: createdSessions,
+        alreadyAllocated: false,
         orderDetails: {
           orderNumber: order.orderNumber,
           totalAmount: order.totalAmount,
@@ -2606,9 +2634,10 @@ class UnifiedSessionService {
    * @returns {Object} Validated order and user
    */
   async validateOrderAndUser(orderId, userId, transaction) {
-    // Get order with items
+    // Get order with items, locked FOR UPDATE so concurrent allocation
+    // attempts serialize on the paymentAppliedAt claim check
     const order = await this.Order.findOne({
-      where: { 
+      where: {
         id: orderId,
         userId,
         status: 'completed'
@@ -2621,6 +2650,10 @@ class UnifiedSessionService {
           as: 'storefrontItem'
         }]
       }],
+      lock: {
+        level: transaction.LOCK.UPDATE,
+        of: this.Order
+      },
       transaction
     });
 
@@ -2739,8 +2772,11 @@ class UnifiedSessionService {
    * @param {Object} sessionData - Session data
    * @param {Object} transaction - Database transaction
    */
-  async createFinancialTransactionRecord(order, sessionData, transaction) {
+  async createFinancialTransactionRecord(order, sessionData) {
     try {
+      // Best-effort tracking, created OUTSIDE the allocation transaction
+      // post-commit (a failed INSERT would abort the transaction and the
+      // swallowed error would poison the committed grant path).
       const financialTransaction = await this.FinancialTransaction.create({
         userId: order.userId,
         orderId: order.id,
@@ -2755,7 +2791,7 @@ class UnifiedSessionService {
           allocationDate: new Date().toISOString()
         }),
         processedAt: new Date()
-      }, { transaction });
+      });
 
       logger.info(`[UnifiedSessionService] Financial transaction created`, {
         transactionId: financialTransaction.id,
