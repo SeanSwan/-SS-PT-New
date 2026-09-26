@@ -1064,16 +1064,19 @@ These skills have been moved off the default-exposed surface. Their sources now 
 > Full vision: `docs/ai-workflow/AI-HANDOFF/SWAN-STUDIOS-VISION-CONTINUITY-HANDOFF-2026-04-11.md`
 > Swan Coach command state: `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-CONTINUITY-HANDOFF-2026-04-11.md`
 > Current production/stability priorities: `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md`
+> **Rule-88 as-of discipline (added 2026-09-25):** every volatile entry below carries its as-of date — facts drift, and the date tells you how much to distrust them. Verified stale on 2026-09-25: the Swan Coach lane snapshot, the deferred-UI list, and the priority order (`ACTIVE-PRIORITIES.md` itself last modified 2026-05-15). Verify against the live source before any decision leans on an entry here.
 
-### Swan Coach Command Lane (ACTIVE TRACK)
+### Swan Coach Command Lane (SNAPSHOT 2026-04-11 — DRIFTED, read the 2026-09-25 reconciliation)
 - **v1–v14 CONFIRMED LIVE** (repo-verified 2026-04-11): 20 commands live, commandDispatcher.mjs 214 lines
 - **v15 NEXT** → `view_available_slots` — clean read, no destructive risk, builds on v14 availability work
+- **[RE-VERIFIED 2026-09-25 — code-level liveness CONFIRMED; production dispatch probe still owed:]** `commandDispatcher.mjs` is now **376 lines** over a 16-domain registry (`backend/services/ai/commandRegistry/`) + ~49 dispatchers (`backend/services/ai/dispatchers/`). **Runtime-verified (rule 73): `initializeRegistry()` registers 121 commands across 14 categories** (the index.mjs docblock's "119 across 16" is stale), and `view_available_slots` — the April "v15 NEXT" — **is registered**. Scoped dispatcher suites 2026-09-25: **45/46 green**; the 1 failure is a named contract defect — the client self-service XP/streak dispatcher queries `isNew: true` where its contract test expects `isCompleted: true` (triage owed by the owning seat; do not assume which side is right). NOT yet verified: an authenticated dispatch against the running backend — local DB auth currently fails (`swanadmin` password rejected as of 2026-09-25), so production smoke is blocked on credentials. Read the latest coach handoff before planning the next coach slice.
 - **Blocked/deferred:** `set_availability` (full-week destructive replace), `reschedule_session` (409 conflict path), `schedule_session` (wrong semantics in live code), `FRONTEND_DISPATCH` (browser-local state)
 - **After v15:** trainer workout logging → client dashboard visibility audit (revenue-critical proof-of-value chain)
 - **After trainer workflow:** PLAUD transcript ingestion → Swan Coach logging, then premium gating/tier alignment
   - **Reality check (2026-04-14):** Plaud now has an official Developer Platform, but it is still private beta and official OAuth pull from existing Plaud user accounts is still in progress / waitlist-only. Swan already has a live upload+parse path (`/api/workout-logs/upload` + `workoutLogParserService.mjs`), so near-term planning should assume manual export/direct upload first, unofficial Plaud web API only as an internal bridge, and official Plaud OAuth/webhooks later.
 
 ### Hermes on Raspberry Pi (BLOCKED — SSD POWER)
+- **[RECONCILIATION 2026-09-25:]** the BLOCKED state below is **as-of 2026-04-11**. Rules 68/69 (amended through 2026-08-13) describe the Pi daemon SSH/cat read path as *proven and in active use* for Hermes memos/packets — the two cannot both be current. Current Pi state: `[UNKNOWN]`; verify with Sean before ANY Pi work (rule 68 guardrail: never touch the Pi without Sean). The April detail below is retained for the SSD history it documents.
 - **Done:** Telegram bot running as systemd service, dense Swan Coach system prompt, google-genai SDK with 3-model fallback, systemd auto-restart
 - **Pi model in use:** whichever `models/gemini-2.5-flash` variant responded (fallback to `gemini-flash-latest`)
 - **BLOCKER — SSD power issue:** All SSDs tested were running too slow / crashing when connected directly to Pi 4 USB port. Pi USB does not supply enough power for full SSD speed. Currently running on SD card which WILL fail eventually.
@@ -1085,18 +1088,18 @@ These skills have been moved off the default-exposed surface. Their sources now 
   - Connect Swan Coach Telegram bot to SwanStudios production DB for real client data reads
 - **Full plan:** `docs/ai-workflow/references/HERMES-WIKI-MYTHOS-MASTER-PLAN.md`
 
-### Storefront Packages (PENDING CONFIRMATION)
+### Storefront Packages (PENDING CONFIRMATION — as-of 2026-04-11, prices UNVERIFIED since)
 - **Seeder corrected 2026-04-11** → 5 packages, $175/session flat (NO volume discounts), 30-min 10-pack $110
-- **NEEDS:** Run `FORCE_RESEED=true node seeders/20260407-seed-storefront-packages.mjs` in Render shell to wipe bad data
-- **Unresolved:** `/api/cart/add` returning 404 in production — not yet root-caused
-- **Packages:** Single ($175) · 3-Month ($8,400) · 6-Month ($16,800) · 12-Month ($33,600) · 30-min pack ($1,100)
+- **NEEDS (unverified whether ever executed):** Run `FORCE_RESEED=true node backend/seeders/20260407-seed-storefront-packages.mjs` in Render shell to wipe bad data *(path corrected 2026-09-25 — the seeder lives under `backend/seeders/`, not root `seeders/`)*
+- **Unresolved (as-of 2026-04-11):** `/api/cart/add` returning 404 in production — not yet root-caused. Re-verify before assuming it still reproduces (rule 55: probe, don't assume).
+- **Packages (as-of 2026-04-11 — verify against the live DB before ANY pricing decision, rule 88):** Single ($175) · 3-Month ($8,400) · 6-Month ($16,800) · 12-Month ($33,600) · 30-min pack ($1,100)
 
 ### Deferred UI / Code Quality
-- `MeasurementEntry.tsx` — 300-line refactor into sub-hooks (not a bug, safe to defer)
+- `MeasurementEntry.tsx` — ~~300-line refactor into sub-hooks~~ **[RE-VERIFIED 2026-09-25: the file is now 155 lines (`frontend/src/components/DashBoard/Pages/admin-dashboard/MeasurementEntry.tsx`) — the April deferral is stale; treat as DONE/superseded unless a fresh measurement re-opens it]**
 - `ActivitySection.tsx` — all violations fixed and committed 2026-04-11 ✓
 - `StorefrontItem.mjs` Sequelize validator bug — fixed and deployed 2026-04-10 ✓
 
-### Content Studio — Seedance 2.0 + Exercise Videos (ACTIVE GOAL)
+### Content Studio — Seedance 2.0 + Exercise Videos (ACTIVE GOAL, as-of 2026-04-12)
 - **Goal:** Create exercise demo videos with anatomy overlays — muscle activation highlighted as Sean performs perfect-form reps
 - **Seedance skills split 2026-04-12:**
   - `.agents/skills/seedance-swan-workout-video/SKILL.md` — invoke with `/seedance-swan-workout-video` for exercise demos, anatomy-overlay workflow, and regression-first workout clips
@@ -1106,7 +1109,8 @@ These skills have been moved off the default-exposed surface. Their sources now 
 - **Scroll-activated video technique** (from YouTube research 2026-04-11): Extract frames from video → map to scroll position → `<canvas>` + `requestAnimationFrame`. Claude Code can do this end-to-end from a video file. Very high priority for homepage hero.
 - **Full plan:** `docs/ai-workflow/references/PLAUD-AUDIO-INTELLIGENCE.md` (content side) + new Seedance skill
 
-### Claude Code Skills — Status (2026-04-11)
+### Claude Code Skills — Status (as-of 2026-04-11)
+- **[RE-VERIFIED 2026-09-25:]** `installed_plugins.json` does not exist anywhere in this repo tree — the "ACTION NEEDED" below cannot be confirmed or denied from the repo; check `/plugins` locally before acting on it.
 - **32 skills from skills.sh** installed via `.agents/skills/` → symlinked into `.claude/skills/`
 - **Official Claude Code plugin (`/frontend-design`)** — `installed_plugins.json` is EMPTY. NOT installed yet.
   - The `frontend-design` you see is the skills.sh community version — good but different
@@ -1115,15 +1119,7 @@ These skills have been moved off the default-exposed surface. Their sources now 
 - **New skills added:** `seedance-swan-workout-video`, `seedance-swan-cinematic-video` — retired unified `seedance-swan-video`
 
 ### Business Priority Order (do not scatter)
-Current production/stability priority stack lives in `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md`.
-
-1. **Now:** v15 `view_available_slots` Swan Coach slice → verify end-to-end
-2. **Then:** trainer workout logging → client dashboard visibility (retention/upsell proof)
-3. **Then:** chart/KPI truthfulness audit (workout, weight, measurements, schedule)
-4. **Then:** PLAUD voice transcript ingestion → Swan Coach log_workout
-   - Use the existing Swan upload/parse pipeline as the default starting point; do not assume official Plaud account sync is ready yet.
-5. **Then:** Swan Coach premium gating aligned to package tiers
-6. **Then:** client dashboard audit → user/social dashboard audit → broader site polish
+Current production/stability priority stack lives in `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md` — **which itself was last modified 2026-05-15 [VERIFIED 2026-09-25] and is therefore also stale (rule 88)**. The April 2026 numbered stack that stood here (v15 slots → trainer logging → chart/KPI audit → PLAUD → premium gating → dashboard audits) was retired from this file on 2026-09-25: it directed work that has visibly moved on (see the reconciliation notes above), and an undated stale priority list in an always-on file is the exact stale-revenue-figures failure rule 88 exists to stop. Retrieve it from history with `git show 501bbb12a:CLAUDE.md` if needed. **Do not plan production work from this section — ask Sean or refresh `ACTIVE-PRIORITIES.md` first.**
 
 ### Rules 68-69 automatic closeout override (Sean opted in 2026-07-11)
 
@@ -1135,3 +1131,56 @@ Two standing duties for EVERY agent in this tree; values context lives in `SOUL.
 
 - **Teach Sean every commit.** Every substantial task/commit closeout ends with ONE short "📚 Learn" snippet — 2–5 sentences, anchored to the work just done, ranked by real market value (AI engineering first, then TypeScript, modern React, Postgres/backend, ops, business leverage). Procedure, learner profile, curriculum, and format: `.claude/skills/learning-drop/SKILL.md`. Log each drop (one line) in `docs/ai-workflow/learning-drops-ledger.md`; no topic repeats within ~30 days. One snippet max per turn — a firehose teaches nothing. The skill self-refreshes its own curriculum from reputable sources monthly or on "refresh my curriculum"; its edits stay confined to its own SKILL.md + the ledger.
 - **Blueprints are living documents — update them, never lose them.** When a feature ships, a plan changes, or an architecture decision lands, update the relevant blueprint/wireframe/mermaid doc in the same workstream (Trailhead-Truth: docs describe what the code does NOW). Prefer in-code truth over adjacent duplication (amended 2026-09-25, $30k-Claude-Code transcript): behavior that changes with the code lives IN the code (rule 5 blueprint headers, comments at the constraint); an adjacent doc that restates behavior carries `verified against <sha|date>` so drift is detectable — the Catalog's source-SHA staleness check (rule 72) is the mechanical version of the same law. The Blueprint Vault (`scripts/hooks/vault-guard.mjs`, PreToolUse on Write/Edit) snapshots every blueprint-class doc (`docs/ai-workflow/**/*.md`, `*.mmd`/`*.mermaid`, root operating files and SWAN packets) into `.ai-workflow/vault/` BEFORE each overwrite — content-deduped, pruned to ~100 versions per file, gitignored, fail-open (never blocks work). Git remains the archive for committed versions; the vault catches the uncommitted in-between states. To restore: copy the snapshot back. `SWAN_VAULT_DISABLE=1` is the kill switch; `SWAN_VAULT_KEEP` overrides depth.
+
+---
+
+## Closeout — Where We Are / What's Next (Rule 87) — MANDATORY
+
+**Every chat ends with two blocks. Not a summary of the work — a briefing for someone who
+does not remember the work.**
+
+Sean, 2026-09-25: *"we need to always recommend what we should do next at the end of every
+chat — it is mandatory — as well as a tiny summary of what we are working on, what we are
+building and fixing, so I can always know where we are at no matter what. Treat me like I
+have Alzheimer's on every chat: always reminding me why we are doing the work and what I
+requested, for us to end up where we are at the moment."*
+
+**The rule.** The last thing in every reply — after the findings, after the files, after
+everything else — is exactly this, in this order:
+
+```
+**WHERE WE ARE**
+- Building:      <the project + its one-line goal, in his words>
+- You asked for: <the request that produced this session's work, quoted or near-quoted>
+- Just did:      <what actually changed — files, decisions, measured results>
+- Open/broken:   <what is unresolved, failing, blocked, or deliberately not done>
+
+**WHAT'S NEXT**
+1. <the single recommended next action — and WHY it is next>
+2. <the next one or two, ranked, only if they are real>
+```
+
+**Rules for the content**
+
+- **Mandatory, every chat, no exceptions.** A one-line question gets a two-line closeout.
+  There is no session too small. The point is that he never has to ask *"where are we?"*.
+- **"Just did" is measured, not felt.** Name files and numbers. *"Improved the feed"* is not
+  a closeout; *"`feedAssembler.ts` share denominator pool→response, 19 tests green"* is.
+- **"Open/broken" may not be empty by default.** Anything that failed, is blocked, or was
+  deliberately skipped belongs here. An empty section is a **claim that nothing is owed** —
+  make it deliberately, not by omission.
+- **"What's next" is a recommendation, not a menu.** Rank it. Say why it is next. If there
+  is genuinely nothing worth doing, say that — never invent filler work to fill the slot.
+- **Re-anchor the goal, do not restate the transcript.** This is a briefing, not a log. If
+  it does not fit in ~10 lines it is too long.
+- **No praise, no ceremony, no apology.** Not *"great question"*, not *"I'd be happy to"*.
+  State the position and stop.
+
+**Why this exists.** A long session with dozens of tool calls reads as a wall of output with
+no handle on it. Sean asked to be treated as someone who cannot be assumed to remember why
+the work started — so every closeout re-anchors the goal, the original request, the current
+state, and the next step, unprompted, every single time.
+
+**Enforcement honesty.** Nothing forces this. It is not a hook, and no script checks for a
+closeout block. It fires because an agent reads this block and keeps it. **Do not claim it is
+enforced.**
