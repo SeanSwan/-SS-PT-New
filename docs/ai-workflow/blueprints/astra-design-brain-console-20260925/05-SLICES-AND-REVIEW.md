@@ -116,8 +116,10 @@ sitting.
   `STAGE OVERRIDES` / `RESET` collecting them into `brief.slotOverrides` (session-only, no file written).
   Plus the LAW 3 carry guard the editor exposed the need for, and the Rule 4 budget guard as a test.
 - **Entry:** A4 exit met. ✅
-- **Exit:** `T-I-01` (AC3.1 **and** AC3.2), `INV6`, and `T-F-04` pass. ✅ **138/138 tests**, 34/34 smoke,
-  **0 Rule 4 offenders across three scopes** with 1 declared exception.
+- **Exit:** `T-I-01`'s **AC3.2** half and **AC3.1's surface half**; `T-F-04` passes. ✅ **138/138 tests**, 34/34 smoke,
+  **0 Rule 4 offenders across three scopes** with 1 declared exception. **`T-I-01` is NOT fully closed:**
+  AC3.1's persistence half (`briefId` round-trip through `core/variants.mjs`) needs the brief store and
+  is **A6's**. A4's handoff had already said so; A4b's first draft of C37 read past it and was corrected.
 - **The defect it was hiding.** `slotOverrides` was an **unvalidated passthrough** from the HTTP body
   into the one layer `resolveSlots` applies **LAST** — so it could delete LAW 3's kill-list. Measured:
   `{"slotOverrides": {"negative": ""}}` returned a compile with `ok: true` and **all six lawChecks

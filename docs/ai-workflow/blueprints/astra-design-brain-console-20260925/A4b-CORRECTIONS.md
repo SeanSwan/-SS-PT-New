@@ -101,16 +101,24 @@ production callers pass a partial map with no `negative` key — `scripts/forge.
 | "the smoke suite covers the surface" | every declared route has a check naming it |
 | "the tree is within budget" | the scope includes what ships, not just what was convenient |
 
-**And the rule caught this record's own author.** Writing C37 — which closes `T-I-01` as PASS — required
-checking each of its two halves. The AC3.2 half (the override layer) had tests. The **AC3.1** half —
-*"submit brief, stage overrides, re-read persisted `text` → byte-identical to what was typed"* — did
-**not**, and it was about to be marked PASS on the strength of an argument: staging returns
-`wrote: false`, and the pane reads the brief from `state.brief`. That argument is plausible and it is not
-a measurement. So the test was written instead: an awkward brief (quotes, `&`, angle brackets, a
-newline), a stage, a re-read, and an assertion that the text is byte-identical **plus** an assertion that
-the stage actually landed — without which the immutability check would pass on a no-op. Then it was
-mutation-proven (M8). A requirement marked PASS because nothing in it looks wrong is the `T-M-03`
-defect with the sign flipped.
+**And the rule caught this record's own author — twice.** Writing C37 required checking each half of
+`T-I-01` rather than closing it as one row. The AC3.2 half (the override layer) had tests. The
+**AC3.1** half — *"submit brief, stage overrides, re-read persisted `text` → byte-identical to what
+was typed"* — did **not**, and it was about to be marked PASS on the strength of an argument: staging
+returns `wrote: false`, and the pane reads the brief from `state.brief`. That argument is plausible and
+it is not a measurement. So the test was written instead: an awkward brief (quotes, `&`, angle
+brackets, a newline), a stage, a re-read, and an assertion that the text is byte-identical **plus** an
+assertion that the stage actually landed — without which the immutability check would pass on a no-op.
+Then it was mutation-proven (M8).
+
+**The second catch, and it is the sharper one.** C37 was then written as *"`T-I-01` is claimed in
+full"* — and that was still an overclaim. AC3.1 has a **persistence** half (*"persisted `text`
+byte-identical for a `briefId`"*, test target `core/variants.mjs`) which needs a brief store that does
+not exist; A4's own handoff note had already said so, in writing, and the first draft of C37 read past
+it. So a test being written, passing, and mutation-proven is **still not the same as the requirement
+being closed**: the test closes the half it covers. C37 now names the half that remains and assigns it
+to A6. The lesson generalises past this slice — *a green test for the part you can reach is the most
+convincing possible form of a claim about the part you cannot.*
 
 ---
 
@@ -119,7 +127,7 @@ defect with the sign flipped.
 | # | What was wrong | Correction |
 |---|---|---|
 | **C36** | `A4-CORRECTIONS.md` C33/§6 records `slots.stageOverrides` in `UNWIRED_CONTROLS` as a rendered control with no handler. | The editor exists, so the list is **EMPTY** — kept as an empty list rather than deleted, because it is the exclusion list for a check that must fail loudly when a rendered control loses its handler. A deleted list is a deleted check. |
-| **C37** | `04` §3 records `R3 / AC3.1 / AC3.2 / INV6` (`T-I-01`) as **"not run"**, and says the test does not exist. | The test exists and passes. `T-I-01` is claimed **in full** now — the stage round-trip, the persisted-brief immutability, and the override layer — across `a4b-editor.test.mjs`, `a4b-overrides.test.mjs` and `a4-surface.test.mjs`. |
+| **C37** | `04` §3 records `R3 / AC3.1 / AC3.2 / INV6` (`T-I-01`) as **"not run"**, and says the test does not exist. | The test exists and passes — **but `T-I-01` is NOT claimed in full, and this correction originally said it was.** `T-I-01` splits across two slices: **AC3.2** (the override layer) is fully closed by A4b, and **AC3.1** closes only its **surface** half — the brief text is not mutated by a stage. AC3.1's other half, *"persisted `text` byte-identical for a `briefId`"*, has test target `core/variants.mjs` and needs the brief store, which does not exist. **A6 owns that half.** The overclaim was caught by re-reading A4's own handoff note, which had already said exactly this; it is corrected in `04` rather than left as a PASS that a later reader would trust. |
 | **C38** | `A4-CORRECTIONS.md` §1 and §6 state `server.mjs` is at **exactly 300** lines and that A5 must split it first. | It is **297** — A4b split it (`routes.mjs`, `slotView.mjs`) to make room for the fence and the new route. A5 still has almost no room, so the advice stands, but the number was a measurement of a file that has since moved. |
 | **C39** | Every prior slice's Rule 4 claim counted `.mjs` modules, and said nothing about the two SHIPPED STATIC ASSETS the browser loads. | The scope is now `.mjs`/`.js`/`.css` for the Astra tree. Widening it immediately showed **`astra.js` at 320 lines** — over the cap, and out of scope the whole time. The client is now three modules. **The claim was true of the set measured and silent about the set excluded** — the same defect as `T-M-03`, applied to the project's own housekeeping. |
 | **C40** | `04` §1.7 and A4's evidence describe `smoke.mjs` by its check count (29), which reads as a coverage claim. | The count was a **list length**, and the list is hand-kept: `overrides-stage` — a real, token-gated route A4b added — had no check at all. There is now a COVERAGE check that fails if any `MUTATION_ROUTES` entry has no check naming it. |
@@ -204,6 +212,9 @@ in a test refactor.
 ## 7. Handoff to A5 — Law + State
 
 - **Split `smoke.mjs` (299) and expect `server.mjs` (297) to need it.** Both are at the cap.
+- **`T-I-01` is CLOSED for AC3.2 and for AC3.1's SURFACE half. A6 owns AC3.1's persistence half** —
+  *"persisted `text` byte-identical for a `briefId`"*, test target `core/variants.mjs`. The brief store
+  does not exist. Do not read A4b's `T-I-01` rows as closing the requirement.
 - **`T-P-01`'s `AC5.4` half is still owed.** `T-P-01` is ONE id serving TWO requirements in TWO slices:
   `AC4.6` (the registry) and `AC5.4` (the authority matrix). A4b changed the registry's shape —
   `UNWIRED_CONTROLS` is empty and `slots.override` is new — so A5 should re-read it rather than trust
