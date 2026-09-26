@@ -119,21 +119,6 @@ vi.mock('./hooks/useCoachInlineRecorder', () => ({
   },
 }));
 
-vi.mock('./VoiceRecordingOverlay', () => ({
-  default: ({ isOpen, onClose, onEditTranscript, onTranscribed }: {
-    isOpen: boolean;
-    onClose: () => void;
-    onEditTranscript?: (text: string) => void;
-    onTranscribed: (text: string) => void;
-  }) => isOpen ? (
-    <section role="dialog" aria-label="Voice recording">
-      <button type="button" onClick={() => onTranscribed('Log squats 3 by 10')}>Mock transcribe</button>
-      <button type="button" onClick={() => onEditTranscript?.('Edit bench press 4 by 8')}>Mock edit transcript</button>
-      <button type="button" onClick={onClose}>Mock close</button>
-    </section>
-  ) : null,
-}));
-
 vi.mock('./CoachIntakeWorkspace', () => ({
   default: () => <section data-testid="mock-coach-intake-workspace" />,
 }));

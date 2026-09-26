@@ -130,12 +130,6 @@ const transcriptionStub = vi.hoisted(() => ({
 vi.mock('./hooks/useVoiceRecorder', () => ({ useVoiceRecorder: () => recorderStub }));
 vi.mock('./hooks/useGeminiTranscription', () => ({ useGeminiTranscription: () => transcriptionStub }));
 
-vi.mock('./VoiceRecordingOverlay', () => ({
-  default: ({ isOpen }: { isOpen: boolean }) => (
-    isOpen ? <section role="dialog" aria-label="Voice recording" /> : null
-  ),
-}));
-
 vi.mock('./CoachIntakeWorkspace', () => ({
   default: () => <section data-testid="mock-coach-intake-workspace" />,
 }));

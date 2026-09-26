@@ -1,16 +1,18 @@
 import { createRef } from 'react';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import WorkspaceComposer from './WorkspaceComposer';
 
 vi.mock('../coach-assistant/CoachCommandCatalogSheet', () => ({ default: () => null }));
-// Sentinel, not null: the whole point of these tests is that the recorder MODAL
-// is gone from the composer. A `() => null` mock would pass even if the composer
-// still rendered it, so the mock has to leave a mark we can assert the absence of.
-vi.mock('../coach-assistant/VoiceRecordingOverlay', () => ({
-  default: () => <div data-testid="recorder-overlay" />,
-}));
+// The recorder modal used to be mocked here as a SENTINEL — deliberately non-null, so
+// that `queryByTestId('recorder-overlay')` would catch the composer rendering it again.
+// PR 131 took it out of the composer and the 2026-09-26 dead-chain purge deleted the
+// module outright, so the sentinel has nothing left to mark and the runtime assertions
+// below would pass vacuously. The source assertion at the end of this file is the
+// stronger claim and cannot go vacuous.
 
 type VoicePhase = 'idle' | 'listening' | 'transcribing';
 type VoiceOverrides = {
@@ -66,12 +68,10 @@ describe('WorkspaceComposer — the mic is inline, and the recorder modal is gon
     const { model, rerender } = mount({ voiceCaptureMode: 'recorder', voiceGetLevel: () => 0.5 });
     expect(screen.getByRole('button', { name: 'Record and transcribe' })).toBeEnabled();
     expect(strip()).toBeNull();
-    expect(screen.queryByTestId('recorder-overlay')).toBeNull();
 
     rerender({ voiceActive: true, voiceCaptureMode: 'recorder', voiceGetLevel: () => 0.5, voicePhase: 'listening' });
 
     expect(strip()).not.toBeNull();
-    expect(screen.queryByTestId('recorder-overlay')).toBeNull();
     const mic = screen.getByRole('button', { name: 'Recording — tap to stop' });
     expect(mic).toHaveAttribute('aria-pressed', 'true');
     expect(mic).toHaveAttribute('data-live', 'true');
@@ -97,5 +97,12 @@ describe('WorkspaceComposer — the mic is inline, and the recorder modal is gon
     const mic = screen.getByRole('button', { name: 'Dictate' });
     expect(mic).toBeDisabled();
     expect(mic).toHaveAttribute('title', 'Voice is not available in this browser');
+  });
+
+  it('the recorder modal is gone from the source, not merely unmounted', () => {
+    // Runtime absence was the old sentinel's job. Now that the module is deleted the
+    // claim is checkable in the source, which also catches a re-introduction.
+    expect(existsSync(resolve(__dirname, '../coach-assistant/VoiceRecordingOverlay.tsx'))).toBe(false);
+    expect(readFileSync(resolve(__dirname, 'WorkspaceComposer.tsx'), 'utf8')).not.toContain('VoiceRecordingOverlay');
   });
 });
