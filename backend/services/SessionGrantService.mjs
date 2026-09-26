@@ -56,6 +56,33 @@ export function calculateCartSessionCredits(cartItems = []) {
   return cartItems.reduce((sum, item) => sum + getCartItemSessionCredits(item), 0);
 }
 
+/**
+ * One-directional charge-vs-cart invariant (hostile-review C1 fix 2026-09-25).
+ *
+ *   amountTotalCents + discountCents + tolerance >= round(subtotal * 100)
+ *
+ * Stripe-added tax only ever makes the charge LARGER than the stored subtotal,
+ * and Stripe-held promotions are credited back via discountCents — so the check
+ * is safe for both. A violation means the cart rows grew after the checkout was
+ * priced (the pay-1x-grant-Nx attack). Legacy carts without a stored subtotal
+ * and callers without a Stripe session (admin-manual, reconciliation script)
+ * return true — nothing to reconcile against, never brick a legitimate grant.
+ */
+const AMOUNT_CENT_TOLERANCE = 1;
+
+export function chargeCoversCartSubtotal({ amountTotalCents, discountCents = 0, subtotal }) {
+  const subtotalCents = Math.round(Number(subtotal) * 100);
+  if (!Number.isFinite(subtotalCents) || subtotalCents <= 0) {
+    return true;
+  }
+  const paidCents = Number(amountTotalCents);
+  if (!Number.isFinite(paidCents)) {
+    return true;
+  }
+  const creditedDiscountCents = Number(discountCents) || 0;
+  return paidCents + creditedDiscountCents + AMOUNT_CENT_TOLERANCE >= subtotalCents;
+}
+
 async function findLockedCart({
   ShoppingCart,
   CartItem,
@@ -153,9 +180,15 @@ async function markCartCompleted({ cart, grantedBy, sessionsToAdd, fulfillment, 
  * @param {number} cartId - ShoppingCart.id
  * @param {number} userId - User.id (owner of the cart)
  * @param {string} grantedBy - 'verify-session' | 'webhook' | 'reconciliation'
- * @returns {Promise<{granted: boolean, sessionsAdded: number, alreadyProcessed: boolean}>}
+ * @param {{amountTotalCents: number, discountCents?: number}|null} [expectedCharge=null]
+ *   What Stripe actually charged for this cart (session.amount_total and
+ *   session.total_details.amount_discount). When supplied, the grant is
+ *   WITHHELD as { blocked: 'amount_mismatch' } if the charge cannot cover the
+ *   cart's stored checkout-time subtotal — the cart rows grew after pricing.
+ *   Callers without a Stripe session pass nothing (undefined) and skip the check.
+ * @returns {Promise<{granted: boolean, sessionsAdded: number, alreadyProcessed: boolean, blocked?: string}>}
  */
-export async function grantSessionsForCart(cartId, userId, grantedBy) {
+export async function grantSessionsForCart(cartId, userId, grantedBy, expectedCharge) {
   const transaction = await sequelize.transaction();
 
   try {
@@ -190,6 +223,20 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
     }
 
     const sessionsToAdd = calculateCartSessionCredits(cart.cartItems);
+
+    // AMOUNT RECONCILIATION (C1 defense-in-depth): the grant must never exceed
+    // what Stripe actually charged. Cart-side freeze (cartRoutes) prevents
+    // post-checkout mutation; this catches any path that slips past it.
+    if (expectedCharge && !chargeCoversCartSubtotal({ ...expectedCharge, subtotal: cart.subtotal })) {
+      await transaction.rollback();
+      logger.error(`[SessionGrant] AMOUNT MISMATCH for cart ${cartId} (user ${userId}, caller: ${grantedBy}): charged ${expectedCharge.amountTotalCents}¢ (+${Number(expectedCharge.discountCents) || 0}¢ discount) cannot cover cart subtotal ${cart.subtotal}. Grant WITHHELD for manual reconciliation.`);
+      return {
+        granted: false,
+        sessionsAdded: 0,
+        alreadyProcessed: false,
+        blocked: 'amount_mismatch',
+      };
+    }
 
     const user = await findLockedUser(User, cart, userId, transaction);
 

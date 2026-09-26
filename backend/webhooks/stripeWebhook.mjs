@@ -132,7 +132,10 @@ const stripeWebhookHandler = async (req, res) => {
 
         let grantResult;
         try {
-          grantResult = await grantSessionsForCart(cartIdNumber, cart.userId, 'webhook');
+          grantResult = await grantSessionsForCart(cartIdNumber, cart.userId, 'webhook', {
+            amountTotalCents: session.amount_total,
+            discountCents: session.total_details?.amount_discount ?? 0,
+          });
         } catch (grantError) {
           logger.error('[Webhook] Session grant failed', {
             cartId: cartIdNumber,
@@ -141,6 +144,20 @@ const stripeWebhookHandler = async (req, res) => {
             stack: grantError.stack,
           });
           throw grantError; // Let Stripe retry; grant service is idempotent.
+        }
+
+        // C1 guard: the charged amount cannot cover the cart's current rows
+        // (cart mutated after checkout pricing). Withhold the grant, ACK the
+        // delivery (200 stops Stripe retries — a mismatch is permanent, not
+        // transient), and leave the cart un-granted for manual reconciliation.
+        if (grantResult.blocked === 'amount_mismatch') {
+          logger.error('[Webhook] Payment does not cover the cart contents; grant WITHHELD', {
+            cartId: cartIdNumber,
+            userId: cart.userId,
+            chargedCents: session.amount_total,
+            discountCents: session.total_details?.amount_discount ?? 0,
+          });
+          return res.json({ received: true });
         }
 
         try {

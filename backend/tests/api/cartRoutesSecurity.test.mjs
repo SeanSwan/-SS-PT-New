@@ -96,7 +96,9 @@ describe('cart routes security hardening', () => {
 
     expect(webhookRoute).toContain('const normalizedCartId = parsePositiveInteger(cartId);');
     expect(webhookRoute).toContain('const normalizedUserId = parsePositiveInteger(userId);');
-    expect(webhookRoute).toContain("await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook')");
+    // Grant call carries the Stripe charge for amount reconciliation (C1):
+    // the strictly-parsed ids stay in the first two positional args.
+    expect(webhookRoute).toMatch(/await grantSessionsForCart\(\s*normalizedCartId,\s*normalizedUserId,\s*'webhook',/);
     expect(webhookRoute).not.toContain('parseInt(cartId)');
     expect(webhookRoute).not.toContain('parseInt(userId)');
   });

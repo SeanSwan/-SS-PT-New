@@ -126,6 +126,33 @@ const getAvailableStock = (storefrontItem, variant = null) => {
   return null;
 };
 
+// ── Checkout freeze (hostile-review C1 fix 2026-09-25) ─────────────────────
+// Once create-checkout-session stamps a cart (checkoutSessionId + paymentStatus
+// 'pending'), those line items are what the Stripe webhook fulfills. Mutating
+// rows in that window lets a buyer pay for 1x and be granted Nx, because
+// grantSessionsForCart re-reads current cart rows. All four mutation routes
+// (/add, /update, /remove, /clear) must refuse while the lock holds. It
+// releases when Stripe fires checkout.session.expired (webhook sets
+// checkoutSessionExpired) or after Stripe's maximum session lifetime (24h),
+// so an abandoned checkout can never strand a cart permanently.
+const CHECKOUT_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const CART_CHECKOUT_LOCKED_CODE = 'CART_CHECKOUT_LOCKED';
+
+const isCartCheckoutLocked = (cart, now = Date.now()) => {
+  if (!cart?.checkoutSessionId || cart.paymentStatus !== 'pending') return false;
+  if (cart.checkoutSessionExpired === true) return false;
+  const attempt = cart.lastCheckoutAttempt ? new Date(cart.lastCheckoutAttempt).getTime() : 0;
+  return now - attempt < CHECKOUT_SESSION_MAX_AGE_MS;
+};
+
+const cartLockedResponse = (res) => {
+  res.status(409).json({
+    success: false,
+    message: 'Cart is locked while a checkout is pending. Complete the payment or wait for the checkout to expire before changing the cart.',
+    error: { code: CART_CHECKOUT_LOCKED_CODE }
+  });
+};
+
 const buildCartItemLookup = (cartId, storefrontItemId, productVariantId) => ({
   cartId,
   storefrontItemId,
@@ -413,6 +440,11 @@ router.post('/add', protect, ensureNumericCartUser, validatePurchaseRole, moneyP
     // Find or create the user's active cart with schema-drift recovery.
     const [cart] = await safeFindOrCreateActiveCart(ShoppingCart, req.authUserId, logger);
 
+    // Checkout freeze: refuse to mutate a cart that has a live pending checkout.
+    if (isCartCheckoutLocked(cart)) {
+      return cartLockedResponse(res);
+    }
+
     // Check if item already exists in cart
     let cartItem = await CartItem.findOne({
       where: buildCartItemLookup(cart.id, normalizedStorefrontItemId, normalizedProductVariantId)
@@ -578,10 +610,15 @@ router.put('/update/:itemId', protect, ensureNumericCartUser, validatePurchaseRo
     });
 
     if (!cartItem) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Cart item not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Cart item not found'
       });
+    }
+
+    // Checkout freeze: refuse to mutate a cart that has a live pending checkout.
+    if (isCartCheckoutLocked(cartItem.cart)) {
+      return cartLockedResponse(res);
     }
 
     const availableStock = getAvailableStock(cartItem.storefrontItem, cartItem.productVariant);
@@ -676,13 +713,18 @@ router.delete('/remove/:itemId', protect, ensureNumericCartUser, validatePurchas
     });
 
     if (!cartItem) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Cart item not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Cart item not found'
       });
     }
 
     const cartId = cartItem.cartId;
+
+    // Checkout freeze: refuse to mutate a cart that has a live pending checkout.
+    if (isCartCheckoutLocked(cartItem.cart)) {
+      return cartLockedResponse(res);
+    }
 
     // Delete the cart item
     await cartItem.destroy();
@@ -758,6 +800,11 @@ router.delete('/clear', protect, ensureNumericCartUser, validatePurchaseRole, as
         totalSessions: 0,
         itemCount: 0
       });
+    }
+
+    // Checkout freeze: refuse to mutate a cart that has a live pending checkout.
+    if (isCartCheckoutLocked(cart)) {
+      return cartLockedResponse(res);
     }
 
     // Delete all cart items
@@ -866,7 +913,20 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
 
             // Grant sessions via shared service (transaction + row lock + atomic increment)
             // If verify-session already ran, this is idempotent (returns alreadyProcessed=true)
-            const result = await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook');
+            const result = await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook', {
+              amountTotalCents: session.amount_total,
+              discountCents: session.total_details?.amount_discount ?? 0,
+            });
+
+            // C1 guard: charge cannot cover current cart rows — leave un-granted.
+            if (result.blocked === 'amount_mismatch') {
+              logger.error('[Webhook] Payment does not cover the cart contents; grant WITHHELD', {
+                cartId: normalizedCartId,
+                userId: normalizedUserId,
+                chargedCents: session.amount_total,
+              });
+              break;
+            }
 
             if (result.granted) {
               logger.info('[Webhook] Sessions granted for cart', {

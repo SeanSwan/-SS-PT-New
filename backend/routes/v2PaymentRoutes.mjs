@@ -711,7 +711,27 @@ router.post('/verify-session', protect, checkStripeAvailability, moneyPathInputG
     }
 
     // Delegate to shared service (handles transaction, row lock, idempotency, atomic increment)
-    const result = await grantSessionsForCart(cart.id, userId, 'verify-session');
+    const result = await grantSessionsForCart(cart.id, userId, 'verify-session', {
+      amountTotalCents: session.amount_total,
+      discountCents: session.total_details?.amount_discount ?? 0,
+    });
+
+    // C1 guard: charged amount cannot cover the cart's current rows — grant
+    // withheld by the shared service. 409 (not 500): the mismatch is a
+    // permanent state problem for this cart, not a transient failure.
+    if (result.blocked === 'amount_mismatch') {
+      logger.error('[v2 Payment] Payment does not cover the cart contents; grant WITHHELD', {
+        userId,
+        cartId: cart.id,
+        chargedCents: session.amount_total,
+      });
+      return res.status(409).json({
+        success: false,
+        message: 'Payment could not be reconciled with this order. Contact support.',
+        error: { code: 'AMOUNT_MISMATCH' }
+      });
+    }
+
     const receiptSummary = await getCheckoutReceiptSummary({ cartId: cart.id, userId });
     await captureVerifiedCheckoutLead({
       cart,
