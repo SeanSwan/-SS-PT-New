@@ -21,17 +21,10 @@ import {
   Volume2,
 } from 'lucide-react';
 import CoachCommandCatalogSheet from './CoachCommandCatalogSheet';
-import VoiceRecordingOverlay from './VoiceRecordingOverlay';
 import CoachNotebookMenuItems from './CoachNotebookMenuItems';
 import CoachVoiceLevelMeter from './CoachVoiceLevelMeter';
 import { createMoreMenuKeyDownHandler } from './CoachConsoleDock.menuKeys';
 import type { CoachNotebookControls } from './hooks/useCoachClientNotebook';
-type VoiceOverlayProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  onEditTranscript?: (text: string) => void;
-  onTranscribed: (text: string) => void;
-};
 type CoachConsoleDockProps = {
   commandBusy?: boolean;
   commandFormRef: React.RefObject<HTMLFormElement>;
@@ -41,10 +34,12 @@ type CoachConsoleDockProps = {
   selectedStatus: string;
   voiceActive: boolean;
   voiceCaptureMode?: 'browser' | 'recorder' | 'none';
-  voiceOverlay?: VoiceOverlayProps;
+  /** Live mic RMS 0..1 from the recording stream; absent for browser dictation,
+   * which has no stream to meter and opens its own parallel capture instead. */
+  voiceGetLevel?: (() => number) | null;
+  voicePhase?: 'idle' | 'listening' | 'transcribing';
   voiceReplyEnabled?: boolean;
   voiceReplySpeaking?: boolean;
-  voiceSupported: boolean;
   workoutLoggerRoute?: string | null;
   workoutLoggerLabel?: string;
   workoutLoggerAriaLabel?: string;
@@ -80,10 +75,10 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   selectedStatus,
   voiceActive,
   voiceCaptureMode = 'browser',
-  voiceOverlay,
+  voiceGetLevel,
+  voicePhase = 'idle',
   voiceReplyEnabled = false,
   voiceReplySpeaking = false,
-  voiceSupported,
   workoutLoggerRoute,
   workoutLoggerLabel = 'Logger',
   workoutLoggerAriaLabel = 'Open workout logger',
@@ -108,17 +103,21 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
   }, [commandText, commandTextRef]);
   const dockBusy = commandBusy || Boolean(notebook?.saving);
   const sendDisabled = dockBusy || !commandText.trim();
-  // Inline dictation only — the recorder path shows its own level-reactive overlay.
-  const listeningInline = voiceActive && voiceCaptureMode === 'browser' && !voiceOverlay?.isOpen;
+  // Both capture lanes are inline now, so the meter belongs to whichever lane is
+  // actually holding the mic — never to the transcribing wait.
+  const voiceAvailable = voiceCaptureMode !== 'none';
+  const listeningInline = voicePhase === 'listening' && voiceAvailable;
   const menuId = useId();
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const voiceTitle = voiceSupported
+  const voiceTitle = voiceAvailable
     ? voiceCaptureMode === 'recorder' ? 'Record and transcribe voice' : 'Voice dictation'
     : 'Voice dictation is not available in this browser';
-  const voiceLabel = voiceActive
-    ? voiceCaptureMode === 'recorder' ? 'Voice recorder open' : 'Listening - tap to stop'
-    : voiceCaptureMode === 'recorder' ? 'Start voice recording' : 'Start voice dictation';
+  const voiceLabel = voicePhase === 'listening'
+    ? voiceCaptureMode === 'recorder' ? 'Recording - tap to stop' : 'Listening - tap to stop'
+    : voicePhase === 'transcribing'
+      ? 'Transcribing - tap to discard'
+      : voiceCaptureMode === 'recorder' ? 'Start voice recording' : 'Start voice dictation';
   const closeMoreMenu = () => {
     setMoreOpen(false);
     moreButtonRef.current?.focus();
@@ -163,7 +162,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
           onSubmit={dockBusy ? (event) => event.preventDefault() : onSubmit}
           aria-label={notebook?.active ? 'Capture client note' : 'Talk to Swan Coach'}
         >
-          <CoachVoiceLevelMeter active={listeningInline} />
+          <CoachVoiceLevelMeter active={listeningInline} getLevel={voiceGetLevel ?? undefined} />
           <div className="dock-status-line">
             {/* No role="status": the transcript live region announces replies;
                 a second announcer here double-speaks every landing reply. The
@@ -256,7 +255,7 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
               type="button"
               className={`dock-mic ${voiceActive ? 'is-listening' : ''}`}
               aria-pressed={voiceActive}
-              disabled={!voiceSupported || dockBusy}
+              disabled={!voiceAvailable || dockBusy}
               onClick={onVoice}
               title={voiceTitle}
               aria-label={voiceLabel}
@@ -285,14 +284,6 @@ const CoachConsoleDock: React.FC<CoachConsoleDockProps> = ({
           window.setTimeout(() => commandTextRef.current?.focus(), 0);
         }}
       />
-      {voiceOverlay?.isOpen ? (
-        <VoiceRecordingOverlay
-          isOpen={voiceOverlay.isOpen}
-          onClose={voiceOverlay.onClose}
-          onEditTranscript={voiceOverlay.onEditTranscript}
-          onTranscribed={voiceOverlay.onTranscribed}
-        />
-      ) : null}
     </>
   );
 };

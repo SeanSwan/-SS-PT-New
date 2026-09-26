@@ -10,6 +10,7 @@
  * quiet line unless it carries an approval or a result card.
  */
 import styled from 'styled-components';
+import { coachCommandVoiceStripStyles } from '../coach-assistant/CoachCommandCenter.voiceStripStyles';
 
 export const ConversationRoot = styled.section`
   position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
@@ -206,4 +207,15 @@ export const SlashPopover = styled.div`
   [role='option'] span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
   [role='option'][aria-selected='true'] { background: var(--ws-accent-soft); color: var(--ws-text); }
   .ws-slash-empty { padding: 10px; font-size: 13px; color: var(--ws-muted); }
+`;
+
+/**
+ * Host for the live "your voice is being heard" strip. The workspace shell does
+ * NOT mount CommandBridgeShell on the Chat/Floor views, so the strip's own rules
+ * are injected here instead of borrowed from the bridge — otherwise the meter
+ * would render unstyled (invisible dot, no fill) exactly where the mic lives.
+ * Colours resolve through the workspaceTokens `--coach-*` bridge.
+ */
+export const ComposerVoiceStrip = styled.div`
+  ${coachCommandVoiceStripStyles}
 `;

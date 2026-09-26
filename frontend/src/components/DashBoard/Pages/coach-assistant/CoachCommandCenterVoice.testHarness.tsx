@@ -30,11 +30,22 @@ const speechMock = vi.hoisted(() => ({
   stopListening: vi.fn(),
   toggleListening: vi.fn(),
 }));
+/** The inline recorder lane, mocked at its boundary: the mounted-page tests own
+ * the WIRING (does the fallback reach the lane, does a staged transcript reach
+ * the command lane), while the lane's own status copy is pinned by
+ * `hooks/useCoachInlineRecorder.test.ts`. */
+const inlineRecorderDriver = vi.hoisted(() => ({
+  abort: vi.fn(),
+  active: false,
+  isListening: false,
+  onTranscribed: null as ((text: string) => boolean) | null,
+  toggle: vi.fn(),
+}));
 
 export {
   useCoachIntakeQueueMock, useAIChatMock, listConversationsMock,
   sendMessageWithConversationMock, executeCommandMock, confirmCommandMock,
-  cancelCommandMock, speechHookParams, speechMock,
+  cancelCommandMock, speechHookParams, speechMock, inlineRecorderDriver,
 };
 
 vi.mock('../../../../hooks/useCoachIntakeQueue', () => ({
@@ -91,6 +102,20 @@ vi.mock('./hooks/useCoachBrowserSpeechInput', () => ({
   useCoachBrowserSpeechInput: (params: unknown) => {
     speechHookParams.current = params;
     return speechMock;
+  },
+}));
+
+vi.mock('./hooks/useCoachInlineRecorder', () => ({
+  useCoachInlineRecorder: (params: { onTranscribed: (text: string) => boolean }) => {
+    inlineRecorderDriver.onTranscribed = params.onTranscribed;
+    return {
+      abort: inlineRecorderDriver.abort,
+      active: inlineRecorderDriver.active,
+      duration: 0,
+      getLevel: () => 0.5,
+      isListening: inlineRecorderDriver.isListening,
+      toggle: inlineRecorderDriver.toggle,
+    };
   },
 }));
 
@@ -187,6 +212,11 @@ export function resetVoiceFixture() {
   speechMock.listening = false;
   speechMock.speechSupported = true;
   speechHookParams.current = null;
+  inlineRecorderDriver.abort.mockReset();
+  inlineRecorderDriver.toggle.mockReset();
+  inlineRecorderDriver.active = false;
+  inlineRecorderDriver.isListening = false;
+  inlineRecorderDriver.onTranscribed = null;
   setRecorderSupport(false);
   committedCount.value = 0;
   apiGetMock.mockReset();

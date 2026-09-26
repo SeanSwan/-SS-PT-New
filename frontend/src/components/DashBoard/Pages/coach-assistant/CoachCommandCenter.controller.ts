@@ -290,10 +290,10 @@ export function useCoachCommandCenterController({
     toggleVoiceReplies: tts.toggleEnabled,
     voiceActive: voiceCapture.voiceActive,
     voiceCaptureMode: voiceCapture.voiceCaptureMode,
-    voiceOverlay: voiceCapture.voiceOverlay,
+    voiceGetLevel: voiceCapture.voiceGetLevel,
+    voicePhase: voiceCapture.voicePhase,
     voiceReplyEnabled: tts.enabled,
     voiceReplySpeaking: tts.speaking,
-    voiceSupported: voiceCapture.voiceSupported,
     workflowReturnLabel,
     workflowReturnTo,
   };

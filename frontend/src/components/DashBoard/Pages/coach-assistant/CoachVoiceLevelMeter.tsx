@@ -7,36 +7,60 @@
  * allow the concurrent capture) and draws level bars. If that second capture
  * is denied or unavailable, it degrades to a pulse-only indicator — dictation
  * itself is never interrupted (NEXT-CHAT W3 decision 2).
+ *
+ * A caller that ALREADY holds a live microphone (the inline recorder lane)
+ * passes `getLevel` instead: metering that stream directly avoids a second
+ * concurrent capture, and cannot render a silent second stream as "not
+ * hearing you" while a recording is in fact underway.
  */
 import React, { useEffect, useRef, useState } from 'react';
 
-type CoachVoiceLevelMeterProps = { active: boolean };
+type CoachVoiceLevelMeterProps = {
+  active: boolean;
+  /** Live mic RMS 0..1 from a stream the caller already owns. */
+  getLevel?: () => number;
+};
 
 const BAR_COUNT = 24;
 
-function drawBars(canvas: HTMLCanvasElement, analyser: AnalyserNode, data: Uint8Array<ArrayBuffer>) {
+function paintBars(canvas: HTMLCanvasElement, barHeightAt: (index: number) => number) {
   const context = canvas.getContext('2d');
   if (!context) return;
-  analyser.getByteTimeDomainData(data);
   const { width, height } = canvas;
   context.clearRect(0, 0, width, height);
-  const sliceSize = Math.floor(data.length / BAR_COUNT);
   const barWidth = width / BAR_COUNT;
   const style = getComputedStyle(canvas);
-  context.fillStyle = style.getPropertyValue('--coach-cyan').trim() || '#60c0f0';
+  // A canvas 2D fillStyle takes a resolved colour STRING, so var() cannot reach it:
+  // the literal below is only the last-resort fallback for a surface that defines no
+  // --coach-cyan. Inherited from main; tagged rather than silently re-introduced.
+  context.fillStyle = style.getPropertyValue('--coach-cyan').trim() || '#60c0f0'; // swan-guard-allow-hex canvas-fillstyle-needs-a-string
   for (let index = 0; index < BAR_COUNT; index += 1) {
+    const barHeight = Math.max(2, Math.min(1, barHeightAt(index)) * height);
+    context.fillRect(index * barWidth + 1, (height - barHeight) / 2, Math.max(1, barWidth - 2), barHeight);
+  }
+}
+
+function drawBars(canvas: HTMLCanvasElement, analyser: AnalyserNode, data: Uint8Array<ArrayBuffer>) {
+  analyser.getByteTimeDomainData(data);
+  const sliceSize = Math.floor(data.length / BAR_COUNT);
+  paintBars(canvas, (index) => {
     let sum = 0;
     for (let sample = 0; sample < sliceSize; sample += 1) {
       const value = (data[index * sliceSize + sample] - 128) / 128;
       sum += value * value;
     }
-    const rms = Math.sqrt(sum / sliceSize);
-    const barHeight = Math.max(2, Math.min(1, rms * 3.2) * height);
-    context.fillRect(index * barWidth + 1, (height - barHeight) / 2, Math.max(1, barWidth - 2), barHeight);
-  }
+    return Math.sqrt(sum / sliceSize) * 3.2;
+  });
 }
 
-const CoachVoiceLevelMeter: React.FC<CoachVoiceLevelMeterProps> = ({ active }) => {
+/** A single RMS scalar carries no per-band shape, so taper it across the bars —
+ * the meter should read as "hearing you", not pretend to be a spectrum analyser. */
+function drawScalarLevel(canvas: HTMLCanvasElement, level: number) {
+  const mid = (BAR_COUNT - 1) / 2;
+  paintBars(canvas, (index) => level * (0.45 + 0.55 * (1 - Math.abs(index - mid) / mid)));
+}
+
+const CoachVoiceLevelMeter: React.FC<CoachVoiceLevelMeterProps> = ({ active, getLevel }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [meterState, setMeterState] = useState<'idle' | 'live' | 'pulse'>('idle');
 
@@ -45,12 +69,29 @@ const CoachVoiceLevelMeter: React.FC<CoachVoiceLevelMeterProps> = ({ active }) =
       setMeterState('idle');
       return undefined;
     }
+    const reducedMotion = typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (getLevel) {
+      setMeterState('live');
+      let frame = 0;
+      let lastDraw = 0;
+      const render = (timestamp: number) => {
+        // Reduced motion: information-bearing but gentle — ~6fps instead of 60.
+        if (!reducedMotion || timestamp - lastDraw > 160) {
+          lastDraw = timestamp;
+          if (canvasRef.current) drawScalarLevel(canvasRef.current, getLevel());
+        }
+        frame = window.requestAnimationFrame(render);
+      };
+      frame = window.requestAnimationFrame(render);
+      return () => window.cancelAnimationFrame(frame);
+    }
+
     if (typeof navigator === 'undefined' || typeof navigator.mediaDevices?.getUserMedia !== 'function') {
       setMeterState('pulse');
       return undefined;
     }
-    const reducedMotion = typeof window.matchMedia === 'function'
-      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let cancelled = false;
     let frame = 0;
@@ -106,7 +147,7 @@ const CoachVoiceLevelMeter: React.FC<CoachVoiceLevelMeterProps> = ({ active }) =
       stream?.getTracks().forEach((track) => track.stop());
       void audioContext?.close().catch(() => undefined);
     };
-  }, [active]);
+  }, [active, getLevel]);
 
   if (!active) return null;
 

@@ -10,7 +10,6 @@ import WorkspaceComposer from './WorkspaceComposer';
 import { buildSlashItems } from './slashCommands';
 
 vi.mock('../coach-assistant/CoachCommandCatalogSheet', () => ({ default: () => null }));
-vi.mock('../coach-assistant/VoiceRecordingOverlay', () => ({ default: () => null }));
 
 function mount(text: string, { made = true, noteMode = false, view = 'chat', sink = null as null | ((set: unknown) => void) } = {}) {
   const controller = {

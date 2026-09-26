@@ -235,10 +235,10 @@ const CoachCommandCenterPage: React.FC = () => {
             selectedStatus={commandCenter.selectedStatus}
             voiceActive={commandCenter.voiceActive}
             voiceCaptureMode={commandCenter.voiceCaptureMode}
-            voiceOverlay={commandCenter.voiceOverlay}
+            voiceGetLevel={commandCenter.voiceGetLevel}
+            voicePhase={commandCenter.voicePhase}
             voiceReplyEnabled={commandCenter.voiceReplyEnabled}
             voiceReplySpeaking={commandCenter.voiceReplySpeaking}
-            voiceSupported={commandCenter.voiceSupported}
             workoutLoggerRoute={workoutLoggerRoute}
             workoutLoggerLabel={workoutLoggerLabel}
             workoutLoggerAriaLabel="Open workout logger"

@@ -12,10 +12,10 @@
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowUp, AtSign, Mic, ClipboardList, Slash, Volume2, VolumeX } from 'lucide-react';
-import VoiceRecordingOverlay from '../coach-assistant/VoiceRecordingOverlay';
 import CoachCommandCatalogSheet from '../coach-assistant/CoachCommandCatalogSheet';
+import CoachVoiceLevelMeter from '../coach-assistant/CoachVoiceLevelMeter';
 import SlashMenu, { slashOptionId } from './SlashMenu';
-import { ComposerDock } from './CoachWorkspace.conversation.styles';
+import { ComposerDock, ComposerVoiceStrip } from './CoachWorkspace.conversation.styles';
 import { buildSlashItems, pickableExample, slashQuery, type SlashItem } from './slashCommands';
 import type { CoachWorkspaceModel } from './useCoachWorkspaceModel';
 import { workspaceStatus } from './workspaceStatus';
@@ -129,9 +129,15 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
   };
 
   const pin = controller.clientPin;
-  const voiceLabel = controller.voiceActive
-    ? (controller.voiceCaptureMode === 'recorder' ? 'Voice recorder open' : 'Listening — tap to stop')
-    : (controller.voiceCaptureMode === 'recorder' ? 'Record and transcribe' : 'Dictate');
+  // Both capture lanes are inline now, so the strip belongs to whichever lane is
+  // actually holding the mic — never to the transcribing wait.
+  const voiceAvailable = controller.voiceCaptureMode !== 'none';
+  const listeningInline = controller.voicePhase === 'listening' && voiceAvailable;
+  const voiceLabel = controller.voicePhase === 'listening'
+    ? (controller.voiceCaptureMode === 'recorder' ? 'Recording — tap to stop' : 'Listening — tap to stop')
+    : controller.voicePhase === 'transcribing'
+      ? 'Transcribing — tap to discard'
+      : (controller.voiceCaptureMode === 'recorder' ? 'Record and transcribe' : 'Dictate');
 
   return (
     <ComposerDock>
@@ -143,6 +149,11 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
       <form className="ws-composer-card" ref={controller.commandFormRef} onSubmit={submit} aria-label="Talk to Swan Coach">
         {menuOpen ? (
           <SlashMenu id={menuId} items={items} activeIndex={activeIndex} onPick={pick} onHover={setActiveIndex} />
+        ) : null}
+        {listeningInline ? (
+          <ComposerVoiceStrip>
+            <CoachVoiceLevelMeter active getLevel={controller.voiceGetLevel ?? undefined} />
+          </ComposerVoiceStrip>
         ) : null}
         <textarea
           ref={controller.commandTextRef}
@@ -201,8 +212,8 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
             aria-label={voiceLabel}
             aria-pressed={controller.voiceActive}
             data-live={controller.voiceActive ? 'true' : undefined}
-            disabled={!controller.voiceSupported || busy}
-            title={controller.voiceSupported ? voiceLabel : 'Voice is not available in this browser'}
+            disabled={!voiceAvailable || busy}
+            title={voiceAvailable ? voiceLabel : 'Voice is not available in this browser'}
             onClick={controller.handleVoice}
           >
             <Mic size={18} aria-hidden="true" />
@@ -231,14 +242,6 @@ const WorkspaceComposer: React.FC<Props> = ({ model }) => {
         }}
         onUsePrompt={(prompt) => model.writeUnderDraft(prompt)}
       />
-      {controller.voiceOverlay?.isOpen ? (
-        <VoiceRecordingOverlay
-          isOpen={controller.voiceOverlay.isOpen}
-          onClose={controller.voiceOverlay.onClose}
-          onEditTranscript={controller.voiceOverlay.onEditTranscript}
-          onTranscribed={controller.voiceOverlay.onTranscribed}
-        />
-      ) : null}
     </ComposerDock>
   );
 };
