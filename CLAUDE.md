@@ -1083,3 +1083,56 @@ Two standing duties for EVERY agent in this tree; values context lives in `SOUL.
 
 - **Teach Sean every commit.** Every substantial task/commit closeout ends with ONE short "📚 Learn" snippet — 2–5 sentences, anchored to the work just done, ranked by real market value (AI engineering first, then TypeScript, modern React, Postgres/backend, ops, business leverage). Procedure, learner profile, curriculum, and format: `.claude/skills/learning-drop/SKILL.md`. Log each drop (one line) in `docs/ai-workflow/learning-drops-ledger.md`; no topic repeats within ~30 days. One snippet max per turn — a firehose teaches nothing. The skill self-refreshes its own curriculum from reputable sources monthly or on "refresh my curriculum"; its edits stay confined to its own SKILL.md + the ledger.
 - **Blueprints are living documents — update them, never lose them.** When a feature ships, a plan changes, or an architecture decision lands, update the relevant blueprint/wireframe/mermaid doc in the same workstream (Trailhead-Truth: docs describe what the code does NOW). Prefer in-code truth over adjacent duplication (amended 2026-09-25, $30k-Claude-Code transcript): behavior that changes with the code lives IN the code (rule 5 blueprint headers, comments at the constraint); an adjacent doc that restates behavior carries `verified against <sha|date>` so drift is detectable — the Catalog's source-SHA staleness check (rule 72) is the mechanical version of the same law. The Blueprint Vault (`scripts/hooks/vault-guard.mjs`, PreToolUse on Write/Edit) snapshots every blueprint-class doc (`docs/ai-workflow/**/*.md`, `*.mmd`/`*.mermaid`, root operating files and SWAN packets) into `.ai-workflow/vault/` BEFORE each overwrite — content-deduped, pruned to ~100 versions per file, gitignored, fail-open (never blocks work). Git remains the archive for committed versions; the vault catches the uncommitted in-between states. To restore: copy the snapshot back. `SWAN_VAULT_DISABLE=1` is the kill switch; `SWAN_VAULT_KEEP` overrides depth.
+
+---
+
+## Closeout — Where We Are / What's Next (Rule 87) — MANDATORY
+
+**Every chat ends with two blocks. Not a summary of the work — a briefing for someone who
+does not remember the work.**
+
+Sean, 2026-09-25: *"we need to always recommend what we should do next at the end of every
+chat — it is mandatory — as well as a tiny summary of what we are working on, what we are
+building and fixing, so I can always know where we are at no matter what. Treat me like I
+have Alzheimer's on every chat: always reminding me why we are doing the work and what I
+requested, for us to end up where we are at the moment."*
+
+**The rule.** The last thing in every reply — after the findings, after the files, after
+everything else — is exactly this, in this order:
+
+```
+**WHERE WE ARE**
+- Building:      <the project + its one-line goal, in his words>
+- You asked for: <the request that produced this session's work, quoted or near-quoted>
+- Just did:      <what actually changed — files, decisions, measured results>
+- Open/broken:   <what is unresolved, failing, blocked, or deliberately not done>
+
+**WHAT'S NEXT**
+1. <the single recommended next action — and WHY it is next>
+2. <the next one or two, ranked, only if they are real>
+```
+
+**Rules for the content**
+
+- **Mandatory, every chat, no exceptions.** A one-line question gets a two-line closeout.
+  There is no session too small. The point is that he never has to ask *"where are we?"*.
+- **"Just did" is measured, not felt.** Name files and numbers. *"Improved the feed"* is not
+  a closeout; *"`feedAssembler.ts` share denominator pool→response, 19 tests green"* is.
+- **"Open/broken" may not be empty by default.** Anything that failed, is blocked, or was
+  deliberately skipped belongs here. An empty section is a **claim that nothing is owed** —
+  make it deliberately, not by omission.
+- **"What's next" is a recommendation, not a menu.** Rank it. Say why it is next. If there
+  is genuinely nothing worth doing, say that — never invent filler work to fill the slot.
+- **Re-anchor the goal, do not restate the transcript.** This is a briefing, not a log. If
+  it does not fit in ~10 lines it is too long.
+- **No praise, no ceremony, no apology.** Not *"great question"*, not *"I'd be happy to"*.
+  State the position and stop.
+
+**Why this exists.** A long session with dozens of tool calls reads as a wall of output with
+no handle on it. Sean asked to be treated as someone who cannot be assumed to remember why
+the work started — so every closeout re-anchors the goal, the original request, the current
+state, and the next step, unprompted, every single time.
+
+**Enforcement honesty.** Nothing forces this. It is not a hook, and no script checks for a
+closeout block. It fires because an agent reads this block and keeps it. **Do not claim it is
+enforced.**
