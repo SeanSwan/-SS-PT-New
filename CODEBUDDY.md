@@ -843,6 +843,12 @@ node scripts/split-astra-blueprint.mjs --in <reply.md> --out-dir <dir> --mega-bl
     - **Commit safely.** Explicit paths only (no `git add -A`); while other agents are active, use the `GIT_INDEX_FILE`-outside-`.git` commit method (START-HERE incident §8) — uncoordinated concurrency in the object store is how the 2026-09-22 loss happened.
     - **Research fan-out/fan-in:** cheap models scan wide with short contexts; the strong model decides on the combined output (rule 71 routing). Do not have the expensive model do its own scanning.
 
+91. **Evidence-Sufficiency Dispatch (MANDATORY for every AI consult/dispatch — all harnesses)** — Established 2026-09-26 by Sean ("we need to make sure that we're giving these AIs enough information to be able to give solid answers back, not bullshit"). Every dispatch of AI judgment — consult scripts, subagent fan-outs (rule 90), external harnesses (Codex, Astra, GLM, Gemini, OpenRouter, DeepSeek, Hermes, WorkBuddy, CLINE, Cursor, Continue, Copilot/CodeBuddy, OpenCode, Village, in-seat subagents) — must give the answering model enough evidence to give a VERIFIABLE answer, not an opinion. Requirements:
+    - **Tier the seat by what it can SEE.** Tier A repo-rooted agents (Codex CLI, Astra subscription default, WorkBuddy, CLINE, Cursor, ZCode/Claude seats, OpenCode): dispatch pointer-rich, mandate re-derivation ("do not trust the packet — open the code and verify"), do not inline what the agent can read. Tier B packet-only models (GLM, Gemini, OpenRouter, DeepSeek, Village brains): the packet must carry the actual diffs/excerpts/outputs — a characterization is not evidence. Tier C chat/operator (Hermes, Sean handoffs): decision briefs with pre-verified facts only. Tier-upgrade rule: an important verdict on a Tier-B/C seat gets a Tier-A verification pass before it becomes action (rules 30/55).
+    - **Packet minimum (all tiers):** remit with verdict shape; orientation map (branch, HEAD sha, pushed state, incident flags); claims with `file:line`/SHA/command pointers, not prose; safety rails spelled out (read-only scope, no git writes, never `.env` per rule 59, never `DATABASE_URL` — it is PRODUCTION); known-broken baselines; what NOT to re-examine; a return contract demanding evidence per claim and an explicit coverage statement.
+    - **Anti-bullshit reply bar:** load-bearing claims carry file:line/probe output/confidence tags (rules 19/51/52/55) or the reply is INVALID and gets one re-dispatch with the gap named; "could not verify" is an acceptable answer; no coverage statement = presumed blind.
+    - **Full doctrine + harness mechanics matrix (transports, caps, exit codes, per-seat levers):** `docs/ai-workflow/references/EVIDENCE-SUFFICIENCY-DISPATCH-PROTOCOL.md`. Reference instance: the 2026-09-26 Astra dispatch (`AI-HANDOFF/BLUEPRINT-hostile-review-r2-upgrades-2026-09-26/`).
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -1249,16 +1255,24 @@ Two standing duties for EVERY agent in this tree; values context lives in `SOUL.
 
 ---
 
-## Closeout — Where We Are / What's Next (Rule 87) — MANDATORY
+## Closeout — Where We Are / What's Left / What's Next (Rule 87) — MANDATORY
 
-**Every chat ends with two blocks. Not a summary of the work — a briefing for someone who
-does not remember the work.**
+**Every reply ends with the same three blocks and two copy-paste prompts. Not a summary of
+the work — a briefing for someone who does not remember the work, plus the prompts that
+resume it.**
 
 Sean, 2026-09-25: *"we need to always recommend what we should do next at the end of every
 chat — it is mandatory — as well as a tiny summary of what we are working on, what we are
 building and fixing, so I can always know where we are at no matter what. Treat me like I
 have Alzheimer's on every chat: always reminding me why we are doing the work and what I
 requested, for us to end up where we are at the moment."*
+
+Sean, 2026-09-26: *"at the end of the chat, the AI would determine what is left and what we
+would need to do on a slice-by-slice basis... and then give me a prompt to finish everything
+in a loop, or a goal... so I can just take these prompts at the end and just give it right
+back to AI and it'll go ahead and finish everything up... the only things the AI should be
+asking me for is if it needs more context in the way I want things built, or things that we
+may have missed, and it wants more information on the data."*
 
 **The rule.** The last thing in every reply — after the findings, after the files, after
 everything else — is exactly this, in this order:
@@ -1270,10 +1284,100 @@ everything else — is exactly this, in this order:
 - Just did:      <what actually changed — files, decisions, measured results>
 - Open/broken:   <what is unresolved, failing, blocked, or deliberately not done>
 
+**WHAT'S LEFT**   ← the slice ledger. Omit ONLY when the work is genuinely finished.
+- Remaining:     <N slices> — <one line each, in the order the plan sets>
+- Next slice:    <S<n>: name>
+  - Deliverable: <what exists when it is done — a file, a route, a green test>
+  - Files:       <the paths this slice is permitted to touch>
+  - Done when:   <the exact check that proves it — command + expected result>
+  - Review:      <the per-slice review route from the model-assignment protocol>
+
 **WHAT'S NEXT**
 1. <the single recommended next action — and WHY it is next>
 2. <the next one or two, ranked, only if they are real>
+
+**RUN IT**   ← copy-paste ready. Omit when nothing is left.
+A. NEXT SLICE — paste to do exactly the next slice, nothing more
+<prompt>
+
+B. FINISH EVERYTHING — paste to run the whole remainder to done
+<prompt>
 ```
+
+**The two prompts are the point of this rule.** They exist so he can paste them straight
+back into a harness with no editing and no re-explaining. Each must therefore be
+**self-contained**: name the repo, the branch, the plan of record, the slice, the allowed
+files, and the done-check. A prompt that only works because you remember this conversation
+is not a prompt — it is a note to yourself.
+
+**Prompt A — next slice.**
+
+```
+Work the next slice only: <S<n>: name> in <PROJECT> at <REPO> (branch <BRANCH>).
+Plan of record: <PATH>. Allowed to change: <FILES>.
+Deliverable: <what must exist>. Done when: <command + expected result>.
+Then run this slice's hostile review until dry before stopping.
+Report with the Rule 87 closeout. Do not start the following slice.
+```
+
+**Prompt B — finish everything.**
+
+```
+Finish <PROJECT> at <REPO> (branch <BRANCH>) from <PLAN PATH>. Work the remaining plan
+slice by slice, in order, without stopping between slices. For each slice: implement, run
+its tests, then run the slice's hostile review until dry (no new finding two rounds
+running) before advancing. Never advance on a red suite.
+
+Terminal condition: every slice is done, the full suite is green, and a final whole-state
+hostile review has run dry. Only then stop.
+
+Stop early ONLY to ask me, and only for one of three reasons:
+  1. you need more context on HOW I want something built;
+  2. the plan missed a decision you cannot make for me;
+  3. you need more information about the data.
+Otherwise decide, record the decision and its reason in the plan, and continue. Do not ask
+permission to keep going.
+
+Before ANY paid review — Astra, GPT-5.5, or any paid API — stop and ask me yes/no.
+Subscription CLIs first, always.
+
+Report at the end with the Rule 87 closeout.
+```
+
+**Harness mapping — measured against the installed binaries 2026-09-26, not assumed.** The
+prompt text above is plain on purpose, so it pastes anywhere. Where a surface has its own
+run-until-done control, hand it the prompt as that control:
+
+| Surface | Run-until-done control | Evidence |
+|---|---|---|
+| Codex | `/goal <objective>` — also `clear` / `edit` / `pause` / `resume` | usage string in `codex.exe`; `thread_goals`, `thread_goal_continuation_deferrals`, `max_goal_token_budget` |
+| Claude Code | `/loop <prompt>` — a wake-up that re-enters each turn; pass the same input verbatim each firing | `/loop` and `loopAutonomousPreamble` in `claude.exe` |
+| Gemini CLI | `/loop` exists; its behaviour is **not** verified | the string is present in the bundled `gemini-cli` chunks |
+| WorkBuddy / CodeBuddy, Copilot, Continue, Roo, Cline | no verified run-until-done control | paste the prompt as the session's standing instruction and re-paste after any stop |
+
+**Do not invent slash syntax for a surface this table does not name.** "Paste it as your
+instruction" is always available and always true; a guessed command is neither.
+
+**The ask budget — the only things allowed to interrupt the loop.** Exactly three:
+
+1. **Build intent** — missing context on *how* he wants something built.
+2. **Plan gap** — a decision the plan does not cover and the agent must not make alone.
+3. **Data** — the agent needs more information about the data.
+
+Everything else — a naming choice, a library pick inside the plan's constraints, a refactor
+the plan already implies, an ambiguity resolvable by reading the repo — is decided, recorded
+in the plan with its reason, and carried forward. Asking outside the budget is not caution.
+It is handing back work he already paid for.
+
+**The review ladder.** Per slice: hostile review until dry. Whole state: one final hostile
+review until dry. Then, and only then, the paid tier:
+
+**Gated, never automatic.** Once the free ladder runs dry, *offer* — do not run — a paid
+hostile review by **Astra** or **GPT-5.5**. Name which one, why, and the cost basis, then
+wait for an explicit yes/no. **Subscription CLIs come first, always**: a paid leg is the
+fallback for when subscription tokens are short, and how short they are is something only
+Sean knows at that moment. A paid review that runs without that yes is a policy violation,
+not a helpful shortcut.
 
 **Rules for the content**
 
@@ -1284,18 +1388,29 @@ everything else — is exactly this, in this order:
 - **"Open/broken" may not be empty by default.** Anything that failed, is blocked, or was
   deliberately skipped belongs here. An empty section is a **claim that nothing is owed** —
   make it deliberately, not by omission.
+- **"What's left" comes from the plan, not from optimism.** Read the governing plan and
+  state the remaining slices as it states them. Do not invent slices to fill the ledger, and
+  do not drop one because it is large. If there is no plan, say so — and make the first
+  recommended action "write the plan".
+- **The ledger is a claim, and it is checkable.** Before naming the next slice, re-read its
+  done-condition. A ledger that has not been re-read against the plan is a guess wearing a
+  list format.
 - **"What's next" is a recommendation, not a menu.** Rank it. Say why it is next. If there
   is genuinely nothing worth doing, say that — never invent filler work to fill the slot.
-- **Re-anchor the goal, do not restate the transcript.** This is a briefing, not a log. If
-  it does not fit in ~10 lines it is too long.
+- **Re-anchor the goal, do not restate the transcript.** This is a briefing, not a log. The
+  three blocks together should fit in ~20 lines; the two prompts are quoted verbatim and do
+  not count against that.
 - **No praise, no ceremony, no apology.** Not *"great question"*, not *"I'd be happy to"*.
   State the position and stop.
 
 **Why this exists.** A long session with dozens of tool calls reads as a wall of output with
 no handle on it. Sean asked to be treated as someone who cannot be assumed to remember why
 the work started — so every closeout re-anchors the goal, the original request, the current
-state, and the next step, unprompted, every single time.
+state, and the next step, unprompted, every single time. The slice ledger and the run
+prompts extend that to the end of the job: he should be able to finish the whole build by
+pasting two prompts, without ever reconstructing context himself.
 
 **Enforcement honesty.** Nothing forces this. It is not a hook, and no script checks for a
 closeout block. It fires because an agent reads this block and keeps it. **Do not claim it is
-enforced.**
+enforced.** The harness-mapping table above is a measurement of the installed binaries on
+2026-09-26, not a contract that those surfaces keep.

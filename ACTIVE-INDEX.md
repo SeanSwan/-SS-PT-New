@@ -12,6 +12,7 @@
 
 ## 🔥 Operating core (read first)
 
+- **🚨 `START-HERE-INCIDENT-2026-09-22.md`** — **READ BEFORE ANALYSING ANYTHING.** 23 unpushed commits were destroyed by a git race on 2026-09-22; the *content survives only as untracked working-tree files*. Do NOT `git clean` / `reset --hard` / `stash`. Contains the safe commit method, the survival boundary (`4c93db148`), and open questions for reviewing models (Astra / Opus 5.5 / Fable 5.1). Full record: `docs/ai-workflow/INCIDENT-2026-09-22-object-store-refs-loss.md`
 - **`AGENTS.md` / `CLAUDE.md`** — mirrored root operating rules, 68 mandatory rules, load order, common gotchas
 - **`ACTIVE-INDEX.md`** — this file (surface/archive map)
 - **`docs/ai-workflow/references/REPO-HYGIENE-PROTOCOL.md`** — cleanup workflow driven by rules 32–39
@@ -20,6 +21,7 @@
 - **`docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md`** — asset archetypes + Seedance 2.0 prompt templates
 - **`docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md`** — who/what may do which job at which T0–T4 tier; unregistered = BLOCKED (Fable control layer, 2026-07-03)
 - **`docs/ai-workflow/references/FABLE-CONTEXT-COMPRESSION-PROTOCOL.md`** - cost-control rule for Fable token economy: semantic compression, query-first reads, image-context estimator, and proxy safety gates
+- **`docs/ai-workflow/references/EVIDENCE-SUFFICIENCY-DISPATCH-PROTOCOL.md`** — rule 91: how EVERY AI harness (Codex/Astra/GLM/Gemini/OpenRouter/DeepSeek/Hermes/WorkBuddy/CLINE/IDE seats) gets dispatched with enough evidence for solid answers; tier table + packet minimum + anti-bullshit reply bar
 - **Startup router rule:** fresh AI sessions read `AGENTS.md`/`CLAUDE.md`, then this index; keep bulky protocol details linked here instead of copied into startup context.
 - **`docs/ai-workflow/hermes-agentic-os/index.md`** — Hermes Agentic OS map: approval gates, receipts, kill switches, channels, command center
 - **`docs/ai-workflow/hermes-agentic-os/task-operating-system.md`** - Sean's human-AI task loop: one visible work state, Agent-Ready Contract, universal eval, batched human QA, and bounded Tailscale support
@@ -193,6 +195,8 @@ These files describe future work that is NOT yet built. Read only when scoping t
 - `SWAN-COACH-V1-SPEC.md` / `SWAN-COACH-V1-IMPLEMENTATION-ROADMAP.md` — partially shipped, some slices pending
 - `SWANSTUDIOS-EXECUTION-ROADMAP.md` — product sequencing
 - `OPENCLAW-PLAN.md` — **SUPERSEDED** by Hermes plan, kept for reference
+- `OPENCLAW-2-HERMES-MUSE-STACK-PLAN-2026-09-25.md` — **PROPOSAL, pending Sean's §12 answers**: OpenClaw 2.0 as execution arms, Muse content lane, sandbox + phone-approval pipeline
+- `OPENCLAW-SLICE1-INSTALL-KIT-2026-09-25.md` — **ACTIVE build**: hardened OpenClaw 2.0 install runbook (freed Pi host), probe gate, red lines; config template at `scripts/openclaw/openclaw.config.template.json5`
 
 ---
 
