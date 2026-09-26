@@ -1,0 +1,66 @@
+/*
+ * astra-ledger.css — the Ledger pane (A6). §2.4b.
+ *
+ * WHY THIS IS ITS OWN FILE. Same reason as `astra-boards.css`: Rule 4's 300-line budget.
+ * The split is by OWNERSHIP — every selector below is used by `paneLedger.mjs` and by
+ * nothing else.
+ *
+ * THE COLOUR IS A DIRECTION, NOT A VERDICT. `--over` is amber and `--under` is the accent,
+ * and neither is `--fail`. A run that cost more than the estimate is not a failure and a run
+ * that cost less is not a success; they are two different disagreements with the prediction,
+ * and `AC6.2` wants both VISIBLE rather than scored. Painting "over" red would turn a
+ * measurement into a judgement, which is the thing this pane is least entitled to do.
+ *
+ * A WITHHELD ESTIMATE AND A ZERO DELTA MUST NOT LOOK ALIKE. `.ledger-drift--absent` is the
+ * muted grey and the cell holds an em-dash; `.ledger-drift--exact` holds `(0.0000)`. If the
+ * two rendered the same, "we could not compute this" would read as "it matched exactly" —
+ * the collapse `core/ledger.mjs` refuses in the data and this file must not reintroduce in
+ * the styling.
+ *
+ * NO `overflow-x: hidden` ANYWHERE, same reason as `astra.css`: it would make `T-A-01` pass
+ * against a layout that genuinely overflows. The value column is the one that can be long
+ * (operator text), so it wraps.
+ *
+ * ONLY EXISTING VARIABLES. `a3-choose.test.mjs` resolves every contrast pair against
+ * `astra.css`'s `:root`, so a new literal colour here would be a text/background pair the
+ * `T-A-04` audit never sees.
+ */
+
+.ledger-table { width: 100%; border-collapse: collapse; }
+.ledger-table th { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); text-align: left; font-weight: 500; padding: 0 0.5rem 0.3rem 0; }
+.ledger-table td { padding: 0.3rem 0.5rem 0.3rem 0; vertical-align: top;
+  border-top: 1px solid var(--line); }
+.ledger-table .k { width: 12rem; overflow-wrap: anywhere; }
+
+/* The outcome vocabulary. `rejected_all` is the one the pane exists to count, so it is the
+ * only outcome that is coloured — the other three are context, not findings. */
+.ledger-outcome b { font-size: 0.78rem; letter-spacing: 0.04em; color: var(--muted); }
+.ledger-row--rejected_all .ledger-outcome b { color: var(--prior); }
+.ledger-row--pending .ledger-outcome b { color: var(--ink); }
+
+.ledger-action { width: 13rem; }
+.ledger-values { font-size: 0.84rem; overflow-wrap: anywhere; }
+
+.ledger-outcomes { list-style: none; display: flex; flex-wrap: wrap; gap: 0.9rem;
+  margin: 0.2rem 0 0.5rem; padding: 0; font-size: 0.86rem; }
+
+/* The sufficiency note. Amber when the reading is withheld, plain when it is not — and the
+ * COLOUR is not the message: the sentence says which of the two the pane is doing. */
+.ledger-note { font-size: 0.86rem; margin: 0.3rem 0 0.7rem; padding: 0.35rem 0.6rem;
+  border-left: 3px solid var(--line); }
+.ledger-note--thin { border-left-color: var(--prior); color: var(--prior); }
+.ledger-note--enough { border-left-color: var(--muted); color: var(--muted); }
+
+/* --- cost drift ----------------------------------------------------------- */
+.ledger-drift--over .ledger-delta b { color: var(--prior); }
+.ledger-drift--under .ledger-delta b { color: var(--accent); }
+.ledger-drift--exact .ledger-delta b { color: var(--muted); }
+.ledger-drift--absent .ledger-delta b, .ledger-drift--absent td { color: var(--muted); }
+.ledger-delta b { font-family: var(--mono); }
+
+@media (max-width: 560px) {
+  .ledger-table .k { width: 6rem; }
+  .ledger-action { width: 8rem; }
+  .ledger-action button { width: 100%; }
+}

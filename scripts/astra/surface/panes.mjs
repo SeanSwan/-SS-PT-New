@@ -18,7 +18,7 @@
  * the reason would leave the distinction to a colour.
  */
 
-import { escapeHtml, badge, controlAttr, stateEmpty, statePartial, stateFailure, stateNotBuilt } from './shell.mjs';
+import { escapeHtml, badge, controlAttr, stateEmpty, statePartial, stateFailure } from './shell.mjs';
 import { CONTROLS, controlsForPane } from './controls.mjs';
 // The 12 SLOTS table and its override editor. Imported for LOCAL use AND
 // re-exported — `export ... from` alone creates no local binding (bitten 3×).
@@ -143,8 +143,23 @@ function renderLawCheck(c) {
  * that a missing `lawChecks` must never render as "0 checks passed": zero passes and
  * five unobserved checks are different findings, and only one of them is a problem
  * with the compile.
+ *
+ * `outcome` IS PASSED IN, AND THAT IS A FIX (A6). The "THIS RUN" line used to read
+ * `view.outcome` and `view.estimatedCents`. **Neither field exists.** `outcome` lives on the
+ * session registry's ENTRY (`core/session.mjs`), not on the `ExplainView`, and
+ * `estimatedCents` exists nowhere in the shipped code at all — the contract
+ * `forge-compiler-contract.md` §7 specified it and the implementation shipped `costUsd`. So
+ * the pane printed `outcome: pending` for every compile ever rendered, including one the
+ * operator had just marked rejected-all — the button appeared to do nothing, on the pane whose
+ * `AC6.1` control it is. A pane reading a field that does not exist is not a pane with a
+ * missing value; it is a pane asserting a value it invented.
+ *
+ * The `est` cell is GONE rather than repaired. There is no per-compile estimate to show: the
+ * estimate rule is `unitCost()` over the forge variant store, and a compile has no join key
+ * into it. A link to the Ledger is the honest version of that cell, and it is where `AC6.2`'s
+ * estimated-vs-actual pair actually lives.
  */
-export function renderThink({ view = null, compileId = null, error = null }) {
+export function renderThink({ view = null, compileId = null, error = null, outcome = null }) {
   if (error) return stateFailure({ code: error.code ?? 'E_EXPLAIN', detail: error.message ?? '' });
   if (!view) {
     return stateEmpty({
@@ -153,6 +168,10 @@ export function renderThink({ view = null, compileId = null, error = null }) {
       action: 'start in <a href="/">Compose</a>',
     });
   }
+  // `null` means the caller did not supply an outcome — which is NOT the same as `pending`, but
+  // the pane has no third state to show, so it says `pending` AND offers the action, which is
+  // the recoverable direction. The caller supplies the real value; see `renderThinkPane`.
+  const settled = outcome ?? 'pending';
 
   const checksReported = Array.isArray(view.lawChecks);
   const checks = checksReported ? view.lawChecks : [];
@@ -243,16 +262,13 @@ ${banner}
 <section class="panel" aria-labelledby="run-h">
   <h2 id="run-h">THIS RUN</h2>
   <p class="row-actions">
-    <span class="kv">outcome: <b>${escapeHtml(view.outcome ?? 'pending')}</b></span>
-    <span class="kv">est ${escapeHtml(view.estimatedCents ?? '—')}¢</span>
-    <button type="button" ${controlAttr(ctl('think.markRejectedAll'))}>MARK REJECTED-ALL</button>
+    <span class="kv">outcome: <b>${escapeHtml(settled)}</b></span>
+    <span class="kv">cost: <a href="/ledger">see the Ledger</a></span>
+    ${settled === 'pending'
+    ? `<button type="button" ${controlAttr(ctl('think.markRejectedAll'))}>MARK REJECTED-ALL</button>`
+    : '<span class="muted">already decided — no action offered</span>'}
   </p>
 </section>`;
-}
-
-/** A pane whose slice has not run yet. Says so, and names the slice. */
-export function renderNotBuilt(pane, slice, what) {
-  return stateNotBuilt({ pane: pane.toUpperCase(), slice, what });
 }
 
 /** Every registry control that claims to be rendered, for the markup cross-check. */

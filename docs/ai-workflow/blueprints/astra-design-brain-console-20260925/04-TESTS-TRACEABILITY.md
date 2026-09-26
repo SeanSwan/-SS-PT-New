@@ -5,8 +5,18 @@ Test IDs are stable. Every test names the requirement it serves, its level, and 
 Everything from A2 onward is still the plan, not a result. Two rows below were **corrected** before
 they ran: `T-U-05` and `T-U-07` were not executable as written — see `A1-CORRECTIONS.md` C11 and C10.
 
-**STATUS AS OF A5 (2026-09-25).** A1–A5 have landed. **167 Astra tests / 37 smoke checks / 70 shared
-tests, all green** — `scripts/astra/evidence/a5-tests.txt`. A5's corrections to this file are worth
+**STATUS AS OF A6 (2026-09-26).** A1–A6 have landed. **207 Astra tests / 41 smoke checks / 70 shared
+tests, all green** — `scripts/astra/evidence/a6-tests.txt`. R6 is now measured rather than planned, and
+**`AC3.1` is CLOSED IN FULL** — the persistence half that A4b correctly refused to claim is A6's brief
+store. Three corrections to this file came out of A6 and each one is a row that was saying something
+untrue: **`C50`** (`AC6.2`'s named fields `estimatedCents`/`actualCents` **do not exist in any shipped
+file** — the implementation shipped `costUsd`, so the row's test as written could not run against the
+code, and A6 satisfies the requirement by **conversion** while deliberately **not** rewording it),
+**`C54`** (this file assigned `AC6.3` the id `T-E-03`, which is `AC6.1`'s id — A5's `D49`, *a test
+titled after a guarantee it never touched*, reproduced inside the traceability table itself), and
+**`C51`** (A6's Entry line in `05` — *"the variant store is writable through the CLI's own path"* —
+described work A6 does not do and nobody owns). See `A6-CORRECTIONS.md`. A5's corrections to this file
+are still worth
 reading before the R5 rows: `C42` (the R5 rows claimed PASS for the **core** and were silent about the
 **surface**, while `/law` and `/state` still rendered "not built yet"), `C46` (`AC5.4` was written as a
 UI fact — "no enabling control" — when the requirement is about the **operation**, and a button count
@@ -43,7 +53,8 @@ exported list while the pane dispatch was an `if` chain with no list). See `A5-C
 | `T-I-03` | R4/AC4.3 | concurrent read during a commit | reader sees old **or** new bytes, never a partial file | a torn read |
 | `T-I-04` | R4/AC4.4 | commit then revert | restored file hash == pre-commit hash | losing the prior bytes |
 | `T-I-05` | R4/AC4.5 | change `auto.S` | blast radius names the auto-corroboration gate | a commit with an empty note |
-| `T-I-06` | R6/AC6.2 | record with `estimatedCents ≠ actualCents` | drift visible | averaging the two into one number |
+| `T-I-06` | R6/AC6.2 | **CORRECTED (A6, C50):** record a run whose actual cost differs from the estimate the compiler would have produced, then render the drift | the delta is visible **per run**, with the mean shown BESIDE the per-run deltas and never in place of them | averaging the two into one number — or drawing a `0` delta where the estimate is simply **absent** |
+| `T-I-11` | R6/AC6.3 | **NEW (A6, C54):** read the rejected-all trend from one set of rows | the trend is readable **by slot** and **by facet**, from the same rows; below the threshold it still **counts** but does not **read**; an empty registry is a NAMED empty state, never a table of zeroes | a "trend" printed from one row; an empty registry rendered as `0%` |
 | `T-I-07` | R1 | compile a fixture that fails a LAW check | `E_LAW_VIOLATION` with the offending slot named | any silent strip; any override affordance |
 | `T-I-08` | R7/AC7.1 | MCP `brain.reject` without `confirm` | refused | the write occurring |
 | `T-I-09` | R7/AC7.3 | MCP `brain.capabilities` vs the surface's board | identical output from one source | two independently-derived boards |
@@ -55,7 +66,7 @@ exported list while the pane dispatch was an `if` chain with no list). See `A5-C
 |---|---|---|---|
 | `T-E-01` | R1,R2,R3 | brief → directions → choose → compile → explain | the Think pane shows 12 slots, every lawCheck, and the pinned version |
 | `T-E-02` | R4 | tune → preview → commit → revert | knob restored to its original value |
-| `T-E-03` | R6 | compile → reject-all in one action | the ledger's rejected count increments by exactly 1 |
+| `T-E-03` | R6 | **CORRECTED (A6, C54):** compile → reject-all in one action | the ledger's rejected count increments by exactly 1 — and **in both directions**, so a reject that did not increment cannot pass as one that did |
 | `T-E-04` | R5 | open `/state` with the taste brain down | every lane still correct; only the taste row degrades |
 
 ### 1.4 Responsive / accessibility
@@ -105,14 +116,25 @@ compiler's own tests), with a **declared-exception list** asserted in both direc
 declared exception (`variantRun.test.mjs`, pre-existing, owned by another workstream). See
 `A4b-CORRECTIONS.md` C39.
 
+**`T-F-04` measured at A6 — and this row's own fix needed a second look.** A6 added a 366-line
+`paneLedger.mjs`, which is the budget being spent by the very slice that measures it. The fix was the
+house pattern (split a sibling, import it for local use, and re-export it) applied with one exception:
+`driftSection` is imported and **NOT** re-exported, because a re-export of a name nobody reads adds
+surface without a reader (`D54` — the same defect as `estimateAvailable`, which A6 deleted). Measured
+at A6: **0 offenders across all three scopes**, largest in-scope file **294** — and **two A6 test files
+sit at 294 / 300**, which is a trap the next slice inherits rather than a pass. See `A6-CORRECTIONS.md`
+§4 `D54`, §6.
+
 ### 1.7 Commands
 
 ```bash
-# unit + integration — RUN at A4b: 138 pass / 0 fail  (A1: 30, A2: 51, A3: 79, A4: 113, A4b: 138)
+# unit + integration — RUN at A6: 207 pass / 0 fail
+#   (A1: 30, A2: 51, A3: 79, A4: 113, A4b: 138, A5: 167, A6: 207 — of which A6's own suites are 40)
 node --test scripts/astra/tests/*.test.mjs
 
-# the smoke runner — RUN at A4b: 34 passed, 0 failed  (A4: 29)
-# it now also fails if a MUTATION_ROUTES entry has no check naming it (D39)
+# the smoke runner — RUN at A6: 41 passed, 0 failed  (A4b: 34, A4: 29)
+# it now also fails if a MUTATION_ROUTES entry has no check naming it (D39), and it checks
+# /ledger against the real render rather than against "not built yet" (A6)
 node scripts/astra/surface/smoke.mjs --port 0
 
 # the A1 exit command — prints an ExplainView for both a lawful and a blocked compile
@@ -174,7 +196,7 @@ unchanged.
 | R2 | AC2.2 | Choose pane | `T-U-02`, `T-A-02` | A3 | **PASS** — T-A-02 as a real 360px browser measurement; T-U-02 asserts a `prior` card never contains the word `EVIDENCE` |
 | R2 | AC2.3 | swatch derivation | `T-U-03` | A3 | **PASS** — byte-identical across renders; no data-URI / url() / http in the strip |
 | R2 | AC2.4 | preview gate | `T-I-07` (no-override half) | A3 | **PASS (no-override half)** — the Law and State panes render ZERO registry controls, so no affordance can exist. The `E_LAW_VIOLATION` half is A1. |
-| R3 | AC3.1 | brief text immutability | `T-I-01` | A1, **A4b**, A6 | **PASS for the SURFACE half (A4b); the PERSISTENCE half is A6.** `a4b-editor.test.mjs` — "AC3.1 staging an override never mutates the brief text". Staging is the ONE layer `resolveSlots` applies LAST, so it is the only thing that can overwrite a decided value; the test submits an awkward brief (quotes, `&`, angle brackets, a newline), stages an override, re-reads the pane, and asserts the text is byte-identical — then asserts the stage really landed, so the immutability claim cannot pass on a no-op. Mutation-proven: making `overrides-stage` write through to `state.brief.text` reddens exactly this test. **What this does NOT cover:** AC3.1's other half — *"persisted `text` byte-identical for a `briefId`"*, whose test target is `core/variants.mjs` — needs the brief store, which does not exist yet. **A6 owns that half.** Do not read this row as closing AC3.1. |
+| R3 | AC3.1 | brief text immutability | `T-I-01` | A1, **A4b**, **A6** | **PASS — CLOSED IN FULL (A6).** Two halves, now both measured. **Surface half (A4b):** `a4b-editor.test.mjs` — "AC3.1 staging an override never mutates the brief text". Staging is the ONE layer `resolveSlots` applies LAST, so it is the only thing that can overwrite a decided value; the test submits an awkward brief (quotes, `&`, angle brackets, a newline), stages an override, re-reads the pane, and asserts the text is byte-identical — then asserts the stage really landed, so the immutability claim cannot pass on a no-op. **Persistence half (A6):** `a6-briefs.test.mjs` — the brief store (`core/variants.mjs`, `BRIEF_STORE_PATH`) writes a `briefId` once and re-reads `text` byte-identical, **and the test asserts the write really happened** (a no-op that reports success is mutation `M12`, and it reddens three tests). Immutability is a GUARD (`E_BRIEF_IMMUTABLE`), idempotent on identical text and refusing different text — mutation `M11` removes the guard and reddens exactly the test that claims it. **A4b was right to refuse this half**, and `A4b-CORRECTIONS.md`'s hand-off note is what made A6's entry condition checkable (`C51` — the `05` Entry line for A6 described a different piece of work; the correction is recorded rather than quietly satisfied). |
 | R3 | AC3.2 | override layer | `T-I-01` | A1, A3, A4, **A4b** | **PASS (A4b) — CLOSED.** A4 recorded this as *"not run, and the test does not exist"*, and correctly diagnosed why: `slots.stageOverrides` rendered on Compose with no handler, because `renderSlots` drew the 12 slots as read-only cells. A4b built the editor (11 editable inputs + 1 locked row, `STAGE OVERRIDES` / `RESET`, session-only) and the tests now exist across `a4b-editor.test.mjs` (the pane), `a4b-overrides.test.mjs` (the boundary) and `a4b-surface.test.mjs`. `UNWIRED_CONTROLS` — the in-code record of the gap — is now **empty**. **Closing this gap exposed a defect the gap had hidden**: `slotOverrides` was an unvalidated passthrough into the last-applied layer, so `{"negative": ""}` deleted LAW 3's kill-list and the compile still reported all six lawChecks green. Fixed at two layers (`shared/swanLawFilter.mjs`'s LAW 3 second condition, and `core/overrides.mjs`'s fence). See `A4b-CORRECTIONS.md` §2, D36. |
 | R3 | AC3.3 | `personify()` gate | `T-U-06` | A1 | **PASS** |
 | R4 | AC4.1 | `core/tuning.mjs` | `T-U-09` | A4 | **PASS** — `tuningView()` reads the LIVE file (never a cached default), and the pane renders one editable `<input>` per knob, so it is an editor and not a display. The AC4.6 cross-check FAILED first: `tuning.knob` was declared `element: 'input'`, `rendered: true`, `repeated: 'per knob'` while the markup showed read-only text (`A4-CORRECTIONS.md` D30). |
@@ -182,14 +204,14 @@ unchanged.
 | R4 | AC4.3 | atomic write | `T-I-03`, `T-M-06` | A4 | **PASS** — temp file + `renameSync`; `crashAfterTemp` interrupts between the two steps and the old file survives. A commit with no note is refused (`E_NOTE_REQUIRED`). Measured end to end: commit changed **2 of 14 lines**, the other 12 byte-identical, `$comment` and CRLF intact. `T-I-03` (concurrent read during commit) remains **simulated** — see §3.2. |
 | R4 | AC4.4 | revert | `T-I-04` | A4 | **PASS** — byte-exact, because it restores the stored bytes rather than re-deriving them. Measured: the original hash returns exactly. A second revert in a row is refused (`E_ALREADY_REVERTED`) rather than silently toggling the config back to the value the operator just rejected. |
 | R4 | AC4.5 | blast radius | `T-I-05` | A4 | **PASS** — `auto.` and `weights.` are reported as `gate: true` and rendered as a ⚠ block, not a column. A4 shipped the pane with NO stylesheet rules for `.blast`, so the warning was indistinguishable from a table cell until D35 was fixed. |
-| R4 | AC4.6 | control registry | `T-P-01` (**registry half**) | A3, A4 | **PASS** — **25 controls, 20 DIAL / 5 PROPOSAL**, `proposalThatWrites: []`, `writeWithoutToken: []`, and the markup agrees with the registry in BOTH directions. The sweep now visits **every pane that renders a control** and asserts its own route table is COMPLETE, so a new pane fails the test until its route is added (`A4-CORRECTIONS.md` C29). The wiring check fails a rendered control with no handler (`C33`) — it found `think.whyNot` (D34). |
+| R4 | AC4.6 | control registry | `T-P-01` (**registry half**) | A3, A4, **A6** | **PASS — and the count in this row was STALE from A4b until A6 (`C55`).** The row said *"25 controls, 20 DIAL / 5 PROPOSAL"*, which was **true at A4** and stopped being true the moment A4b swapped `slots.stageOverrides` for `slots.override` (net +1 dial): from A4b through A5 the registry held **26 / 21**, and A6's `ledger.markRejectedAll` makes it **27 / 22**. Measured at A6 by the registry's own verifier: `{ok: true, total: 27, dials: 22, proposals: 5, rendered: 22, badKind: [], duplicates: [], missingFields: [], proposalThatWrites: [], writeWithoutToken: []}`. **The verdict was never wrong** — the test asserts *consistency*, not a number, and it passed at every slice — but the evidence sentence was, which is `C52`'s class (*a count is a claim about completeness*) landing in a different file. **A6's writing dial is the interesting case:** `ledger.markRejectedAll` has `writes: true`, and it still leaves `proposalThatWrites: []` and `writeWithoutToken: []` empty, because it is a DIAL with a token — the two lists are not "no writes", they are "no write that is *unauthorised* and no proposal that *acts*". The markup agrees with the registry in BOTH directions. The sweep visits **every pane that renders a control** and asserts its own route table is COMPLETE, so a new pane fails the test until its route is added (`A4-CORRECTIONS.md` C29); A6 added the `ledger` route to that fixture. The wiring check fails a rendered control with no handler (`C33`) — it found `think.whyNot` (D34) — and A6's `ledger.markRejectedAll` is proven wired by **handler identity**: it is the *same function object* as `think.markRejectedAll`. |
 | R5 | AC5.1 | `core/capabilities.mjs` **+ `core/lawBoard.mjs`** | `T-U-07`, `T-U-11` | A5 | **PASS** — and the SURFACE half is now real too (`C42`). `/state` renders all 12 lanes, each with its `file:line` and its gate; `/law` renders the 6 laws, each with the enforcement site that runs it. Measured: **6 of 6 laws cited, 12 of 12 lanes cited, 0 inconclusive.** Both panes emit **0 controls**. |
 | R5 | AC5.2 | spec-mode read | `T-U-07` | A5 | **PASS** — `readSpecMode()` reports the CONFIG (`enabled: false`), the pane prints it with `no control to change it`, and the fail-open branch is **shown firing**: an unreadable config reports CLOSED (`D45`). |
 | R5 | AC5.3 | claimed→false | `T-U-08` | A5 | **PASS** — and the pane half now asserts the vocabulary split, because the first draft was a **tautology** (`D44`). |
 | R5 | AC5.4 | no actor enables a REFUSED lane or spec mode | `T-P-01` (**authority half**) | A5 | **PASS** — measured, not asserted: **60 attempts (5 actors × 12 targets), `enabled: []`**, with the codes accounting for the board exactly (15 RETIRED, 15 REFUSED, 25 ALREADY-ACTIVE, 5 MODE-GATED). The refusal is **uniform, including for Sean** — §6.2's strongest cell in either enabling column is `propose`, and `propose` is not enable. Plus the transport half: no mutation route names an enable action. `T-P-01` is ONE id serving two requirements in two slices; A3 claimed only the `AC4.6` half (`A3-CORRECTIONS.md` C18) and A5 did **not** re-claim it. |
-| R6 | AC6.1 | `core/ledger.mjs` | `T-E-03` | A6 | not run |
-| R6 | AC6.2 | cost drift | `T-I-06` | A6 | not run |
-| R6 | AC6.3 | trend view | `T-E-03` | A6 | not run |
+| R6 | AC6.1 | `core/ledger.mjs` + `surface/paneLedger.mjs` | `T-E-03` | A6 | **PASS** — marking a compile `rejected_all` is ONE action with **no typed reason**: `ledger.markRejectedAll` is registered as a `kind: 'dial'` control, and the handler is **the same function object** as `think.markRejectedAll` (mutation `M9` splits them into two functions and reddens exactly that test). The increment is measured **in both directions** — a reject increments the count by exactly 1, and a reject against an unknown id is refused and changes **no** count. An outcome outside the vocabulary is **counted, not folded into `pending`**. The dial renders **only** on a row that can still be decided (`M7`). `outcome`/`rejected_all` live in ASTRA's session (`core/session.mjs`'s `setOutcome()`), not in the variant store. |
+| R6 | AC6.2 | cost drift | `T-I-06` | A6 | **PASS — WITH A NAMED CONVERSION (`C50`).** `estimatedCents` and `actualCents` **exist nowhere in shipped code**; the contract `docs/ai-workflow/design-brain/forge-compiler-contract.md` §7 specified them and the implementation shipped `costUsd`. A6 satisfies the requirement by **conversion** and deliberately did **NOT** reword the requirement to match the code. The drift is shown **per run**, with the mean beside it, never averaged into it (`M6` collapses the per-run deltas to one row → 2 tests red). An **absent** estimate yields a `null` delta, never a `0` (`M5`), and an unreadable rule is not an unchanged rule. The estimate Astra renders is a **MIRROR** of `forge.mjs:48`'s `unitCost()` — pinned by **3 markers, each an enforcement expression** (`const MEASURED_FALLBACK = 0.003736;`, `r.status === 'ok' && typeof r.costUsd === 'number'`, `priced.slice(-20)`), and verified against an independently reimplemented `forgeEstimateAt()` over 25 synthetic runs including the window slide (`M3` removes the window → 1 test red). |
+| R6 | AC6.3 | trend view | `T-I-11` | A6 | **PASS — and the id in this row was WRONG (`C54`).** This row previously assigned `AC6.3` the id `T-E-03`, which is `AC6.1`'s id — A5's `D49` (*a test titled after a guarantee it never touched*) reproduced inside the traceability table. `AC6.3` has its own id now: `T-I-11`, covered by three tests in `a6-ledger.test.mjs`. The trend is readable **by slot** and **by facet** from the same rows; a "trend" below `TREND_MIN_REJECTED` (3) still **counts** but does **not** read (`M2` removes the gate → 1 test red); an empty registry is a **named** empty state, never a table of zeroes. Slot counts include **only non-empty** slots (`M1` counts empty ones → 1 test red); facet counts include only **applied** facets. `/ledger` is a real pane route rendering all three sections. |
 | R7 | AC7.1 | `mcp/tools.mjs` | `T-I-08` | A2 | **PASS** — refused, and the registry still shows `outcome: 'pending'` |
 | R7 | AC7.2 | MCP surface audit | `T-P-02` | A2 | **PASS** — 21 forbidden names refused; no env read; no write path in `mcp/` |
 | R7 | AC7.3 | one board, two consumers | `T-I-09` | A2 | **PASS** — `deepEqual` against the live `capabilities()` |
@@ -197,15 +219,15 @@ unchanged.
 | R8 | AC8.2 | mutation token | `T-I-10` | **A3** | **PASS** — 401 on missing AND wrong token; the gate runs BEFORE the handler; cookie is `SameSite=Strict`. Moved from A1: A1 had no server to test it against. |
 | R8 | AC8.3 | no secret in surface | `T-P-02` | A2 | **PASS** — no `process.env`, no dotenv import in Astra's shipped source |
 | INV1 | — | write-path scan | `T-P-02` | A2 | **PASS** — one mutating call in `mcp/`, and it is `brain.reject`'s |
-| INV2 | — | write-path scan | `T-P-03` | A1 | not run |
+| INV2 | — | write-path scan | `T-P-03` | A1, **A6** | **PASS for the PATH half (A6); the VALUE half is owed.** `T-P-03`'s path half was unrunnable while Astra's second write path — the brief store — had no name in `core/paths.mjs`: the scan would have been **silent** about it, which is `A5`'s `C49` defect class (*a scan that cannot see the thing it claims to cover*). A6 named it (`BRIEF_STORE_PATH`), so the scan now has something to find. Measured: **zero** writes under `docs/ai-workflow/design-brain/` or to any token value, and `a6-briefs.test.mjs` asserts **no mutating call assembles its own path at the call site** (`M10` puts a literal path at a call site → 4 tests red). **What is still owed:** nothing verifies the *value* half — that a written token is not a token. Named in `A6-CORRECTIONS.md` §6. |
 | INV3 | — | LAW gate | `T-I-07` | A1 | **not run** — A5 landed the *structural* half of `T-I-07` (both boards emit zero controls, asserted against the rendered function AND against the bytes the server sent), but INV3 is the LAW gate itself and still has no test. |
 | INV4 | — | spend gate | `T-U-01`, `T-I-07` | A1, A3 | **T-U-01 PASS**; T-I-07's structural half PASS (A5); the spend gate's own test is still open |
 | INV5 | — | version read | `T-U-05` | A1 | **PASS** |
-| INV6 | — | immutability | `T-I-01` | A1, **A4b**, A6 | **PASS for the surface half (A4b)** — the brief text is asserted byte-identical across a stage, with the stage asserted to have happened. **The persisted-brief half (`core/variants.mjs`) is A6.** See the R3/AC3.1 row. |
+| INV6 | — | immutability | `T-I-01` | A1, **A4b**, **A6** | **PASS — BOTH HALVES (A6).** Surface half (A4b): the brief text is asserted byte-identical across a stage, with the stage asserted to have happened. Persisted-brief half (A6): `core/variants.mjs` writes once and re-reads byte-identical, and the write is asserted to have happened. See the R3/AC3.1 row. |
 | INV7 | — | fail-closed | `T-I-07` | A1 | **not run** — but A5 closes the fail-closed case for spec mode specifically (`D45`: an unreadable gate reports CLOSED, and the test shows it firing). |
 | INV8 | — | no fake metrics | `T-U-07`, `T-U-11` | A5 | **PASS** — every lane **and** every law needs a source, and the degradation is proven to fire on both boards. The `AC5.4` sweep is the same rule applied to a verdict: the claim is a list produced by running, not a sentence. |
 | INV9 | — | loopback | `T-U-10` | A1 | **PASS** |
-| INV10 | — | lane isolation | `T-P-02`, `T-P-03` | A1 | not run |
+| INV10 | — | lane isolation | `T-P-02`, `T-P-03` | A1, **A6** | **the `T-P-03` half now RUNS (A6); the value half is owed.** See the INV2 row — A6 gave the brief store a name in `core/paths.mjs`, which is what makes the scan able to see it at all. `T-P-02` (no write reaches taste state) has been PASS since A2. |
 
 ### 3.1 Uncovered requirements
 
@@ -231,3 +253,19 @@ unchanged.
 - **The `gatedBy` strings on REFUSED lanes are prose.** `AC5.4` refuses the operation and cites the
   gate; nothing verifies that the named authority adapter is really absent. Named in
   `A5-CORRECTIONS.md` §6.
+
+**A6's own residuals — the fix needed its own adversarial pass, and this is what that pass left open.**
+
+- **`D51`'s guard compares lengths, not identities.** `E_LEDGER_BATCH_MISMATCH` fires when the ledger's
+  row count and the batch list's length disagree. Two lists of the same length that are *different
+  compiles* pass the guard. It is a real narrowing of a real defect (the page printing two answers to
+  one question) and it is **not** the general claim its name suggests. Named in `A6-CORRECTIONS.md` §6.
+- **`T-I-07`'s INV3 / INV7 halves remain unrun** — unchanged by A6; the structural half A5 landed is
+  still the structural half.
+- **Two A6 test files sit at 294 / 300 lines** (`a6-briefs.test.mjs`, `a6-pane.test.mjs`). This is a
+  **trap for A7**, not a pass — the next slice to touch either one must split before it edits.
+- **`G5`'s census still says nothing about whether a module *loads and runs*.** A6 made the count
+  measured (`C52`: the module census had been wrong every time it was typed, three slices running —
+  44 → 54 → 65 `.mjs`) but the row remains a count of files, not a statement about them.
+- **The A5 flaky failure above is still open and still undiagnosed.** A6 ran the full suite many times
+  and did not reproduce it; that is evidence that it is rare, not evidence that it is gone.

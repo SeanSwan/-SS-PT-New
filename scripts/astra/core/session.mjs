@@ -103,6 +103,40 @@ export function listCompiles() {
   }));
 }
 
+/**
+ * The Ledger's read: the outcome, plus the slot/facet presence the trend counts. (A6)
+ *
+ * WHY THIS IS NOT `listCompiles()`. That function is the SURFACE's list — a summary, and
+ * deliberately a summary: it carries no `ExplainView`, because a list that quietly grew the
+ * whole view would be a second copy of the reasoning sitting one refactor away from being
+ * read as truth. The Ledger needs exactly two things out of that view (which slots were
+ * populated, which facets applied) and nothing else, so it gets them and no more. The
+ * projection is narrow ON PURPOSE: handing the trend the whole view would let it start
+ * reading `promptText` or `lawChecks` next slice without anyone noticing that the Ledger had
+ * become a second Think pane.
+ *
+ * THE PROJECTION IS NOW EXACTLY WHAT IS READ, AND IT WAS NOT. The first version also carried
+ * `briefId` and `ok`. Nothing read either: `paneLedger.mjs` renders `compileId`, `outcome` and
+ * `createdAt`, and `ledgerTrend.mjs` reads `compileId`, `outcome` and `view`. Two fields nothing
+ * reads is a docstring that says "narrow" over a shape that is not — and the next author cannot
+ * tell a field the Ledger needs from one it merely has. A6's hostile round found it (C5).
+ * `a6-ledger.test.mjs` now pins the key set, so adding a field is a decision that updates a test.
+ *
+ * Most recent first, matching `listCompiles()`, so the pane's batch list and its trend are
+ * walking the same order.
+ */
+export function ledgerEntries() {
+  return [...registry.values()].reverse().map((e) => ({
+    compileId: e.compileId,
+    outcome: e.outcome,
+    createdAt: e.createdAt,
+    view: {
+      slots: e.view?.slots ?? [],
+      facetsApplied: e.view?.facetsApplied ?? [],
+    },
+  }));
+}
+
 /** Record an outcome on a compile. Only the Ledger's own dial calls this. */
 export function setOutcome(compileId, outcome) {
   const entry = getCompile(compileId);

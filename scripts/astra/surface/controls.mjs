@@ -161,6 +161,29 @@ export const CONTROLS = Object.freeze([
     writes: false, token: false, rendered: true,
   },
 
+  // --- Ledger (A6). The dial that FEEDS this pane's read. ---------------------
+  {
+    // `02-BLUEPRINT.md` §5 row 7 gives the Ledger pane one read (`rejected_all` trend, cost
+    // drift) and one write (`rejected_all`) — and the write is a DIAL. This is that dial.
+    //
+    // IT IS A SECOND AFFORDANCE OF ONE OPERATION, NOT A SECOND OPERATION. `think.
+    // markRejectedAll` rejects the compile you are READING; this one rejects the batch you
+    // are looking at IN THE LIST. Both POST to the same `reject` route. Two ids for one
+    // operation is a drift risk, so it is closed by construction rather than by comment:
+    // `a6-ledger.test.mjs` asserts the two client handlers are the SAME FUNCTION OBJECT, not
+    // two functions that currently agree.
+    //
+    // `repeated: 'per pending compile'` IS LOAD-BEARING. The pane emits this button only on a
+    // row whose outcome is still `pending`; a decided row offers no button. That is what stops
+    // the Ledger from presenting an action that would do nothing — the dead-control defect
+    // `UNWIRED_CONTROLS` exists to catch, in its other form.
+    id: 'ledger.markRejectedAll', pane: 'ledger', label: 'Mark rejected-all', kind: 'dial',
+    element: 'button', effect: 'the Ledger’s rejected count — one action, no typed reason',
+    writes: true, token: true, rendered: true, repeated: 'per pending compile',
+    note: 'No typed reason is required (AC6.1). Writes an outcome against a compile; never '
+      + 'deletes or edits one. Rendered only on a row that is still pending.',
+  },
+
   // --- The proposal channel (A7). NEVER applied by Astra. ---------------------
   {
     id: 'proposal.newToken', pane: 'proposal', label: 'Propose a new token', kind: 'proposal',

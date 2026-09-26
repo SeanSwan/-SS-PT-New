@@ -48,6 +48,46 @@ function revealLawPanel() {
   window.setTimeout(function () { panel.classList.remove('flash'); }, 2400);
 }
 
+/**
+ * THE ONE IMPLEMENTATION OF `rejected_all`. TWO AFFORDANCES, ONE OPERATION.
+ *
+ * `think.markRejectedAll` rejects the compile you are READING (its id is in the URL);
+ * `ledger.markRejectedAll` rejects a batch you are looking at IN A LIST (its id is on the row).
+ * They are two registrations of one action, so they are ONE FUNCTION. A second handler would
+ * let the two drift — one gaining a confirmation, the other losing the token — with nothing to
+ * notice. `a6-ledger.test.mjs` asserts the two entries are the SAME FUNCTION OBJECT, which is a
+ * claim about identity rather than about agreement.
+ *
+ * THE ID COMES FROM THE DOM FIRST, THE URL SECOND. A row knows its own id; the URL only knows
+ * about the compile being read. The URL fallback is the only reason `location.pathname` is
+ * touched here at all.
+ *
+ * IT RELOADS ON SUCCESS, AND THAT IS A CHANGE (A6). The old handler deliberately did not:
+ * *"the outcome is the whole answer, and reloading would wipe it"*. That reasoning held while
+ * the pane could not show an outcome — it read `view.outcome`, a field that does not exist, so
+ * it printed `pending` forever and the toast was the only evidence. The pane now reads the real
+ * outcome off the registry entry, so a reload is STRICTLY BETTER evidence: the row flips to
+ * `rejected_all` and the button goes away. A toast floating over a row that still says `pending`
+ * is the worse outcome, and it is the one an operator reads as "it failed".
+ */
+function markRejectedAll(el) {
+  clear();
+  var row = el && el.closest ? el.closest('[data-compile-id]') : null;
+  var cid = (row && row.getAttribute('data-compile-id'))
+    || (location.pathname.split('/think/')[1] || '').split('?')[0];
+  if (!cid) {
+    show('failure', 'E_NO_COMPILE — this control is not attached to a compile, so there is '
+      + 'nothing to mark. That is a rendering fault, not a failed action.');
+    return;
+  }
+  api('reject', { compileId: decodeURIComponent(cid) }).then(function (res) {
+    // A failure is shown IN PLACE, and the pane is left alone so it can be read.
+    if (res.status !== 200) { reportFailure(res); return; }
+    // Success re-renders the pane, because the pane is the thing that changed.
+    window.location.reload();
+  }).catch(function (e) { show('failure', 'E_NETWORK — ' + e.message); });
+}
+
 export const ACTIONS = {
   'directions.request': function () {
     clear();
@@ -89,15 +129,11 @@ export const ACTIONS = {
 
   'think.whyNot': revealLawPanel,
 
-  'think.markRejectedAll': function () {
-    // No reload: the outcome is the whole answer, and reloading would wipe it.
-    clear();
-    var cid = (location.pathname.split('/think/')[1] || '').split('?')[0];
-    api('reject', { compileId: decodeURIComponent(cid) }).then(function (res) {
-      if (res.status !== 200) { reportFailure(res); return; }
-      show('success', 'recorded: ' + res.body.outcome);
-    }).catch(function (e) { show('failure', 'E_NETWORK — ' + e.message); });
-  },
+  'think.markRejectedAll': markRejectedAll,
+
+  // The Ledger's dial (A6). DELIBERATELY THE SAME FUNCTION OBJECT as the line above: it is the
+  // same operation, offered where the batches are listed. See `markRejectedAll`'s header.
+  'ledger.markRejectedAll': markRejectedAll,
 
   // --- The override layer (A4b). One dial, eleven editable slots, no file. ---
 

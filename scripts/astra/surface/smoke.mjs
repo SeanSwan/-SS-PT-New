@@ -39,6 +39,8 @@ import { checkOverrides, checkRouteCoverage } from './smokeOverrides.mjs';
 // A5's pane checks, and the Tune block that was split out to make room for them.
 import { checkBoards, checkNoEnableRoute } from './smokeBoards.mjs';
 import { checkTune } from './smokeTune.mjs';
+// A6's Ledger checks — the pane and its one dial, measured over real HTTP.
+import { checkLedger } from './smokeLedger.mjs';
 import { MUTATION_ROUTES } from './routes.mjs';
 import { PANE_PATHS } from './paneRoutes.mjs';
 
@@ -121,15 +123,10 @@ async function run() {
     return { status: r.status, note: expect(r.status, 200, 'status')
       || (r.text.includes('No compile selected') ? '' : 'a blank Think pane must say WHY it is blank') };
   });
-  // `/law` and `/state` left this list in A5 — they are real panes now, and their
-  // checks moved to `smokeBoards.mjs`. `/ledger` is still honestly unbuilt.
-  for (const [path, slice] of [['/ledger', 'A6']]) {
-    await check(`GET  ${path} (not built)`, async () => {
-      const r = await call('GET', path);
-      return { status: r.status, note: expect(r.status, 200, 'status')
-        || (r.text.includes(slice) ? '' : `a not-built pane must name its slice (${slice})`) };
-    });
-  }
+  // `/law` and `/state` left this list in A5, and `/ledger` left it in A6. Every pane in the
+  // rail is real now, and their checks live in `smokeBoards.mjs` and `smokeLedger.mjs`. There
+  // is no "not built" check left because there is no unbuilt pane — which is itself worth
+  // stating, since a leftover not-built check is how a slice appears to have shipped twice.
   await check('GET  /tune (REAL as of A4)', async () => {
     const r = await call('GET', '/tune');
     return { status: r.status, note: expect(r.status, 200, 'status')
@@ -145,6 +142,12 @@ async function run() {
   // `/law` and `/state` are real as of A5, and neither may emit a control. The checks
   // live in `smokeBoards.mjs` — this file is at the cap.
   await checkBoards({ call, check, expect });
+
+  // --- the Ledger, and the one dial on it (A6) ------------------------------
+  // PLACED HERE ON PURPOSE: no compile exists yet at this point in the run, which is the
+  // state the empty-Ledger check is about. It compiles its own brief and rejects it, so the
+  // checks below it are unaffected. In `smokeLedger.mjs` for Rule 4.
+  await checkLedger({ call, check, expect });
 
   await check('GET  /nope (404)', async () => {
     const r = await call('GET', '/nope');    return { status: r.status, note: expect(r.status, 404, 'status') };

@@ -55,13 +55,15 @@ const idsIn = (html) => [...html.matchAll(/data-control="([^"]+)"/g)].map((m) =>
  * visited at all. The test asserts the table is COMPLETE against the registry, which
  * means a new slice landing a pane FAILS this test until the route is added — the
  * correct direction for it to break. A3 wrote the table with three entries; A4 added
- * `/tune`, which is exactly the intended churn.
+ * `/tune` and A6 added `/ledger` (whose `rejected_all` dial is the last control the rail
+ * was missing), which is exactly the intended churn.
  */
 const PANE_ROUTES = Object.freeze({
   compose: () => '/',
   choose: () => '/choose',
   think: (compileId) => `/think/${compileId}`,
   tune: () => '/tune',
+  ledger: () => '/ledger',
 });
 
 // ---------------------------------------------------------------------------

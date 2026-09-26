@@ -2,9 +2,9 @@
  * paneTune.mjs — the Tune pane. Slice A4.
  *
  * A SIBLING MODULE RATHER THAN AN ADDITION TO panes.mjs, which sits at 289 of Rule 4's 300
- * lines. `renderNotBuilt` is re-exported from `panes.mjs` below because `export … from`
- * alone creates no local binding — the house pattern, recorded in A3's landing record after
- * it bit three times.
+ * lines. (It used to re-export `renderNotBuilt` from `panes.mjs` for the house
+ * `export … from` pattern; that re-export is GONE as of A6, because `/ledger` was the last
+ * unbuilt pane and the renderer became orphaned — a module whose only caller is itself.)
  *
  * THE THREE STATES ARE VISUALLY DISTINCT, and that is the pane's whole job:
  *   LIVE    — matches disk, nothing staged. The header says so.
@@ -24,7 +24,6 @@
 
 import { escapeHtml, badge, controlAttr, stateEmpty, stateFailure } from './shell.mjs';
 import { CONTROLS } from './controls.mjs';
-import { renderNotBuilt } from './panes.mjs';
 
 const byId = (id) => CONTROLS.find((c) => c.id === id);
 const ctl = (id) => byId(id) ?? { id, kind: 'dial', effect: 'unregistered control' };
@@ -184,5 +183,3 @@ ${blastBlock(preview, stagedKeys)}
   </p>
 </section>`;
 }
-
-export { renderNotBuilt };

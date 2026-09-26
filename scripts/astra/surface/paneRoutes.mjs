@@ -44,10 +44,14 @@ import { repoRelative, TUNING_PATH, TASTE_PROBE_ORIGIN } from '../core/paths.mjs
 import { capabilities, summarizeBoard, readSpecMode } from '../core/capabilities.mjs';
 import { lawBoard } from '../core/lawBoard.mjs';
 import { auditEnable } from '../core/authority.mjs';
-import { renderCompose, renderThink, renderNotBuilt } from './panes.mjs';
+import { renderCompose, renderThink } from './panes.mjs';
 import { renderTune } from './paneTune.mjs';
 import { renderLaw } from './paneLaw.mjs';
 import { renderState } from './paneState.mjs';
+import { renderLedger } from './paneLedger.mjs';
+import { ledgerEntries } from '../core/session.mjs';
+import { variantRuns } from '../core/variants.mjs';
+import { buildLedger } from '../core/ledger.mjs';
 import { slotsForEditor } from './slotView.mjs';
 
 /**
@@ -78,12 +82,18 @@ const composeOrChoose = (state, _pathname, pane) => {
 
 const renderThinkPane = async (state, pathname) => {
   const id = pathname.slice('/think'.length).replace(/^\//, '') || state.lastCompileId;
-  let view = null; let error = null;
+  let view = null; let error = null; let outcome = null;
   if (id) {
-    try { view = (await import('../core/session.mjs')).getCompile(id).view; }
-    catch (e) { error = { code: e.code ?? 'E_EXPLAIN', message: e.message }; }
+    try {
+      const entry = (await import('../core/session.mjs')).getCompile(id);
+      view = entry.view;
+      // THE OUTCOME COMES OFF THE REGISTRY ENTRY, NOT THE VIEW. It has never been a field of
+      // the `ExplainView`; the pane used to read `view.outcome` and print `pending` forever.
+      // See `renderThink`'s header (A6).
+      outcome = entry.outcome;
+    } catch (e) { error = { code: e.code ?? 'E_EXPLAIN', message: e.message }; }
   }
-  return { title: 'Think', activePane: 'think', body: renderThink({ view, compileId: id, error }) };
+  return { title: 'Think', activePane: 'think', body: renderThink({ view, compileId: id, error, outcome }) };
 };
 
 const renderTunePane = (state) => {
@@ -147,8 +157,26 @@ export const PANE_ROUTES = Object.freeze([
   {
     path: '/ledger',
     match: 'exact',
-    render: () => ({ title: 'Ledger', activePane: 'ledger', body: renderNotBuilt('Ledger', 'A6',
-      'The rejected-all trend and cost drift arrive with A6.') }),
+    // TWO SOURCES, RESOLVED HERE, ONCE. The compile registry is Astra's own (`session.mjs`);
+    // the variant store is read through its own API (`variants.mjs`), never by parsing
+    // `.ai-workflow/forge-runs/runs.jsonl`. Both are passed to `buildLedger` as DATA, so the
+    // arithmetic module stays testable without either store — see `core/ledger.mjs`.
+    //
+    // `runsError` AND `runsSkipped` ARE THREADED, NOT SWALLOWED. An unreadable store yields an
+    // empty run list and a store with corrupt lines yields a SHORT one; both would render as a
+    // complete-looking cost table. The pane says which of the three states it is in.
+    render: () => {
+      const compiles = ledgerEntries();
+      const { runs, skipped, error } = variantRuns();
+      return {
+        title: 'Ledger',
+        activePane: 'ledger',
+        body: renderLedger({
+          ledger: buildLedger({ compiles, variantRuns: runs, runsError: error, runsSkipped: skipped }),
+          compiles,
+        }),
+      };
+    },
   },
 ]);
 

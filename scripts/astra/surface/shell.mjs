@@ -43,6 +43,7 @@ export const STYLESHEETS = Object.freeze([
   '/static/astra.css',
   '/static/astra-tune.css',
   '/static/astra-boards.css',
+  '/static/astra-ledger.css',
 ]);
 
 /** Every `.css` in the static root, by URL path. The list the shell's list is checked against. */
@@ -179,14 +180,6 @@ export function stateRetry({ what, action }) {
   return `<div class="state state-retry">
   <p class="state-line">${escapeHtml(what)}</p>
   <p class="state-action">${action}</p>
-</div>`;
-}
-
-/** A pane that is not built yet, said plainly rather than left blank. */
-export function stateNotBuilt({ pane, slice, what }) {
-  return `<div class="state state-empty">
-  <p class="state-line"><b>${escapeHtml(pane)}</b> — this pane is not built yet (slice
-  ${escapeHtml(slice)}). ${escapeHtml(what)}</p>
 </div>`;
 }
 

@@ -213,25 +213,116 @@ sitting.
     one place where A5's evidence is weaker than its claim, and it is recorded rather than left for a
     reader to infer from a green run.
 
-### A6 — Ledger
+### A6 — Ledger ← **✅ DONE 2026-09-26**
 - **Does:** one-action `rejected_all`; cost drift; trends by slot and facet.
-- **Entry:** A1 exit met; the variant store is writable through the CLI's own path.
-- **Exit:** `T-E-03` and `T-I-06` pass; a reject increments the count by exactly one.
-- **Evidence:** the ledger before/after a reject.
+- **Entry:** A1 exit met ✅; the variant store is writable through the CLI's own path — **NOT MET,
+  and `C51` records why the line was wrong.** A6 does not write the variant store at all:
+  `rejected_all` is written by Astra's own `core/session.mjs` against a COMPILE, and the brief
+  store is a NEW file A6 created. What A6 actually needed was the variant store **readable**
+  through its own API (`shared/variantRun.mjs`), which was true.
+- **Exit:** `T-E-03` and `T-I-06` pass ✅; a reject increments the count by exactly one ✅ —
+  asserted in **both** directions (re-rejecting the same compile leaves the count at 1, which is
+  the direction that fails when the counter counts writes), over real HTTP as well as in unit
+  tests. **207/207 tests** (was 167), **41/41 smoke** (was 37), **70/70** shared, **0 Rule 4
+  offenders** across three scopes with 0 declared exceptions.
+- **Evidence:** `scripts/astra/evidence/a6-tests.txt` (2,171 lines) — §1–§8, every number parsed
+  back out of a run. Regenerate with `python C:/tmp/a6-evidence.py`.
+- **`AC3.1` is now CLOSED IN FULL.** A4b closed the SURFACE half; A6 closes the PERSISTENCE half
+  — `briefId` round-trips through `core/variants.mjs` with `text` byte-identical, the write is
+  asserted to have happened, and a second write with different text is **refused**
+  (`E_BRIEF_IMMUTABLE`) rather than applied. `04`'s R3/AC3.1 and INV6 rows now read PASS.
+- **`T-P-02`/`T-P-03`/INV2 RAN for the first time.** They had been *"not run"* since A4b. Two
+  declared writers, each importing its destination from `paths.mjs`; no mutating call spells a
+  literal destination; every path constant resolves outside the taste / docs / token trees. The
+  **value** half is still owed and is named in `A6-CORRECTIONS.md` §6.
+- **A hostile-review round ran before landing, and produced EIGHT real findings** — all fixed, all
+  mutation-proven, all recorded in `A6-CORRECTIONS.md`. It ran **two passes**: the first attacked
+  the slice (`D50`–`D52`, `D54`, `D55`), the second attacked **the fixes the first produced**
+  (`D53`, `D56`, `D57`). `D50` is the class this engagement keeps meeting — the cost section
+  rendered a store that **could not be read** as *"no generations recorded"*, because the banner
+  explaining it was computed *after* the early return that fires in exactly that case. `D51` is
+  A5's `D48` again: the header counted the ledger while the batch section listed a separate
+  argument, so one page printed *"17 rejected of 41"* above *"no compiles yet"*. And `D53` is the
+  round's most instructive finding: **the fix for `D52` asserted a summary that was never drawn**,
+  in a state where `costDrift` returns `summary: null`. Three of the eight were introduced by the
+  fixes for the other five.
+- **The correction that changed the shape (`C50`).** `02-BLUEPRINT.md` §3 said `core/ledger.mjs`
+  reads *"`outcome`, `estimatedCents`, `actualCents`"* from the variant store. **Measured: none of
+  the three is on the store.** `outcome` is Astra's own; and neither cost field exists **anywhere
+  in the shipped code** — the contract specified them and the implementation shipped `costUsd`.
+  A6 satisfies `AC6.2` by **conversion** and asserts the derivation. **The requirement was NOT
+  reworded to match the implementation**, because that is the wrong direction of fix; the
+  mismatch is recorded instead.
+- **The estimate is a MIRROR, and it is PINNED.** Astra cannot call `unitCost()` in
+  `scripts/forge.mjs` (unexported, and importing it runs the CLI). Re-deriving the rule silently
+  would make a second source for one number (`T-I-09`), so `estimateRule()` requires the rule's
+  own **text** to still be present — three markers, each an enforcement **EXPRESSION** rather
+  than a name (A5's `M2`) — and withholds the column with a named reason when the pin stops
+  resolving. The reconstruction is checked against an **independent reimplementation** including
+  the 20-run window slide.
+- **`C55` — one number, corrected for the FOURTH time.** The registry's control count lives in **four
+  files**, and each slice has updated a subset of them. It was **true at A4** (20 dial + 5 proposal);
+  **A4b swapped `slots.stageOverrides` for `slots.override`** (net +1 dial) and updated
+  `00-PACKET.md` and `05` but **not** `04-TESTS-TRACEABILITY.md` row 207, which read *"25 controls,
+  20 DIAL"* through A5 while the registry held 26/21. A6's `ledger.markRejectedAll` makes it **27 / 22
+  / 22 rendered**. `A3-CORRECTIONS.md` `D18` and `A4-CORRECTIONS.md` `C28` are the earlier instances
+  of the same number. **The verdict was never wrong** — the row's test asserts *consistency*, not a
+  count, and it passed at every slice — so this is the packet's clearest case of a **stale evidence
+  sentence under a correct verdict**. The fix is to name all four sites and re-measure them together.
+- **The packet documents were updated at the site of every error, not only in this corrections file.**
+  `01-REQUIREMENTS.md` `AC6.2` carries a `C50` note (**without rewording the requirement**),
+  `02-BLUEPRINT.md` §3's false integration row is struck through with the reasoning beside it and
+  §6's state-ownership table gains the **brief store** as Astra's second owned state,
+  `03-INTERFACE.md` gains **§2.4b — the Ledger screen spec** (`C53`) plus the ERD corrections and the
+  measured §2.6 state table, and `04-TESTS-TRACEABILITY.md` gains `AC6.3`'s missing id (`T-I-11`,
+  `C54`). `C53`'s claim that §2.4b existed was **false when first written** — the section was added
+  afterwards, and the correction is recorded rather than the claim being quietly dropped.
+- **`C56` — the slice's own file-exclusion instruction was wrong, and following it would have shipped
+  stale evidence.** A6's handoff note said to **exclude** `scripts/astra/evidence/a3-think-1440.png` as
+  *"stat-dirty only, another workstream's."* Measured: the blob **differs** from `HEAD`
+  (`e4d2a8b0…` → `ad30ce3c…`) at an **identical 115,874 bytes**, and the cause is A6 — the three
+  Compose screenshots are byte-identical to `HEAD` while only the **Think** screenshot moved, and Think
+  is the pane A6 edited (`panes.mjs`, `paneRoutes.mjs`, `shell.mjs`). A6's `renderThink` fix replaced
+  the `est …¢` cell with `cost: see the Ledger` and made the reject button conditional, so the
+  screenshot had to move with it. **It ships.** Re-running the browser test reproduces the new hash
+  byte-for-byte, so it is a **stale** artifact, not a flaky one. The rule: *a generated artifact is the
+  evidence for the code that generates it* — and `git hash-object` vs `git rev-parse HEAD:<path>` is
+  the one-command check that separates *stat-dirty* from *changed*.
+- **Corrections:** 7 (`C50`–`C56`). **Defects:** 8 (`D50`–`D57`), 0/0/4/4. **Mutations:** 19, all
+  landed, all restored byte-exactly, 0 uncovered.
 
 ### A7 — Proposal channel
 - **Does:** drafts token/canon proposals to a file, with the paired `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §B
   reference. **No apply path.**
-- **Entry:** A3 exit met.
+- **Entry:** A3 exit met. ✅ **Met as written** — and A6 does not change it.
 - **Exit:** a drafted proposal artifact lands where canon changes are filed, and `T-P-03` proves no
   canon file was written.
 - **Evidence:** the artifact + the unchanged canon hash.
+- **Carry into A7 (from `A6-CORRECTIONS.md` §8):**
+  1. **`T-P-03`'s instrument now EXISTS** — `tests/a6-briefs.test.mjs` scans writes by path. A7's
+     Exit leans on `T-P-03`, so A7 should **extend** that scan to the proposal artifact rather
+     than write a second one. Its **value** half is still owed (`A6-CORRECTIONS.md` §6).
+  2. **`UNWIRED_CONTROLS` is still `[]`.** The five `rendered: false` proposal controls are
+     exactly the shape that list exists for. Rendering all five keeps it empty; excusing one
+     fails `a6-pane.test.mjs`'s assertion and must be argued for in the packet.
+  3. **A proposal must not be able to write.** `02` §4: *"There is no code path from a proposal
+     control to a write."* A6's write-path scan is the template for proving that of the
+     **artifact**, not just of the path.
+  4. **Routes are a TABLE, not an `if` chain** (A5's `C49`/`D1`). A7's proposal surface must be a
+     `PANE_ROUTES` entry; `a5-boards.test.mjs` asserts both directions.
+  5. **Every empty state names a way out, and every truncation is disclosed.** `D52` is what
+     happens when one pane of a pair gets that right and its sibling does not.
 
 ### A8 — Tauri shell (last)
 - **Does:** wraps the proven surface; OS keychain for provider credentials.
-- **Entry:** A3–A6 exit met and the surface stable for one full session.
+- **Entry:** A3–A6 exit met and the surface stable for one full session. **A6's exit is now met**
+  (207/207, 41/41 smoke); **A7's is not**, and A8 is last by construction. The second half — *"the
+  surface stable for one full session"* — is a wall-clock condition nobody has measured yet, and
+  it is the half that will actually gate this slice.
 - **Exit:** a window launches the same loopback app; no credential appears in the surface.
 - **Evidence:** a launch log; a credential-absence scan.
+- **Known risk, unchanged:** the Rust toolchain may not be present in this environment. A8's
+  honest failure mode is to report that rather than to work around it.
 
 ---
 
@@ -384,7 +475,7 @@ is no second source to disagree with.
 |---|---|---|---|
 | U1 | `directions()` in the compiler or in Astra Core? | A1's shape | in the compiler (one brain) |
 | U2 | Astra reads the variant store directly, or through a service? | A1 | read directly |
-| U3 | Is `review-answer` (`usable`/`onBrand`) surfaced in v1, or is `rejected_all` enough? | A6 | `rejected_all` only |
+| U3 | Is `review-answer` (`usable`/`onBrand`) surfaced in v1, or is `rejected_all` enough? | A6 | **RESOLVED in A6: `rejected_all` only.** The Ledger counts BATCHES, not writes, and `review-answer` was not surfaced — `AC6.1`–`AC6.3` are met without it. Not revisited. |
 | U4 | Tauri shell: same repo or a wrapper repo? | A8 | same repo, `apps/astra-shell/` |
 | U5 | Where do drafted canon proposals land, and who triages them? (H11) | A7 | one named inbox path |
 | U6 | Should the stale `forge-compiler-contract.md` version be corrected to 0.2.0? (D-A) | nothing — cosmetic | leave, and note it |

@@ -60,10 +60,28 @@ apps/
 | `core/variants.mjs` | the variant store | **A0 must locate it.** `scripts/forge.mjs` reads it via `unitCost(root)`/`cmdList`; the store path is not asserted here because it was not read | **A0** |
 | `core/tuning.mjs` | `scripts/design-brain/config/tuning.json` | read whole file; write temp + rename | file read; keys confirmed (`auto.S/O/margin/minTokens`, `mergeBand.low`, `weights.*`, `novelty.*`) |
 | `core/capabilities.mjs` | `scripts/design-brain/config/spec-mode.json` + the refusal paths in `src/*.mjs` | read config; the REFUSED list is derived from `scripts/design-brain/README.md` §Refused **and must be re-derived from code in A0** | config read; refusal list is prose — **A0** |
-| `core/ledger.mjs` | the variant store's records | read `outcome`, `estimatedCents`, `actualCents` | fields specified `forge-compiler-contract.md:167` |
+| `core/ledger.mjs` | the variant store's records | read `outcome`, `estimatedCents`, `actualCents` | ~~fields specified `forge-compiler-contract.md:167`~~ — **MEASURABLY FALSE, see the note below (`A6`, `C50`)** |
 | `surface/panes/choose` | `swan-taste-brain` `/api/profile` | `GET`, read-only, optional | external; degrades gracefully (A4) |
 
 **No Astra module imports the taste repo's event files, and none imports `scripts/swan-brain-console/`.**
+
+> **NOTE (`A6`, `C50`) — the `core/ledger.mjs` row above was false in all three of its fields, and it
+> was never measured until A6.** *"read `outcome`, `estimatedCents`, `actualCents`"*:
+> - **`outcome` is not on the variant store.** The store's record has no such field. `rejected_all`
+>   is written by **Astra's own** `core/session.mjs`'s `setOutcome()` against a **COMPILE**, and that
+>   is where the Ledger reads it. §6's *"variant store … appends `outcome`"* is wrong for the same
+>   reason.
+> - **`estimatedCents` and `actualCents` exist nowhere in shipped code.** The contract
+>   `forge-compiler-contract.md` §7 *specified* them; the implementation shipped **`costUsd`**. A6
+>   satisfies `AC6.2` by **conversion** and left the requirement text alone (`C50`).
+> - The `Verified` cell read *"fields specified `forge-compiler-contract.md:167`"* — **a citation is
+>   not a measurement**, and this is the same defect class as A5's `M2` (a marker that merely
+>   *resolves* read as one that *means something*). The contract specifying a field is not evidence
+>   that the field exists.
+>
+> **The lesson for this table:** every other row's `Verified` cell names where the claim was
+> **checked**. This row named where the claim was **written down**, and the difference went unnoticed
+> for five slices because the cell's format made them look alike.
 
 ---
 
@@ -119,7 +137,8 @@ must not read as a check that FOUND something.* Astra inherits that lesson as a 
 | State | Owner | Astra's relationship |
 |---|---|---|
 | `tuning.json` | the design brain | reads; writes only through staged commit with a prior-value record |
-| variant store | the Forge CLI | reads; appends `outcome` through the CLI's own path, never by hand-editing |
+| variant store | the Forge CLI | reads. ~~appends `outcome` through the CLI's own path~~ — **CORRECTED (`A6`, `C50`/`C51`): Astra does not write the variant store at all, and the store carries no `outcome`.** The store's record has no such field; `rejected_all` is Astra's own, written against a **compile** (see §3's note and `core/session.mjs`'s `setOutcome()`) |
+| **the brief store** — `.ai-workflow/astra/briefs.jsonl` | **Astra** (`A6`, `C51`) | **owns, and it is the SECOND thing Astra owns.** Created by A6 as `BRIEF_STORE_PATH` in `core/paths.mjs`. Append-only, one JSONL row per `briefId`; the text is **immutable** (`E_BRIEF_IMMUTABLE` — idempotent on identical text, refused on different text). It sits **one level above** `.ai-workflow/forge-runs/` on purpose: `forge-prune`'s `assertInsideArtifactRoot()` can only delete inside `forge-runs`, so a prune **cannot reach** it |
 | the doctrine corpus | the design brain | reads |
 | `BRAIN_VERSION` | `shared/swanPromptCompiler.mjs` | reads at run time; never caches, never literals |
 | capability declarations | the provider adapters | reads; the `claimed`→false rule is applied on read |

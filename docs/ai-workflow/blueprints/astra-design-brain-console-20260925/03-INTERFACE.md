@@ -209,6 +209,132 @@ violations were deleted (`A5-CORRECTIONS.md` §5, mutation `M2`).
 `02-BLUEPRINT.md` §5 and the pane renders it verbatim (`C47`) — a decision that lives only in a
 registry is one the next author has to go looking for, and this is where they will be looking.
 
+### 2.4b Ledger — what is it learning (`/ledger`) ← **ADDED (A6, C53)**
+
+**THIS SECTION DID NOT EXIST EITHER.** `/ledger` was in §1's route table from the start, and §3.3
+has drawn the `rejected_all` branch since A1, but there was no wireframe — so the pane A6 had to
+build had no screen spec, exactly as `/law` did not in A5 (`C44`). Written down now, from the
+pane's own output rather than from a sketch: **every string below was read off a real
+`renderLedger()` call**, not drawn.
+
+**THE LEDGER IS THE ONLY PANE THAT ANSWERS A QUESTION ABOUT THE PAST.** Every other pane renders
+the *current* state — the slots now, the knobs now, the lanes now. This one renders a
+**history**: what the operator threw away, what that says about slots and facets, and what the
+runs cost versus what we said they would. That is why it is the only pane whose failure mode is
+*"the store could not be read"* rather than *"the config is missing"*.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ LEDGER · what is it learning                                                          │
+│ source: this session's compiles + the forge variant store        4 rejected of 8       │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ THIS BATCH                                            one action, no typed reason DIAL │
+│                                                                                       │
+│ 2 of 8 compiles are still pending.                                                    │
+│   Marking one takes a single click and asks for no reason — a rejection is a signal,  │
+│   and a signal that costs a paragraph is one the operator stops sending.              │
+│                                                                                       │
+│  COMPILE   OUTCOME        AT         ACTION                                           │
+│  c-01      rejected_all   10:00:00   decided — no action offered                      │
+│  c-02      rejected_all   10:00:00   decided — no action offered                      │
+│  c-03      rejected_all   10:00:00   decided — no action offered                      │
+│  c-04      rejected_all   10:00:00   decided — no action offered                      │
+│  c-05      accepted       11:00:00   decided — no action offered                      │
+│  c-06      pending        09:00:00   [ MARK REJECTED-ALL ]   ← the pane's ONLY control │
+│  c-07      pending        09:00:00   [ MARK REJECTED-ALL ]                            │
+│  c-08      abandoned      12:00:00   decided — no action offered                      │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ THE TREND                                             by slot and by facet             │
+│                                                                                       │
+│ outcomes in this session:   pending 2 · accepted 1 · refined 0 · rejected_all 4 ·      │
+│                             abandoned 1                                               │
+│ 4 rejected batches — enough to read a direction, and still not enough to read a cause. │
+│                                                                                       │
+│ BY SLOT  a slot counts when it was populated — an empty slot says a facet emptied it,  │
+│          not that taste rejected it                                                   │
+│   SLOT        REJECTED / POPULATED     VALUE WHEN REJECTED                            │
+│   lighting    4 of 8 (50%)             dusk ×3, noon ×1                               │
+│   palette     4 of 8 (50%)             gold ×3, amber ×1                              │
+│   subject     4 of 8 (50%)             heron ×3                                       │
+│                                                                                       │
+│ BY FACET a facet counts when it was APPLIED — this is presence, not causation          │
+│   FACET            REJECTED / APPLIED                                                 │
+│   Form>Abstract    3 of 5 (60%)                                                       │
+│   Light>Golden     3 of 3 (100%)                                                      │
+│                                                                                       │
+│ These are PRESENCE counts. This pane can say a facet was applied in four of the five   │
+│ rejected batches; it cannot say the facet caused a rejection, and it does not try.     │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ COST DRIFT                                  estimated vs actual — never averaged away  │
+│                                                                                       │
+│ over 3 · under 2 · exact 0 · mean drift (+0.0549) · worst 0.2150¢                     │
+│   The mean is shown BESIDE the per-row deltas, never instead of them: one run at       │
+│   twice the estimate and one at nothing average to zero, and a mean alone would hide   │
+│   exactly the pair that matters.                                                       │
+│                                                                                       │
+│  RUN     EST ¢    ACTUAL ¢   DRIFT ¢    BASIS OF THE ESTIMATE                          │
+│  run 0   0.3736   0.4200     (+0.0464)   the measured fallback (no history yet)        │
+│  run 1   0.4200   0.3100     (−0.1100)   mean of the 1 priced run(s) before it         │
+│  run 2   0.3650   0.5800     (+0.2150)   mean of the 2 priced run(s) before it         │
+│  run 3   0.4367   0.3700     (−0.0667)   mean of the 3 priced run(s) before it         │
+│  run 5   0.4200   0.6100     (+0.1900)   mean of the 4 priced run(s) before it         │
+│                                                                                       │
+│ Actuals are read through the store's own API (shared/variantRun.mjs). The estimate is  │
+│ a MIRROR of unitCost() in scripts/forge.mjs, pinned to that file's own text: when the  │
+│ pin stops resolving, the column is withheld rather than shown as forge's.              │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**THE DIAL IS ON THE ROW, NOT ON THE PANE — AND IT IS ABSENT WHERE IT WOULD BE MEANINGLESS.**
+`ledger.markRejectedAll` is registered as `kind: 'dial'`, `repeated: 'per pending compile'`, and it
+renders **only** on a `pending` row: a decided row prints `decided — no action offered`. A control
+offered on a row that cannot accept it is an affordance that lies (`A6-CORRECTIONS.md` §5, mutation
+`M7`). The handler is **the same function object** as `think.markRejectedAll` (`M9`) — one action
+with one implementation, reachable from the pane the operator is already on.
+
+**`AC6.1`'s *"no typed reason"* IS A DESIGN CONSTRAINT, NOT AN OMISSION.** The pane says so in the
+operator's own words: *"a rejection is a signal, and a signal that costs a paragraph is one the
+operator stops sending."* A confirm dialog that demands prose would suppress exactly the signal the
+Ledger exists to collect.
+
+**THE THREE SECTIONS FAIL INDEPENDENTLY.** §1 fails on the compile registry, §3 on the variant
+store, and §2 on the registry again — so an unreadable variant store must leave §1 and §2 intact
+and name the §3 failure, rather than emptying the page. A6's hostile round found this twice (`D50`:
+a failure rendered as an *empty store*, and `D57`: the fix for it swallowing the second fact about
+the same store). **The pane refuses to draw at all** when its ledger and its batch list disagree —
+`E_LEDGER_BATCH_MISMATCH` (`D51`/`D56`) — because a header saying *"4 rejected of 8"* above a table
+of a different eight compiles is the pane arguing with itself.
+
+**THE ESTIMATE COLUMN IS A MIRROR AND SAYS SO.** Astra cannot call `unitCost()` — it is unexported
+in `scripts/forge.mjs`, which runs its CLI dispatcher at import. So the pane **mirrors** the rule and
+**pins it to forge's own text** with three markers, each an *enforcement expression* rather than a
+name. When a pin stops resolving the column is **withheld with the reason**, never shown as forge's
+(`C50`; `a6-estimate.test.mjs` verifies the mirror against an independent reimplementation).
+
+**§2.6 STATE COVERAGE — MEASURED, NOT CLAIMED.** The six states this pane owns, each driven by a
+real `renderLedger()` call and each transcribed from its output:
+
+| §2.6 state | What the pane actually prints |
+|---|---|
+| **empty** | *"no compiles yet — the Ledger counts what you have looked at and thrown away, and nothing has been compiled in this session"* **+ `go to Compose`** — the reason **and** the way out, never a bare "No data" |
+| **success** | the three sections, as wireframed above |
+| **failure — the caller's** | `E_LEDGER_UNRESOLVED`: *"the caller did not resolve the ledger, so there is nothing to count. This is a programming error, not an empty result — an empty Ledger reads as 'nothing was rejected'…"* |
+| **failure — self-contradiction** | `E_LEDGER_BATCH_MISMATCH`: *"the ledger was built over 2 compile(s) and the batch list carries 1… a page that contradicts itself is worse than one that refuses to draw."* |
+| **failure — §3 only** | `E_VARIANT_STORE_UNREADABLE`: *"This is **NOT** an empty store — the read failed — and any number below is NOT complete."* **§1 and §2 still render**: the three sections fail independently |
+| **partial** | two independent banners, and **both are drawn when both are true**: *"PARTIAL — 25 of 30 shown. Only the most recent runs are listed, so this table is a PREFIX and not the set. The summary above covers every priced run — the mean is not the mean of this table."* and *"7 line(s) in the variant store could not be parsed and were SKIPPED. The drift below is computed over what was readable, so it is a floor, not a total."* |
+
+**The `partial` row is where this pane's three hardest defects lived.** `D52` was a silent
+truncation — a table that showed 25 of 30 runs and said nothing. `D53` was the **fix for `D52`**
+asserting *"the summary above covers every priced run"* in the state where no summary is drawn at
+all — a banner pointing at nothing. `D57` was the fix for `D50` swallowing the skip count on the
+unreadable path, so one store's two facts became one. Each is now mutation-proven
+(`M15`, `M17`, `M19`). **A fix is new code and needs its own adversarial pass** — the second hostile
+round was aimed at the fixes rather than at the slice, and found all three.
+
+**`loading`, `denied`, `validation-error`, `retry/recovery`, `keyboard/focus` and `responsive` are
+NOT this pane's to define** — they belong to `shell.mjs`, `server.mjs`'s token gate, and
+`astra-ledger.css`. This table claims only what was measured against `renderLedger()`.
+
 ### 2.5 Narrow (≤ 560 px)
 
 ```
@@ -574,21 +700,37 @@ sequenceDiagram
 erDiagram
     BRIEF ||--o{ COMPILE : "compiled into"
     BRIEF ||--o{ OVERRIDE : "refined by"
+    BRIEF ||--|| BRIEFSTORE : "persisted ONCE in, byte-identical (A6)"
     COMPILE ||--|| EXPLAINVIEW : "derived as"
     COMPILE ||--o{ LAWCHECK : "runs"
     COMPILE }o--|| BRAINVERSION : "pinned to"
     COMPILE ||--o{ VARIANT : "produces"
-    VARIANT ||--o| OUTCOME : "settles as"
+    COMPILE ||--o| OUTCOME : "settles as — Astra's OWN record, NOT the store's (A6, C50)"
     TUNING ||--o{ TUNINGCOMMIT : "staged then committed"
     TUNINGCOMMIT ||--|| PRIORBYTES : "retains"
 
     BRIEF { string briefId string text "IMMUTABLE" string surfaceClass }
+    BRIEFSTORE { string briefId string text "append-only, immutable; .ai-workflow/astra/briefs.jsonl" }
     OVERRIDE { string slot string value }
     COMPILE { string compileId int seed string provider }
     LAWCHECK { string law bool passed string detail }
-    VARIANT { string variantId int estimatedCents int actualCents }
-    OUTCOME { string value "pending|accepted|refined|rejected_all" }
+    VARIANT { string variantId float costUsd "the shipped field — NOT estimatedCents/actualCents" }
+    OUTCOME { string value "pending|accepted|refined|rejected_all" string compileId }
 ```
+
+> **NOTE (`A6`, `C50`) — two corrections to the ERD above, and one addition.**
+> - `VARIANT` was declared `{ int estimatedCents int actualCents }`. **Neither field exists in shipped
+>   code** — the store carries **`costUsd`**. The contract
+>   `forge-compiler-contract.md` §7 specified the cents pair; the implementation shipped dollars.
+>   `AC6.2` is satisfied **by conversion** in the Ledger, and the requirement was deliberately **not**
+>   reworded (`C50`).
+> - `VARIANT ||--o| OUTCOME : "settles as"` was **wrong about the owner**. The variant store's record
+>   has no `outcome`; the outcome is **Astra's own**, written against a **COMPILE** by
+>   `core/session.mjs`'s `setOutcome()`. The relation is now `COMPILE ||--o| OUTCOME`.
+> - **`BRIEFSTORE` is new (`A6`, `C51`)** — Astra's **second** piece of owned state, after UI state.
+>   Append-only JSONL at `.ai-workflow/astra/briefs.jsonl`, immutable text, and deliberately placed
+>   **one level above** `.ai-workflow/forge-runs/` so `forge-prune`'s `assertInsideArtifactRoot()`
+>   cannot reach it. §1's route table and §2.4b are where it surfaces.
 
 ### 6.2 Permissions / authority matrix
 

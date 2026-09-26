@@ -111,6 +111,18 @@ from the code, not from prose.
   not averaged away.
 - **AC6.3** A rejected-all trend is viewable by slot and by facet.
 
+> **NOTE (`A6`, `C50`) — `AC6.2`'s two field names do not exist in the shipped code.** The
+> requirement is **left exactly as written**, deliberately: rewording a requirement to match the
+> implementation is the wrong direction of fix. What is recorded here is the measurement. The
+> contract `docs/ai-workflow/design-brain/forge-compiler-contract.md` §7 **specified**
+> `estimatedCents` / `actualCents`; the implementation shipped **`costUsd`**. So `AC6.2` is
+> satisfied **by conversion** — the Ledger renders cents derived from `costUsd`, asserts the
+> derivation, and shows the drift per run with the mean beside it — and whether that satisfies the
+> requirement *as written* is a **judgement, recorded as one**. Two further corrections from the
+> same measurement: `outcome` is **not** a variant-store field either (Astra owns it, written by
+> `core/session.mjs`'s `setOutcome()` against a COMPILE), and **`AC6.3`'s test id is `T-I-11`**, not
+> `T-E-03` (`C54`). Full account: `A6-CORRECTIONS.md` §3.
+
 ### R7 — MCP server
 - **AC7.1** The server exposes read tools and exactly one write tool (`reject`), and the write tool
   requires an explicit confirmation argument.
