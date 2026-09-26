@@ -14,6 +14,7 @@ import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs';
 import livekit from '../services/livekitService.mjs';
 import logger from '../utils/logger.mjs';
+import { createUnavailableWearableHandlers, serializeVideoSession } from './videoSessionWearable.mjs';
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ function sameUserId(left, right) {
 }
 
 function isSessionTrainer(session, userId, userRole) {
-  return userRole === 'admin' || sameUserId(userId, session.trainerId);
+  return userRole === 'admin' || (userRole === 'trainer' && sameUserId(userId, session.trainerId));
 }
 
 function isSessionParticipant(session, userId, userRole) {
@@ -164,7 +165,7 @@ router.get('/:id/join', async (req, res) => {
 // PATCH /api/video-sessions/:id/end
 router.patch('/:id/end', authorize(['admin', 'trainer']), async (req, res) => {
   try {
-    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    const { session, error, status } = await getSessionIfTrainer(req.params.id, req.user.id, req.user.role);
     if (!session) return res.status(status).json({ success: false, message: error });
 
     const endedAt = new Date();
@@ -181,7 +182,7 @@ router.patch('/:id/end', authorize(['admin', 'trainer']), async (req, res) => {
 
     logger.info(`[AUDIT] Admin ${req.user.id} ended video session ${session.id} (${durationMinutes}min)`);
 
-    res.json({ success: true, data: session });
+    res.json({ success: true, data: serializeVideoSession(session, req.user) });
   } catch (err) {
     logger.error('Failed to end video session:', err.message);
     res.status(500).json({ success: false, message: 'Failed to end session' });
@@ -198,7 +199,7 @@ router.patch('/:id/notes', authorize(['admin', 'trainer']), async (req, res) => 
   // Empty string is allowed — trainer can clear notes
 
   try {
-    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    const { session, error, status } = await getSessionIfTrainer(req.params.id, req.user.id, req.user.role);
     if (!session) return res.status(status).json({ success: false, message: error });
 
     await session.update({ trainerNotes });
@@ -224,7 +225,7 @@ router.post('/:id/micro-win', authorize(['admin', 'trainer']), async (req, res) 
   const XP_MAP = { perfect_form: 25, great_rep: 10, full_rom: 15, consistency: 10, improvement: 50 };
 
   try {
-    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    const { session, error, status } = await getSessionIfTrainer(req.params.id, req.user.id, req.user.role);
 
     if (!session) return res.status(status).json({ success: false, message: error });
 
@@ -265,7 +266,7 @@ router.get('/', authorize(['admin', 'trainer']), async (req, res) => {
       order: [['createdAt', 'DESC']],
       limit,
     });
-    res.json({ success: true, data: sessions });
+    res.json({ success: true, data: sessions.map(session => serializeVideoSession(session, req.user)) });
   } catch (err) {
     logger.error('Failed to list video sessions:', err.message);
     res.status(500).json({ success: false, message: 'Failed to list sessions' });
@@ -288,7 +289,7 @@ router.get('/:id', async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    res.json({ success: true, data: session });
+    res.json({ success: true, data: serializeVideoSession(session, req.user) });
   } catch (err) {
     logger.error('Failed to get video session:', err.message);
     res.status(500).json({ success: false, message: 'Failed to get session' });
@@ -306,16 +307,25 @@ async function getSessionIfParticipant(sessionId, userId, userRole) {
   return { session, error: null, status: 200 };
 }
 
+// A trainer booked as the client remains a participant, not this session's owner.
+async function getSessionIfTrainer(sessionId, userId, userRole) {
+  const result = await getSessionIfParticipant(sessionId, userId, userRole);
+  if (result.session && !isSessionTrainer(result.session, userId, userRole)) {
+    return { session: null, error: 'Not authorized — only the assigned trainer or admin can manage this session', status: 403 };
+  }
+  return result;
+}
+
 // ── Phase 3: ROM Tracking ──────────────────────────────────────
 // POST /api/video-sessions/:id/rom
-router.post('/:id/rom', protect, async (req, res) => {
+router.post('/:id/rom', protect, authorize(['admin', 'trainer']), async (req, res) => {
   const { measurements } = req.body;
   if (!Array.isArray(measurements) || measurements.length === 0) {
     return res.status(400).json({ success: false, message: 'measurements array required' });
   }
 
   try {
-    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    const { session, error, status } = await getSessionIfTrainer(req.params.id, req.user.id, req.user.role);
     if (!session) return res.status(status).json({ success: false, message: error });
 
     // Append to existing ROM data
@@ -354,57 +364,16 @@ router.get('/:id/rom', protect, async (req, res) => {
   }
 });
 
-// ── Phase 3: Wearable Data Integration ─────────────────────────
-// POST /api/video-sessions/:id/wearable
-router.post('/:id/wearable', protect, async (req, res) => {
-  const { heartRate, steps, sleepHours, hrv, source } = req.body;
-
-  const VALID_SOURCES = ['healthkit', 'google_fit'];
-  if (!source || !VALID_SOURCES.includes(source)) {
-    return res.status(400).json({ success: false, message: `source must be one of: ${VALID_SOURCES.join(', ')}` });
-  }
-
-  try {
-    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
-    if (!session) return res.status(status).json({ success: false, message: error });
-
-    const wearableData = {
-      heartRate: heartRate || null,
-      steps: steps || null,
-      sleepHours: sleepHours || null,
-      hrv: hrv || null,
-      source,
-      syncedAt: new Date().toISOString(),
-    };
-
-    await session.update({ wearableData });
-
-    logger.info(`[AUDIT] Wearable data synced to session ${req.params.id} from ${source}`);
-    res.json({ success: true, data: { wearableData } });
-  } catch (err) {
-    logger.error('Wearable sync error:', err.message);
-    res.status(500).json({ success: false, message: 'Failed to sync wearable data' });
-  }
-});
-
-// GET /api/video-sessions/:id/wearable
-router.get('/:id/wearable', protect, async (req, res) => {
-  try {
-    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
-    if (!session) return res.status(status).json({ success: false, message: error });
-
-    res.json({ success: true, data: { wearableData: session.wearableData } });
-  } catch (err) {
-    logger.error('Wearable fetch error:', err.message);
-    res.status(500).json({ success: false, message: 'Failed to fetch wearable data' });
-  }
-});
+// ── Wearable containment: no verified ingestion source is connected ──
+const wearableHandlers = createUnavailableWearableHandlers(getSessionIfParticipant, logger);
+router.post('/:id/wearable', protect, wearableHandlers.write);
+router.get('/:id/wearable', protect, wearableHandlers.read);
 
 // ── Phase 3: Transcription (Deepgram) ──────────────────────────
 // POST /api/video-sessions/:id/transcribe
 router.post('/:id/transcribe', protect, authorize(['admin', 'trainer']), async (req, res) => {
   try {
-    const { session, error, status } = await getSessionIfParticipant(req.params.id, req.user.id, req.user.role);
+    const { session, error, status } = await getSessionIfTrainer(req.params.id, req.user.id, req.user.role);
     if (!session) return res.status(status).json({ success: false, message: error });
 
     if (!session.recordingUrl) {

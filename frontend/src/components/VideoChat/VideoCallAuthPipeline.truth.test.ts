@@ -66,7 +66,9 @@ describe('Video Call auth pipeline', () => {
 
     expect(sources.wearable).toContain('/wearable');
     expect(sources.wearable).toMatch(/apiService\.get/);
-    expect(sources.wearable).toMatch(/apiService\.post/);
+    // Wearable ingestion is contained until a verified device source exists:
+    // the panel must only check availability, never submit readings.
+    expect(sources.wearable).not.toMatch(/apiService\.post/);
 
     expect(sources.rom).toContain('/rom');
     expect(sources.rom).toMatch(/apiService\.post/);
