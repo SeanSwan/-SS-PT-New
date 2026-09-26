@@ -109,21 +109,44 @@ export const CONTROLS = Object.freeze([
   {
     id: 'tuning.knob', pane: 'tune', label: 'A tuning knob', kind: 'dial', element: 'input',
     effect: 'novelty scoring / auto-merge gating — see the blast radius column', writes: false,
-    token: false, rendered: false, repeated: 'per knob', plannedIn: 'A4',
+    token: false, rendered: true, repeated: 'per knob',
   },
   {
     id: 'tuning.stage', pane: 'tune', label: 'Stage', kind: 'dial', element: 'button',
-    effect: 'the staged draft', writes: false, token: true, rendered: false, plannedIn: 'A4',
+    effect: 'the staged draft', writes: false, token: true, rendered: true,
+  },
+  {
+    // `03-INTERFACE.md` §2.3 draws `[DISCARD STAGE]` as the third button, and §3's flow
+    // diagram has `T5 -->|no| T6[DISCARD STAGE file untouched]` as the branch where Sean
+    // changes his mind. It is NOT the same action as revert: discard throws away a draft
+    // that was never written, revert restores bytes that were. A4 shipped only the second,
+    // so the pane had no way to abandon a stage short of committing it or reloading.
+    //
+    // `token: true` because the route it calls (`tuning-stage`, empty patch) is a mutation
+    // route — session state is server state. `writes: false` because the FILE is untouched.
+    id: 'tuning.discard', pane: 'tune', label: 'Discard stage', kind: 'dial', element: 'button',
+    effect: 'the staged draft — the file is not touched', writes: false, token: true,
+    rendered: true,
   },
   {
     id: 'tuning.commit', pane: 'tune', label: 'Commit', kind: 'dial', element: 'button',
     effect: 'tuning.json — atomic, with the prior bytes kept', writes: true, token: true,
-    rendered: false, plannedIn: 'A4',
+    rendered: true,
   },
   {
     id: 'tuning.revert', pane: 'tune', label: 'Revert', kind: 'dial', element: 'button',
     effect: 'tuning.json — restored by hash comparison', writes: true, token: true,
-    rendered: false, plannedIn: 'A4',
+    rendered: true,
+  },
+  {
+    // A FIELD IS A CONTROL. The note is focusable, it is edited, and it travels with the
+    // commit — leaving it unregistered would mean the pane has an interactive element with
+    // no DIAL/PROPOSAL label, which is the one thing `AC4.6` exists to prevent. It also
+    // used to carry `tuning.stage`'s id, which made a click into it indistinguishable from
+    // pressing PREVIEW once the client learned to handle that action.
+    id: 'tuning.note', pane: 'tune', label: 'Commit note', kind: 'dial', element: 'textarea',
+    effect: 'the reason recorded with the commit — it does not write the config',
+    writes: false, token: false, rendered: true,
   },
 
   // --- The proposal channel (A7). NEVER applied by Astra. ---------------------
@@ -167,6 +190,34 @@ export const READ_ONLY_PANES = Object.freeze([
     + 'Silent stripping teaches the operator nothing and hides taste failures.' },
   { pane: 'state', reason: 'No control on this pane enables a REFUSED lane. '
     + 'That is a design decision, not a missing feature.' },
+]);
+
+/**
+ * Rendered controls with NO handler in `static/astra.js`.
+ *
+ * A control that renders and does nothing is a DEAD CONTROL. It takes focus, it announces
+ * a name, and it lies about what pressing it will do — which is worse than an absent
+ * button, because the operator concludes the action failed rather than that it does not
+ * exist.
+ *
+ * `AC4.6`'s cross-check CANNOT SEE THIS. That check proves the id is registered and that
+ * the markup carries it; it says nothing about whether anything happens on use. A4 found
+ * two such controls only because it wrote the wiring check below, and one of them was
+ * `think.whyNot` — a button labelled "Why not?" on the pane whose entire job is answering
+ * that question. (Fixed in A4. The other is this list's only entry.)
+ *
+ * The list is EXCLUSIONS, so it must shrink, and every entry names why and who owns the
+ * fix — the same shape as `READ_ONLY_PANES`, and for the same reason: a later author has
+ * to delete an entry that says why they should not.
+ */
+export const UNWIRED_CONTROLS = Object.freeze([
+  {
+    id: 'slots.stageOverrides',
+    why: 'The override layer has no editor: `renderSlots` draws the 12 slots as read-only '
+      + 'cells, so there is nothing for this button to stage. The engine and `/api/compile` '
+      + 'already accept `slotOverrides`; only the surface is missing.',
+    ownedBy: 'R3 / AC3.2 / `T-I-01` — recorded "not run" in 04-TESTS-TRACEABILITY.md',
+  },
 ]);
 
 /** The registry's own consistency check. Returns findings; never throws. */

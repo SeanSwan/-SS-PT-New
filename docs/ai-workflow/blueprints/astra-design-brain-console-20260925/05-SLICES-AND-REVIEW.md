@@ -83,11 +83,33 @@ sitting.
 - **Trap for A5:** `T-P-01` is **one id serving two requirements in two slices** (see C18). A3 claims
   only the **`AC4.6`** half and names its tests `T-P-01 (AC4.6) …`. **`AC5.4`'s half is still A5's.**
 
-### A4 — Tune pane
+### A4 — Tune pane ← **✅ DONE 2026-09-26**
 - **Does:** staged knobs, fixture preview, atomic commit with note, byte-exact revert.
-- **Entry:** A3 exit met; `fixtures/pairs-12.jsonl` exists.
-- **Exit:** `T-I-02`, `T-I-03`, `T-I-04`, `T-I-05`, `T-M-06`, `T-M-07` pass.
-- **Evidence:** before/after `tuning.json` hashes.
+- **Entry:** A3 exit met; `fixtures/pairs-12.jsonl` exists. ✅ (the fixture did **not** exist — A4 built it)
+- **Exit:** `T-I-02`, `T-I-03`, `T-I-04`, `T-I-05`, `T-M-06`, `T-M-07` pass. ✅ **113/113 tests**, 29/29 smoke.
+- **Evidence:** before/after `tuning.json` hashes — `scripts/astra/evidence/a4-tests.txt` §2.
+  Measured against the REAL config through the REAL routes: **stage wrote nothing** (hash unchanged),
+  **commit changed 2 of 14 lines** with the other 12 byte-identical and `$comment`/CRLF intact,
+  **revert restored the original hash exactly**, and the `.prior.jsonl` runtime artifact was removed so
+  the worktree was left as found.
+- **Also proven:** putting the old values back reproduces the original file byte-for-byte — an
+  INDEPENDENT undo, not a re-run of `applyPatch`. Four mutation tests, each deleted in turn and each
+  going red on exactly its own check.
+- **Corrections:** 9 (`C27`–`C35`), including the one that matters: **a refusal is also a claim.** A
+  `ReferenceError` from a missing import was reported as a `400` under a real domain code — a perfect
+  impression of the gate working. Every catch site now classifies, and an unrecognised throw is a `500
+  E_ASTRA_INTERNAL`.
+- **Defects:** 9 (`D27`–`D35`). **Four were found by writing a check, not by looking**: the knobs
+  rendered as read-only text (`D30`), `DISCARD STAGE` was missing (`D31`), `think.whyNot` did nothing
+  (`D34`), and the pane shipped with **no stylesheet rules at all** so the blast-radius warning that
+  `T-I-05` requires was indistinguishable from a table cell (`D35`).
+- **Carry into A5:**
+  - **`server.mjs` is at exactly 300 lines.** Split it before adding two panes' routes.
+  - **`R3 / AC3.2 / T-I-01` is open and its test does not exist.** `slots.stageOverrides` renders and
+    does nothing, recorded in `UNWIRED_CONTROLS` (gap **G6**). The engine and `/api/compile` already
+    accept `slotOverrides`; only the surface is missing. This is a requirement already marked
+    "not run", so it should land **before** A5's new work.
+  - `T-P-01`'s `AC5.4` half is still A5's alone.
 
 ### A5 — Law + State boards ← **◐ PARTIAL — the board is built; the UI panes are not**
 - **Does:** the LAW rows from the compiler's own `lawChecks`; the honest lane board from A0's code-derived list.
@@ -284,5 +306,13 @@ is no second source to disagree with.
   eventual answer; not now.
 - **H3** — A0 may find the live surface thinner than planned. If so, say so before A3.
 - **H5** — the tuning preview is indicative, not authoritative. Say so on the pane.
-- **A4's `T-I-03`** — true concurrent-writer testing is not yet designed.
+- **A4's `T-I-03`** — true concurrent-writer testing is not yet designed. `T-M-06` proves the
+  atomic-write step in isolation (`crashAfterTemp` interrupts between temp-write and rename, and the
+  old file survives), but no test has a second process reading during a commit. A4 did not change this.
+- **A4's `D33`** — the patcher writes the value's canonical JS form, so a staged `0.40` lands as `0.4`.
+  Numerically identical and within the changed region, so `T-M-07` holds, and the prior-value record
+  keeps the original bytes so a revert restores the spelling. Left as-is deliberately: preserving the
+  operator's typed form means parsing their text, which is a bigger change than the defect.
+- **A4's `G6`** — no override editor, so `R3 / AC3.2` cannot be exercised and `T-I-01` does not exist.
+  Carried as `UNWIRED_CONTROLS` in code, not as a note.
 - **Taste integration** is exercised only against a stub. The real private repo is unverified.

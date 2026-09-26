@@ -22,6 +22,11 @@
 
   var status = document.getElementById('api-status');
 
+  // Motion is read from the same query the stylesheet uses, so the two cannot disagree
+  // about whether motion is allowed. Declared once, here, because more than one handler
+  // needs it and a second declaration would be a second opinion.
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   function show(kind, text) {
     if (!status) return;
     status.className = 'state state-' + kind;
@@ -138,13 +143,112 @@
       return;
     }
 
+    if (id === 'think.whyNot') {
+      // The registry says this control "reads the LAW checks already shown", and that is
+      // literally what it does: it CALLS NOTHING. It is the affordance that answers the
+      // operator's question without leaving the pane they are on.
+      //
+      // It shipped with no handler at all, so the button rendered, took focus, announced
+      // "Why not?", and did nothing when pressed — a dead control, which is the one thing
+      // a console whose whole premise is "the app explains itself" cannot afford.
+      clear();
+      var heading = document.getElementById('law-h');
+      var panel = heading && heading.closest ? heading.closest('section') : null;
+      if (!panel) {
+        show('failure', 'E_NO_LAW — this compile record carries no LAW section to read');
+        return;
+      }
+      panel.classList.add('flash');
+      panel.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      // The answer is the LAW table, but the reason no override is offered is the part the
+      // operator actually needs, so it is stated rather than left to be inferred.
+      show('partial', 'the LAW checks above ARE the explanation — a failed check blocks the '
+        + 'compile and Astra offers no override');
+      window.setTimeout(function () { panel.classList.remove('flash'); }, 2400);
+      return;
+    }
+
     if (id === 'slots.reset' || id === 'direction.noneFit') {
       clear();
       window.location.reload();
+      return;
+    }
+
+    // --- Tune (A4). Every handler reloads, so the pane is rendered by paneTune.mjs and
+    // only by paneTune.mjs — this file never builds a knob row.
+
+    if (id === 'tuning.knob' || id === 'tuning.note') {
+      // A click on a knob input or into the note field is not an action. Deliberately
+      // no-op rather than falling through, so a later branch cannot accidentally claim it
+      // — the note field used to carry `tuning.stage`'s id, and this guard is what makes
+      // that class of collision impossible.
+      return;
+    }
+
+    if (id === 'tuning.stage') {
+      clear();
+      var staged = {};
+      var inputs = document.querySelectorAll('[data-control="tuning.knob"][data-key]');
+      for (var i = 0; i < inputs.length; i++) {
+        var el = inputs[i];
+        var n = Number(el.value);
+        if (el.value === '' || !isFinite(n)) continue;
+        if (n !== Number(el.getAttribute('data-current'))) staged[el.getAttribute('data-key')] = n;
+      }
+      if (Object.keys(staged).length === 0) {
+        // NOT calling the API here is the point. An empty patch means DISCARD on the
+        // server, so pressing PREVIEW with no edits would silently throw away a stage the
+        // operator already had — the draft would vanish on a button labelled "preview".
+        show('partial', 'no knob differs from the live value — nothing to stage');
+        return;
+      }
+      api('tuning-stage', { staged: staged, note: noteFrom() }).then(function (res) {
+        if (res.status !== 200) { reportFailure(res); return; }
+        window.location.reload();
+      }).catch(function (e) { show('failure', 'E_NETWORK — ' + e.message); });
+      return;
+    }
+
+    if (id === 'tuning.discard') {
+      clear();
+      // An empty patch is the server's documented discard, and it touches no file.
+      api('tuning-stage', { staged: {} }).then(function (res) {
+        if (res.status !== 200) { reportFailure(res); return; }
+        window.location.reload();
+      }).catch(function (e) { show('failure', 'E_NETWORK — ' + e.message); });
+      return;
+    }
+
+    if (id === 'tuning.commit') {
+      clear();
+      api('tuning-commit', { note: noteFrom() }).then(function (res) {
+        if (res.status !== 200) { reportFailure(res); return; }
+        // The consequence is repeated back, so a successful commit cannot be reported
+        // without also having been told what it moved.
+        show('success', 'committed ' + res.body.changedKeys.join(', ')
+          + ' · blast radius: ' + (res.body.blastRadius || []).join(', '));
+        window.location.reload();
+      }).catch(function (e) { show('failure', 'E_NETWORK — ' + e.message); });
+      return;
+    }
+
+    if (id === 'tuning.revert') {
+      clear();
+      api('tuning-revert', {}).then(function (res) {
+        if (res.status !== 200) { reportFailure(res); return; }
+        show('success', 'reverted to the prior bytes');
+        window.location.reload();
+      }).catch(function (e) { show('failure', 'E_NETWORK — ' + e.message); });
+      return;
     }
   });
 
+  /** The Tune pane's note field, or '' when the pane is not on screen. */
+  function noteFrom() {
+    var el = document.getElementById('tuning-note');
+    return el ? el.value : '';
+  }
+
   // Motion is read from the same query the stylesheet uses, so the two agree.
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.documentElement.setAttribute('data-reduced-motion', reduce ? 'reduce' : 'no-preference');
 }());

@@ -19,7 +19,11 @@ import {
 } from '../core/brain.mjs';
 import { compileAndRecord, getCompile, setOutcome } from '../core/session.mjs';
 import { capabilities, capabilitySummary } from '../core/capabilities.mjs';
-import { tuningView } from '../core/tuning.mjs';
+import { tuningView, readTuning, flattenTuning } from '../core/tuning.mjs';
+import { readFileSync } from 'node:fs';
+import { TUNING_PATH } from '../core/paths.mjs';
+import { commitStaged, revertLast, applyPatch } from '../core/tuningStage.mjs';
+import { previewStaged } from '../core/tuningPreview.mjs';
 
 /** The 12 slot keys, in the compiler's own order. */
 const SLOT_ORDER = Object.freeze([
@@ -54,6 +58,36 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
   const fail = (status, code, message) => ({ status, body: { error: { code, message } } });
   const ok = (b) => ({ status: 200, body: b });
 
+  /**
+   * Classify a thrown value for the wire.
+   *
+   * A DOMAIN REFUSAL carries its own `E_`-prefixed `.code` — `E_TUNING_KEY_UNKNOWN`,
+   * `E_LAW_VIOLATION`, `E_COMPILE_UNKNOWN`. Those are verdicts about the operator's
+   * input, and the route's own status is the right one for them.
+   *
+   * Anything else — a `ReferenceError` from a typo, a `TypeError` from a bad
+   * assumption, an `ENOENT` from a missing file — is a BUG in this process, not a
+   * verdict. Reporting it under a domain code and a 4xx is the worst of both worlds:
+   * the operator is told their request was refused when in fact the console is
+   * broken, and the bug hides behind a plausible-looking refusal.
+   *
+   * A4 found this the hard way. `TUNING_PATH` was used in this file without being
+   * imported, and `?? 'E_TUNING_STAGE'` reported the resulting `ReferenceError` as a
+   * 400 domain refusal — a perfect impression of the gate working. The smoke runner
+   * caught it only because it checks the CODE and not just the status, and only
+   * because a second check happened to depend on the first having done its job.
+   *
+   * So: an unrecognised throw is a 500 named `E_ASTRA_INTERNAL`, which reads as what
+   * it is. It can never be mistaken for a refusal, by a test or by Sean.
+   */
+  const domainError = (e, status) => {
+    if (e && typeof e.code === 'string' && e.code.startsWith('E_')) {
+      return fail(status, e.code, e.message);
+    }
+    return fail(500, 'E_ASTRA_INTERNAL',
+      `${e?.name ?? 'Error'}: ${e?.message ?? String(e)}`);
+  };
+
   // --- Gate 0: free, and it must stay free ---------------------------------
   if (route === 'directions') {
     if (method !== 'POST') return fail(405, 'E_METHOD', 'POST only');
@@ -69,7 +103,7 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
       state.directions = directions;
       return ok({ directions, brainVersion: readBrainVersion(), spent: 0, generated: 0 });
     } catch (e) {
-      return fail(400, e.code ?? 'E_DIRECTIONS', e.message);
+      return domainError(e, 400);
     }
   }
 
@@ -86,7 +120,7 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
       return ok({ compileId: r.compileId, ok: r.ok, view: r.view, error: r.error
         ? { code: r.error.code ?? 'E_COMPILE_FAILED', message: r.error.message } : null });
     } catch (e) {
-      return fail(400, e.code ?? 'E_COMPILE_FAILED', e.message);
+      return domainError(e, 400);
     }
   }
 
@@ -96,7 +130,7 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
       const entry = getCompile(body.compileId);
       return ok({ compileId: entry.compileId, ok: entry.ok, outcome: entry.outcome, view: entry.view });
     } catch (e) {
-      return fail(404, e.code ?? 'E_EXPLAIN', e.message);
+      return domainError(e, 404);
     }
   }
 
@@ -104,9 +138,35 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
 
   if (route === 'tuning') {
     try {
-      return ok({ view: tuningView() });
+      // THE VIEW MUST CARRY THE SESSION'S STAGE, not a fresh empty one. `tuningView()`
+      // describes the config ON DISK and hard-codes `staged: {}` — correct for a
+      // stateless read, but this route is not stateless: the same `state` object that
+      // `tuning-stage` just wrote to is in scope here.
+      //
+      // A4 found this while writing the route test. After staging `mergeBand.low`, the
+      // pane said `STAGED (1)` and this endpoint said `staged: {}, changedKeys: []`.
+      // Both cannot be right, and the API is the one that lies: a client polling it
+      // would conclude nothing was staged and could commit nothing, or worse, believe a
+      // staged change had already been discarded. Same defect family as `T-M-03` — a
+      // view stating an all-clear the data does not support.
+      const live = tuningView();
+      const staged = state.staged ?? {};
+      const stagedKeys = Object.keys(staged);
+      const preview = stagedKeys.length ? previewStaged({ staged }) : null;
+      return ok({
+        view: {
+          ...live,
+          staged,
+          changedKeys: stagedKeys,
+          blastRadius: preview?.blastRadius ?? [],
+          note: state.note ?? '',
+          lastCommit: state.lastCommit ?? null,
+          state: stagedKeys.length ? 'staged' : 'live',
+        },
+        preview,
+      });
     } catch (e) {
-      return fail(500, e.code ?? 'E_TUNING', e.message);
+      return domainError(e, 500);
     }
   }
 
@@ -121,7 +181,7 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
       const entry = setOutcome(body.compileId, 'rejected_all');
       return ok({ compileId: entry.compileId, outcome: entry.outcome });
     } catch (e) {
-      return fail(404, e.code ?? 'E_REJECT', e.message);
+      return domainError(e, 404);
     }
   }
 
@@ -136,12 +196,77 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
       + 'Astra compiles and explains; it does not generate. Nothing was spent.');
   }
 
-  // --- Tune commit path: A4 -------------------------------------------------
-  if (route === 'tuning-stage' || route === 'tuning-commit' || route === 'tuning-revert') {
-    return fail(501, 'E_NOT_BUILT',
-      `${route} is slice A4. The Tune pane has no write path yet, and that is load-bearing: `
-      + 'T-M-01 (a corrupt tuning.json produces a named error and NO write) is only provable '
-      + 'while there is no write path to accidentally reach.');
+  // --- The Tune commit path (A4) -------------------------------------------
+  // These routes are now REAL, and each one is guarded by the mutation token at the
+  // transport layer (`MUTATION_ROUTES`). The staging state lives on `state`, which is the
+  // server's per-session object — staging writes NOTHING to disk, which is what makes the
+  // preview meaningful and the commit a separate, deliberate act.
+  if (route === 'tuning') {
+    const flat = flattenTuning(readTuning());
+    return ok({
+      view: { current: flat, staged: state.staged ?? {}, note: state.note ?? '', lastCommit: state.lastCommit ?? null },
+      preview: state.staged && Object.keys(state.staged).length
+        ? previewStaged({ staged: state.staged }) : null,
+    });
+  }
+
+  if (route === 'tuning-stage') {
+    // DISCARD: an empty patch clears the stage rather than erroring, because "clear what I
+    // staged" is the operator's most likely intent and a refusal here would be pedantry.
+    const patch = body.staged ?? {};
+    if (Object.keys(patch).length === 0) {
+      state.staged = {};
+      return ok({ staged: {}, cleared: true, preview: null });
+    }
+    try {
+      // VALIDATE THE PATCH THE SAME WAY THE COMMIT WILL, BEFORE ACCEPTING IT.
+      // `previewStaged` alone does not do this: an unknown key like `nope.missing` is
+      // harmlessly ignored by the scorer, so the preview succeeds and the stage is
+      // accepted — and the operator only discovers the typo when they press COMMIT,
+      // after writing a note. A validation that runs at the wrong time is a validation
+      // that wastes the operator's work. `applyPatch` is the same pure validator the
+      // commit path uses, so the two can never disagree about what is acceptable.
+      applyPatch(readFileSync(TUNING_PATH, 'utf8'), patch);
+      const preview = previewStaged({ staged: patch });
+      state.staged = { ...(state.staged ?? {}), ...patch };
+      if (typeof body.note === 'string') state.note = body.note;
+      return ok({ staged: state.staged, preview });
+    } catch (e) {
+      return domainError(e, 400);
+    }
+  }
+
+  if (route === 'tuning-commit') {
+    const staged = state.staged ?? {};
+    if (Object.keys(staged).length === 0) {
+      return fail(400, 'E_TUNING_NO_CHANGES', 'nothing is staged — there is nothing to commit');
+    }
+    try {
+      const r = commitStaged({ staged, note: body.note ?? state.note });
+      state.staged = {};
+      state.note = '';
+      state.lastCommit = { hashBefore: r.hashBefore, hashAfter: r.hashAfter, changedKeys: r.changedKeys };
+      return ok({
+        wrote: true, changedKeys: r.changedKeys,
+        hashBefore: r.hashBefore, hashAfter: r.hashAfter,
+        // The consequence, repeated in the response so a caller cannot report a successful
+        // commit without also having been told what it moved.
+        blastRadius: r.record.blastRadius,
+      });
+    } catch (e) {
+      return domainError(e, 400);
+    }
+  }
+
+  if (route === 'tuning-revert') {
+    try {
+      const r = revertLast();
+      state.staged = {};
+      state.lastCommit = { reverted: true, hash: r.hash, changedKeys: r.changedKeys };
+      return ok({ wrote: true, reverted: true, hash: r.hash, restoredFrom: r.restoredFrom });
+    } catch (e) {
+      return domainError(e, 400);
+    }
   }
 
   return fail(404, 'E_NO_ROUTE', `no api route named ${JSON.stringify(route)}`);

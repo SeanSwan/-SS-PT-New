@@ -31,11 +31,14 @@ import { randomBytes } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, normalize, resolve as resolvePath, sep } from 'node:path';
 
-import { ASTRA_ROOT, DEFAULT_PORT, LOOPBACK_HOST, TASTE_PROBE_ORIGIN } from '../core/paths.mjs';
+import { ASTRA_ROOT, DEFAULT_PORT, LOOPBACK_HOST, TASTE_PROBE_ORIGIN, TUNING_PATH, repoRelative } from '../core/paths.mjs';
 import { bindAddress, assertLoopback } from '../core/bind.mjs';
 import { readBrainVersion } from '../core/brain.mjs';
+import { readTuning, flattenTuning } from '../core/tuning.mjs';
+import { previewStaged } from '../core/tuningPreview.mjs';
 import { layout, stateDenied } from './shell.mjs';
 import { renderCompose, renderThink, renderNotBuilt } from './panes.mjs';
+import { renderTune } from './paneTune.mjs';
 import { handleApi, slotsFromBrief } from './api.mjs';
 
 const STATIC_ROOT = join(ASTRA_ROOT, 'static');
@@ -125,7 +128,7 @@ function serveStatic(pathname, res) {
 }
 
 /** Build the request handler. Exported so a test can drive it without a socket. */
-export function createHandler({ token, state = { brief: {}, directions: null, lastCompileId: null } }) {
+export function createHandler({ token, state = { brief: {}, directions: null, lastCompileId: null, staged: {}, note: '', lastCommit: null } }) {
   return async (req, res) => {
     const url = new URL(req.url, `http://${LOOPBACK_HOST}`);
     const pathname = url.pathname;
@@ -206,8 +209,28 @@ export function createHandler({ token, state = { brief: {}, directions: null, la
       'The lane board is built and code-sourced; the pane that renders it is not.')); return; }
     if (pathname === '/state') { shell('State', 'state', renderNotBuilt('State', 'A5',
       'The capability board is built and code-sourced; the pane that renders it is not.')); return; }
-    if (pathname === '/tune') { shell('Tune', 'tune', renderNotBuilt('Tune', 'A4',
-      'Staging, preview and the atomic commit path arrive with A4.')); return; }
+    if (pathname === '/tune') {
+      // The pane reads the LIVE config on every request (AC4.1) — never a cached copy, so
+      // an external edit to tuning.json shows up on the next refresh with no code change.
+      let body;
+      try {
+        const flat = flattenTuning(readTuning());
+        const staged = state.staged ?? {};
+        body = renderTune({
+          current: flat,
+          staged,
+          note: state.note ?? '',
+          lastCommit: state.lastCommit ?? null,
+          preview: Object.keys(staged).length ? previewStaged({ staged }) : null,
+          path: repoRelative(TUNING_PATH),
+        });
+      } catch (e) {
+        // A corrupt config renders as a NAMED error in the pane, not a 500 (T-M-01).
+        body = renderTune({ error: { code: e.code ?? 'E_TUNING', message: e.message } });
+      }
+      shell('Tune', 'tune', body);
+      return;
+    }
     if (pathname === '/ledger') { shell('Ledger', 'ledger', renderNotBuilt('Ledger', 'A6',
       'The rejected-all trend and cost drift arrive with A6.')); return; }
 

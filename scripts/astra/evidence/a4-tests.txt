@@ -1,0 +1,265 @@
+ASTRA — slice A4 evidence (the Tune pane: staged knobs, fixture preview, atomic commit)
+Captured: 2026-09-26T04:35:00Z
+Node: v22.22.2
+Worktree: tmp/worktrees/brain-console-salvage-20260918  branch: swan-brain-console-v3-salvage-20260918
+Base: 86f734d27 (A3)
+
+===============================================================================
+1. EXIT CRITERION — T-I-02/03/04/05, T-M-06, T-M-07 pass
+===============================================================================
+113 tests, 113 pass, 0 fail  (12 files)
+
+  a1-core.test.mjs         18    a3-transport.test.mjs      7
+  a2-mcp.test.mjs          15    a4-preview.test.mjs        5
+  a2-transport.test.mjs     6    a4-routes.test.mjs        10
+  a3-browser.test.mjs       6    a4-surface.test.mjs        7
+  a3-choose.test.mjs        7    a4-tune.test.mjs          12
+  a3-surface.test.mjs       8    a5-capabilities.test.mjs  12
+
+Was 79 after A3. A4 added 34 tests and split two files that crossed Rule 4's cap.
+
+===============================================================================
+2. THE NAMED EVIDENCE — before/after `tuning.json` hashes, over HTTP
+===============================================================================
+This is the slice's own named evidence line ("before/after `tuning.json` hashes"),
+measured against the REAL config through the REAL routes, then reverted.
+
+TUNING_PATH   C:\Users\BigotSmasher\Desktop\@Everything\quick-pt\SS-PT\tmp\worktrees\brain-console-salvage-20260918\scripts\design-brain\config\tuning.json
+prior file    absent before the run
+hash BEFORE   aba20af94e2aa13eda006e444a8c6a6e98187770cc82480e0fe37a89bd26b6dc
+bytes BEFORE  1046
+CRLF present  true
+
+stage status  200   wrote=false
+  bands       {"auto":1,"merge-band":3,"fresh":8} -> {"auto":0,"merge-band":8,"fresh":4}
+  moved       5 pairs
+  ms          8
+  blast       ["auto. (gate)","mergeBand."]
+hash after STAGE   aba20af94e2aa13eda006e444a8c6a6e98187770cc82480e0fe37a89bd26b6dc   UNCHANGED ✓
+
+commit status 200   wrote=true
+  hashBefore  aba20af94e2aa13eda006e444a8c6a6e98187770cc82480e0fe37a89bd26b6dc
+  hashAfter   a2fc98ba67df297ed627f1d5983c1abc228847b09f173e5ca30febc7c258dee3
+  changedKeys ["auto.S","mergeBand.low"]
+  blastRadius ["auto.","mergeBand."]
+hash after COMMIT  a2fc98ba67df297ed627f1d5983c1abc228847b09f173e5ca30febc7c258dee3   CHANGED ✓
+bytes after COMMIT 1044
+  $comment kept    yes ✓
+  CRLF kept        yes ✓
+  auto.S line      "auto": { "S": 0.9
+
+lines before/after 14/14   same count ✓
+differing lines    2 (expected one per changed key that owns a line)
+  line 3
+    before    "auto": { "S": 0.82, "O": 0.60, "margin": 0.10, "minTokens": 3 },
+    after     "auto": { "S": 0.9, "O": 0.60, "margin": 0.10, "minTokens": 3 },
+  line 4
+    before    "mergeBand": { "low": 0.55 },
+    after     "mergeBand": { "low": 0.4 },
+untouched lines    12/14   all others byte-identical ✓
+undo-the-patch     equals the original byte-for-byte ✓
+
+revert status 200   wrote=true
+  restored from  2026-09-26T04:27:16.277Z
+  hash           aba20af94e2aa13eda006e444a8c6a6e98187770cc82480e0fe37a89bd26b6dc
+hash after REVERT  aba20af94e2aa13eda006e444a8c6a6e98187770cc82480e0fe37a89bd26b6dc   BYTE-IDENTICAL ✓
+  equals original  yes ✓
+
+removed ...\scripts\design-brain\config\tuning.json.prior.jsonl (a runtime artifact)
+final hash  aba20af94e2aa13eda006e444a8c6a6e98187770cc82480e0fe37a89bd26b6dc   config restored ✓
+final bytes 1046
+
+WHAT THIS PROVES, and it is more than the slice asked for:
+  * STAGE wrote nothing: the hash is identical to the byte before it.
+  * COMMIT changed exactly 2 of 14 lines, and each differing line contains exactly one of
+    the two changed keys. The other 12 lines are byte-identical, `$comment` survives, and
+    CRLF survives.
+  * THE INDEPENDENT UNDO: putting the old values back reproduces the original file
+    byte-for-byte. This is NOT a re-run of `applyPatch` — it is a separate edit that would
+    fail if the patcher had touched anything else.
+  * REVERT restored the original hash exactly.
+  * The `.prior.jsonl` runtime artifact was removed, so the worktree was left as found:
+    `git status --short scripts/design-brain/config/` is empty and
+    `git diff --exit-code scripts/design-brain/config/tuning.json` returns 0.
+
+A NOTE ON THE 78-CHARACTER RED HERRING. A first version of this measurement reported the
+diff span as "78 chars removed, 76 added", which reads like a 78-character rewrite. It is
+not. Walking in from both ends and stopping at the first difference reports the whole
+REGION BETWEEN two edits, so two changes 70 characters apart look enormous. The line-level
+comparison above is the honest measurement, and it is why the claim is stated per line
+rather than as one span. A single span is only meaningful for a single-key patch.
+
+ONE FIDELITY POINT, recorded rather than glossed. The patcher writes the value's canonical
+JS form, so a staged `0.40` lands as `0.4` and a staged `0.90` as `0.9`. Numerically
+identical, the file stays valid JSON, and the engine reads the same number — but the
+commit's diff shows `0.55 -> 0.4`, not `0.55 -> 0.40`. The prior-value record holds the
+original bytes verbatim, so a revert restores the original spelling exactly. See D33.
+
+===============================================================================
+3. THE FIXTURE IS A CALIBRATED INSTRUMENT, NOT A CORPUS
+===============================================================================
+`scripts/astra/fixtures/pairs-12.jsonl` — 12 domain-distinct claim pairs.
+
+  expected bands: {"auto":1,"fresh":8,"merge-band":3}
+  self-best: 9/12  (the other 3 have a genuinely better candidate elsewhere in the set)
+  S per pair: PAIR-01 0.8406 · PAIR-02 0.5233 · PAIR-03 0.7741 · PAIR-04 0.5989
+              PAIR-05 0.5025 · PAIR-06 0.5103 · PAIR-07 0.7399 · PAIR-08 0.0214
+              PAIR-09 0.4732 · PAIR-10 0.1623 · PAIR-11 0.3744 · PAIR-12 0.0170
+  live config: auto.S 0.82 · mergeBand.low 0.55
+
+WHY THE BANDS ARE WHAT THEY ARE. The engine's real AUTO gate (`corroborate.mjs:104`) is
+`S >= auto.S && O >= auto.O && margin >= auto.margin && tokens >= auto.minTokens`, where
+`margin = best.S - secondBest.S`. MARGIN DEPENDS ON THE CANDIDATE SET, NOT ON THE PAIR — so
+a fixture whose pairs all share a small vocabulary has every pair's best match be some
+OTHER pair's `b`, and a pair of disjoint principles can be labelled `auto` because a
+different candidate scored 0.84. That happened on the second attempt: the label described
+the CORPUS, not the PAIR. Domain-distinct pairs fixed it. PAIR-01 sits +0.0206 above the
+gate, and 4 pairs are within 0.05 of the 0.55 floor so a small floor move is visible.
+
+The three "ambiguous" pairs are a genuine property of the set, not a defect, and the
+fixture records `isSelfBest` per row so a reader can tell the difference.
+
+===============================================================================
+4. THE SMOKE RUNNER — 29 checks, one line per route
+===============================================================================
+astra smoke — http://127.0.0.1:52329
+brainVersion 0.2.0 · 29 checks
+
+ok    GET  /healthz                                     200
+ok    GET  /static/astra.css                            200
+ok    GET  /static/../../../package.json (raw)          404
+ok    GET  / (Compose)                                  200
+ok    GET  /choose                                      200
+ok    GET  /think (no compile)                          200
+ok    GET  /law (not built)                             200
+ok    GET  /state (not built)                           200
+ok    GET  /ledger (not built)                          200
+ok    GET  /tune (REAL as of A4)                        200
+ok    GET  /nope (404)                                  404
+ok    GET  /api/capabilities                            200
+ok    GET  /api/state                                   200
+ok    GET  /api/directions (POST-only)                  405 E_METHOD
+ok    POST /api/directions (zero cost)                  200
+ok    POST /api/compile (NO token)                      401 E_TOKEN_REQUIRED
+ok    POST /api/compile (WRONG token)                   401 E_TOKEN_INVALID
+ok    POST /api/compile (token)                         200
+ok    POST /api/preview (token, REFUSED)                501 E_GENERATION_DISABLED
+ok    GET  /api/tuning (live knobs)                     200
+ok    POST /api/tuning-stage (empty = discard)          200
+ok    GET  /api/tuning (carries the stage)              200
+ok    POST /api/tuning-stage (unknown key REFUSED)      400 E_TUNING_KEY_UNKNOWN
+ok    POST /api/tuning-commit (nothing staged REFUSED)  400 E_TUNING_NO_CHANGES
+ok    POST /api/tuning-revert (NO token = gate holds)   401 E_TOKEN_REQUIRED
+ok    POST /api/explain (unknown id)                    404 E_COMPILE_UNKNOWN
+ok    POST /api/explain (real id)                       200
+ok    POST /api/reject (token, real id)                 200
+ok    POST /api/reject (unknown id)                     404 E_COMPILE_UNKNOWN
+
+29 passed, 0 failed
+
+The revert path is deliberately NOT exercised here: a real revert writes the live
+tuning.json, and a smoke run must not mutate the engine's configuration as a side effect
+of a health check. The gate is asserted instead; the write path is proven in §2 above and
+against temp copies in a4-tune.test.mjs.
+
+A CHECK THAT CANNOT FAIL IS NOT A CHECK, so the runner was mutation-tested (§5).
+
+===============================================================================
+5. MUTATION TESTS — four mechanisms, each deleted in turn, each going RED
+===============================================================================
+The tree was backed up byte-exactly before each mutation and restored byte-exactly after
+(sha256 verified equal in every case). No mutation was left in place.
+
+M1  `GET /api/tuning` made to ignore the session stage (reproducing D28)
+    -> 28 passed, 1 failed. The only failure is "GET /api/tuning (carries the stage)".
+M2  `tuning-stage`'s `applyPatch` validation removed (reproducing D27)
+    -> 27 passed, 2 failed: "tuning-stage (unknown key REFUSED)" returns 200, and
+       "tuning-commit (nothing staged REFUSED)" then returns E_TUNING_KEY_UNKNOWN instead
+       of E_TUNING_NO_CHANGES — the exact chain that wastes an operator's work.
+M3  the error classifier made to fall back to a domain code (reproducing D29)
+    -> 12 pass, 1 fail: "a bug can never wear a domain refusal".
+M4  the client's `tuning.discard` handler renamed so it no longer matches its control id
+    -> 1 fail: "a rendered control with no handler is a dead control".
+
+M3 and M4 are the two that matter most. M3 is the defect that hid a `ReferenceError`
+behind a 400 with a real code — a perfect impression of a working gate. M4 is the check
+that found `think.whyNot`, a button labelled "Why not?" on the pane whose whole job is
+answering that question, which had no handler at all.
+
+===============================================================================
+6. THE CONTROL INVENTORY (AC4.6) — measured, not remembered
+===============================================================================
+verifyControls(): {"ok":true,"total":25,"dials":20,"proposals":5,"rendered":20,
+                   "badKind":[],"duplicates":[],"missingFields":[],
+                   "writeWithoutToken":[],"proposalThatWrites":[]}
+
+  unrendered (5, all PROPOSAL, all plannedIn A7):
+    proposal.newToken · proposal.canonChange · proposal.lawChange
+    proposal.specModeActivation · proposal.tasteChange
+
+  unwired (1, recorded in `UNWIRED_CONTROLS` with a reason and an owner):
+    slots.stageOverrides — the override layer has no editor (R3 / AC3.2 / T-I-01)
+
+A3's notes said 25 controls / 20 rendered; the registry measured 23 / 14 at the time. A4
+corrected the notes to the measurement. A COUNT IS A CLAIM ABOUT COMPLETENESS, and a
+remembered number reported as a measured one is the defect A3's `T-M-03` was about.
+
+THE CROSS-CHECK NOW VISITS EVERY PANE THAT RENDERS A CONTROL, and asserts its own route
+table is COMPLETE against the registry — so a slice landing a new pane FAILS the test
+until the route is added, instead of that pane's controls being silently unchecked. A3's
+version gathered markup from `/` and `/think` only, so A4's four Tune controls were
+invisible to it until the test broke.
+
+===============================================================================
+7. RULE 4 — the 300-line budget
+===============================================================================
+modules: 35  over 300: 0
+ 300  scripts/astra/surface/server.mjs
+ 289  scripts/astra/surface/panes.mjs
+ 289  scripts/astra/surface/smoke.mjs
+ 287  scripts/astra/tests/a1-core.test.mjs
+ 283  scripts/astra/tests/a4-tune.test.mjs
+ 276  scripts/astra/surface/api.mjs
+ 272  scripts/astra/tests/a2-mcp.test.mjs
+ 262  scripts/astra/surface/controls.mjs
+
+`smoke.mjs` reached 335 and two test files crossed 300 during A4. All three were split at
+a real seam rather than trimmed:
+  smoke.mjs            -> smoke.mjs + smokeHarness.mjs               (plumbing vs checks)
+  a4-surface.test.mjs  -> a4-surface.test.mjs + a4-routes.test.mjs   (pane vs routes)
+  a3-surface.test.mjs  -> a3-surface.test.mjs + a3-transport.test.mjs (panes vs transport)
+
+`server.mjs` sits at exactly 300 — at the cap, not over it. It is recorded here because a
+file that is exactly at a limit is a file the next slice will have to split, and knowing
+that in advance is cheaper than discovering it in a failing hook.
+
+===============================================================================
+8. DEFECTS FOUND IN A4 — see A4-CORRECTIONS.md
+===============================================================================
+D27  `tuning-stage` accepted an unknown key; the refusal only surfaced at COMMIT.
+D28  `GET /api/tuning` reported `staged: {}` while the session held a staged change.
+D29  a `ReferenceError` from a missing import was reported as a 400 domain refusal.
+D30  the knobs rendered as read-only TEXT, so the pane was not an editor (AC4.1).
+D31  the pane had no DISCARD STAGE, which `03-INTERFACE.md` §2.3 draws.
+D32  the note textarea carried `tuning.stage`'s id — a click into it would stage a patch.
+D33  the patcher writes canonical JS numbers (`0.40` -> `0.4`).
+D34  `think.whyNot` rendered and did nothing.
+D35  the Tune pane shipped UNSTYLED — no `.knobs`, `.blast`, `.gate-mark`, `.knob-input`
+     or `.state-live/.state-staged` rule existed, so the blast radius that `T-I-05`
+     requires to read AS A WARNING was indistinguishable from a table cell.
+
+D30, D31, D34 and D35 were all found by WRITING A CHECK, not by looking at the app. D30
+and D31 by the AC4.6 cross-check, D34 by the wiring check, D35 by asking which classes the
+pane references and grepping the stylesheet for them. That is the whole argument for the
+cross-checks: four defects, none of them visible in a screenshot of a pane that renders.
+
+===============================================================================
+9. STILL OPEN, NAMED RATHER THAN OMITTED
+===============================================================================
+`slots.stageOverrides` is a rendered control with no handler, recorded in
+`UNWIRED_CONTROLS` with a reason and an owner. It needs the override editor, which is
+`R3 / AC3.2 / T-I-01` — a requirement `04-TESTS-TRACEABILITY.md` records as "not run" and
+which `T-I-01` was never written for. `slotOverrides` is already accepted by
+`/api/compile` and by the engine; only the surface is missing.
+
+G5 (no Astra-scoped module smoke guard) remains open by design, deferred until after A8.

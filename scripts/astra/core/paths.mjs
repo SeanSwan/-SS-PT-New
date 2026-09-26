@@ -33,6 +33,13 @@ export const ASTRA_FIXTURES = join(ASTRA_ROOT, 'fixtures');
 export const ASTRA_EVIDENCE = join(ASTRA_ROOT, 'evidence');
 
 /**
+ * The tuning preview's fixture set (A4) — 12 claim pairs, so a staged knob change can be
+ * scored offline and deterministically before anything is written. Named here because
+ * this file's own rule is that a path assembled inline is a path no scan can see.
+ */
+export const PAIRS_12_PATH = join(ASTRA_FIXTURES, 'pairs-12.jsonl');
+
+/**
  * Loopback only — INV9 / `AC8.1`. Port 7411 sits BESIDE, not on, the taste
  * probe's 7331, so the two can run at once without either stealing the other's
  * socket. `bind.mjs` owns the refusal; this constant only names the default.

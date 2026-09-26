@@ -19,6 +19,8 @@
  *  - the traversal check used `fetch`, which normalises `..` away before sending, so it
  *    tested the URL parser and not the server — it now uses a raw socket;
  *  - the token sentinel made "no token" actually send a token.
+ * All three fixes now live in `smokeHarness.mjs`, which this file uses. The checks below
+ * say what each route should answer; the harness knows how to ask and how to record.
  *
  * Usage:
  *   node scripts/astra/surface/smoke.mjs [--port 7411] [--verbose]
@@ -26,10 +28,9 @@
  * Exits 0 when every check passes, 1 otherwise. `--port 0` asks the OS for a free port.
  */
 
-import { connect } from 'node:net';
-
 import { startServer } from './server.mjs';
 import { readBrainVersion } from '../core/brain.mjs';
+import { createHarness, report, stripComments } from './smokeHarness.mjs';
 
 const argv = process.argv.slice(2);
 const argOf = (flag, fallback) => {
@@ -42,64 +43,11 @@ const TOKEN = 'smoke-token-not-a-secret';
 
 const BRIEF = { text: 'a frozen lake at dawn, low vantage, the ice breathing', intent: 'hero', aspect: '16:9' };
 
-/** Comments stripped, so a scan cannot fire on prose that DESCRIBES the forbidden thing. */
-const stripComments = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-
-/** A traversal must go over a raw socket: `fetch` removes `..` before it is ever sent. */
-function rawGet(port, path) {
-  return new Promise((resolve) => {
-    const sock = connect(port, '127.0.0.1', () => {
-      sock.write(`GET ${path} HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n`);
-    });
-    let out = '';
-    sock.on('data', (d) => { out += d; });
-    sock.on('close', () => resolve(out));
-    sock.on('error', () => resolve('ERROR'));
-  });
-}
-
 async function run() {
   const server = await startServer({ port: PORT, token: TOKEN });
   const base = server.url.replace(/\/$/, '');
-  const rows = [];
   const state = { compileId: null };
-
-  const call = async (method, path, { body, token = 'good', raw = false } = {}) => {
-    if (raw) {
-      const text = await rawGet(server.port, path);
-      const status = Number(/HTTP\/1\.1 (\d{3})/.exec(text)?.[1] ?? 0);
-      return { status, parsed: null, text, headers: new Map() };
-    }
-    const headers = {};
-    if (body !== undefined) headers['content-type'] = 'application/json';
-    if (token === 'good') headers['x-astra-token'] = TOKEN;
-    if (token === 'wrong') headers['x-astra-token'] = 'definitely-not-the-token';
-    const res = await fetch(base + path, {
-      method, headers, body: body === undefined ? undefined : JSON.stringify(body),
-    });
-    const text = await res.text();
-    let parsed = null;
-    try { parsed = JSON.parse(text); } catch { parsed = null; }
-    return { status: res.status, parsed, text, headers: res.headers };
-  };
-
-  const check = async (name, fn) => {
-    let note = '';
-    let status = 0;
-    let code = null;
-    try {
-      const r = await fn();
-      status = r.status ?? 0;
-      code = r.code ?? null;
-      note = r.note ?? '';
-    } catch (e) {
-      note = `check threw: ${e.message}`;
-    }
-    const ok = note === '';
-    rows.push({ name, ok, status, code, note });
-  };
-
-  const expect = (got, want, label) => (got === want ? '' : `${label} ${got}, expected ${want}`);
+  const { call, check, expect, rows } = createHarness({ base, port: server.port, token: TOKEN });
 
   // --- the process is alive, and the version comes from code -----------------
   await check('GET  /healthz', async () => {
@@ -150,13 +98,23 @@ async function run() {
     return { status: r.status, note: expect(r.status, 200, 'status')
       || (r.text.includes('No compile selected') ? '' : 'a blank Think pane must say WHY it is blank') };
   });
-  for (const [path, slice] of [['/law', 'A5'], ['/state', 'A5'], ['/tune', 'A4'], ['/ledger', 'A6']]) {
+  for (const [path, slice] of [['/law', 'A5'], ['/state', 'A5'], ['/ledger', 'A6']]) {
     await check(`GET  ${path} (not built)`, async () => {
       const r = await call('GET', path);
       return { status: r.status, note: expect(r.status, 200, 'status')
         || (r.text.includes(slice) ? '' : `a not-built pane must name its slice (${slice})`) };
     });
   }
+  await check('GET  /tune (REAL as of A4)', async () => {
+    const r = await call('GET', '/tune');
+    return { status: r.status, note: expect(r.status, 200, 'status')
+      || (r.text.includes('KNOBS') ? '' : 'the Tune pane must render its knob table')
+      || (r.text.includes('state:') ? '' : 'the pane must declare LIVE or STAGED')
+      || (!/data-control="tuning\.(knob|stage|commit|revert)"/.test(r.text)
+        ? 'the pane must emit its registry controls' : '')
+      // The A4 build must no longer claim to be unbuilt.
+      || (/arrive with A4/.test(r.text) ? 'the pane still renders as NOT BUILT' : '') };
+  });
   await check('GET  /nope (404)', async () => {
     const r = await call('GET', '/nope');
     return { status: r.status, note: expect(r.status, 404, 'status') };
@@ -233,13 +191,64 @@ async function run() {
       note: expect(r.status, 501, 'status')
         || expect(r.parsed?.error?.code, 'E_GENERATION_DISABLED', 'code') };
   });
-  for (const route of ['tuning-stage', 'tuning-commit', 'tuning-revert']) {
-    await check(`POST /api/${route} (token)`, async () => {
-      const r = await call('POST', `/api/${route}`, { body: {} });
-      return { status: r.status, code: r.parsed?.error?.code,
-        note: expect(r.status, 501, 'status') || expect(r.parsed?.error?.code, 'E_NOT_BUILT', 'code') };
-    });
-  }
+
+  // --- the Tune routes are REAL as of A4 -----------------------------------
+  await check('GET  /api/tuning (live knobs)', async () => {
+    const r = await call('GET', '/api/tuning');
+    const cur = r.parsed?.view?.current ?? {};
+    return {
+      status: r.status,
+      note: expect(r.status, 200, 'status')
+        || (Object.keys(cur).length === 0 ? 'the live config produced no leaf knobs' : '')
+        || (cur['auto.S'] === undefined ? 'auto.S is missing — the view is not reading the config' : '')
+        || (r.parsed?.view?.staged && Object.keys(r.parsed.view.staged).length
+          ? 'a fresh session must start with NOTHING staged' : ''),
+    };
+  });
+  await check('POST /api/tuning-stage (empty = discard)', async () => {
+    const r = await call('POST', '/api/tuning-stage', { body: { staged: {} } });
+    return { status: r.status, note: expect(r.status, 200, 'status')
+      || (r.parsed?.cleared === true ? '' : 'an empty patch must clear the stage, not error') };
+  });
+  // The read route must describe the SESSION, not a fresh config. A4 shipped a version
+  // that returned `staged: {}` no matter what — so after a real stage the pane said
+  // `STAGED (1)` and this endpoint said nothing was staged. A client polling it would
+  // conclude a staged change had been discarded. This check is that defect's guard.
+  await check('GET  /api/tuning (carries the stage)', async () => {
+    const staged = await call('POST', '/api/tuning-stage', { body: { staged: { 'mergeBand.low': 0.4 } } });
+    if (staged.status !== 200) return { status: staged.status, note: 'staging failed, so the read cannot be judged' };
+    const r = await call('GET', '/api/tuning');
+    const v = r.parsed?.view ?? {};
+    const note = expect(r.status, 200, 'status')
+      || (Object.keys(v.staged ?? {}).length === 1 ? ''
+        : 'the view reported an empty stage while one was staged — a false all-clear')
+      || expect(v.state, 'staged', 'state');
+    await call('POST', '/api/tuning-stage', { body: { staged: {} } }); // leave no stage behind
+    return { status: r.status, note };
+  });
+  await check('POST /api/tuning-stage (unknown key REFUSED)', async () => {
+    const r = await call('POST', '/api/tuning-stage', { body: { staged: { 'nope.missing': 1 } } });
+    return { status: r.status, code: r.parsed?.error?.code,
+      note: expect(r.status, 400, 'status')
+        || expect(r.parsed?.error?.code, 'E_TUNING_KEY_UNKNOWN', 'code') };
+  });
+  await check('POST /api/tuning-commit (nothing staged REFUSED)', async () => {
+    // Refused BEFORE any write, so this check has no side effect on the real config.
+    const r = await call('POST', '/api/tuning-commit', { body: { note: 'a smoke note long enough' } });
+    return { status: r.status, code: r.parsed?.error?.code,
+      note: expect(r.status, 400, 'status')
+        || expect(r.parsed?.error?.code, 'E_TUNING_NO_CHANGES', 'code') };
+  });
+  // THE REVERT PATH IS DELIBERATELY NOT EXERCISED HERE. A real revert would WRITE the live
+  // tuning.json, and a smoke run must not mutate the engine's configuration as a side
+  // effect of a health check. The gate is asserted instead; the write path itself is proven
+  // against temp copies in tests/a4-tune.test.mjs.
+  await check('POST /api/tuning-revert (NO token = gate holds)', async () => {
+    const r = await call('POST', '/api/tuning-revert', { body: {}, token: 'none' });
+    return { status: r.status, code: r.parsed?.error?.code,
+      note: expect(r.status, 401, 'status')
+        || expect(r.parsed?.error?.code, 'E_TOKEN_REQUIRED', 'code') };
+  });
 
   // --- explain, then the one write -----------------------------------------
   await check('POST /api/explain (unknown id)', async () => {
@@ -270,17 +279,7 @@ async function run() {
 
   await server.close();
 
-  // --- report ---------------------------------------------------------------
-  const failed = rows.filter((r) => !r.ok).length;
-  const width = Math.max(...rows.map((r) => r.name.length));
-  console.log(`astra smoke — ${base}`);
-  console.log(`brainVersion ${readBrainVersion()} · ${rows.length} checks\n`);
-  for (const r of rows) {
-    console.log(`${r.ok ? 'ok  ' : 'FAIL'}  ${r.name.padEnd(width)}  ${String(r.status).padEnd(3)}${r.code ? ` ${r.code}` : ''}`);
-    if (VERBOSE && r.note) console.log(`        ${r.note}`);
-  }
-  console.log(`\n${rows.length - failed} passed, ${failed} failed`);
-  return failed === 0 ? 0 : 1;
+  return report({ rows, base, brainVersion: readBrainVersion(), verbose: VERBOSE });
 }
 
 run().then((code) => process.exit(code)).catch((e) => {

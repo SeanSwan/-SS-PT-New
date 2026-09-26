@@ -88,7 +88,7 @@ budget, but four modules sit above 280 — the next edit to any of them should e
 ### 1.7 Commands
 
 ```bash
-# unit + integration — RUN at A3: 79 pass / 0 fail  (A1: 30, A2: 51, A3: 79)
+# unit + integration — RUN at A4: 113 pass / 0 fail  (A1: 30, A2: 51, A3: 79, A4: 113)
 node --test scripts/astra/tests/*.test.mjs
 
 # the A1 exit command — prints an ExplainView for both a lawful and a blocked compile
@@ -101,9 +101,11 @@ node scripts/astra/cli.mjs bind 0.0.0.0
 # the honest board
 node scripts/astra/cli.mjs state
 
-# surface smoke — RUN at A3: 26 checks, 26 passed, exit 0. The file did not exist
-# before A3 (A3-CORRECTIONS.md C26). Mutation-tested: emptying MUTATION_ROUTES in
-# server.mjs turns it RED (2 failed, exit 1) on exactly the two token-gate checks.
+# surface smoke — RUN at A4: 29 checks, 29 passed, exit 0. The file did not exist
+# before A3 (A3-CORRECTIONS.md C26). Mutation-tested TWICE: emptying MUTATION_ROUTES in
+# server.mjs turns it RED (2 failed, exit 1) on exactly the two token-gate checks (A3),
+# and making GET /api/tuning ignore the session stage turns it RED on exactly the
+# "carries the stage" check (A4 — see a4-tests.txt §5, mutations M1-M4).
 node scripts/astra/surface/smoke.mjs --port 7411
 
 # MCP tool listing (A2)
@@ -149,14 +151,14 @@ unchanged.
 | R2 | AC2.3 | swatch derivation | `T-U-03` | A3 | **PASS** — byte-identical across renders; no data-URI / url() / http in the strip |
 | R2 | AC2.4 | preview gate | `T-I-07` (no-override half) | A3 | **PASS (no-override half)** — the Law and State panes render ZERO registry controls, so no affordance can exist. The `E_LAW_VIOLATION` half is A1. |
 | R3 | AC3.1 | `core/variants.mjs` brief write | `T-I-01` | A1 | not run |
-| R3 | AC3.2 | override layer | `T-I-01` | A1, A3 | not run |
+| R3 | AC3.2 | override layer | `T-I-01` | A1, A3, **A4** | **not run, and the test does not exist.** A4 found that this is not merely unrun: `slots.stageOverrides` renders on Compose and has no handler, because `renderSlots` draws the 12 slots as read-only cells and there is nothing for the button to stage. `/api/compile` and the engine already accept `slotOverrides`. Recorded in code as `UNWIRED_CONTROLS` with a reason and an owner (`A4-CORRECTIONS.md` C30, §6; gap **G6**). This is the next piece of work, ahead of A5. |
 | R3 | AC3.3 | `personify()` gate | `T-U-06` | A1 | **PASS** |
-| R4 | AC4.1 | `core/tuning.mjs` | `T-U-09` | A4 | not run |
-| R4 | AC4.2 | stage/preview/commit | `T-I-02` | A4 | not run |
-| R4 | AC4.3 | atomic write | `T-I-03`, `T-M-06` | A4 | not run |
-| R4 | AC4.4 | revert | `T-I-04` | A4 | not run |
-| R4 | AC4.5 | blast radius | `T-I-05` | A4 | not run |
-| R4 | AC4.6 | control registry | `T-P-01` (**registry half**) | A3 | **PASS** — 23 controls, 18 DIAL / 5 PROPOSAL, `proposalThatWrites: []`, `writeWithoutToken: []`, and the markup agrees with the registry in BOTH directions |
+| R4 | AC4.1 | `core/tuning.mjs` | `T-U-09` | A4 | **PASS** — `tuningView()` reads the LIVE file (never a cached default), and the pane renders one editable `<input>` per knob, so it is an editor and not a display. The AC4.6 cross-check FAILED first: `tuning.knob` was declared `element: 'input'`, `rendered: true`, `repeated: 'per knob'` while the markup showed read-only text (`A4-CORRECTIONS.md` D30). |
+| R4 | AC4.2 | stage/preview/commit | `T-I-02` | A4 | **PASS** — the three states are visually distinct (`state-live` / `state-staged`), and the fixture preview runs against a fixed 12-pair set so the operator sees the CONSEQUENCE (`auto-merges 1/12 → 8/12`) before committing the NUMBER. Staging writes nothing: the config hash is byte-identical after a stage. |
+| R4 | AC4.3 | atomic write | `T-I-03`, `T-M-06` | A4 | **PASS** — temp file + `renameSync`; `crashAfterTemp` interrupts between the two steps and the old file survives. A commit with no note is refused (`E_NOTE_REQUIRED`). Measured end to end: commit changed **2 of 14 lines**, the other 12 byte-identical, `$comment` and CRLF intact. `T-I-03` (concurrent read during commit) remains **simulated** — see §3.2. |
+| R4 | AC4.4 | revert | `T-I-04` | A4 | **PASS** — byte-exact, because it restores the stored bytes rather than re-deriving them. Measured: the original hash returns exactly. A second revert in a row is refused (`E_ALREADY_REVERTED`) rather than silently toggling the config back to the value the operator just rejected. |
+| R4 | AC4.5 | blast radius | `T-I-05` | A4 | **PASS** — `auto.` and `weights.` are reported as `gate: true` and rendered as a ⚠ block, not a column. A4 shipped the pane with NO stylesheet rules for `.blast`, so the warning was indistinguishable from a table cell until D35 was fixed. |
+| R4 | AC4.6 | control registry | `T-P-01` (**registry half**) | A3, A4 | **PASS** — **25 controls, 20 DIAL / 5 PROPOSAL**, `proposalThatWrites: []`, `writeWithoutToken: []`, and the markup agrees with the registry in BOTH directions. The sweep now visits **every pane that renders a control** and asserts its own route table is COMPLETE, so a new pane fails the test until its route is added (`A4-CORRECTIONS.md` C29). The wiring check fails a rendered control with no handler (`C33`) — it found `think.whyNot` (D34). |
 | R5 | AC5.1 | `core/capabilities.mjs` | `T-U-07` | A5 | **PASS** — A0 is done, board built |
 | R5 | AC5.2 | spec-mode read | `T-U-07` | A5 | **PASS** (DISABLED row, code-sourced) |
 | R5 | AC5.3 | claimed→false | `T-U-08` | A5 | **PASS** |
