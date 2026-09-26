@@ -245,12 +245,39 @@ be **EXCLUDED** (stat-dirty only, another workstream's)."* **Both halves of that
    Think is the pane A6 edited. A change that tracks exactly the pane that changed is not another
    workstream's.
 
-**What actually changed in it, and why it must ship:** A6's `renderThink` fix replaced the `THIS RUN`
-row's `<span class="kv">est …¢</span>` with `<span class="kv">cost: <a href="/ledger">see the
-Ledger</a></span>`, and made the `MARK REJECTED-ALL` button conditional on `settled === 'pending'`.
-**Committing the code without the screenshot would ship a pane that renders `cost: see the Ledger`
-beside evidence still showing the `est —¢` cell it deleted** — a stale artifact asserting a
-capability the code no longer has, which is this engagement's defect class wearing a file extension.
+**What actually changed in it — measured from the pixels, not assumed from the diff.** A6's
+`renderThink` fix replaced the `THIS RUN` row's `<span class="kv">est …¢</span>` with
+`<span class="kv">cost: <a href="/ledger">see the Ledger</a></span>` and made the
+`MARK REJECTED-ALL` button conditional on `settled === 'pending'`.
+
+**This entry's first draft claimed the screenshot therefore "still shows the `est —¢` cell". That was
+false, and it was false in the way this whole engagement is about: I read the diff and asserted a
+consequence I had not looked at.** Unfiltering both PNGs and diffing the pixel data:
+
+| Measurement | Result |
+|---|---|
+| scanlines differing | **1 of 900** (row 899, the last row) |
+| pixels differing | **160 of 1,296,000** (0.0123%) |
+| the differing run | a **144 px-wide** element, `HEAD` at **x 314–458** → `NOW` at **x 391–535** |
+| shift | **+77 px to the right**, width unchanged |
+
+**Rows 0–898 are byte-identical.** So the `THIS RUN` row sits at the viewport's **bottom edge**, and
+the screenshot **never showed** the cell that was replaced — it shows the top sliver of the element
+that *follows* the changed text. The 144 px element is pushed **77 px right**, which is the direction
+and roughly the magnitude a longer preceding string produces: `est —¢` is 6 characters,
+`cost: see the Ledger` is 20. *(The element's identity — the reject button — is inferred from the
+markup, the CSS (`button { background: #1f2733 }`), and the geometry. It was **not** confirmed by
+measuring the live DOM's bounding boxes, and is recorded as an inference rather than a measurement.)*
+
+**The conclusion survives the correction, and only because the check was on the artifact rather than
+on a story about it.** The file is a real content change, it is A6's (only the Think screenshot moved,
+and Think is the pane A6 edited), it is deterministic, and it must ship: **the evidence and the code
+must come from the same revision.** What does *not* survive is the claim about *what a reader would
+see*, which I had no measurement for.
+
+**A second rule this bought:** *a 1-scanline binary difference is the case where "the visible page did
+not change" and "the artifact changed" are both true.* `git diff --stat` cannot distinguish them, and
+neither can a screenshot viewed at normal size. Unfiltering and diffing the pixel rows can.
 
 **The screenshot is also deterministic, so this is a one-time correction and not churn.**
 Re-running `a3-browser.test.mjs` reproduces `ad30ce3c…` byte-for-byte. It is not a flaky artifact; it

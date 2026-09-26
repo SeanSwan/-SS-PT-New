@@ -283,11 +283,16 @@ sitting.
   (`e4d2a8b0…` → `ad30ce3c…`) at an **identical 115,874 bytes**, and the cause is A6 — the three
   Compose screenshots are byte-identical to `HEAD` while only the **Think** screenshot moved, and Think
   is the pane A6 edited (`panes.mjs`, `paneRoutes.mjs`, `shell.mjs`). A6's `renderThink` fix replaced
-  the `est …¢` cell with `cost: see the Ledger` and made the reject button conditional, so the
-  screenshot had to move with it. **It ships.** Re-running the browser test reproduces the new hash
-  byte-for-byte, so it is a **stale** artifact, not a flaky one. The rule: *a generated artifact is the
-  evidence for the code that generates it* — and `git hash-object` vs `git rev-parse HEAD:<path>` is
-  the one-command check that separates *stat-dirty* from *changed*.
+  the `est …¢` cell with `cost: see the Ledger` and made the reject button conditional. **It ships.**
+  Re-running the browser test reproduces the new hash byte-for-byte, so it is a **stale** artifact, not
+  a flaky one. The rule: *a generated artifact is the evidence for the code that generates it* — and
+  `git hash-object` vs `git rev-parse HEAD:<path>` is the one-command check that separates *stat-dirty*
+  from *changed*.
+  **This bullet's first draft over-claimed, and the correction is the more useful half.** It said the
+  screenshot *"still shows the `est —¢` cell"*. Unfiltering both PNGs: **rows 0–898 are byte-identical**
+  and exactly **one scanline** differs (row 899) — a 144 px-wide element moved **+77 px right**. The
+  `THIS RUN` row sits at the viewport's bottom edge, so the screenshot **never showed** that cell. The
+  attribution to A6 stands (measured); the claim about *what a reader sees* did not (unmeasured).
 - **Corrections:** 7 (`C50`–`C56`). **Defects:** 8 (`D50`–`D57`), 0/0/4/4. **Mutations:** 19, all
   landed, all restored byte-exactly, 0 uncovered.
 
