@@ -15,43 +15,22 @@
  */
 
 import {
-  compileImage, directionsWithTiers, explain, readBrainVersion, resolveSlots,
+  compileImage, directionsWithTiers, explain, readBrainVersion,
 } from '../core/brain.mjs';
 import { compileAndRecord, getCompile, setOutcome } from '../core/session.mjs';
 import { capabilities, capabilitySummary } from '../core/capabilities.mjs';
-import { tuningView, readTuning, flattenTuning } from '../core/tuning.mjs';
+import { tuningView } from '../core/tuning.mjs';
 import { readFileSync } from 'node:fs';
 import { TUNING_PATH } from '../core/paths.mjs';
 import { commitStaged, revertLast, applyPatch } from '../core/tuningStage.mjs';
 import { previewStaged } from '../core/tuningPreview.mjs';
+import { validateOverrides } from '../core/overrides.mjs';
+// The SLOT PROJECTION (Rule 4 split). Imported for LOCAL use AND re-exported —
+// `export ... from` alone creates no local binding, and `server.mjs` imports
+// `slotsFromBrief` from this module's path.
+import { SLOT_ORDER, slotsFromBrief, slotsForEditor } from './slotView.mjs';
 
-/** The 12 slot keys, in the compiler's own order. */
-const SLOT_ORDER = Object.freeze([
-  'intent', 'subject', 'medium', 'styleAnchor', 'composition', 'optics',
-  'light', 'palette', 'material', 'abstraction', 'negative', 'output',
-]);
-
-/**
- * `resolveSlots()`'s object, as the `slots[]` array `ExplainView` uses.
- *
- * The reason a slot is empty is NOT invented here. `resolveSlots` returns values,
- * not reasons; the reason is recorded by `explain()` during a compile. So before a
- * compile the copy says exactly that, rather than claiming a facet deliberately
- * emptied a slot it never touched.
- */
-export function slotsFromBrief(brief) {
-  const resolved = resolveSlots(brief) ?? {};
-  return SLOT_ORDER.map((key) => {
-    const value = resolved[key];
-    const empty = value === undefined || value === null || String(value).trim() === '';
-    return {
-      key,
-      value: empty ? '' : String(value),
-      empty,
-      emptyReason: empty ? 'empty at resolve time — a compile records the reason it stayed empty' : null,
-    };
-  });
-}
+export { SLOT_ORDER, slotsFromBrief, slotsForEditor };
 
 /** `{ status, body }` for one API call. `state` is the server's UI state. */
 export function handleApi(route, { method, body, state, now = () => Date.now() }) {
@@ -110,7 +89,20 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
   // --- Compile: free, no generation ---------------------------------------
   if (route === 'compile') {
     const brief = { ...state.brief, ...(body.brief ?? {}) };
-    if (body.slotOverrides) brief.slotOverrides = body.slotOverrides;
+    // THE OVERRIDE FENCE. This was a bare `if (body.slotOverrides) brief.slotOverrides
+    // = body.slotOverrides` — an unvalidated passthrough into the layer `resolveSlots`
+    // applies LAST, which can therefore delete a law. Measured: it accepted
+    // `{"slotOverrides": {"negative": ""}}` and produced a compile reporting all six
+    // lawChecks green with the kill-list gone. The verdict lives in `core/overrides.mjs`
+    // because the Tune pane shows the same refusal reason; this handler stays thin.
+    const ov = validateOverrides(body.slotOverrides, SLOT_ORDER);
+    if (!ov.ok) return fail(400, ov.code, ov.message);
+    // The STAGED layer and the per-request layer are merged here, staged first, so a
+    // request may narrow a stage for one compile without discarding it. `state` is
+    // server state — the same place the tuning draft lives — because the client
+    // reloads on every action and would otherwise lose an unsaved edit.
+    const merged = { ...(state.slotOverrides ?? {}), ...ov.overrides };
+    if (Object.keys(merged).length) brief.slotOverrides = merged;
     try {
       const r = compileAndRecord(brief, body.caps ?? {});
       state.lastCompileId = r.compileId;
@@ -122,6 +114,27 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
     } catch (e) {
       return domainError(e, 400);
     }
+  }
+
+  // --- The override stage: free, session-only, no file touched -------------
+  if (route === 'overrides-stage') {
+    if (method !== 'POST') return fail(405, 'E_METHOD', 'POST only');
+    // THE SAME FENCE AS COMPILE, because it is the same layer. A stage that accepted
+    // `negative` and a compile that refused it would be a console whose editor offers
+    // a key the engine rejects — the operator would be invited to make a refusal.
+    const ov = validateOverrides(body.overrides, SLOT_ORDER);
+    if (!ov.ok) return fail(400, ov.code, ov.message);
+    // A REPLACE, not a merge. The client sends the COMPLETE override set it computes
+    // from the editor, so editing a slot back to its resolved value removes the
+    // override — a merge would make an override impossible to undo.
+    state.slotOverrides = ov.overrides;
+    return ok({
+      overrides: state.slotOverrides,
+      changedKeys: Object.keys(state.slotOverrides),
+      // Stated because the operator is entitled to know what a stage did NOT do.
+      wrote: false,
+      note: 'session state only — no file was written and no compile was run',
+    });
   }
 
   // --- Read-only views ------------------------------------------------------
@@ -197,18 +210,18 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
   }
 
   // --- The Tune commit path (A4) -------------------------------------------
-  // These routes are now REAL, and each one is guarded by the mutation token at the
+  // These routes are REAL, and each one is guarded by the mutation token at the
   // transport layer (`MUTATION_ROUTES`). The staging state lives on `state`, which is the
   // server's per-session object — staging writes NOTHING to disk, which is what makes the
   // preview meaningful and the commit a separate, deliberate act.
-  if (route === 'tuning') {
-    const flat = flattenTuning(readTuning());
-    return ok({
-      view: { current: flat, staged: state.staged ?? {}, note: state.note ?? '', lastCommit: state.lastCommit ?? null },
-      preview: state.staged && Object.keys(state.staged).length
-        ? previewStaged({ staged: state.staged }) : null,
-    });
-  }
+  //
+  // D37: a SECOND `if (route === 'tuning')` used to sit here, returning
+  // `{current, staged, note, lastCommit}`. It was UNREACHABLE — the earlier branch
+  // returns on every path — and it disagreed with the live one, which additionally
+  // reports `changedKeys`, `blastRadius` and `state`. Dead code that returns a
+  // different shape is a trap: deleting the LIVE branch as "the duplicate" would have
+  // silently changed the API's response without failing a single test. The live
+  // branch is the one above `route === 'state'`; there is no second one.
 
   if (route === 'tuning-stage') {
     // DISCARD: an empty patch clears the stage rather than erroring, because "clear what I
@@ -271,5 +284,3 @@ export function handleApi(route, { method, body, state, now = () => Date.now() }
 
   return fail(404, 'E_NO_ROUTE', `no api route named ${JSON.stringify(route)}`);
 }
-
-export { SLOT_ORDER };

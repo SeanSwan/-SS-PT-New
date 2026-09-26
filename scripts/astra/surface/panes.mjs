@@ -20,6 +20,11 @@
 
 import { escapeHtml, badge, controlAttr, stateEmpty, statePartial, stateFailure, stateNotBuilt } from './shell.mjs';
 import { CONTROLS, controlsForPane } from './controls.mjs';
+// The 12 SLOTS table and its override editor. Imported for LOCAL use AND
+// re-exported — `export ... from` alone creates no local binding (bitten 3×).
+import { renderSlots } from './paneSlots.mjs';
+
+export { renderSlots };
 
 const byId = (id) => CONTROLS.find((c) => c.id === id);
 const ctl = (id) => byId(id) ?? { id, kind: 'dial', effect: 'unregistered control' };
@@ -109,44 +114,15 @@ export function renderDirections({ directions = null, error = null }) {
 }
 
 /**
- * The 12 slots.
+ * The Compose screen: brief, then directions, then the slot layer. (§2.1)
  *
- * Slot 2 is *"often deliberately empty"* per the contract, so an empty slot renders
- * its REASON — `(deliberately empty — pure phenomenon)` — rather than a dash. A dash
- * reads as a bug; the reason reads as a decision. (`AC1.1`)
+ * `renderSlots` lives in `paneSlots.mjs` (Rule 4 split) and is imported for local
+ * use AND re-exported below. `overrides` is the staged override map, passed
+ * straight through — the pane reports what is staged, it does not decide it.
  */
-export function renderSlots({ slots = null }) {
-  const stage = ctl('slots.stageOverrides');
-  const reset = ctl('slots.reset');
-  if (!slots || slots.length === 0) {
-    return `<section class="panel" aria-labelledby="slots-h">
-  <h2 id="slots-h">12 SLOTS <span class="muted">the override layer — the brief above never changes</span></h2>
-  ${stateEmpty({
-    what: 'No slot values yet',
-    reason: 'slots are resolved by a compile, and nothing has been compiled in this session',
-  })}
-</section>`;
-  }
-  const rows = slots.map((s, i) => {
-    const value = s.empty
-      ? `<span class="muted">(${escapeHtml(s.emptyReason ?? 'empty — no reason recorded')})</span>`
-      : escapeHtml(s.value);
-    return `<tr><td class="n">${i + 1}</td><td class="k">${escapeHtml(s.key)}</td><td>${value}</td></tr>`;
-  }).join('');
-  return `<section class="panel" aria-labelledby="slots-h">
-  <h2 id="slots-h">12 SLOTS <span class="muted">the override layer — the brief above never changes</span></h2>
-  <table class="slots"><tbody>${rows}</tbody></table>
-  <p class="row-actions">
-    <button type="button" ${controlAttr(stage)}>STAGE OVERRIDES</button>
-    <button type="button" ${controlAttr(reset)}>RESET</button>
-  </p>
-</section>`;
-}
-
-/** The Compose screen: brief, then directions, then the slot layer. (§2.1) */
-export function renderCompose({ brief, directions, directionsError, slots }) {
+export function renderCompose({ brief, directions, directionsError, slots, overrides = {} }) {
   return [renderBriefForm({ brief }), renderDirections({ directions, error: directionsError }),
-    renderSlots({ slots })].join('\n');
+    renderSlots({ slots, overrides })].join('\n');
 }
 
 /** One LAW row. `passed: null` is NOT OBSERVED — never rendered as a pass. */

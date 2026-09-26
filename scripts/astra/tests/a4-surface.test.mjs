@@ -29,8 +29,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 
 import { startServer } from '../surface/server.mjs';
 import { handleApi } from '../surface/api.mjs';
@@ -39,7 +40,19 @@ import { PRIOR_PATH } from '../core/tuningStage.mjs';
 import { CONTROLS, UNWIRED_CONTROLS } from '../surface/controls.mjs';
 import { KNOB_ORDER } from '../surface/paneTune.mjs';
 
-const CLIENT_PATH = fileURLToPath(new URL('../static/astra.js', import.meta.url));
+/**
+ * EVERY client module, enumerated from DISK rather than listed by hand.
+ *
+ * The client became three modules in A4b (Rule 4 split: plumbing / actions / entry),
+ * and a handler may live in any of them. A hand-kept list of files to search is how a
+ * NEW client file gets silently excluded from this check — and an excluded file is
+ * exactly where a dead control would then hide. So the list is read from the
+ * directory, and the test below asserts the enumeration is non-trivial.
+ */
+const CLIENT_DIR = fileURLToPath(new URL('../static/', import.meta.url));
+const clientFiles = () => readdirSync(CLIENT_DIR).filter((f) => f.endsWith('.js')).sort();
+const clientSource = () => clientFiles()
+  .map((f) => readFileSync(join(CLIENT_DIR, f), 'utf8')).join('\n');
 
 const TOKEN = 'a4-test-token';
 const sha = (t) => createHash('sha256').update(t, 'utf8').digest('hex');
@@ -172,7 +185,10 @@ test('T-I-02 D32 the note field carries its OWN control id, not the stage action
 });
 
 test('a rendered control with no handler is a dead control, and the exclusions are reasoned', () => {
-  const js = readFileSync(CLIENT_PATH, 'utf8');
+  // An empty enumeration would make every check below pass while reading nothing.
+  assert.ok(clientFiles().length >= 3,
+    `expected the client modules, found ${clientFiles().length} in static/`);
+  const js = clientSource();
   const rendered = CONTROLS.filter((c) => c.rendered);
   // A control is reached either by its id (an action, dispatched) or by the dashed DOM id
   // of the field it owns. Either counts as wired; nothing else does.

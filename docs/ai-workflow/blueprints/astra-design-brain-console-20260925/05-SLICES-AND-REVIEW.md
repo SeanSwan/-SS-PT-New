@@ -103,13 +103,49 @@ sitting.
   rendered as read-only text (`D30`), `DISCARD STAGE` was missing (`D31`), `think.whyNot` did nothing
   (`D34`), and the pane shipped with **no stylesheet rules at all** so the blast-radius warning that
   `T-I-05` requires was indistinguishable from a table cell (`D35`).
+- **Carry into A5 — ALL THREE ANSWERED by A4b:**
+  - **`server.mjs` is at exactly 300 lines.** → **Split in A4b** (`routes.mjs`, `slotView.mjs`); it is now **297**, and `smoke.mjs` is at **299**. Both still need care before A5 adds two panes' routes.
+  - **`R3 / AC3.2 / T-I-01` is open and its test does not exist.** → **CLOSED in A4b.** The editor is real and the tests exist.
+  - `T-P-01`'s `AC5.4` half is still A5's alone. → still true.
+
+### A4b — the override editor, and the law it could delete ← **✅ DONE 2026-09-26**
+- **Why it was carved out:** A4's handoff named `R3 / AC3.2 / T-I-01` as a requirement already marked
+  **"not run"** whose test did not exist, and said it should land before A5's new work. It is not a new
+  feature; it is a gap in a requirement this packet had already claimed.
+- **Does:** the 12 SLOTS table as an EDITOR — 11 editable inputs and 1 deliberately locked row — with
+  `STAGE OVERRIDES` / `RESET` collecting them into `brief.slotOverrides` (session-only, no file written).
+  Plus the LAW 3 carry guard the editor exposed the need for, and the Rule 4 budget guard as a test.
+- **Entry:** A4 exit met. ✅
+- **Exit:** `T-I-01` (AC3.1 **and** AC3.2), `INV6`, and `T-F-04` pass. ✅ **138/138 tests**, 34/34 smoke,
+  **0 Rule 4 offenders across three scopes** with 1 declared exception.
+- **The defect it was hiding.** `slotOverrides` was an **unvalidated passthrough** from the HTTP body
+  into the one layer `resolveSlots` applies **LAST** — so it could delete LAW 3's kill-list. Measured:
+  `{"slotOverrides": {"negative": ""}}` returned a compile with `ok: true` and **all six lawChecks
+  green**. Two guards now exist and both are asserted, because either alone would be a plausible-looking
+  fix that misses the other's case: the law filter refuses a `negative` naming no family (a **net**), and
+  `core/overrides.mjs` refuses the key outright (a **fence**).
+- **Evidence:** `A4b-CORRECTIONS.md` §5 — seven mutations, each asserted to have **landed** before the
+  run and each restored byte-exactly. Deleting the shared policy reddens **7 tests across both halves**;
+  the split of `swanLawFilter.test.mjs` is proven lossless because the parent's hash is **identical to
+  `HEAD:`**.
+- **Corrections:** 6 (`C36`–`C41`), including the one that matters: **a PASS is also a claim.**
+  `A4-CORRECTIONS.md` §2 established that a refusal is a claim; A4b is the next turn — the compile
+  reported all six checks green over a deleted law, and the smoke suite's `29 checks` was a list length
+  presented as a coverage claim (`overrides-stage` had no check at all).
+- **Defects:** 5 (`D36`–`D40`). **Three of them were defects in the CHECKS themselves**, found by
+  mutation-testing the checks: a **tautological** assertion in A4b's own new editor test (it read the
+  expected reason from the same module it was testing, so replacing the reason with `"x"` left it
+  green), a **loose discriminator** (`row.includes('negative')` matched slot 5, whose default value is
+  *"single dominant gesture, generous negative space"*), and an **inner-only capture** (the row regex
+  dropped the opening `<tr>`, so a class assertion failed against markup that carried the class).
 - **Carry into A5:**
-  - **`server.mjs` is at exactly 300 lines.** Split it before adding two panes' routes.
-  - **`R3 / AC3.2 / T-I-01` is open and its test does not exist.** `slots.stageOverrides` renders and
-    does nothing, recorded in `UNWIRED_CONTROLS` (gap **G6**). The engine and `/api/compile` already
-    accept `slotOverrides`; only the surface is missing. This is a requirement already marked
-    "not run", so it should land **before** A5's new work.
-  - `T-P-01`'s `AC5.4` half is still A5's alone.
+  - **Split `smoke.mjs` (299).** `server.mjs` is 297. Both are at the cap.
+  - **`UNWIRED_CONTROLS` is now EMPTY** and `slots.override` is a new registry control, so A5 should
+    **re-measure** the registry rather than trust A3's count. Measured at A4b: **26 controls,
+    21 DIAL / 5 PROPOSAL, 21 rendered.**
+  - **`T-P-01`'s `AC5.4` half is still A5's alone.**
+  - **Rule 4's guard now has three scopes and a declared-exception list.** A new tree should be added
+    to it in the same pass, or its green is silent about that tree.
 
 ### A5 — Law + State boards ← **◐ PARTIAL — the board is built; the UI panes are not**
 - **Does:** the LAW rows from the compiler's own `lawChecks`; the honest lane board from A0's code-derived list.

@@ -21,7 +21,7 @@
  * Dependency-free apart from the law filter.
  */
 
-import { assertLawful } from './swanLawFilter.mjs';
+import { assertLawful, KILL_LIST_PROSE } from './swanLawFilter.mjs';
 import { KILL_LIST_ENABLED } from './forgeConfig.mjs';
 // Rendering lives next door (rule-4 split). Imported for LOCAL use AND
 // re-exported — `export ... from` alone creates no local binding (bitten 3×).
@@ -132,8 +132,11 @@ export function resolveSlots(brief = {}) {
   }
 
   // Negative slot always carries the kill-list, even when a provider cannot use it.
-  slots.negative = 'iridescent gradient, lens flare, causeless particles, glassmorphism, '
-    + 'literal creature form, fantasy wallpaper, watermark, text artifacts';
+  // The prose comes from the law filter's ONE definition (`swanLawPatterns.mjs`),
+  // which is also where the matcher families live. It was a literal here and the
+  // matchers were there — two representations of one law, free to drift. They had
+  // drifted, and nothing noticed until LAW 3 began asserting the list is CARRIED.
+  slots.negative = KILL_LIST_PROSE;
 
   slots.output = [brief.aspect || '16:9', slots.output].filter(Boolean).join(', ');
 

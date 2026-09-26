@@ -39,20 +39,14 @@ import { previewStaged } from '../core/tuningPreview.mjs';
 import { layout, stateDenied } from './shell.mjs';
 import { renderCompose, renderThink, renderNotBuilt } from './panes.mjs';
 import { renderTune } from './paneTune.mjs';
-import { handleApi, slotsFromBrief } from './api.mjs';
+import { handleApi, slotsForEditor } from './api.mjs';
+// Route POLICY (which routes mutate, which are POST-only) lives next door — see
+// `routes.mjs` for why the two lists are one list.
+import { MUTATION_ROUTES, POST_ONLY } from './routes.mjs';
 
 const STATIC_ROOT = join(ASTRA_ROOT, 'static');
 const TOKEN_COOKIE = 'astra_token';
 const BODY_MAX = 256 * 1024;
-
-/** Routes that change something. Everything else is a read. */
-const MUTATION_ROUTES = Object.freeze([
-  'compile', 'reject', 'preview', 'tuning-stage', 'tuning-commit', 'tuning-revert',
-]);
-
-/** API routes that are POST-only. A GET on one is a method error, not a 404. */
-const POST_ONLY = Object.freeze(['directions', 'compile', 'reject', 'preview',
-  'tuning-stage', 'tuning-commit', 'tuning-revert']);
 
 const json = (res, status, body, headers = {}) => {
   const text = JSON.stringify(body, null, 2);
@@ -128,7 +122,7 @@ function serveStatic(pathname, res) {
 }
 
 /** Build the request handler. Exported so a test can drive it without a socket. */
-export function createHandler({ token, state = { brief: {}, directions: null, lastCompileId: null, staged: {}, note: '', lastCommit: null } }) {
+export function createHandler({ token, state = { brief: {}, directions: null, lastCompileId: null, staged: {}, slotOverrides: {}, note: '', lastCommit: null } }) {
   return async (req, res) => {
     const url = new URL(req.url, `http://${LOOPBACK_HOST}`);
     const pathname = url.pathname;
@@ -185,11 +179,15 @@ export function createHandler({ token, state = { brief: {}, directions: null, la
       layout({ title, activePane, brainVersion, body, note: tasteNote() }), setToken);
 
     if (pathname === '/' || pathname === '/choose') {
+      const overrides = state.slotOverrides ?? {};
       shell(pathname === '/' ? 'Compose' : 'Choose', pathname === '/' ? 'compose' : 'choose',
         renderCompose({
           brief: state.brief,
           directions: state.directions,
-          slots: slotsFromBrief(state.brief),
+          // The editor needs the EFFECTIVE value AND the baseline it came from, so an
+          // edit back to the resolved value removes an override instead of pinning it.
+          slots: slotsForEditor(state.brief, overrides),
+          overrides,
         }));
       return;
     }

@@ -28,7 +28,7 @@ they ran: `T-U-05` and `T-U-07` were not executable as written — see `A1-CORRE
 
 | ID | Serves | Test | Expected observable result | Forbidden side effect |
 |---|---|---|---|---|
-| `T-I-01` | R3/AC3.1 | submit brief, stage overrides, re-read persisted `text` | byte-identical to what was typed | in-place mutation of `text` |
+| `T-I-01` | R3/AC3.1, R3/AC3.2 | submit brief, stage overrides, re-read persisted `text` | byte-identical to what was typed; the override layer changes SLOTS only | in-place mutation of `text` |
 | `T-I-02` | R4/AC4.2 | stage → preview → commit | three distinct states observed in order | a commit occurring before a preview |
 | `T-I-03` | R4/AC4.3 | concurrent read during a commit | reader sees old **or** new bytes, never a partial file | a torn read |
 | `T-I-04` | R4/AC4.4 | commit then revert | restored file hash == pre-commit hash | losing the prior bytes |
@@ -85,11 +85,25 @@ they ran: `T-U-05` and `T-U-07` were not executable as written — see `A1-CORRE
 **`T-F-04` measured at A1:** largest touched module `shared/swanLawFilter.mjs` at **294 / 300**. Within
 budget, but four modules sit above 280 — the next edit to any of them should expect to split.
 
+**`T-F-04` measured at A4b — and the scope was the defect.** A4b turned this row from a remembered
+number into a test (`a4b-budget.test.mjs`), and widening the scope is what found the problem: every
+prior claim counted `.mjs` modules and said nothing about the two **shipped static assets** the browser
+loads. `static/astra.js` was **320 lines** — over the cap, and out of scope the whole time. The scope is
+now three trees (`.mjs`/`.js`/`.css` for `scripts/astra`, `.mjs` for `shared`, `.mjs` for the shared
+compiler's own tests), with a **declared-exception list** asserted in both directions. Measured at A4b:
+**0 offenders across all three scopes**, largest in-scope file `server.mjs` at **297**, and exactly one
+declared exception (`variantRun.test.mjs`, pre-existing, owned by another workstream). See
+`A4b-CORRECTIONS.md` C39.
+
 ### 1.7 Commands
 
 ```bash
-# unit + integration — RUN at A4: 113 pass / 0 fail  (A1: 30, A2: 51, A3: 79, A4: 113)
+# unit + integration — RUN at A4b: 138 pass / 0 fail  (A1: 30, A2: 51, A3: 79, A4: 113, A4b: 138)
 node --test scripts/astra/tests/*.test.mjs
+
+# the smoke runner — RUN at A4b: 34 passed, 0 failed  (A4: 29)
+# it now also fails if a MUTATION_ROUTES entry has no check naming it (D39)
+node scripts/astra/surface/smoke.mjs --port 0
 
 # the A1 exit command — prints an ExplainView for both a lawful and a blocked compile
 node scripts/astra/cli.mjs explain fixtures/brief-hero.json
@@ -150,8 +164,8 @@ unchanged.
 | R2 | AC2.2 | Choose pane | `T-U-02`, `T-A-02` | A3 | **PASS** — T-A-02 as a real 360px browser measurement; T-U-02 asserts a `prior` card never contains the word `EVIDENCE` |
 | R2 | AC2.3 | swatch derivation | `T-U-03` | A3 | **PASS** — byte-identical across renders; no data-URI / url() / http in the strip |
 | R2 | AC2.4 | preview gate | `T-I-07` (no-override half) | A3 | **PASS (no-override half)** — the Law and State panes render ZERO registry controls, so no affordance can exist. The `E_LAW_VIOLATION` half is A1. |
-| R3 | AC3.1 | `core/variants.mjs` brief write | `T-I-01` | A1 | not run |
-| R3 | AC3.2 | override layer | `T-I-01` | A1, A3, **A4** | **not run, and the test does not exist.** A4 found that this is not merely unrun: `slots.stageOverrides` renders on Compose and has no handler, because `renderSlots` draws the 12 slots as read-only cells and there is nothing for the button to stage. `/api/compile` and the engine already accept `slotOverrides`. Recorded in code as `UNWIRED_CONTROLS` with a reason and an owner (`A4-CORRECTIONS.md` C30, §6; gap **G6**). This is the next piece of work, ahead of A5. |
+| R3 | AC3.1 | brief text immutability | `T-I-01` | A1, **A4b** | **PASS (A4b).** `a4b-editor.test.mjs` — "AC3.1 staging an override never mutates the brief text". Staging is the ONE layer `resolveSlots` applies LAST, so it is the only thing that can overwrite a decided value; the test submits an awkward brief (quotes, `&`, angle brackets, a newline), stages an override, re-reads the pane, and asserts the text is byte-identical — then asserts the stage really landed, so the immutability claim cannot pass on a no-op. Mutation-proven: making `overrides-stage` write through to `state.brief.text` reddens exactly this test. |
+| R3 | AC3.2 | override layer | `T-I-01` | A1, A3, A4, **A4b** | **PASS (A4b) — CLOSED.** A4 recorded this as *"not run, and the test does not exist"*, and correctly diagnosed why: `slots.stageOverrides` rendered on Compose with no handler, because `renderSlots` drew the 12 slots as read-only cells. A4b built the editor (11 editable inputs + 1 locked row, `STAGE OVERRIDES` / `RESET`, session-only) and the tests now exist across `a4b-editor.test.mjs` (the pane), `a4b-overrides.test.mjs` (the boundary) and `a4b-surface.test.mjs`. `UNWIRED_CONTROLS` — the in-code record of the gap — is now **empty**. **Closing this gap exposed a defect the gap had hidden**: `slotOverrides` was an unvalidated passthrough into the last-applied layer, so `{"negative": ""}` deleted LAW 3's kill-list and the compile still reported all six lawChecks green. Fixed at two layers (`shared/swanLawFilter.mjs`'s LAW 3 second condition, and `core/overrides.mjs`'s fence). See `A4b-CORRECTIONS.md` §2, D36. |
 | R3 | AC3.3 | `personify()` gate | `T-U-06` | A1 | **PASS** |
 | R4 | AC4.1 | `core/tuning.mjs` | `T-U-09` | A4 | **PASS** — `tuningView()` reads the LIVE file (never a cached default), and the pane renders one editable `<input>` per knob, so it is an editor and not a display. The AC4.6 cross-check FAILED first: `tuning.knob` was declared `element: 'input'`, `rendered: true`, `repeated: 'per knob'` while the markup showed read-only text (`A4-CORRECTIONS.md` D30). |
 | R4 | AC4.2 | stage/preview/commit | `T-I-02` | A4 | **PASS** — the three states are visually distinct (`state-live` / `state-staged`), and the fixture preview runs against a fixed 12-pair set so the operator sees the CONSEQUENCE (`auto-merges 1/12 → 8/12`) before committing the NUMBER. Staging writes nothing: the config hash is byte-identical after a stage. |
@@ -177,7 +191,7 @@ unchanged.
 | INV3 | — | LAW gate | `T-I-07` | A1 | not run |
 | INV4 | — | spend gate | `T-U-01`, `T-I-07` | A1, A3 | **T-U-01 PASS**; T-I-07 not run |
 | INV5 | — | version read | `T-U-05` | A1 | **PASS** |
-| INV6 | — | immutability | `T-I-01` | A1 | not run |
+| INV6 | — | immutability | `T-I-01` | A1, **A4b** | **PASS (A4b)** — the brief text is asserted byte-identical across a stage, with the stage asserted to have happened. See the R3/AC3.1 row. |
 | INV7 | — | fail-closed | `T-I-07` | A1 | not run |
 | INV8 | — | no fake metrics | `T-U-07` (every lane needs a source) | A5 | **PASS** — and the degradation is proven to fire |
 | INV9 | — | loopback | `T-U-10` | A1 | **PASS** |

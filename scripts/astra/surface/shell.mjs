@@ -87,7 +87,7 @@ ${body}
 </div>
 ${note ? `<footer class="note">${escapeHtml(note)}</footer>` : ''}
 <pre id="measure" hidden aria-hidden="true">${escapeHtml(measure)}</pre>
-<script src="/static/astra.js"></script>
+<script type="module" src="/static/astra.js"></script>
 </body>
 </html>`;
 }

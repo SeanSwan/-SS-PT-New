@@ -66,6 +66,18 @@ export const CONTROLS = Object.freeze([
     effect: 'Gate 0 — ZERO cost, nothing generated', writes: false, token: false, rendered: true,
   },
   {
+    // THE EDITOR ITSELF. `repeated` is how the registry says "this id appears once
+    // per overridable slot" without N registrations — the same shape as
+    // `tuning.knob`, and for the same reason: 11 near-identical entries would be
+    // 11 places to forget when the 12th slot is added.
+    id: 'slots.override', pane: 'compose', label: 'A slot override', kind: 'dial', element: 'input',
+    effect: 'one compile — the brief text is untouched', writes: false, token: false,
+    rendered: true, repeated: 'per overridable slot',
+    note: 'The one layer `resolveSlots` applies LAST, so it can overwrite a decided value. '
+      + 'Slot 11 (`negative`) is deliberately NOT editable — it carries LAW 3\'s kill-list, '
+      + 'and `core/overrides.mjs` refuses it at the API boundary too.',
+  },
+  {
     id: 'slots.stageOverrides', pane: 'compose', label: 'Stage overrides', kind: 'dial', element: 'button',
     effect: 'one compile', writes: false, token: false, rendered: true,
   },
@@ -204,21 +216,15 @@ export const READ_ONLY_PANES = Object.freeze([
  * the markup carries it; it says nothing about whether anything happens on use. A4 found
  * two such controls only because it wrote the wiring check below, and one of them was
  * `think.whyNot` — a button labelled "Why not?" on the pane whose entire job is answering
- * that question. (Fixed in A4. The other is this list's only entry.)
+ * that question.
  *
- * The list is EXCLUSIONS, so it must shrink, and every entry names why and who owns the
- * fix — the same shape as `READ_ONLY_PANES`, and for the same reason: a later author has
- * to delete an entry that says why they should not.
+ * EMPTY SINCE A4b, and it took the wiring check to empty it: `slots.stageOverrides` was
+ * the last entry, and it was only there because the override editor did not exist. The
+ * list is kept — and kept EMPTY rather than deleted — because it is the exclusion list
+ * for a check that must fail loudly the moment a rendered control loses its handler. A
+ * deleted list is a deleted check.
  */
-export const UNWIRED_CONTROLS = Object.freeze([
-  {
-    id: 'slots.stageOverrides',
-    why: 'The override layer has no editor: `renderSlots` draws the 12 slots as read-only '
-      + 'cells, so there is nothing for this button to stage. The engine and `/api/compile` '
-      + 'already accept `slotOverrides`; only the surface is missing.',
-    ownedBy: 'R3 / AC3.2 / `T-I-01` — recorded "not run" in 04-TESTS-TRACEABILITY.md',
-  },
-]);
+export const UNWIRED_CONTROLS = Object.freeze([]);
 
 /** The registry's own consistency check. Returns findings; never throws. */
 export function verifyControls(controls = CONTROLS) {

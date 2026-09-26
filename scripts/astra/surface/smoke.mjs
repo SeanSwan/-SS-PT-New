@@ -31,6 +31,10 @@
 import { startServer } from './server.mjs';
 import { readBrainVersion } from '../core/brain.mjs';
 import { createHarness, report, stripComments } from './smokeHarness.mjs';
+// A4b's checks, and the guard that keeps this file's check list honest about the routes
+// that exist. Sibling module for Rule 4 — this file is at 288 of 300 lines.
+import { checkOverrides, checkRouteCoverage } from './smokeOverrides.mjs';
+import { MUTATION_ROUTES } from './routes.mjs';
 
 const argv = process.argv.slice(2);
 const argOf = (flag, fallback) => {
@@ -192,6 +196,9 @@ async function run() {
         || expect(r.parsed?.error?.code, 'E_GENERATION_DISABLED', 'code') };
   });
 
+  // --- the override layer (A4b) --------------------------------------------
+  await checkOverrides({ call, check, expect });
+
   // --- the Tune routes are REAL as of A4 -----------------------------------
   await check('GET  /api/tuning (live knobs)', async () => {
     const r = await call('GET', '/api/tuning');
@@ -276,6 +283,10 @@ async function run() {
     return { status: r.status, code: r.parsed?.error?.code,
       note: expect(r.status, 404, 'status') || expect(r.parsed?.error?.code, 'E_COMPILE_UNKNOWN', 'code') };
   });
+
+  // LAST, because it reads what was actually run. `${rows.length} checks` reads as "the
+  // surface is covered"; this is what makes that a measured claim rather than a list length.
+  await checkRouteCoverage({ rows, check, routes: MUTATION_ROUTES });
 
   await server.close();
 

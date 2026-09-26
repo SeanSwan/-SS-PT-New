@@ -235,10 +235,50 @@ td, th { padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--line); text-ali
 .state-staged { color: var(--prior); }
 
 .note-label { display: block; font-size: 0.82rem; margin: 0.3rem 0 0.2rem; }
-#tune-note { width: 100%; box-sizing: border-box; font-family: var(--sans); font-size: 0.9rem;
+/* D38 — this selector read `#tune-note` while the textarea's id is `tuning-note`
+ * (`paneTune.mjs:151`, `astra.js:290`). It therefore matched NOTHING: the note field
+ * rendered unstyled and, worse, with no `:focus-visible` ring — on a surface whose
+ * `T-A-03` traversal requirement depends on focus being visible. A rule that cannot
+ * match is the CSS twin of a button with no handler. */
+#tuning-note { width: 100%; box-sizing: border-box; font-family: var(--sans); font-size: 0.9rem;
   background: var(--bg); color: var(--ink); border: 1px solid var(--line);
   border-radius: 4px; padding: 0.4rem; }
-#tune-note:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#tuning-note:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ── The override editor (A4b) ────────────────────────────────────────────────
+ * The slot table is EDITABLE now, so it has to look editable. A read-only-looking
+ * cell that silently accepts typing is the same class of lie as a button that does
+ * nothing when pressed — the operator concludes the field is decoration. */
+.slots--editable td { vertical-align: top; }
+.slots--editable td:nth-child(3) { width: 100%; }
+.slot-input { width: 100%; box-sizing: border-box; font-family: var(--mono); font-size: 0.86rem;
+  background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+  border-radius: 4px; padding: 0.3rem 0.4rem; }
+.slot-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.slot-input::placeholder { color: var(--muted); font-style: italic; }
+
+/* A staged slot is marked on BOTH the row and the field, so the state survives
+ * greyscale and a colour-blind reader. Same reasoning as the tier badge. */
+.slot--staged .slot-input { border-color: var(--prior); }
+.slot--staged .k { color: var(--prior); }
+.slot-state { font-size: 0.82rem; overflow-wrap: anywhere; }
+/* The locked slot is dimmed and carries no input — there is nothing to type into. */
+.slot--locked { opacity: 0.85; }
+.slot-locked { color: var(--muted); }
+.slot-intro { margin: 0 0 0.4rem; font-size: 0.85rem; }
+.slot-staged-summary { margin-left: 0.6rem; font-size: 0.85rem; }
+
+/* At the narrow end the editor must still FIT — `T-A-01` measures 360px, and an
+ * `overflow-x: hidden` would make the test pass against a broken layout rather than
+ * fix it (see this file's header). So the columns are squeezed instead: the number
+ * column is dropped to its minimum, the key column narrows, and the state column
+ * loses its padding. Nothing is hidden, because the state is the point of the pane. */
+@media (max-width: 560px) {
+  .slots--editable .n { width: 1.2rem; padding-left: 0; padding-right: 0.2rem; }
+  .slots--editable .k { width: 4.5rem; font-size: 0.74rem; }
+  .slots--editable .slot-state { padding-left: 0.2rem; padding-right: 0; }
+  .slot-input { font-size: 0.78rem; padding: 0.25rem 0.3rem; }
+}
 
 /* The `think.whyNot` reveal. A brief tint on the panel it points at, and nothing more:
  * the answer is the LAW table itself, not an animation. */

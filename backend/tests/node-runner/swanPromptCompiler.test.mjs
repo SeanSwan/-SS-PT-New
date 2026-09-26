@@ -120,6 +120,28 @@ test('slotOverrides (refine chips) are applied last and win', () => {
   assert.equal(c.slots.light, 'flat overcast light');
 });
 
+test('REGRESSION: an override cannot DELETE the kill-list (LAW 3, second condition)', () => {
+  // `slotOverrides` is applied LAST — after `resolveSlots` sets the kill-list —
+  // so an override can empty the slot. Nothing used to notice, because the LAW 3
+  // loop scans positive slots only. Measured before the fix: this exact compile
+  // returned OK with all six lawChecks green, INCLUDING `LAW3-kill-list`.
+  assert.throws(
+    () => compileImage({ ...brief, slotOverrides: { negative: '' } }, VERIFIED_CAPS),
+    (e) => e.code === 'E_LAW_VIOLATION'
+      && e.violations.some((v) => v.law === 'LAW3-kill-list' && v.slot === 'negative'),
+  );
+  // A REPLACEMENT naming no kill-list family is the same deletion wearing a value.
+  assert.throws(
+    () => compileImage({ ...brief, slotOverrides: { negative: 'watermark only' } }, VERIFIED_CAPS),
+    (e) => e.code === 'E_LAW_VIOLATION',
+  );
+  // The ordinary override path is untouched, and the kill-list survives it.
+  const c = compileImage({ ...brief, slotOverrides: { light: 'flat overcast light' } }, VERIFIED_CAPS);
+  assert.equal(c.slots.light, 'flat overcast light');
+  assert.match(c.slots.negative, /iridescent gradient/);
+  assert.ok(c.lawChecks.every((k) => k.passed));
+});
+
 
 
 // ── Serializer strategies (from the shipped-code hostile review) ────────────
