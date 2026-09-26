@@ -13,7 +13,6 @@ const stripComments = (source: string) =>
 const hookSource = stripComments(read('./useExerciseTeachData.ts'));
 const routeComponentsSource = read('../../../components/DashBoard/UniversalDashboardLayout.routeComponents.tsx');
 const dashboardRoutesSource = read('../../../components/DashBoard/UniversalDashboardLayout.routes.tsx');
-const workoutPlannerSource = read('../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPage.tsx');
 const workoutPlannerLayoutSource = read('../../../components/DashBoard/Pages/admin-workout-planner/WorkoutPlannerPageLayout.tsx');
 const plannerSidebarSource = read('../../../components/DashBoard/Pages/admin-workout-planner/TeachModeSidebar.tsx');
 const coachPageSource = read('../../../components/DashBoard/Pages/coach-assistant/SwanCoachAssistantPage.tsx');
@@ -24,9 +23,13 @@ const exerciseRoutesSource = read('../../../../../backend/routes/exerciseRoutes.
 describe('useExerciseTeachData auth pipeline', () => {
   it('is consumed by active workout planner and legacy coach teach-mode surfaces', () => {
     expect(routeComponentsSource).toMatch(/export const WorkoutPlannerPage = React\.lazy\(\(\) => import\('\.\/Pages\/admin-workout-planner\/WorkoutPlannerPage'\)\)/);
-    expect(routeComponentsSource).toMatch(/export const CoachCommandCenterPage = React\.lazy\(\(\) => import\('\.\/Pages\/coach-assistant\/CoachCommandCenterPage'\)\)/);
+    // The lazy route component is now CoachSurfaceRoute, not CoachCommandCenterPage: the v4 coach
+    // workspace became the default, and CoachSurfaceRoute is the single mount point that renders
+    // CoachWorkspacePage when coachWorkspaceV4Enabled and the legacy CoachCommandCenterPage only
+    // otherwise (?coachLegacy=1 / VITE_COACH_WORKSPACE_V4=false). Same surface, one indirection.
+    expect(routeComponentsSource).toMatch(/export const CoachSurfaceRoute = React\.lazy\(\(\) => import\('\.\/Pages\/coach-workspace\/CoachSurfaceRoute'\)\)/);
     expect(dashboardRoutesSource).toMatch(/path: '\/workout-planner', component: WorkoutPlannerPage/);
-    expect(dashboardRoutesSource).toMatch(/path: '\/coach-assistant', component: CoachCommandCenterPage/);
+    expect(dashboardRoutesSource).toMatch(/path: '\/coach-assistant', component: CoachSurfaceRoute/);
     // S15 contexts cutover: teach-mode wiring moved from the page shell into the layout.
     expect(workoutPlannerLayoutSource).toMatch(/exercise=\{selectedExercise\} phaseNumber=\{phaseNumber\} onPhaseChange=\{act\.setters\.setPhaseNumber\}/);
     expect(workoutPlannerLayoutSource).toMatch(/import TeachModeSidebar from '\.\/TeachModeSidebar'/);

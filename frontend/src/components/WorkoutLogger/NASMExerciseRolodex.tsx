@@ -5,7 +5,6 @@ import NASMExerciseRolodexPreview from './NASMExerciseRolodexPreview';
 import { useExerciseSearch, type ExerciseSlim } from './useExerciseSearch';
 import {
   ROW_HEIGHT,
-  applyEquipTypeFilters,
   useVisibleRowCount,
 } from './NASMExerciseRolodex.helpers';
 import RolodexRecentRow from './RolodexRecentRow';
@@ -30,10 +29,8 @@ import {
   TypeBadge,
   Wrapper,
 } from './NASMExerciseRolodex.styles';
-import {
-  matchesSectionContextForTesting as matchesSectionContext,
-  type SectionContext,
-} from './NASMExerciseRolodex.sectionFilter';
+import type { SectionContext } from './NASMExerciseRolodex.sectionFilter';
+import { useRolodexFiltering } from './useRolodexFiltering';
 import { reactWindowStyleProps } from '@/components/ui/reactWindowStyleProps';
 
 interface NASMExerciseRolodexProps {
@@ -95,31 +92,13 @@ const NASMExerciseRolodex: React.FC<NASMExerciseRolodexProps> = memo(({
   const canonicalResults = useMemo(() => results.filter(isCanonicalExerciseSelection), [results]);
   const canonicalAllExercises = useMemo(() => allExercises.filter(isCanonicalExerciseSelection), [allExercises]);
 
-  const sectionFiltered = useMemo(() => (
-    !sectionContext || sectionContext === 'main'
-      ? canonicalResults
-      : canonicalResults.filter(ex => matchesSectionContext(ex, sectionContext))
-  ), [canonicalResults, sectionContext]);
-
-  const filteredResults = useMemo(
-    () => applyEquipTypeFilters(sectionFiltered, typeFilter, equipFilter),
-    [sectionFiltered, typeFilter, equipFilter],
-  );
-
-  const filteredAllExercises = useMemo(() => (
-    !sectionContext || sectionContext === 'main'
-      ? canonicalAllExercises
-      : canonicalAllExercises.filter(ex => matchesSectionContext(ex, sectionContext))
-  ), [canonicalAllExercises, sectionContext]);
-
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: filteredAllExercises.length };
-    for (const ex of filteredAllExercises) {
-      const cat = ex.bodyPartCategory || 'Full Body';
-      counts[cat] = (counts[cat] || 0) + 1;
-    }
-    return counts;
-  }, [filteredAllExercises]);
+  const { filteredResults, filteredAllExercises, categoryCounts } = useRolodexFiltering({
+    canonicalResults,
+    canonicalAllExercises,
+    sectionContext,
+    typeFilter,
+    equipFilter,
+  });
 
   useEffect(() => {
     if (!isOpen) return;

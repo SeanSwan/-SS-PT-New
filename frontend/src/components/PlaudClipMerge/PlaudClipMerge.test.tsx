@@ -11,6 +11,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen } from '@testing-library/react';
 import { PlaudMergeBoundaryBanner } from './PlaudMergeBoundaryBanner';
+import { PlaudClipUploader } from './PlaudClipUploader';
 import { buildClipTimeline } from './plaudClipTimeline';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -53,9 +54,22 @@ describe('Slice 3.11 — PlaudClipUploader source contract', () => {
     expect(UPLOADER_SRC).toMatch(/box-shadow:\s*0\s+0\s+\d+px\s+rgba\(139,\s*92,\s*246,\s*0\.\d+\)/);
   });
 
-  it('keyboard accessible (Enter / Space activates picker)', () => {
-    expect(UPLOADER_SRC).toMatch(/e\.key\s*===\s*['"]Enter['"]/);
-    expect(UPLOADER_SRC).toMatch(/e\.key\s*===\s*['"]\s['"]/);
+  it('keyboard accessible — the drop zone is a real button, not a keydown div', () => {
+    render(<PlaudClipUploader isUploading={false} onFiles={() => {}} />);
+
+    // This used to assert the SOURCE contained `e.key === 'Enter'` / `e.key === ' '`, because the
+    // drop zone was a div carrying a manual onKeyDown. It is now a native <button>, which Enter
+    // and Space activate with no key handler at all — a strict accessibility IMPROVEMENT, and the
+    // reason the old source-text check stopped matching. Asserting the old mechanism would have
+    // meant demanding a worse implementation. Assert the semantics instead: role=button with an
+    // accessible name IS the thing that makes it keyboard-operable.
+    const dropZone = screen.getByRole('button', { name: 'Upload PLAUD clips' });
+    expect(dropZone).toHaveAttribute('type', 'button');
+    expect(screen.getByRole('button', { name: /choose files/i })).toBeInTheDocument();
+
+    // A real button is focusable, which is the precondition for Enter/Space activation.
+    dropZone.focus();
+    expect(dropZone).toHaveFocus();
   });
 
   it('rejects > 5 files client-side', () => {

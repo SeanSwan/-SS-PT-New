@@ -16,12 +16,12 @@ import type { SwanCoachGenerationMode } from './WorkoutPlannerGuidedCandidateTyp
 import {
   buildPlanGenerationRequest,
   buildWorkoutGenerationRequest,
-  getGeneratedPlanSafetyWarning,
   planGenerationErrorMessage,
   workoutGenerationErrorMessage,
 } from './workoutPlannerGenerationActions.helpers';
 import {
   applyGeneratedWorkout,
+  buildPlanApplication,
   canGenerateHorizonPlan,
   verifiedGeneratedPlan,
   verifiedGeneratedWorkout,
@@ -65,27 +65,6 @@ interface WorkoutPlannerGenerationActionsInput {
   onBeforeDraftReplacement?: () => void;
   getCurrentClientId?: () => number | null;
 }
-
-interface PlanApplicationInput {
-  plan: GeneratedPlan;
-  setDegradedIntelligence: Dispatch<SetStateAction<boolean>>;
-  setGeneratedPlan: Dispatch<SetStateAction<GeneratedPlan | null>>;
-  setStatusMsg: Dispatch<SetStateAction<WorkoutPlannerStatusMessage | null>>;
-}
-
-const applyGeneratedPlan = ({
-  plan,
-  setDegradedIntelligence,
-  setGeneratedPlan,
-  setStatusMsg,
-}: PlanApplicationInput) => {
-  const safetyWarning = getGeneratedPlanSafetyWarning(plan);
-  setDegradedIntelligence(Boolean(safetyWarning));
-  setGeneratedPlan(plan);
-  setStatusMsg(safetyWarning
-    ? { type: 'error', text: safetyWarning }
-    : { type: 'success', text: `${plan.planSummary.durationWeeks}-week periodized plan generated successfully!` });
-};
 
 export const useWorkoutPlannerGenerationActions = ({
   authAxios,
@@ -219,7 +198,10 @@ export const useWorkoutPlannerGenerationActions = ({
       if (plan && isCurrentRequest()) {
         setPlanExercises([]);
         resetLoadedPlanState();
-        applyGeneratedPlan({ plan, setDegradedIntelligence, setGeneratedPlan, setStatusMsg });
+        const application = buildPlanApplication(plan);
+        setDegradedIntelligence(application.degraded);
+        setGeneratedPlan(plan);
+        setStatusMsg(application.status);
       }
       return null;
     } catch (err: unknown) {

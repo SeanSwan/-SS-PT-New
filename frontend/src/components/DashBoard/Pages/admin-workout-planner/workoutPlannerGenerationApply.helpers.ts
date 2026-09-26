@@ -9,6 +9,7 @@ import type { WorkoutPlannerBuilderExplanation } from './WorkoutPlannerBuilderPa
 import type { GeneratedPlan, PlanDuration, PlanExercise } from './WorkoutPlannerTypes';
 import {
   generatedWorkoutSafetyWarning,
+  getGeneratedPlanSafetyWarning,
   isSwanCoachPlanningPayload,
   mapGeneratedWorkoutToPlanExercises,
   readGeneratedPlan,
@@ -80,4 +81,25 @@ export const applyGeneratedWorkout = ({
     setExplanations(explanations);
     setShowExplanations(true);
   }
+};
+
+export interface PlanApplication {
+  degraded: boolean;
+  status: WorkoutPlannerStatusMessage;
+}
+
+/**
+ * Pure plan-application derivation: the degraded flag and the status message a
+ * freshly generated plan should produce. It returns a descriptor rather than
+ * taking setters, so the caller applies state itself and this stays exercisable
+ * without React. Lifted out of useWorkoutPlannerGenerationActions under rule 4.
+ */
+export const buildPlanApplication = (plan: GeneratedPlan): PlanApplication => {
+  const safetyWarning = getGeneratedPlanSafetyWarning(plan);
+  return {
+    degraded: Boolean(safetyWarning),
+    status: safetyWarning
+      ? { type: 'error', text: safetyWarning }
+      : { type: 'success', text: `${plan.planSummary.durationWeeks}-week periodized plan generated successfully!` },
+  };
 };

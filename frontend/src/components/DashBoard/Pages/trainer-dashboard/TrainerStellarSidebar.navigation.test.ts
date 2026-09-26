@@ -46,10 +46,14 @@ describe('TrainerStellarSidebar navigation priority', () => {
     expect(coachItem?.path).toBe(TRAINER_HOME_COACH_PATH);
   });
 
-  it('mounts the trainer Coach route on the command center, not the legacy assistant shell', () => {
+  it('mounts the trainer Coach route on the v4 coach surface, not the legacy assistant shell', () => {
     const trainerBlock = trainerRoutesBlock();
 
-    expect(trainerBlock).toContain("{ path: '/coach-assistant', component: CoachCommandCenterPage");
+    // The mounted component moved from CoachCommandCenterPage to CoachSurfaceRoute when the coach
+    // workspace v4 became the default: CoachSurfaceRoute renders CoachWorkspacePage when
+    // coachWorkspaceV4Enabled and the legacy CoachCommandCenterPage only otherwise. The intent of
+    // this test — the trainer Coach route is NOT the legacy assistant shell — is unchanged.
+    expect(trainerBlock).toContain("{ path: '/coach-assistant', component: CoachSurfaceRoute");
     expect(trainerBlock).not.toContain("{ path: '/coach-assistant', component: SwanCoachAssistantPage");
   });
 
