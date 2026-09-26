@@ -12,6 +12,11 @@
  * bar · open (empty/busy receipts) · listening (interim renders as hint BELOW the
  * textarea, never as its value). Receipts feed is role="log" aria-live="polite" so
  * Coach tool executions are announced (Kimi a11y law).
+ *
+ * No modal child (2026-09-26): the recorder lane used to arrive as a `voiceOverlay`
+ * ReactNode rendered as this component's last child. Both lanes are inline now, so
+ * that prop is gone — the dock owns the mic's phase and reports it through
+ * `voicePhase` / `voiceStatus` rather than hosting a second surface's UI.
  */
 import React, { useEffect, useRef } from 'react';
 import ConfirmationSheet from '../CoachConfirm/ConfirmationSheet';
@@ -38,7 +43,20 @@ export interface SurfaceCoachDockProps {
   listening: boolean;
   interim: string;
   handleVoice: () => void;
-  voiceOverlay: React.ReactNode;
+  /**
+   * Which lane the mic will use; 'none' disables it. Optional so the planner's
+   * thin wrapper keeps its props API — absent means "assume a lane exists".
+   */
+  voiceCaptureMode?: 'browser' | 'recorder' | 'none';
+  /**
+   * idle | listening | transcribing. Drives the mic's LABEL, because the tap
+   * does something different in each: start, stop, or discard. `listening`
+   * alone cannot tell idle from transcribing, and labelling a discard as
+   * "Dictate" would be a lie about what the next tap does.
+   */
+  voicePhase?: 'idle' | 'listening' | 'transcribing';
+  /** The capture lane's status line — interim copy, outcomes, and errors. */
+  voiceStatus?: string;
   submitting: boolean;
   handleSubmit: () => Promise<void> | void;
   onReceiptAction: (receiptId: string, action: CoachDockReceiptAction) => void;
@@ -65,7 +83,8 @@ export interface SurfaceCoachDockProps {
 const SurfaceCoachDock: React.FC<SurfaceCoachDockProps> = ({
   title, contextChip, missingContextMessage = null, examplePrompts,
   open, toggleOpen, dockText, setDockText, listening, interim,
-  handleVoice, voiceOverlay, submitting, handleSubmit, onReceiptAction, receipts,
+  handleVoice, voiceCaptureMode = 'browser', voicePhase = 'idle', voiceStatus = '',
+  submitting, handleSubmit, onReceiptAction, receipts,
   pendingConfirmation = null, lockedClientId = null,
   dismissConfirmation, reissueConfirmation,
 }) => {
@@ -73,6 +92,18 @@ const SurfaceCoachDock: React.FC<SurfaceCoachDockProps> = ({
   useEffect(() => {
     if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
   }, [receipts.length, submitting]);
+
+  const voiceAvailable = voiceCaptureMode !== 'none';
+  // The idle label is the SHIPPED affordance and stays byte-identical; only the
+  // active phases specialise, because only there does the tap change meaning.
+  const micLabel = voicePhase === 'listening'
+    ? (voiceCaptureMode === 'recorder' ? 'Recording — tap to stop' : 'Listening — tap to stop')
+    : voicePhase === 'transcribing'
+      ? 'Transcribing — tap to discard'
+      : 'Dictate to Swan Coach';
+  // While the mic is live the interim transcript is the more specific truth;
+  // otherwise the lane's own status (outcome, or an error that outranks it).
+  const hintText = listening ? `listening…${interim ? ` "${interim}"` : ''}` : voiceStatus;
 
   if (missingContextMessage) {
     return (
@@ -171,8 +202,9 @@ const SurfaceCoachDock: React.FC<SurfaceCoachDockProps> = ({
           />
           <MicBtn
             type="button"
-            aria-label="Dictate to Swan Coach"
+            aria-label={micLabel}
             aria-pressed={listening}
+            disabled={!voiceAvailable}
             onClick={handleVoice}
           >
             <Mic size={20} aria-hidden="true" />
@@ -186,15 +218,12 @@ const SurfaceCoachDock: React.FC<SurfaceCoachDockProps> = ({
           </SendBtn>
         </InputRow>
         <DockFooterRow>
-          <InterimHint aria-live="polite">
-            {listening ? `listening…${interim ? ` "${interim}"` : ''}` : ''}
-          </InterimHint>
+          <InterimHint aria-live="polite">{hintText}</InterimHint>
           <OpenBtn type="button" aria-expanded onClick={toggleOpen}>
             Collapse ▼
           </OpenBtn>
         </DockFooterRow>
       </form>
-      {voiceOverlay}
     </DockWrap>
   );
 };

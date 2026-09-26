@@ -17,7 +17,6 @@ const baseProps: WorkoutPlannerCoachDockProps = {
   listening: false,
   interim: '',
   handleVoice: vi.fn(),
-  voiceOverlay: null,
   submitting: false,
   handleSubmit: vi.fn(),
   onReceiptAction: vi.fn(),
