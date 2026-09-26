@@ -61,7 +61,9 @@ export async function loadDispatcher() {
   const BodyMeasurement = { findOne: vi.fn(async () => measurement) };
   const Gamification = { findOne: vi.fn(async () => gamificationRecord) };
   const UserAchievement = {
-    count: vi.fn(async (options = {}) => (options.where?.isNew === true ? 1 : 5)),
+    // Real columns are isCompleted + notificationSent (no isNew — rule 58, verified
+    // 2026-07-29): completed total returns 5, the un-notified subset returns 1.
+    count: vi.fn(async (options = {}) => (options.where?.notificationSent === false ? 1 : 5)),
   };
   const painEntryRows = [
     { id: 11, bodyRegion: 'lower_back', painLevel: 8, createdAt: new Date('2026-05-31T12:00:00Z') },

@@ -155,7 +155,10 @@ describe('client self-service command dispatchers', () => {
       where: { userId: 17 },
     }));
     expect(UserAchievement.count).toHaveBeenCalledWith({ where: { userId: 17, isCompleted: true } });
-    expect(UserAchievement.count).toHaveBeenCalledWith({ where: { userId: 17, isNew: true } });
+    // "New" = earned but not yet notified: the UserAchievement table has no isNew column
+    // (rule 58, verified 2026-07-29) — asserting isNew here re-created the query that
+    // threw against the live DB. Mirrors clientSelfServiceReadDispatchers.mjs:243-248.
+    expect(UserAchievement.count).toHaveBeenCalledWith({ where: { userId: 17, isCompleted: true, notificationSent: false } });
     expect(xp).toEqual({
       userId: 17,
       level: 7,
