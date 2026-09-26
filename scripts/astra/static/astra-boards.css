@@ -1,0 +1,78 @@
+/*
+ * astra-boards.css — the two READ-ONLY boards: Law (§2.2) and State (§2.4). A5.
+ *
+ * WHY THIS IS ITS OWN FILE. `astra.css` was at 296 of Rule 4's 300 lines, so A5's two
+ * panes could not be styled there. The Tune block moved to `astra-tune.css` and the board
+ * rules live here. The split is by OWNERSHIP: every selector below is used by
+ * `paneLaw.mjs` or `paneState.mjs` and by nothing else.
+ *
+ * THE ONE RULE THAT MATTERS. A citation that resolved and a citation that did not must not
+ * look alike. `.law-status--enforced` is green and `.law-status--inconclusive` is the muted
+ * grey, and the row's own mark follows. If an unsourced row rendered in the same colour as
+ * a sourced one, the board would be asserting a status it could not support — which is the
+ * defect the board exists to catch, reproduced in CSS.
+ *
+ * NO `overflow-x: hidden` ANYWHERE, same reason as `astra.css`: it would make `T-A-01` pass
+ * against a layout that genuinely overflows. Long citations wrap with `overflow-wrap`.
+ *
+ * ONLY EXISTING VARIABLES. `a3-choose.test.mjs` resolves every contrast pair against
+ * `astra.css`'s `:root`, so a new literal colour here would be a text/background pair the
+ * `T-A-04` audit never sees.
+ */
+
+/* The READ-ONLY BY DESIGN notice. It sits on the pane it governs, so it is styled as a
+ * notice rather than as another table — an operator should be able to see at a glance that
+ * this is a statement of intent, not more data. */
+.panel--notice { border-left: 3px solid var(--prior); background: #241d0b; }
+.panel--notice h2 { color: var(--prior); }
+
+/* A citation. Monospace and muted so a row reads as `claim … evidence` rather than as a
+ * run-on sentence; `overflow-wrap` because a repo-relative path is long and a 360px pane
+ * must not be pushed wide by one. */
+.cite { color: var(--muted); overflow-wrap: anywhere; }
+
+/* --- the Law board -------------------------------------------------------- */
+.law-table--board { width: 100%; }
+.law-table--board th { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); text-align: left; font-weight: 500; padding: 0 0.5rem 0.3rem 0; }
+.law-table--board td { padding: 0.35rem 0.5rem 0.35rem 0; vertical-align: top; }
+.law-table--board .k { width: 11rem; }
+.law-why { font-size: 0.84rem; color: var(--muted); }
+.law-src { width: 15rem; font-size: 0.8rem; }
+.law-status { font-size: 0.7rem; letter-spacing: 0.05em; }
+.law-status--enforced { color: var(--pass); }
+.law-status--inconclusive { color: var(--prior); }
+/* The mark follows the status. A tick beside an unsourced row would be the board asserting
+ * what it just said it could not support. */
+.law--enforced .mark { color: var(--pass); }
+.law--inconclusive .mark, .law--inconclusive td { color: var(--muted); }
+
+.kill-list { margin: 0.4rem 0; padding-left: 1.1rem; }
+.kill-list li { overflow-wrap: anywhere; font-size: 0.86rem; }
+.pane-foot { font-size: 0.78rem; margin: 0.6rem 0 0; }
+
+/* --- the State board ------------------------------------------------------ */
+.lane-group { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase;
+  margin: 0.8rem 0 0.3rem; color: var(--ink); }
+.lane-table { width: 100%; border-collapse: collapse; }
+.lane-table th { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--muted); text-align: left; font-weight: 500; padding: 0 0.5rem 0.3rem 0; }
+.lane-table td { padding: 0.3rem 0.5rem 0.3rem 0; vertical-align: top; border-top: 1px solid var(--line); }
+.lane-table .k { width: 11rem; }
+.lane-writes { font-size: 0.84rem; color: var(--muted); }
+.lane-src { width: 16rem; font-size: 0.8rem; }
+/* The status word is the load-bearing cell, so it is coloured — and REFUSED/RETIRED take
+ * the cautionary colours rather than red, because a gated lane is the system working. */
+.lane--active .lane-status b { color: var(--pass); }
+.lane--refused .lane-status b, .lane--disabled .lane-status b { color: var(--prior); }
+.lane--retired .lane-status b, .lane--inconclusive .lane-status b { color: var(--muted); }
+
+.authority { margin: 0.4rem 0; padding-left: 1.1rem; font-size: 0.86rem; }
+.authority li { overflow-wrap: anywhere; }
+
+@media (max-width: 560px) {
+  .law-table--board .k { width: 6rem; }
+  .law-src { width: 8rem; }
+  .lane-table .k { width: 6rem; }
+  .lane-src { width: 8rem; }
+}

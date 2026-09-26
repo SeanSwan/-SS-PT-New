@@ -31,10 +31,16 @@
 import { startServer } from './server.mjs';
 import { readBrainVersion } from '../core/brain.mjs';
 import { createHarness, report, stripComments } from './smokeHarness.mjs';
+import { stylesheetsOnDisk } from './shell.mjs';
 // A4b's checks, and the guard that keeps this file's check list honest about the routes
-// that exist. Sibling module for Rule 4 — this file is at 288 of 300 lines.
+// that exist. Sibling module for Rule 4 — this file sits at the 300-line cap, so A5's
+// checks went into `smokeBoards.mjs` and the Tune block moved to `smokeTune.mjs`.
 import { checkOverrides, checkRouteCoverage } from './smokeOverrides.mjs';
+// A5's pane checks, and the Tune block that was split out to make room for them.
+import { checkBoards, checkNoEnableRoute } from './smokeBoards.mjs';
+import { checkTune } from './smokeTune.mjs';
 import { MUTATION_ROUTES } from './routes.mjs';
+import { PANE_PATHS } from './paneRoutes.mjs';
 
 const argv = process.argv.slice(2);
 const argOf = (flag, fallback) => {
@@ -65,15 +71,28 @@ async function run() {
   });
 
   // --- static assets --------------------------------------------------------
-  await check('GET  /static/astra.css', async () => {
-    const r = await call('GET', '/static/astra.css');
-    const body = stripComments(r.text);
+  // EVERY stylesheet, DISCOVERED rather than named. A5 split the CSS into three files
+  // (`astra.css`, `astra-tune.css`, `astra-boards.css`), and a scan that still named
+  // `astra.css` would have gone quiet about two thirds of the stylesheet — the same
+  // "the scope was the defect" hole A4b found in the Rule 4 guard. The overflow rule is
+  // `T-A-01`'s own precondition, so it has to hold for all of them.
+  await check('GET  /static/*.css (every stylesheet)', async () => {
+    const sheets = stylesheetsOnDisk();
+    const bodies = [];
+    let bad = null;
+    for (const href of sheets) {
+      const r = await call('GET', href);
+      if (r.status !== 200) { bad = `${href} answered ${r.status}`; break; }
+      bodies.push({ href, body: stripComments(r.text) });
+    }
+    const all = bodies.map((b) => b.body).join('\n');
+    const overflow = bodies.find((b) => /overflow-x:\s*hidden/.test(b.body));
     return {
-      status: r.status,
-      note: expect(r.status, 200, 'status')
-        || (!body.includes('--bg') ? 'the stylesheet did not arrive intact' : '')
-        || (/overflow-x:\s*hidden/.test(body)
-          ? 'overflow-x:hidden found in real CSS — T-A-01 would be unable to fail' : ''),
+      status: 200,
+      note: bad
+        || (sheets.length < 2 ? `only ${sheets.length} stylesheet(s) discovered` : '')
+        || (!all.includes('--bg') ? 'the stylesheets did not arrive intact (no --bg)' : '')
+        || (overflow ? `overflow-x:hidden in ${overflow.href} — T-A-01 would be unable to fail` : ''),
     };
   });
 
@@ -102,7 +121,9 @@ async function run() {
     return { status: r.status, note: expect(r.status, 200, 'status')
       || (r.text.includes('No compile selected') ? '' : 'a blank Think pane must say WHY it is blank') };
   });
-  for (const [path, slice] of [['/law', 'A5'], ['/state', 'A5'], ['/ledger', 'A6']]) {
+  // `/law` and `/state` left this list in A5 — they are real panes now, and their
+  // checks moved to `smokeBoards.mjs`. `/ledger` is still honestly unbuilt.
+  for (const [path, slice] of [['/ledger', 'A6']]) {
     await check(`GET  ${path} (not built)`, async () => {
       const r = await call('GET', path);
       return { status: r.status, note: expect(r.status, 200, 'status')
@@ -119,9 +140,14 @@ async function run() {
       // The A4 build must no longer claim to be unbuilt.
       || (/arrive with A4/.test(r.text) ? 'the pane still renders as NOT BUILT' : '') };
   });
+
+  // --- the two read-only boards (A5) ---------------------------------------
+  // `/law` and `/state` are real as of A5, and neither may emit a control. The checks
+  // live in `smokeBoards.mjs` — this file is at the cap.
+  await checkBoards({ call, check, expect });
+
   await check('GET  /nope (404)', async () => {
-    const r = await call('GET', '/nope');
-    return { status: r.status, note: expect(r.status, 404, 'status') };
+    const r = await call('GET', '/nope');    return { status: r.status, note: expect(r.status, 404, 'status') };
   });
 
   // --- the read API ---------------------------------------------------------
@@ -200,62 +226,9 @@ async function run() {
   await checkOverrides({ call, check, expect });
 
   // --- the Tune routes are REAL as of A4 -----------------------------------
-  await check('GET  /api/tuning (live knobs)', async () => {
-    const r = await call('GET', '/api/tuning');
-    const cur = r.parsed?.view?.current ?? {};
-    return {
-      status: r.status,
-      note: expect(r.status, 200, 'status')
-        || (Object.keys(cur).length === 0 ? 'the live config produced no leaf knobs' : '')
-        || (cur['auto.S'] === undefined ? 'auto.S is missing — the view is not reading the config' : '')
-        || (r.parsed?.view?.staged && Object.keys(r.parsed.view.staged).length
-          ? 'a fresh session must start with NOTHING staged' : ''),
-    };
-  });
-  await check('POST /api/tuning-stage (empty = discard)', async () => {
-    const r = await call('POST', '/api/tuning-stage', { body: { staged: {} } });
-    return { status: r.status, note: expect(r.status, 200, 'status')
-      || (r.parsed?.cleared === true ? '' : 'an empty patch must clear the stage, not error') };
-  });
-  // The read route must describe the SESSION, not a fresh config. A4 shipped a version
-  // that returned `staged: {}` no matter what — so after a real stage the pane said
-  // `STAGED (1)` and this endpoint said nothing was staged. A client polling it would
-  // conclude a staged change had been discarded. This check is that defect's guard.
-  await check('GET  /api/tuning (carries the stage)', async () => {
-    const staged = await call('POST', '/api/tuning-stage', { body: { staged: { 'mergeBand.low': 0.4 } } });
-    if (staged.status !== 200) return { status: staged.status, note: 'staging failed, so the read cannot be judged' };
-    const r = await call('GET', '/api/tuning');
-    const v = r.parsed?.view ?? {};
-    const note = expect(r.status, 200, 'status')
-      || (Object.keys(v.staged ?? {}).length === 1 ? ''
-        : 'the view reported an empty stage while one was staged — a false all-clear')
-      || expect(v.state, 'staged', 'state');
-    await call('POST', '/api/tuning-stage', { body: { staged: {} } }); // leave no stage behind
-    return { status: r.status, note };
-  });
-  await check('POST /api/tuning-stage (unknown key REFUSED)', async () => {
-    const r = await call('POST', '/api/tuning-stage', { body: { staged: { 'nope.missing': 1 } } });
-    return { status: r.status, code: r.parsed?.error?.code,
-      note: expect(r.status, 400, 'status')
-        || expect(r.parsed?.error?.code, 'E_TUNING_KEY_UNKNOWN', 'code') };
-  });
-  await check('POST /api/tuning-commit (nothing staged REFUSED)', async () => {
-    // Refused BEFORE any write, so this check has no side effect on the real config.
-    const r = await call('POST', '/api/tuning-commit', { body: { note: 'a smoke note long enough' } });
-    return { status: r.status, code: r.parsed?.error?.code,
-      note: expect(r.status, 400, 'status')
-        || expect(r.parsed?.error?.code, 'E_TUNING_NO_CHANGES', 'code') };
-  });
-  // THE REVERT PATH IS DELIBERATELY NOT EXERCISED HERE. A real revert would WRITE the live
-  // tuning.json, and a smoke run must not mutate the engine's configuration as a side
-  // effect of a health check. The gate is asserted instead; the write path itself is proven
-  // against temp copies in tests/a4-tune.test.mjs.
-  await check('POST /api/tuning-revert (NO token = gate holds)', async () => {
-    const r = await call('POST', '/api/tuning-revert', { body: {}, token: 'none' });
-    return { status: r.status, code: r.parsed?.error?.code,
-      note: expect(r.status, 401, 'status')
-        || expect(r.parsed?.error?.code, 'E_TOKEN_REQUIRED', 'code') };
-  });
+  // Split into `smokeTune.mjs` for Rule 4 (A5). The checks are unchanged; the move
+  // happened only because this file was at the cap and A5 needs room for two panes.
+  await checkTune({ call, check, expect });
 
   // --- explain, then the one write -----------------------------------------
   await check('POST /api/explain (unknown id)', async () => {
@@ -287,6 +260,10 @@ async function run() {
   // LAST, because it reads what was actually run. `${rows.length} checks` reads as "the
   // surface is covered"; this is what makes that a measured claim rather than a list length.
   await checkRouteCoverage({ rows, check, routes: MUTATION_ROUTES });
+  // And the other completeness claim: no route can enable a REFUSED lane or spec mode.
+  // PANE paths are scanned too — a pane route is a route, and `GET /state/enable-spec`
+  // would otherwise be invisible to this check (A5 hostile review).
+  await checkNoEnableRoute({ check, routes: MUTATION_ROUTES, panePaths: PANE_PATHS });
 
   await server.close();
 

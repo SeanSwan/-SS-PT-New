@@ -30,7 +30,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { lanePath, repoRelative } from './paths.mjs';
+import { lanePath, repoRelative, SPEC_MODE_PATH } from './paths.mjs';
 
 /**
  * The lane table. `marker` is a string that must appear in the lane's source —
@@ -215,9 +215,20 @@ export function capabilities(lanes = LANES) {
   });
 }
 
-/** The board, plus the counts. Counts are derived, never hand-written. */
-export function capabilitySummary(lanes = LANES) {
-  const board = capabilities(lanes);
+/**
+ * Summarise a board that has ALREADY been resolved. PURE.
+ *
+ * Split out of `capabilitySummary()` because the `/state` pane needs the counts AND the
+ * `AC5.4` sweep, and both used to reach for `capabilities()` on their own. That is two file
+ * reads of twelve modules per request, and — worse — two boards inside one render, which
+ * could disagree if a file changed between them. That is the "one board, two consumers" rule
+ * broken inside a single pane, and A5's hostile review caught it by handing the pane a
+ * two-lane summary and watching the audit still report sixty attempts.
+ *
+ * Taking the board as an argument makes the sharing possible; `capabilitySummary()` stays as
+ * the convenience for callers that have no board yet.
+ */
+export function summarizeBoard(board) {
   const byStatus = {};
   for (const row of board) byStatus[row.status] = (byStatus[row.status] || 0) + 1;
   return {
@@ -225,4 +236,51 @@ export function capabilitySummary(lanes = LANES) {
     byStatus,
     inconclusive: board.filter((r) => r.status === 'INCONCLUSIVE').map((r) => r.lane),
   };
+}
+
+/** The board, plus the counts. Counts are derived, never hand-written. */
+export function capabilitySummary(lanes = LANES) {
+  return summarizeBoard(capabilities(lanes));
+}
+
+/**
+ * Read the spec-mode config, HONESTLY.
+ *
+ * Spec mode is the one row on this board whose truth is a FILE rather than a marker in a
+ * module, so it needs its own reader — and the reader must not paper over a config it cannot
+ * read. `enabled` defaults to `false` and `unreadable` says why, because the alternative
+ * (treating an unreadable config as enabled, or as silently fine) is a fail-open default on
+ * the one switch `AC5.4` exists to keep closed.
+ *
+ * `path` is repo-relative and forward-slashed so the pane can print a citation that resolves
+ * on CI, not only on the machine that wrote it.
+ *
+ * `file` is injectable for one reason: the FAIL-OPEN branch above has to be shown firing. A
+ * reader of a guard that cannot be demonstrated to fire has no way to tell it from a guard
+ * that always passes — so a test points this at a path that does not exist and asserts the
+ * gate reports CLOSED rather than assuming open.
+ */
+export function readSpecMode(file = SPEC_MODE_PATH) {
+  const rel = repoRelative(file);
+  try {
+    const cfg = JSON.parse(readFileSync(file, 'utf8'));
+    return {
+      enabled: cfg.enabled === true,
+      activationRef: cfg.activationRef ?? null,
+      termsVersion: cfg.termsVersion ?? null,
+      path: rel,
+      unreadable: false,
+      reason: null,
+    };
+  } catch (e) {
+    return {
+      enabled: false,
+      activationRef: null,
+      termsVersion: null,
+      path: rel,
+      unreadable: true,
+      reason: `E_SPEC_MODE_UNREADABLE: ${e.code || e.message} — an unreadable gate is reported `
+        + 'closed, never assumed open.',
+    };
+  }
 }

@@ -193,57 +193,11 @@ td, th { padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--line); text-ali
   }
 }
 
-/* --- Tune (§2.3) ---------------------------------------------------------
- * A4 built the pane and shipped it UNSTYLED: none of `.knobs`, `.knob-input`,
- * `.gate-mark`, `.blast`, `.delta` or `.state-live/.state-staged` existed here, so the
- * blast-radius block that `T-I-05` requires to read AS A WARNING rendered as plain text
- * indistinguishable from a table cell. A requirement that a thing "renders as a warning,
- * not a column" is not met by markup that cannot be seen to be a warning.
- *
- * ONLY EXISTING VARIABLES ARE USED, and the two literal backgrounds are the two already
- * paired with `--ink` text elsewhere in this file (`.state-empty`, `.state-partial`), so
- * no new text/background pair is introduced behind the `T-A-04` audit's back.
+/* --- Tune (§2.3) — MOVED to `astra-tune.css` (A5, Rule 4) -----------------
+ * The Tune pane's rules live in their own stylesheet now. Nothing about them changed in
+ * the move; this note is here because a reader looking for `.knobs` in "the stylesheet"
+ * would otherwise conclude it had been deleted.
  */
-.knobs .k { width: 11rem; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
-.knobs .n { width: 6.5rem; font-family: var(--mono); }
-.knobs .fx { font-size: 0.82rem; color: var(--muted); }
-.knob--staged { background: #10161d; }
-.knob--gate .k { color: var(--prior); }
-.gate-mark { color: var(--prior); cursor: help; }
-.staged { color: var(--prior); }
-.delta { color: var(--prior); }
-.prior { color: var(--prior); }
-
-.knob-input {
-  width: 6rem; font-family: var(--mono); font-size: 0.85rem;
-  background: var(--bg); color: var(--ink);
-  border: 1px solid var(--line); border-radius: 4px; padding: 0.15rem 0.3rem;
-}
-.knob--staged .knob-input { border-color: var(--prior); }
-.knob-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-.blast { border: 1px solid var(--line); border-left-width: 3px; border-radius: var(--radius);
-  padding: 0.5rem 0.75rem; margin: 0.6rem 0; background: #10161d; }
-.blast--gate { border-color: var(--prior); background: #241d0b; }
-.blast-h { margin: 0 0 0.3rem; }
-.blast ul { margin: 0; padding-left: 1.1rem; }
-.blast li { overflow-wrap: anywhere; }
-
-/* The three states must be VISUALLY distinct — a staged value shown in the same style as
- * a live one is a pane where the operator cannot tell whether they changed the engine. */
-.state-live { color: var(--pass); }
-.state-staged { color: var(--prior); }
-
-.note-label { display: block; font-size: 0.82rem; margin: 0.3rem 0 0.2rem; }
-/* D38 — this selector read `#tune-note` while the textarea's id is `tuning-note`
- * (`paneTune.mjs:151`, `astra.js:290`). It therefore matched NOTHING: the note field
- * rendered unstyled and, worse, with no `:focus-visible` ring — on a surface whose
- * `T-A-03` traversal requirement depends on focus being visible. A rule that cannot
- * match is the CSS twin of a button with no handler. */
-#tuning-note { width: 100%; box-sizing: border-box; font-family: var(--sans); font-size: 0.9rem;
-  background: var(--bg); color: var(--ink); border: 1px solid var(--line);
-  border-radius: 4px; padding: 0.4rem; }
-#tuning-note:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ── The override editor (A4b) ────────────────────────────────────────────────
  * The slot table is EDITABLE now, so it has to look editable. A read-only-looking
@@ -288,8 +242,4 @@ td, th { padding: 0.25rem 0.4rem; border-bottom: 1px solid var(--line); text-ali
   to { background: transparent; }
 }
 
-@media (max-width: 560px) {
-  .knobs .k { width: 7rem; }
-  .knobs .n { width: 4.5rem; }
-  .knob-input { width: 4rem; }
-}
+/* --- the two read-only boards (§2.2 Law / §2.4 State) — see `astra-boards.css` --- */

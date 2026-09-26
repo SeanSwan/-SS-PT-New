@@ -18,7 +18,40 @@
  * survives a new pane.
  */
 
-import { badgeFor } from './controls.mjs';
+import { badgeFor, READ_ONLY_PANES } from './controls.mjs';
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { ASTRA_ROOT } from '../core/paths.mjs';
+
+/**
+ * THE STYLESHEETS THE SHELL LINKS, IN CASCADE ORDER — and the function that checks the list.
+ *
+ * THE ORDER IS NOT DECORATION. `.panel--notice` and `.panel` have EQUAL specificity (one
+ * class each), so whichever sheet loads last wins on the properties they share. `astra.css`
+ * must therefore come first, and a `readdirSync().sort()` would put it last — `'-'` sorts
+ * before `'.'` — silently reverting the notice background to the plain panel colour. So the
+ * order is stated.
+ *
+ * AND THE LIST IS VERIFIED RATHER THAN TRUSTED. A hand-kept list of files to load is a list
+ * that stops covering the sheet someone adds next slice — the defect A4b found when "every
+ * module under 300 lines" turned out to mean "every `.mjs` module, and not the two shipped
+ * assets". `stylesheetsOnDisk()` reads the directory, and a test asserts the two agree in
+ * both directions. That is what keeps the smoke suite's `overflow-x` scan honest: the scan
+ * walks `stylesheetsOnDisk()`, so a new stylesheet is scanned the moment it exists.
+ */
+export const STYLESHEETS = Object.freeze([
+  '/static/astra.css',
+  '/static/astra-tune.css',
+  '/static/astra-boards.css',
+]);
+
+/** Every `.css` in the static root, by URL path. The list the shell's list is checked against. */
+export function stylesheetsOnDisk() {
+  return readdirSync(join(ASTRA_ROOT, 'static'))
+    .filter((f) => f.endsWith('.css'))
+    .map((f) => `/static/${f}`)
+    .sort();
+}
 
 /** Escape for text and attribute contexts. `'` is included because attributes use it. */
 export function escapeHtml(value) {
@@ -65,7 +98,7 @@ export function layout({ title, activePane, brainVersion, body, note = '', measu
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)} — Astra</title>
-<link rel="stylesheet" href="/static/astra.css">
+${STYLESHEETS.map((href) => `<link rel="stylesheet" href="${href}">`).join('\n')}
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -155,4 +188,27 @@ export function stateNotBuilt({ pane, slice, what }) {
   <p class="state-line"><b>${escapeHtml(pane)}</b> — this pane is not built yet (slice
   ${escapeHtml(slice)}). ${escapeHtml(what)}</p>
 </div>`;
+}
+
+/**
+ * The READ-ONLY BY DESIGN notice, read from `READ_ONLY_PANES`.
+ *
+ * RENDERED ON THE PANE IT GOVERNS, and read from the registry rather than re-typed. The
+ * reason `02-BLUEPRINT.md` §5 gives for the Law pane ("a console with an 'ignore' button
+ * here would be the most expensive feature in the product") is a decision, and a decision
+ * that lives only in a registry entry is one an operator never sees. A later author who
+ * wants to add a control here has to delete the entry that says why they should not — and
+ * now they have to delete the sentence on the screen as well.
+ *
+ * It carries `data-read-only`, NOT `data-control`: the `AC4.6` walk must see zero controls
+ * on these panes, and a notice that registered itself as a control would make the
+ * structural test in `T-I-07` pass while proving the opposite.
+ */
+export function readOnlyNotice(pane) {
+  const entry = READ_ONLY_PANES.find((p) => p.pane === pane);
+  if (!entry) return '';
+  return `<section class="panel panel--notice" data-read-only="${escapeHtml(pane)}">
+  <h2>READ-ONLY BY DESIGN</h2>
+  <p>${escapeHtml(entry.reason)}</p>
+</section>`;
 }

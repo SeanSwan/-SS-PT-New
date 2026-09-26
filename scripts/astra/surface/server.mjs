@@ -31,15 +31,14 @@ import { randomBytes } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, normalize, resolve as resolvePath, sep } from 'node:path';
 
-import { ASTRA_ROOT, DEFAULT_PORT, LOOPBACK_HOST, TASTE_PROBE_ORIGIN, TUNING_PATH, repoRelative } from '../core/paths.mjs';
+import { ASTRA_ROOT, DEFAULT_PORT, LOOPBACK_HOST, TASTE_PROBE_ORIGIN } from '../core/paths.mjs';
 import { bindAddress, assertLoopback } from '../core/bind.mjs';
 import { readBrainVersion } from '../core/brain.mjs';
-import { readTuning, flattenTuning } from '../core/tuning.mjs';
-import { previewStaged } from '../core/tuningPreview.mjs';
 import { layout, stateDenied } from './shell.mjs';
-import { renderCompose, renderThink, renderNotBuilt } from './panes.mjs';
-import { renderTune } from './paneTune.mjs';
-import { handleApi, slotsForEditor } from './api.mjs';
+import { handleApi } from './api.mjs';
+// WHICH pane, and WHAT it says — split out for Rule 4. See `paneRoutes.mjs` for why the
+// file that grows with the product is not the file that owns the security boundary.
+import { renderPane } from './paneRoutes.mjs';
 // Route POLICY (which routes mutate, which are POST-only) lives next door — see
 // `routes.mjs` for why the two lists are one list.
 import { MUTATION_ROUTES, POST_ONLY } from './routes.mjs';
@@ -178,59 +177,11 @@ export function createHandler({ token, state = { brief: {}, directions: null, la
     const shell = (title, activePane, body) => html(res, 200,
       layout({ title, activePane, brainVersion, body, note: tasteNote() }), setToken);
 
-    if (pathname === '/' || pathname === '/choose') {
-      const overrides = state.slotOverrides ?? {};
-      shell(pathname === '/' ? 'Compose' : 'Choose', pathname === '/' ? 'compose' : 'choose',
-        renderCompose({
-          brief: state.brief,
-          directions: state.directions,
-          // The editor needs the EFFECTIVE value AND the baseline it came from, so an
-          // edit back to the resolved value removes an override instead of pinning it.
-          slots: slotsForEditor(state.brief, overrides),
-          overrides,
-        }));
-      return;
-    }
-
-    if (pathname.startsWith('/think')) {
-      const id = pathname.slice('/think'.length).replace(/^\//, '') || state.lastCompileId;
-      let view = null; let error = null;
-      if (id) {
-        try { view = (await import('../core/session.mjs')).getCompile(id).view; }
-        catch (e) { error = { code: e.code ?? 'E_EXPLAIN', message: e.message }; }
-      }
-      shell('Think', 'think', renderThink({ view, compileId: id, error }));
-      return;
-    }
-
-    if (pathname === '/law') { shell('Law', 'law', renderNotBuilt('Law', 'A5',
-      'The lane board is built and code-sourced; the pane that renders it is not.')); return; }
-    if (pathname === '/state') { shell('State', 'state', renderNotBuilt('State', 'A5',
-      'The capability board is built and code-sourced; the pane that renders it is not.')); return; }
-    if (pathname === '/tune') {
-      // The pane reads the LIVE config on every request (AC4.1) — never a cached copy, so
-      // an external edit to tuning.json shows up on the next refresh with no code change.
-      let body;
-      try {
-        const flat = flattenTuning(readTuning());
-        const staged = state.staged ?? {};
-        body = renderTune({
-          current: flat,
-          staged,
-          note: state.note ?? '',
-          lastCommit: state.lastCommit ?? null,
-          preview: Object.keys(staged).length ? previewStaged({ staged }) : null,
-          path: repoRelative(TUNING_PATH),
-        });
-      } catch (e) {
-        // A corrupt config renders as a NAMED error in the pane, not a 500 (T-M-01).
-        body = renderTune({ error: { code: e.code ?? 'E_TUNING', message: e.message } });
-      }
-      shell('Tune', 'tune', body);
-      return;
-    }
-    if (pathname === '/ledger') { shell('Ledger', 'ledger', renderNotBuilt('Ledger', 'A6',
-      'The rejected-all trend and cost drift arrive with A6.')); return; }
+    // WHICH pane, and WHAT it says, lives next door in `paneRoutes.mjs` — that file
+    // grows with the product, this one grows with the security boundary. A `null`
+    // return is "not a pane route", which falls through to the 404 below.
+    const pane = await renderPane(pathname, { state });
+    if (pane) { shell(pane.title, pane.activePane, pane.body); return; }
 
     html(res, 404, layout({
       title: 'Not found', activePane: null, brainVersion,

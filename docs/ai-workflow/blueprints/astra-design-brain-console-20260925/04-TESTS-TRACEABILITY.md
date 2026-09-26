@@ -5,6 +5,15 @@ Test IDs are stable. Every test names the requirement it serves, its level, and 
 Everything from A2 onward is still the plan, not a result. Two rows below were **corrected** before
 they ran: `T-U-05` and `T-U-07` were not executable as written — see `A1-CORRECTIONS.md` C11 and C10.
 
+**STATUS AS OF A5 (2026-09-25).** A1–A5 have landed. **167 Astra tests / 37 smoke checks / 70 shared
+tests, all green** — `scripts/astra/evidence/a5-tests.txt`. A5's corrections to this file are worth
+reading before the R5 rows: `C42` (the R5 rows claimed PASS for the **core** and were silent about the
+**surface**, while `/law` and `/state` still rendered "not built yet"), `C46` (`AC5.4` was written as a
+UI fact — "no enabling control" — when the requirement is about the **operation**, and a button count
+cannot refuse anything), `C44`/`C45` (`/law` had a route and no screen spec, and §4.1 had no
+`LawRow`), and `C49` (`AC5.4`'s transport half could not see pane routes at all — it scanned an
+exported list while the pane dispatch was an `if` chain with no list). See `A5-CORRECTIONS.md`.
+
 ---
 
 ## 1. Test plan
@@ -19,10 +28,11 @@ they ran: `T-U-05` and `T-U-07` were not executable as written — see `A1-CORRE
 | `T-U-04` | R1/AC1.2 | `explain(fixtureCompile)` | `lawChecks.length` equals the compiler's, passes **and** fails both present | dropping a failing check |
 | `T-U-05` | R1/AC1.3 | **CORRECTED (C11):** `readBrainVersion()` equals the live export, **and** no version literal exists in Astra's source (comments stripped) | both hold | a hardcoded version surviving the scan |
 | `T-U-06` | R3/AC3.3 | set slot 4 via `personify()` | legal form produced | a raw `"[subject] by [artist]"` string passing |
-| `T-U-07` | R5/AC5.1 | **CORRECTED (C10):** `capabilities()` — RETIRED = `attest`,`redact-provenance`,`log-spec`; REFUSED = `corroborate`,`adjudicate`,`emit-vault`; ACTIVE = `synthesize`,`log-receipt`,`reference-modes`,`packet`,`novelty` | every row carries a live `file:line`, and a bogus marker degrades to INCONCLUSIVE | any lane reported ACTIVE without a code source |
-| `T-U-08` | R5/AC5.3 | capability declared `claimed` | rendered as not-verified | rendering `claimed` as if it were `verified` |
+| `T-U-07` | R5/AC5.1 | **CORRECTED (C10):** `capabilities()` — RETIRED = `attest`,`redact-provenance`,`log-spec`; REFUSED = `corroborate`,`adjudicate`,`emit-vault`; ACTIVE = `synthesize`,`log-receipt`,`reference-modes`,`packet`,`novelty`. **A5 (C42) adds the SURFACE half:** the `/state` pane renders every lane with its `file:line` and its gate, and `lawBoard()` does the same for the 6 laws | every row carries a live `file:line`, and a bogus marker degrades to INCONCLUSIVE — on the **board** and on the **pane** | any lane reported ACTIVE without a code source |
+| `T-U-08` | R5/AC5.3 | capability declared `claimed` | rendered as not-verified, **and `claimed` never appears without its consequence** (A5 `D44`) | rendering `claimed` as if it were `verified` |
 | `T-U-09` | R4/AC4.1 | mutate `tuning.json`, re-read | UI reflects the new value with no code change | a hardcoded default winning |
 | `T-U-10` | R8/AC8.1 | `bind('0.0.0.0')` | refuses, non-zero exit | binding succeeds |
+| `T-U-11` | R5/AC5.1 | **NEW (A5):** `lawBoard()` — the 6 laws from `LAW_NAMES`, each with an enforcement **marker** | every row resolves to a live `file:line` in `shared/swanLawFilter.mjs` that really contains its marker; a row whose marker is gone degrades to INCONCLUSIVE; the marker is the enforcement **expression**, not the law's name | a row reported ENFORCED with no enforcement site — a citation that merely *resolves* read as one that *means something* (`A5-CORRECTIONS.md` §5, mutation `M2`) |
 
 ### 1.2 Integration / contract
 
@@ -62,7 +72,7 @@ they ran: `T-U-05` and `T-U-07` were not executable as written — see `A1-CORRE
 
 | ID | Serves | Test | Expected observable result |
 |---|---|---|---|
-| `T-P-01` | §6.2 | each actor against the authority matrix | no actor enables a REFUSED lane or spec mode |
+| `T-P-01` | §6.2 | **CORRECTED (A5, C46):** `auditEnable()` calls `attemptEnable()` once for **every actor against every target** and returns the attempts that switched something on. A3 claimed only the `AC4.6` registry half. | no actor enables a REFUSED lane or spec mode — measured as an **empty `enabled` list over 60 attempts** (5 actors × 12 lanes), not as the absence of a button |
 | `T-P-02` | INV1 | scan Astra's write paths | **zero** writes to `taste/events/*.jsonl` or `taste/*.md` |
 | `T-P-03` | INV2 | scan Astra's write paths | zero writes under `docs/ai-workflow/design-brain/` or to any token value |
 | `T-M-01` | §2.6 | `tuning.json` truncated / invalid JSON | named error, no crash, no write |
@@ -173,10 +183,10 @@ unchanged.
 | R4 | AC4.4 | revert | `T-I-04` | A4 | **PASS** — byte-exact, because it restores the stored bytes rather than re-deriving them. Measured: the original hash returns exactly. A second revert in a row is refused (`E_ALREADY_REVERTED`) rather than silently toggling the config back to the value the operator just rejected. |
 | R4 | AC4.5 | blast radius | `T-I-05` | A4 | **PASS** — `auto.` and `weights.` are reported as `gate: true` and rendered as a ⚠ block, not a column. A4 shipped the pane with NO stylesheet rules for `.blast`, so the warning was indistinguishable from a table cell until D35 was fixed. |
 | R4 | AC4.6 | control registry | `T-P-01` (**registry half**) | A3, A4 | **PASS** — **25 controls, 20 DIAL / 5 PROPOSAL**, `proposalThatWrites: []`, `writeWithoutToken: []`, and the markup agrees with the registry in BOTH directions. The sweep now visits **every pane that renders a control** and asserts its own route table is COMPLETE, so a new pane fails the test until its route is added (`A4-CORRECTIONS.md` C29). The wiring check fails a rendered control with no handler (`C33`) — it found `think.whyNot` (D34). |
-| R5 | AC5.1 | `core/capabilities.mjs` | `T-U-07` | A5 | **PASS** — A0 is done, board built |
-| R5 | AC5.2 | spec-mode read | `T-U-07` | A5 | **PASS** (DISABLED row, code-sourced) |
-| R5 | AC5.3 | claimed→false | `T-U-08` | A5 | **PASS** |
-| R5 | AC5.4 | no enabling control | `T-P-01` (**authority half**) | A5 | not run — **and this is the only half still open.** `T-P-01` is ONE id serving two requirements in two slices; A3 claimed only the `AC4.6` half (`A3-CORRECTIONS.md` C18). |
+| R5 | AC5.1 | `core/capabilities.mjs` **+ `core/lawBoard.mjs`** | `T-U-07`, `T-U-11` | A5 | **PASS** — and the SURFACE half is now real too (`C42`). `/state` renders all 12 lanes, each with its `file:line` and its gate; `/law` renders the 6 laws, each with the enforcement site that runs it. Measured: **6 of 6 laws cited, 12 of 12 lanes cited, 0 inconclusive.** Both panes emit **0 controls**. |
+| R5 | AC5.2 | spec-mode read | `T-U-07` | A5 | **PASS** — `readSpecMode()` reports the CONFIG (`enabled: false`), the pane prints it with `no control to change it`, and the fail-open branch is **shown firing**: an unreadable config reports CLOSED (`D45`). |
+| R5 | AC5.3 | claimed→false | `T-U-08` | A5 | **PASS** — and the pane half now asserts the vocabulary split, because the first draft was a **tautology** (`D44`). |
+| R5 | AC5.4 | no actor enables a REFUSED lane or spec mode | `T-P-01` (**authority half**) | A5 | **PASS** — measured, not asserted: **60 attempts (5 actors × 12 targets), `enabled: []`**, with the codes accounting for the board exactly (15 RETIRED, 15 REFUSED, 25 ALREADY-ACTIVE, 5 MODE-GATED). The refusal is **uniform, including for Sean** — §6.2's strongest cell in either enabling column is `propose`, and `propose` is not enable. Plus the transport half: no mutation route names an enable action. `T-P-01` is ONE id serving two requirements in two slices; A3 claimed only the `AC4.6` half (`A3-CORRECTIONS.md` C18) and A5 did **not** re-claim it. |
 | R6 | AC6.1 | `core/ledger.mjs` | `T-E-03` | A6 | not run |
 | R6 | AC6.2 | cost drift | `T-I-06` | A6 | not run |
 | R6 | AC6.3 | trend view | `T-E-03` | A6 | not run |
@@ -188,12 +198,12 @@ unchanged.
 | R8 | AC8.3 | no secret in surface | `T-P-02` | A2 | **PASS** — no `process.env`, no dotenv import in Astra's shipped source |
 | INV1 | — | write-path scan | `T-P-02` | A2 | **PASS** — one mutating call in `mcp/`, and it is `brain.reject`'s |
 | INV2 | — | write-path scan | `T-P-03` | A1 | not run |
-| INV3 | — | LAW gate | `T-I-07` | A1 | not run |
-| INV4 | — | spend gate | `T-U-01`, `T-I-07` | A1, A3 | **T-U-01 PASS**; T-I-07 not run |
+| INV3 | — | LAW gate | `T-I-07` | A1 | **not run** — A5 landed the *structural* half of `T-I-07` (both boards emit zero controls, asserted against the rendered function AND against the bytes the server sent), but INV3 is the LAW gate itself and still has no test. |
+| INV4 | — | spend gate | `T-U-01`, `T-I-07` | A1, A3 | **T-U-01 PASS**; T-I-07's structural half PASS (A5); the spend gate's own test is still open |
 | INV5 | — | version read | `T-U-05` | A1 | **PASS** |
 | INV6 | — | immutability | `T-I-01` | A1, **A4b**, A6 | **PASS for the surface half (A4b)** — the brief text is asserted byte-identical across a stage, with the stage asserted to have happened. **The persisted-brief half (`core/variants.mjs`) is A6.** See the R3/AC3.1 row. |
-| INV7 | — | fail-closed | `T-I-07` | A1 | not run |
-| INV8 | — | no fake metrics | `T-U-07` (every lane needs a source) | A5 | **PASS** — and the degradation is proven to fire |
+| INV7 | — | fail-closed | `T-I-07` | A1 | **not run** — but A5 closes the fail-closed case for spec mode specifically (`D45`: an unreadable gate reports CLOSED, and the test shows it firing). |
+| INV8 | — | no fake metrics | `T-U-07`, `T-U-11` | A5 | **PASS** — every lane **and** every law needs a source, and the degradation is proven to fire on both boards. The `AC5.4` sweep is the same rule applied to a verdict: the claim is a list produced by running, not a sentence. |
 | INV9 | — | loopback | `T-U-10` | A1 | **PASS** |
 | INV10 | — | lane isolation | `T-P-02`, `T-P-03` | A1 | not run |
 
@@ -210,3 +220,14 @@ unchanged.
 - **Provider capability probes** (`seedIsDeterministic: 'verified'`) are **not** tested by Astra —
   they require real generations and spend. Astra only *renders* the tri-state. The promotion path is
   out of scope.
+- **One flaky failure in the Astra suite — observed once, not diagnosed.** Immediately after A5's
+  mutation run, one full-suite run reported 163 pass / 1 fail. The test's name was not captured and
+  **20 subsequent full-suite runs were clean**, as were 10 runs of the six filesystem-touching suites
+  in isolation. It is not config corruption (`tuning.json` and `spec-mode.json` are byte-identical to
+  `HEAD` after every run) and not the mutation driver leaving state behind (all six mutated files
+  verified restored by hash). **Recorded, not diagnosed** — diagnosing it needs the failing test's
+  name, which means a loop with a reporter that preserves it. `A5-CORRECTIONS.md` §7 is the full
+  account. This is the one place in A5 where the evidence is weaker than the claim it supports.
+- **The `gatedBy` strings on REFUSED lanes are prose.** `AC5.4` refuses the operation and cites the
+  gate; nothing verifies that the named authority adapter is really absent. Named in
+  `A5-CORRECTIONS.md` §6.

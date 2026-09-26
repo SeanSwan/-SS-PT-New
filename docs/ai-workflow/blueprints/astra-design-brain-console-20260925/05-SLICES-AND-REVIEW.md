@@ -104,9 +104,9 @@ sitting.
   (`D34`), and the pane shipped with **no stylesheet rules at all** so the blast-radius warning that
   `T-I-05` requires was indistinguishable from a table cell (`D35`).
 - **Carry into A5 — ALL THREE ANSWERED by A4b:**
-  - **`server.mjs` is at exactly 300 lines.** → **Split in A4b** (`routes.mjs`, `slotView.mjs`); it is now **297**, and `smoke.mjs` is at **299**. Both still need care before A5 adds two panes' routes.
+  - **`server.mjs` is at exactly 300 lines.** → **Split in A4b** (`routes.mjs`, `slotView.mjs`); it is now **297**, and `smoke.mjs` is at **299**. Both still need care before A5 adds two panes' routes. → **ANSWERED in A5:** both were split again (`server.mjs` → `paneRoutes.mjs`, 249; `smoke.mjs` → `smokeTune.mjs` + `smokeBoards.mjs`, 274), **and the stylesheet too** (`astra.css` → `astra-tune.css` + `astra-boards.css`, 246) — the CSS cap had never been tested against a slice that needed to add rules, which is its own small finding.
   - **`R3 / AC3.2 / T-I-01` is open and its test does not exist.** → **CLOSED in A4b.** The editor is real and the tests exist.
-  - `T-P-01`'s `AC5.4` half is still A5's alone. → still true.
+  - `T-P-01`'s `AC5.4` half is still A5's alone. → **CLOSED in A5**, and the closing is worth reading: the packet had written the requirement as a UI fact (*"no enabling control"*), and A5 found that a button count cannot refuse anything — so it is implemented as an executable sweep (`C46`).
 
 ### A4b — the override editor, and the law it could delete ← **✅ DONE 2026-09-26**
 - **Why it was carved out:** A4's handoff named `R3 / AC3.2 / T-I-01` as a requirement already marked
@@ -145,23 +145,73 @@ sitting.
   - **`UNWIRED_CONTROLS` is now EMPTY** and `slots.override` is a new registry control, so A5 should
     **re-measure** the registry rather than trust A3's count. Measured at A4b: **26 controls,
     21 DIAL / 5 PROPOSAL, 21 rendered.**
-  - **`T-P-01`'s `AC5.4` half is still A5's alone.**
+  - **`T-P-01`'s `AC5.4` half is still A5's alone.** → **CLOSED in A5.** Note the shape it took: not "the pane has no enable button", but `auditEnable()` calling `attemptEnable()` for every actor against every target and returning the attempts that switched something on (`C46`).
   - **Rule 4's guard now has three scopes and a declared-exception list.** A new tree should be added
     to it in the same pass, or its green is silent about that tree.
 
-### A5 — Law + State boards ← **◐ PARTIAL — the board is built; the UI panes are not**
-- **Does:** the LAW rows from the compiler's own `lawChecks`; the honest lane board from A0's code-derived list.
-- **Entry:** A0 exit met (the lane list must come from code). ✅
-- **Exit:** `T-U-07`, `T-U-08` pass; `T-P-01` not run. Every row shows a reason traceable to a file — and
-  the board **verifies** that rather than asserting it.
-- **Evidence:** `scripts/astra/core/capabilities.mjs` + `scripts/astra/tests/a5-capabilities.test.mjs`.
-  `node scripts/astra/cli.mjs state` → exit 0, `RETIRED=3 REFUSED=3 ACTIVE=5 DISABLED=1`.
-- **Corrected input:** A0's lane list was **over-broad** — three lanes it called REFUSED were measured
-  ACTIVE. The board is built from the measurement, and each correction is recorded on its own row.
-- **Still to do:** the `/law` and `/state` panes — A3's surface now exists, so these are panes **inside**
-  it, and the `READ_ONLY_PANES` registry entries for both already carry their reasons; and **`T-P-01`'s
-  authority half (`AC5.4`)**: *no actor enables a REFUSED lane or spec mode*. The `AC4.6` registry half of
-  `T-P-01` **landed in A3** and is **not A5's to re-claim** — see `A3-CORRECTIONS.md` C18.
+### A5 — Law + State boards, and `AC5.4` ← **✅ DONE 2026-09-25**
+- **Does:** the LAW board (6 laws, each with the **enforcement site** that runs it) and the honest lane
+  board, as panes **inside** A3's surface; plus `T-P-01`'s authority half — *no actor enables a REFUSED
+  lane or spec mode*.
+- **Entry:** A0 exit met (the lane list comes from code). ✅
+- **Exit:** `T-U-07`, `T-U-08` and `T-U-11` pass; `T-P-01`'s **authority half** passes. Every row shows a
+  reason traceable to a file — **6 of 6 laws and 12 of 12 lanes, 0 inconclusive** — and the board
+  **verifies** that rather than asserting it: the test re-opens the cited file at the cited line and
+  requires the marker to be there. ✅ **167/167 tests** (was 138), **37/37 smoke** (was 34), **70/70**
+  shared, **0 Rule 4 offenders across three scopes** with 1 declared exception.
+- **A hostile-review round ran before landing, and produced three real findings** — all fixed, all
+  recorded: `C49` (the transport half of `AC5.4` scanned an exported list while pane routes were an
+  `if` chain with no list, so `GET /state/enable-spec` would have been invisible to every guard),
+  `D48` (the State pane re-read the board behind its caller — two boards inside one render, proven by
+  handing it a two-lane summary and watching it print the real board's sixty attempts), and `D49` (a
+  test titled *"the fence has a net behind it"* that only restated the board and never called a lane).
+  `A5-CORRECTIONS.md` §7 also retracts its own first reading of a "flaky" test: the 20-run loop was
+  measuring a tree that was being edited in the foreground.
+- **The correction that changed the shape (`C46`).** `AC5.4` was written in the packet as a UI fact —
+  *"no enabling control"* — and the obvious implementation is to assert the pane has no enable button
+  and the matrix has no `yes`. **Both are true and neither is the requirement.** A pane with no button
+  says nothing about the MCP server, the CLI, or the route A7 adds; a matrix cell is a string and a
+  string cannot refuse anything. So `attemptEnable()` is the operation, and `auditEnable()` calls it
+  **once for every actor against every target**. The claim is the resulting `enabled: []` — **60
+  attempts (5 actors × 12 targets)**, with the refusal codes accounting for the board exactly.
+- **The refusal is uniform, including for Sean.** `corroborate`, `adjudicate` and `emit-vault` are gated
+  on a signed authority adapter that does not exist, and a console that could switch one on could mint
+  a claim into canon without review. §6.2's `propose` is the alternative and it is **not** enable.
+- **`INCONCLUSIVE` is refused too** — a lane whose marker vanished has no defensible status, so
+  enabling it would be switching on something nobody can describe. Treating "unknown" as "probably
+  fine" is how a fail-closed guard becomes fail-open.
+- **Three files had to be split before A5's routes could land**, exactly as A4b's handoff demanded:
+  `smoke.mjs` 300→274 (`smokeTune.mjs`), `server.mjs` 298→249 (`paneRoutes.mjs`), and `astra.css`
+  296→246 (`astra-tune.css`) — the stylesheet was a **new** discovery, since the CSS cap had never been
+  tested against a slice that needed to add rules.
+- **Evidence:** `A5-CORRECTIONS.md` §5 — **8 mutations**, each asserted to have **LANDED** before the
+  run and restored byte-exactly (verified independently with `git hash-object`). All 8 are covered.
+  `M2` is the one worth reading: swapping the LAW4 marker from the enforcement **expression** to the
+  law's **name** leaves the citation test GREEN and reddens only the discriminator test — proving the
+  check can tell a citation that *means something* from one that merely *resolves*.
+- **Corrections:** 7 (`C42`–`C48`). The one that matters is `C42`: **the R5 rows claimed PASS for the
+  CORE and were silent about the SURFACE** — `AC5.1`–`AC5.3` were marked PASS while `/law` and `/state`
+  still rendered "not built yet". A requirement marked PASS while its own screen says otherwise is the
+  same defect class as a count that is not a count: *the claim was true of the set measured and silent
+  about the set excluded.*
+- **Defects:** 5 (`D41`–`D45`). **Two are the same class A4b found, one slice later.** `D44` is a
+  **tautology in A5's own new test** — it asserted the State pane contained no `cap-verified` class,
+  which that pane never has, so it would have passed even if the pane rendered `claimed` as verified
+  (identical to A4b's `D40a`). `D42` is the **`overflow-x` scan naming one stylesheet by hand** while
+  the CSS was split into three — the same "the scope was the defect" hole A4b found in the Rule 4
+  guard, now closed by walking `stylesheetsOnDisk()`.
+- **Carry into A6:**
+  - **`/ledger` is the last `renderNotBuilt` stub** — the only route still claiming to be unbuilt.
+  - **The brief store is Astra's SECOND write path.** `paths.mjs`'s header states the write surface is
+    *"`tuning.json`, and only through the staged-commit path"*, and its own rule says **a path assembled
+    inline is a path no scan can see** — so the new store's path must be named there or `T-P-02`/`T-P-03`
+    go silent about it.
+  - **`T-I-01`'s persistence half** is the test to write, and A4b's surface half is the model: assert the
+    bytes **and** assert the write happened, because an immutability test over a no-op passes trivially.
+  - **`paneRoutes.mjs` (118) is where `/ledger` lands** — that is the file to watch, not `server.mjs`.
+  - **One flaky suite failure was observed once and not diagnosed** (`A5-CORRECTIONS.md` §7). It is the
+    one place where A5's evidence is weaker than its claim, and it is recorded rather than left for a
+    reader to infer from a green run.
 
 ### A6 — Ledger
 - **Does:** one-action `rejected_all`; cost drift; trends by slot and facet.

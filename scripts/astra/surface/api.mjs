@@ -25,12 +25,17 @@ import { TUNING_PATH } from '../core/paths.mjs';
 import { commitStaged, revertLast, applyPatch } from '../core/tuningStage.mjs';
 import { previewStaged } from '../core/tuningPreview.mjs';
 import { validateOverrides } from '../core/overrides.mjs';
-// The SLOT PROJECTION (Rule 4 split). Imported for LOCAL use AND re-exported —
-// `export ... from` alone creates no local binding, and `server.mjs` imports
-// `slotsFromBrief` from this module's path.
-import { SLOT_ORDER, slotsFromBrief, slotsForEditor } from './slotView.mjs';
-
-export { SLOT_ORDER, slotsFromBrief, slotsForEditor };
+// The SLOT PROJECTION (Rule 4 split). `SLOT_ORDER` is imported for LOCAL use — this
+// file validates override keys against it on both the compile and the stage path.
+//
+// THE RE-EXPORT IS GONE, and it went for the reason this repo keeps finding: after A5
+// moved the pane dispatch into `paneRoutes.mjs`, nothing imported `slotsFromBrief` or
+// `slotsForEditor` from this module any more. `paneRoutes.mjs` and
+// `tests/a4b-editor.test.mjs` both import them from `slotView.mjs` directly, and the
+// comment that used to sit here claimed `server.mjs` imported them from this path —
+// which had become false. A re-export kept alive by a stale comment is an orphan with
+// a note attached.
+import { SLOT_ORDER } from './slotView.mjs';
 
 /** `{ status, body }` for one API call. `state` is the server's UI state. */
 export function handleApi(route, { method, body, state, now = () => Date.now() }) {

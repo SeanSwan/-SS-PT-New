@@ -161,6 +161,54 @@ Three visibly distinct states: **LIVE** (matches disk) · **STAGED** (differs, n
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+**`AC5.4` IS STATED AND MEASURED ON THIS PANE** (`A5-CORRECTIONS.md` C46). The wireframe above
+predicted the *conclusion* — "no control enables a refused lane" — and A5 added the **evidence**:
+a section that runs `auditEnable()` and prints the result. It reads
+`0 of 60 attempts enabled anything`, where 60 is 5 actors × 12 lanes, and it lists each actor's
+authority on enabling spec mode beside it. The number is on the screen because the requirement is
+about the OPERATION across every actor, and a claim a reader can check beats a claim they have to
+take on trust.
+
+### 2.4a Law — the guardrail board (`/law`) ← **ADDED (A5, C44)**
+
+**THIS SECTION DID NOT EXIST.** `/law` was listed in §1's route table with no wireframe anywhere —
+§2.2 is the *Think* pane's LAW CHECKS block, §2.3 is Tune, §2.4 is State. So the pane A5 had to
+build had no screen spec, and its shape was derived from the board's own data. Written down now so
+the next reader is not re-deriving it.
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ LAW · the guardrail board       source: shared/swanLawFilter.mjs     6 of 6 enforced  │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│  LAW                       PROTECTS              ENFORCEMENT SITE                     │
+│  ✓ LAW2-gold-allowlist     gold, a Swan accent   shared/swanLawFilter.mjs:165         │
+│  ✓ LAW3-kill-list          the banned families   shared/swanLawFilter.mjs:128         │
+│  ✓ LAW3-banned-facet       the taxonomy          shared/swanLawFilter.mjs:214         │
+│  ✓ LAW4-optics-not-…       optics over illusion  shared/swanLawFilter.mjs:137         │
+│  ✓ LAW9-retired-palette    the retired palette   shared/swanLawFilter.mjs:175         │
+│  ✓ LAW10-content           content wording       shared/swanLawFilter.mjs:183         │
+│                                                                                       │
+│  LAW 3 KILL-LIST — 8 families          definition: shared/swanLawPatterns.mjs:82      │
+│  the negative slot must still name at least one of these; an override that empties    │
+│  the slot deletes the law, so `negative` is not an overridable key.                   │
+│                                                                                       │
+│  READ-ONLY BY DESIGN — A failed check blocks the compile and Astra offers no          │
+│  override. Silent stripping teaches the operator nothing and hides taste failures.    │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**THE CITATION IS THE PANE'S WHOLE POINT, AND IT IS VERIFIED.** A row whose enforcement marker can
+no longer be found renders as `INCONCLUSIVE` with the reason and **no tick** — because a table of
+six green ticks produced from a hand-typed count is exactly the defect this board exists to catch.
+The `ENFORCED` word and the tick are coloured differently from `INCONCLUSIVE` so the two cannot be
+mistaken for each other, and the marker is the enforcement **expression** (`CREATURE.test(withoutIdioms)`)
+rather than the law's name — a marker that is the name would still resolve if the loop that finds
+violations were deleted (`A5-CORRECTIONS.md` §5, mutation `M2`).
+
+**ZERO CONTROLS, AND THE REASON IS ON THE PANE.** `READ_ONLY_PANES` carries the sentence from
+`02-BLUEPRINT.md` §5 and the pane renders it verbatim (`C47`) — a decision that lives only in a
+registry is one the next author has to go looking for, and this is where they will be looking.
+
 ### 2.5 Narrow (≤ 560 px)
 
 ```
@@ -350,6 +398,41 @@ interface LaneState {
 }
 ```
 
+```ts
+// LawRow — ADDED (A5, C45). §4.1 carried LaneState in full and NOTHING for the law board, so
+// `lawBoard()`'s contract was invented at the keyboard. Same honesty mechanism as LaneState,
+// deliberately: a marker, a live citation, and a degradation.
+//
+// `marker` IS THE ENFORCEMENT EXPRESSION, NOT THE LAW'S NAME. This is the one field worth
+// arguing with. A marker of `'LAW3-kill-list'` would resolve happily against the line that
+// PUSHES a violation — so deleting the loop that FINDS violations would leave the row green,
+// citing the line that reports the failure it can no longer detect. Mutation `M2` in
+// `A5-CORRECTIONS.md` §5 is that exact swap, and it is caught by a test that asserts the
+// marker is an expression rather than by the citation test, which still passes.
+interface LawRow {
+  law: string;                   // one of LAW_NAMES — the board covers that set, in that order
+  protects: string;              // what the law guards, in the operator's terms
+  onFailure: string;             // what happens when it trips — every one of these blocks
+  marker: string;                // the literal that RUNS the law, and must exist in the runner
+  source: string;                // LIVE-resolved `shared/swanLawFilter.mjs:<line>`
+  sourceLine: number | null;
+  sourceMissing: boolean;
+  status: 'ENFORCED' | 'INCONCLUSIVE';
+  reason?: string;               // present when INCONCLUSIVE
+}
+
+// The kill-list is a SECOND thing to cite. The laws say the ban is enforced; this says what
+// the ban CONTAINS — a kill-list whose definition vanished while the enforcement expression
+// survived would be a law enforcing an empty list.
+interface KillList {
+  entries: string[];             // 8 families
+  count: number;                 // == entries.length, derived
+  source: string;                // `shared/swanLawPatterns.mjs:<line>`
+  sourceLine: number | null;
+  sourceMissing: boolean;
+}
+```
+
 ### 4.2 HTTP contract
 
 | Endpoint | Request | Response | Auth | Notes |
@@ -365,6 +448,8 @@ interface LaneState {
 | `GET /api/capabilities` | — | `LaneState[]` | none | |
 | `POST /api/reject` | `{ compileId }` | `{ ok }` | token | records `rejected_all` |
 | `GET /api/profile` | — | taste profile | none | proxy; optional |
+| `GET /law` | — | the guardrail board (HTML) | none | **pane** — zero controls; every row cites a `file:line` |
+| `GET /state` | — | the honest lane board (HTML) | none | **pane** — zero controls; renders the `AC5.4` sweep |
 
 ### 4.3 Error contract — CORRECTED (C2 + C3)
 
@@ -517,6 +602,30 @@ erDiagram
 
 **No actor enables a REFUSED lane or spec mode through Astra.** Activation requires signed approval
 outside this surface.
+
+**AND THAT IS MEASURED, NOT DECLARED (A5).** The table above is data (`core/authority.mjs`
+`AUTHORITY_MATRIX`), `attemptEnable({actor, target})` is the operation, and `auditEnable()` calls it
+**once for every actor against every target** and returns the attempts that switched something on.
+Measured: **60 attempts (5 actors × 12 lanes), `enabled: []`**, with the refusal codes accounting for
+the board exactly — 15 `E_LANE_RETIRED`, 15 `E_LANE_REFUSED`, 25 `E_ALREADY_ACTIVE`, 5 `E_MODE_GATED`.
+
+Three properties of that sweep are load-bearing, and each is asserted:
+
+1. **The refusal is UNIFORM, INCLUDING FOR SEAN.** §6.2's strongest cell in either enabling column is
+   `propose`, and **`propose` is not enable** — it returns a different code and names the artifact that
+   has to be signed. A REFUSED lane is refused to the operator too, because a console that could switch
+   one on could mint a claim into canon without review.
+2. **`INCONCLUSIVE` is refused too.** A lane whose marker vanished has no defensible status, so enabling
+   it would be switching on something nobody can describe. Treating "unknown" as "probably fine" is how
+   a fail-closed guard becomes a fail-open one.
+3. **An ACTIVE target reports `E_ALREADY_ACTIVE`, never success.** Enabling something already on did not
+   enable anything, and reporting otherwise would be a false claim about a control.
+
+The sweep reads its targets from the LIVE board, so a lane added later is swept without editing a list —
+and the test asserts the attempt count is a **product** (`actors × targets`) rather than a literal, so a
+sweep that silently covered a subset cannot pass. The transport half is separate and also asserted: no
+`MUTATION_ROUTE` names an enable action. A fence in the domain and a scan of the door handles; a route
+named `spec-mode-enable` six slices from now is what the second one catches.
 
 ### 6.3 Trust boundaries
 

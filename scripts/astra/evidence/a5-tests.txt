@@ -1,0 +1,1798 @@
+A5 — EVIDENCE. Captured, not transcribed.
+Generated: 2026-09-26 02:23  |  branch swan-brain-console-v3-salvage-20260918
+HEAD at capture: b062a0f601051a998de6658947a817b3c72bd24d
+
+Every block below is the RAW output of the command above it. Nothing here is
+hand-written, and every number in §7 is parsed back out of the output in §1-§6.
+The A5 slice adds the Law and State panes and the AC5.4 authority fence; it also
+splits smoke.mjs, server.mjs, the stylesheet and the board tests for Rule 4.
+Regenerate with: python C:/tmp/a5-evidence.py
+
+==========================================================================
+§1  node --test scripts/astra/tests/*.test.mjs     (the whole Astra suite)
+==========================================================================
+
+TAP version 13
+# Subtest: T-U-01: directions() returns 3 complete Directions
+ok 1 - T-U-01: directions() returns 3 complete Directions
+  ---
+  duration_ms: 1
+  type: 'test'
+  ...
+# Subtest: T-U-01: directions() makes ZERO provider calls — a transport spy proves it
+ok 2 - T-U-01: directions() makes ZERO provider calls — a transport spy proves it
+  ---
+  duration_ms: 0.1688
+  type: 'test'
+  ...
+# Subtest: T-U-01: the purity is STRUCTURAL — swanDirections imports nothing that can spend
+ok 3 - T-U-01: the purity is STRUCTURAL — swanDirections imports nothing that can spend
+  ---
+  duration_ms: 1.1367
+  type: 'test'
+  ...
+# Subtest: T-U-01: directions() is REPLAYABLE — same brief, same order
+ok 4 - T-U-01: directions() is REPLAYABLE — same brief, same order
+  ---
+  duration_ms: 0.1702
+  type: 'test'
+  ...
+# Subtest: T-U-01: no injected evidence means every direction is PRIOR, never fabricated EVIDENCE
+ok 5 - T-U-01: no injected evidence means every direction is PRIOR, never fabricated EVIDENCE
+  ---
+  duration_ms: 0.277
+  type: 'test'
+  ...
+# Subtest: T-U-01: evidence is injected, and only >=2 ids flips the tier
+ok 6 - T-U-01: evidence is injected, and only >=2 ids flips the tier
+  ---
+  duration_ms: 0.2044
+  type: 'test'
+  ...
+# Subtest: T-U-04: explain() lawChecks length equals the compiler's own check count
+ok 7 - T-U-04: explain() lawChecks length equals the compiler's own check count
+  ---
+  duration_ms: 3.24
+  type: 'test'
+  ...
+# Subtest: T-U-04: a BLOCKED compile shows the failure AND marks the rest NOT OBSERVED
+ok 8 - T-U-04: a BLOCKED compile shows the failure AND marks the rest NOT OBSERVED
+  ---
+  duration_ms: 0.2427
+  type: 'test'
+  ...
+# Subtest: T-U-04: an empty slot is given a REASON, and a facet-emptied one names the facet
+ok 9 - T-U-04: an empty slot is given a REASON, and a facet-emptied one names the facet
+  ---
+  duration_ms: 0.3744
+  type: 'test'
+  ...
+# Subtest: T-U-04: explain() refuses an input that is neither a compile nor a law violation
+ok 10 - T-U-04: explain() refuses an input that is neither a compile nor a law violation
+  ---
+  duration_ms: 0.3815
+  type: 'test'
+  ...
+# Subtest: T-U-05: readBrainVersion() returns the LIVE export
+ok 11 - T-U-05: readBrainVersion() returns the LIVE export
+  ---
+  duration_ms: 0.1215
+  type: 'test'
+  ...
+# Subtest: T-U-05: NO version literal exists anywhere in Astra's own source
+ok 12 - T-U-05: NO version literal exists anywhere in Astra's own source
+  ---
+  duration_ms: 26.0926
+  type: 'test'
+  ...
+# Subtest: T-U-05: the version reaches the ExplainView from the record
+ok 13 - T-U-05: the version reaches the ExplainView from the record
+  ---
+  duration_ms: 0.3777
+  type: 'test'
+  ...
+# Subtest: T-U-06: personify() produces the legal form
+ok 14 - T-U-06: personify() produces the legal form
+  ---
+  duration_ms: 0.1382
+  type: 'test'
+  ...
+# Subtest: T-U-06: the raw "[subject] by [artist]" form never appears
+ok 15 - T-U-06: the raw "[subject] by [artist]" form never appears
+  ---
+  duration_ms: 0.3047
+  type: 'test'
+  ...
+# Subtest: T-U-10: non-loopback addresses are REFUSED, including 0.0.0.0
+ok 16 - T-U-10: non-loopback addresses are REFUSED, including 0.0.0.0
+  ---
+  duration_ms: 0.1858
+  type: 'test'
+  ...
+# Subtest: T-U-10: literal loopback addresses are accepted
+ok 17 - T-U-10: literal loopback addresses are accepted
+  ---
+  duration_ms: 0.2783
+  type: 'test'
+  ...
+# Subtest: T-U-10: the CLI exits NON-ZERO on a refused bind
+ok 18 - T-U-10: the CLI exits NON-ZERO on a refused bind
+  ---
+  duration_ms: 1158.6405
+  type: 'test'
+  ...
+# Subtest: T-A2-01 the registry is internally consistent and lists exactly 9 tools
+ok 19 - T-A2-01 the registry is internally consistent and lists exactly 9 tools
+  ---
+  duration_ms: 0.9548
+  type: 'test'
+  ...
+# Subtest: T-A2-02 `--list-tools` prints 9 tools and exits 0
+ok 20 - T-A2-02 `--list-tools` prints 9 tools and exits 0
+  ---
+  duration_ms: 693.4653
+  type: 'test'
+  ...
+# Subtest: T-I-08 brain.reject without confirm is refused AND writes nothing
+ok 21 - T-I-08 brain.reject without confirm is refused AND writes nothing
+  ---
+  duration_ms: 19.2049
+  type: 'test'
+  ...
+# Subtest: T-I-08 confirm: false is also refused — only literal true passes
+ok 22 - T-I-08 confirm: false is also refused — only literal true passes
+  ---
+  duration_ms: 0.551
+  type: 'test'
+  ...
+# Subtest: T-I-08 with confirm: true the write DOES occur
+ok 23 - T-I-08 with confirm: true the write DOES occur
+  ---
+  duration_ms: 0.548
+  type: 'test'
+  ...
+# Subtest: T-I-08 the guard PRECEDES the write in source order, not just in effect
+ok 24 - T-I-08 the guard PRECEDES the write in source order, not just in effect
+  ---
+  duration_ms: 0.4722
+  type: 'test'
+  ...
+# Subtest: T-I-08 brain.reject on an unknown id fails without inventing an entry
+ok 25 - T-I-08 brain.reject on an unknown id fails without inventing an entry
+  ---
+  duration_ms: 0.1421
+  type: 'test'
+  ...
+# Subtest: T-I-09 MCP capabilities and the core board are the SAME object, from one source
+ok 26 - T-I-09 MCP capabilities and the core board are the SAME object, from one source
+  ---
+  duration_ms: 13.5587
+  type: 'test'
+  ...
+# Subtest: T-P-02 no forbidden capability is registered, and forbidden names are refused
+ok 27 - T-P-02 no forbidden capability is registered, and forbidden names are refused
+  ---
+  duration_ms: 0.5094
+  type: 'test'
+  ...
+# Subtest: T-P-02 no Astra source writes taste state, and no tool reaches for taste or .env
+ok 28 - T-P-02 no Astra source writes taste state, and no tool reaches for taste or .env
+  ---
+  duration_ms: 19.9669
+  type: 'test'
+  ...
+# Subtest: T-P-02 no tool result carries image bytes or a credential-shaped blob
+ok 29 - T-P-02 no tool result carries image bytes or a credential-shaped blob
+  ---
+  duration_ms: 33.752
+  type: 'test'
+  ...
+# Subtest: T-A2-03 brain.tuning.preview reports changes and WRITES NOTHING
+ok 30 - T-A2-03 brain.tuning.preview reports changes and WRITES NOTHING
+  ---
+  duration_ms: 0.8687
+  type: 'test'
+  ...
+# Subtest: T-A2-04 brain.worlds is deterministic through the MCP surface
+ok 31 - T-A2-04 brain.worlds is deterministic through the MCP surface
+  ---
+  duration_ms: 2.0205
+  type: 'test'
+  ...
+# Subtest: T-A2-05 brain.doctrine returns file:line and an honest completeness flag
+ok 32 - T-A2-05 brain.doctrine returns file:line and an honest completeness flag
+  ---
+  duration_ms: 7.6966
+  type: 'test'
+  ...
+# Subtest: T-A2-06 brain.explain on an unknown id is a named error, never a blank pane
+ok 33 - T-A2-06 brain.explain on an unknown id is a named error, never a blank pane
+  ---
+  duration_ms: 0.1007
+  type: 'test'
+  ...
+# Subtest: T-A2-07 the handshake, the tool list, and an unknown method
+ok 34 - T-A2-07 the handshake, the tool list, and an unknown method
+  ---
+  duration_ms: 955.8133
+  type: 'test'
+  ...
+# Subtest: T-A2-07 an unsupported protocol version is answered with one we DO speak
+ok 35 - T-A2-07 an unsupported protocol version is answered with one we DO speak
+  ---
+  duration_ms: 404.8351
+  type: 'test'
+  ...
+# Subtest: T-A2-08 the process survives malformed input, a notification, and a bad tool
+ok 36 - T-A2-08 the process survives malformed input, a notification, and a bad tool
+  ---
+  duration_ms: 362.9921
+  type: 'test'
+  ...
+# Subtest: T-A2-09 tools/call without a name is an invalid request, not a crash
+ok 37 - T-A2-09 tools/call without a name is an invalid request, not a crash
+  ---
+  duration_ms: 353.7493
+  type: 'test'
+  ...
+# Subtest: T-A2-10 responses arrive keyed by id even when they interleave
+ok 38 - T-A2-10 responses arrive keyed by id even when they interleave
+  ---
+  duration_ms: 535.8617
+  type: 'test'
+  ...
+# Subtest: T-A2-11 an empty stdin line is ignored, and EOF exits 0
+ok 39 - T-A2-11 an empty stdin line is ignored, and EOF exits 0
+  ---
+  duration_ms: 403.2141
+  type: 'test'
+  ...
+# Subtest: A3 browser measurements
+    # Subtest: T-A-01 no horizontal overflow at any of the five widths
+    ok 1 - T-A-01 no horizontal overflow at any of the five widths
+      ---
+      duration_ms: 4031.9495
+      type: 'test'
+      ...
+    # Subtest: T-A-02 the tier badge and the palette line are visible at 360px
+    ok 2 - T-A-02 the tier badge and the palette line are visible at 360px
+      ---
+      duration_ms: 356.7897
+      type: 'test'
+      ...
+    # Subtest: T-A-03 every control is reachable by Tab, with a visible focus ring
+    ok 3 - T-A-03 every control is reachable by Tab, with a visible focus ring
+      ---
+      duration_ms: 1947.6664
+      type: 'test'
+      ...
+    # Subtest: T-A-05 prefers-reduced-motion switches off a real animation
+    ok 4 - T-A-05 prefers-reduced-motion switches off a real animation
+      ---
+      duration_ms: 888.6051
+      type: 'test'
+      ...
+    # Subtest: T-A-06 evidence screenshots at 360 / 768 / 1440
+    ok 5 - T-A-06 evidence screenshots at 360 / 768 / 1440
+      ---
+      duration_ms: 1567.6818
+      type: 'test'
+      ...
+    1..5
+ok 40 - A3 browser measurements
+  ---
+  duration_ms: 12723.0342
+  type: 'test'
+  ...
+# Subtest: T-U-02 a prior direction renders PRIOR, and never EVIDENCE
+ok 41 - T-U-02 a prior direction renders PRIOR, and never EVIDENCE
+  ---
+  duration_ms: 1.0294
+  type: 'test'
+  ...
+# Subtest: T-U-02 an evidence direction renders EVIDENCE and cites the event ids
+ok 42 - T-U-02 an evidence direction renders EVIDENCE and cites the event ids
+  ---
+  duration_ms: 0.1825
+  type: 'test'
+  ...
+# Subtest: T-U-03 swatches derived from fixed facets are byte-identical twice
+ok 43 - T-U-03 swatches derived from fixed facets are byte-identical twice
+  ---
+  duration_ms: 0.2253
+  type: 'test'
+  ...
+# Subtest: T-U-03 the strip carries no image bytes and reaches no network
+ok 44 - T-U-03 the strip carries no image bytes and reaches no network
+  ---
+  duration_ms: 0.2468
+  type: 'test'
+  ...
+# Subtest: T-I-07 the Law pane offers NO override affordance — by construction, not by wording
+ok 45 - T-I-07 the Law pane offers NO override affordance — by construction, not by wording
+  ---
+  duration_ms: 0.8629
+  type: 'test'
+  ...
+# Subtest: T-A-04 every text pair Astra paints meets the repo contrast rule
+ok 46 - T-A-04 every text pair Astra paints meets the repo contrast rule
+  ---
+  duration_ms: 0.4733
+  type: 'test'
+  ...
+# Subtest: T-A-04 the non-text exemptions are explicit, reasoned, and not text pairs
+ok 47 - T-A-04 the non-text exemptions are explicit, reasoned, and not text pairs
+  ---
+  duration_ms: 0.7266
+  type: 'test'
+  ...
+# Subtest: T-P-01 (AC4.6) every control carries DIAL or PROPOSAL, and the registry is consistent
+ok 48 - T-P-01 (AC4.6) every control carries DIAL or PROPOSAL, and the registry is consistent
+  ---
+  duration_ms: 1.2253
+  type: 'test'
+  ...
+# Subtest: T-P-01 (AC4.6) the rendered markup and the registry agree in BOTH directions
+ok 49 - T-P-01 (AC4.6) the rendered markup and the registry agree in BOTH directions
+  ---
+  duration_ms: 64.8595
+  type: 'test'
+  ...
+# Subtest: T-P-01 (AC4.6) the read-only panes are read-only BY DESIGN, with a stated reason
+ok 50 - T-P-01 (AC4.6) the read-only panes are read-only BY DESIGN, with a stated reason
+  ---
+  duration_ms: 0.3103
+  type: 'test'
+  ...
+# Subtest: T-M-03 a compile missing lawChecks renders PARTIAL, never "0 checks passed"
+ok 51 - T-M-03 a compile missing lawChecks renders PARTIAL, never "0 checks passed"
+  ---
+  duration_ms: 0.1792
+  type: 'test'
+  ...
+# Subtest: T-M-03 a blocked compile names the error code and the offending slot
+ok 52 - T-M-03 a blocked compile names the error code and the offending slot
+  ---
+  duration_ms: 0.1917
+  type: 'test'
+  ...
+# Subtest: §2.6 every required state names its reason, and none says "No data"
+ok 53 - §2.6 every required state names its reason, and none says "No data"
+  ---
+  duration_ms: 0.2742
+  type: 'test'
+  ...
+# Subtest: §2.6 the empty directions state offers the action that fixes it
+ok 54 - §2.6 the empty directions state offers the action that fixes it
+  ---
+  duration_ms: 0.0917
+  type: 'test'
+  ...
+# Subtest: §2.6 an empty slot renders its REASON, never a bare dash
+ok 55 - §2.6 an empty slot renders its REASON, never a bare dash
+  ---
+  duration_ms: 0.1104
+  type: 'test'
+  ...
+# Subtest: T-I-10 a mutation without the token is 401 and changes nothing
+ok 56 - T-I-10 a mutation without the token is 401 and changes nothing
+  ---
+  duration_ms: 53.345
+  type: 'test'
+  ...
+# Subtest: T-I-10 the token gate runs BEFORE the handler, so a 501 is unreachable without it
+ok 57 - T-I-10 the token gate runs BEFORE the handler, so a 501 is unreachable without it
+  ---
+  duration_ms: 8.8221
+  type: 'test'
+  ...
+# Subtest: T-I-10 the token cookie is SameSite=Strict
+ok 58 - T-I-10 the token cookie is SameSite=Strict
+  ---
+  duration_ms: 4.4712
+  type: 'test'
+  ...
+# Subtest: AC2.1 /api/directions is free and makes no provider call
+ok 59 - AC2.1 /api/directions is free and makes no provider call
+  ---
+  duration_ms: 3.8724
+  type: 'test'
+  ...
+# Subtest: the rendered brainVersion comes from code, not a literal
+ok 60 - the rendered brainVersion comes from code, not a literal
+  ---
+  duration_ms: 2.5519
+  type: 'test'
+  ...
+# Subtest: the brief is escaped — a loopback origin still runs script
+ok 61 - the brief is escaped — a loopback origin still runs script
+  ---
+  duration_ms: 4.375
+  type: 'test'
+  ...
+# Subtest: static traversal is refused
+ok 62 - static traversal is refused
+  ---
+  duration_ms: 3.964
+  type: 'test'
+  ...
+# Subtest: the pairs-12 fixture is calibrated against the LIVE tuning, not a remembered one
+ok 63 - the pairs-12 fixture is calibrated against the LIVE tuning, not a remembered one
+  ---
+  duration_ms: 10.8996
+  type: 'test'
+  ...
+# Subtest: the fixture is DIAGNOSTIC: it spans the bands and brackets both thresholds
+ok 64 - the fixture is DIAGNOSTIC: it spans the bands and brackets both thresholds
+  ---
+  duration_ms: 4.7622
+  type: 'test'
+  ...
+# Subtest: a staged weight change moves pairs DOWNWARD and flags the gate family
+ok 65 - a staged weight change moves pairs DOWNWARD and flags the gate family
+  ---
+  duration_ms: 3.7657
+  type: 'test'
+  ...
+# Subtest: an ambiguous or unknown key is REFUSED — never a guess about which knob was meant
+ok 66 - an ambiguous or unknown key is REFUSED — never a guess about which knob was meant
+  ---
+  duration_ms: 0.583
+  type: 'test'
+  ...
+# Subtest: a multi-key patch validates EVERY key before applying ANY of them
+ok 67 - a multi-key patch validates EVERY key before applying ANY of them
+  ---
+  duration_ms: 0.2788
+  type: 'test'
+  ...
+# Subtest: T-I-03 GET /api/tuning reports the live knobs
+ok 68 - T-I-03 GET /api/tuning reports the live knobs
+  ---
+  duration_ms: 43.419
+  type: 'test'
+  ...
+# Subtest: T-I-03 D28 the view carries the SESSION stage — an API must not report a false all-clear
+ok 69 - T-I-03 D28 the view carries the SESSION stage — an API must not report a false all-clear
+  ---
+  duration_ms: 29.0204
+  type: 'test'
+  ...
+# Subtest: T-I-04 staging returns a preview and leaves the config byte-identical
+ok 70 - T-I-04 staging returns a preview and leaves the config byte-identical
+  ---
+  duration_ms: 12.9707
+  type: 'test'
+  ...
+# Subtest: T-I-04 staging an empty patch clears the stage rather than erroring
+ok 71 - T-I-04 staging an empty patch clears the stage rather than erroring
+  ---
+  duration_ms: 11.7178
+  type: 'test'
+  ...
+# Subtest: T-I-04 D27 an unknown key is refused AT STAGE TIME, not at commit
+ok 72 - T-I-04 D27 an unknown key is refused AT STAGE TIME, not at commit
+  ---
+  duration_ms: 5.6053
+  type: 'test'
+  ...
+# Subtest: T-I-04 a patch that changes nothing is refused, not silently accepted
+ok 73 - T-I-04 a patch that changes nothing is refused, not silently accepted
+  ---
+  duration_ms: 7.2699
+  type: 'test'
+  ...
+# Subtest: T-I-05 staging a gate key reports its blast radius, and the pane warns
+ok 74 - T-I-05 staging a gate key reports its blast radius, and the pane warns
+  ---
+  duration_ms: 22.6669
+  type: 'test'
+  ...
+# Subtest: T-I-05 committing with nothing staged is refused before any write
+ok 75 - T-I-05 committing with nothing staged is refused before any write
+  ---
+  duration_ms: 3.4985
+  type: 'test'
+  ...
+# Subtest: T-I-10 every tuning mutation is behind the token gate
+ok 76 - T-I-10 every tuning mutation is behind the token gate
+  ---
+  duration_ms: 6.7585
+  type: 'test'
+  ...
+# Subtest: a bug can never wear a domain refusal — an unclassified throw is a 500 E_ASTRA_INTERNAL
+ok 77 - a bug can never wear a domain refusal — an unclassified throw is a 500 E_ASTRA_INTERNAL
+  ---
+  duration_ms: 0.5836
+  type: 'test'
+  ...
+# Subtest: T-I-02 the Tune pane serves 200 and shows every live knob
+ok 78 - T-I-02 the Tune pane serves 200 and shows every live knob
+  ---
+  duration_ms: 32.2096
+  type: 'test'
+  ...
+# Subtest: T-I-02 the pane states which state it is in, and nothing is staged initially
+ok 79 - T-I-02 the pane states which state it is in, and nothing is staged initially
+  ---
+  duration_ms: 5.7825
+  type: 'test'
+  ...
+# Subtest: T-I-02 every Tune control in the markup is registered, and labelled
+ok 80 - T-I-02 every Tune control in the markup is registered, and labelled
+  ---
+  duration_ms: 5.0132
+  type: 'test'
+  ...
+# Subtest: T-I-02 D30 the knobs are EDITABLE — one input per knob, not read-only text
+ok 81 - T-I-02 D30 the knobs are EDITABLE — one input per knob, not read-only text
+  ---
+  duration_ms: 4.7147
+  type: 'test'
+  ...
+# Subtest: T-I-02 D31 the pane offers DISCARD STAGE, which the packet draws and A4 first omitted
+ok 82 - T-I-02 D31 the pane offers DISCARD STAGE, which the packet draws and A4 first omitted
+  ---
+  duration_ms: 73.5646
+  type: 'test'
+  ...
+# Subtest: T-I-02 D32 the note field carries its OWN control id, not the stage action's
+ok 83 - T-I-02 D32 the note field carries its OWN control id, not the stage action's
+  ---
+  duration_ms: 3.0866
+  type: 'test'
+  ...
+# Subtest: a rendered control with no handler is a dead control, and the exclusions are reasoned
+ok 84 - a rendered control with no handler is a dead control, and the exclusions are reasoned
+  ---
+  duration_ms: 51.1907
+  type: 'test'
+  ...
+# Subtest: T-M-07 a commit changes ONLY the target value's bytes — CRLF and $comment survive
+ok 85 - T-M-07 a commit changes ONLY the target value's bytes — CRLF and $comment survive
+  ---
+  duration_ms: 278.4883
+  type: 'test'
+  ...
+# Subtest: T-M-07 an LF config stays LF — the edit does not impose the platform's ending
+ok 86 - T-M-07 an LF config stays LF — the edit does not impose the platform's ending
+  ---
+  duration_ms: 105.995
+  type: 'test'
+  ...
+# Subtest: T-M-07 formatting is preserved: the nested objects stay on one line
+ok 87 - T-M-07 formatting is preserved: the nested objects stay on one line
+  ---
+  duration_ms: 158.6627
+  type: 'test'
+  ...
+# Subtest: T-M-01 a truncated config is a NAMED error, and NOTHING is written
+ok 88 - T-M-01 a truncated config is a NAMED error, and NOTHING is written
+  ---
+  duration_ms: 164.2731
+  type: 'test'
+  ...
+# Subtest: T-M-02 an unknown key survives the commit — it is preserved, never dropped
+ok 89 - T-M-02 an unknown key survives the commit — it is preserved, never dropped
+  ---
+  duration_ms: 101.7001
+  type: 'test'
+  ...
+# Subtest: T-I-02 stage → preview → commit are three distinct observable states
+ok 90 - T-I-02 stage → preview → commit are three distinct observable states
+  ---
+  duration_ms: 103.7399
+  type: 'test'
+  ...
+# Subtest: T-I-05 the blast radius NAMES the auto-corroboration gate, and a bare commit is refused
+ok 91 - T-I-05 the blast radius NAMES the auto-corroboration gate, and a bare commit is refused
+  ---
+  duration_ms: 64.0882
+  type: 'test'
+  ...
+# Subtest: T-M-06 a commit interrupted mid-write leaves the OLD file whole, never a partial
+ok 92 - T-M-06 a commit interrupted mid-write leaves the OLD file whole, never a partial
+  ---
+  duration_ms: 109.4024
+  type: 'test'
+  ...
+# Subtest: T-I-03 a reader during a commit sees the old bytes or the new bytes, never a mix
+ok 93 - T-I-03 a reader during a commit sees the old bytes or the new bytes, never a mix
+  ---
+  duration_ms: 95.9436
+  type: 'test'
+  ...
+# Subtest: T-I-04 commit then revert restores the pre-commit hash EXACTLY
+ok 94 - T-I-04 commit then revert restores the pre-commit hash EXACTLY
+  ---
+  duration_ms: 103.1525
+  type: 'test'
+  ...
+# Subtest: T-I-04 a revert with no history is a NAMED refusal, not a silent no-op
+ok 95 - T-I-04 a revert with no history is a NAMED refusal, not a silent no-op
+  ---
+  duration_ms: 56.3777
+  type: 'test'
+  ...
+# Subtest: T-U-09 the view reads the LIVE file — mutate it and the view follows with no code change
+ok 96 - T-U-09 the view reads the LIVE file — mutate it and the view follows with no code change
+  ---
+  duration_ms: 101.2282
+  type: 'test'
+  ...
+# Subtest: Rule 4: every Astra module AND shipped asset is within 300 lines
+ok 97 - Rule 4: every Astra module AND shipped asset is within 300 lines
+  ---
+  duration_ms: 40.2241
+  type: 'test'
+  ...
+# Subtest: Rule 4: every shared module is within 300 lines
+ok 98 - Rule 4: every shared module is within 300 lines
+  ---
+  duration_ms: 195.4038
+  type: 'test'
+  ...
+# Subtest: Rule 4: the shared compiler's TESTS are within budget, except where declared
+ok 99 - Rule 4: the shared compiler's TESTS are within budget, except where declared
+  ---
+  duration_ms: 11.1593
+  type: 'test'
+  ...
+# Subtest: Rule 4: a declared exception is never STALE — the list must not outlive its reasons
+ok 100 - Rule 4: a declared exception is never STALE — the list must not outlive its reasons
+  ---
+  duration_ms: 13.2312
+  type: 'test'
+  ...
+# Subtest: Rule 4: the walker really reaches the trees — an empty inventory cannot pass
+ok 101 - Rule 4: the walker really reaches the trees — an empty inventory cannot pass
+  ---
+  duration_ms: 1.6667
+  type: 'test'
+  ...
+# Subtest: Rule 4: the cap is INCLUSIVE — 300 lines is legal, 301 is not
+ok 102 - Rule 4: the cap is INCLUSIVE — 300 lines is legal, 301 is not
+  ---
+  duration_ms: 0.1087
+  type: 'test'
+  ...
+# Subtest: Rule 4: the checker CAN fail — a synthetic 301-line module is reported
+ok 103 - Rule 4: the checker CAN fail — a synthetic 301-line module is reported
+  ---
+  duration_ms: 305.8557
+  type: 'test'
+  ...
+# Subtest: the editor renders one input per OVERRIDABLE slot, keyed per slot
+ok 104 - the editor renders one input per OVERRIDABLE slot, keyed per slot
+  ---
+  duration_ms: 2.5609
+  type: 'test'
+  ...
+# Subtest: the negative slot renders as (kill-list applied), with NO control on it
+ok 105 - the negative slot renders as (kill-list applied), with NO control on it
+  ---
+  duration_ms: 0.9517
+  type: 'test'
+  ...
+# Subtest: every control the editor renders is REGISTERED — no orphan markup
+ok 106 - every control the editor renders is REGISTERED — no orphan markup
+  ---
+  duration_ms: 0.3145
+  type: 'test'
+  ...
+# Subtest: AC1.1 an EMPTY slot still renders its reason — in an editable field, not a dash
+ok 107 - AC1.1 an EMPTY slot still renders its reason — in an editable field, not a dash
+  ---
+  duration_ms: 0.2417
+  type: 'test'
+  ...
+# Subtest: the editor reports what is staged, and marks the staged rows
+ok 108 - the editor reports what is staged, and marks the staged rows
+  ---
+  duration_ms: 0.353
+  type: 'test'
+  ...
+# Subtest: the editor names the slots it is NOT staging
+ok 109 - the editor names the slots it is NOT staging
+  ---
+  duration_ms: 0.2586
+  type: 'test'
+  ...
+# Subtest: a staged override reaches the next pane render, and RESET takes it back out
+ok 110 - a staged override reaches the next pane render, and RESET takes it back out
+  ---
+  duration_ms: 45.1489
+  type: 'test'
+  ...
+# Subtest: AC3.1 staging an override never mutates the brief text — it is verbatim and immutable
+ok 111 - AC3.1 staging an override never mutates the brief text — it is verbatim and immutable
+  ---
+  duration_ms: 10.045
+  type: 'test'
+  ...
+# Subtest: the STAGE route refuses negative too — pane and boundary share one policy
+ok 112 - the STAGE route refuses negative too — pane and boundary share one policy
+  ---
+  duration_ms: 4.87
+  type: 'test'
+  ...
+# Subtest: the override stage is behind the token gate
+ok 113 - the override stage is behind the token gate
+  ---
+  duration_ms: 3.5607
+  type: 'test'
+  ...
+# Subtest: D36 the compile route REFUSES `negative` as an override key
+ok 114 - D36 the compile route REFUSES `negative` as an override key
+  ---
+  duration_ms: 45.3384
+  type: 'test'
+  ...
+# Subtest: D36 the refusal is never a silent strip — the brief is not compiled at all
+ok 115 - D36 the refusal is never a silent strip — the brief is not compiled at all
+  ---
+  duration_ms: 7.7969
+  type: 'test'
+  ...
+# Subtest: D36 the fence names every offender so one round-trip fixes the request
+ok 116 - D36 the fence names every offender so one round-trip fixes the request
+  ---
+  duration_ms: 0.293
+  type: 'test'
+  ...
+# Subtest: D36 the legitimate override path is untouched
+ok 117 - D36 the legitimate override path is untouched
+  ---
+  duration_ms: 4.1998
+  type: 'test'
+  ...
+# Subtest: D36 an absent or empty override layer is not an error
+ok 118 - D36 an absent or empty override layer is not an error
+  ---
+  duration_ms: 4.7419
+  type: 'test'
+  ...
+# Subtest: the blocked-key policy is shared, not restated per surface
+ok 119 - the blocked-key policy is shared, not restated per surface
+  ---
+  duration_ms: 0.1148
+  type: 'test'
+  ...
+# Subtest: validateOverrides is pure — it never mutates the request it judges
+ok 120 - validateOverrides is pure — it never mutates the request it judges
+  ---
+  duration_ms: 0.0886
+  type: 'test'
+  ...
+# Subtest: validateOverrides reports the FIRST finding deterministically
+ok 121 - validateOverrides reports the FIRST finding deterministically
+  ---
+  duration_ms: 0.6687
+  type: 'test'
+  ...
+# Subtest: T-P-01 the authority matrix is COMPLETE — every actor, every action, one legal value
+ok 122 - T-P-01 the authority matrix is COMPLETE — every actor, every action, one legal value
+  ---
+  duration_ms: 1.3954
+  type: 'test'
+  ...
+# Subtest: T-P-01 the STRONGEST cell in the two enabling columns is `propose` — for every actor
+ok 123 - T-P-01 the STRONGEST cell in the two enabling columns is `propose` — for every actor
+  ---
+  duration_ms: 0.1932
+  type: 'test'
+  ...
+# Subtest: AC5.4 EVERY actor is refused EVERY refused lane — including Sean
+ok 124 - AC5.4 EVERY actor is refused EVERY refused lane — including Sean
+  ---
+  duration_ms: 0.4451
+  type: 'test'
+  ...
+# Subtest: AC5.4 EVERY actor is refused spec mode, and the proposers are told the alternative
+ok 125 - AC5.4 EVERY actor is refused spec mode, and the proposers are told the alternative
+  ---
+  duration_ms: 0.1234
+  type: 'test'
+  ...
+# Subtest: AC5.4 RETIRED and UNSOURCED targets are refused too — an unknown is not a safe default
+ok 126 - AC5.4 RETIRED and UNSOURCED targets are refused too — an unknown is not a safe default
+  ---
+  duration_ms: 0.0798
+  type: 'test'
+  ...
+# Subtest: AC5.4 an ACTIVE target reports already-active — never a false success
+ok 127 - AC5.4 an ACTIVE target reports already-active — never a false success
+  ---
+  duration_ms: 0.0626
+  type: 'test'
+  ...
+# Subtest: AC5.4 unknown actors and targets are refused, and nothing throws
+ok 128 - AC5.4 unknown actors and targets are refused, and nothing throws
+  ---
+  duration_ms: 0.0541
+  type: 'test'
+  ...
+# Subtest: AC5.4 THE SWEEP: every actor against every lane, and nothing was enabled
+ok 129 - AC5.4 THE SWEEP: every actor against every lane, and nothing was enabled
+  ---
+  duration_ms: 0.3409
+  type: 'test'
+  ...
+# Subtest: AC5.4 the sweep GROWS with the board — a new lane is swept without editing a list
+ok 130 - AC5.4 the sweep GROWS with the board — a new lane is swept without editing a list
+  ---
+  duration_ms: 0.242
+  type: 'test'
+  ...
+# Subtest: AC5.4 no mutation route names an enable action — and the pattern really fires
+ok 131 - AC5.4 no mutation route names an enable action — and the pattern really fires
+  ---
+  duration_ms: 0.5263
+  type: 'test'
+  ...
+# Subtest: AC5.4 the fence is backed by real refusals — measured, and the REACHED set is named
+ok 132 - AC5.4 the fence is backed by real refusals — measured, and the REACHED set is named
+  ---
+  duration_ms: 1.1621
+  type: 'test'
+  ...
+# Subtest: T-I-07 the State pane emits NO control attribute, and states why it is read-only
+ok 133 - T-I-07 the State pane emits NO control attribute, and states why it is read-only
+  ---
+  duration_ms: 126.533
+  type: 'test'
+  ...
+# Subtest: T-U-07 a missing State board is a NAMED failure, never an empty table
+ok 134 - T-U-07 a missing State board is a NAMED failure, never an empty table
+  ---
+  duration_ms: 0.2532
+  type: 'test'
+  ...
+# Subtest: T-U-07 the State pane renders every lane with its citation and its gate
+ok 135 - T-U-07 the State pane renders every lane with its citation and its gate
+  ---
+  duration_ms: 3.4093
+  type: 'test'
+  ...
+# Subtest: T-U-07 the spec-mode row reports the CONFIG, and an unreadable gate reads as closed
+ok 136 - T-U-07 the spec-mode row reports the CONFIG, and an unreadable gate reads as closed
+  ---
+  duration_ms: 2.0833
+  type: 'test'
+  ...
+# Subtest: T-U-08 the two boards keep their vocabularies apart, and `claimed` keeps its consequence
+ok 137 - T-U-08 the two boards keep their vocabularies apart, and `claimed` keeps its consequence
+  ---
+  duration_ms: 2.313
+  type: 'test'
+  ...
+# Subtest: HOSTILE (A5) the State pane renders the board it was GIVEN, not one it re-read
+ok 138 - HOSTILE (A5) the State pane renders the board it was GIVEN, not one it re-read
+  ---
+  duration_ms: 0.1785
+  type: 'test'
+  ...
+# Subtest: HOSTILE (A5) PANE_PATHS covers every pane route in paneRoutes.mjs, in BOTH directions
+ok 139 - HOSTILE (A5) PANE_PATHS covers every pane route in paneRoutes.mjs, in BOTH directions
+  ---
+  duration_ms: 0.628
+  type: 'test'
+  ...
+# Subtest: the shell links EVERY stylesheet on disk, in an order that preserves the cascade
+ok 140 - the shell links EVERY stylesheet on disk, in an order that preserves the cascade
+  ---
+  duration_ms: 0.3652
+  type: 'test'
+  ...
+# Subtest: T-U-07: exactly three lanes are RETIRED, and they THROW ON IMPORT
+ok 141 - T-U-07: exactly three lanes are RETIRED, and they THROW ON IMPORT
+  ---
+  duration_ms: 1.9978
+  type: 'test'
+  ...
+# Subtest: T-U-07: exactly three lanes are REFUSED, each with a code guard
+ok 142 - T-U-07: exactly three lanes are REFUSED, each with a code guard
+  ---
+  duration_ms: 0.2478
+  type: 'test'
+  ...
+# Subtest: T-U-07: the lanes A0 called REFUSED that are actually ACTIVE are recorded as ACTIVE
+ok 143 - T-U-07: the lanes A0 called REFUSED that are actually ACTIVE are recorded as ACTIVE
+  ---
+  duration_ms: 0.2068
+  type: 'test'
+  ...
+# Subtest: T-U-07: spec mode is DISABLED and is NOT a lane
+ok 144 - T-U-07: spec mode is DISABLED and is NOT a lane
+  ---
+  duration_ms: 0.0955
+  type: 'test'
+  ...
+# Subtest: T-U-07 / INV8: EVERY row resolves to a live file:line — no status without a source
+ok 145 - T-U-07 / INV8: EVERY row resolves to a live file:line — no status without a source
+  ---
+  duration_ms: 4.2752
+  type: 'test'
+  ...
+# Subtest: T-U-07: the board DEGRADES rather than asserting an unsupported status
+ok 146 - T-U-07: the board DEGRADES rather than asserting an unsupported status
+  ---
+  duration_ms: 0.3357
+  type: 'test'
+  ...
+# Subtest: T-U-07: an unreadable lane file degrades too, and does not throw
+ok 147 - T-U-07: an unreadable lane file degrades too, and does not throw
+  ---
+  duration_ms: 0.3008
+  type: 'test'
+  ...
+# Subtest: T-U-07: every lane in the table is unique, and the counts are derived
+ok 148 - T-U-07: every lane in the table is unique, and the counts are derived
+  ---
+  duration_ms: 1.9387
+  type: 'test'
+  ...
+# Subtest: T-U-07: the source paths are repo-relative and forward-slashed
+ok 149 - T-U-07: the source paths are repo-relative and forward-slashed
+  ---
+  duration_ms: 0.3117
+  type: 'test'
+  ...
+# Subtest: T-U-08: a capability declared "claimed" renders as NOT usable
+ok 150 - T-U-08: a capability declared "claimed" renders as NOT usable
+  ---
+  duration_ms: 0.3059
+  type: 'test'
+  ...
+# Subtest: T-U-08: only "verified" is usable — true/1/"yes" are all false
+ok 151 - T-U-08: only "verified" is usable — true/1/"yes" are all false
+  ---
+  duration_ms: 0.1542
+  type: 'test'
+  ...
+# Subtest: T-U-08: the claimed fixture really is claimed, end to end
+ok 152 - T-U-08: the claimed fixture really is claimed, end to end
+  ---
+  duration_ms: 0.8196
+  type: 'test'
+  ...
+# Subtest: T-U-07 the law board covers exactly LAW_NAMES, in LAW_NAMES order
+ok 153 - T-U-07 the law board covers exactly LAW_NAMES, in LAW_NAMES order
+  ---
+  duration_ms: 0.9306
+  type: 'test'
+  ...
+# Subtest: T-U-07 EVERY law row resolves to a live file:line that really contains its marker
+ok 154 - T-U-07 EVERY law row resolves to a live file:line that really contains its marker
+  ---
+  duration_ms: 1.5942
+  type: 'test'
+  ...
+# Subtest: T-U-07 the marker is the ENFORCEMENT SITE, not the law name
+ok 155 - T-U-07 the marker is the ENFORCEMENT SITE, not the law name
+  ---
+  duration_ms: 0.2526
+  type: 'test'
+  ...
+# Subtest: T-U-07 the board DEGRADES rather than asserting an unsupported status
+ok 156 - T-U-07 the board DEGRADES rather than asserting an unsupported status
+  ---
+  duration_ms: 0.4508
+  type: 'test'
+  ...
+# Subtest: T-U-07 an unreadable law file degrades too, and does not throw
+ok 157 - T-U-07 an unreadable law file degrades too, and does not throw
+  ---
+  duration_ms: 0.2219
+  type: 'test'
+  ...
+# Subtest: T-U-07 the kill-list is cited, counted, and its count is the list's own length
+ok 158 - T-U-07 the kill-list is cited, counted, and its count is the list's own length
+  ---
+  duration_ms: 0.3272
+  type: 'test'
+  ...
+# Subtest: T-U-07 the law runner and the patterns file are the files the board cites
+ok 159 - T-U-07 the law runner and the patterns file are the files the board cites
+  ---
+  duration_ms: 0.2599
+  type: 'test'
+  ...
+# Subtest: T-I-07 the Law pane emits NO control attribute, and states why it is read-only
+ok 160 - T-I-07 the Law pane emits NO control attribute, and states why it is read-only
+  ---
+  duration_ms: 0.3648
+  type: 'test'
+  ...
+# Subtest: T-U-07 an UNSOURCED row renders as INCONCLUSIVE, never as enforced
+ok 161 - T-U-07 an UNSOURCED row renders as INCONCLUSIVE, never as enforced
+  ---
+  duration_ms: 0.6081
+  type: 'test'
+  ...
+# Subtest: T-U-07 a missing Law board is a NAMED failure, never an empty table
+ok 162 - T-U-07 a missing Law board is a NAMED failure, never an empty table
+  ---
+  duration_ms: 0.3023
+  type: 'test'
+  ...
+1..162
+# tests 167
+# suites 0
+# pass 167
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 30896.1505
+
+==========================================================================
+§2  node scripts/astra/surface/smoke.mjs --port 0     (real server, real HTTP)
+==========================================================================
+
+astra smoke — http://127.0.0.1:56289
+brainVersion 0.2.0 · 37 checks
+
+ok    GET  /healthz                                          200
+ok    GET  /static/*.css (every stylesheet)                  200
+ok    GET  /static/../../../package.json (raw)               404
+ok    GET  / (Compose)                                       200
+ok    GET  /choose                                           200
+ok    GET  /think (no compile)                               200
+ok    GET  /ledger (not built)                               200
+ok    GET  /tune (REAL as of A4)                             200
+ok    GET  /law (REAL as of A5)                              200
+ok    GET  /state (REAL as of A5)                            200
+ok    GET  /state (AC5.4 sweep renders zero)                 200
+ok    GET  /law + /state (read-only notice on the pane)      200
+ok    GET  /nope (404)                                       404
+ok    GET  /api/capabilities                                 200
+ok    GET  /api/state                                        200
+ok    GET  /api/directions (POST-only)                       405 E_METHOD
+ok    POST /api/directions (zero cost)                       200
+ok    POST /api/compile (NO token)                           401 E_TOKEN_REQUIRED
+ok    POST /api/compile (WRONG token)                        401 E_TOKEN_INVALID
+ok    POST /api/compile (token)                              200
+ok    POST /api/preview (token, REFUSED)                     501 E_GENERATION_DISABLED
+ok    POST /api/overrides-stage (NO token = gate holds)      401 E_TOKEN_REQUIRED
+ok    POST /api/overrides-stage (token, stages)              200
+ok    GET  / (Compose shows the staged override)             200
+ok    POST /api/overrides-stage (negative REFUSED)           400 E_OVERRIDE_KEY_BLOCKED
+ok    GET  /api/tuning (live knobs)                          200
+ok    POST /api/tuning-stage (empty = discard)               200
+ok    GET  /api/tuning (carries the stage)                   200
+ok    POST /api/tuning-stage (unknown key REFUSED)           400 E_TUNING_KEY_UNKNOWN
+ok    POST /api/tuning-commit (nothing staged REFUSED)       400 E_TUNING_NO_CHANGES
+ok    POST /api/tuning-revert (NO token = gate holds)        401 E_TOKEN_REQUIRED
+ok    POST /api/explain (unknown id)                         404 E_COMPILE_UNKNOWN
+ok    POST /api/explain (real id)                            200
+ok    POST /api/reject (token, real id)                      200
+ok    POST /api/reject (unknown id)                          404 E_COMPILE_UNKNOWN
+ok    COVERAGE every mutation route is checked               200
+ok    AC5.4 no route can enable a REFUSED lane or spec mode  200
+
+37 passed, 0 failed
+
+==========================================================================
+§3  node --test backend/tests/node-runner/swan*.test.mjs
+        (the shared compiler suites A4b/A5 touch — GLOBBED, not listed; see D47)
+==========================================================================
+
+TAP version 13
+# Subtest: MUST-PASS CORPUS: 43 legitimate Swan prompts are never blocked
+ok 1 - MUST-PASS CORPUS: 43 legitimate Swan prompts are never blocked
+  ---
+  duration_ms: 3.7611
+  type: 'test'
+  ...
+# Subtest: the corpus is large enough to be meaningful
+ok 2 - the corpus is large enough to be meaningful
+  ---
+  duration_ms: 0.0916
+  type: 'test'
+  ...
+# Subtest: corpus entries are realistic — each names a real slot
+ok 3 - corpus entries are realistic — each names a real slot
+  ---
+  duration_ms: 0.1199
+  type: 'test'
+  ...
+# Subtest: a lawful prompt passes with every check green
+ok 4 - a lawful prompt passes with every check green
+  ---
+  duration_ms: 2.4203
+  type: 'test'
+  ...
+# Subtest: LAW 3 blocks the iridescent-gradient family
+ok 5 - LAW 3 blocks the iridescent-gradient family
+  ---
+  duration_ms: 0.2915
+  type: 'test'
+  ...
+# Subtest: LAW 3 blocks the named purple-to-cyan diagonal wash
+ok 6 - LAW 3 blocks the named purple-to-cyan diagonal wash
+  ---
+  duration_ms: 0.099
+  type: 'test'
+  ...
+# Subtest: LAW 3 blocks lens flare, causeless particles, and glass-on-glass
+ok 7 - LAW 3 blocks lens flare, causeless particles, and glass-on-glass
+  ---
+  duration_ms: 0.1197
+  type: 'test'
+  ...
+# Subtest: LAW 4 blocks a literal creature
+ok 8 - LAW 4 blocks a literal creature
+  ---
+  duration_ms: 0.2174
+  type: 'test'
+  ...
+# Subtest: LAW 4 ALLOWS a creature as a dark occluder — the sanctioned escape hatch
+ok 9 - LAW 4 ALLOWS a creature as a dark occluder — the sanctioned escape hatch
+  ---
+  duration_ms: 0.3367
+  type: 'test'
+  ...
+# Subtest: LAW 2 blocks gold outside its allowlist but permits the sanctioned roles
+ok 10 - LAW 2 blocks gold outside its allowlist but permits the sanctioned roles
+  ---
+  duration_ms: 0.2616
+  type: 'test'
+  ...
+# Subtest: retired Galaxy-Swan values are caught even inside a var() fallback
+ok 11 - retired Galaxy-Swan values are caught even inside a var() fallback
+  ---
+  duration_ms: 0.0843
+  type: 'test'
+  ...
+# Subtest: LAW 10 blocks yoga/meditation language
+ok 12 - LAW 10 blocks yoga/meditation language
+  ---
+  duration_ms: 0.48
+  type: 'test'
+  ...
+# Subtest: LAW 10 blocks the forbidden credential form
+ok 13 - LAW 10 blocks the forbidden credential form
+  ---
+  duration_ms: 0.2538
+  type: 'test'
+  ...
+# Subtest: banned taxonomy facets are rejected, including dotted paths
+ok 14 - banned taxonomy facets are rejected, including dotted paths
+  ---
+  duration_ms: 0.1739
+  type: 'test'
+  ...
+# Subtest: multiple violations are all reported, not just the first
+ok 15 - multiple violations are all reported, not just the first
+  ---
+  duration_ms: 0.08
+  type: 'test'
+  ...
+# Subtest: assertLawful throws E_LAW_VIOLATION naming the slot, and never strips
+ok 16 - assertLawful throws E_LAW_VIOLATION naming the slot, and never strips
+  ---
+  duration_ms: 0.2667
+  type: 'test'
+  ...
+# Subtest: REGRESSION: hyphenated purple-to-cyan does not bypass (round 1)
+ok 17 - REGRESSION: hyphenated purple-to-cyan does not bypass (round 1)
+  ---
+  duration_ms: 3.3437
+  type: 'test'
+  ...
+# Subtest: REGRESSION: plural and possessive creatures do not bypass (round 1)
+ok 18 - REGRESSION: plural and possessive creatures do not bypass (round 1)
+  ---
+  duration_ms: 0.0889
+  type: 'test'
+  ...
+# Subtest: REGRESSION: bird's-eye view is a CAMERA POSITION, not a creature (round 2)
+ok 19 - REGRESSION: bird's-eye view is a CAMERA POSITION, not a creature (round 2)
+  ---
+  duration_ms: 0.0596
+  type: 'test'
+  ...
+# Subtest: REGRESSION: the idiom allowance is not itself a bypass (round 3)
+ok 20 - REGRESSION: the idiom allowance is not itself a bypass (round 3)
+  ---
+  duration_ms: 0.0446
+  type: 'test'
+  ...
+# Subtest: no false positives on legitimate Swan vocabulary
+ok 21 - no false positives on legitimate Swan vocabulary
+  ---
+  duration_ms: 0.0754
+  type: 'test'
+  ...
+# Subtest: REGRESSION: the `negative` slot is EXEMPT — it exists to name banned things
+ok 22 - REGRESSION: the `negative` slot is EXEMPT — it exists to name banned things
+  ---
+  duration_ms: 0.0581
+  type: 'test'
+  ...
+# Subtest: the exemption is scoped to `negative` only — other slots still scanned
+ok 23 - the exemption is scoped to `negative` only — other slots still scanned
+  ---
+  duration_ms: 0.0336
+  type: 'test'
+  ...
+# Subtest: REGRESSION: "golden hour" is LIGHT, not gold ornament
+ok 24 - REGRESSION: "golden hour" is LIGHT, not gold ornament
+  ---
+  duration_ms: 0.0357
+  type: 'test'
+  ...
+# Subtest: REGRESSION: occluder framing is a SHAPE allowance, not a rendering licence
+ok 25 - REGRESSION: occluder framing is a SHAPE allowance, not a rendering licence
+  ---
+  duration_ms: 0.1467
+  type: 'test'
+  ...
+# Subtest: REGRESSION: unicode and spacing evasion is normalized before matching
+ok 26 - REGRESSION: unicode and spacing evasion is normalized before matching
+  ---
+  duration_ms: 0.1016
+  type: 'test'
+  ...
+# Subtest: normalization does not mangle ordinary prose
+ok 27 - normalization does not mangle ordinary prose
+  ---
+  duration_ms: 0.0392
+  type: 'test'
+  ...
+# Subtest: REGRESSION: a lawful phrase elsewhere in the slot is not a shield (HY3 F3)
+ok 28 - REGRESSION: a lawful phrase elsewhere in the slot is not a shield (HY3 F3)
+  ---
+  duration_ms: 0.0343
+  type: 'test'
+  ...
+# Subtest: REGRESSION: LAW 10 applies to the negative slot — exempt from taste, not content (HY3 F4)
+ok 29 - REGRESSION: LAW 10 applies to the negative slot — exempt from taste, not content (HY3 F4)
+  ---
+  duration_ms: 0.0357
+  type: 'test'
+  ...
+# Subtest: REGRESSION: retired palette is reachable by NAME, not only hex (HY3 F5)
+ok 30 - REGRESSION: retired palette is reachable by NAME, not only hex (HY3 F5)
+  ---
+  duration_ms: 0.034
+  type: 'test'
+  ...
+# Subtest: REGRESSION: non-English creature lemmas are caught (HY3 F2)
+ok 31 - REGRESSION: non-English creature lemmas are caught (HY3 F2)
+  ---
+  duration_ms: 0.048
+  type: 'test'
+  ...
+# Subtest: DISPROVEN CLAIM (kept as a guard): bird-eye idiom variants all pass
+ok 32 - DISPROVEN CLAIM (kept as a guard): bird-eye idiom variants all pass
+  ---
+  duration_ms: 0.0622
+  type: 'test'
+  ...
+# Subtest: empty and partial slot maps do not crash
+ok 33 - empty and partial slot maps do not crash
+  ---
+  duration_ms: 0.0484
+  type: 'test'
+  ...
+# Subtest: LAW 3: a PRESENT but EMPTY negative slot is a deleted kill-list, not a green
+ok 34 - LAW 3: a PRESENT but EMPTY negative slot is a deleted kill-list, not a green
+  ---
+  duration_ms: 2.3908
+  type: 'test'
+  ...
+# Subtest: LAW 3: a negative slot naming NO kill-list family is refused
+ok 35 - LAW 3: a negative slot naming NO kill-list family is refused
+  ---
+  duration_ms: 0.2109
+  type: 'test'
+  ...
+# Subtest: LAW 3: a non-string negative slot carries no list, whatever it holds
+ok 36 - LAW 3: a non-string negative slot carries no list, whatever it holds
+  ---
+  duration_ms: 0.1228
+  type: 'test'
+  ...
+# Subtest: LAW 3: an ABSENT negative slot is a partial call, not a verdict
+ok 37 - LAW 3: an ABSENT negative slot is a partial call, not a verdict
+  ---
+  duration_ms: 0.1433
+  type: 'test'
+  ...
+# Subtest: LAW 3: a PARTIAL negative slot still passes — pinned so tightening it is deliberate
+ok 38 - LAW 3: a PARTIAL negative slot still passes — pinned so tightening it is deliberate
+  ---
+  duration_ms: 0.1031
+  type: 'test'
+  ...
+# Subtest: LAW 3: the carried kill-list and the matcher families share ONE definition
+ok 39 - LAW 3: the carried kill-list and the matcher families share ONE definition
+  ---
+  duration_ms: 0.2153
+  type: 'test'
+  ...
+# Subtest: the canonical prose carries at least one family the guard can find
+ok 40 - the canonical prose carries at least one family the guard can find
+  ---
+  duration_ms: 0.1032
+  type: 'test'
+  ...
+# Subtest: the personification formula produces the strong form, never "by artist"
+ok 41 - the personification formula produces the strong form, never "by artist"
+  ---
+  duration_ms: 0.7874
+  type: 'test'
+  ...
+# Subtest: personify tolerates a trailing possessive and a missing subject
+ok 42 - personify tolerates a trailing possessive and a missing subject
+  ---
+  duration_ms: 0.0985
+  type: 'test'
+  ...
+# Subtest: a full compile produces prompt text, seed, slots and law checks
+ok 43 - a full compile produces prompt text, seed, slots and law checks
+  ---
+  duration_ms: 3.1871
+  type: 'test'
+  ...
+# Subtest: facets actually change the prompt — this is a composer, not a template
+ok 44 - facets actually change the prompt — this is a composer, not a template
+  ---
+  duration_ms: 0.6621
+  type: 'test'
+  ...
+# Subtest: surface class changes the abstraction budget (LAW 6)
+ok 45 - surface class changes the abstraction budget (LAW 6)
+  ---
+  duration_ms: 0.2553
+  type: 'test'
+  ...
+# Subtest: an abstract facet can deliberately EMPTY the subject slot
+ok 46 - an abstract facet can deliberately EMPTY the subject slot
+  ---
+  duration_ms: 0.0773
+  type: 'test'
+  ...
+# Subtest: CAPABILITY GATE: unverified negative-prompt support means NO negative text
+ok 47 - CAPABILITY GATE: unverified negative-prompt support means NO negative text
+  ---
+  duration_ms: 0.1895
+  type: 'test'
+  ...
+# Subtest: CAPABILITY GATE: unverified seed determinism means no seed param sent
+ok 48 - CAPABILITY GATE: unverified seed determinism means no seed param sent
+  ---
+  duration_ms: 0.0998
+  type: 'test'
+  ...
+# Subtest: the negative slot always carries the kill-list even when unusable
+ok 49 - the negative slot always carries the kill-list even when unusable
+  ---
+  duration_ms: 0.1823
+  type: 'test'
+  ...
+# Subtest: unsupported aspect ratio is refused, not silently coerced
+ok 50 - unsupported aspect ratio is refused, not silently coerced
+  ---
+  duration_ms: 0.4369
+  type: 'test'
+  ...
+# Subtest: REPLAYABLE: same brief + same seed yields the same prompt and seed
+ok 51 - REPLAYABLE: same brief + same seed yields the same prompt and seed
+  ---
+  duration_ms: 0.2377
+  type: 'test'
+  ...
+# Subtest: an auto-assigned seed is always recorded, never left undefined
+ok 52 - an auto-assigned seed is always recorded, never left undefined
+  ---
+  duration_ms: 0.0987
+  type: 'test'
+  ...
+# Subtest: LAW filter runs inside compile — unlawful briefs never reach a provider
+ok 53 - LAW filter runs inside compile — unlawful briefs never reach a provider
+  ---
+  duration_ms: 0.1154
+  type: 'test'
+  ...
+# Subtest: slotOverrides (refine chips) are applied last and win
+ok 54 - slotOverrides (refine chips) are applied last and win
+  ---
+  duration_ms: 0.0774
+  type: 'test'
+  ...
+# Subtest: REGRESSION: an override cannot DELETE the kill-list (LAW 3, second condition)
+ok 55 - REGRESSION: an override cannot DELETE the kill-list (LAW 3, second condition)
+  ---
+  duration_ms: 0.1739
+  type: 'test'
+  ...
+# Subtest: the same IR renders differently under the remaining strategies
+ok 56 - the same IR renders differently under the remaining strategies
+  ---
+  duration_ms: 0.0687
+  type: 'test'
+  ...
+# Subtest: precedence: DECLARED promptStyle beats a provider-name hint
+ok 57 - precedence: DECLARED promptStyle beats a provider-name hint
+  ---
+  duration_ms: 0.0335
+  type: 'test'
+  ...
+# Subtest: an undeclared provider gets the FLATTEST-FAILURE default, not the prettiest
+ok 58 - an undeclared provider gets the FLATTEST-FAILURE default, not the prettiest
+  ---
+  duration_ms: 0.0315
+  type: 'test'
+  ...
+# Subtest: provider-name hints are GONE with the serializer they selected
+ok 59 - provider-name hints are GONE with the serializer they selected
+  ---
+  duration_ms: 0.0276
+  type: 'test'
+  ...
+# Subtest: an unknown explicit style falls back rather than throwing at selection time
+ok 60 - an unknown explicit style falls back rather than throwing at selection time
+  ---
+  duration_ms: 0.0213
+  type: 'test'
+  ...
+# Subtest: token budget drops TAIL SEGMENTS, never cuts mid-string
+ok 61 - token budget drops TAIL SEGMENTS, never cuts mid-string
+  ---
+  duration_ms: 0.0526
+  type: 'test'
+  ...
+# Subtest: compile honours a provider prompt budget and reports the truncation
+ok 62 - compile honours a provider prompt budget and reports the truncation
+  ---
+  duration_ms: 0.0919
+  type: 'test'
+  ...
+# Subtest: an unknown serializer throws rather than silently emitting nothing
+ok 63 - an unknown serializer throws rather than silently emitting nothing
+  ---
+  duration_ms: 0.0542
+  type: 'test'
+  ...
+# Subtest: compile records which strategy produced the text
+ok 64 - compile records which strategy produced the text
+  ---
+  duration_ms: 0.1883
+  type: 'test'
+  ...
+# Subtest: every strategy still yields a lawful, non-empty string
+ok 65 - every strategy still yields a lawful, non-empty string
+  ---
+  duration_ms: 0.0658
+  type: 'test'
+  ...
+# Subtest: REGRESSION: a substanceless prompt is REFUSED, not billed for
+ok 66 - REGRESSION: a substanceless prompt is REFUSED, not billed for
+  ---
+  duration_ms: 0.1282
+  type: 'test'
+  ...
+# Subtest: REGRESSION: the empty-prompt guard does NOT refuse terse-but-real briefs
+ok 67 - REGRESSION: the empty-prompt guard does NOT refuse terse-but-real briefs
+  ---
+  duration_ms: 0.1084
+  type: 'test'
+  ...
+# Subtest: REGRESSION: sentence strategy does not drop a medium that has no lead
+ok 68 - REGRESSION: sentence strategy does not drop a medium that has no lead
+  ---
+  duration_ms: 0.1049
+  type: 'test'
+  ...
+# Subtest: every curated facet is well-formed and patches only real slot names
+ok 69 - every curated facet is well-formed and patches only real slot names
+  ---
+  duration_ms: 0.1717
+  type: 'test'
+  ...
+# Subtest: no curated facet can itself produce a law violation
+ok 70 - no curated facet can itself produce a law violation
+  ---
+  duration_ms: 1.1747
+  type: 'test'
+  ...
+1..70
+# tests 70
+# suites 0
+# pass 70
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 391.6181
+
+==========================================================================
+§4  node --test scripts/astra/tests/a5-law.test.mjs a5-boards.test.mjs \
+        a5-authority.test.mjs          (A5's own suites, per test)
+==========================================================================
+
+TAP version 13
+# Subtest: T-P-01 the authority matrix is COMPLETE — every actor, every action, one legal value
+ok 1 - T-P-01 the authority matrix is COMPLETE — every actor, every action, one legal value
+  ---
+  duration_ms: 1.1788
+  type: 'test'
+  ...
+# Subtest: T-P-01 the STRONGEST cell in the two enabling columns is `propose` — for every actor
+ok 2 - T-P-01 the STRONGEST cell in the two enabling columns is `propose` — for every actor
+  ---
+  duration_ms: 0.1469
+  type: 'test'
+  ...
+# Subtest: AC5.4 EVERY actor is refused EVERY refused lane — including Sean
+ok 3 - AC5.4 EVERY actor is refused EVERY refused lane — including Sean
+  ---
+  duration_ms: 0.4253
+  type: 'test'
+  ...
+# Subtest: AC5.4 EVERY actor is refused spec mode, and the proposers are told the alternative
+ok 4 - AC5.4 EVERY actor is refused spec mode, and the proposers are told the alternative
+  ---
+  duration_ms: 0.1141
+  type: 'test'
+  ...
+# Subtest: AC5.4 RETIRED and UNSOURCED targets are refused too — an unknown is not a safe default
+ok 5 - AC5.4 RETIRED and UNSOURCED targets are refused too — an unknown is not a safe default
+  ---
+  duration_ms: 0.0854
+  type: 'test'
+  ...
+# Subtest: AC5.4 an ACTIVE target reports already-active — never a false success
+ok 6 - AC5.4 an ACTIVE target reports already-active — never a false success
+  ---
+  duration_ms: 0.0649
+  type: 'test'
+  ...
+# Subtest: AC5.4 unknown actors and targets are refused, and nothing throws
+ok 7 - AC5.4 unknown actors and targets are refused, and nothing throws
+  ---
+  duration_ms: 0.0724
+  type: 'test'
+  ...
+# Subtest: AC5.4 THE SWEEP: every actor against every lane, and nothing was enabled
+ok 8 - AC5.4 THE SWEEP: every actor against every lane, and nothing was enabled
+  ---
+  duration_ms: 0.3312
+  type: 'test'
+  ...
+# Subtest: AC5.4 the sweep GROWS with the board — a new lane is swept without editing a list
+ok 9 - AC5.4 the sweep GROWS with the board — a new lane is swept without editing a list
+  ---
+  duration_ms: 0.2299
+  type: 'test'
+  ...
+# Subtest: AC5.4 no mutation route names an enable action — and the pattern really fires
+ok 10 - AC5.4 no mutation route names an enable action — and the pattern really fires
+  ---
+  duration_ms: 0.3334
+  type: 'test'
+  ...
+# Subtest: AC5.4 the fence is backed by real refusals — measured, and the REACHED set is named
+ok 11 - AC5.4 the fence is backed by real refusals — measured, and the REACHED set is named
+  ---
+  duration_ms: 0.8314
+  type: 'test'
+  ...
+# Subtest: T-I-07 the State pane emits NO control attribute, and states why it is read-only
+ok 12 - T-I-07 the State pane emits NO control attribute, and states why it is read-only
+  ---
+  duration_ms: 29.0144
+  type: 'test'
+  ...
+# Subtest: T-U-07 a missing State board is a NAMED failure, never an empty table
+ok 13 - T-U-07 a missing State board is a NAMED failure, never an empty table
+  ---
+  duration_ms: 0.1477
+  type: 'test'
+  ...
+# Subtest: T-U-07 the State pane renders every lane with its citation and its gate
+ok 14 - T-U-07 the State pane renders every lane with its citation and its gate
+  ---
+  duration_ms: 2.793
+  type: 'test'
+  ...
+# Subtest: T-U-07 the spec-mode row reports the CONFIG, and an unreadable gate reads as closed
+ok 15 - T-U-07 the spec-mode row reports the CONFIG, and an unreadable gate reads as closed
+  ---
+  duration_ms: 1.6044
+  type: 'test'
+  ...
+# Subtest: T-U-08 the two boards keep their vocabularies apart, and `claimed` keeps its consequence
+ok 16 - T-U-08 the two boards keep their vocabularies apart, and `claimed` keeps its consequence
+  ---
+  duration_ms: 1.8242
+  type: 'test'
+  ...
+# Subtest: HOSTILE (A5) the State pane renders the board it was GIVEN, not one it re-read
+ok 17 - HOSTILE (A5) the State pane renders the board it was GIVEN, not one it re-read
+  ---
+  duration_ms: 0.1389
+  type: 'test'
+  ...
+# Subtest: HOSTILE (A5) PANE_PATHS covers every pane route in paneRoutes.mjs, in BOTH directions
+ok 18 - HOSTILE (A5) PANE_PATHS covers every pane route in paneRoutes.mjs, in BOTH directions
+  ---
+  duration_ms: 0.5732
+  type: 'test'
+  ...
+# Subtest: the shell links EVERY stylesheet on disk, in an order that preserves the cascade
+ok 19 - the shell links EVERY stylesheet on disk, in an order that preserves the cascade
+  ---
+  duration_ms: 0.3205
+  type: 'test'
+  ...
+# Subtest: T-U-07 the law board covers exactly LAW_NAMES, in LAW_NAMES order
+ok 20 - T-U-07 the law board covers exactly LAW_NAMES, in LAW_NAMES order
+  ---
+  duration_ms: 0.8115
+  type: 'test'
+  ...
+# Subtest: T-U-07 EVERY law row resolves to a live file:line that really contains its marker
+ok 21 - T-U-07 EVERY law row resolves to a live file:line that really contains its marker
+  ---
+  duration_ms: 1.37
+  type: 'test'
+  ...
+# Subtest: T-U-07 the marker is the ENFORCEMENT SITE, not the law name
+ok 22 - T-U-07 the marker is the ENFORCEMENT SITE, not the law name
+  ---
+  duration_ms: 0.243
+  type: 'test'
+  ...
+# Subtest: T-U-07 the board DEGRADES rather than asserting an unsupported status
+ok 23 - T-U-07 the board DEGRADES rather than asserting an unsupported status
+  ---
+  duration_ms: 0.4163
+  type: 'test'
+  ...
+# Subtest: T-U-07 an unreadable law file degrades too, and does not throw
+ok 24 - T-U-07 an unreadable law file degrades too, and does not throw
+  ---
+  duration_ms: 0.2092
+  type: 'test'
+  ...
+# Subtest: T-U-07 the kill-list is cited, counted, and its count is the list's own length
+ok 25 - T-U-07 the kill-list is cited, counted, and its count is the list's own length
+  ---
+  duration_ms: 0.2858
+  type: 'test'
+  ...
+# Subtest: T-U-07 the law runner and the patterns file are the files the board cites
+ok 26 - T-U-07 the law runner and the patterns file are the files the board cites
+  ---
+  duration_ms: 0.2488
+  type: 'test'
+  ...
+# Subtest: T-I-07 the Law pane emits NO control attribute, and states why it is read-only
+ok 27 - T-I-07 the Law pane emits NO control attribute, and states why it is read-only
+  ---
+  duration_ms: 0.2901
+  type: 'test'
+  ...
+# Subtest: T-U-07 an UNSOURCED row renders as INCONCLUSIVE, never as enforced
+ok 28 - T-U-07 an UNSOURCED row renders as INCONCLUSIVE, never as enforced
+  ---
+  duration_ms: 0.5663
+  type: 'test'
+  ...
+# Subtest: T-U-07 a missing Law board is a NAMED failure, never an empty table
+ok 29 - T-U-07 a missing Law board is a NAMED failure, never an empty table
+  ---
+  duration_ms: 0.2794
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 339.8259
+
+==========================================================================
+§5  RULE 4 — the house measure (readFileSync(...).split("\n").length)
+    over every file A5 created or changed.
+==========================================================================
+
+  201  scripts/astra/core/authority.mjs
+  167  scripts/astra/core/lawBoard.mjs
+  287  scripts/astra/core/capabilities.mjs
+   94  scripts/astra/surface/paneLaw.mjs
+  140  scripts/astra/surface/paneState.mjs
+  178  scripts/astra/surface/paneRoutes.mjs
+  133  scripts/astra/surface/smokeBoards.mjs
+   85  scripts/astra/surface/smokeTune.mjs
+  215  scripts/astra/surface/shell.mjs
+  249  scripts/astra/surface/server.mjs
+  292  scripts/astra/surface/api.mjs
+  277  scripts/astra/surface/smoke.mjs
+  246  scripts/astra/static/astra.css
+   79  scripts/astra/static/astra-boards.css
+   68  scripts/astra/static/astra-tune.css
+  147  scripts/astra/tests/a5-law.test.mjs
+  225  scripts/astra/tests/a5-boards.test.mjs
+  253  scripts/astra/tests/a5-authority.test.mjs
+
+Budget 300. Worst file A5 touched: 292. Over budget: none.
+
+The guard itself (a4b-budget.test.mjs): 7 pass / 0 fail
+
+==========================================================================
+§6  node --test backend/tests/node-runner/*.test.mjs   (the WHOLE tree)
+    Pre-existing and environmental; unchanged by A5.
+==========================================================================
+
+187 tests, 181 pass, 6 fail.
+Failed (6), verbatim:
+
+not ok - THE MOST AGGRESSIVE SETTINGS still cannot delete a LINEAGE PARENT
+not ok - THE MOST AGGRESSIVE SETTINGS still cannot delete a WINNER
+not ok - --apply OUTSIDE a terminal refuses without the second acknowledgement
+not ok - DRY RUN is the default and deletes nothing
+not ok - a pruned row is MARKED, never removed, and spend survives
+not ok - native production Node resolves and executes the shared schema package
+
+==========================================================================
+§7  MEASURED STATE AFTER A5 — every number below came from a run, not a plan.
+==========================================================================
+
+Astra suite            167 pass / 0 fail
+A5's own suites        29 pass / 0 fail
+Shared compiler        70 pass / 0 fail
+Smoke runner           37 passed, 0 failed
+Rule 4 guard           7 pass / 0 fail, 0 offender(s) among the files A5 touched
+Whole node-runner      187 tests, 6 fail (pre-existing baseline)
+
+==========================================================================
+§8  MUTATION PROOF — 8 mutations, each asserted to LAND before the run
+    and restored byte-exactly after it.
+==========================================================================
+
+Driver: C:/tmp/a5-mutations.py. A mutation whose anchor string is absent ABORTS the
+run rather than counting as a green — a mutation that did not land proves nothing.
+The driver GLOBS the a5-*.test.mjs suites, so the Rule 4 split of the law tests out
+of a5-boards.test.mjs cannot silently leave four law mutations unmeasured.
+
+ok   M1 lawBoard asserts a status it cannot support
+     landed=True restored=True tests=41 pass=40 fail=1
+       RED: T-U-07 the board DEGRADES rather than asserting an unsupported status
+ok   M2 the LAW4 marker becomes the law's own NAME
+     landed=True restored=True tests=41 pass=40 fail=1
+       RED: T-U-07 the marker is the ENFORCEMENT SITE, not the law name
+ok   M3 attemptEnable reports enabled: true
+     landed=True restored=True tests=41 pass=35 fail=6
+       RED: AC5.4 EVERY actor is refused EVERY refused lane — including Sean
+       RED: AC5.4 EVERY actor is refused spec mode, and the proposers are told the alternative
+       RED: AC5.4 RETIRED and UNSOURCED targets are refused too — an unknown is not a safe default
+       RED: AC5.4 an ACTIVE target reports already-active — never a false success
+       RED: AC5.4 THE SWEEP: every actor against every lane, and nothing was enabled
+       RED: AC5.4 the sweep GROWS with the board — a new lane is swept without editing a list
+ok   M4 a route that could enable spec mode is added
+     landed=True restored=True tests=41 pass=40 fail=1
+       RED: AC5.4 no mutation route names an enable action — and the pattern really fires
+ok   M5 the Law pane stops rendering its read-only reason
+     landed=True restored=True tests=41 pass=40 fail=1
+       RED: T-I-07 the Law pane emits NO control attribute, and states why it is read-only
+ok   M6 the Law pane emits a control
+     landed=True restored=True tests=41 pass=40 fail=1
+       RED: T-I-07 the Law pane emits NO control attribute, and states why it is read-only
+ok   M7 the base stylesheet loads LAST
+     landed=True restored=True tests=41 pass=40 fail=1
+       RED: the shell links EVERY stylesheet on disk, in an order that preserves the cascade
+ok   M8 an unreadable spec-mode config reads as OPEN
+     landed=True restored=True tests=41 pass=40 fail=1
+       RED: T-U-07 the spec-mode row reports the CONFIG, and an unreadable gate reads as closed
+
+=== SUMMARY ===
+mutations: 8  landed: 8  restored: 8
+uncovered (no test reddened): none
