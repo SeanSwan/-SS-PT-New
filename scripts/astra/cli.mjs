@@ -49,7 +49,14 @@ function loadJson(arg, fallback) {
   // absolute path that exists passes `existsSync` on its own, so the special case
   // was never needed.
   const hit = candidates.find((p) => existsSync(p));
-  if (!hit) throw new Error(`E_FIXTURE_NOT_FOUND: no such fixture ${JSON.stringify(name)}`);
+  if (!hit) {
+    // The name is set on `.code`, not only spelled in the message. The CLI prints
+    // the message, but a caller that branches on the code — a test, or the MCP
+    // surface — must be able to read it.
+    const err = new Error(`E_FIXTURE_NOT_FOUND: no such fixture ${JSON.stringify(name)}`);
+    err.code = 'E_FIXTURE_NOT_FOUND';
+    throw err;
+  }
   return JSON.parse(readFileSync(hit, 'utf8'));
 }
 

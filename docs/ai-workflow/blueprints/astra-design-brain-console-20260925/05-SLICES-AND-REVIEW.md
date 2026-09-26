@@ -37,12 +37,22 @@ sitting.
 - **Also landed:** the A5 board (`core/capabilities.mjs`), because A0 unblocked it and its rows are
   code-sourced — so **A5's entry is met too**.
 
-### A2 — Astra MCP
+### A2 — Astra MCP ← **✅ DONE 2026-09-26**
 - **Does:** `mcp/server.mjs`, `mcp/tools.mjs`; read tools + one guarded write.
-- **Entry:** A1 exit met.
-- **Exit:** `--list-tools` shows 9 tools; `T-I-08` proves the unconfirmed write is refused; `T-I-09`
-  proves one board serves both consumers.
-- **Evidence:** the tool list, and the refusal output.
+- **Entry:** A1 exit met. ✅
+- **Exit:** `--list-tools` shows 9 tools ✅; `T-I-08` proves the unconfirmed write is refused ✅; `T-I-09`
+  proves one board serves both consumers ✅.
+- **Evidence:** `scripts/astra/evidence/a2-tests.txt` — the tool list, the refusal output, 51/51 green.
+- **Also landed:** the World Engine reader + `world-roulette.v1` (`core/worlds.mjs`,
+  `core/worldRoulette.mjs`) and the bounded doctrine search (`core/doctrine.mjs`), because three of the
+  nine tools needed them and none existed.
+- **Corrections:** `A2-CORRECTIONS.md` — 6 packet corrections (C12–C17) and **9 defects (D6–D14)**.
+  Two are worth reading before A3: a CRLF catalogue made every anchored regex fail **silently**, and the
+  `swan-brand` licence filter rejected **all 18 worlds** because it read the palette law at the wrong
+  line offset. Both are "the instrument was wrong, not the thing it measured".
+- **Named gap:** **G3** — there is no Astra-scoped module smoke guard. `moduleSmoke.test.mjs` covers
+  `shared/` only, so a new `core/*.mjs` is verified only by whichever test imports it. Deliberately not
+  built here; better written once after A8.
 
 ### A3 — Surface v1 (Compose · Choose · Think)
 - **Does:** the loopback server, the control registry, three panes, all §2.6 states.

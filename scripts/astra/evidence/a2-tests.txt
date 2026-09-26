@@ -1,0 +1,118 @@
+ASTRA — slice A2 evidence (Astra MCP: mcp/server.mjs + mcp/tools.mjs)
+Captured: 2026-09-26T03:22:09Z
+Node: v22.22.2
+Worktree: tmp/worktrees/brain-console-salvage-20260918  branch: swan-brain-console-v3-salvage-20260918
+Base: 30134b1b6 (A1)
+
+===============================================================================
+1. EXIT CRITERION — `--list-tools` shows 9 tools
+===============================================================================
+astra — 9 tools (1 write: brain.reject, needs confirm)
+
+  brain.directions
+      Gate 0.
+  brain.compile
+      Compile a brief.
+  brain.explain
+      The reasoning behind a compile: slots, facets, every lawCheck, seed, provider and brain version.
+  brain.capabilities
+      The honest capability board: every lane with ACTIVE / REFUSED / RETIRED / DISABLED and the reason.
+  brain.tuning.get
+      The current tuning knobs, flattened to dotted keys, plus the blast-radius catalogue.
+  brain.tuning.preview
+      What a tuning patch WOULD change: the resulting values, the changed keys, and the blast radius of each.
+  brain.worlds
+      The World Engine catalogue (18 DNA recipes in 5 families) and a deterministic seeded draw using the catalogue's own `world-roulette.v1`.
+  brain.doctrine
+      Search the design-brain doctrine corpus.
+  brain.reject
+      THE ONLY WRITE.
+exit=0
+
+===============================================================================
+2. THE FULL ASTRA SUITE (A1 + A5 + A2)
+===============================================================================
+# tests 51
+# pass 51
+# fail 0
+# duration_ms 2348.8651
+
+===============================================================================
+3. A2 IN FULL — every test named, every verdict
+===============================================================================
+ok 1 - T-A2-01 the registry is internally consistent and lists exactly 9 tools
+ok 2 - T-A2-02 `--list-tools` prints 9 tools and exits 0
+ok 3 - T-I-08 brain.reject without confirm is refused AND writes nothing
+ok 4 - T-I-08 confirm: false is also refused — only literal true passes
+ok 5 - T-I-08 with confirm: true the write DOES occur
+ok 6 - T-I-08 the guard PRECEDES the write in source order, not just in effect
+ok 7 - T-I-08 brain.reject on an unknown id fails without inventing an entry
+ok 8 - T-I-09 MCP capabilities and the core board are the SAME object, from one source
+ok 9 - T-P-02 no forbidden capability is registered, and forbidden names are refused
+ok 10 - T-P-02 no Astra source writes taste state, and no tool reaches for taste or .env
+ok 11 - T-P-02 no tool result carries image bytes or a credential-shaped blob
+ok 12 - T-A2-03 brain.tuning.preview reports changes and WRITES NOTHING
+ok 13 - T-A2-04 brain.worlds is deterministic through the MCP surface
+ok 14 - T-A2-05 brain.doctrine returns file:line and an honest completeness flag
+ok 15 - T-A2-06 brain.explain on an unknown id is a named error, never a blank pane
+ok 16 - T-A2-07 the handshake, the tool list, and an unknown method
+ok 17 - T-A2-07 an unsupported protocol version is answered with one we DO speak
+ok 18 - T-A2-08 the process survives malformed input, a notification, and a bad tool
+ok 19 - T-A2-09 tools/call without a name is an invalid request, not a crash
+ok 20 - T-A2-10 responses arrive keyed by id even when they interleave
+ok 21 - T-A2-11 an empty stdin line is ignored, and EOF exits 0
+
+===============================================================================
+4. NO REGRESSION — the pre-existing shared/ guard
+===============================================================================
+ok 1 - EVERY shared module imports, and every export resolves to a real value
+ok 2 - EVERY exported function is INVOKED with valid args — no unreachable bodies
+ok 3 - every FUNCTION exported by a shared module is callable
+ok 4 - no NUMERIC TOLERANCE ships without stated provenance
+ok 5 - the retired palette is never spelled literally in shared source
+# tests 5
+# pass 5
+# fail 0
+
+===============================================================================
+5. RULE 4 — line budgets (readFileSync split, i.e. wc -l + 1). 300 is the cap.
+===============================================================================
+     192 scripts/astra/cli.mjs
+      78 scripts/astra/core/bind.mjs
+      79 scripts/astra/core/brain.mjs
+     229 scripts/astra/core/capabilities.mjs
+     162 scripts/astra/core/doctrine.mjs
+      65 scripts/astra/core/paths.mjs
+     118 scripts/astra/core/session.mjs
+     146 scripts/astra/core/tuning.mjs
+     241 scripts/astra/core/worldRoulette.mjs
+     122 scripts/astra/core/worlds.mjs
+     184 scripts/astra/mcp/server.mjs
+     261 scripts/astra/mcp/tools.mjs
+     287 scripts/astra/tests/a1-core.test.mjs
+     272 scripts/astra/tests/a2-mcp.test.mjs
+     140 scripts/astra/tests/a2-transport.test.mjs
+     156 scripts/astra/tests/a5-capabilities.test.mjs
+modules over 300: 0
+
+===============================================================================
+6. THE DEFECTS THIS SLICE FOUND AND FIXED
+===============================================================================
+D6  worlds.md is CRLF; JS `.` does not match \r, so `(.+)$` failed on EVERY line.
+    Symptom: a silent 0 families / 0 worlds, not an error.
+D7  the palette law was read at line offset +2; the document puts it at +4.
+    Every world got paletteLaw 'unspecified' and lawA false, so the swan-brand
+    licence filter rejected ALL 18 worlds. Measured after: 13 eligible / 5 rejected.
+D8  `searchDoctrine` threw named errors without setting `.code`, so the MCP surface
+    reported E_DOCTRINE_QUERY as a generic E_TOOL_FAILED. Same class found in
+    worldRoulette.mjs (3 sites) and cli.mjs (1 site). All four fixed.
+D9  `spawnSync(..., { input })` fails with EBUSY on this machine for EVERY stdio
+    config. Fixed by passing an opened fd as stdin. Third face of one Windows trap.
+
+--- measured catalogue facts (after the fixes) ---
+catalogVersion : world-catalog.2026-07-12.v2
+counts         : {"families":5,"worlds":18,"declaredWorlds":18,"matchesDeclared":true,"unlabelledFields":[]}
+families       : 1:Natural Sublime(6) | 2:Cosmic(3) | 3:Constructed Tech(4) | 4:Miniature & Play(3) | 5:Cinematic Real(2)
+draw(seed=evidence): Cinematic Real/Archive Editorial, Miniature & Play/Voxel Realm, Natural Sublime/Emerald Canopy
+replay identical   : true
+swan-brand         : eligible=13 rejected=5 unreadable=0

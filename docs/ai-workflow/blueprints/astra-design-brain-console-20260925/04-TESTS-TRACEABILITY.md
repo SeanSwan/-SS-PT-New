@@ -159,13 +159,13 @@ unchanged.
 | R6 | AC6.1 | `core/ledger.mjs` | `T-E-03` | A6 | not run |
 | R6 | AC6.2 | cost drift | `T-I-06` | A6 | not run |
 | R6 | AC6.3 | trend view | `T-E-03` | A6 | not run |
-| R7 | AC7.1 | `mcp/tools.mjs` | `T-I-08` | A2 | not run |
-| R7 | AC7.2 | MCP surface audit | `T-P-02` | A2 | not run |
-| R7 | AC7.3 | one board, two consumers | `T-I-09` | A2 | not run |
+| R7 | AC7.1 | `mcp/tools.mjs` | `T-I-08` | A2 | **PASS** — refused, and the registry still shows `outcome: 'pending'` |
+| R7 | AC7.2 | MCP surface audit | `T-P-02` | A2 | **PASS** — 21 forbidden names refused; no env read; no write path in `mcp/` |
+| R7 | AC7.3 | one board, two consumers | `T-I-09` | A2 | **PASS** — `deepEqual` against the live `capabilities()` |
 | R8 | AC8.1 | `core/bind.mjs` | `T-U-10` | A1 | **PASS** |
 | R8 | AC8.2 | mutation token | `T-I-10` | A1 | not run |
-| R8 | AC8.3 | no secret in surface | `T-P-02` | A1 | not run |
-| INV1 | — | write-path scan | `T-P-02` | A1 | not run |
+| R8 | AC8.3 | no secret in surface | `T-P-02` | A2 | **PASS** — no `process.env`, no dotenv import in Astra's shipped source |
+| INV1 | — | write-path scan | `T-P-02` | A2 | **PASS** — one mutating call in `mcp/`, and it is `brain.reject`'s |
 | INV2 | — | write-path scan | `T-P-03` | A1 | not run |
 | INV3 | — | LAW gate | `T-I-07` | A1 | not run |
 | INV4 | — | spend gate | `T-U-01`, `T-I-07` | A1, A3 | **T-U-01 PASS**; T-I-07 not run |
