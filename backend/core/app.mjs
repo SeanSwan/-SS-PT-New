@@ -11,7 +11,7 @@ import compression from 'compression';
 import helmet from 'helmet';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { setupMiddleware } from './middleware/index.mjs';
+import { setupMiddleware, redactRequestUrl } from './middleware/index.mjs';
 import { setupRoutes } from './routes.mjs';
 import { setupErrorHandling } from './middleware/errorHandler.mjs';
 import { initializeSession } from '../config/session.mjs';
@@ -90,8 +90,11 @@ export const createApp = async () => {
     const url = req.url;
     const corsOrigin = getAllowedCorsOrigin(origin);
     
-    // Log ALL incoming requests for debugging
-    logger.info(`🌐 INCOMING REQUEST: ${method} ${url} from origin: ${origin || 'no-origin'}`);
+    // Log ALL incoming requests for debugging — through the redactor. Layer 1
+    // runs BEFORE the middleware stack, so the raw URL used to bypass
+    // redactRequestUrl entirely and persisted gallery ?token= and Stripe
+    // session_id/code/state into winston logs (hostile-review H6).
+    logger.info(`🌐 INCOMING REQUEST: ${method} ${redactRequestUrl(url)} from origin: ${origin || 'no-origin'}`);
     
     if (method === 'OPTIONS') {
       logger.info(`🎯 LAYER 1 - OPTIONS INTERCEPTED: ${url} from origin: ${origin || 'no-origin'}`);

@@ -426,6 +426,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     // Clear all stored data using cleanup utility
     tokenCleanup.cleanupAllTokens();
     clearAdminImpersonationState();
+
+    // Cross-user stale-state guard: the trainer's selected client survived
+    // logout via sessionStorage, so the next user on a shared machine would
+    // silently act on the previous trainer's client (hostile-review finding).
+    sessionStorage.removeItem('ss-active-client');
     
     // Clear API auth
     apiService.setAuthToken(null);

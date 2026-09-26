@@ -6,6 +6,17 @@ import sequelize from '../database.mjs';
  * Notification Model
  * Stores user-facing in-app notifications and their delivery/action metadata.
  */
+
+// Single source of truth for valid notification types. Exported so routes
+// (e.g. admin test-broadcast) can pre-validate instead of 500-ing on the
+// model's isIn check. 'new_follower' added 2026-09-26: socialController
+// writes it on every follow and the enum drift was rolling back the whole
+// follow transaction — following a user always failed.
+export const NOTIFICATION_TYPES = Object.freeze([
+  'orientation', 'system', 'order', 'workout', 'client', 'admin', 'session',
+  'achievement', 'reward', 'message', 'measurement', 'new_follower',
+]);
+
 class Notification extends Model {}
 
 Notification.init(
@@ -29,7 +40,7 @@ Notification.init(
       defaultValue: 'system',
       validate: {
         isIn: {
-          args: [['orientation', 'system', 'order', 'workout', 'client', 'admin', 'session', 'achievement', 'reward', 'message', 'measurement']],
+          args: [NOTIFICATION_TYPES],
           msg: 'Invalid notification type'
         }
       }

@@ -3,7 +3,7 @@ import express from 'express';
 import { protect, adminOnly as isAdmin } from '../middleware/authMiddleware.mjs';
 import User from '../models/User.mjs';
 import Session from '../models/Session.mjs';
-import Notification from '../models/Notification.mjs';
+import Notification, { NOTIFICATION_TYPES } from '../models/Notification.mjs';
 import { Op } from 'sequelize';
 import db from '../database.mjs';
 import logger from '../utils/logger.mjs';
@@ -188,6 +188,12 @@ router.post('/restart-mcp-connections', isAdmin, async (req, res) => {
 router.post('/test-notifications', isAdmin, async (req, res) => {
   try {
     const { userId, type = 'system' } = req.body;
+
+    // Pre-validate against the model's enum: an out-of-list type used to 500
+    // the whole broadcast on the model's isIn check (schema-drift round).
+    if (!NOTIFICATION_TYPES.includes(type)) {
+      return errorResponse(res, `Invalid notification type. Valid types: ${NOTIFICATION_TYPES.join(', ')}`, 400);
+    }
     
     logger.info(`Admin initiated test notification for user ${userId || 'all'}`);
     

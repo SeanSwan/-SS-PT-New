@@ -119,7 +119,12 @@ const SuccessPage: React.FC = () => {
       logger.error('[Success Page] Verification failed:', error.message);
       const responseError = error.response?.data?.error;
 
-      if (responseError?.requiresSupportReview) {
+      // AMOUNT_MISMATCH: Stripe took the payment but the backend withheld the
+      // grant for manual reconciliation — this is the support-review state,
+      // NOT a success. Without this branch the activation-status fallback
+      // below saw paid===true and rendered a normal success page while the
+      // buyer received nothing (round-2 hostile review finding 7).
+      if (responseError?.requiresSupportReview || responseError?.code === 'AMOUNT_MISMATCH') {
         const message = error.response?.data?.message || responseError.details || 'Payment confirmed. Inventory changed before fulfillment could complete.';
         setSupportReviewMessage(message);
         clearCart();

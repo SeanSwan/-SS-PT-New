@@ -247,7 +247,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
         );
         if (tableCheck?.[0]?.exists) {
           await sequelize.query(
-            `INSERT INTO client_trainer_assignments (client_id, trainer_id, assigned_by, status, created_at, updated_at)
+            `INSERT INTO client_trainer_assignments ("clientId", "trainerId", "assignedBy", "status", "createdAt", "updatedAt")
              VALUES (:clientId, :trainerId, :assignedBy, 'active', NOW(), NOW())`,
             {
               replacements: {
@@ -278,7 +278,7 @@ router.post('/', protect, trainerOrAdminOnly, async (req, res) => {
         );
         if (tableCheck?.[0]?.exists) {
           await sequelize.query(
-            `INSERT INTO client_notes (user_id, trainer_id, note_type, content, created_at, updated_at)
+            `INSERT INTO client_notes ("userId", "trainerId", "noteType", "content", "createdAt", "updatedAt")
              VALUES (:userId, :trainerId, 'onboarding', :content, NOW(), NOW())`,
             {
               replacements: {
