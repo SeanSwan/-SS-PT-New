@@ -25,15 +25,15 @@ This file is the canonical "what matters now" tracker.
 - **Rulebook upgraded 2026-09-25:** rules 87–90 added + rules 71/73 amended (`501bbb12a`), Open Items volatile-fact prune (`ef7e2d3a4`), mandatory Where-We-Are/What's-Next closeout block landed by rescue (`9edd7fa76`).
 - **Swan Coach command surface — code-level liveness VERIFIED:** `initializeRegistry()` registers **121 commands across 14 categories** at runtime (the registry docblock's "119 across 16" is stale); `view_available_slots` is registered; scoped dispatcher suites **45/46 green** with 1 named contract defect (see Priority Stack P1-1).
 - **2026-09-22 incident debts (§10):** (1) re-commit decision for surviving untracked work — **SEAN'S CALL, still open**; (2) the gc/concurrency question — answer filed with the 3-day hostile review record (`ae2c0bac4`); (3) `emailTemplates.mjs` private escaper — **RESOLVED** (verified 2026-09-25: imports shared `escapeHtml` from `utils/htmlEscape.mjs` at line 18).
-- ⚠ **Local DB auth is failing** (2026-09-25: `DATABASE_URL` rejected, password authentication failed for `swanadmin`; later attempt `ECONNRESET`). Since local dev uses the production DB, this blocks ALL local smoke. Credential rotation status is Sean's domain — not probed further (rule 59).
+- ⚠ **DB connectivity — CORRECTED 2026-09-25 (two credentials, not one):** the **Render production credential is VALID** (direct probe 2026-09-25: TCP open, auth OK, `SELECT 1` → 1 against `dpg-cv1qga1u0jms738nc8lg-a.oregon-postgres.render.com`). The vitest "password authentication failed for swanadmin" failures were **the H-06 guard working as designed** (`database.mjs:39-76` — it refuses the hosted DB from non-production processes because test suites once wrote to production SequelizeMeta) and falling back to the **LOCAL PostgreSQL** (listening on localhost:5432) where the `PG_USER=swanadmin` / `PG_PASSWORD` pair in `backend/.env` does not match the local instance. An earlier board entry wrongly implied the Render credential might be stale — corrected.
 
 ---
 
 ## What's Next (ranked recommendation, 2026-09-25)
 
-1. **P1 — Fix the verified coach contract defect** `clientSelfServiceCommandDispatcherContract.test.mjs` > "summarizes XP, streaks, and badges without profile PII": dispatcher queries `isNew: true`, test expects `isCompleted: true`. Small, test-covered; triage which side is right before touching either (rule 52). Owning seat: coach lane.
-2. **P1 — Restore local DB auth.** Without it, no local smoke anywhere (the "works locally = works in production" path is dark). Check whether `swanadmin` was rotated and update the local env — Sean/credentials domain.
-3. **P1 — Production dispatch probe** for the 121-command surface (authenticated command round-trip against the running backend). Unblocked by item 2. This is the last step to retire the `[UNKNOWN]`-class production claims in CLAUDE.md's coach lane.
+1. ~~**P1 — Fix the verified coach contract defect**~~ ✅ **RESOLVED 2026-09-25** (`2012086ee`): triage verdict — the dispatcher was RIGHT (the `UserAchievement` table has no `isNew` column; rule-58-verified 2026-07-29 in `clientSelfServiceReadDispatchers.mjs:243`); the stale test line + harness mock re-created the exact query that threw against the live DB. Both now assert the real semantics (`isCompleted` + `notificationSent:false`); scoped suites **46/46**.
+2. **P2 — Local PostgreSQL credential fix** (reframed from "Render credential rotation", which is NOT needed): test-mode DB-backed smoke authenticates against LOCAL PG (`PG_HOST`/`PG_USER`/`PG_PASSWORD` in `backend/.env`) and that pair fails. Fix locally via psql on the local instance (`ALTER USER ... WITH PASSWORD`) or update `PG_PASSWORD` — Sean's credentials domain. DB-free unit suites are unaffected (most don't touch the DB).
+3. **P2 — Production dispatch probe (app half):** the DB half is VERIFIED (authenticated `SELECT 1` against production Render PG from this machine, 2026-09-25). Remaining: an authenticated command round-trip through the running backend — deliberate work, since it drives the live app. If prod-DB local smoke is ever wanted, the guard's own deliberate override is `SWAN_DEV_ALLOW_PRODUCTION_DATABASE_URL=1` (touches production — Sean's explicit call, never default).
 4. **P2 — Sean decisions owed:** (a) re-commit policy for any remaining untracked 2026-09-22 surviving work (incident §10.1); (b) confirm or re-rank the carried business priorities below.
 5. **Carried business priorities (from the 2026-05-09 product plan — SEAN, confirm still current before investing):** Stripe store/cart/session purchase readiness (note: CLAUDE.md still records `/api/cart/add` 404 as unresolved, as-of 2026-04-11 — probe before assuming it reproduces, rule 55); client onboarding/account readiness; teach-first guided flows; PLAUD intake audio playback.
 
@@ -57,16 +57,15 @@ This file is the canonical "what matters now" tracker.
 
 - Official PLAUD existing-account sync — private beta per April 2026 note; re-verify before depending on it.
 - `CURRENT-TASK.md` remains historical; do not revive it as the priority board.
-- Production smoke of any kind until local DB auth is restored (see What's Next #2).
+- DB-backed local test smoke: blocked only by the LOCAL PostgreSQL credential (see What's Next #2); production DB itself is reachable and its credential is valid — any deliberate prod-DB smoke from a non-production process requires `SWAN_DEV_ALLOW_PRODUCTION_DATABASE_URL=1` (H-06 guard; touches production — Sean's explicit call).
 
 ---
 
 ## Latest Verified Commits (as-of 2026-09-25)
 
-- `9edd7fa76` - rescue(rulebook): land the co-writer closeout-section lines (byte-for-byte, private index)
-- `625359441` - docs(learning): ledger line for the shared-index concurrency lesson
-- `ef7e2d3a4` - docs(claude-md): rule-88 volatile-fact prune of Open Items
-- `501bbb12a` - docs(claude-md): add rules 87-90 and harden 71/73
+- `2012086ee` - test(coach): align self-service badge contract with the real schema (46/46)
+- `49dd46f1e` - chore(mirrors): regenerate AGENTS/CODEBUDDY/GEMINI from CLAUDE.md
+- `5816d5822` - docs(priorities): full rule-88 evidence rebuild of ACTIVE-PRIORITIES
 - `2986619ef` - fix(coach): inline mic dictation in the Swan Coach dock
 - `503e801d2` - fix(ai-workflow): GLM transport document titling
 - `2bef60d74` - docs(ai-workflow): review record's eight majors marked fixed
